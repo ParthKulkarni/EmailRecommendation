@@ -1,0 +1,148 @@
+X-Received: by 10.180.87.7 with SMTP id t7mr101582wiz.5.1406253354269;
+        Thu, 24 Jul 2014 18:55:54 -0700 (PDT)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.152.27.72 with SMTP id r8ls186095lag.46.gmail; Thu, 24 Jul
+ 2014 18:55:19 -0700 (PDT)
+X-Received: by 10.152.6.200 with SMTP id d8mr1317856laa.4.1406253319093;
+        Thu, 24 Jul 2014 18:55:19 -0700 (PDT)
+Return-Path: <chaos....@gmail.com>
+Received: from mail-wg0-x233.google.com (mail-wg0-x233.google.com [2a00:1450:400c:c00::233])
+        by gmr-mx.google.com with ESMTPS id hl14si5647wib.2.2014.07.24.18.55.19
+        for <golan...@googlegroups.com>
+        (version=TLSv1 cipher=ECDHE-RSA-RC4-SHA bits=128/128);
+        Thu, 24 Jul 2014 18:55:19 -0700 (PDT)
+Received-SPF: pass (google.com: domain of chaos....@gmail.com designates 2a00:1450:400c:c00::233 as permitted sender) client-ip=2a00:1450:400c:c00::233;
+Authentication-Results: gmr-mx.google.com;
+       spf=pass (google.com: domain of chaos....@gmail.com designates 2a00:1450:400c:c00::233 as permitted sender) smtp.mail=chaos....@gmail.com;
+       dkim=pass head...@gmail.com;
+       dmarc=pass (p=NONE dis=NONE) header.from=gmail.com
+Received: by mail-wg0-f51.google.com with SMTP id b13so3516003wgh.34
+        for <golan...@googlegroups.com>; Thu, 24 Jul 2014 18:55:19 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20120113;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc:content-type;
+        bh=nfnCRlijSjrDzDPiKXILzyhArv7lxz+C3rMNBO+Vk2k=;
+        b=TdhqwdEBGt6y1k/mL7JtaG3GInmDHAHcHa6aQWdFUPirBywSTkU+OmYttQ8FbZ4cZ/
+         OiuB+V/BpXwZ3NGjoBYS1p8cCxFVb3PZOOGS0oi6Z85YYKLHKwbbapHI+DrYnoAm/yni
+         LXIxRP7ATtQ8MdUHqGBHU6t2FfVewaJmd9IdUKjcUf3Ht5eaWohukQcOseVsLxStyCFt
+         d0v6ettjnkkvZSpUhy8JMkaZfzfycOD9jY6bHbXy1FUIEXj93q99Eov6Sh4mIOsBlvaY
+         BWeN8psmn500cwiLSkEXp2sKEhK929P8BuHzvR/vjpEhriP//YKK68y6VFQuYUgJu9+i
+         3V0w==
+X-Received: by 10.180.99.65 with SMTP id eo1mr1220916wib.12.1406253318963;
+ Thu, 24 Jul 2014 18:55:18 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.194.85.109 with HTTP; Thu, 24 Jul 2014 18:54:57 -0700 (PDT)
+In-Reply-To: <f08aad09-13a3-47f0-b195-2df3b47c8c48@googlegroups.com>
+References: <522eafca-17a6-4a90-9a35-19673781aeb2@googlegroups.com> <f08aad09-13a3-47f0-b195-2df3b47c8c48@googlegroups.com>
+From: Grissiom <chaos....@gmail.com>
+Date: Fri, 25 Jul 2014 09:54:57 +0800
+Message-ID: <CALC6sND2SLhPNhDkx==3m-rVNnJW2qxqboLrMNswuA67X3KYfg@mail.gmail.com>
+Subject: Re: [go-nuts] Re: Pointer to string(continuous literal) without Cgo?
+To: Frits van Bommel <fvbo...@gmail.com>
+Cc: golan...@googlegroups.com
+Content-Type: multipart/alternative; boundary=f46d04428e5e8a87eb04fefaddf4
+
+--f46d04428e5e8a87eb04fefaddf4
+Content-Type: text/plain; charset=UTF-8
+
+On Thu, Jul 24, 2014 at 11:11 PM, Frits van Bommel <fvbo...@gmail.com>
+wrote:
+
+> On Thursday, July 24, 2014 5:04:27 PM UTC+2, Grissiom Gu wrote:
+>
+>> Hi all,
+>>
+>> I'm currently writing Go code interact with my hand-writing Linux kernel
+>> module under ARM. I need to do ioctl with a parameter structure which has a
+>> "char *". But I failed to do it right in Go. Here is my code so far:
+>>
+>> func main() {
+>>         namebuf := bytes.NewBufferString("rti\x00")
+>>         cb := rt_vbus_request{
+>>                 name:      uintptr(unsafe.Pointer(namebuf)),
+>>
+>
+> Try using uintptr(unsafe.Pointer(&namebuf[0]) in the 'name' field. What
+> you're doing now is effectively passing a pointer to the slice header
+> <http://golang.org/pkg/reflect/#SliceHeader> instead of the data in the
+> slice.
+> (NewBufferString returns a *bytes.Buffer, which is "under the hood" a
+> *[]byte)
+>
+>
+I tried:
+
+namebuf := bytes.NewBufferString("rti\x00")
+ cb := rt_vbus_request{
+name:      uintptr(unsafe.Pointer(&namebuf.Bytes()[0])),
+
+
+And it works  like a charm. Thank you very much!
+
+-- 
+Cheers,
+Grissiom
+
+--f46d04428e5e8a87eb04fefaddf4
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><div class=3D"gmail_extra"><div class=3D"gmail_quote">On T=
+hu, Jul 24, 2014 at 11:11 PM, Frits van Bommel <span dir=3D"ltr">&lt;<a hre=
+f=3D"mailto:fvbo...@gmail.com" target=3D"_blank">fvbo...@gmail.com</a>&gt;<=
+/span> wrote:<br>
+
+<blockquote class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-=
+left-width:1px;border-left-color:rgb(204,204,204);border-left-style:solid;p=
+adding-left:1ex"><div dir=3D"ltr"><div class=3D"">On Thursday, July 24, 201=
+4 5:04:27 PM UTC+2, Grissiom Gu wrote:</div>
+
+<blockquote class=3D"gmail_quote" style=3D"margin:0px 0px 0px 0.8ex;border-=
+left-width:1px;border-left-color:rgb(204,204,204);border-left-style:solid;p=
+adding-left:1ex"><div dir=3D"ltr"><div class=3D"">Hi all,<div><br></div><di=
+v>I&#39;m currently writing Go code interact with my hand-writing Linux ker=
+nel module under ARM. I need to do ioctl with a parameter structure which h=
+as a &quot;char *&quot;. But I failed to do it right in Go. Here is my code=
+ so far:</div>
+
+<div><br></div></div><div class=3D""><div><div style=3D"border:1px solid rg=
+b(187,187,187);word-wrap:break-word;background-color:rgb(250,250,250)"><cod=
+e><div><span><font color=3D"#000000"><div><div>func main() {</div><div>=C2=
+=A0 =C2=A0 =C2=A0 =C2=A0 namebuf :=3D bytes.NewBufferString(&quot;rti\<u></=
+u>x00&quot;)</div>
+
+<div>=C2=A0 =C2=A0 =C2=A0 =C2=A0 cb :=3D rt_vbus_request{</div><div>=C2=A0 =
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 name: =C2=A0 =C2=A0 =C2=A0=
+uintptr(unsafe.Pointer(<u></u>namebuf)),</div><div></div></div></font></spa=
+n></div></code></div></div></div></div></blockquote><div><br>Try using uint=
+ptr(unsafe.Pointer(&amp;namebuf[0]) in the &#39;name&#39; field.=20
+What you&#39;re doing now is effectively passing a pointer to the <a href=
+=3D"http://golang.org/pkg/reflect/#SliceHeader" target=3D"_blank">slice hea=
+der</a> instead of the data in the slice.<br>(NewBufferString returns a *by=
+tes.Buffer, which is &quot;under the hood&quot; a *[]byte)<br>
+
+</div></div><div class=3D""><div class=3D"h5">
+
+<p></p>
+
+</div></div></blockquote><div></div></div><div class=3D"gmail_extra"><br></=
+div><div class=3D"gmail_extra">I tried:</div><div class=3D"gmail_extra"><br=
+></div><div class=3D"gmail_extra"><div class=3D"gmail_extra"><span class=3D=
+"" style=3D"white-space:pre">=09</span>namebuf :=3D bytes.NewBufferString(&=
+quot;rti\x00&quot;)</div>
+
+<div class=3D"gmail_extra"><span class=3D"" style=3D"white-space:pre">=09</=
+span>cb :=3D rt_vbus_request{</div><div class=3D"gmail_extra"><span class=
+=3D"" style=3D"white-space:pre">=09=09</span>name: =C2=A0 =C2=A0 =C2=A0uint=
+ptr(unsafe.Pointer(&amp;namebuf.Bytes()[0])),</div>
+
+</div><div class=3D"gmail_extra"><div class=3D"gmail_extra"><br></div><div =
+class=3D"gmail_extra"></div></div><div class=3D"gmail_extra"><br></div><div=
+ class=3D"gmail_extra">And it works =C2=A0like a charm. Thank you very much=
+!</div><div class=3D"gmail_extra">
+
+<br></div>-- <br>Cheers,<br>Grissiom
+</div></div>
+
+--f46d04428e5e8a87eb04fefaddf4--

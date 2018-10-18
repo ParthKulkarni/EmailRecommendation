@@ -1,0 +1,51 @@
+Received: by 10.58.170.6 with SMTP id ai6mr1451359vec.35.1352268305353;
+        Tue, 06 Nov 2012 22:05:05 -0800 (PST)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.52.65.108 with SMTP id w12ls1423519vds.4.gmail; Tue, 06 Nov
+ 2012 22:04:58 -0800 (PST)
+Received: by 10.52.76.36 with SMTP id h4mr796168vdw.17.1352268298678;
+        Tue, 06 Nov 2012 22:04:58 -0800 (PST)
+Date: Tue, 6 Nov 2012 22:04:57 -0800 (PST)
+From: Kevin Gillette <extempor...@gmail.com>
+To: golang-nuts@googlegroups.com
+Cc: Sonia Hamilton <sonia.s...@gmail.com>
+Message-Id: <24249eb5-1d27-45cb-b551-3b77c30dd0a5@googlegroups.com>
+In-Reply-To: <97785a45-9f59-4fdb-b0ab-903a44403b29@googlegroups.com>
+References: <3ba93120-5de5-4dde-8e83-390464716b72@googlegroups.com>
+ <CADEq3_s0Ck2ZTe6ns-6QDGNAaSZbyrZA7H6V+6=VT43B6XWC5w@mail.gmail.com>
+ <42a18f77-7ec6-415c-a07c-6fa3e813f82a@googlegroups.com>
+ <97785a45-9f59-4fdb-b0ab-903a44403b29@googlegroups.com>
+Subject: Re: [go-nuts] map of maps - a better way?
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_1254_31579811.1352268297717"
+
+------=_Part_1254_31579811.1352268297717
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_1255_31436981.1352268297717"
+
+------=_Part_1255_31436981.1352268297717
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+To save the overhead (and extra GC load, depending on whether you ever 
+reclaim sub-maps), you could use something like:
+
+map[struct{s string, t time.Time}]int
+
+To avoid the same time instant in different timezones as being treated 
+unequal (if that's undesirable), you can have use int64 instead of 
+time.Time, to represent either seconds since the unix epoch in utc (if you 
+use the Unix() method of time.Time), or nanoseconds (if you use the 
+UnixNano() method), assuming all your times are in range. For seconds, the 
+range is 1970 +- ~292 billion years (though the time library may not 
+support this full range); for nanoseconds, it's 1970 +- ~292 years.
+
+------=_Part_1255_31436981.1352268297717
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+To save the overhead (and extra GC load, depending on whether you ever reclaim sub-maps), you could use something like:<div><br></div><div>map[struct{s string, t time.Time}]int<br><br></div><div>To avoid the same time instant in different timezones as being treated unequal (if that's undesirable), you can have use int64 instead of time.Time, to represent either seconds since the unix epoch in utc (if you use the Unix() method of time.Time), or nanoseconds (if you use the UnixNano() method), assuming all your times are in range. For seconds, the range is 1970 +- ~292 billion years (though the time library may not support this full range); for nanoseconds, it's 1970 +- ~292 years.</div>
+------=_Part_1255_31436981.1352268297717--
+
+------=_Part_1254_31579811.1352268297717--

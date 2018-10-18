@@ -1,0 +1,97 @@
+X-Received: by 10.182.71.67 with SMTP id s3mr66270466obu.20.1416196216937;
+        Sun, 16 Nov 2014 19:50:16 -0800 (PST)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.107.166.4 with SMTP id p4ls2863837ioe.55.gmail; Sun, 16 Nov
+ 2014 19:50:04 -0800 (PST)
+X-Received: by 10.50.142.105 with SMTP id rv9mr241662igb.0.1416196204308;
+        Sun, 16 Nov 2014 19:50:04 -0800 (PST)
+Date: Sun, 16 Nov 2014 19:50:03 -0800 (PST)
+From: Jon Seymour <jon.s...@gmail.com>
+To: golang-nuts@googlegroups.com
+Message-Id: <5cea4253-5973-4456-9018-03c1e423634b@googlegroups.com>
+Subject: Problems calling Windows DLL entry points that  are exported with
+ __stdcall linkage.
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_2383_125778645.1416196203510"
+
+------=_Part_2383_125778645.1416196203510
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_2384_837777867.1416196203510"
+
+------=_Part_2384_837777867.1416196203510
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+G'day,
+
+I've been trying to call out from a CGO go module to a Windows DLL produced 
+by MVSC that has __stdcall linkage.
+
+If I do nothing, the 8l link fails with errors like this:
+
+"C:\\Go\\pkg\\tool\\windows_386\\8l.exe" -o 
+"C:\\Users\\Jon\\AppData\\Local\\Temp\\go-build290355999\\github.com\\ninjasphere\\spher
+e-factory-test\\sajet-cmd\\_obj\\exe\\a.out.exe" -L 
+"C:\\Users\\Jon\\AppData\\Local\\Temp\\go-build290355999" -L 
+"c:\\Users\\jon\\Go
+\\pkg\\windows_386" -extld=gcc 
+"C:\\Users\\Jon\\AppData\\Local\\Temp\\go-build290355999\\github.com\\ninjasphere\\sphere-factory-tes
+t\\sajet-cmd.a"
+# github.com/ninjasphere/sphere-factory-test/sajet-cmd
+main(.text): undefined: SajetTransClose
+main(.text): undefined: SajetTransData
+main(.text): undefined: SajetTransStart
+
+If I follow the advice http://www.mingw.org/wiki/msvc_and_mingw_dlls in 
+here and massage the .def file to remove the leading underscores, e.g.
+
+sed -i "s/^_//" SajetStub.def 
+dlltool -U -d SajetStub.def -l libsajetstub.a
+
+then the 8l link succeeds, but at runtime I get a "procedure entry point 
+SajetTransClose@0" could not be located.
+
+If I change the DLL to use __cdecl linkage instead, then I don't need to 
+massage the import library and everything works as expected.
+
+Which is fine, except I am ultimately trying to call a DLL provided by a 
+3rd party which does have __stdcall linkage so the option of using __cdecl 
+linkage isn't available to me.
+
+Am I missing something about calling Windows DLLs with __stdcall linkage?
+
+jon.
+
+
+------=_Part_2384_837777867.1416196203510
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">G'day,<div><br></div><div>I've been trying to call out fro=
+m a CGO go module to a Windows DLL produced by MVSC that has __stdcall link=
+age.<br><br>If I do nothing, the 8l link fails with errors like this:<br><b=
+r><div>"C:\\Go\\pkg\\tool\\windows_386\\8l.exe" -o "C:\\Users\\Jon\\AppData=
+\\Local\\Temp\\go-build290355999\\github.com\\ninjasphere\\spher</div><div>=
+e-factory-test\\sajet-cmd\\_obj\\exe\\a.out.exe" -L "C:\\Users\\Jon\\AppDat=
+a\\Local\\Temp\\go-build290355999" -L "c:\\Users\\jon\\Go</div><div>\\pkg\\=
+windows_386" -extld=3Dgcc "C:\\Users\\Jon\\AppData\\Local\\Temp\\go-build29=
+0355999\\github.com\\ninjasphere\\sphere-factory-tes</div><div>t\\sajet-cmd=
+.a"</div><div># github.com/ninjasphere/sphere-factory-test/sajet-cmd</div><=
+div>main(.text): undefined: SajetTransClose</div><div>main(.text): undefine=
+d: SajetTransData</div><div>main(.text): undefined: SajetTransStart</div></=
+div><div><br>If I follow the advice&nbsp;http://www.mingw.org/wiki/msvc_and=
+_mingw_dlls in here and massage the .def file to remove the leading undersc=
+ores, e.g.<br><br>sed -i "s/^_//" SajetStub.def&nbsp;</div><div>dlltool -U =
+-d SajetStub.def -l libsajetstub.a</div><div><br>then the 8l link succeeds,=
+ but at runtime I get a "procedure entry point SajetTransClose@0" could not=
+ be located.<br><br>If I change the DLL to use __cdecl linkage instead, the=
+n I don't need to massage the import library and everything works as expect=
+ed.<br><br>Which is fine, except I am ultimately trying to call a DLL provi=
+ded by a 3rd party which does have __stdcall linkage so the option of using=
+ __cdecl linkage isn't available to me.<br><br>Am I missing something about=
+ calling Windows DLLs with __stdcall linkage?<br><br>jon.<br><br></div></di=
+v>
+------=_Part_2384_837777867.1416196203510--
+
+------=_Part_2383_125778645.1416196203510--

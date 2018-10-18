@@ -1,0 +1,77 @@
+X-Received: by 10.182.184.8 with SMTP id eq8mr3662387obc.16.1362293528973;
+        Sat, 02 Mar 2013 22:52:08 -0800 (PST)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.182.37.42 with SMTP id v10ls745290obj.92.gmail; Sat, 02 Mar
+ 2013 22:52:00 -0800 (PST)
+X-Received: by 10.43.104.71 with SMTP id dl7mr12332387icc.22.1362293520192;
+        Sat, 02 Mar 2013 22:52:00 -0800 (PST)
+X-Received: by 10.43.104.71 with SMTP id dl7mr12332385icc.22.1362293520180;
+        Sat, 02 Mar 2013 22:52:00 -0800 (PST)
+Return-Path: <devon...@gmail.com>
+Received: from mail-oa0-f41.google.com (mail-oa0-f41.google.com [209.85.219.41])
+        by gmr-mx.google.com with ESMTPS id j7si475934igc.3.2013.03.02.22.52.00
+        (version=TLSv1 cipher=ECDHE-RSA-RC4-SHA bits=128/128);
+        Sat, 02 Mar 2013 22:52:00 -0800 (PST)
+Received-SPF: pass (google.com: domain of devon...@gmail.com designates 209.85.219.41 as permitted sender) client-ip=209.85.219.41;
+Authentication-Results: gmr-mx.google.com;
+       spf=pass (google.com: domain of devon...@gmail.com designates 209.85.219.41 as permitted sender) smtp.mail=devon...@gmail.com;
+       dkim=pass head...@gmail.com
+Received: by mail-oa0-f41.google.com with SMTP id i10so7860723oag.0
+        for <golan...@googlegroups.com>; Sat, 02 Mar 2013 22:51:59 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20120113;
+        h=mime-version:x-received:in-reply-to:references:date:message-id
+         :subject:from:to:content-type;
+        bh=7BG5tbkaMxuDtJjztJ93Fn66eHUbHyqrxVtRLA5MWwo=;
+        b=StzjWplmNBtSkzEy35PnRV4QoyQTpKoa9mqbLq6ih0zsIxRo5KDR34SnTeVzX7LTyb
+         ZwxVhBYj+EISoDvNhJTHtvGZ5iHYKhd3bnvahMfBbgGMHVGA+WQkU4YzbtNbmEW9cil8
+         NY03lA+gQugWBdkdCF7+nQxD38vu+hj22/nSbdhjdrtYLeWgsV6ntYPvXTq0DCtYWVAt
+         Me8ATqs02M6GrtJKv8VuOna0W6ITMX5t4kSzSEoNsLFFUQbNP7kQcO8jO1p+CCQU9bsD
+         EiSm7dii0X2yuym4zokHoKg9f7UqPvxAaED1q7U+EQcxEJfygW63BMJzOuJn/Gt70Nsk
+         HUgA==
+MIME-Version: 1.0
+X-Received: by 10.60.169.212 with SMTP id ag20mr12589561oec.102.1362293519844;
+ Sat, 02 Mar 2013 22:51:59 -0800 (PST)
+Received: by 10.60.103.73 with HTTP; Sat, 2 Mar 2013 22:51:59 -0800 (PST)
+In-Reply-To: <CAFgOgC-LCkzdiSZ-PSEid492-ME_7MSzV4oDH0kuM3AKikrKrg@mail.gmail.com>
+References: <CAFgOgC9nkqCw9T3=owrYDfk6dNpBOkC0Z3K2r84upeCSCpaukw@mail.gmail.com>
+	<CACT4Y+ZDKzCE7eyhFn=fWZpG0ZLdp_2tsr3XO_MZXMwXFPrYuQ@mail.gmail.com>
+	<CAFgOgC-LCkzdiSZ-PSEid492-ME_7MSzV4oDH0kuM3AKikrKrg@mail.gmail.com>
+Date: Sun, 3 Mar 2013 01:51:59 -0500
+Message-ID: <CAFgOgC_6fP+NEZaArSbG_15vxizEubNMqoB41kaERF1QT3h4wg@mail.gmail.com>
+Subject: Fwd: [go-nuts] Workload semantics of new scheduler queues
+From: "Devon H. O'Dell" <devon...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=UTF-8
+
+Forgot to CC list
+
+
+---------- Forwarded message ----------
+From: Devon H. O'Dell <devon...@gmail.com>
+Date: 2013/3/3
+Subject: Re: [go-nuts] Workload semantics of new scheduler queues
+To: Dmitry Vyukov <dvy...@google.com>
+
+
+More in a bit, but...
+
+>> Since Pn can steal work from Pm, the semantics of access require
+>> assuming multiple consumers. But I can't tell if I'm right about
+>> understanding the producer workload. If I'm wrong, it needs to be
+>> MPMC, which reduces the producer side wait-freedom guarantee to simply
+>> lock-free, but I guess that's fine. For now I just want to see how it
+>> compares, especially on highly contended workloads. Getting this
+>> working on ARM will require adding the DMB instruction (possibly DSB,
+>> too) to the assembler.
+>
+> There are some portable atomic operations available in runtime, see
+> runtime.atomicload/store/xchg/cas/xadd.
+
+I'm worried about this. ARM has relaxed memory ordering, and the
+compilers don't generate memory fences on ARM, which means that
+lock-free data structures will probably break in weird ways if they're
+implemented on ARM. If these are working, it might be by accident...
+:S
+
+--dho

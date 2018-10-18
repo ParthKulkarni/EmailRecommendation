@@ -1,0 +1,150 @@
+X-Received: by 10.129.132.194 with SMTP id u185mr11617501ywf.68.1508940694994;
+        Wed, 25 Oct 2017 07:11:34 -0700 (PDT)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.129.146.22 with SMTP id j22ls232995ywg.24.gmail; Wed, 25 Oct
+ 2017 07:11:04 -0700 (PDT)
+X-Received: by 10.37.217.72 with SMTP id q69mr1166068ybg.31.1508940664717;
+        Wed, 25 Oct 2017 07:11:04 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1508940664; cv=none;
+        d=google.com; s=arc-20160816;
+        b=t8EOjwf5FGeVvZFJKraCdpyNvuZViK41NRdKUo56HIHrSh04qPw7DsOvxygtiRtfa/
+         yePNPZgIxE2wMAIYae0EembwC/zuer9C5GVicqD89RHt6wFHqqiwWtQgyJ0lc1o5yvxR
+         jZvYEYy8mYYiz9up/fntuPSO7Dc/bvOHjztO7geV+7SrOfZgvBMqh5U09vZERb5Cs/g3
+         u0kFHai7cabwiA9TupLjlKaI0dtFAzPYMhc+wVZksIZuFHUAg65yzQVwT6gZd1bTGoIb
+         OsXjatoMqar84D6lZj/KDA/aJjXv+6VqmCGXZqHxEQpURJV2TqXTjktFNFEoEb4TUAZP
+         jK/w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:dkim-signature
+         :arc-authentication-results;
+        bh=pH9cn60vuxi4gVpynDeKahwcmFJBJ91qZdj0aLbxQfE=;
+        b=higDab9uBaE9TjColABWTqXYpws/sVgTBjqGMGwkjcDvnZWf/ImYTWAAt1bTOgjDDP
+         DihSTqb4nSpOhyJY48IcDzHSk2WlHkB3WEmb9P9xBteH1XVfRkJXnoGgnUVrdh1k7Fkf
+         ULSSTVoVsjyZBtiTif3Q0jQv7zRkS/HeR56dMG3SO92qtKdBWXrVFLfp/7UUaf8gaZAQ
+         1ScCKB81lZt7ssG4Om5+c1W9gf3m3x5lH3KAFb+JjYrHD999mMrHczeY/nIC/Oo13+og
+         93GIyc/Wkv5MXN0qChP9iiBKheaWA0BMAH0C3QNJCdt2aK3HcyvwgnjAtkBbs9wHKl1y
+         CmTQ==
+ARC-Authentication-Results: i=1; gmr-mx.google.com;
+       dkim=pass head...@gmail.com header.s=20161025 header.b=YeU8XWR7;
+       spf=pass (google.com: domain of m.sh...@gmail.com designates 2607:f8b0:400e:c05::241 as permitted sender) smtp.mailfrom=m.sh...@gmail.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=gmail.com
+Return-Path: <m.sh...@gmail.com>
+Received: from mail-pg0-x241.google.com (mail-pg0-x241.google.com. [2607:f8b0:400e:c05::241])
+        by gmr-mx.google.com with ESMTPS id a4si191304ywb.5.2017.10.25.07.11.04
+        for <golan...@googlegroups.com>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Wed, 25 Oct 2017 07:11:04 -0700 (PDT)
+Received-SPF: pass (google.com: domain of m.sh...@gmail.com designates 2607:f8b0:400e:c05::241 as permitted sender) client-ip=2607:f8b0:400e:c05::241;
+Authentication-Results: gmr-mx.google.com;
+       dkim=pass head...@gmail.com header.s=20161025 header.b=YeU8XWR7;
+       spf=pass (google.com: domain of m.sh...@gmail.com designates 2607:f8b0:400e:c05::241 as permitted sender) smtp.mailfrom=m.sh...@gmail.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=gmail.com
+Received: by mail-pg0-x241.google.com with SMTP id l24so63817pgu.11
+        for <golan...@googlegroups.com>; Wed, 25 Oct 2017 07:11:04 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20161025;
+        h=date:from:to:cc:subject:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding;
+        bh=pH9cn60vuxi4gVpynDeKahwcmFJBJ91qZdj0aLbxQfE=;
+        b=YeU8XWR7Xtc9Xwbq55BEdxAU8d9n7YzhG8C43CcklfwkGbem2MJA4QYcv26TRpWGVM
+         lZOuEKAxc2BUmmChH0kQKjO0qWN34KfclDCXH8JcmtFQtigdAkWMH51cWe5ce5ZAIrEr
+         5yIXs38+8si7sJ0JfoUlVJNURfkopRSDDhZ/EoIEAD4/QHRygWwvvJlxzHITxVBSBMXV
+         kiEnKVxO40Ng1mdLddz+kP74j3bPRxxX13iJG0O+9WSvEBYKj2gIq7A/ZCoX+5gMPBXC
+         vJU2nJwcEd2mxmC8uRMh5hVhZzpbQpOpwtjhgdbfg+Rj1eQvuHtZ5u7t3oWf0BqRoNsO
+         l1+g==
+X-Gm-Message-State: AMCzsaWzUwbaLmbewdJ51empqnkep2dpXb/hicZy+Zcgn+PxTeHKtb+E
+	rMIcK14nnip+RrT1t8u0SoQ=
+X-Received: by 10.98.12.212 with SMTP id 81mr2386412pfm.88.1508940663937;
+        Wed, 25 Oct 2017 07:11:03 -0700 (PDT)
+Return-Path: <m.sh...@gmail.com>
+Received: from localhost.localdomain ([118.96.244.106])
+        by smtp.gmail.com with ESMTPSA id z89sm5769879pff.21.2017.10.25.07.11.02
+        (version=TLS1_2 cipher=ECDHE-RSA-CHACHA20-POLY1305 bits=256/256);
+        Wed, 25 Oct 2017 07:11:03 -0700 (PDT)
+Date: Wed, 25 Oct 2017 21:10:46 +0700
+From: Shulhan <m.sh...@gmail.com>
+To: desaia...@gmail.com
+Cc: golang-nuts <golan...@googlegroups.com>
+Subject: Re: [go-nuts] Multiple Goroutine timeout
+Message-ID: <20171025211046.769d7d92@gmail.com>
+In-Reply-To: <a9fded25-07da-4cc7-be91-518f0f360ec8@googlegroups.com>
+References: <a9fded25-07da-4cc7-be91-518f0f360ec8@googlegroups.com>
+X-Mailer: Claws Mail 3.15.1-dirty (GTK+ 2.24.31; x86_64-pc-linux-gnu)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+
+On Wed, 25 Oct 2017 06:30:09 -0700 (PDT)
+desaia...@gmail.com wrote:
+
+> I am expecting to show url1 (2 sec ), url2 (4 sec ) but not url3( 6
+> sec) where timeout is 5 sec
+> 
+> but program showing only url1 value
+> 
+> Please help
+> 
+> https://play.golang.org/p/aMOoSEHjmZ
+> 
+> Thanks in advance
+> 
+> Rgds,
+> 
+> Abhi
+> 
+> 
+> package main
+> 
+> import "fmt"
+> import "time"
+> 
+> func InvokeUrl1(u string, val chan<- string) {
+>     time.Sleep(2 * time.Second)
+>     val <- "Url1 Value"
+> }
+> func InvokeUrl2(u string, val chan<- string) {
+>     time.Sleep(4 * time.Second)
+>     val <- "Url2 Value"
+> }
+> func InvokeUrl3(u string, val chan<- string) {
+>     time.Sleep(6 * time.Second)
+>     val <- "Url3 Value"
+> }
+> 
+> func GetUrlValues(urls []string) {
+> 
+>     ch := make(chan string, 1)
+>     for _, url := range urls {
+>         go func(u string) {
+>             val := make(chan string)
+>             if u == "url1" {
+>               go InvokeUrl1(u, val)
+>             } else if u == "url2" {
+>               go InvokeUrl2(u, val)
+>             } else if u == "url3" {
+>               go InvokeUrl3(u, val)
+>             }
+> 
+>             select {
+>             case ret := <-val:
+>                 ch <- ret
+>             case <-time.After(5 * time.Second):
+>                 ch <- "nil"
+>             }
+>         }(url)
+>     }
+>     fmt.Println(<-ch)
+
+You only print once, it suppose to be inside the loop or wrapped with
+select while <-ch != "nil".
+
+> }
+> func main() {
+>   GetUrlValues([]string{"url1", "url2", "url3"})
+> }
+> 
+
+
+
+-- 
+{ "name":"Mhd Sulhan", "phone":"+628567826625", "site":"kilabit.info" }

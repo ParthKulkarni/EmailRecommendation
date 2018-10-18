@@ -1,0 +1,110 @@
+X-Received: by 10.68.236.129 with SMTP id uu1mr1692797pbc.1.1405140544270;
+        Fri, 11 Jul 2014 21:49:04 -0700 (PDT)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.140.85.213 with SMTP id n79ls606955qgd.29.gmail; Fri, 11 Jul
+ 2014 21:48:54 -0700 (PDT)
+X-Received: by 10.58.32.163 with SMTP id k3mr1740977vei.28.1405140534060;
+        Fri, 11 Jul 2014 21:48:54 -0700 (PDT)
+Return-Path: <shawn...@gmail.com>
+Received: from mail-qa0-x236.google.com (mail-qa0-x236.google.com [2607:f8b0:400d:c00::236])
+        by gmr-mx.google.com with ESMTPS id jx1si650580qcb.1.2014.07.11.21.48.54
+        for <golan...@googlegroups.com>
+        (version=TLSv1 cipher=ECDHE-RSA-RC4-SHA bits=128/128);
+        Fri, 11 Jul 2014 21:48:54 -0700 (PDT)
+Received-SPF: pass (google.com: domain of shawn...@gmail.com designates 2607:f8b0:400d:c00::236 as permitted sender) client-ip=2607:f8b0:400d:c00::236;
+Authentication-Results: gmr-mx.google.com;
+       spf=pass (google.com: domain of shawn...@gmail.com designates 2607:f8b0:400d:c00::236 as permitted sender) smtp.mail=shawn...@gmail.com;
+       dkim=pass head...@gmail.com;
+       dmarc=pass (p=NONE dis=NONE) header.from=gmail.com
+Received: by mail-qa0-f54.google.com with SMTP id k15so182829qaq.27
+        for <golan...@googlegroups.com>; Fri, 11 Jul 2014 21:48:54 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20120113;
+        h=mime-version:reply-to:in-reply-to:references:from:date:message-id
+         :subject:to:content-type;
+        bh=UWCfHgNXSNdjP4QMizq/x730s5+/AkVInzB7GD6FQGg=;
+        b=rUwX3VCAEtEVmCBevYudw3EO113oE8jIiYo7IlVFfESkG36GrGr3rA95itx83Pnyrb
+         m6ON28C06ozbE0kr78tA3U8EvCFeZlLDPjL+w0iJu5TQl1SZdyoOTuc8mxLj6z3LjyiQ
+         Sz7pcRAPbpfsL90vspSr8a7F3G2LuPKJX93DZcb/+d2AAQz2apqWI2tYD3fTMgzptr+i
+         g1SPbd+TTW3iQgVMRrM/MX/Jl2ooJ8u0kP3JncbudoBw67PPY65wfbiJBIyDssLmnwYD
+         spoHeDz+ohunCyEJ5Tj4XzdaVXFe3IOpBlaFlu2s8n6Wq1Ow4+ib3HZKstci6nVfZ7oz
+         r38w==
+X-Received: by 10.224.137.65 with SMTP id v1mr2386642qat.53.1405140533976;
+ Fri, 11 Jul 2014 21:48:53 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.229.190.10 with HTTP; Fri, 11 Jul 2014 21:48:33 -0700 (PDT)
+Reply-To: Sh...@Milochik.com
+In-Reply-To: <9c71326d-98ab-4f58-b65b-966fc8c8a3a1@googlegroups.com>
+References: <e3aa1401-f500-417a-a18c-3b341ed2da94@googlegroups.com>
+ <CAOzwKwG=BOh84p1b9UkBrkGxvKetkCKDR_NEpXECh7iQEZGnCg@mail.gmail.com>
+ <680b65b1-25e5-4bcb-a19f-25eb7e7a7b20@googlegroups.com> <CAOzwKwFVSuxNtLYZEbm=MLH_tYuKuoFVJEcR94HqCGcp7zPFmw@mail.gmail.com>
+ <CAOzwKwHz-8mRLKrWB1YJGsJK04YQsEn2P1pAJfBfd_vJVcsRgA@mail.gmail.com> <9c71326d-98ab-4f58-b65b-966fc8c8a3a1@googlegroups.com>
+From: Shawn Milochik <shawn...@gmail.com>
+Date: Sat, 12 Jul 2014 00:48:33 -0400
+Message-ID: <CAOzwKwHcA1MSnEaU4yRPVVXvjNfHxvMUsYbaSGhigTkPYM-x6w@mail.gmail.com>
+Subject: Re: Re: [go-nuts] SQL database for cross-platform application
+To: golang-nuts@googlegroups.com
+Content-Type: multipart/alternative; boundary=001a11c2cc3063387104fdf7c665
+
+--001a11c2cc3063387104fdf7c665
+Content-Type: text/plain; charset=UTF-8
+
+It sounds like you're right about using a relational database. I think
+PostgreSQL is definitely the way to go.
+
+You can see drivers here:
+https://code.google.com/p/go-wiki/wiki/SQLDrivers
+
+I've used pq a little bit, and it seems like a good way to go, but I
+haven't tested it on multiple operating systems. If you look at the GitHub
+page you will see (as in many Go packages, including some in the standard
+library) a couple of files that are OS-specific, so you are compiling
+different code per platform. So my earlier suggestion that a static binary
+should behave the same on all platforms was wrong.
+
+In any case, write a stupid-simple DB app that connects to Postgres using
+the pq driver and compile and run it on different platforms. Seeing it work
+(or not) means more than contemplating. :o)
+
+And *almost* off-topic, here's a funny (and sad) comparison between MySQL
+and PostgreSQL using default settings. If nothing else, it'll keep you from
+considering MySQL to be an option -- and maybe from calling it a "database"
+at all.
+https://www.youtube.com/watch?v=emgJtr9tIME
+
+--001a11c2cc3063387104fdf7c665
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><div class=3D"gmail_extra">It sounds like you&#39;re right=
+ about using a relational database. I think PostgreSQL is definitely the wa=
+y to go.
+</div><div class=3D"gmail_extra"><br></div><div class=3D"gmail_extra">You c=
+an see drivers here:</div><div class=3D"gmail_extra"><a href=3D"https://cod=
+e.google.com/p/go-wiki/wiki/SQLDrivers">https://code.google.com/p/go-wiki/w=
+iki/SQLDrivers</a><br>
+
+</div><div class=3D"gmail_extra"><br></div><div class=3D"gmail_extra">I&#39=
+;ve used pq a little bit, and it seems like a good way to go, but I haven&#=
+39;t tested it on multiple operating systems. If you look at the GitHub pag=
+e you will see (as in many Go packages, including some in the standard libr=
+ary) a couple of files that are OS-specific, so you are compiling different=
+ code per platform. So my earlier suggestion that a static binary should be=
+have the same on all platforms was wrong.</div>
+
+<div class=3D"gmail_extra"><br></div><div class=3D"gmail_extra">In any case=
+, write a stupid-simple DB app that connects to Postgres using the pq drive=
+r and compile and run it on different platforms. Seeing it work (or not) me=
+ans more than contemplating. :o)</div>
+
+<div class=3D"gmail_extra"><br></div><div class=3D"gmail_extra">And <i>almo=
+st</i>=C2=A0off-topic, here&#39;s a funny (and sad) comparison between MySQ=
+L and PostgreSQL using default settings. If nothing else, it&#39;ll keep yo=
+u from considering MySQL to be an option -- and maybe from calling it a &qu=
+ot;database&quot; at all.</div>
+
+<div class=3D"gmail_extra"><a href=3D"https://www.youtube.com/watch?v=3Demg=
+Jtr9tIME">https://www.youtube.com/watch?v=3DemgJtr9tIME</a><br></div><div c=
+lass=3D"gmail_extra"><br></div><div class=3D"gmail_extra"><br></div></div>
+
+--001a11c2cc3063387104fdf7c665--

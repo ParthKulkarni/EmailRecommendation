@@ -1,0 +1,72 @@
+X-Received: by 10.66.183.229 with SMTP id ep5mr6586296pac.3.1468419892003;
+        Wed, 13 Jul 2016 07:24:52 -0700 (PDT)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.36.85.201 with SMTP id e192ls1007377itb.42.gmail; Wed, 13 Jul
+ 2016 07:23:56 -0700 (PDT)
+X-Received: by 10.107.41.73 with SMTP id p70mr6976480iop.29.1468419836877;
+        Wed, 13 Jul 2016 07:23:56 -0700 (PDT)
+Return-Path: <ia...@golang.org>
+Received: from mail-io0-x232.google.com (mail-io0-x232.google.com. [2607:f8b0:4001:c06::232])
+        by gmr-mx.google.com with ESMTPS id d6si1731582ith.1.2016.07.13.07.23.56
+        for <golan...@googlegroups.com>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Wed, 13 Jul 2016 07:23:56 -0700 (PDT)
+Received-SPF: pass (google.com: domain of ia...@golang.org designates 2607:f8b0:4001:c06::232 as permitted sender) client-ip=2607:f8b0:4001:c06::232;
+Authentication-Results: gmr-mx.google.com;
+       dkim=pass head...@golang-org.20150623.gappssmtp.com;
+       spf=pass (google.com: domain of ia...@golang.org designates 2607:f8b0:4001:c06::232 as permitted sender) smtp.mailfrom=ia...@golang.org;
+       dmarc=pass (p=NONE dis=NONE) header.from=golang.org
+Received: by mail-io0-x232.google.com with SMTP id q83so47659561iod.1
+        for <golan...@googlegroups.com>; Wed, 13 Jul 2016 07:23:56 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=golang-org.20150623.gappssmtp.com; s=20150623;
+        h=mime-version:in-reply-to:references:from:date:message-id:subject:to
+         :cc;
+        bh=d89OEwcGOfseAH3kLoc9ePoXcxQB93mgUg25ohUt99o=;
+        b=avgwhHfur21Lltly7SHTEHMN8KT8LCHJL+bFKXjwbQ7JD4Sg9OKA22I9LHrE94jL4H
+         xoNvGudV5Dx9pkJ4qtY11I13aCPJkA8+cp3GgJXjZbCn57OOc1p/6iAkopBDGutoXpAS
+         AF/Wwt/o480vu7IKmQA9No73PTN/KTruLvy8lhMAIpb2TdZzkvwXh+V4Fx7t7rYMctre
+         7bG5WneiE4Dgn2+Qdh/y/hdqDWN8SWU/U4eydvPFct17sFHiEvEglZBRUTGZWCq+KP9X
+         T19Al6jNMJDMRb8xGD+LhVc//1vg3IZjnVan0Hf+BNzdhmw9JnKZJYlQwGIljPw22NPO
+         nTBg==
+X-Gm-Message-State: ALyK8tIzwlZltCc78NBlO1bk7L05oR8aMJZA3715Nw6ErydiQwcdgft7o68fGXDoH1wVoelEqelqwQI0RjP1ww==
+X-Received: by 10.107.181.137 with SMTP id e131mr10287646iof.88.1468419836613;
+ Wed, 13 Jul 2016 07:23:56 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.79.82.195 with HTTP; Wed, 13 Jul 2016 07:23:56 -0700 (PDT)
+In-Reply-To: <203E22F4-CDA7-4166-8E6E-FEAD3AA0436E@aubble.com>
+References: <83DEB0EE-B9B7-4EE9-AE5A-F4B8F21A2293@aubble.com>
+ <CAOyqgcXZ6UVpe3DhSXoxERBaZ4FR3Buq2iprwXDsSm5cEUG0-w@mail.gmail.com> <203E22F4-CDA7-4166-8E6E-FEAD3AA0436E@aubble.com>
+From: Ian Lance Taylor <ia...@golang.org>
+Date: Wed, 13 Jul 2016 07:23:56 -0700
+Message-ID: <CAOyqgcXHDcrGuf_GwY-var_FY0agtQ2-eiD+zfu_Ue6M75t5gA@mail.gmail.com>
+Subject: Re: [go-nuts] Rel in path package
+To: Anmol Sethi <an...@aubble.com>
+Cc: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=UTF-8
+
+On Wed, Jul 13, 2016 at 2:43 AM, Anmol Sethi <an...@aubble.com> wrote:
+> Right here: https://github.com/nsf/gocode/blob/f535dc686130fcc7b942c504ce5903222a205ca3/autocompletecontext.go#L254
+>
+> I have to annoyingly use filepath.ToSlash after just in case the user was on windows.
+
+I don't know what that code is doing, but the fact that you are
+passing fpath to readdir makes me think that fpath is a path in the
+file system, and that you should be using the path/filepath package
+anyhow.  Why are you using the path package here?  (To be clear, the
+path package is for things like URLs, and the path/filepath package is
+for file system paths.)
+
+Ian
+
+
+
+>> On Jul 12, 2016, at 10:58 PM, Ian Lance Taylor <ia...@golang.org> wrote:
+>>
+>> On Tue, Jul 12, 2016 at 5:17 PM, Anmol Sethi <an...@aubble.com> wrote:
+>>> Why is there no function in the path package to get relative paths, like filepath.Rel?
+>>
+>> When would you want to use it?
+>>
+>> Ian
+>

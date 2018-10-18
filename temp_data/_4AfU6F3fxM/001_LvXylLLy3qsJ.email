@@ -1,0 +1,73 @@
+X-Received: by 10.236.66.105 with SMTP id g69mr4025210yhd.11.1406214700188;
+        Thu, 24 Jul 2014 08:11:40 -0700 (PDT)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.140.109.245 with SMTP id l108ls855808qgf.83.gmail; Thu, 24 Jul
+ 2014 08:11:18 -0700 (PDT)
+X-Received: by 10.140.89.5 with SMTP id u5mr16077qgd.24.1406214678574;
+        Thu, 24 Jul 2014 08:11:18 -0700 (PDT)
+Date: Thu, 24 Jul 2014 08:11:18 -0700 (PDT)
+From: Frits van Bommel <fvbo...@gmail.com>
+To: golang-nuts@googlegroups.com
+Message-Id: <f08aad09-13a3-47f0-b195-2df3b47c8c48@googlegroups.com>
+In-Reply-To: <522eafca-17a6-4a90-9a35-19673781aeb2@googlegroups.com>
+References: <522eafca-17a6-4a90-9a35-19673781aeb2@googlegroups.com>
+Subject: Re: Pointer to string(continuous literal) without Cgo?
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_65_2094386933.1406214678206"
+
+------=_Part_65_2094386933.1406214678206
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_66_956724954.1406214678206"
+
+------=_Part_66_956724954.1406214678206
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+On Thursday, July 24, 2014 5:04:27 PM UTC+2, Grissiom Gu wrote:
+>
+> Hi all,
+>
+> I'm currently writing Go code interact with my hand-writing Linux kernel 
+> module under ARM. I need to do ioctl with a parameter structure which has a 
+> "char *". But I failed to do it right in Go. Here is my code so far:
+>
+> func main() {
+>         namebuf := bytes.NewBufferString("rti\x00")
+>         cb := rt_vbus_request{
+>                 name:      uintptr(unsafe.Pointer(namebuf)),
+>
+
+Try using uintptr(unsafe.Pointer(&namebuf[0]) in the 'name' field. What 
+you're doing now is effectively passing a pointer to the slice header 
+<http://golang.org/pkg/reflect/#SliceHeader> instead of the data in the 
+slice.
+(NewBufferString returns a *bytes.Buffer, which is "under the hood" a 
+*[]byte)
+
+------=_Part_66_956724954.1406214678206
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">On Thursday, July 24, 2014 5:04:27 PM UTC+2, Grissiom Gu w=
+rote:<blockquote class=3D"gmail_quote" style=3D"margin: 0;margin-left: 0.8e=
+x;border-left: 1px #ccc solid;padding-left: 1ex;"><div dir=3D"ltr">Hi all,<=
+div><br></div><div>I'm currently writing Go code interact with my hand-writ=
+ing Linux kernel module under ARM. I need to do ioctl with a parameter stru=
+cture which has a "char *". But I failed to do it right in Go. Here is my c=
+ode so far:</div><div><br></div><div><div style=3D"border:1px solid rgb(187=
+,187,187);word-wrap:break-word;background-color:rgb(250,250,250)"><code><di=
+v><span><font color=3D"#000000"><div><div>func main() {</div><div>&nbsp; &n=
+bsp; &nbsp; &nbsp; namebuf :=3D bytes.NewBufferString("rti\<wbr>x00")</div>=
+<div>&nbsp; &nbsp; &nbsp; &nbsp; cb :=3D rt_vbus_request{</div><div>&nbsp; =
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; name: &nbsp; &nbsp; &nbsp;=
+uintptr(unsafe.Pointer(<wbr>namebuf)),</div><div></div></div></font></span>=
+</div></code></div></div></div></blockquote><div><br>Try using uintptr(unsa=
+fe.Pointer(&amp;namebuf[0]) in the 'name' field.=20
+What you're doing now is effectively passing a pointer to the <a href=3D"ht=
+tp://golang.org/pkg/reflect/#SliceHeader">slice header</a> instead of the d=
+ata in the slice.<br>(NewBufferString returns a *bytes.Buffer, which is "un=
+der the hood" a *[]byte)<br></div></div>
+------=_Part_66_956724954.1406214678206--
+
+------=_Part_65_2094386933.1406214678206--

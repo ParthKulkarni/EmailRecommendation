@@ -1,0 +1,146 @@
+X-Received: by 10.50.49.33 with SMTP id r1mr149801ign.3.1405971292354;
+        Mon, 21 Jul 2014 12:34:52 -0700 (PDT)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.140.87.226 with SMTP id r89ls1262011qgd.44.gmail; Mon, 21 Jul
+ 2014 12:34:26 -0700 (PDT)
+X-Received: by 10.52.142.12 with SMTP id rs12mr8471208vdb.8.1405971266855;
+        Mon, 21 Jul 2014 12:34:26 -0700 (PDT)
+Received: by 10.224.188.74 with SMTP id cz10msqab;
+        Sun, 20 Jul 2014 18:09:46 -0700 (PDT)
+X-Received: by 10.140.105.200 with SMTP id c66mr325669qgf.4.1405904986691;
+        Sun, 20 Jul 2014 18:09:46 -0700 (PDT)
+Date: Sun, 20 Jul 2014 18:09:45 -0700 (PDT)
+From: neil.a....@gmail.com
+To: golang-nuts@googlegroups.com
+Message-Id: <87b5e653-4ec4-475a-b879-6e48d319a8af@googlegroups.com>
+Subject: go.crypto/openpgp.Entity.Serialize'd keys missing self signature?
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_2130_1460486520.1405904985971"
+
+------=_Part_2130_1460486520.1405904985971
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_2131_658856430.1405904985971"
+
+------=_Part_2131_658856430.1405904985971
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Hi Folks,
+
+I'm pretty new to Go (second day!), so apologies if there are any major 
+crimes/facepalms below :)
+
+I'm trying to generate a pgp key and armour it (I intend to embed it into 
+some json), however the pubkey I'm getting from Entity.Serialize() don't 
+appear to be self-signed.
+
+Here's a stripped down version of the code:
+
+---
+package main
+
+import (
+"code.google.com/p/go.crypto/openpgp"
+"code.google.com/p/go.crypto/openpgp/armor"
+"os"
+)
+
+func main() {
+newkey, _ := openpgp.NewEntity("Example Keypair", "Go", 
+"exa...@example.com", nil)
+w, _ := armor.Encode(os.Stdout, "PGP PUBLIC KEY BLOCK", nil)
+newkey.Serialize(w)
+w.Close()
+}
+---
+
+When I try to import this key, I get this:
+
+$ go run keygen.go  | gpg -v --import -
+gpg: pub  2048R/4C517637 2014-07-21  Example Keypair (Go) 
+<exa...@example.com>
+gpg: key 4C517637: skipped user ID "Example Keypair (Go) 
+<exa...@example.com>"
+gpg: key 4C517637: no valid user IDs
+gpg: this may be caused by a missing self-signature
+gpg: Total number processed: 1
+gpg:           w/o user IDs: 1
+
+However if I tell gpg to allow non-selfsigned uids this gets imported OK:
+
+$ go run keygen.go  | gpg --import -v --allow-non-selfsigned-uid -
+gpg: pub  2048R/82AC5CA4 2014-07-21  Example Keypair (Go) 
+<exa...@example.com>
+gpg: key 82AC5CA4: accepted non self-signed user ID "Example Keypair (Go) 
+<exa...@example.com>"
+gpg: using PGP trust model
+gpg: Invalid key 82AC5CA4 made valid by --allow-non-selfsigned-uid
+gpg: key 82AC5CA4: public key "Example Keypair (Go) <exa...@example.com>" 
+imported
+gpg: Total number processed: 1
+gpg:               imported: 1  (RSA: 1)
+
+I've done some fairly horrible things to get at the SelfSignature inside 
+the Entity, and when I armoured that to see if anything was there I only 
+got a few bytes of output which didn't look right...
+
+So, to my question ... Has anyone tried to play with the keys generated in 
+this way outside of the application? Any tips? In return: beer (if you're 
+in London), fame, riches, etc...
+
+-Houston
+
+
+
+------=_Part_2131_658856430.1405904985971
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">Hi Folks,<div><br></div><div>I'm pretty new to Go (second =
+day!), so apologies if there are any major crimes/facepalms below :)</div><=
+div><br></div><div>I'm trying to generate a pgp key and armour it (I intend=
+ to embed it into some json), however the pubkey I'm getting from Entity.Se=
+rialize() don't appear to be self-signed.</div><div><br></div><div>Here's a=
+ stripped down version of the code:</div><div><br></div><div>---</div><div>=
+<div>package main</div><div><br></div><div>import (</div><div><span class=
+=3D"Apple-tab-span" style=3D"white-space:pre">=09</span>"code.google.com/p/=
+go.crypto/openpgp"</div><div><span class=3D"Apple-tab-span" style=3D"white-=
+space:pre">=09</span>"code.google.com/p/go.crypto/openpgp/armor"</div><div>=
+<span class=3D"Apple-tab-span" style=3D"white-space:pre">=09</span>"os"</di=
+v><div>)</div><div><br></div><div>func main() {</div><div><span class=3D"Ap=
+ple-tab-span" style=3D"white-space:pre">=09</span>newkey, _ :=3D openpgp.Ne=
+wEntity("Example Keypair", "Go", "exa...@example.com", nil)</div><div><span=
+ class=3D"Apple-tab-span" style=3D"white-space:pre">=09</span>w, _ :=3D arm=
+or.Encode(os.Stdout, "PGP PUBLIC KEY BLOCK", nil)</div><div><span class=3D"=
+Apple-tab-span" style=3D"white-space:pre">=09</span>newkey.Serialize(w)</di=
+v><div><span class=3D"Apple-tab-span" style=3D"white-space:pre">=09</span>w=
+.Close()</div><div>}</div></div><div>---</div><div><br></div><div>When I tr=
+y to import this key, I get this:</div><div><div><br></div><div>$ go run ke=
+ygen.go &nbsp;| gpg -v --import -</div><div>gpg: pub &nbsp;2048R/4C517637 2=
+014-07-21 &nbsp;Example Keypair (Go) &lt;ex...@example.com&gt;</div><div>gp=
+g: key 4C517637: skipped user ID "Example Keypair (Go) &lt;ex...@example.co=
+m&gt;"</div><div>gpg: key 4C517637: no valid user IDs</div><div>gpg: this m=
+ay be caused by a missing self-signature</div><div>gpg: Total number proces=
+sed: 1</div><div>gpg: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; w/o user IDs: 1</d=
+iv></div><div><br></div><div>However if I tell gpg to allow non-selfsigned =
+uids this gets imported OK:</div><div><br></div><div><div>$ go run keygen.g=
+o &nbsp;| gpg --import -v --allow-non-selfsigned-uid -</div><div>gpg: pub &=
+nbsp;2048R/82AC5CA4 2014-07-21 &nbsp;Example Keypair (Go) &lt;ex...@example=
+.com&gt;</div><div>gpg: key 82AC5CA4: accepted non self-signed user ID "Exa=
+mple Keypair (Go) &lt;ex...@example.com&gt;"</div><div>gpg: using PGP trust=
+ model</div><div>gpg: Invalid key 82AC5CA4 made valid by --allow-non-selfsi=
+gned-uid</div><div>gpg: key 82AC5CA4: public key "Example Keypair (Go) &lt;=
+ex...@example.com&gt;" imported</div><div>gpg: Total number processed: 1</d=
+iv><div>gpg: &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; imported: 1 &=
+nbsp;(RSA: 1)</div></div><div><br></div><div>I've done some fairly horrible=
+ things to get at the SelfSignature inside the Entity, and when I armoured =
+that to see if anything was there I only got a few bytes of output which di=
+dn't look right...</div><div><br></div><div>So, to my question ... Has anyo=
+ne tried to play with the keys generated in this way outside of the applica=
+tion? Any tips? In return: beer (if you're in London), fame, riches, etc...=
+</div><div><br></div><div>-Houston</div><div><br></div><div><br></div></div=
+>
+------=_Part_2131_658856430.1405904985971--
+
+------=_Part_2130_1460486520.1405904985971--

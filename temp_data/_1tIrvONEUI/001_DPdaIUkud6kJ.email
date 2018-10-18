@@ -1,0 +1,184 @@
+X-Received: by 10.182.79.168 with SMTP id k8mr26210558obx.49.1424159997035;
+        Mon, 16 Feb 2015 23:59:57 -0800 (PST)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.50.29.108 with SMTP id j12ls1448586igh.35.gmail; Mon, 16 Feb
+ 2015 23:59:43 -0800 (PST)
+X-Received: by 10.50.118.42 with SMTP id kj10mr437821igb.9.1424159982987;
+        Mon, 16 Feb 2015 23:59:42 -0800 (PST)
+Date: Mon, 16 Feb 2015 23:59:41 -0800 (PST)
+From: andrewc...@gmail.com
+To: golang-nuts@googlegroups.com
+Message-Id: <4bae0b4f-af47-47d1-ba2d-dc2044d0e682@googlegroups.com>
+In-Reply-To: <ef4f3598-a82c-4acc-b2c7-416aef57ec3e@googlegroups.com>
+References: <ef4f3598-a82c-4acc-b2c7-416aef57ec3e@googlegroups.com>
+Subject: Re: GoLang on the Sony PlayStation Portable (PSP)
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_2291_527257190.1424159981899"
+
+------=_Part_2291_527257190.1424159981899
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_2292_1094064808.1424159981900"
+
+------=_Part_2292_1094064808.1424159981900
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+The link you showed is the sdk, not the toolchain. They link the toolchain 
+here. https://github.com/pspdev/psptoolchain.
+
+They use a patched gcc version 4.6.4 , gccgo is only included in version  4.7.1 
+and newer.
+
+This means you will first need need to 
+modify https://github.com/pspdev/psptoolchain/blob/master/scripts/002-gcc-stage1.sh 
+to use the newer gcc.
+
+then you will need to port this 
+patch https://github.com/pspdev/psptoolchain/blob/master/patches/gcc-4.6.4-PSP.patch 
+to the newer gcc, which may or may not be hard (and may have been done by 
+someone else). You will also need to update all scripts if they don't work 
+with the new gcc version.
+
+After this is done you will need to 
+modify https://github.com/pspdev/psptoolchain/blob/master/scripts/005-gcc-stage2.sh#L37 
+to have --enable-langues="c,c++,go".
+
+Maybe then you will have a working toolchain, but will need to work out how 
+to link go code with the platform C sdk and make go bindings.
+
+There are probably other issues too.
+
+
+On Tuesday, February 17, 2015 at 6:48:41 PM UTC+13, Kristopher Cost wrote:
+>
+> Out of curiousity and the desire to meld to of my favorite past-times, 
+> what would be involved with getting GoLang code compiled for the Sony 
+> PlayStation Portable (PSP)? 
+>
+>
+> The device is dual core:
+>
+>
+> PSP CPU Chip:
+>
+> Sony CXD2962GG CPU
+>
+> Based on MIPS R4000 32-bit Core
+>
+> MIPS32R2 'Allegrex' core (little endian)
+>
+>
+> Media Engine Chip:
+>
+> Sony CXD1876 CPU
+>
+> Based on MIPS R4000 64-bit Core
+>
+> MIPS32R2 core (little endian)
+>
+>
+> The base model has:
+>
+> Main Memory 32MB (DDR SDRAM) (64MB on later models)
+>
+> Flash Memory 32MB
+>
+> Embedded DRAM 4MB
+>
+>
+> There exists an open-source C toolchain that supports all the custom 
+> instructions:
+>
+>
+> https://github.com/pspdev/pspsdk
+>
+>
+> I read up on getting MIPS cross compilation running:
+>
+> https://github.com/golang/go/wiki/GccgoCrossCompilation
+>
+>
+> Would it be simular to that?
+>
+>
+> Any help with this odd mind exercise would be appreciated!
+>
+
+------=_Part_2292_1094064808.1424159981900
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">The link you showed is the sdk, not the toolchain.&nbsp;Th=
+ey link the toolchain here. https://github.com/pspdev/psptoolchain.<br><br>=
+<font face=3D"arial, sans-serif">They use a patched gcc version&nbsp;<span =
+style=3D"color: rgb(51, 51, 51); font-size: 12px; line-height: 16.799999237=
+0605px; white-space: pre;">4.6.4 , gccgo is only included in version </span=
+><span style=3D"font-size: 16px;">&nbsp;</span><span style=3D"font-size: 16=
+px;">4.7.1 and newer.<br></span></font><br>This means you will first need n=
+eed to modify&nbsp;https://github.com/pspdev/psptoolchain/blob/master/scrip=
+ts/002-gcc-stage1.sh to use the newer gcc.<br><br>then you will need to por=
+t this patch&nbsp;https://github.com/pspdev/psptoolchain/blob/master/patche=
+s/gcc-4.6.4-PSP.patch to the newer gcc, which may or may not be hard (and m=
+ay have been done by someone else). You will also need to update all script=
+s if they don't work with the new gcc version.<br><br>After this is done yo=
+u will need to modify&nbsp;https://github.com/pspdev/psptoolchain/blob/mast=
+er/scripts/005-gcc-stage2.sh#L37 to have --enable-langues=3D"c,c++,go".<br>=
+<br>Maybe then you will have a working toolchain, but will need to work out=
+ how to link go code with the platform C sdk and make go bindings.<br><br>T=
+here are probably other issues too.<br><br><br>On Tuesday, February 17, 201=
+5 at 6:48:41 PM UTC+13, Kristopher Cost wrote:<blockquote class=3D"gmail_qu=
+ote" style=3D"margin: 0;margin-left: 0.8ex;border-left: 1px #ccc solid;padd=
+ing-left: 1ex;"><div dir=3D"ltr"><p style=3D"margin-bottom:0px">Out of curi=
+ousity and the desire to meld to of my favorite past-times, what would be i=
+nvolved with getting GoLang code compiled for the Sony PlayStation Portable=
+ (PSP)? </p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px">The device is dual core:</p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px">PSP CPU Chip:</p>
+<p style=3D"margin-bottom:0px">Sony CXD2962GG CPU</p>
+<p style=3D"margin-bottom:0px">Based on MIPS R4000 32-bit Core</p>
+<p style=3D"margin-bottom:0px">MIPS32R2 'Allegrex' core (little endian)</p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px">Media Engine Chip:</p>
+<p style=3D"margin-bottom:0px">Sony CXD1876 CPU</p>
+<p style=3D"margin-bottom:0px">Based on MIPS R4000 64-bit Core</p>
+<p style=3D"margin-bottom:0px">MIPS32R2 core (little endian)</p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px">The base model has:</p>
+<p style=3D"margin-bottom:0px">Main Memory 32MB (DDR SDRAM) (64MB on later =
+models)</p>
+<p style=3D"margin-bottom:0px">Flash Memory 32MB</p>
+<p style=3D"margin-bottom:0px">Embedded DRAM 4MB</p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px">There exists an open-source C toolchain that=
+ supports all the custom instructions:</p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px"><a href=3D"https://github.com/pspdev/pspsdk"=
+ target=3D"_blank" rel=3D"nofollow" onmousedown=3D"this.href=3D'https://www=
+.google.com/url?q\75https%3A%2F%2Fgithub.com%2Fpspdev%2Fpspsdk\46sa\75D\46s=
+ntz\0751\46usg\75AFQjCNEZuiGg00y5So-vu5uzahWflW7quQ';return true;" onclick=
+=3D"this.href=3D'https://www.google.com/url?q\75https%3A%2F%2Fgithub.com%2F=
+pspdev%2Fpspsdk\46sa\75D\46sntz\0751\46usg\75AFQjCNEZuiGg00y5So-vu5uzahWflW=
+7quQ';return true;">https://github.com/pspdev/<wbr>pspsdk</a></p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px">I read up on getting MIPS cross compilation =
+running:</p>
+<p style=3D"margin-bottom:0px"><a href=3D"https://github.com/golang/go/wiki=
+/GccgoCrossCompilation" target=3D"_blank" rel=3D"nofollow" onmousedown=3D"t=
+his.href=3D'https://www.google.com/url?q\75https%3A%2F%2Fgithub.com%2Fgolan=
+g%2Fgo%2Fwiki%2FGccgoCrossCompilation\46sa\75D\46sntz\0751\46usg\75AFQjCNGZ=
+tURZ8Scf8p_bUSkBarrvAgt_zw';return true;" onclick=3D"this.href=3D'https://w=
+ww.google.com/url?q\75https%3A%2F%2Fgithub.com%2Fgolang%2Fgo%2Fwiki%2FGccgo=
+CrossCompilation\46sa\75D\46sntz\0751\46usg\75AFQjCNGZtURZ8Scf8p_bUSkBarrvA=
+gt_zw';return true;">https://github.com/golang/go/<wbr>wiki/GccgoCrossCompi=
+lation</a></p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px">Would it be simular to that?</p>
+<p style=3D"margin-bottom:0px"><br></p>
+<p style=3D"margin-bottom:0px">Any help with this odd mind exercise would b=
+e appreciated!</p></div></blockquote></div>
+------=_Part_2292_1094064808.1424159981900--
+
+------=_Part_2291_527257190.1424159981899--

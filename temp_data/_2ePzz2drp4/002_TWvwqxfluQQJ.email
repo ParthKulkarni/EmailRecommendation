@@ -1,0 +1,130 @@
+X-Received: by 10.180.183.135 with SMTP id em7mr597027wic.0.1362292263161;
+        Sat, 02 Mar 2013 22:31:03 -0800 (PST)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.180.79.4 with SMTP id f4ls199476wix.34.canary; Sat, 02 Mar
+ 2013 22:30:56 -0800 (PST)
+X-Received: by 10.204.146.77 with SMTP id g13mr628781bkv.5.1362292256678;
+        Sat, 02 Mar 2013 22:30:56 -0800 (PST)
+X-Received: by 10.204.146.77 with SMTP id g13mr628780bkv.5.1362292256659;
+        Sat, 02 Mar 2013 22:30:56 -0800 (PST)
+Return-Path: <dvy...@google.com>
+Received: from mail-la0-x236.google.com ([2a00:1450:4010:c03::236])
+        by gmr-mx.google.com with ESMTPS id 14si1196900bky.0.2013.03.02.22.30.56
+        (version=TLSv1 cipher=ECDHE-RSA-RC4-SHA bits=128/128);
+        Sat, 02 Mar 2013 22:30:56 -0800 (PST)
+Received-SPF: pass (google.com: domain of dvy...@google.com designates 2a00:1450:4010:c03::236 as permitted sender) client-ip=2a00:1450:4010:c03::236;
+Authentication-Results: gmr-mx.google.com;
+       spf=pass (google.com: domain of dvy...@google.com designates 2a00:1450:4010:c03::236 as permitted sender) smtp.mail=dvy...@google.com;
+       dkim=pass head...@google.com
+Received: by mail-la0-f54.google.com with SMTP id gw10so4004643lab.41
+        for <golan...@googlegroups.com>; Sat, 02 Mar 2013 22:30:56 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20120113;
+        h=mime-version:x-received:in-reply-to:references:date:message-id
+         :subject:from:to:cc:content-type;
+        bh=R9ripnplIpcLD+GB1UZt/WEGDa+Yz1JXIFzd0DJv+VI=;
+        b=oAKOS8YPBcE3mY8fVFRcDPr2TCe8vi1nGlb04JaGVzcoeVydPm6hqptMv/M7S8zlE/
+         HlWxLq/izwtwNriZvoW8F7618HttvhdXoEMK5Zm16s3fEeiZSijf3kCy9jRr5s9k9Dud
+         5LlNidSDA0qQPv8I1FhDDbX0UBBNDgq1sMc5rAB3k8n3Cs9PbtdBr57TSBVm4GYPfEo9
+         e2qrdkAvSBMo9fo3RijHfpb+4c6TTdKxgrR1qO3s6hqN/Yv0OMXBDqyDksWzrPbDgkD9
+         6k2jj97XkQ9koFX31TI3Y3glR/OAhi1KABnCelmfoepdrRvZvA9WwRUBfOO/Lvxc6Vhd
+         RmzQ==
+MIME-Version: 1.0
+X-Received: by 10.152.136.20 with SMTP id pw20mr13848879lab.16.1362292256223;
+ Sat, 02 Mar 2013 22:30:56 -0800 (PST)
+Received: by 10.114.11.36 with HTTP; Sat, 2 Mar 2013 22:30:56 -0800 (PST)
+In-Reply-To: <CAFgOgC9nkqCw9T3=owrYDfk6dNpBOkC0Z3K2r84upeCSCpaukw@mail.gmail.com>
+References: <CAFgOgC9nkqCw9T3=owrYDfk6dNpBOkC0Z3K2r84upeCSCpaukw@mail.gmail.com>
+Date: Sun, 3 Mar 2013 08:30:56 +0200
+Message-ID: <CACT4Y+ZDKzCE7eyhFn=fWZpG0ZLdp_2tsr3XO_MZXMwXFPrYuQ@mail.gmail.com>
+Subject: Re: [go-nuts] Workload semantics of new scheduler queues
+From: Dmitry Vyukov <dvy...@google.com>
+To: "Devon H. O'Dell" <devon...@gmail.com>
+Cc: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=ISO-8859-1
+X-Gm-Message-State: ALoCoQmMJAtUnDV9peadkb72mczh1v/W5DR885v5tQTse1t0xEdjGyHdzAbS2RA4UWXGgZ02rKuZHpbtHRszH24LFudD7RLIEzm7x4sv1KZOCzceRmRaR84hIuPfcBhvTlFRxUw9fQ6vSuKxT2dTKjQaxCTSLcxwpVrpGSaENZi09LbBYJ3oySr3ZpebSIydHx7rqKq1WahpHESoL2ex5kvFFJs+JMRypQ==
+
+On Sat, Mar 2, 2013 at 7:22 PM, Devon H. O'Dell <devon...@gmail.com> wrote:
+> I was going through the scheduler changes to try to understand them
+> better. I came across a couple of comments from Dmitry hinting at the
+> idea of experimenting with lock-free queues in the scheduler, and I
+> figured it might be fun to try. But I wanted to clarify my
+> understanding of the access semantics of the run queues first.
+
+Hi Devon,
+
+I have not implemented lock-free queues, because that' additional
+complexity that did not want to introduce in the first patch, and I
+expect it to provide limited improvement (the main thing is
+distribution).
+
+
+> Basically, it seems there are 1+N queues. There is a single global
+> queue, and then GOMAXPROCS additional local queues, associated with a
+> "P." The access semantics around the global queue require the
+> scheduler lock to be held. I haven't changed this assumption, so I'm
+> rolling with it for now.
+
+Right.
+
+
+> What I have done is made each P have a fixed-size ring buffer. If the
+> ring can't be inserted into (i.e. it is full), we insert the G into
+> the global run queue. If we can't fetch from the ring, we pull from
+> the ring of some other P. I haven't implemented "stealing" yet --
+> right now, I'll just pull a single G from someone else's ring -- but I
+> don't imagine it would be very difficult to implement a lock-free
+> version of that. I imagine we could just save the head pointer,
+> advance it towards the tail, and then copy from old->new-1.
+
+Sounds good. But note that you must ensure that the elements are not
+overwritten between "advance it towards the tail" and "copy from
+old->new-1".
+
+
+> From what I can tell, the workload is SPMC; there is only one thread
+> associated with contributing G's to a P's queue.
+
+Correct.
+
+
+> Since Pn can steal work from Pm, the semantics of access require
+> assuming multiple consumers. But I can't tell if I'm right about
+> understanding the producer workload. If I'm wrong, it needs to be
+> MPMC, which reduces the producer side wait-freedom guarantee to simply
+> lock-free, but I guess that's fine. For now I just want to see how it
+> compares, especially on highly contended workloads. Getting this
+> working on ARM will require adding the DMB instruction (possibly DSB,
+> too) to the assembler.
+
+There are some portable atomic operations available in runtime, see
+runtime.atomicload/store/xchg/cas/xadd.
+
+
+> I'd appreciate any information on these points and thoughts on this
+> general approach. I've got most of the code written (there's some
+> stupid bug in there somewhere, but it "works" anyway), so I don't
+> think that finishing it would take too much longer.
+
+
+Yes, only one thread enqueues to local queue -- current P owner. Owner
+thread dequeues 1 element from the queue, that must be FIFO. Other
+threads steal half of the elements, this can either FIFO or LIFO, I
+don't think it's important.
+
+I don't have the exact design for the queue, but here are some
+thoughts. Thieves can synchronized with a lightweight mutex (dedicate
+1 bit as "locked" in either head or tail position), most of the time
+thieves can use "trylock", that is, if the queue is already locked by
+another thief choose another queue. However during final check in
+findrunnable() all queues must be checked.
+It would be nice to implement local enqueue without atomic RMW
+operations (just store-release).
+It's important to ensure that elements are not overwritten by the
+queue owner while a thief copies them. Perhaps the mutex can help --
+the owner can lock it once in a while to ensure that it does not step
+onto thieves.
+Transfers to/from global queue must be done in batches, because if an
+owner spawns a lot of new goroutines you do not want to access the
+global queue each time. E.g. if the queue is full, transfer half of
+the elements to the global queue.
