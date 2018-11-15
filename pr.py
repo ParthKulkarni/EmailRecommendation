@@ -1,6 +1,6 @@
 from flanker import mime
 
-fpath = "temp_data/001.email"
+fpath = "3.email"
 
 f = open(fpath, 'r')
 mailmsg = f.read()
@@ -18,7 +18,7 @@ if msg.content_type.is_singlepart():
         else:
             print("*** " + _)
     print("********************************")
-else :
+elif  msg.content_type.is_multipart() :
     for part in msg.parts :
         if "(text/plain)" in str(part) :
             temp = str(part.body)

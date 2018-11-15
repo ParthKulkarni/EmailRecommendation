@@ -1,0 +1,361 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.150.77.36 with SMTP id z36ls554290yba.3.p; Thu, 10 Dec 2009 
+	18:35:26 -0800 (PST)
+Received: by 10.150.59.8 with SMTP id h8mr1120514yba.3.1260498926178;
+        Thu, 10 Dec 2009 18:35:26 -0800 (PST)
+Received: by 10.150.59.8 with SMTP id h8mr1120511yba.3.1260498926137;
+        Thu, 10 Dec 2009 18:35:26 -0800 (PST)
+Return-Path: <qtv...@gmail.com>
+Received: from mail-yw0-f169.google.com (mail-yw0-f169.google.com [209.85.211.169])
+        by gmr-mx.google.com with ESMTP id 18si160026ywh.13.2009.12.10.18.35.26;
+        Thu, 10 Dec 2009 18:35:26 -0800 (PST)
+Received-SPF: pass (google.com: domain of qtv...@gmail.com designates 209.85.211.169 as permitted sender) client-ip=209.85.211.169;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of qtv...@gmail.com designates 209.85.211.169 as permitted sender) smtp.mail=qtv...@gmail.com
+Received: by mail-yw0-f169.google.com with SMTP id 41so489215ywh.0
+        for <golan...@googlegroups.com>; Thu, 10 Dec 2009 18:35:26 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.101.63.12 with SMTP id q12mr40711ank.1.1260498926085; Thu, 10 
+	Dec 2009 18:35:26 -0800 (PST)
+Date: Thu, 10 Dec 2009 18:35:26 -0800 (PST)
+In-Reply-To: <611ae437-761c-48ab-a6e8-aa43681e4bc0@z41g2000yqz.googlegroups.com>
+X-IP: 217.71.35.1
+References: <611ae437-761c-48ab-a6e8-aa43681e4bc0@z41g2000yqz.googlegroups.com>
+User-Agent: G2/1.0
+X-HTTP-UserAgent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; 
+	rv:1.9.0.11) Gecko/2009060214 Firefox/3.0.11,gzip(gfe),gzip(gfe)
+Message-ID: <a70fb602-835b-4b32-a6a4-97dfb766ff50@9g2000yqa.googlegroups.com>
+Subject: Re: Properties, getters, setters, operations
+From: Qtvali <qtv...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=ISO-8859-1
+
+I also send a matrix calculator written in python as I didn't catch
+the point without coding each concept into one structure:
+
+This is to protect the idea that this channel "getter-setter" should
+be there. It utilizes python's yielding function used in for cycle.
+This function calculates permutations and it would run out of memory
+with larger matrices if it returned arrays, but this is just loss in
+speed if any structure of goroutine is done with that - it should
+allow several code structures to be put into one without running
+several threads; instead of permutations it would be any other
+construct connected with same code. Python's yielding for does not let
+you send additional data to it or different signals to move forward or
+backwards, which makes this also bit inefficient. Because python does
+not let you to run two loops in parallel in one for cycle (for each
+element, ask one new from both) the whole otherwise unnessecary class
+is here, which is one of simple reasons why I want simple constructs
+to create new kinds of loops; idioms described in previous letter of
+this thread would allow this. Also, as operator overloading supports
+only one kind of "*", one cant implement different kinds of matrix
+multiplications, otherwise this code allows to do "matrix1*matrix2"
+with matrices of arbitrary size. Excuse any bug in parts, which do not
+relate to solve linear equations for matrices, they might not be
+tested at all as this was not the point of interest; also I did
+translate comments etc. without testing now. And look how short the
+real calculation is made by this yield, why I love this command even
+in this somewhat restricted format.
+
+Yield example is "permutations" function used later in "solve"
+method's iterator.
+
+Examples:
+
+mat1 = matrix(4)
+mat1.show()
+mat1 = matrix(2,4)
+mat1.show()
+
+mat1 = matrix(
+    [1, 2],
+    [0, 1]
+)
+mat1.show()
+mat2 = matrix(
+    [2, 3, 4, 5],
+    [0, -1, 2, 1],
+    [0, 0, 2, 4],
+    [0, 3, -6, 0]
+)
+mat2.withrow(3, matrix(6, 6, 6, 6)).show()
+mat2.withcol(3, matrix(6, 6, 6, 6).transposed()).show()
+mat2.solve(matrix(6, 6, 6, 6).transposed()).show()
+
+----------
+
+
+import random
+
+class matrixfactory:
+    def create(self, *lists):
+        return self.fromlist(lists)
+
+    def fromlist(self, lists):
+        ret = matrix(len(lists), len(lists[0]))
+        ret.setfromlist(lists)
+        return ret
+
+    def identity(self, m, n):
+        ret = matrix(m, n)
+        ret.identity()
+        return ret
+
+    def zero(self, m, n):
+        ret = matrix(m, n)
+        return ret
+
+    def random(self, m, n):
+        ret = matrix(m, n)
+        ret.randomize()
+        return ret
+
+class matrixiterator:
+    def __init__(self, m, n, sm, sn, swap):
+        print m, n, sm, sn, swap
+        self.m = m
+        self.n = n
+        self.sm = sm
+        self.sn = sn
+        self.swap = swap
+        self.i = -1
+        self.maxi = sm * sn
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        self.i+=1
+        if self.i == self.maxi:
+            raise StopIteration()
+        if self.swap:
+            return self.i % self.sm + self.m, self.i
+        else:
+            return self.i
+
+def addperm(permsign, permcount):
+    if permsign == -1: permmod = 1
+    if permsign == 1:  permmod = 0
+    permmod = (permmod + permcount) % 2
+    if permmod == 1:   return -1
+    if permmod == 0:   return 1
+
+def permutations(count):
+    if count == 1:
+        yield 1,  [0]
+        return
+    if count == 2: # not needed
+        yield 1,  [0, 1]
+        yield -1, [1, 0]
+        return
+    for subperm in permutations(count - 1):
+        for place in reversed(range(count)):
+            tmpperm = subperm[1][:]
+            tmpperm.insert(place, count - 1)
+            yield addperm(subperm[0], count - place - 1), tmpperm
+
+class matrix:
+    def __init__(self, m, n):
+        self.m  = m
+        self.n  = n
+        self.matrix = []
+        for i in range(0, self.m):
+            row = []
+            for j in range(0, self.n):
+                row.append(0)
+            self.matrix.append(row)
+
+    def randomize(self):
+        for cell in self:
+            self[cell] = random.gauss(0.0, 1.0)
+
+    def zero(self):
+        for cell in self:
+            self[cell] = 0
+
+    def identity(self):
+        for cell in self:
+            if cell[0] == cell[1]:
+                self[cell] = 1
+            else:
+                self[cell] = 0
+
+    def set(self, *lists):
+        self.setfromlist(lists)
+
+    def setfromlist(self, lists):
+        for cell in self:
+            self[cell] = lists[cell[0]][cell[1]]
+
+    def row_times_col_of(self, row, other, col):
+        mul = 0
+        colcelli = other.itercol(col)
+        for rowcell in self.iterrow(row):
+            colcell = colcelli.next()
+            mul += self[rowcell] * other[colcell]
+        return mul
+
+    def transposed(self):
+        transposed = matrix(self.n, self.m)
+        transpocelli = reversed(transposed)
+        for cell in self:
+            transpocell = transpocelli.next()
+            transposed[transpocell] = self[cell]
+        return transposed
+
+    def __len__(self):
+        return int(self.m * self.n)
+
+    def size(self):
+        return self.m, self.n
+
+    def __getitem__(self, key):
+        return self.matrix[key[0]][key[1]]
+
+    def iterrow(self, index):
+        return matrixiterator(index, 0, 1, self.n, False)
+
+    def itercol(self, index):
+        return matrixiterator(0, index, self.m, 1, False)
+
+    def __setitem__(self, key, value):
+        self.matrix[key[0]][key[1]] = value
+
+    def __iter__(self):
+        return matrixiterator(0, 0, self.m, self.n, False)
+
+    def __reversed__(self):
+        return matrixiterator(0, 0, self.m, self.n, True)
+
+    def __contains__(self, item):
+        return item[0] < self.m and item[1] < self.n
+
+    # TODO> slices
+
+    def __add__(self, other):
+        if self.size == other.size:
+            ret = matrix(self.m, self.n)
+            for cell in ret:
+                ret[cell] = self[cell] + other[cell]
+            return ret
+        else:
+            raise Exception("Can't add matrices with different
+sizes.")
+
+    def __sub__(self, other):
+        if self.size == other.size:
+            ret = matrix(self.m, self.n)
+            for cell in ret:
+                ret[cell] = self[cell] + other[cell]
+            return ret
+        else:
+            raise Exception("Can't subtract matrices with different
+sizes.")
+
+    def __mul__(self, other):
+        print type(other)
+        if isinstance(other, matrix):
+            if self.n != other.m:
+                raise Exception("Sizes do not fit for
+multiplication.")
+            ret = matrix(self.m, other.n)
+            for cell in ret:
+                ret[cell] = self.row_times_col_of(cell[0], other, cell
+[1])
+            return ret
+        else:
+            ret = matrix(self.m, self.n)
+            for cell in ret:
+                ret[cell] = self[cell] * other
+            return ret
+
+    def __abs__(self):
+        return self.det()
+
+    def __truediv__(self, other):
+        ret = matrix(self.m, self.n)
+        for cell in ret:
+            ret[cell] = self[cell] / float(other)
+        return ret
+
+    def __div__(self, other):
+        return self.__truediv__(other)
+
+    def det(self):
+        if self.m == self.n and self.m == 1:
+            print "1x1 determinant, solve simply."
+            return self[0, 0]
+        if self.m == self.n and self.m == 2: # Code works without
+that, too
+            print "2x2 determinant, solving simply."
+            return self[0, 0] * self[1, 1] + self[0, 1] * self[1, 0]
+        if self.m == self.n and self.m == 3:
+            print "3x3 determinant, solving simply." # This is also a
+kind of "speed optimization"
+            return \
+                + self[0, 0] * self[1, 1] * self[2, 2] \
+                + self[0, 2] * self[1, 0] * self[2, 1] \
+                + self[0, 1] * self[1, 2] * self[2, 0] \
+                - self[0, 2] * self[1, 1] * self[2, 0] \
+                - self[0, 0] * self[1, 2] * self[2, 1] \
+                - self[0, 1] * self[1, 0] * self[2, 2]
+        if self.m == self.n and self.m > 3:
+            print str(self.n) + "x" + str(self.n) + " determinant,
+using permutations."
+            # Lines used only for logging are marked with # at end of
+line, delete them
+            print "Adding lines:"#
+            add = 0
+            for perm in permutations(self.m):
+                out_indexes = (" " if perm[0] > 0 else "") + str(perm
+[0])#
+                out_calcs   = out_indexes#
+                mul = 1
+                for cellcol in range(len(perm[1])):
+                    out_indexes += "*(" + str(cellcol) + " " + str(perm
+[1][cellcol]) + ")"#
+                    out_calcs   += "*" + str(self[cellcol, perm[1]
+[cellcol]])#
+                    mul *= self[cellcol, perm[1][cellcol]]
+                print out_indexes + ": " + str(perm[0] * mul) + " = "
++ out_calcs + " = "#
+                add += perm[0] * mul
+            print "Sum of lines: " + str(add)#
+            return add
+        raise Exception("Not square matrix, can't solve.")
+
+    def show(self):
+        print str(self.m) + "x" + str(self.n) + "-matrix with
+determinant " \
+            + str(self.det()) + ":"
+        maxlen = 0
+        for row in self.matrix:
+            for column in row:
+                out = "%.3f" % column
+                if maxlen < len(out):
+                    maxlen = len(out)
+        maxlen += 1
+        for row in self.matrix:
+            for column in row:
+                out = "%.3f" % column
+                if len(out) < maxlen:
+                    out = ' '*(maxlen - len(out)) + out
+                print out,
+            print
+        print "."
+        print self.matrix
+        print
+
+mat1 = matrix(2,2)
+mat1.set(
+    [1, 2],
+    [0, 1],
+)
+mat1.show()
+mat2 = matrix(4,4)
+mat2.set(
+    [2, 3, 4, 5],
+    [0, -1, 2, 1],
+    [0, 0, 2, 4],
+    [0, 3, -6, 0],
+)
+mat2.show()

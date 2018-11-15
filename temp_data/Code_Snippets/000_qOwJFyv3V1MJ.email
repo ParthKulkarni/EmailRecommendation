@@ -1,0 +1,466 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.91.17.26 with SMTP id u26ls563702agi.0.p; Thu, 10 Dec 2009 
+	17:56:33 -0800 (PST)
+Received: by 10.90.24.14 with SMTP id 14mr1171789agx.13.1260496593429;
+        Thu, 10 Dec 2009 17:56:33 -0800 (PST)
+Received: by 10.90.24.14 with SMTP id 14mr1171788agx.13.1260496593402;
+        Thu, 10 Dec 2009 17:56:33 -0800 (PST)
+Return-Path: <qtv...@gmail.com>
+Received: from mail-yx0-f141.google.com (mail-yx0-f141.google.com [209.85.210.141])
+        by gmr-mx.google.com with ESMTP id 19si151737ywh.2.2009.12.10.17.56.33;
+        Thu, 10 Dec 2009 17:56:33 -0800 (PST)
+Received-SPF: pass (google.com: domain of qtv...@gmail.com designates 209.85.210.141 as permitted sender) client-ip=209.85.210.141;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of qtv...@gmail.com designates 209.85.210.141 as permitted sender) smtp.mail=qtv...@gmail.com
+Received: by mail-yx0-f141.google.com with SMTP id 5so322675yxe.24
+        for <golan...@googlegroups.com>; Thu, 10 Dec 2009 17:56:33 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.101.152.1 with SMTP id e1mr36310ano.35.1260496592610; Thu, 10 
+	Dec 2009 17:56:32 -0800 (PST)
+Date: Thu, 10 Dec 2009 17:56:32 -0800 (PST)
+X-IP: 217.71.35.1
+User-Agent: G2/1.0
+X-HTTP-UserAgent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; 
+	rv:1.9.0.11) Gecko/2009060214 Firefox/3.0.11,gzip(gfe),gzip(gfe)
+Message-ID: <611ae437-761c-48ab-a6e8-aa43681e4bc0@z41g2000yqz.googlegroups.com>
+Subject: Properties, getters, setters, operations
+From: Qtvali <qtv...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
+
+I thought I have finished with any more important [for myself] ideas
+and would be more of reader here for a while, but now found that there
+is actually a thing, which would be made much simpler and easier by
+including one very well-defineable feature, which is also pretty goish
+both syntactically and by concept. I send a pretty complete
+perspective of getters, setters and properties, which does not violate
+any Go's design principle or syntax pattern I have understood or
+assumed up to this point. Thus, those might be some non-experimental
+and usable feats to refine some structures already there and add
+properties without adding properties.
+
+Properties, getters, setters, operations
+
+When designing my extension, it actually got into only one problem,
+which semantically restricts me from getting it done easily by using
+lambdas and simple pattern-matched preprocessing. For several reasons
+I don't think that classical properties with getters and setters would
+be extremely good idea =96 mostly because they hide the fact that
+variables behind getters and setters are slower than their built-in
+counterparts. This problem was related to assignments =96 how to give
+arbitrary number of variables to function as input in such way that
+function can do assignments to this list.
+
+Go currently supports the following kind of assignments:
+a, b =3D c, d
+
+It should also support a tuple type, which allows both sides to be
+merged:
+a :=3D tuple(a, b)
+list(a) =3D c, d
+In this example, tuple(a, b) should be a synonym to variables a and b
+in such way that changing the list of tuple would also change those
+variables. Those tuples could be sent to functions, which can do
+assignment operations inside. List of non-tuple would result in list
+input so that list(6) is 6; in function input, a subset of tuple
+should be writable type, which consists only of variables; sending non-
+tuple type, anyway, should internally convert it to tuple.
+An example:
+a :=3D 7;
+list(a) =3D 4; // would set a to 4.
+Specifically, they would be useful for sending lambda functions to
+general-purpose functions in such way that lambda functions are aware
+of the actual content of those tuples, but general-purpose functions
+are not. Also, a list of pointers should be convertable to tuple of
+those pointed variables so that if there are two lists of the same
+length, then list(listtotuple(list1)) =3D list(listtotuple(list2)) would
+be identical to assign all values separately. list(a) would be a
+shortcut to write list(listtotuple(a)), so that list
+(array_of_3_elements) =3D a, b, c should set those elements separately.
+
+Then, it could also be:
+list(array_of_two_elements) =3D 2 / list(5, 8) * (list
+(another_array_of_two_elements) + list(1, 2))
+would internally convert into:
+array_of_two_elements[0] =3D 2 / 5 * (another_array_of_two_elements[0] +
+1);
+array_of_two_elements[1] =3D 2 / 8 * (another_array_of_two_elements[1] +
+2);
+In such formulae, which contains any list with n =3D elementcount > 1,
+elementcount of each element should be restricted to be n or 1.
+
+Calling a method on list of array should call the method on all
+elements.
+list(tuple(tuple(a, b), c)) =3D c, a, b
+should result in error.
+
+a :=3D tuple(tuple(a, b), c)
+list(a[0]) =3D c, a
+should result in a, b =3D c, a
+Or, alternatively, nested tuples could merge and be usable in such way
+only if contained in lists.
+
+Tuple and function input or output declarations could be of same type.
+
+--------------------------
+
+First, I think it would be highly goish to have the following lambda
+declaration pattern:
+distance(x, y float) :=3D sqrt(x * x + y * y);
+// distance :=3D func() distance(x, y float) (float) =3D { return sqrt(x *
+x + y * y) }
+swap(x, y) :=3D y, x;
+// didn't find fast, how to omit the type
+z :=3D 0
+getz() :=3D z
+// getz :=3D func() (i int) { return i }
+var x, y int;
+setxy(sx, sy) :=3D {
+=09x :=3D sx
+=09y :=3D sy
+}
+// setxy :=3D func(sx, sy int) { x :=3D sx; y :=3D sy }
+getxy() :=3D x, y
+// getxy :=3D func() (x, y int) { return x, y }
+
+This would, among other things, allow the pattern I need right now and
+which could need some thought when implementing in compiler:
+var x, y, z, a, b, c, x1, y1, z1 int;
+getblock() :=3D x, y, z
+getblock2() :=3D a, b, c
+setblock(xs, ys, zs typeof(getblock)) :=3D x1 =3D xs; y1 =3D ys; z1 =3D zs
+blocksize(xs, ys, zs typeof(getblock)) :=3D xs * ys * zs
+// Wouldn't it make things simpler if block starting with statements
+instead of { is one-liner?
+// Is it obvious from use of () that this is a function?
+setsmallerblock(setter, getter1, getter2, size) :=3D setter(size
+(getter1) < size(getter2) ? setter(getter1) : setter(getter2))
+// Will now put smaller block's x-y-z or a-b-c into x1-y1-z1; just
+using declared lambdas
+setsmallerblock(setblock, getblock, getblock2, blocksize)
+// But if :=3D was usable without variable name
+setsmallerblock(getblock() :=3D x, y, z) // a bit nasty to just give
+temporary name here, still feat is good
+// As tuple is such kind of getter anyway
+setsmallerblock(tuple(x, y, z))
+// This function could know nothing of and could work with rectangles
+or areas as well
+i, j, k :=3D list(smallerblock(getblock, getblock2, blocksize))
+
+Adding to tuples the functions with getters and setters would make the
+whole thing complete. This would mean the following construct to be
+added to the language (syntax by example, similar to C# variable
+getter/setter, but also takes function input and looks like function):
+
+func item(index int) get set (value int) {
+=09get: return items[index];
+=09set: items[index] =3D value;
+}
+
+And use:
+mycollection.item(7) *=3D 2;
+
+func configuration() get set (value string) {
+=09get: return configuration file
+=09set: write into configuration file
+}
+
+If interface contains same function with getter only, it is read-only
+through that interface.
+
+func writeonly() set (value string) {
+=09set: // set some value, which could not be locked.
+}
+
+writeonly :=3D 7;
+
+Side-effect would be that some lambdas have return values even if not
+used etc., because some random command inside did return a value.
+
+---------------------
+
+To send less letters, also what I have thought about operator
+overloading. Actually, with Go's syntax, operator overloading would
+look much better than in most languages, because it has not to be
+connected with one or another class.
+
+func (n1 Vector, n2 Vector) operator + Vector {
+=09sum :=3D n1;
+=09sum.x +=3D n2.x;
+=09sum.y +=3D n2.y;
+=09return sum;
+}
+
+func (n1 Vector, n2 Vector) operator + Vector {
+=09n1 =3D n1 + n2;
+}
+
+func (n1 Vector, n2 Vector) operator =3D Vector {
+=09// There should be syntactic solution to make it so that there is
+never ambivalence in :=3D
+=09n1 =3D n2; // ;)
+}
+
+func (n1[] Vector) operator + Vector {
+=09sum :=3D n1[0];
+=09for i :=3D 1; i < len(n1); i++ {
+=09=09sum +=3D n1[i].x;
+=09=09sum +=3D n1[i].y;
+=09}
+}
+
+func (n1 Vector, n2 Vector) operator =3D Vector {
+=09n1.x =3D n2.x;
+=09n1.y =3D n2.y;
+}
+
+Note that both could be derived from each other with one line. For
+optimizations, it's better to declare them separately, but before
+optimizing, one should be enough.
+
+About operator overloading, sometimes, but not very often, I get into
+the problem of some type having more operators than in given set.
+Programming languages usually restrict the use of operators to some
+predefined cases. This is good because you always know, which
+operators could be possibly overloaded, but bad, because you cant
+create more operations than there is in that given set =96 there are no
+=93free operators=94. Also it keeps things simple as programmer must not
+create additional precedence tables.
+I think, thus, that there should be some additional operators, none of
+them implemented for any built-in primitive, but programmer could use
+them as wishes:
+a [*] b;
+a (*) b;
+a <*> b;
+a {*} b;
+
+Those operators mostly share all characteristics with similar-looking
+built-in operators, thus being simple to remember even if not used to
+them. And the same combinatorics with all other operators. This
+allows, for example, to have [-]complexnumber operator in addition to -
+complexnumber and they would both do different things. For some cases,
+{=3D} would solve something before assignment, thus {:=3D}=A0could assign a
+solution.
+
+Operator precedence would, then, go as follows:
+Operators between {} never take precedence over any other operators
+not having {}, but in relation to each other behave exactly as the
+same manner similar operators without {} behave to each other so that:
+a =3D {-}a + 7;
+Would become:
+a =3D {-}(a + 7);
+
+Operators between <> always take precedence over every other operator
+not having <> so that:
+a =3D a <+> 7 * 2 <+> 3
+Would become:
+a =3D (a <+> 7) * (2 <+> 3)
+
+Operators between () have slighly higher precedence than similar
+operators without () so that:
+a =3D a + 7 (+) 3 + 2
+Would become:
+a =3D a + (7 + 3) + 2
+And:
+a =3D a * 7 (+) 3
+Would become:
+a =3D (a * 7) (+) 3;
+
+Operators between []=A0have slighly lower precedence than similar ones
+without [] so that:
+a =3D a + 7 [+] 3 + 2
+Would become:
+a =3D (a + 7) [+] (3 + 2)
+And:
+a =3D a [*] 7 + 3
+Would become:
+a =3D (a [*] 7) + 3
+And:
+list(c, d) =3D list(a, b) [*] 7 + 3
+Would become:
+c =3D (a [*] 7) + 3; d =3D (b [*] 7) + 3
+
+Also, there could be a special case of operator overloading to make it
+complete:
+func (v Vector, d float) rotate (result Vector) {
+=09result.x =3D cos(atan2(v.x, v.y)+d) * sqrt(n1.x**2 + n1.y**2);
+=09result.y =3D sin(atan2(v.x, v.y)+d) * sqrt(n1.x**2 + n1.y**2);
+}
+I probably wrote cos and sin in wrong order, but the use would anyway
+be the following:
+v =3D (v1, PI).rotate();
+Or:
+v =3D v1 rotate PI / 2;
+
+Making some of such operators prefix or postfix could be discussed,
+but they are semantically the same and syntactically normal one-
+parameter function call is prefix operator of this parameter plus
+parentheses. Precedence should be that operations declared in same
+file have the same precedence, but for operations imported first
+imported ones should have least precedence, which makes it possible to
+declare precedences for several separate libraries not connected to
+each other, also it's simplest to remember such connections if you
+have your precedences declared in beginning of your own file. Anyway,
+there should be a way to declare precedence class first using some
+existing operator =96 when precedence class is known, real precedence
+inside that class would be calculated as I discussed.
+
+// Declares both (a Type1; b Type2) and (b Type2, a Type1)
+// with precedence class of given operator.
+func (a Type1; b Type2 unordered) precedence [*] Type {
+=09// Do something with a and b
+}
+
+func (a JPG, b PNG) operator {=3D}
+=09warn =93Lossy compression is used to convert type.=94
+{
+=09// Do something with a and b
+}
+
+This would be the best operator overloading I've seen because of high
+flexibility retaining simplicity.
+
+-------------------------------------
+
+Now, it would be clean to connect tuples, getters, setters at least
+syntactically
+
+If there is x, y, z and one wants to create what was tuple(x, y, z) in
+beginning here, it would be:
+newtuple() :=3D x, y, z
+// newtuple :=3D func() { return x, y, z }
+And instead of list(newtuple)
+newtuple()
+So, tuple would be a constructor of such lambda, but it's
+deconstruction would happen inherently by call, for getters, anyway,
+it has a setter, too
+
+// if setter exists, a given block (if there is only one) should
+become return block
+newtuple(xt, yt, zt) :=3D get: x, y, z; set:
+// newtuple :=3D func() (xt, yt, zt int) get set { get: return x, y, z;
+set: x =3D xt; y =3D yt; z =3D zt }
+
+--------------------------------------
+
+Would it break anything:
+
+func customwhere(var func(bool) set, cond func(), block func()) {
+=09while (cond()) {
+=09=09block();
+=09=09var()++;
+=09}
+}
+
+a :=3D 0;
+customwhere(tuple(a), { a < 10}, {
+
+})
+
+--------------------------------------
+
+Anyway, [lambda] functions sould be usable as channels as well to make
+new custom kinds of channels for syntactic sugar:
+
+func idgenerator(int lastid) send recv (id int) {
+=09prefix :=3D =93z=94
+=09send:
+=09=09return prefix + string(++lastid)
+=09recv:
+=09=09lastid =3D id
+}
+
+To be used as:
+ticket_id :=3D nextid(100) // Does not run thread or goroutine, simply
+inlines the other short func
+go plane_id :=3D nextid(400) // Does run a goroutine
+a :=3D <- ticket_id() // a =3D 101
+a =3D <- ticket_id() // a =3D 102
+a =3D plane_id() // a =3D 401
+plane_id() <- 405
+a :=3D <- plane_id() // 406
+
+No goroutines should be started in this process as this is purely
+setting up a namespace and making calls to it.
+
+Now it's better to communicate, especially if =93a <- b=94 returns a and
+not b:
+switch (<-(plane_id() <- 100)) {
+=09case 101: // There is only case 101 possible
+}
+I think in this case it should have simpler syntax as it's not pure
+routine:
+switch (plane_id(100)) { // Just a getter to send and receive, another
+simple replace done in compiler
+=09case 101: // There is only case 101 possible
+}
+
+Anyway, I should be able to create now:
+
+func idgenerator(int lastid) send recv (id int) {
+=09prefix :=3D =93z=94
+=09for lastid++; {
+=09=09send:
+=09=09=09return prefix + string(++lastid)
+=09=09recv:
+=09=09=09lastid =3D id
+=09}
+}
+
+To use standard construct to keep the state of lastid. This would
+change the exact meaning of send and recv after each call. Also, it
+would be nice to be able to set constraint that send and receive are
+supposed to be called in a given sequence =96 either send first recv
+after and so on or vice versa (or randomly). This is because a complex
+state of nested loops is hard to keep in class variables, there would
+be several trees etc.
+
+----------------------
+
+And now, the syntactic sugar:
+I think that =93yield a=94 looks better than =93yield(a)=94, also
+=93printf ..., ...=94 looks better than =93printf(..., ...)=94. I dont know=
+,
+how to achieve it in all cases, anyway =96 because there might be
+variable number of input.
+
+while (a :=3D 0; a++) {
+    ...
+} else {
+    ...
+}
+
+This syntax is harder to achieve, but in Objective-C, function call
+looks like:
+[setX:6 andY:8];
+It's signature includes both =93setX:andY=94. This makes it better to
+understand, but still sometimes you know the good order and : as
+separator does not look good imo. Anyway, this kind of syntax is
+relatively nice, in ( ) manner it would look like:
+setX(6) andY(8);
+Both in one function call. This =93andY=94 there is another part of
+function name, put into middle of function. Anyway, if all parts
+except the first could be there variable-number of times, their input
+being transformed into an array, then one can create some part of a
+block structure there.
+
+Lamb
+
+Also, I think it's good to make lambda syntax simpler.
+func withlambda (i int, a func(), j int) {
+}
+
+It would be nice if this func() was possible to put inside of a call
+if fits to other syntax:
+withlambda (7) { ... } (9);
+
+And instead of writing tuple(a) when tuple is needed, just =93a=94 would
+be sufficient if function needs tuple anyway unless =93a=94 already is
+tuple. If function needs a tuple, maybe sending real tuple as list
+(tuplevar) makes sense. Tuple and pointer list have slight difference
+and could be joined here as well, but this thisallows a lot and adds
+more complexity, which should be thrown out.
+
+-----------------------------
+
+Hope this inspires.

@@ -1,0 +1,471 @@
+X-Received: by 10.129.199.9 with SMTP id m9mr2797606ywi.160.1510942947828;
+        Fri, 17 Nov 2017 10:22:27 -0800 (PST)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.129.71.11 with SMTP id u11ls354276ywa.43.gmail; Fri, 17 Nov
+ 2017 10:21:56 -0800 (PST)
+X-Received: by 10.129.175.9 with SMTP id n9mr2722354ywh.115.1510942916242;
+        Fri, 17 Nov 2017 10:21:56 -0800 (PST)
+Received: by 10.129.161.206 with SMTP id y197msywg;
+        Fri, 17 Nov 2017 09:32:04 -0800 (PST)
+X-Received: by 10.31.61.142 with SMTP id k136mr505982vka.5.1510939924282;
+        Fri, 17 Nov 2017 09:32:04 -0800 (PST)
+Date: Fri, 17 Nov 2017 09:32:03 -0800 (PST)
+From: Xiaoyi Shi <ash...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Message-Id: <c3ccbd10-f17d-4ff9-89c7-3c79ace2d4e6@googlegroups.com>
+Subject: Should net.Conn transform function retain the original data
+ segmentation?
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_6410_1800900838.1510939923961"
+
+------=_Part_6410_1800900838.1510939923961
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_6411_862558583.1510939923962"
+
+------=_Part_6411_862558583.1510939923962
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+
+
+Hi all,
+
+To clarify, a net.Conn transform function transforms data write to/read 
+from a connection, an example is as follow:
+
+type TransformedConn struct {
+  net.Conn}
+
+func (c *TransformedConn) Read(p []byte) (int, error) {
+  n, err := c.Conn.Read(p)
+  transform(p)
+  return n, err}
+
+func (c *TransformedConn) Write(p []byte) (int, error) {
+  t := append([]byte{}, p...) // as `p` must not be modified per io.Writer doc
+  transform(t)
+  return c.Conn.Write(t)}
+
+Similarly, crypto/cipher.StreamReader and crypto/cipher.StreamWriter perform 
+a similar operation.
+
+As required by io.Writer.Write(), it cannot modify the input buffer. In 
+case the size of the buffer is huge, creating a buffer of the same size 
+will be very expensive. So I'm wondering if it's ok for such transform 
+function to write data out in smaller chunks, to allow us using a smaller 
+scratch space?
+
+I've found such chunking technique will cause some program to fail, 
+especially the ones use io.ReadFull() and io.ReadAtLeast(). Because they 
+implicitly expect that the data to arrive will from a single read() call.
+
+Could someone point me a doc or a spec on how to write such transform 
+functions?
+
+Thanks!
+
+------=_Part_6411_862558583.1510939923962
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><p style=3D"margin-bottom: 1em; font-family: Arial, &quot;=
+Helvetica Neue&quot;, Helvetica, sans-serif; font-size: 15px; font-stretch:=
+ inherit; line-height: inherit; vertical-align: baseline; clear: both; colo=
+r: rgb(36, 39, 41);">Hi all,</p><p style=3D"margin-bottom: 1em; font-family=
+: Arial, &quot;Helvetica Neue&quot;, Helvetica, sans-serif; font-size: 15px=
+; font-stretch: inherit; line-height: inherit; vertical-align: baseline; cl=
+ear: both; color: rgb(36, 39, 41);">To clarify, a net.Conn transform functi=
+on transforms data write to/read from a connection, an example is as follow=
+:</p><pre class=3D"lang-golang prettyprint prettyprinted" style=3D"margin-b=
+ottom: 1em; padding: 5px; font-family: Consolas, Menlo, Monaco, &quot;Lucid=
+a Console&quot;, &quot;Liberation Mono&quot;, &quot;DejaVu Sans Mono&quot;,=
+ &quot;Bitstream Vera Sans Mono&quot;, &quot;Courier New&quot;, monospace, =
+sans-serif; font-stretch: inherit; line-height: inherit; vertical-align: ba=
+seline; width: auto; max-height: 600px; overflow: auto; background-color: r=
+gb(239, 240, 241); color: rgb(57, 51, 24); word-wrap: normal;"><code style=
+=3D"font-family: Consolas, Menlo, Monaco, &quot;Lucida Console&quot;, &quot=
+;Liberation Mono&quot;, &quot;DejaVu Sans Mono&quot;, &quot;Bitstream Vera =
+Sans Mono&quot;, &quot;Courier New&quot;, monospace, sans-serif; font-style=
+: inherit; font-variant-caps: inherit; font-stretch: inherit; line-height: =
+inherit; vertical-align: baseline; white-space: inherit;"><span class=3D"pl=
+n" style=3D"font-family: inherit; font-size: inherit; font-style: inherit; =
+font-variant-caps: inherit; font-stretch: inherit; line-height: inherit; ve=
+rtical-align: baseline; color: rgb(48, 51, 54);">type </span><span class=3D=
+"typ" style=3D"font-family: inherit; font-size: inherit; font-style: inheri=
+t; font-variant-caps: inherit; font-stretch: inherit; line-height: inherit;=
+ vertical-align: baseline; color: rgb(43, 145, 175);">TransformedConn</span=
+><span class=3D"pln" style=3D"font-family: inherit; font-size: inherit; fon=
+t-style: inherit; font-variant-caps: inherit; font-stretch: inherit; line-h=
+eight: inherit; vertical-align: baseline; color: rgb(48, 51, 54);"> </span>=
+<span class=3D"kwd" style=3D"font-family: inherit; font-size: inherit; font=
+-style: inherit; font-variant-caps: inherit; font-stretch: inherit; line-he=
+ight: inherit; vertical-align: baseline; color: rgb(16, 16, 148);">struct</=
+span><span class=3D"pln" style=3D"font-family: inherit; font-size: inherit;=
+ font-style: inherit; font-variant-caps: inherit; font-stretch: inherit; li=
+ne-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);"> </s=
+pan><span class=3D"pun" style=3D"font-family: inherit; font-size: inherit; =
+font-style: inherit; font-variant-caps: inherit; font-stretch: inherit; lin=
+e-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">{</sp=
+an><span class=3D"pln" style=3D"font-family: inherit; font-size: inherit; f=
+ont-style: inherit; font-variant-caps: inherit; font-stretch: inherit; line=
+-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">
+  net</span><span class=3D"pun" style=3D"font-family: inherit; font-size: i=
+nherit; font-style: inherit; font-variant-caps: inherit; font-stretch: inhe=
+rit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54)=
+;">.</span><span class=3D"typ" style=3D"font-family: inherit; font-size: in=
+herit; font-style: inherit; font-variant-caps: inherit; font-stretch: inher=
+it; line-height: inherit; vertical-align: baseline; color: rgb(43, 145, 175=
+);">Conn</span><span class=3D"pln" style=3D"font-family: inherit; font-size=
+: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: i=
+nherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, =
+54);">
+</span><span class=3D"pun" style=3D"font-family: inherit; font-size: inheri=
+t; font-style: inherit; font-variant-caps: inherit; font-stretch: inherit; =
+line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">}<=
+/span><span class=3D"pln" style=3D"font-family: inherit; font-size: inherit=
+; font-style: inherit; font-variant-caps: inherit; font-stretch: inherit; l=
+ine-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">
+
+func </span><span class=3D"pun" style=3D"font-family: inherit; font-size: i=
+nherit; font-style: inherit; font-variant-caps: inherit; font-stretch: inhe=
+rit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54)=
+;">(</span><span class=3D"pln" style=3D"font-family: inherit; font-size: in=
+herit; font-style: inherit; font-variant-caps: inherit; font-stretch: inher=
+it; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);=
+">c </span><span class=3D"pun" style=3D"font-family: inherit; font-size: in=
+herit; font-style: inherit; font-variant-caps: inherit; font-stretch: inher=
+it; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);=
+">*</span><span class=3D"typ" style=3D"font-family: inherit; font-size: inh=
+erit; font-style: inherit; font-variant-caps: inherit; font-stretch: inheri=
+t; line-height: inherit; vertical-align: baseline; color: rgb(43, 145, 175)=
+;">TransformedConn</span><span class=3D"pun" style=3D"font-family: inherit;=
+ font-size: inherit; font-style: inherit; font-variant-caps: inherit; font-=
+stretch: inherit; line-height: inherit; vertical-align: baseline; color: rg=
+b(48, 51, 54);">)</span><span class=3D"pln" style=3D"font-family: inherit; =
+font-size: inherit; font-style: inherit; font-variant-caps: inherit; font-s=
+tretch: inherit; line-height: inherit; vertical-align: baseline; color: rgb=
+(48, 51, 54);"> </span><span class=3D"typ" style=3D"font-family: inherit; f=
+ont-size: inherit; font-style: inherit; font-variant-caps: inherit; font-st=
+retch: inherit; line-height: inherit; vertical-align: baseline; color: rgb(=
+43, 145, 175);">Read</span><span class=3D"pun" style=3D"font-family: inheri=
+t; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fon=
+t-stretch: inherit; line-height: inherit; vertical-align: baseline; color: =
+rgb(48, 51, 54);">(</span><span class=3D"pln" style=3D"font-family: inherit=
+; font-size: inherit; font-style: inherit; font-variant-caps: inherit; font=
+-stretch: inherit; line-height: inherit; vertical-align: baseline; color: r=
+gb(48, 51, 54);">p </span><span class=3D"pun" style=3D"font-family: inherit=
+; font-size: inherit; font-style: inherit; font-variant-caps: inherit; font=
+-stretch: inherit; line-height: inherit; vertical-align: baseline; color: r=
+gb(48, 51, 54);">[]</span><span class=3D"kwd" style=3D"font-family: inherit=
+; font-size: inherit; font-style: inherit; font-variant-caps: inherit; font=
+-stretch: inherit; line-height: inherit; vertical-align: baseline; color: r=
+gb(16, 16, 148);">byte</span><span class=3D"pun" style=3D"font-family: inhe=
+rit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; f=
+ont-stretch: inherit; line-height: inherit; vertical-align: baseline; color=
+: rgb(48, 51, 54);">)</span><span class=3D"pln" style=3D"font-family: inher=
+it; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fo=
+nt-stretch: inherit; line-height: inherit; vertical-align: baseline; color:=
+ rgb(48, 51, 54);"> </span><span class=3D"pun" style=3D"font-family: inheri=
+t; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fon=
+t-stretch: inherit; line-height: inherit; vertical-align: baseline; color: =
+rgb(48, 51, 54);">(</span><span class=3D"kwd" style=3D"font-family: inherit=
+; font-size: inherit; font-style: inherit; font-variant-caps: inherit; font=
+-stretch: inherit; line-height: inherit; vertical-align: baseline; color: r=
+gb(16, 16, 148);">int</span><span class=3D"pun" style=3D"font-family: inher=
+it; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fo=
+nt-stretch: inherit; line-height: inherit; vertical-align: baseline; color:=
+ rgb(48, 51, 54);">,</span><span class=3D"pln" style=3D"font-family: inheri=
+t; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fon=
+t-stretch: inherit; line-height: inherit; vertical-align: baseline; color: =
+rgb(48, 51, 54);"> error</span><span class=3D"pun" style=3D"font-family: in=
+herit; font-size: inherit; font-style: inherit; font-variant-caps: inherit;=
+ font-stretch: inherit; line-height: inherit; vertical-align: baseline; col=
+or: rgb(48, 51, 54);">)</span><span class=3D"pln" style=3D"font-family: inh=
+erit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; =
+font-stretch: inherit; line-height: inherit; vertical-align: baseline; colo=
+r: rgb(48, 51, 54);"> </span><span class=3D"pun" style=3D"font-family: inhe=
+rit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; f=
+ont-stretch: inherit; line-height: inherit; vertical-align: baseline; color=
+: rgb(48, 51, 54);">{</span><span class=3D"pln" style=3D"font-family: inher=
+it; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fo=
+nt-stretch: inherit; line-height: inherit; vertical-align: baseline; color:=
+ rgb(48, 51, 54);">
+  n</span><span class=3D"pun" style=3D"font-family: inherit; font-size: inh=
+erit; font-style: inherit; font-variant-caps: inherit; font-stretch: inheri=
+t; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);"=
+>,</span><span class=3D"pln" style=3D"font-family: inherit; font-size: inhe=
+rit; font-style: inherit; font-variant-caps: inherit; font-stretch: inherit=
+; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">=
+ err </span><span class=3D"pun" style=3D"font-family: inherit; font-size: i=
+nherit; font-style: inherit; font-variant-caps: inherit; font-stretch: inhe=
+rit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54)=
+;">:=3D</span><span class=3D"pln" style=3D"font-family: inherit; font-size:=
+ inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: in=
+herit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 5=
+4);"> c</span><span class=3D"pun" style=3D"font-family: inherit; font-size:=
+ inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: in=
+herit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 5=
+4);">.</span><span class=3D"typ" style=3D"font-family: inherit; font-size: =
+inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: inh=
+erit; line-height: inherit; vertical-align: baseline; color: rgb(43, 145, 1=
+75);">Conn</span><span class=3D"pun" style=3D"font-family: inherit; font-si=
+ze: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch:=
+ inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51=
+, 54);">.</span><span class=3D"typ" style=3D"font-family: inherit; font-siz=
+e: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: =
+inherit; line-height: inherit; vertical-align: baseline; color: rgb(43, 145=
+, 175);">Read</span><span class=3D"pun" style=3D"font-family: inherit; font=
+-size: inherit; font-style: inherit; font-variant-caps: inherit; font-stret=
+ch: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48,=
+ 51, 54);">(</span><span class=3D"pln" style=3D"font-family: inherit; font-=
+size: inherit; font-style: inherit; font-variant-caps: inherit; font-stretc=
+h: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, =
+51, 54);">p</span><span class=3D"pun" style=3D"font-family: inherit; font-s=
+ize: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch=
+: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 5=
+1, 54);">)</span><span class=3D"pln" style=3D"font-family: inherit; font-si=
+ze: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch:=
+ inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51=
+, 54);">
+  transform</span><span class=3D"pun" style=3D"font-family: inherit; font-s=
+ize: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch=
+: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 5=
+1, 54);">(</span><span class=3D"pln" style=3D"font-family: inherit; font-si=
+ze: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch:=
+ inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51=
+, 54);">p</span><span class=3D"pun" style=3D"font-family: inherit; font-siz=
+e: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: =
+inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51,=
+ 54);">)</span><span class=3D"pln" style=3D"font-family: inherit; font-size=
+: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: i=
+nherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, =
+54);">
+  </span><span class=3D"kwd" style=3D"font-family: inherit; font-size: inhe=
+rit; font-style: inherit; font-variant-caps: inherit; font-stretch: inherit=
+; line-height: inherit; vertical-align: baseline; color: rgb(16, 16, 148);"=
+>return</span><span class=3D"pln" style=3D"font-family: inherit; font-size:=
+ inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: in=
+herit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 5=
+4);"> n</span><span class=3D"pun" style=3D"font-family: inherit; font-size:=
+ inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: in=
+herit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 5=
+4);">,</span><span class=3D"pln" style=3D"font-family: inherit; font-size: =
+inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: inh=
+erit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54=
+);"> err
+</span><span class=3D"pun" style=3D"font-family: inherit; font-size: inheri=
+t; font-style: inherit; font-variant-caps: inherit; font-stretch: inherit; =
+line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">}<=
+/span><span class=3D"pln" style=3D"font-family: inherit; font-size: inherit=
+; font-style: inherit; font-variant-caps: inherit; font-stretch: inherit; l=
+ine-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">
+
+func </span><span class=3D"pun" style=3D"font-family: inherit; font-size: i=
+nherit; font-style: inherit; font-variant-caps: inherit; font-stretch: inhe=
+rit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54)=
+;">(</span><span class=3D"pln" style=3D"font-family: inherit; font-size: in=
+herit; font-style: inherit; font-variant-caps: inherit; font-stretch: inher=
+it; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);=
+">c </span><span class=3D"pun" style=3D"font-family: inherit; font-size: in=
+herit; font-style: inherit; font-variant-caps: inherit; font-stretch: inher=
+it; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);=
+">*</span><span class=3D"typ" style=3D"font-family: inherit; font-size: inh=
+erit; font-style: inherit; font-variant-caps: inherit; font-stretch: inheri=
+t; line-height: inherit; vertical-align: baseline; color: rgb(43, 145, 175)=
+;">TransformedConn</span><span class=3D"pun" style=3D"font-family: inherit;=
+ font-size: inherit; font-style: inherit; font-variant-caps: inherit; font-=
+stretch: inherit; line-height: inherit; vertical-align: baseline; color: rg=
+b(48, 51, 54);">)</span><span class=3D"pln" style=3D"font-family: inherit; =
+font-size: inherit; font-style: inherit; font-variant-caps: inherit; font-s=
+tretch: inherit; line-height: inherit; vertical-align: baseline; color: rgb=
+(48, 51, 54);"> </span><span class=3D"typ" style=3D"font-family: inherit; f=
+ont-size: inherit; font-style: inherit; font-variant-caps: inherit; font-st=
+retch: inherit; line-height: inherit; vertical-align: baseline; color: rgb(=
+43, 145, 175);">Write</span><span class=3D"pun" style=3D"font-family: inher=
+it; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fo=
+nt-stretch: inherit; line-height: inherit; vertical-align: baseline; color:=
+ rgb(48, 51, 54);">(</span><span class=3D"pln" style=3D"font-family: inheri=
+t; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fon=
+t-stretch: inherit; line-height: inherit; vertical-align: baseline; color: =
+rgb(48, 51, 54);">p </span><span class=3D"pun" style=3D"font-family: inheri=
+t; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fon=
+t-stretch: inherit; line-height: inherit; vertical-align: baseline; color: =
+rgb(48, 51, 54);">[]</span><span class=3D"kwd" style=3D"font-family: inheri=
+t; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fon=
+t-stretch: inherit; line-height: inherit; vertical-align: baseline; color: =
+rgb(16, 16, 148);">byte</span><span class=3D"pun" style=3D"font-family: inh=
+erit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; =
+font-stretch: inherit; line-height: inherit; vertical-align: baseline; colo=
+r: rgb(48, 51, 54);">)</span><span class=3D"pln" style=3D"font-family: inhe=
+rit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; f=
+ont-stretch: inherit; line-height: inherit; vertical-align: baseline; color=
+: rgb(48, 51, 54);"> </span><span class=3D"pun" style=3D"font-family: inher=
+it; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fo=
+nt-stretch: inherit; line-height: inherit; vertical-align: baseline; color:=
+ rgb(48, 51, 54);">(</span><span class=3D"kwd" style=3D"font-family: inheri=
+t; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fon=
+t-stretch: inherit; line-height: inherit; vertical-align: baseline; color: =
+rgb(16, 16, 148);">int</span><span class=3D"pun" style=3D"font-family: inhe=
+rit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; f=
+ont-stretch: inherit; line-height: inherit; vertical-align: baseline; color=
+: rgb(48, 51, 54);">,</span><span class=3D"pln" style=3D"font-family: inher=
+it; font-size: inherit; font-style: inherit; font-variant-caps: inherit; fo=
+nt-stretch: inherit; line-height: inherit; vertical-align: baseline; color:=
+ rgb(48, 51, 54);"> error</span><span class=3D"pun" style=3D"font-family: i=
+nherit; font-size: inherit; font-style: inherit; font-variant-caps: inherit=
+; font-stretch: inherit; line-height: inherit; vertical-align: baseline; co=
+lor: rgb(48, 51, 54);">)</span><span class=3D"pln" style=3D"font-family: in=
+herit; font-size: inherit; font-style: inherit; font-variant-caps: inherit;=
+ font-stretch: inherit; line-height: inherit; vertical-align: baseline; col=
+or: rgb(48, 51, 54);"> </span><span class=3D"pun" style=3D"font-family: inh=
+erit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; =
+font-stretch: inherit; line-height: inherit; vertical-align: baseline; colo=
+r: rgb(48, 51, 54);">{</span><span class=3D"pln" style=3D"font-family: inhe=
+rit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; f=
+ont-stretch: inherit; line-height: inherit; vertical-align: baseline; color=
+: rgb(48, 51, 54);">
+  t </span><span class=3D"pun" style=3D"font-family: inherit; font-size: in=
+herit; font-style: inherit; font-variant-caps: inherit; font-stretch: inher=
+it; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);=
+">:=3D</span><span class=3D"pln" style=3D"font-family: inherit; font-size: =
+inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: inh=
+erit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54=
+);"> append</span><span class=3D"pun" style=3D"font-family: inherit; font-s=
+ize: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch=
+: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 5=
+1, 54);">([]</span><span class=3D"kwd" style=3D"font-family: inherit; font-=
+size: inherit; font-style: inherit; font-variant-caps: inherit; font-stretc=
+h: inherit; line-height: inherit; vertical-align: baseline; color: rgb(16, =
+16, 148);">byte</span><span class=3D"pun" style=3D"font-family: inherit; fo=
+nt-size: inherit; font-style: inherit; font-variant-caps: inherit; font-str=
+etch: inherit; line-height: inherit; vertical-align: baseline; color: rgb(4=
+8, 51, 54);">{},</span><span class=3D"pln" style=3D"font-family: inherit; f=
+ont-size: inherit; font-style: inherit; font-variant-caps: inherit; font-st=
+retch: inherit; line-height: inherit; vertical-align: baseline; color: rgb(=
+48, 51, 54);"> p</span><span class=3D"pun" style=3D"font-family: inherit; f=
+ont-size: inherit; font-style: inherit; font-variant-caps: inherit; font-st=
+retch: inherit; line-height: inherit; vertical-align: baseline; color: rgb(=
+48, 51, 54);">...)</span><span class=3D"pln" style=3D"font-family: inherit;=
+ font-size: inherit; font-style: inherit; font-variant-caps: inherit; font-=
+stretch: inherit; line-height: inherit; vertical-align: baseline; color: rg=
+b(48, 51, 54);"> </span><span class=3D"com" style=3D"font-family: inherit; =
+font-size: inherit; font-style: inherit; font-variant-caps: inherit; font-s=
+tretch: inherit; line-height: inherit; vertical-align: baseline; color: rgb=
+(133, 140, 147);">// as `p` must not be modified per io.Writer doc</span><s=
+pan class=3D"pln" style=3D"font-family: inherit; font-size: inherit; font-s=
+tyle: inherit; font-variant-caps: inherit; font-stretch: inherit; line-heig=
+ht: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">
+  transform</span><span class=3D"pun" style=3D"font-family: inherit; font-s=
+ize: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch=
+: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 5=
+1, 54);">(</span><span class=3D"pln" style=3D"font-family: inherit; font-si=
+ze: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch:=
+ inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51=
+, 54);">t</span><span class=3D"pun" style=3D"font-family: inherit; font-siz=
+e: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: =
+inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51,=
+ 54);">)</span><span class=3D"pln" style=3D"font-family: inherit; font-size=
+: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: i=
+nherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, =
+54);">
+  </span><span class=3D"kwd" style=3D"font-family: inherit; font-size: inhe=
+rit; font-style: inherit; font-variant-caps: inherit; font-stretch: inherit=
+; line-height: inherit; vertical-align: baseline; color: rgb(16, 16, 148);"=
+>return</span><span class=3D"pln" style=3D"font-family: inherit; font-size:=
+ inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: in=
+herit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 5=
+4);"> c</span><span class=3D"pun" style=3D"font-family: inherit; font-size:=
+ inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: in=
+herit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 5=
+4);">.</span><span class=3D"typ" style=3D"font-family: inherit; font-size: =
+inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: inh=
+erit; line-height: inherit; vertical-align: baseline; color: rgb(43, 145, 1=
+75);">Conn</span><span class=3D"pun" style=3D"font-family: inherit; font-si=
+ze: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch:=
+ inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 51=
+, 54);">.</span><span class=3D"typ" style=3D"font-family: inherit; font-siz=
+e: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch: =
+inherit; line-height: inherit; vertical-align: baseline; color: rgb(43, 145=
+, 175);">Write</span><span class=3D"pun" style=3D"font-family: inherit; fon=
+t-size: inherit; font-style: inherit; font-variant-caps: inherit; font-stre=
+tch: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48=
+, 51, 54);">(</span><span class=3D"pln" style=3D"font-family: inherit; font=
+-size: inherit; font-style: inherit; font-variant-caps: inherit; font-stret=
+ch: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48,=
+ 51, 54);">t</span><span class=3D"pun" style=3D"font-family: inherit; font-=
+size: inherit; font-style: inherit; font-variant-caps: inherit; font-stretc=
+h: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, =
+51, 54);">)</span><span class=3D"pln" style=3D"font-family: inherit; font-s=
+ize: inherit; font-style: inherit; font-variant-caps: inherit; font-stretch=
+: inherit; line-height: inherit; vertical-align: baseline; color: rgb(48, 5=
+1, 54);">
+</span><span class=3D"pun" style=3D"font-family: inherit; font-size: inheri=
+t; font-style: inherit; font-variant-caps: inherit; font-stretch: inherit; =
+line-height: inherit; vertical-align: baseline; color: rgb(48, 51, 54);">}<=
+/span></code></pre><p style=3D"margin-bottom: 1em; font-family: Arial, &quo=
+t;Helvetica Neue&quot;, Helvetica, sans-serif; font-size: 15px; font-stretc=
+h: inherit; line-height: inherit; vertical-align: baseline; clear: both; co=
+lor: rgb(36, 39, 41);">Similarly,=C2=A0<code style=3D"padding: 1px 5px; fon=
+t-family: Consolas, Menlo, Monaco, &quot;Lucida Console&quot;, &quot;Libera=
+tion Mono&quot;, &quot;DejaVu Sans Mono&quot;, &quot;Bitstream Vera Sans Mo=
+no&quot;, &quot;Courier New&quot;, monospace, sans-serif; font-size: 13px; =
+font-style: inherit; font-variant-caps: inherit; font-stretch: inherit; lin=
+e-height: inherit; vertical-align: baseline; background-color: rgb(239, 240=
+, 241); white-space: pre-wrap;">crypto/cipher.StreamReader</code>=C2=A0and=
+=C2=A0<code style=3D"padding: 1px 5px; font-family: Consolas, Menlo, Monaco=
+, &quot;Lucida Console&quot;, &quot;Liberation Mono&quot;, &quot;DejaVu San=
+s Mono&quot;, &quot;Bitstream Vera Sans Mono&quot;, &quot;Courier New&quot;=
+, monospace, sans-serif; font-size: 13px; font-style: inherit; font-variant=
+-caps: inherit; font-stretch: inherit; line-height: inherit; vertical-align=
+: baseline; background-color: rgb(239, 240, 241); white-space: pre-wrap;">c=
+rypto/cipher.StreamWriter</code>=C2=A0perform a similar operation.</p><p st=
+yle=3D"margin-bottom: 1em; font-family: Arial, &quot;Helvetica Neue&quot;, =
+Helvetica, sans-serif; font-size: 15px; font-stretch: inherit; line-height:=
+ inherit; vertical-align: baseline; clear: both; color: rgb(36, 39, 41);">A=
+s required by=C2=A0<code style=3D"padding: 1px 5px; font-family: Consolas, =
+Menlo, Monaco, &quot;Lucida Console&quot;, &quot;Liberation Mono&quot;, &qu=
+ot;DejaVu Sans Mono&quot;, &quot;Bitstream Vera Sans Mono&quot;, &quot;Cour=
+ier New&quot;, monospace, sans-serif; font-size: 13px; font-style: inherit;=
+ font-variant-caps: inherit; font-stretch: inherit; line-height: inherit; v=
+ertical-align: baseline; background-color: rgb(239, 240, 241); white-space:=
+ pre-wrap;">io.Writer.Write()</code>, it cannot modify the input buffer. In=
+ case the size of the buffer is huge, creating a buffer of the same size wi=
+ll be very expensive. So I&#39;m wondering if it&#39;s ok for such transfor=
+m function to write data out in smaller chunks, to allow us using a smaller=
+ scratch space?</p><p style=3D"margin-bottom: 1em; font-family: Arial, &quo=
+t;Helvetica Neue&quot;, Helvetica, sans-serif; font-size: 15px; font-stretc=
+h: inherit; line-height: inherit; vertical-align: baseline; clear: both; co=
+lor: rgb(36, 39, 41);">I&#39;ve found such chunking technique will cause so=
+me program to fail, especially the ones use=C2=A0<code style=3D"padding: 1p=
+x 5px; font-family: Consolas, Menlo, Monaco, &quot;Lucida Console&quot;, &q=
+uot;Liberation Mono&quot;, &quot;DejaVu Sans Mono&quot;, &quot;Bitstream Ve=
+ra Sans Mono&quot;, &quot;Courier New&quot;, monospace, sans-serif; font-si=
+ze: 13px; font-style: inherit; font-variant-caps: inherit; font-stretch: in=
+herit; line-height: inherit; vertical-align: baseline; background-color: rg=
+b(239, 240, 241); white-space: pre-wrap;">io.ReadFull()</code>=C2=A0and=C2=
+=A0<code style=3D"padding: 1px 5px; font-family: Consolas, Menlo, Monaco, &=
+quot;Lucida Console&quot;, &quot;Liberation Mono&quot;, &quot;DejaVu Sans M=
+ono&quot;, &quot;Bitstream Vera Sans Mono&quot;, &quot;Courier New&quot;, m=
+onospace, sans-serif; font-size: 13px; font-style: inherit; font-variant-ca=
+ps: inherit; font-stretch: inherit; line-height: inherit; vertical-align: b=
+aseline; background-color: rgb(239, 240, 241); white-space: pre-wrap;">io.R=
+eadAtLeast()</code>. Because they implicitly expect that the data to arrive=
+ will from a single=C2=A0<code style=3D"padding: 1px 5px; font-family: Cons=
+olas, Menlo, Monaco, &quot;Lucida Console&quot;, &quot;Liberation Mono&quot=
+;, &quot;DejaVu Sans Mono&quot;, &quot;Bitstream Vera Sans Mono&quot;, &quo=
+t;Courier New&quot;, monospace, sans-serif; font-size: 13px; font-style: in=
+herit; font-variant-caps: inherit; font-stretch: inherit; line-height: inhe=
+rit; vertical-align: baseline; background-color: rgb(239, 240, 241); white-=
+space: pre-wrap;">read()</code>=C2=A0call.</p><p style=3D"margin-bottom: 1e=
+m; font-family: Arial, &quot;Helvetica Neue&quot;, Helvetica, sans-serif; f=
+ont-size: 15px; font-stretch: inherit; line-height: inherit; vertical-align=
+: baseline; clear: both; color: rgb(36, 39, 41);">Could someone point me a =
+doc or a spec on how to write such transform functions?</p><p style=3D"marg=
+in-bottom: 1em; font-family: Arial, &quot;Helvetica Neue&quot;, Helvetica, =
+sans-serif; font-size: 15px; font-stretch: inherit; line-height: inherit; v=
+ertical-align: baseline; clear: both; color: rgb(36, 39, 41);">Thanks!</p><=
+/div>
+------=_Part_6411_862558583.1510939923962--
+
+------=_Part_6410_1800900838.1510939923961--

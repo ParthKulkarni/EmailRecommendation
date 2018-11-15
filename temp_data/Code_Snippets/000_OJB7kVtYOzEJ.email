@@ -1,0 +1,167 @@
+X-Received: by 10.70.24.163 with SMTP id v3mr3215039pdf.8.1406214280630;
+        Thu, 24 Jul 2014 08:04:40 -0700 (PDT)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.50.225.69 with SMTP id ri5ls1868139igc.8.canary; Thu, 24 Jul
+ 2014 08:04:28 -0700 (PDT)
+X-Received: by 10.50.35.164 with SMTP id i4mr278392igj.8.1406214268296;
+        Thu, 24 Jul 2014 08:04:28 -0700 (PDT)
+Date: Thu, 24 Jul 2014 08:04:27 -0700 (PDT)
+From: Grissiom Gu <chaos....@gmail.com>
+To: golang-nuts@googlegroups.com
+Message-Id: <522eafca-17a6-4a90-9a35-19673781aeb2@googlegroups.com>
+Subject: Pointer to string(continuous literal) without Cgo?
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_335_940839250.1406214267433"
+
+------=_Part_335_940839250.1406214267433
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_336_763181889.1406214267433"
+
+------=_Part_336_763181889.1406214267433
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Hi all,
+
+I'm currently writing Go code interact with my hand-writing Linux kernel 
+module under ARM. I need to do ioctl with a parameter structure which has a 
+"char *". But I failed to do it right in Go. Here is my code so far:
+
+================
+package main
+
+import (
+        "bytes"
+        "log"
+        "os"
+        "syscall"
+        "unsafe"
+)
+
+// Keep consistent with rt_vbus_user.h
+type rt_vbus_wm_cfg struct {
+        low, high uint32
+}
+type rt_vbus_request struct {
+        name      uintptr
+        is_server int32
+        prio      uint8
+        oflag     uint32
+        recv_wm   rt_vbus_wm_cfg
+        post_wm   rt_vbus_wm_cfg
+}
+
+// Keep consistent with rt_vbus_user.h
+const (
+        VBUS_IOCREQ = 0xc020e1e2
+)
+
+func main() {
+        namebuf := bytes.NewBufferString("rti\x00")
+        cb := rt_vbus_request{
+                name:      uintptr(unsafe.Pointer(namebuf)),
+                prio:      20,
+                is_server: 0,
+                oflag:     uint32(os.O_RDWR),
+                recv_wm:   rt_vbus_wm_cfg{500, 1000},
+                post_wm:   rt_vbus_wm_cfg{500, 1000},
+        }
+
+        vcf, err := os.Open("/dev/rtvbus")
+        if err != nil {
+                log.Fatal("Could not open VBus control file")
+        }
+        r1, r2, err := syscall.Syscall(
+                syscall.SYS_IOCTL,
+                uintptr(vcf.Fd()),
+                VBUS_IOCREQ,
+                uintptr(unsafe.Pointer(&cb)))
+        log.Printf("%08x %x", cb.name, string(cb.name))
+        log.Println(int(r1), r2, err)
+}
+
+================
+
+But the kernel module will get the wrong content. The content from cb.name 
+is 0xd0 0x00 0x40 0x10, which is definitely not "rti". I cross-compiling 
+ my code so I could not use CGo yet. So is there any way to access the 
+underlaying literal pool in Go?
+
+
+------=_Part_336_763181889.1406214267433
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">Hi all,<div><br></div><div>I'm currently writing Go code i=
+nteract with my hand-writing Linux kernel module under ARM. I need to do io=
+ctl with a parameter structure which has a "char *". But I failed to do it =
+right in Go. Here is my code so far:</div><div><br></div><div>=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D</div><div><div class=3D"prettyprint" s=
+tyle=3D"border: 1px solid rgb(187, 187, 187); word-wrap: break-word; backgr=
+ound-color: rgb(250, 250, 250);"><code class=3D"prettyprint"><div class=3D"=
+subprettyprint"><span class=3D"styled-by-prettify"><font color=3D"#000000">=
+<div class=3D"subprettyprint"><div class=3D"subprettyprint">package main</d=
+iv><div class=3D"subprettyprint"><br></div><div class=3D"subprettyprint">im=
+port (</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; "byte=
+s"</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; "log"</di=
+v><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; "os"</div><div =
+class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; "syscall"</div><div cl=
+ass=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; "unsafe"</div><div class=
+=3D"subprettyprint">)</div><div class=3D"subprettyprint"><br></div><div cla=
+ss=3D"subprettyprint">// Keep consistent with rt_vbus_user.h</div><div clas=
+s=3D"subprettyprint">type rt_vbus_wm_cfg struct {</div><div class=3D"subpre=
+ttyprint">&nbsp; &nbsp; &nbsp; &nbsp; low, high uint32</div><div class=3D"s=
+ubprettyprint">}</div><div class=3D"subprettyprint">type rt_vbus_request st=
+ruct {</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; name =
+&nbsp; &nbsp; &nbsp;uintptr</div><div class=3D"subprettyprint">&nbsp; &nbsp=
+; &nbsp; &nbsp; is_server int32</div><div class=3D"subprettyprint">&nbsp; &=
+nbsp; &nbsp; &nbsp; prio &nbsp; &nbsp; &nbsp;uint8</div><div class=3D"subpr=
+ettyprint">&nbsp; &nbsp; &nbsp; &nbsp; oflag &nbsp; &nbsp; uint32</div><div=
+ class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; recv_wm &nbsp; rt_vbu=
+s_wm_cfg</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; pos=
+t_wm &nbsp; rt_vbus_wm_cfg</div><div class=3D"subprettyprint">}</div><div c=
+lass=3D"subprettyprint"><br></div><div class=3D"subprettyprint">// Keep con=
+sistent with rt_vbus_user.h</div><div class=3D"subprettyprint">const (</div=
+><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; VBUS_IOCREQ =3D =
+0xc020e1e2</div><div class=3D"subprettyprint">)</div><div class=3D"subprett=
+yprint"><br></div><div class=3D"subprettyprint">func main() {</div><div cla=
+ss=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; namebuf :=3D bytes.NewBuf=
+ferString("rti\x00")</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp=
+; &nbsp; cb :=3D rt_vbus_request{</div><div class=3D"subprettyprint">&nbsp;=
+ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; name: &nbsp; &nbsp; &nbsp=
+;uintptr(unsafe.Pointer(namebuf)),</div><div class=3D"subprettyprint">&nbsp=
+; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; prio: &nbsp; &nbsp; &nbs=
+p;20,</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;=
+ &nbsp; &nbsp; &nbsp; is_server: 0,</div><div class=3D"subprettyprint">&nbs=
+p; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; oflag: &nbsp; &nbsp; ui=
+nt32(os.O_RDWR),</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &n=
+bsp; &nbsp; &nbsp; &nbsp; &nbsp; recv_wm: &nbsp; rt_vbus_wm_cfg{500, 1000},=
+</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbs=
+p; &nbsp; &nbsp; post_wm: &nbsp; rt_vbus_wm_cfg{500, 1000},</div><div class=
+=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; }</div><div class=3D"subpre=
+ttyprint"><br></div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbs=
+p; vcf, err :=3D os.Open("/dev/rtvbus")</div><div class=3D"subprettyprint">=
+&nbsp; &nbsp; &nbsp; &nbsp; if err !=3D nil {</div><div class=3D"subprettyp=
+rint">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; log.Fatal("Co=
+uld not open VBus control file")</div><div class=3D"subprettyprint">&nbsp; =
+&nbsp; &nbsp; &nbsp; }</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nb=
+sp; &nbsp; r1, r2, err :=3D syscall.Syscall(</div><div class=3D"subprettypr=
+int">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; syscall.SYS_IO=
+CTL,</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; =
+&nbsp; &nbsp; &nbsp; uintptr(vcf.Fd()),</div><div class=3D"subprettyprint">=
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; VBUS_IOCREQ,</div><=
+div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbs=
+p; &nbsp; uintptr(unsafe.Pointer(&amp;cb)))</div><div class=3D"subprettypri=
+nt">&nbsp; &nbsp; &nbsp; &nbsp; log.Printf("%08x %x", cb.name, string(cb.na=
+me))</div><div class=3D"subprettyprint">&nbsp; &nbsp; &nbsp; &nbsp; log.Pri=
+ntln(int(r1), r2, err)</div><div class=3D"subprettyprint">}</div><div><br><=
+/div></div></font></span></div></code></div></div><div>=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D</div><div><br></div><div>But the kernel modu=
+le will get the wrong content. The content from cb.name is 0xd0 0x00 0x40 0=
+x10, which is definitely not "rti". I cross-compiling &nbsp;my code so I co=
+uld not use CGo yet. So is there any way to access the underlaying literal =
+pool in Go?</div><div><br></div></div>
+------=_Part_336_763181889.1406214267433--
+
+------=_Part_335_940839250.1406214267433--

@@ -1,0 +1,103 @@
+Received: by 10.66.81.98 with SMTP id z2mr992641pax.19.1352245193649;
+        Tue, 06 Nov 2012 15:39:53 -0800 (PST)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.68.234.37 with SMTP id ub5ls4033361pbc.6.gmail; Tue, 06 Nov
+ 2012 15:39:45 -0800 (PST)
+Received: by 10.68.223.98 with SMTP id qt2mr949600pbc.20.1352245185188;
+        Tue, 06 Nov 2012 15:39:45 -0800 (PST)
+Date: Tue, 6 Nov 2012 15:39:44 -0800 (PST)
+From: Sonia Hamilton <sonia.s...@gmail.com>
+To: golang-nuts@googlegroups.com
+Message-Id: <3ba93120-5de5-4dde-8e83-390464716b72@googlegroups.com>
+Subject: map of maps - a better way?
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_767_10025041.1352245184794"
+
+------=_Part_767_10025041.1352245184794
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_768_29170229.1352245184797"
+
+------=_Part_768_29170229.1352245184797
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+I'm producing a map of maps in my code, but the way I'm doing it seems 
+clumsy. I'm wondering if there's a better way? eg how would I produce an 
+anonymous map of maps like in Perl/Python/Ruby?
+
+The map of maps is declared like this:
+(ie structure is string -> time.Time -> int)
+
+type results_t struct {
+    results map[string]result_t
+}
+type result_t struct {
+    result map[time.Time]int
+}
+
+I have "constructors" for results_t and result_t:
+
+func newResults() (rs results_t) {
+    rs = results_t{
+        results: make(map[string]result_t),
+    }
+    return
+}
+
+func newResult() (r result_t) {
+    r = result_t{
+        result: make(map[time.Time]int),
+    }
+    return
+}
+
+And here's some demo code and results:
+
+r := newResult()
+r.result[time.Now()] = 1
+r.result[time.Now()] = 2
+fmt.Printf("r: %v\n", r)
+
+rs := newResults()
+rs.results["1224"] = r
+fmt.Printf("rs: %v\n", rs)
+
+r: {map[{63487841318 862144000 0x4e2428}:2 {63487841318 862142000 
+0x4e2428}:1]}
+rs: {map[1224:{map[{63487841318 862142000 0x4e2428}:1 {63487841318 
+862144000 0x4e2428}:2]
+
+--
+Sonia
+
+------=_Part_768_29170229.1352245184797
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+I'm producing a map of maps in my code, but the way I'm doing it seems clum=
+sy. I'm wondering if there's a better way? eg how would I produce an anonym=
+ous map of maps like in Perl/Python/Ruby?<br><br>The map of maps is declare=
+d like this:<br>(ie structure is string -&gt; time.Time -&gt; int)<br><br><=
+span style=3D"color: rgb(0, 0, 255);"><span style=3D"font-family: courier n=
+ew,monospace;">type results_t struct {<br>&nbsp;&nbsp;&nbsp; results map[st=
+ring]result_t<br>}<br>type result_t struct {<br>&nbsp;&nbsp;&nbsp; result m=
+ap[time.Time]int<br>}<br><br></span></span>I have "constructors" for result=
+s_t and result_t:<br><br><span style=3D"color: rgb(0, 0, 255);"><span style=
+=3D"font-family: courier new,monospace;">func newResults() (rs results_t) {=
+<br>&nbsp;&nbsp;&nbsp; rs =3D results_t{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; results: make(map[string]result_t),<br>&nbsp;&nbsp;&nbsp; }<br>=
+&nbsp;&nbsp;&nbsp; return<br>}<br><br>func newResult() (r result_t) {<br>&n=
+bsp;&nbsp;&nbsp; r =3D result_t{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nb=
+sp; result: make(map[time.Time]int),<br>&nbsp;&nbsp;&nbsp; }<br>&nbsp;&nbsp=
+;&nbsp; return<br>}<br></span></span><br>And here's some demo code and resu=
+lts:<br><br><span style=3D"color: rgb(0, 0, 255);"><span style=3D"font-fami=
+ly: courier new,monospace;">r :=3D newResult()<br>r.result[time.Now()] =3D =
+1<br>r.result[time.Now()] =3D 2<br>fmt.Printf("r: %v\n", r)<br><br>rs :=3D =
+newResults()<br>rs.results["1224"] =3D r<br>fmt.Printf("rs: %v\n", rs)<br><=
+br>r: {map[{63487841318 862144000 0x4e2428}:2 {63487841318 862142000 0x4e24=
+28}:1]}<br>rs: {map[1224:{map[{63487841318 862142000 0x4e2428}:1 {634878413=
+18 862144000 0x4e2428}:2]</span></span><br><br>--<br>Sonia<br>
+------=_Part_768_29170229.1352245184797--
+
+------=_Part_767_10025041.1352245184794--
