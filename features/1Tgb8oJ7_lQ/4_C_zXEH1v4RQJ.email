@@ -1,0 +1,121 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.150.129.26 with SMTP id b26ls4104962ybd.1.p; Thu, 03 Dec 2009 
+	03:43:47 -0800 (PST)
+Received: by 10.150.27.31 with SMTP id a31mr1586450yba.14.1259840627225;
+        Thu, 03 Dec 2009 03:43:47 -0800 (PST)
+Received: by 10.150.27.31 with SMTP id a31mr1586449yba.14.1259840627199;
+        Thu, 03 Dec 2009 03:43:47 -0800 (PST)
+Return-Path: <benkasmi...@gmail.com>
+Received: from mail-gx0-f192.google.com (mail-gx0-f192.google.com [209.85.217.192])
+        by gmr-mx.google.com with ESMTP id 19si170077yxe.6.2009.12.03.03.43.47;
+        Thu, 03 Dec 2009 03:43:47 -0800 (PST)
+Received-SPF: pass (google.com: domain of benkasmi...@gmail.com designates 209.85.217.192 as permitted sender) client-ip=209.85.217.192;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of benkasmi...@gmail.com designates 209.85.217.192 as permitted sender) smtp.mail=benkasmi...@gmail.com
+Received: by mail-gx0-f192.google.com with SMTP id 8so1893546gxk.11
+        for <golan...@googlegroups.com>; Thu, 03 Dec 2009 03:43:47 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.101.29.38 with SMTP id g38mr130665anj.17.1259840627138; Thu, 
+	03 Dec 2009 03:43:47 -0800 (PST)
+Date: Thu, 3 Dec 2009 03:43:47 -0800 (PST)
+In-Reply-To: <90578a61-707e-44b6-adcd-0825331afb24@k13g2000prh.googlegroups.com>
+X-IP: 124.155.94.247
+References: <4f9bbb1a-bb00-4265-8154-baec50ebad11@u8g2000prd.googlegroups.com> 
+	<96d4ecb6-4c53-4c22-a4cd-22c67b31d773@k13g2000prh.googlegroups.com> 
+	<90578a61-707e-44b6-adcd-0825331afb24@k13g2000prh.googlegroups.com>
+User-Agent: G2/1.0
+X-HTTP-UserAgent: Mozilla/5.0 (Windows; U; Windows NT 6.0; en-US) 
+	AppleWebKit/532.3 (KHTML, like Gecko) Chrome/4.0.223.16 Safari/532.3,gzip(gfe),gzip(gfe)
+Message-ID: <dd3f39b7-87da-409d-82e0-f24def5cfe5e@f18g2000prf.googlegroups.com>
+Subject: Re: Ajax request can't get response body
+From: Ben Bullock <benkasmi...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+
+
+On Dec 3, 8:16=A0pm, Mad Go <madd...@gmail.com> wrote:
+> On Dec 3, 7:04=A0pm, Ben Bullock <benkasmi...@gmail.com> wrote:
+>
+> > On Dec 3, 6:58=A0pm, Mad Go <madd...@gmail.com> wrote:
+>
+> > > =A0 =A0 err :=3D http.ListenAndServe(":11118", nil);
+> > > var url =3D "http://localhost/admin";
+>
+> > Maybe you need "http://localhost:11118/admin" here.
+>
+> And I could see the response through firebug, but just had header, no
+> response body.
+
+This is the browser security blocking because the original page and
+the ajax are on different ports.
+
+Try this:
+
+---------- server
+
+package main
+import ("fmt";"io";"http")
+func admin(c *http.Conn, req *http.Request) {
+    resstring :=3Dfmt.Sprintf("<p>The id is %s</p>","moocow");
+    io.WriteString(c, resstring);
+}
+func banana(c *http.Conn, req *http.Request) {
+=09contents,_ :=3D io.ReadFile("/usr/local/www/data/b/madgo.html"); //
+change this!!!
+=09io.WriteString(c, string(contents));
+}
+
+func main() {
+    http.Handle("/admin", http.HandlerFunc(admin));
+    http.Handle("/banana", http.HandlerFunc(banana));
+    err :=3D http.ListenAndServe(":11118", nil);
+    if err !=3D nil {
+        panic("ListenAndServe: ", err.String())
+    }
+}
+
+------------ madgo.html:
+
+<html>
+<head>
+<script>
+function gogo ()
+{
+    alert ("gogo");
+    var url =3D "http://localhost:11118/admin";
+    var ajax =3D new XMLHttpRequest();
+    if (! ajax) {
+        alert ("Failed");
+    }
+    ajax.open("GET", url, true);
+    alert ("gogo");
+    ajax.onreadystatechange =3D function(){
+        alert(ajax.readyState+"  "+ajax.status+"  "+ajax.statusText)
+        if (ajax.readyState =3D=3D 4) {
+            if (ajax.status =3D=3D 200) {
+                var ret =3D ajax.responseText;
+                alert("You got "+ret);
+            } else {
+                alert ("Status is "+ajax.status);
+            }
+        }
+    }
+    if(ajax.readyState =3D=3D 0) {
+        alert("error:"+ajax.readyState+'  '+ajax.responseText);
+    }
+    ajax.send("");
+}
+
+</script>
+    <body>
+    <input type=3D"submit" onclick =3D "gogo()">
+    </body>
+</html>
+
+-------------
+
+You just need to change the filename.
+
+
+

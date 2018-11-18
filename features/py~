@@ -1,0 +1,109 @@
+from pprint import pprint
+from flanker import mime
+import json
+import numpy
+import pickle
+import re
+
+with open('miniindex.json') as f:
+    data = json.load(f)
+
+#pprint(data)
+#print(data["topic"][0]["topic "])
+userdict={
+"index":0,
+"uname":""
+}
+userlist={}
+invuserlist={}
+i=0
+flag=0
+
+mat = []   
+foo=[0]*10
+                                                       
+for i in range (0, 10):                              
+    new = []                  
+    for j in range (0, 10):   
+        new.append(foo)       
+    mat.append(new)                         
+#initialize 2d matrix 
+ 
+#print(mat)
+i=0
+for x in data:
+	print(x["topic"])
+	print(x["id"])
+	flag=0
+	sender=""
+	for d in x["messages"]:
+		 for (k, v) in d.items():
+  			 print("Key: " + k)
+  			 print("Value: " + v)
+  			 if k=="author" and flag==0:           #initiate
+  			 	print("Main message")
+  			 	userlist.update({i : str(v)})  #index gives uname
+  			 	invuserlist.update({str(v) : i}) #uname gives index
+  			 	print(userlist)
+  			 	print(invuserlist)
+  			 	sender=v
+  			 	i=i+1
+  			 	flag=1
+  			 elif k=="author":
+  			 	print("Reply message")
+  			 	found=0
+  			 	for k2,v2 in userlist.iteritems():
+  			 		if v2==v:
+  			 			found=1
+  			 	if found==0:
+  			 		userlist.update({i : str(v)})  #index gives uname
+  			 		invuserlist.update({str(v) : i}) #uname gives index
+  			 		i=i+1
+  			 		print(userlist)
+  			 		print(invuserlist)
+  			 if str(k)=="file" :
+  			 	#file = open('/home/anuja/Desktop/BE project/features/FDWexIUHs_E/0_YrHdJreOYt4J.email', "r")
+  			 	
+  			 	file = open(str('/home/anuja/Desktop/BE project/features/'+v), "r")
+  			 	
+  			 	print('file to be opened: '+v)
+				print("================================================")
+				mailmsg = file.read()
+				msg = mime.from_string(mailmsg)
+			#     print("printing email message!!")
+				head=msg.headers.items()
+				#print(head)
+				dhead=dict(head)
+				replier=dhead["From"]
+				#print(dhead)
+				print("TYPE:"+str(type(head)))
+				print('In-Reply-To' in dhead or 'Reply-To' in dhead)
+				if 'In-Reply-To' in dhead or 'Reply-To' in dhead:
+					print "Reply message"
+					ind=invuserlist[sender]
+					print(ind)
+					replier=str(re.sub('<.*?>', '', str(replier)))
+					
+  			 		#print(invuserlist)
+  			 		
+					print("Replier  "+replier)
+					
+					print(invuserlist)
+					print("******************************")
+					#rep=invuserlist[replier]
+					#print("Got index: "+str(rep))
+					#rep=0
+					#mat[ind][rep]=mat[ind][rep]+1
+				else:
+					print "Main message"
+				#for (k1,v1) in head:
+					#print("key "+k1)
+					#print("value "+str(v1))
+					
+				
+   				
+	print("-------------------------------------------------------------------------")
+
+	#print(x["messages"]["id"])	
+					   			
+f.close()

@@ -1,0 +1,69 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.150.168.38 with SMTP id q38ls4072189ybe.3.p; Thu, 03 Dec 2009 
+	02:34:44 -0800 (PST)
+Received: by 10.150.130.4 with SMTP id c4mr1530665ybd.12.1259836484592;
+        Thu, 03 Dec 2009 02:34:44 -0800 (PST)
+Received: by 10.101.189.12 with SMTP id r12mr275895anp.29.1259834301223;
+        Thu, 03 Dec 2009 01:58:21 -0800 (PST)
+Received: by 10.101.189.12 with SMTP id r12mr275894anp.29.1259834301204;
+        Thu, 03 Dec 2009 01:58:21 -0800 (PST)
+Return-Path: <madd...@gmail.com>
+Received: from mail-yx0-f151.google.com (mail-yx0-f151.google.com [209.85.210.151])
+        by gmr-mx.google.com with ESMTP id 18si147314gxk.7.2009.12.03.01.58.21;
+        Thu, 03 Dec 2009 01:58:21 -0800 (PST)
+Received-SPF: pass (google.com: domain of madd...@gmail.com designates 209.85.210.151 as permitted sender) client-ip=209.85.210.151;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of madd...@gmail.com designates 209.85.210.151 as permitted sender) smtp.mail=madd...@gmail.com
+Received: by yxe15 with SMTP id 15so2122389yxe.9
+        for <golan...@googlegroups.com>; Thu, 03 Dec 2009 01:58:21 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.101.131.33 with SMTP id i33mr119034ann.38.1259834301144; Thu, 
+	03 Dec 2009 01:58:21 -0800 (PST)
+Date: Thu, 3 Dec 2009 01:58:20 -0800 (PST)
+X-IP: 204.152.213.162
+User-Agent: G2/1.0
+X-HTTP-UserAgent: Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9.1.5) 
+	Gecko/20091102 Firefox/3.5.5 (.NET CLR 3.5.30729),gzip(gfe),gzip(gfe)
+Message-ID: <4f9bbb1a-bb00-4265-8154-baec50ebad11@u8g2000prd.googlegroups.com>
+Subject: Ajax request can't get response body
+From: Mad Go <madd...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=ISO-8859-1
+
+Hi,
+I trid to use ajax to get some date,  but it didn't work, the browser
+could get the header, but without any response body. And if I access
+http://localhost/admin directly, it could show what I want.
+
+server side:
+func admin(c *http.Conn, req *http.Request) {
+    ......
+    resstring :=fmt.Sprintf("<p>The id is %s</p>",row["id"]);
+    io.WriteString(c, resstring);
+}
+func main() {
+    runtime.GOMAXPROCS(1); // 8 cores
+
+    http.Handle("/admin", http.HandlerFunc(admin));
+    err := http.ListenAndServe(":11118", nil);
+    if err != nil {
+        panic("ListenAndServe: ", err.String())
+    }
+}
+
+web client:
+
+var url = "http://localhost/admin";
+	var ajax = ajax_init();
+	ajax.open("GET", url, true);
+	ajax.onreadystatechange = function(){
+		alert(ajax.readyState+"  "+ajax.status+"  "+ajax.statusText)
+		if (ajax.readyState == 4 && ajax.status == 200) {
+			var ret = ajax.responseText;
+			alert(ret);
+		}
+		if(ajax.readyState == 0) {
+			alert("error:"+ajax.readyState+'  '+ajax.responseText);
+		}
+	}
+
+Is there anyone can help me? Thanks.

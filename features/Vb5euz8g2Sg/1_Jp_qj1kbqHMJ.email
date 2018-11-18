@@ -1,0 +1,98 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.90.1.25 with SMTP id 25ls3639588aga.3.p; Wed, 02 Dec 2009 
+	03:04:05 -0800 (PST)
+Received: by 10.90.8.15 with SMTP id 15mr45909agh.14.1259751845776;
+        Wed, 02 Dec 2009 03:04:05 -0800 (PST)
+Received: by 10.90.8.15 with SMTP id 15mr45908agh.14.1259751845745;
+        Wed, 02 Dec 2009 03:04:05 -0800 (PST)
+Return-Path: <mal...@gmail.com>
+Received: from mail-yx0-f146.google.com (mail-yx0-f146.google.com [209.85.210.146])
+        by gmr-mx.google.com with ESMTP id 24si69525ywh.11.2009.12.02.03.04.05;
+        Wed, 02 Dec 2009 03:04:05 -0800 (PST)
+Received-SPF: pass (google.com: domain of mal...@gmail.com designates 209.85.210.146 as permitted sender) client-ip=209.85.210.146;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of mal...@gmail.com designates 209.85.210.146 as permitted sender) smtp.mail=mal...@gmail.com
+Received: by mail-yx0-f146.google.com with SMTP id 10so95864yxe.12
+        for <golan...@googlegroups.com>; Wed, 02 Dec 2009 03:04:05 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.101.29.38 with SMTP id g38mr13867anj.47.1259751844917; Wed, 02 
+	Dec 2009 03:04:04 -0800 (PST)
+Date: Wed, 2 Dec 2009 03:04:04 -0800 (PST)
+X-IP: 76.94.211.188
+User-Agent: G2/1.0
+X-HTTP-UserAgent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_2; en-us) 
+	AppleWebKit/531.21.8 (KHTML, like Gecko) Version/4.0.4 Safari/531.21.10,gzip(gfe),gzip(gfe)
+Message-ID: <f2546b4c-17a9-47bf-a264-e6d07fa473dd@l35g2000vba.googlegroups.com>
+Subject: Package aliasing not working?
+From: "Dimiter \"malkia\" Stanev" <mal...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=ISO-8859-1
+
+My experience with aliasing packages... Am I doing something wrong?
+
+malkia ~/p/gotest $ pwd
+/Users/malkia/p/gotest
+malkia ~/p/gotest $ cat main.go
+package main
+
+import "fmt"
+import v1 "./v1/test"
+import v2 "./v2/test"
+
+func main ()
+{
+	fmt.Printf("main\n");
+	v1.Test();
+	v2.Test();
+}
+malkia ~/p/gotest $ cat v1/test.go
+package test
+
+import "fmt"
+
+func Test()
+{
+	fmt.Printf( "v1 test\n" );
+}
+malkia ~/p/gotest $ cat v2/test.go
+package test
+
+import "fmt"
+
+func Test()
+{
+	fmt.Printf( "v2 test\n" );
+}
+malkia ~/p/gotest $ go main
+main
+v1 test
+v1 test
+malkia ~/p/gotest $ go -d main
+exec pid=63013	err=<nil>	dir=/Users/malkia/p/gotest/v2	cmd=[/Users/
+malkia/p/go.darwin.amd64/6g test.go]
+exec pid=63014	err=<nil>	dir=/Users/malkia/p/gotest/v1	cmd=[/Users/
+malkia/p/go.darwin.amd64/6g test.go]
+exec pid=63015	err=<nil>	dir=/Users/malkia/p/gotest	cmd=[/Users/malkia/
+p/go.darwin.amd64/6g main.go]
+exec pid=63016	err=<nil>	dir=	cmd=[/Users/malkia/p/go.darwin.amd64/6l -
+o main main.6 v1/test.6 v2/test.6]
+main
+v1 test
+v1 test
+malkia ~/p/gotest $ cd v1
+malkia ~/p/gotest/v1 $ 6g test.go
+malkia ~/p/gotest/v1 $ cd ..
+malkia ~/p/gotest $ cd v2
+malkia ~/p/gotest/v2 $ 6g test.go
+malkia ~/p/gotest/v2 $ cd ..
+malkia ~/p/gotest $ 6g main.go
+malkia ~/p/gotest $ 6l -o main main.6 v1/test.6 v2/test.6
+malkia ~/p/gotest $ ./main
+main
+v1 test
+v1 test
+malkia ~/p/gotest $ 6l -o main main.6 v2/test.6 v1/test.6
+malkia ~/p/gotest $ ./main
+main
+v2 test
+v2 test
+malkia ~/p/gotest $
