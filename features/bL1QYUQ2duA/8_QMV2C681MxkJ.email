@@ -1,0 +1,97 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.204.16.73 with SMTP id n9ls3454376bka.3.p; Fri, 04 Dec 2009 
+	08:13:17 -0800 (PST)
+Received: by 10.204.175.20 with SMTP id v20mr107887bkz.24.1259943197752;
+        Fri, 04 Dec 2009 08:13:17 -0800 (PST)
+Received: by 10.204.175.20 with SMTP id v20mr107886bkz.24.1259943197721;
+        Fri, 04 Dec 2009 08:13:17 -0800 (PST)
+Return-Path: <snake...@gmail.com>
+Received: from mail-bw0-f213.google.com (mail-bw0-f213.google.com [209.85.218.213])
+        by gmr-mx.google.com with ESMTP id 18si165735bwz.5.2009.12.04.08.13.16;
+        Fri, 04 Dec 2009 08:13:16 -0800 (PST)
+Received-SPF: pass (google.com: domain of snake...@gmail.com designates 209.85.218.213 as permitted sender) client-ip=209.85.218.213;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of snake...@gmail.com designates 209.85.218.213 as permitted sender) smtp.mail=snake...@gmail.com; dkim=pass (test mode) head...@gmail.com
+Received: by mail-bw0-f213.google.com with SMTP id 5so2036693bwz.3
+        for <golan...@googlegroups.com>; Fri, 04 Dec 2009 08:13:16 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=gamma;
+        h=domainkey-signature:mime-version:received:in-reply-to:references
+         :date:message-id:subject:from:to:cc:content-type;
+        bh=4FXYsw1ZggQqUetmShovDKDA7qLGosFOLLzpbAf8qY0=;
+        b=M7FzSKILqo3/8zkhLtet/cZ52JGvrLTsubQpkhpmazpSaFJPllzqQGdByO0TzfFzRk
+         ggVA+L926nHOSjWQRjkLjz1WsuC+cBSMQIaagFhReRlWMtwKfTe8ePAR9Tr6r81ualh1
+         /x87yNrgIgWE65TlCRNchMKyZfvRSiUK9nYNc=
+DomainKey-Signature: a=rsa-sha1; c=nofws;
+        d=gmail.com; s=gamma;
+        h=mime-version:in-reply-to:references:date:message-id:subject:from:to
+         :cc:content-type;
+        b=jC/6Z8mmWph1GeFIVNSpH25FpFUAwVDi80qDqKodfn2pqcdm3/5gjgKHO+q9g4niQD
+         TpNGskqwUAwVwzvRO4gv0cmaUdd98m0i4VIMfKs3uW4yhzZupa1secJrIOjqp6SRm0/l
+         Toi3UvMjknUuJjXFkZliE6+wvQ1MQRijwEFiQ=
+MIME-Version: 1.0
+Received: by 10.204.24.2 with SMTP id t2mr3511413bkb.65.1259943196552; Fri, 04 
+	Dec 2009 08:13:16 -0800 (PST)
+In-Reply-To: <FA402C53-00BC-4860-9C55-CF46EBB545E5@gmail.com>
+References: <DEA177FF-AD3E-4399-918E-648C2811A94D@gmail.com>
+	 <3bde9bf80912040631l7c90de90jb6b9dda43772c067@mail.gmail.com>
+	 <FA402C53-00BC-4860-9C55-CF46EBB545E5@gmail.com>
+Date: Fri, 4 Dec 2009 19:13:16 +0300
+Message-ID: <103f81210912040813sa746fdy1d1ab0caa50b23e3@mail.gmail.com>
+Subject: Re: [go-nuts] Default interface method implementation
+From: SnakE <snake...@gmail.com>
+To: Daniel Dilts <dilts....@gmail.com>
+Cc: golan...@googlegroups.com
+Content-Type: multipart/alternative; boundary=00032555b336aaef900479e962b1
+
+--00032555b336aaef900479e962b1
+Content-Type: text/plain; charset=ISO-8859-1
+
+2009/12/4 Daniel Dilts <dilts....@gmail.com>
+
+> I had hoped that I had some other alternative.  This seemed like the only
+> solution I could come up with, but I was hoping that some mind more
+> brilliant than mine would develop a more elegant solution.
+>
+
+I think this solution is idiomatic.  Also, there is no way your struct could
+inherit a "default implementation" because you never specify explicitly
+which interface you implement.
+
+What may help you is that you can override a method promoted from an
+anonymous field:
+
+type Iface interface { func1() int; func2() int; func3() int }
+
+type IfaceDefault struct {}
+func (d IfaceDefault) func1() int { return 1 }
+func (d IfaceDefault) func2() int { return 2 }
+func (d IfaceDefault) func3() int { return 3 }
+
+type IfaceImpl struct { IfaceDefault }
+func (i IfaceImpl) func2() int { return i.IfaceDefault.func2() + 10 }
+
+--00032555b336aaef900479e962b1
+Content-Type: text/html; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+<div class=3D"gmail_quote">2009/12/4 Daniel Dilts <span dir=3D"ltr">&lt;<a =
+href=3D"mailto:dilts....@gmail.com">dilts....@gmail.com</a>&gt;</span><br><=
+blockquote class=3D"gmail_quote" style=3D"border-left: 1px solid rgb(204, 2=
+04, 204); margin: 0pt 0pt 0pt 0.8ex; padding-left: 1ex;">
+<div style=3D"word-wrap: break-word;"><div>I had hoped that I had some othe=
+r alternative. =A0This seemed like the only solution I could come up with, =
+but I was hoping that some mind more brilliant than mine would develop a mo=
+re elegant solution.</div>
+</div></blockquote><div><br>I think this solution is idiomatic.=A0 Also, th=
+ere is no way your struct could inherit a &quot;default implementation&quot=
+; because you never specify explicitly which interface you implement.<br>
+<br>What may help you is that you can override a method promoted from an an=
+onymous field:<br><br>type Iface interface { func1() int; func2() int; func=
+3() int }<br><br>type IfaceDefault struct {}<br>func (d IfaceDefault) func1=
+() int { return 1 }<br>
+func (d IfaceDefault) func2() int { return 2 }<br>func (d IfaceDefault) fun=
+c3() int { return 3 }<br><br>type IfaceImpl struct { IfaceDefault }<br>func=
+ (i IfaceImpl) func2() int { return i.IfaceDefault.func2() + 10 }<br><br>
+</div></div>
+
+--00032555b336aaef900479e962b1--

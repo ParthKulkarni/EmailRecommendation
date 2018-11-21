@@ -1,0 +1,115 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.114.187.1 with SMTP id k1ls5150995waf.0.p; Fri, 04 Dec 2009 
+	07:43:01 -0800 (PST)
+Received: by 10.115.39.3 with SMTP id r3mr589639waj.18.1259941381882;
+        Fri, 04 Dec 2009 07:43:01 -0800 (PST)
+Received: by 10.115.39.3 with SMTP id r3mr589638waj.18.1259941381849;
+        Fri, 04 Dec 2009 07:43:01 -0800 (PST)
+Return-Path: <dilts....@gmail.com>
+Received: from mail-pw0-f46.google.com (mail-pw0-f46.google.com [209.85.160.46])
+        by gmr-mx.google.com with ESMTP id 18si587549pzk.1.2009.12.04.07.43.00;
+        Fri, 04 Dec 2009 07:43:00 -0800 (PST)
+Received-SPF: pass (google.com: domain of dilts....@gmail.com designates 209.85.160.46 as permitted sender) client-ip=209.85.160.46;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of dilts....@gmail.com designates 209.85.160.46 as permitted sender) smtp.mail=dilts....@gmail.com; dkim=pass (test mode) head...@gmail.com
+Received: by mail-pw0-f46.google.com with SMTP id 17so2336284pwj.25
+        for <golan...@googlegroups.com>; Fri, 04 Dec 2009 07:43:00 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=gamma;
+        h=domainkey-signature:received:received:from:mime-version
+         :content-type:subject:date:in-reply-to:to:references:message-id
+         :x-mailer;
+        bh=2GtjtempRgwouokYS4Z938KOENsC2HLlOcBFCB95+C4=;
+        b=fGrvFNIv0pT059GiEFwGk60np50mMQ4Wuz6EoXgsSt3X/jPH26lNeZA4CQerzANb51
+         eP+0C2u1FGPv9qBAdcg4a5r8Q/zLEPaMx64l3mvQhEehAyIsUUDDrvt593IRkhaQrAcl
+         kPNJeStBrwJ4T/P7pNc1OHcqbPMN0YuSL44rE=
+DomainKey-Signature: a=rsa-sha1; c=nofws;
+        d=gmail.com; s=gamma;
+        h=from:mime-version:content-type:subject:date:in-reply-to:to
+         :references:message-id:x-mailer;
+        b=Kskl/D8ECzYkrFajdBscnZO92RL2ZVOGcDNBZNcUyIrJ+03BWuBfx1IAvdF7fjxzEd
+         j9OPBK04923xLDj6HHkvjDAa0E2y1L/nHIzBGoW2DVi2UlQ0tozddSqOqFcXOIWtxn3u
+         aekz82nSSq7VlOdUbbcgl4UL+d6yKmMUjU+vI=
+Received: by 10.115.103.23 with SMTP id f23mr4172601wam.226.1259941380671;
+        Fri, 04 Dec 2009 07:43:00 -0800 (PST)
+Return-Path: <dilts....@gmail.com>
+Received: from ?192.168.1.100? ([64.122.18.77])
+        by mx.google.com with ESMTPS id 23sm82118pxi.9.2009.12.04.07.42.59
+        (version=TLSv1/SSLv3 cipher=RC4-MD5);
+        Fri, 04 Dec 2009 07:43:00 -0800 (PST)
+From: Daniel Dilts <dilts....@gmail.com>
+Mime-Version: 1.0 (Apple Message framework v1077)
+Subject: Re: [go-nuts] Default interface method implementation
+Date: Fri, 4 Dec 2009 08:42:27 -0700
+In-Reply-To: <3bde9bf80912040631l7c90de90jb6b9dda43772c067@mail.gmail.com>
+To: golang-nuts@googlegroups.com
+References: <DEA177FF-AD3E-4399-918E-648C2811A94D@gmail.com> <3bde9bf80912040631l7c90de90jb6b9dda43772c067@mail.gmail.com>
+Message-Id: <FA402C53-00BC-4860-9C55-CF46EBB545E5@gmail.com>
+X-Mailer: Apple Mail (2.1077)
+Content-Type: multipart/alternative; boundary=Apple-Mail-1-313790196
+
+--Apple-Mail-1-313790196
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain;
+	charset=us-ascii
+
+I had hoped that I had some other alternative.  This seemed like the only s=
+olution I could come up with, but I was hoping that some mind more brillian=
+t than mine would develop a more elegant solution.
+
+On Dec 4, 2009, at 7:31 AM, Evan Shaw wrote:
+
+> Here's a pattern I think would work:
+>=20
+> type Interface interface {
+>     commonFunc();
+> }
+>=20
+> type common struct {}
+>=20
+> func (c *common) commonFunc(){ return }
+>=20
+> type Type1 struct {
+>     common;
+>     // Other fields
+> }
+>=20
+> type Type2 struct {
+>     common;
+>     // Other fields
+> }
+>=20
+> type Type3 struct {
+>     // Some fields
+> }
+>=20
+> func (t Type3) commonFunc(){ /* Some different implementation */ return }
+>=20
+> Type1, Type2, and Type 3 all implement Interface. Type1 and Type2 share t=
+he same implementation of commonFunc(), while Type3 does its own thing. It'=
+s a bit cumbersome if you're doing this a lot, but arguably better than dup=
+licating code.
+>=20
+> - Evan
+>=20
+> On Fri, Dec 4, 2009 at 1:56 AM, Daniel Dilts <dilts....@gmail.com> wrote:
+> I have an interface with several methods in it.  One of the methods has a=
+n implementation that would be useful in all but a few cases (types) withou=
+t requiring any member data.  Is there some way to declare a method such th=
+at it would be reused by structs that implement the interface, but it would=
+ have the option of being overridden.
+>=20
+
+
+--Apple-Mail-1-313790196
+Content-Transfer-Encoding: 7bit
+Content-Type: text/html;
+	charset=us-ascii
+
+<html><head></head><body style="word-wrap: break-word; -webkit-nbsp-mode: space; -webkit-line-break: after-white-space; "><div>I had hoped that I had some other alternative. &nbsp;This seemed like the only solution I could come up with, but I was hoping that some mind more brilliant than mine would develop a more elegant solution.</div><br><div><div>On Dec 4, 2009, at 7:31 AM, Evan Shaw wrote:</div><br class="Apple-interchange-newline"><blockquote type="cite">Here's a pattern I think would work:<br><br>type Interface interface {<br>&nbsp;&nbsp;&nbsp; commonFunc();<br>}<br><br>type common struct {}<br><br>func (c *common) commonFunc(){ return }<br><br>type Type1 struct {<br>&nbsp;&nbsp;&nbsp; common;<br>
+&nbsp;&nbsp;&nbsp; // Other fields<br>}<br><br>type Type2 struct {<br>&nbsp;&nbsp;&nbsp; common;<br>&nbsp;&nbsp;&nbsp; // Other fields<br>}<br><br>type Type3 struct {<br>&nbsp;&nbsp;&nbsp; // Some fields<br>}<br><br>func (t Type3) commonFunc(){ /* Some different implementation */ return }<br>
+<br>Type1, Type2, and Type 3 all implement Interface. Type1 and Type2 share the same implementation of commonFunc(), while Type3 does its own thing. It's a bit cumbersome if you're doing this a lot, but arguably better than duplicating code.<br>
+<br>- Evan<br><br><div class="gmail_quote">On Fri, Dec 4, 2009 at 1:56 AM, Daniel Dilts <span dir="ltr">&lt;<a href="mailto:dilts....@gmail.com">dilts....@gmail.com</a>&gt;</span> wrote:<br><blockquote class="gmail_quote" style="border-left: 1px solid rgb(204, 204, 204); margin: 0pt 0pt 0pt 0.8ex; padding-left: 1ex;">
+I have an interface with several methods in it. &nbsp;One of the methods has an implementation that would be useful in all but a few cases (types) without requiring any member data. &nbsp;Is there some way to declare a method such that it would be reused by structs that implement the interface, but it would have the option of being overridden.</blockquote>
+</div><br>
+</blockquote></div><br></body></html>
+--Apple-Mail-1-313790196--

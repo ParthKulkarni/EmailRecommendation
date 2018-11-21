@@ -1,0 +1,98 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.223.98.89 with SMTP id p25ls207572fan.2.p; Wed, 02 Dec 2009 
+	08:13:49 -0800 (PST)
+Received: by 10.223.94.201 with SMTP id a9mr11566fan.11.1259770429395;
+        Wed, 02 Dec 2009 08:13:49 -0800 (PST)
+Received: by 10.223.94.201 with SMTP id a9mr11565fan.11.1259770429375;
+        Wed, 02 Dec 2009 08:13:49 -0800 (PST)
+Return-Path: <frederik...@xprog.eu>
+Received: from mail-bw0-f223.google.com (mail-bw0-f223.google.com [209.85.218.223])
+        by gmr-mx.google.com with ESMTP id 17si67609fxm.3.2009.12.02.08.13.49;
+        Wed, 02 Dec 2009 08:13:49 -0800 (PST)
+Received-SPF: neutral (google.com: 209.85.218.223 is neither permitted nor denied by best guess record for domain of frederik...@xprog.eu) client-ip=209.85.218.223;
+Authentication-Results: gmr-mx.google.com; spf=neutral (google.com: 209.85.218.223 is neither permitted nor denied by best guess record for domain of frederik...@xprog.eu) smtp.mail=frederik...@xprog.eu
+Received: by bwz23 with SMTP id 23so342349bwz.29
+        for <golan...@googlegroups.com>; Wed, 02 Dec 2009 08:13:49 -0800 (PST)
+Received: by 10.204.27.13 with SMTP id g13mr332701bkc.120.1259770428926;
+        Wed, 02 Dec 2009 08:13:48 -0800 (PST)
+Return-Path: <frederik...@xprog.eu>
+Received: from localhost (xvm-17-175.ghst.net [92.243.17.175])
+        by mx.google.com with ESMTPS id 13sm364393bwz.6.2009.12.02.08.13.48
+        (version=TLSv1/SSLv3 cipher=RC4-MD5);
+        Wed, 02 Dec 2009 08:13:48 -0800 (PST)
+Date: Wed, 2 Dec 2009 17:13:47 +0100
+From: Frederik Deweerdt <frederik...@xprog.eu>
+To: baldmountain <baldmo...@gmail.com>
+Cc: golang-nuts <golan...@googlegroups.com>
+Subject: Re: [go-nuts] Head is busted
+Message-ID: <20091202161347.GD28070@gambetta>
+References: <b1c15b9e-4c3c-4160-bfcf-d644a279c4f4@m20g2000vbp.googlegroups.com>
+MIME-Version: 1.0
+In-Reply-To: <b1c15b9e-4c3c-4160-bfcf-d644a279c4f4@m20g2000vbp.googlegroups.com>
+User-Agent: Mutt/1.5.20 (2009-06-14)
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+On Wed, Dec 02, 2009 at 06:01:33AM -0800, baldmountain wrote:
+> Not sure if you guys want to know about stuff like this here. The head
+> of the tree is busted on linux 386. It fails building pkg/net/fd.go
+> because syscall.Shutdown is not defined.
+The following crude hack worked for me:
+
+Apply the two following patches:
+
+===========================
+diff -r 0af79d833639 src/pkg/syscall/mkall.sh
+--- a/src/pkg/syscall/mkall.sh	Wed Dec 02 01:16:38 2009 -0800
++++ b/src/pkg/syscall/mkall.sh	Wed Dec 02 17:09:44 2009 +0100
+@@ -120,7 +120,7 @@
+ 	;;
+ linux_386)
+ 	mksyscall="mksyscall.sh -l32"
+-	mksysnum="mksysnum_linux.sh /usr/include/asm/unistd_32.h"
++	mksysnum="mksysnum_linux.sh /tmp/unistd"
+ 	mktypes="godefs -gsyscall -f-m32"
+ 	;;
+ linux_amd64)
+diff -r 0af79d833639 src/pkg/syscall/mksysnum_linux.sh
+--- a/src/pkg/syscall/mksysnum_linux.sh	Wed Dec 02 01:16:38 2009 -0800
++++ b/src/pkg/syscall/mksysnum_linux.sh	Wed Dec 02 17:09:44 2009 +0100
+@@ -14,15 +14,20 @@
+ const(
+ EOF
+ 
++my %nr_sys;
++
+ while(<>){
+ 	if(/^#define __NR_(\w+)\s+([0-9]+)/){
+ 		my $name = "SYS_$1";
+ 		my $num = $2;
+ 		$name =~ y/a-z/A-Z/;
+-		print "	$name = $num;\n";
++		$nr_sys{$name} = $num;
+ 	}
+ }
+ 
++foreach my $name (keys %nr_sys) {
++	print "	$name = $nr_sys{$name};\n";
++}
+ print <<EOF;
+ )
+ 
+===========================
+
+Then issue the following commands:
+
+$ cat /usr/include/asm-generic/unistd.h /usr/include/asm/unistd_32.h | grep '^#define __NR' > /tmp/unistd
+$ cd $GOROOT/src/pkg/syscall
+$ PATH=.:$PATH bash mkall.sh
+
+This worked for me, as I said, but might as well hose your go tree, so use with care.
+I'd provide a better fix, but could'nt figure out how to feed both
+unistd.h and unistd_32.h to mksysnum_linux.sh
+
+Regards,
+Frederik
+> 
+> 
+> geoff
