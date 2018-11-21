@@ -1,0 +1,126 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.150.126.26 with SMTP id y26ls3632676ybc.2.p; Wed, 02 Dec 2009 
+	10:14:24 -0800 (PST)
+Received: by 10.150.253.5 with SMTP id a5mr560716ybi.11.1259777664012;
+        Wed, 02 Dec 2009 10:14:24 -0800 (PST)
+Received: by 10.90.39.12 with SMTP id m12mr601329agm.8.1259777568124;
+        Wed, 02 Dec 2009 10:12:48 -0800 (PST)
+Received: by 10.90.39.12 with SMTP id m12mr601326agm.8.1259777568066;
+        Wed, 02 Dec 2009 10:12:48 -0800 (PST)
+Return-Path: <eshu...@gmail.com>
+Received: from mail-yx0-f140.google.com (mail-yx0-f140.google.com [209.85.210.140])
+        by gmr-mx.google.com with ESMTP id 17si97825gxk.12.2009.12.02.10.12.48;
+        Wed, 02 Dec 2009 10:12:48 -0800 (PST)
+Received-SPF: pass (google.com: domain of eshu...@gmail.com designates 209.85.210.140 as permitted sender) client-ip=209.85.210.140;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of eshu...@gmail.com designates 209.85.210.140 as permitted sender) smtp.mail=eshu...@gmail.com
+Received: by mail-yx0-f140.google.com with SMTP id 4so599995yxe.32
+        for <golan...@googlegroups.com>; Wed, 02 Dec 2009 10:12:48 -0800 (PST)
+MIME-Version: 1.0
+Received: by 10.101.113.1 with SMTP id q1mr36635anm.7.1259777568025; Wed, 02 
+	Dec 2009 10:12:48 -0800 (PST)
+Date: Wed, 2 Dec 2009 10:12:48 -0800 (PST)
+X-IP: 95.27.118.198
+User-Agent: G2/1.0
+X-HTTP-UserAgent: Mozilla/5.0 (X11; U; Linux i686; ru; rv:1.9.1.5) 
+	Gecko/20091109 Ubuntu/9.10 (karmic) Firefox/3.5.5 WebMoney 
+	Advisor,gzip(gfe),gzip(gfe)
+Message-ID: <5d0a7d36-6f1b-41ca-b376-70c303a18983@j14g2000yqm.googlegroups.com>
+Subject: rpc:  EOF
+From: JPascal <eshu...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=ISO-8859-1
+
+I have client and server.
+
+--- Client
+package main
+
+import (
+	"log";
+	"rpc";
+)
+
+type	Args struct {
+	User		string;
+	Password	string;
+}
+type	Reply struct {
+	t int;
+}
+
+func main() {
+	client, err := rpc.Dial("unix", "/tmp/rpc.sock");
+	if err != nil {
+		log.Exit("dialing:", err);
+	}
+	args := &Args{"Test","sss"};
+	reply := &Reply{};
+	err = client.Call("System.Authenticate", args, reply);
+	if err != nil {
+		log.Exit("[System.Authenticate] Error:", err);
+	}
+	log.Stdoutf("%v | %v	",args,reply);
+}
+
+
+--- Server
+package main
+
+import (
+	"os";
+	"rpc";
+	"log";
+	"net";
+)
+
+type	Args struct {
+	User		string;
+	Password	string;
+}
+type	Reply struct {
+	t int;
+}
+type	System	struct {};
+var (
+	NotCorrectLoginOrPassword	=	os.NewError("User name not found or
+incorrect password");
+	NeedShutdown	bool;
+)
+
+func (object *System) Authenticate(args *Args, reply *Reply) os.Error
+{
+	log.Stdoutf("[System.Authenticate](User:%v):
+%v",args.User,NotCorrectLoginOrPassword);
+	return nil
+}
+
+func main() {
+	NeedShutdown = false;
+	SystemObject := new(System);
+	rpc.Register(SystemObject);
+	l, err := net.Listen("unix", "/tmp/rpc.sock");
+	if err != nil { log.Stdoutf("Can`t create listner: %v",err); }
+	else {
+		for NeedShutdown != true {
+			rw, err := l.Accept();
+			if err != nil {
+				log.Stdoutf("Accepc connection error:", err);
+			} else {
+				go rpc.ServeConn(rw);
+			}
+		}
+		l.Close();
+	}
+	return;
+}
+
+After call System.Authenticate:
+Terminal client:
+2009/12/02 21:11:25 &{Test sss} | &{0}
+
+Terminal server:
+2009/12/02 21:11:25 [System.Authenticate](User:Test): User name not
+found or incorrect password
+2009/12/02 21:11:25 rpc:  EOF
+
+Why i took "2009/12/02 21:11:25 rpc:  EOF" ?

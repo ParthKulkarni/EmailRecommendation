@@ -1,0 +1,81 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.231.123.103 with SMTP id o39ls1170380ibr.3.p; Tue, 01 Dec 2009 
+	08:52:19 -0800 (PST)
+Received: by 10.231.143.75 with SMTP id t11mr320868ibu.19.1259686339767;
+        Tue, 01 Dec 2009 08:52:19 -0800 (PST)
+Received: by 10.231.143.75 with SMTP id t11mr320867ibu.19.1259686339739;
+        Tue, 01 Dec 2009 08:52:19 -0800 (PST)
+Return-Path: <r...@google.com>
+Received: from smtp-out.google.com (smtp-out.google.com [216.239.45.13])
+        by gmr-mx.google.com with ESMTP id 24si16870iwn.7.2009.12.01.08.52.18;
+        Tue, 01 Dec 2009 08:52:18 -0800 (PST)
+Received-SPF: pass (google.com: domain of r...@google.com designates 216.239.45.13 as permitted sender) client-ip=216.239.45.13;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of r...@google.com designates 216.239.45.13 as permitted sender) smtp.mail=r...@google.com; dkim=pass (test mode) head...@google.com
+Received: from spaceape9.eur.corp.google.com (spaceape9.eur.corp.google.com [172.28.16.143])
+	by smtp-out.google.com with ESMTP id nB1GqG8b010477
+	for <golan...@googlegroups.com>; Tue, 1 Dec 2009 08:52:17 -0800
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=google.com; s=beta;
+	t=1259686337; bh=9U1xTgDsunkUMDaao0IMK6AnYWs=;
+	h=MIME-Version:Sender:Reply-To:In-Reply-To:References:Date:
+	 Message-ID:Subject:From:To:Cc:Content-Type;
+	b=iyGTxww504PUod7YkfhjSic2sMuqfIy4sYo8RCXLJCehNmqfM9abUZK3MJGb5/Fb0
+	 DejORoPkRvSH7/wQaGT8w==
+DomainKey-Signature: a=rsa-sha1; s=beta; d=google.com; c=nofws; q=dns;
+	h=mime-version:sender:reply-to:in-reply-to:references:date:
+	x-google-sender-auth:message-id:subject:from:to:cc:content-type:x-system-of-record;
+	b=UMQmAHyc2b8srwQCMIeTWpSuLragNiFj4pZg4n1WuzCZxybdll3GGc9afXq3DwwYG
+	AaQdOELSE3iFLOz6XZO5g==
+Received: from pxi3 (pxi3.prod.google.com [10.243.27.3])
+	by spaceape9.eur.corp.google.com with ESMTP id nB1GoHEh007901
+	for <golan...@googlegroups.com>; Tue, 1 Dec 2009 08:52:13 -0800
+Received: by pxi3 with SMTP id 3so3956723pxi.22
+        for <golan...@googlegroups.com>; Tue, 01 Dec 2009 08:52:12 -0800 (PST)
+MIME-Version: 1.0
+Sender: r...@google.com
+Reply-To: r...@golang.org
+Received: by 10.142.121.30 with SMTP id t30mr605984wfc.283.1259686332673; Tue, 
+	01 Dec 2009 08:52:12 -0800 (PST)
+In-Reply-To: <1b9faf9b-eda4-49f2-aff1-32941eb0531f@x5g2000prf.googlegroups.com>
+References: <1b9faf9b-eda4-49f2-aff1-32941eb0531f@x5g2000prf.googlegroups.com>
+Date: Tue, 1 Dec 2009 08:52:12 -0800
+Message-ID: <90ed5d0a0912010852k56aaa3fcq38f4dfafc81c82e3@mail.gmail.com>
+Subject: Re: [go-nuts`] Unable to execute binary produced by Go compiler at AS4 
+	64bit linux
+From: Russ Cox <r...@golang.org>
+To: ziyu_huang <ziyu4...@gmail.com>
+Cc: golang-nuts <golan...@googlegroups.com>
+X-System-Of-Record: true
+Content-Type: text/plain; charset=UTF-8
+
+> I can run Go binary in 32bit mode, but fail in 64 bit.
+
+Can you say more about what "fail" means?
+What error message are you getting, etc.
+
+Also, can you say more about the system you are
+running?  You said it was Linux 2.6.9 but didn't
+say what distribution.  Most Linux distributions
+"customize" the kernel settings or code, which is
+the main reason binaries work in one place but
+not others.
+
+> I try to compare the assembler codes, there seems some difference in
+> Go 's binary to normal binary.
+> in the .interp section the js instruction has different value.
+
+The .interp section is a text string.
+
+> But I am not good a unix and assembler. Can anyone help me find out
+> the problem ?
+> see the detail at .
+> http://gopaste.org/view/76bB2
+
+Both these interp sections have the same bytes:
+    2f 6c 69 62 36 34 2f 6c 64 2d 6c 69 6e 75 78
+    2d 78 38 36 2d 36 34 2e 73 6f 2e 32 00
+which spells out
+    /lib64/ld-linux-x86-64.so.2
+
+The problem is likely somewhere else.
+
+Russ
