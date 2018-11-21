@@ -1,33 +1,82 @@
-fpath = "3.email"
+import re
+
+fpath = "temp.txt"
 f = open(fpath, "r")
 msg = f.read()
 
-def remove_code(msg) :
+def remove_content_in_braces(msg) :
 	msg1 = ''
 	cnt = 0
-	list = ['func', 'import']
 	for char in msg :
 		if char == '{' :
 			cnt += 1
-		if char == '}' :
+		elif char == '}' :
 			cnt -= 1
 		elif cnt == 0 :
 			msg1 += char
 		else :
 			continue
-	msg = msg1
-	msg = msg.splitlines()
+	return msg1
+
+def remove_func_and_struct(msg) :
 	msg1 = ''
+	take_line = True
+	msg = msg.splitlines()
 	for line in msg :
-		if line.strip() == '' :
-			print("*******")
+		take_line = True
+		if line == '' :
 			continue
-		flag = True
-		for x in list :
-			if x in line :
-				flag = False
-		if flag :
+		words = line.split(' ')
+		if words[0] == "func" :
+			take_line = False
+		elif words[0] == "type" :
+			if words[2] == "struct" :
+				take_line = False
+		if take_line :
+			msg1 += (line + '\n')
+	return msg1
+
+def remove_other_code_lines(msg) :
+	msg1 = ''
+	take_line = True
+	msg = msg.splitlines()
+	i = 0	
+	while i < len(msg) :
+		if (msg[i] == '') or ("//" in msg[i]) :
+			i += 1
+			continue
+		take_line = True
+		line = msg[i]
+		if "package" in line :
+			words = line.split(' ')
+			if len(words) < 4 :
+				take_line = False
+		elif "import" in line :
+			words = line.split(' ')
+			if len(words) < 4 :
+				take_line = False
+				if "(" in line :
+					while ')' not in msg[i] :
+						i += 1
+						# print('gg ' + str(i) + ' gg ' + msg[i])
+		elif "const" in line :
+			words = line.split(' ')
+			if len(words) < 4 :
+				take_line = False
+				if "(" in line :
+					while ')' not in msg[i] :
+						i += 1
+		if take_line :
 			msg1 += line + '\n'
-	print (msg1)
+		i += 1
+	return msg1
+
+
+def remove_code(msg) :
+	msg = remove_content_in_braces(msg)
+	msg = remove_func_and_struct(msg)
+	msg = remove_other_code_lines(msg)
+	print(msg)
+	
 
 remove_code(msg)
