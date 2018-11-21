@@ -58,7 +58,6 @@ def remove_other_code_lines(msg) :
 				if "(" in line :
 					while ')' not in msg[i] :
 						i += 1
-						# print('gg ' + str(i) + ' gg ' + msg[i])
 		elif "const" in line :
 			words = line.split(' ')
 			if len(words) < 4 :
