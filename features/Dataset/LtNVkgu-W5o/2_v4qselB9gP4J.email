@@ -1,0 +1,116 @@
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.114.188.15 with SMTP id l15ls4816719waf.3.p; Thu, 03 Dec 2009 
+	11:34:29 -0800 (PST)
+Received: by 10.114.5.16 with SMTP id 16mr369133wae.15.1259868869672;
+        Thu, 03 Dec 2009 11:34:29 -0800 (PST)
+Received: by 10.114.5.16 with SMTP id 16mr369132wae.15.1259868869652;
+        Thu, 03 Dec 2009 11:34:29 -0800 (PST)
+Return-Path: <dilts....@gmail.com>
+Received: from mail-pz0-f178.google.com (mail-pz0-f178.google.com [209.85.222.178])
+        by gmr-mx.google.com with ESMTP id 18si403911pzk.5.2009.12.03.11.34.28;
+        Thu, 03 Dec 2009 11:34:28 -0800 (PST)
+Received-SPF: pass (google.com: domain of dilts....@gmail.com designates 209.85.222.178 as permitted sender) client-ip=209.85.222.178;
+Authentication-Results: gmr-mx.google.com; spf=pass (google.com: domain of dilts....@gmail.com designates 209.85.222.178 as permitted sender) smtp.mail=dilts....@gmail.com; dkim=pass (test mode) head...@gmail.com
+Received: by pzk8 with SMTP id 8so452804pzk.8
+        for <golan...@googlegroups.com>; Thu, 03 Dec 2009 11:34:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=gamma;
+        h=domainkey-signature:received:received:content-type:mime-version
+         :subject:from:in-reply-to:date:content-transfer-encoding:message-id
+         :references:to:x-mailer;
+        bh=H976pjQ1JgLqFuJlbJjaX1Udwypa16uL8IJsN1c5F1w=;
+        b=ovPgLN2Y4z5h1rXtXaZXMOrz//9weMz5dkFBKB4OAwJvthmzxKPTKHJO4AKHX/24Ts
+         v54hoO2xJhN2yEi7u+F+y20gHTCRs06TW/H1T7FSdesPbadqGNzbJRaQUQWspJIq9NrE
+         cIXh8VECssmRK4fHoUUDCCCpammvTchcuMTLM=
+DomainKey-Signature: a=rsa-sha1; c=nofws;
+        d=gmail.com; s=gamma;
+        h=content-type:mime-version:subject:from:in-reply-to:date
+         :content-transfer-encoding:message-id:references:to:x-mailer;
+        b=VI5XuDwzhnNU2MrU84bogBNFPhgYQsnYtfVaXwjA2RdZUBIIKGg+l11eZX0e3uenPS
+         sioPN5MTydz1nIYRE9W+HJgN1VfcGqouyhJdfExA1XK24Tz43lSWcxpIPRWFRj/OwSuZ
+         Omnw19zZWoBZrjH2NqUe9XELQtbaxJ9zgdcQo=
+Received: by 10.115.117.13 with SMTP id u13mr2679799wam.150.1259868868518;
+        Thu, 03 Dec 2009 11:34:28 -0800 (PST)
+Return-Path: <dilts....@gmail.com>
+Received: from ?192.168.1.100? ([64.122.18.77])
+        by mx.google.com with ESMTPS id 21sm1907618pzk.7.2009.12.03.11.34.27
+        (version=TLSv1/SSLv3 cipher=RC4-MD5);
+        Thu, 03 Dec 2009 11:34:28 -0800 (PST)
+Mime-Version: 1.0 (Apple Message framework v1077)
+Subject: Re: [go-nuts] Makefile outside of $GOROOT/src/pkg/
+From: Daniel Dilts <dilts....@gmail.com>
+In-Reply-To: <mcrr5rbaooh.fsf@dhcp-172-17-9-151.mtv.corp.google.com>
+Date: Thu, 3 Dec 2009 12:34:25 -0700
+Message-Id: <03472D5F-CF99-4406-B69A-FC89E166CC6F@gmail.com>
+References: <1A870FDA-71A8-4AF5-93EC-B99F89053361@gmail.com> <mcrr5rbaooh.fsf@dhcp-172-17-9-151.mtv.corp.google.com>
+To: golang-nuts@googlegroups.com
+X-Mailer: Apple Mail (2.1077)
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+
+
+On Dec 3, 2009, at 11:38 AM, Ian Lance Taylor wrote:
+
+> Daniel Dilts <dilts....@gmail.com> writes:
+>=20
+>> The make file for contributing code is:
+>>=20
+>> include $(GOROOT)/src/Make.$(GOARCH)
+>>=20
+>> TARG=3Dcontainer/vector
+>> GOFILES=3D\
+>> =09intvector.go\
+>> =09stringvector.go\
+>> =09vector.go\
+>>=20
+>> include $(GOROOT)/src/Make.pkg
+>>=20
+>> Is there some change (preferably trivial) that I can make so that
+>> this will work even if my source tree is outside of
+>> $GOROOT/src/pkg/?  Say...like my source tree is in ~/mysrc/
+>=20
+> How does it fail when used elsewhere?
+
+At my root directory I have two directories (packages) a and b.  In package=
+ a I have a.go with the following:
+
+=09package a
+
+=09type Testing interface {}
+
+The Makefile is:
+
+=09include $(GOROOT)/src/Make.$(GOARCH)
+
+=09TARG=3Da
+=09GOFILES=3D\
+=09=09a.go
+
+=09include $(GOROOT)/src/Make.pkg
+
+In package b I have b.go with the following:
+
+=09package b
+
+=09import "a"
+
+=09type Testingb interface {
+=09=09a.Testing;
+=09}
+
+The Makefile is:
+=09
+=09include $(GOROOT)/src/Make.$(GOARCH)
+
+=09TARG=3Db
+=09GOFILES=3D\
+=09=09b.go
+
+=09include $(GOROOT)/src/Make.pkg
+
+When I run make in package a it works perfectly.  When I run make in packag=
+e b I get:
+
+g6 -o _go_.6 b.go
+b.go:3: fatal error: can't find import: a
+make: *** [_go_.6] Error 1
