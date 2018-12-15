@@ -1,6 +1,6 @@
 import re
 
-fpath = "temp.txt"
+fpath = "/home/niki/Documents/BE_Project/EmailRecommmendation/temp_data/Code_Snippets/000_OJB7kVtYOzEJ.email"
 f = open(fpath, "r")
 msg = f.read()
 
