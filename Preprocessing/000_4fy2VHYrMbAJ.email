@@ -1,0 +1,50 @@
+Received: by 10.68.12.40 with SMTP id v8mr1615442pbb.9.1312296751810;
+        Tue, 02 Aug 2011 07:52:31 -0700 (PDT)
+X-BeenThere: golang-nuts@googlegroups.com
+Received: by 10.68.0.233 with SMTP id 9ls1929670pbh.3.gmail; Tue, 02 Aug 2011
+ 07:52:24 -0700 (PDT)
+MIME-Version: 1.0
+Received: by 10.68.38.35 with SMTP id d3mr723708pbk.78.1312296744633; Tue, 02
+ Aug 2011 07:52:24 -0700 (PDT)
+Received: by 28g2000pry.googlegroups.com with HTTP; Tue, 2 Aug 2011 07:52:24
+ -0700 (PDT)
+Date: Tue, 2 Aug 2011 07:52:24 -0700 (PDT)
+User-Agent: G2/1.0
+X-HTTP-UserAgent: Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.1 (KHTML, like
+ Gecko) Chrome/14.0.835.15 Safari/535.1,gzip(gfe)
+Message-ID: <0bf627d2-96c3-455d-9982-5faa8e2e4025@28g2000pry.googlegroups.com>
+Subject: Mutex fast path vs loops
+From: Albert Strasheim <ful...@gmail.com>
+To: golang-nuts <golan...@googlegroups.com>
+Content-Type: text/plain; charset=ISO-8859-1
+
+Hello all
+
+We have components with an IsAlive function that looks something like
+this:
+
+func (act *actor) IsAlive() bool {
+	act.mutex.Lock()
+	defer act.mutex.Unlock()
+	return act.alive
+}
+
+Other code does stuff like:
+
+go func() { for foo.IsAlive() { /* do stuff */ }; cleanup() }
+
+With the new fast path in Mutex's Lock and GOMAXPROCS=1, it can easily
+happen that if "do stuff" doesn't entail much code, that the goroutine
+sits in a loop and never gives other goroutines a chance to run again.
+
+The slow path that calls Semacquire eventually calls gosched, so this
+kind of loop wasn't a problem in the past.
+
+We can patch IsAlive with a defer runtime.Gosched() before locking the
+mutex to restore the slow path behaviour, but this doesn't seem ideal.
+
+What's the right way to do this?
+
+Regards
+
+Albert
