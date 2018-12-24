@@ -1,5 +1,4 @@
 from flask import Flask, render_template, flash, redirect, url_for, session, request, logging
-#from data import Articles
 from flask_mysqldb import MySQL
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
@@ -18,6 +17,8 @@ app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 mysql = MySQL(app)
 
 # Index
+
+
 @app.route('/')
 def index():
     return render_template('home.html')
@@ -27,6 +28,24 @@ def index():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+
+#Single Thread
+@app.route('/view_thread/<string:id>/')
+def view_thread(id):
+    # Create cursor
+    cur = mysql.connection.cursor()
+
+    # Get article
+    result = cur.execute("SELECT * FROM mails WHERE thread_no = %s", [id])
+
+    threads = cur.fetchall()
+
+    if result > 0:
+        return render_template('thread.html', threads=threads)
+    else:
+        msg = 'No mails Found'
+        return render_template('thread.html', msg=msg)
 
 
 # Register Form Class
@@ -55,7 +74,8 @@ def register():
         cur = mysql.connection.cursor()
 
         # Execute query
-        cur.execute("INSERT INTO users1(name, email, username, password) VALUES(%s, %s, %s, %s)", (name, email, username, password))
+        cur.execute("INSERT INTO users1(name, email, username, password) VALUES(%s, %s, %s, %s)",
+                    (name, email, username, password))
 
         # Commit to DB
         mysql.connection.commit()
@@ -81,7 +101,8 @@ def login():
         cur = mysql.connection.cursor()
 
         # Get user by username
-        result = cur.execute("SELECT * FROM users1 WHERE username = %s", [username])
+        result = cur.execute(
+            "SELECT * FROM users1 WHERE username = %s", [username])
 
         if result > 0:
             # Get stored hash
@@ -131,10 +152,30 @@ def logout():
 
 # Dashboard
 @app.route('/dashboard')
+@is_logged_in
 def dashboard():
-    return render_template('dashboard.html')
+    if request.method == 'POST':
+        # Get Form Fields
+        user = request.form['query_name']
+    # Create cursor
+    cur = mysql.connection.cursor()
+
+    # Get articles
+    result = cur.execute("SELECT * FROM threads")
+    # Show articles only from the user logged in
+    # result = cur.execute("SELECT * FROM threads WHERE author = %s", [session['username']])
+
+    threads = cur.fetchall()
+
+    if result > 0:
+        return render_template('dashboard.html', threads=threads)
+    else:
+        msg = 'No Articles Found'
+        return render_template('dashboard.html', msg=msg)
+    # Close connection
+    cur.close()
 
 
 if __name__ == '__main__':
-    app.secret_key='secret123'
+    app.secret_key = 'secret123'
     app.run(debug=True)
