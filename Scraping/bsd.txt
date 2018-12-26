@@ -1,0 +1,250 @@
+['Subject', 'tape drive set offlline after aic7xxx_abort returns 0x2002']['From', '<yuji_touya () yokogawa-digital ! com>']['Date', '2012-01-25 2:31:30']['Message-ID', '8529A87D856C184491994079B5F87B6801544B7B8100 () EXMAIL03 ! jp ! ykgw ! net']
+Hello,
+A tape drive connected to an Adaptec scsi adapter had set offline after
+syslog "aic7xxx_abort returns 0x2002". (see below)
+Our system writes data from RAID system to tape every day, the problem
+occured 2 times in 10 months.
+After rebooting system, writing to the tape works fine several months.
+Does anybody know what's going on and how to fix it?
+linux 2.4.19
+aic7xxx 6.2.8
+scsi adapter: Adaptec 29160 Ultra160
+scsi0:0:0:0 (tape drive) HP Strage Works Ultrium 960
+scsi0:0:5:0 (raid) Newtech Supremacy RAID
+a part of /var/log/messages
+Jan 17 12:23:39 pc1020 kernel: scsi0:0:0:0: Attempting to queue an ABORT message
+Jan 17 12:23:39 pc1020 kernel: scsi0: Dumping Card State while idle, at SEQADDR 0x9
+Jan 17 12:23:39 pc1020 kernel: ACCUM = 0x0, SINDEX = 0x2f, DINDEX = 0xe4, ARG_2 = 0x0
+Jan 17 12:23:39 pc1020 kernel: HCNT = 0x0 SCBPTR = 0x1b
+Jan 17 12:23:39 pc1020 kernel: SCSISEQ = 0x12, SBLKCTL = 0xa
+Jan 17 12:23:39 pc1020 kernel:  DFCNTRL = 0x0, DFSTATUS = 0x89
+Jan 17 12:23:39 pc1020 kernel: LASTPHASE = 0x1, SCSISIGI = 0x0, SXFRCTL0 = 0x80
+Jan 17 12:23:39 pc1020 kernel: SSTAT0 = 0x0, SSTAT1 = 0x8
+Jan 17 12:23:39 pc1020 kernel: SCSIPHASE = 0x0
+Jan 17 12:23:39 pc1020 kernel: STACK == 0x3, 0x108, 0x160, 0x0
+Jan 17 12:23:39 pc1020 kernel: SCB count = 254
+Jan 17 12:23:39 pc1020 kernel: Kernel NEXTQSCB = 26
+Jan 17 12:23:39 pc1020 kernel: Card NEXTQSCB = 26
+Jan 17 12:23:39 pc1020 kernel: QINFIFO entries:
+Jan 17 12:23:39 pc1020 kernel: Waiting Queue entries:
+Jan 17 12:23:39 pc1020 kernel: Disconnected Queue entries: 20:105
+Jan 17 12:23:39 pc1020 kernel: QOUTFIFO entries:
+Jan 17 12:23:39 pc1020 kernel: Sequencer Free SCB List: 27 23 29 8 21 4 30 24 3 28 5 \
+                26 2 31 9 15 0 7 6 16 14 22 17 12 18 19 10 13 25 11 1
+Jan 17 12:23:39 pc1020 kernel: Sequencer SCB Info: 0(c 0x60, s 0x57, l 0, t 0xff) 1(c \
+0x60, s 0x57, l 0, t 0xff) 2(c 0x60, s 0x57, l 0, t 0xff) 3(c 0x60, s 0x57, l 0, t \
+0xff) 4(c 0x60, s 0x57, l 0, t 0xff) 5(c 0x60, s 0x57, l 0, t 0xff) 6(c 0x60, s 0x57, \
+l 0, t 0xff) 7(c 0x60, s 0x57, l 0, t 0xff) 8(c 0x60, s 0x57, l 0, t 0xff) 9(c 0x60, \
+s 0x57, l 0, t 0xff) 10(c 0x60, s 0x57, l 0, t 0xff) 11(c 0x60, s 0x57, l 0, t 0xff) \
+12(c 0x60, s 0x57, l 0, t 0xff) 13(c 0x60, s 0x57, l 0, t 0xff) 14(c 0x60, s 0x57, l \
+0, t 0xff) 15(c 0x60, s 0x57, l 0, t 0xff) 16(c 0x60, s 0x57, l 0, t 0xff) 17(c 0x60, \
+s 0x57, l 0, t 0xff) 18(c 0x60, s 0x57, l 0, t 0xff) 19(c 0x60, s 0x57, l 0, t 0xff) \
+20(c 0x64, s 0x7, l 0, t 0x69) 21(c 0x60, s 0x57, l 0, t 0xff) 22(c 0x60, s 0x57, l \
+0, t 0xff) 23(c 0x60, s 0x57, l 0, t 0xff) 24(c 0x60, s 0x57, l 0, t 0xff) 25(c 0x60, \
+s 0x57, l 0, t 0xff) 26(c 0x60, s 0x57, l 0, t 0xff) 27(c 0x60, s 0x57, l 0, t 0xff) \
+28(c 0x60, s 0x57, l 0, t 0xff) 29(c 0x60, s 0x57, l 0, t 0xff) 30(c 0x60, s 0x57, l \
+                0, t
+Jan 17 12:23:39 pc1020 kernel: xff) 31(c 0x60, s 0x57, l 0, t 0xff)
+Jan 17 12:23:39 pc1020 kernel: Pending list: 105(c 0x60, s 0x7, l 0)
+Jan 17 12:23:39 pc1020 kernel: Kernel Free SCB list: 47 41 193 45 204 183 109 110 66 \
+235 201 131 158 119 88 216 23 249 33 227 151 75 124 194 181 141 68 111 185 104 156 \
+223 200 239 54 37 5 11 0 61 58 8 220 113 25 122 195 12 69 160 128 123 186 253 21 64 \
+30 4 17 74 245 52 212 192 228 167 82 226 154 213 57 18 15 165 218 120 157 219 133 132 \
+100 180 67 208 229 237 39 38 240 177 171 243 14 242 42 199 71 127 176 168 236 196 78 \
+155 252 9 174 233 116 179 62 148 97 86 246 198 232 190 146 3 159 241 77 32 134 83 147 \
+91 117 115 125 59 215 114 164 217 29 221 79 238 162 142 1 163 187 136 251 166 247 22 \
+197 170 76 63 101 51 149 7 19 250 121 118 214 10 210 224 70 99 234 175 27 6 182 202 \
+48 225 34 80 50 130 248 98 60 112 55 53 191 93 94 206 16 173 178 244 169 36 231 92 49 \
+222 102 2 89 73 189 87 107 126 85 56 203 129 95 81 135 90 207 230 106 72 153 28 211 \
+40 209 31 172 188 44 184 205 84 108 139 65 143 140 13 96 138 35 152 46 150 43 161 144 \
+                103 137 20 145 24
+Jan 17 12:23:39 pc1020 kernel: DevQ(0:0:0): 0 waiting
+Jan 17 12:23:39 pc1020 kernel: DevQ(0:5:0): 0 waiting
+Jan 17 12:23:39 pc1020 kernel: (scsi0:A:0:0): Queuing a recovery SCB
+Jan 17 12:23:39 pc1020 kernel: scsi0:0:0:0: Device is disconnected, re-queuing SCB
+Jan 17 12:23:39 pc1020 kernel: (scsi0:A:0:0): Abort Tag Message Sent
+Jan 17 12:23:39 pc1020 kernel: Recovery code sleeping
+Jan 17 12:23:39 pc1020 kernel: (scsi0:A:0:0): SCB 105 - Abort Tag Completed.
+Jan 17 12:23:39 pc1020 kernel: Recovery SCB completes
+Jan 17 12:23:39 pc1020 kernel: Recovery code awake
+Jan 17 12:23:39 pc1020 kernel: aic7xxx_abort returns 0x2002
+Jan 17 12:23:49 pc1020 kernel: scsi0:0:0:0: Attempting to queue an ABORT message
+Jan 17 12:23:49 pc1020 kernel: scsi0: Dumping Card State while idle, at SEQADDR 0x9
+Jan 17 12:23:49 pc1020 kernel: ACCUM = 0x4, SINDEX = 0x64, DINDEX = 0x65, ARG_2 = 0x6
+Jan 17 12:23:49 pc1020 kernel: HCNT = 0x0 SCBPTR = 0x14
+Jan 17 12:23:49 pc1020 kernel: SCSISEQ = 0x12, SBLKCTL = 0xa
+Jan 17 12:23:49 pc1020 kernel:  DFCNTRL = 0x0, DFSTATUS = 0x89
+Jan 17 12:23:49 pc1020 kernel: LASTPHASE = 0x1, SCSISIGI = 0x0, SXFRCTL0 = 0x80
+Jan 17 12:23:49 pc1020 kernel: SSTAT0 = 0x0, SSTAT1 = 0x8
+Jan 17 12:23:49 pc1020 kernel: SCSIPHASE = 0x0
+Jan 17 12:23:49 pc1020 kernel: STACK == 0x3, 0x175, 0x0, 0xe7
+Jan 17 12:23:49 pc1020 kernel: SCB count = 254
+Jan 17 12:23:49 pc1020 kernel: Kernel NEXTQSCB = 105
+Jan 17 12:23:49 pc1020 kernel: Card NEXTQSCB = 105
+Jan 17 12:23:49 pc1020 kernel: QINFIFO entries:
+Jan 17 12:23:49 pc1020 kernel: Waiting Queue entries:
+Jan 17 12:23:49 pc1020 kernel: Disconnected Queue entries: 20:26
+Jan 17 12:23:49 pc1020 kernel: QOUTFIFO entries:
+Jan 17 12:23:49 pc1020 kernel: Sequencer Free SCB List: 27 23 29 8 21 4 30 24 3 28 5 \
+                26 2 31 9 15 0 7 6 16 14 22 17 12 18 19 10 13 25 11 1
+Jan 17 12:23:49 pc1020 kernel: Sequencer SCB Info: 0(c 0x60, s 0x57, l 0, t 0xff) 1(c \
+0x60, s 0x57, l 0, t 0xff) 2(c 0x60, s 0x57, l 0, t 0xff) 3(c 0x60, s 0x57, l 0, t \
+0xff) 4(c 0x60, s 0x57, l 0, t 0xff) 5(c 0x60, s 0x57, l 0, t 0xff) 6(c 0x60, s 0x57, \
+l 0, t 0xff) 7(c 0x60, s 0x57, l 0, t 0xff) 8(c 0x60, s 0x57, l 0, t 0xff) 9(c 0x60, \
+s 0x57, l 0, t 0xff) 10(c 0x60, s 0x57, l 0, t 0xff) 11(c 0x60, s 0x57, l 0, t 0xff) \
+12(c 0x60, s 0x57, l 0, t 0xff) 13(c 0x60, s 0x57, l 0, t 0xff) 14(c 0x60, s 0x57, l \
+0, t 0xff) 15(c 0x60, s 0x57, l 0, t 0xff) 16(c 0x60, s 0x57, l 0, t 0xff) 17(c 0x60, \
+s 0x57, l 0, t 0xff) 18(c 0x60, s 0x57, l 0, t 0xff) 19(c 0x60, s 0x57, l 0, t 0xff) \
+20(c 0x64, s 0x7, l 0, t 0x1a) 21(c 0x60, s 0x57, l 0, t 0xff) 22(c 0x60, s 0x57, l \
+0, t 0xff) 23(c 0x60, s 0x57, l 0, t 0xff) 24(c 0x60, s 0x57, l 0, t 0xff) 25(c 0x60, \
+s 0x57, l 0, t 0xff) 26(c 0x60, s 0x57, l 0, t 0xff) 27(c 0x60, s 0x57, l 0, t 0xff) \
+28(c 0x60, s 0x57, l 0, t 0xff) 29(c 0x60, s 0x57, l 0, t 0xff) 30(c 0x60, s 0x57, l \
+                0, t
+Jan 17 12:23:49 pc1020 kernel: xff) 31(c 0x60, s 0x57, l 0, t 0xff)
+Jan 17 12:23:49 pc1020 kernel: Pending list: 26(c 0x60, s 0x7, l 0)
+Jan 17 12:23:49 pc1020 kernel: Kernel Free SCB list: 47 41 193 45 204 183 109 110 66 \
+235 201 131 158 119 88 216 23 249 33 227 151 75 124 194 181 141 68 111 185 104 156 \
+223 200 239 54 37 5 11 0 61 58 8 220 113 25 122 195 12 69 160 128 123 186 253 21 64 \
+30 4 17 74 245 52 212 192 228 167 82 226 154 213 57 18 15 165 218 120 157 219 133 132 \
+100 180 67 208 229 237 39 38 240 177 171 243 14 242 42 199 71 127 176 168 236 196 78 \
+155 252 9 174 233 116 179 62 148 97 86 246 198 232 190 146 3 159 241 77 32 134 83 147 \
+91 117 115 125 59 215 114 164 217 29 221 79 238 162 142 1 163 187 136 251 166 247 22 \
+197 170 76 63 101 51 149 7 19 250 121 118 214 10 210 224 70 99 234 175 27 6 182 202 \
+48 225 34 80 50 130 248 98 60 112 55 53 191 93 94 206 16 173 178 244 169 36 231 92 49 \
+222 102 2 89 73 189 87 107 126 85 56 203 129 95 81 135 90 207 230 106 72 153 28 211 \
+40 209 31 172 188 44 184 205 84 108 139 65 143 140 13 96 138 35 152 46 150 43 161 144 \
+                103 137 20 145 24
+Jan 17 12:23:49 pc1020 kernel: DevQ(0:0:0): 0 waiting
+Jan 17 12:23:49 pc1020 kernel: DevQ(0:5:0): 0 waiting
+Jan 17 12:23:49 pc1020 kernel: (scsi0:A:0:0): Queuing a recovery SCB
+Jan 17 12:23:49 pc1020 kernel: scsi0:0:0:0: Device is disconnected, re-queuing SCB
+Jan 17 12:23:49 pc1020 kernel: (scsi0:A:0:0): Abort Tag Message Sent
+Jan 17 12:23:49 pc1020 kernel: Recovery code sleeping
+Jan 17 12:23:49 pc1020 kernel: (scsi0:A:0:0): SCB 26 - Abort Tag Completed.
+Jan 17 12:23:49 pc1020 kernel: Recovery SCB completes
+Jan 17 12:23:49 pc1020 kernel: Recovery code awake
+Jan 17 12:23:49 pc1020 kernel: aic7xxx_abort returns 0x2002
+Jan 17 12:23:49 pc1020 kernel: scsi0:0:0:0: Attempting to queue a TARGET RESET \
+                message
+Jan 17 12:23:49 pc1020 kernel: scsi0:0:0:0: Command not found
+Jan 17 12:23:49 pc1020 kernel: aic7xxx_dev_reset returns 0x2002
+Jan 17 12:23:59 pc1020 kernel: scsi0:0:0:0: Attempting to queue an ABORT message
+Jan 17 12:23:59 pc1020 kernel: scsi0: Dumping Card State while idle, at SEQADDR 0x9
+Jan 17 12:23:59 pc1020 kernel: ACCUM = 0x4, SINDEX = 0x64, DINDEX = 0x65, ARG_2 = \
+                0x1a
+Jan 17 12:23:59 pc1020 kernel: HCNT = 0x0 SCBPTR = 0x14
+Jan 17 12:23:59 pc1020 kernel: SCSISEQ = 0x12, SBLKCTL = 0xa
+Jan 17 12:23:59 pc1020 kernel:  DFCNTRL = 0x0, DFSTATUS = 0x89
+Jan 17 12:23:59 pc1020 kernel: LASTPHASE = 0x1, SCSISIGI = 0x0, SXFRCTL0 = 0x80
+Jan 17 12:23:59 pc1020 kernel: SSTAT0 = 0x0, SSTAT1 = 0x8
+Jan 17 12:23:59 pc1020 kernel: SCSIPHASE = 0x0
+Jan 17 12:23:59 pc1020 kernel: STACK == 0x3, 0x175, 0xe7, 0xe7
+Jan 17 12:23:59 pc1020 kernel: SCB count = 254
+Jan 17 12:23:59 pc1020 kernel: Kernel NEXTQSCB = 26
+Jan 17 12:23:59 pc1020 kernel: Card NEXTQSCB = 26
+Jan 17 12:23:59 pc1020 kernel: QINFIFO entries:
+Jan 17 12:23:59 pc1020 kernel: Waiting Queue entries:
+Jan 17 12:23:59 pc1020 kernel: Disconnected Queue entries: 20:105
+Jan 17 12:23:59 pc1020 kernel: QOUTFIFO entries:
+Jan 17 12:23:59 pc1020 kernel: Sequencer Free SCB List: 27 23 29 8 21 4 30 24 3 28 5 \
+                26 2 31 9 15 0 7 6 16 14 22 17 12 18 19 10 13 25 11 1
+Jan 17 12:23:59 pc1020 kernel: Sequencer SCB Info: 0(c 0x60, s 0x57, l 0, t 0xff) 1(c \
+0x60, s 0x57, l 0, t 0xff) 2(c 0x60, s 0x57, l 0, t 0xff) 3(c 0x60, s 0x57, l 0, t \
+0xff) 4(c 0x60, s 0x57, l 0, t 0xff) 5(c 0x60, s 0x57, l 0, t 0xff) 6(c 0x60, s 0x57, \
+l 0, t 0xff) 7(c 0x60, s 0x57, l 0, t 0xff) 8(c 0x60, s 0x57, l 0, t 0xff) 9(c 0x60, \
+s 0x57, l 0, t 0xff) 10(c 0x60, s 0x57, l 0, t 0xff) 11(c 0x60, s 0x57, l 0, t 0xff) \
+12(c 0x60, s 0x57, l 0, t 0xff) 13(c 0x60, s 0x57, l 0, t 0xff) 14(c 0x60, s 0x57, l \
+0, t 0xff) 15(c 0x60, s 0x57, l 0, t 0xff) 16(c 0x60, s 0x57, l 0, t 0xff) 17(c 0x60, \
+s 0x57, l 0, t 0xff) 18(c 0x60, s 0x57, l 0, t 0xff) 19(c 0x60, s 0x57, l 0, t 0xff) \
+20(c 0x64, s 0x7, l 0, t 0x69) 21(c 0x60, s 0x57, l 0, t 0xff) 22(c 0x60, s 0x57, l \
+0, t 0xff) 23(c 0x60, s 0x57, l 0, t 0xff) 24(c 0x60, s 0x57, l 0, t 0xff) 25(c 0x60, \
+s 0x57, l 0, t 0xff) 26(c 0x60, s 0x57, l 0, t 0xff) 27(c 0x60, s 0x57, l 0, t 0xff) \
+28(c 0x60, s 0x57, l 0, t 0xff) 29(c 0x60, s 0x57, l 0, t 0xff) 30(c 0x60, s 0x57, l \
+                0, t
+Jan 17 12:23:59 pc1020 kernel: xff) 31(c 0x60, s 0x57, l 0, t 0xff)
+Jan 17 12:23:59 pc1020 kernel: Pending list: 105(c 0x60, s 0x7, l 0)
+Jan 17 12:23:59 pc1020 kernel: Kernel Free SCB list: 47 41 193 45 204 183 109 110 66 \
+235 201 131 158 119 88 216 23 249 33 227 151 75 124 194 181 141 68 111 185 104 156 \
+223 200 239 54 37 5 11 0 61 58 8 220 113 25 122 195 12 69 160 128 123 186 253 21 64 \
+30 4 17 74 245 52 212 192 228 167 82 226 154 213 57 18 15 165 218 120 157 219 133 132 \
+100 180 67 208 229 237 39 38 240 177 171 243 14 242 42 199 71 127 176 168 236 196 78 \
+155 252 9 174 233 116 179 62 148 97 86 246 198 232 190 146 3 159 241 77 32 134 83 147 \
+91 117 115 125 59 215 114 164 217 29 221 79 238 162 142 1 163 187 136 251 166 247 22 \
+197 170 76 63 101 51 149 7 19 250 121 118 214 10 210 224 70 99 234 175 27 6 182 202 \
+48 225 34 80 50 130 248 98 60 112 55 53 191 93 94 206 16 173 178 244 169 36 231 92 49 \
+222 102 2 89 73 189 87 107 126 85 56 203 129 95 81 135 90 207 230 106 72 153 28 211 \
+40 209 31 172 188 44 184 205 84 108 139 65 143 140 13 96 138 35 152 46 150 43 161 144 \
+                103 137 20 145 24
+Jan 17 12:23:59 pc1020 kernel: DevQ(0:0:0): 0 waiting
+Jan 17 12:23:59 pc1020 kernel: DevQ(0:5:0): 0 waiting
+Jan 17 12:23:59 pc1020 kernel: (scsi0:A:0:0): Queuing a recovery SCB
+Jan 17 12:23:59 pc1020 kernel: scsi0:0:0:0: Device is disconnected, re-queuing SCB
+Jan 17 12:23:59 pc1020 kernel: (scsi0:A:0:0): Abort Tag Message Sent
+Jan 17 12:23:59 pc1020 kernel: Recovery code sleeping
+Jan 17 12:23:59 pc1020 kernel: (scsi0:A:0:0): SCB 105 - Abort Tag Completed.
+Jan 17 12:24:00 pc1020 kernel: Recovery SCB completes
+Jan 17 12:24:00 pc1020 kernel: Recovery code awake
+Jan 17 12:24:00 pc1020 kernel: aic7xxx_abort returns 0x2002
+Jan 17 12:24:15 pc1020 kernel: scsi0:0:0:0: Attempting to queue an ABORT message
+Jan 17 12:24:15 pc1020 kernel: scsi0: Dumping Card State while idle, at SEQADDR 0x8
+Jan 17 12:24:15 pc1020 kernel: ACCUM = 0x4, SINDEX = 0x64, DINDEX = 0x65, ARG_2 = 0x6
+Jan 17 12:24:15 pc1020 kernel: HCNT = 0x0 SCBPTR = 0x14
+Jan 17 12:24:15 pc1020 kernel: SCSISEQ = 0x12, SBLKCTL = 0xa
+Jan 17 12:24:15 pc1020 kernel:  DFCNTRL = 0x0, DFSTATUS = 0x89
+Jan 17 12:24:15 pc1020 kernel: LASTPHASE = 0x1, SCSISIGI = 0x0, SXFRCTL0 = 0x80
+Jan 17 12:24:15 pc1020 kernel: SSTAT0 = 0x0, SSTAT1 = 0x8
+Jan 17 12:24:15 pc1020 kernel: SCSIPHASE = 0x0
+Jan 17 12:24:15 pc1020 kernel: STACK == 0x3, 0x175, 0xe7, 0xe7
+Jan 17 12:24:15 pc1020 kernel: SCB count = 254
+Jan 17 12:24:15 pc1020 kernel: Kernel NEXTQSCB = 105
+Jan 17 12:24:15 pc1020 kernel: Card NEXTQSCB = 105
+Jan 17 12:24:15 pc1020 kernel: QINFIFO entries:
+Jan 17 12:24:15 pc1020 kernel: Waiting Queue entries:
+Jan 17 12:24:15 pc1020 kernel: Disconnected Queue entries: 20:26
+Jan 17 12:24:15 pc1020 kernel: QOUTFIFO entries:
+Jan 17 12:24:15 pc1020 kernel: Sequencer Free SCB List: 27 23 29 8 21 4 30 24 3 28 5 \
+                26 2 31 9 15 0 7 6 16 14 22 17 12 18 19 10 13 25 11 1
+Jan 17 12:24:15 pc1020 kernel: Sequencer SCB Info: 0(c 0x60, s 0x57, l 0, t 0xff) 1(c \
+0x60, s 0x57, l 0, t 0xff) 2(c 0x60, s 0x57, l 0, t 0xff) 3(c 0x60, s 0x57, l 0, t \
+0xff) 4(c 0x60, s 0x57, l 0, t 0xff) 5(c 0x60, s 0x57, l 0, t 0xff) 6(c 0x60, s 0x57, \
+l 0, t 0xff) 7(c 0x60, s 0x57, l 0, t 0xff) 8(c 0x60, s 0x57, l 0, t 0xff) 9(c 0x60, \
+s 0x57, l 0, t 0xff) 10(c 0x60, s 0x57, l 0, t 0xff) 11(c 0x60, s 0x57, l 0, t 0xff) \
+12(c 0x60, s 0x57, l 0, t 0xff) 13(c 0x60, s 0x57, l 0, t 0xff) 14(c 0x60, s 0x57, l \
+0, t 0xff) 15(c 0x60, s 0x57, l 0, t 0xff) 16(c 0x60, s 0x57, l 0, t 0xff) 17(c 0x60, \
+s 0x57, l 0, t 0xff) 18(c 0x60, s 0x57, l 0, t 0xff) 19(c 0x60, s 0x57, l 0, t 0xff) \
+20(c 0x64, s 0x7, l 0, t 0x1a) 21(c 0x60, s 0x57, l 0, t 0xff) 22(c 0x60, s 0x57, l \
+0, t 0xff) 23(c 0x60, s 0x57, l 0, t 0xff) 24(c 0x60, s 0x57, l 0, t 0xff) 25(c 0x60, \
+s 0x57, l 0, t 0xff) 26(c 0x60, s 0x57, l 0, t 0xff) 27(c 0x60, s 0x57, l 0, t 0xff) \
+28(c 0x60, s 0x57, l 0, t 0xff) 29(c 0x60, s 0x57, l 0, t 0xff) 30(c 0x60, s 0x57, l \
+                0, t
+Jan 17 12:24:15 pc1020 kernel: xff) 31(c 0x60, s 0x57, l 0, t 0xff)
+Jan 17 12:24:15 pc1020 kernel: Pending list: 26(c 0x60, s 0x7, l 0)
+Jan 17 12:24:15 pc1020 kernel: Kernel Free SCB list: 47 41 193 45 204 183 109 110 66 \
+235 201 131 158 119 88 216 23 249 33 227 151 75 124 194 181 141 68 111 185 104 156 \
+223 200 239 54 37 5 11 0 61 58 8 220 113 25 122 195 12 69 160 128 123 186 253 21 64 \
+30 4 17 74 245 52 212 192 228 167 82 226 154 213 57 18 15 165 218 120 157 219 133 132 \
+100 180 67 208 229 237 39 38 240 177 171 243 14 242 42 199 71 127 176 168 236 196 78 \
+155 252 9 174 233 116 179 62 148 97 86 246 198 232 190 146 3 159 241 77 32 134 83 147 \
+91 117 115 125 59 215 114 164 217 29 221 79 238 162 142 1 163 187 136 251 166 247 22 \
+197 170 76 63 101 51 149 7 19 250 121 118 214 10 210 224 70 99 234 175 27 6 182 202 \
+48 225 34 80 50 130 248 98 60 112 55 53 191 93 94 206 16 173 178 244 169 36 231 92 49 \
+222 102 2 89 73 189 87 107 126 85 56 203 129 95 81 135 90 207 230 106 72 153 28 211 \
+40 209 31 172 188 44 184 205 84 108 139 65 143 140 13 96 138 35 152 46 150 43 161 144 \
+                103 137 20 145 24
+Jan 17 12:24:15 pc1020 kernel: DevQ(0:0:0): 0 waiting
+Jan 17 12:24:15 pc1020 kernel: DevQ(0:5:0): 0 waiting
+Jan 17 12:24:15 pc1020 kernel: (scsi0:A:0:0): Queuing a recovery SCB
+Jan 17 12:24:15 pc1020 kernel: scsi0:0:0:0: Device is disconnected, re-queuing SCB
+Jan 17 12:24:15 pc1020 kernel: (scsi0:A:0:0): Abort Tag Message Sent
+Jan 17 12:24:15 pc1020 kernel: Recovery code sleeping
+Jan 17 12:24:15 pc1020 kernel: (scsi0:A:0:0): SCB 26 - Abort Tag Completed.
+Jan 17 12:24:15 pc1020 kernel: Recovery SCB completes
+Jan 17 12:24:15 pc1020 kernel: Recovery code awake
+Jan 17 12:24:15 pc1020 kernel: aic7xxx_abort returns 0x2002
+Jan 17 12:24:15 pc1020 kernel: scsi: device set offline - not ready or command retry \
+                failed after bus reset: host 0 channel 0 id 0 lun 0
+Jan 17 12:24:15 pc1020 kernel: st0: Error 50000 (sugg. bt 0x0, driver bt 0x0, host bt \
+0x5).
+_______________________________________________
+aic7xxx@freebsd.org mailing list
+http://lists.freebsd.org/mailman/listinfo/aic7xxx
