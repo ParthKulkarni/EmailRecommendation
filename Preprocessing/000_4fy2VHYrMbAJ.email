@@ -18,10 +18,10 @@ From: Albert Strasheim <ful...@gmail.com>
 To: golang-nuts <golan...@googlegroups.com>
 Content-Type: text/plain; charset=ISO-8859-1
 
-Hello all
+Hello all 
 
-We have components with an IsAlive function that looks something like
-this:
+We have components with an IsAlive function that looks something like 
+this: 
 
 func (act *actor) IsAlive() bool {
 	act.mutex.Lock()
@@ -29,22 +29,22 @@ func (act *actor) IsAlive() bool {
 	return act.alive
 }
 
-Other code does stuff like:
+Other code does stuff like: 
 
 go func() { for foo.IsAlive() { /* do stuff */ }; cleanup() }
 
-With the new fast path in Mutex's Lock and GOMAXPROCS=1, it can easily
-happen that if "do stuff" doesn't entail much code, that the goroutine
-sits in a loop and never gives other goroutines a chance to run again.
+With the new fast path in Mutex's Lock and GOMAXPROCS=1, it can easily 
+happen that if "do stuff" doesn't entail much code, that the goroutine 
+sits in a loop and never gives other goroutines a chance to run again. 
 
-The slow path that calls Semacquire eventually calls gosched, so this
-kind of loop wasn't a problem in the past.
+The slow path that calls Semacquire eventually calls gosched, so this 
+kind of loop wasn't a problem in the past. 
 
-We can patch IsAlive with a defer runtime.Gosched() before locking the
-mutex to restore the slow path behaviour, but this doesn't seem ideal.
+We can patch IsAlive with a defer runtime.Gosched() before locking the 
+mutex to restore the slow path behaviour, but this doesn't seem ideal. 
 
-What's the right way to do this?
+What's the right way to do this? 
 
-Regards
+Regards 
 
 Albert
