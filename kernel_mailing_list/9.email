@@ -1,0 +1,161 @@
+Date : Mon, 01 Jan 2018 10:03:48 +0100
+From : Takashi Iwai <>
+Subject : Re: WARNING in snd_pcm_hw_param_first
+[<pre itemprop="articleBody">On Sun, 31 Dec 2017 20:58:01 +0100,
+syzbot wrote:
+&gt; 
+&gt; Hello,
+&gt; 
+&gt; syzkaller hit the following crash on
+&gt; 71ee203389f7cb1c1927eab22b95baa01405791c
+&gt; git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/master
+&gt; compiler: gcc (GCC) 7.1.1 20170620
+&gt; .config is attached
+&gt; Raw console output is attached.
+&gt; C reproducer is attached
+&gt; syzkaller reproducer is attached. See <a href="https://goo.gl/kgGztJ">https://goo.gl/kgGztJ</a>
+&gt; for information about syzkaller reproducers
+&gt; 
+&gt; 
+&gt; IMPORTANT: if you fix the bug, please add the following tag to the commit:
+&gt; Reported-by: syzbot+6f11c7e2a1b91d466432@syzkaller.appspotmail.com
+&gt; It will help syzbot understand when the bug is fixed. See footer for
+&gt; details.
+&gt; If you forward the report, please keep this part and the footer.
+&gt; 
+&gt; audit: type=1400 audit(1514740357.837:7): avc:  denied  { map } for
+&gt; pid=3502 comm="syzkaller781065" path="/root/syzkaller781065961"
+&gt; dev="sda1"  ino=16481
+&gt; scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023
+&gt; tcontext=unconfined_u:object_r:user_home_t:s0 tclass=file permissive=1
+&gt; WARNING: CPU: 0 PID: 3502 at sound/core/pcm_lib.c:1635
+&gt; snd_pcm_hw_param_first+0x289/0x690 sound/core/pcm_lib.c:1635
+&gt; Kernel panic - not syncing: panic_on_warn set ...
+&gt; 
+&gt; CPU: 0 PID: 3502 Comm: syzkaller781065 Not tainted 4.15.0-rc5+ #154
+&gt; Hardware name: Google Google Compute Engine/Google Compute Engine,
+&gt; BIOS  Google 01/01/2011
+&gt; Call Trace:
+&gt;  __dump_stack lib/dump_stack.c:17 [inline]
+&gt;  dump_stack+0x194/0x257 lib/dump_stack.c:53
+&gt;  panic+0x1e4/0x41c kernel/panic.c:183
+&gt;  __warn+0x1dc/0x200 kernel/panic.c:547
+&gt;  report_bug+0x211/0x2d0 lib/bug.c:184
+&gt;  fixup_bug.part.11+0x37/0x80 arch/x86/kernel/traps.c:178
+&gt;  fixup_bug arch/x86/kernel/traps.c:247 [inline]
+&gt;  do_error_trap+0x2d7/0x3e0 arch/x86/kernel/traps.c:296
+&gt;  do_invalid_op+0x1b/0x20 arch/x86/kernel/traps.c:315
+&gt;  invalid_op+0x22/0x40 arch/x86/entry/entry_64.S:1079
+&gt; RIP: 0010:snd_pcm_hw_param_first+0x289/0x690 sound/core/pcm_lib.c:1635
+&gt; RSP: 0018:ffff8801c013f1a0 EFLAGS: 00010293
+&gt; RAX: ffff8801c03bc3c0 RBX: ffff8801bff08dc0 RCX: ffffffff841bee19
+&gt; RDX: 0000000000000000 RSI: 00000000ffffffea RDI: ffffed0038027e28
+&gt; RBP: ffff8801c013f1f0 R08: ffffed0038027d63 R09: ffff8801c013eb10
+&gt; R10: 0000000000000001 R11: ffffed0038027d62 R12: 000000000000000d
+&gt; R13: 00000000ffffffea R14: 0000000000000005 R15: 0000000000002000
+&gt;  snd_pcm_hw_param_near.constprop.27+0x78d/0x9a0 sound/core/oss/pcm_oss.c:457
+&gt;  snd_pcm_oss_change_params+0x17d3/0x3720 sound/core/oss/pcm_oss.c:969
+&gt;  snd_pcm_oss_make_ready+0xaa/0x130 sound/core/oss/pcm_oss.c:1128
+&gt;  snd_pcm_oss_sync+0x257/0x830 sound/core/oss/pcm_oss.c:1638
+&gt;  snd_pcm_oss_release+0x20b/0x280 sound/core/oss/pcm_oss.c:2431
+&gt;  __fput+0x327/0x7e0 fs/file_table.c:210
+&gt;  ____fput+0x15/0x20 fs/file_table.c:244
+&gt;  task_work_run+0x199/0x270 kernel/task_work.c:113
+&gt;  exit_task_work include/linux/task_work.h:22 [inline]
+&gt;  do_exit+0x9bb/0x1ad0 kernel/exit.c:865
+&gt;  do_group_exit+0x149/0x400 kernel/exit.c:968
+&gt;  SYSC_exit_group kernel/exit.c:979 [inline]
+&gt;  SyS_exit_group+0x1d/0x20 kernel/exit.c:977
+&gt;  do_syscall_32_irqs_on arch/x86/entry/common.c:327 [inline]
+&gt;  do_fast_syscall_32+0x3ee/0xf9d arch/x86/entry/common.c:389
+&gt;  entry_SYSENTER_compat+0x54/0x63 arch/x86/entry/entry_64_compat.S:129
+&gt; RIP: 0023:0xf7f4ec79
+&gt; RSP: 002b:00000000ffc2c18c EFLAGS: 00000292 ORIG_RAX: 00000000000000fc
+&gt; RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00000000080f0298
+&gt; RDX: 0000000000000000 RSI: 00000000080d9b78 RDI: 00000000080f02a0
+&gt; RBP: 0000000000000001 R08: 0000000000000000 R09: 0000000000000000
+&gt; R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+&gt; R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+&gt; Dumping ftrace buffer:
+&gt;    (ftrace buffer empty)
+&gt; Kernel Offset: disabled
+&gt; Rebooting in 86400 seconds..
+
+This must be a superfluous WARN_ON() call invoked by snd_BUG_ON()
+check that can be safely ignored.  A quick fix patch is below.
+
+
+thanks,
+
+Takashi
+
+-- 8&lt; --
+From: Takashi Iwai &lt;tiwai@suse.de&gt;
+Subject: [PATCH] ALSA: pcm: Remove superfluous warning
+
+syzkaller triggered kernel warnings through PCM OSS emulation at
+closing a stream:
+  WARNING: CPU: 0 PID: 3502 at sound/core/pcm_lib.c:1635
+  snd_pcm_hw_param_first+0x289/0x690 sound/core/pcm_lib.c:1635
+  Call Trace:
+  ....
+   snd_pcm_hw_param_near.constprop.27+0x78d/0x9a0 sound/core/oss/pcm_oss.c:457
+   snd_pcm_oss_change_params+0x17d3/0x3720 sound/core/oss/pcm_oss.c:969
+   snd_pcm_oss_make_ready+0xaa/0x130 sound/core/oss/pcm_oss.c:1128
+   snd_pcm_oss_sync+0x257/0x830 sound/core/oss/pcm_oss.c:1638
+   snd_pcm_oss_release+0x20b/0x280 sound/core/oss/pcm_oss.c:2431
+   __fput+0x327/0x7e0 fs/file_table.c:210
+   ....
+
+It's a spurious snd_BUG_ON() that invokes WARN_ON().  An error
+returned from snd_pcm_hw_refine() shouldn't be treated as an
+exception, but dealt as a normal error path.
+
+There are a couple of other places using snd_BUG_ON() unnecessarily,
+and this patch removes these spurious snd_BUG_ON() calls.
+
+Reported-by: syzbot+6f11c7e2a1b91d466432@syzkaller.appspotmail.com
+Cc: &lt;stable@vger.kernel.org&gt;
+Signed-off-by: Takashi Iwai &lt;tiwai@suse.de&gt;
+---
+ sound/core/oss/pcm_oss.c | 1 -
+ sound/core/pcm_lib.c     | 4 ++--
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/sound/core/oss/pcm_oss.c b/sound/core/oss/pcm_oss.c
+index e49f448ee04f..ceaa51f76591 100644
+--- a/sound/core/oss/pcm_oss.c
++++ b/sound/core/oss/pcm_oss.c
+@@ -455,7 +455,6 @@ static int snd_pcm_hw_param_near(struct snd_pcm_substream *pcm,
+ 		v = snd_pcm_hw_param_last(pcm, params, var, dir);
+ 	else
+ 		v = snd_pcm_hw_param_first(pcm, params, var, dir);
+-	snd_BUG_ON(v &lt; 0);
+ 	return v;
+ }
+ 
+diff --git a/sound/core/pcm_lib.c b/sound/core/pcm_lib.c
+index 10e7ef7a8804..db7894bb028c 100644
+--- a/sound/core/pcm_lib.c
++++ b/sound/core/pcm_lib.c
+@@ -1632,7 +1632,7 @@ int snd_pcm_hw_param_first(struct snd_pcm_substream *pcm,
+ 		return changed;
+ 	if (params-&gt;rmask) {
+ 		int err = snd_pcm_hw_refine(pcm, params);
+-		if (snd_BUG_ON(err &lt; 0))
++		if (err &lt; 0)
+ 			return err;
+ 	}
+ 	return snd_pcm_hw_param_value(params, var, dir);
+@@ -1678,7 +1678,7 @@ int snd_pcm_hw_param_last(struct snd_pcm_substream *pcm,
+ 		return changed;
+ 	if (params-&gt;rmask) {
+ 		int err = snd_pcm_hw_refine(pcm, params);
+-		if (snd_BUG_ON(err &lt; 0))
++		if (err &lt; 0)
+ 			return err;
+ 	}
+ 	return snd_pcm_hw_param_value(params, var, dir);
+-- 
+2.15.1
+</pre>]

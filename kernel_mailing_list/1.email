@@ -1,0 +1,62 @@
+Date : Mon, 1 Jan 2018 14:14:05 +0800
+From : Erick Chen <>
+Subject : Re: [PATCH] regulator: sc2731: Fix defines for SC2731_WR_UNLOCK and SC2731_PWR_WR_PROT_VALUE
+[<pre itemprop="articleBody">Hi Axel,
+
+O 五, 12月 29, 2017 at 02:12:18下午 +0800, Axel Lin wrote:
+&gt; The define for SC2731_WR_UNLOCK and SC2731_PWR_WR_PROT_VALUE are
+&gt; swapped, so the code calling regmap_write() looks strange. Fix it.
+&gt; regmap_write takes reg parameter first then val.
+&gt; 
+&gt; Signed-off-by: Axel Lin &lt;axel.lin@ingics.com&gt;
+&gt; ---
+&gt; Hi Erick,
+&gt; I don't have the datasheet. Can you check this?
+
+These definitions are following our datasheet's naming rule, may seem
+puzzling. And your patch could be better, my suggestions are as follows.
+Thanks,
+
+&gt; Thanks,
+&gt; Axel
+&gt;  drivers/regulator/sc2731-regulator.c | 8 ++++----
+&gt;  1 file changed, 4 insertions(+), 4 deletions(-)
+&gt; 
+&gt; diff --git a/drivers/regulator/sc2731-regulator.c b/drivers/regulator/sc2731-regulator.c
+&gt; index 794fcd504b3d..7f2b137bb98a 100644
+&gt; --- a/drivers/regulator/sc2731-regulator.c
+&gt; +++ b/drivers/regulator/sc2731-regulator.c
+&gt; @@ -13,8 +13,8 @@
+&gt;  /*
+&gt;   * SC2731 regulator lock register
+&gt;   */
+&gt; -#define SC2731_PWR_WR_PROT_VALUE	0xf0c
+&gt; -#define SC2731_WR_UNLOCK		0x6e7f
+&gt; +#define SC2731_WR_UNLOCK		0xf0c
+&gt; +#define SC2731_PWR_WR_PROT_VALUE	0x6e7f
+
+#define SC2731_PWR_WR_PROT		0xf0c
+#define SC2731_WR_UNLOCK_VALUE		0x6e7f
+
+&gt;  /*
+&gt;   * SC2731 enable register
+&gt; @@ -203,8 +203,8 @@ static struct regulator_desc regulators[] = {
+&gt; 
+&gt;  static int sc2731_regulator_unlock(struct regmap *regmap)
+&gt;  {
+&gt; -	return regmap_write(regmap, SC2731_PWR_WR_PROT_VALUE,
+&gt; -			    SC2731_WR_UNLOCK);
+&gt; +	return regmap_write(regmap, SC2731_WR_UNLOCK,
+&gt; +			    SC2731_PWR_WR_PROT_VALUE);
+
+return regmap_write(regmap, SC2731_PWR_WR_PROT,
+			SC2731_WR_UNLOCK_VALUE);
+
+&gt;  }
+&gt; 
+&gt;  static int sc2731_regulator_probe(struct platform_device *pdev)
+&gt; -- 
+&gt; 2.14.1
+&gt; 
+
+</pre>]

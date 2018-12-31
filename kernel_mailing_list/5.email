@@ -1,0 +1,139 @@
+From : Masahiro Yamada <>
+Date : Mon, 1 Jan 2018 15:41:10 +0900
+Subject : Re: [PATCH v2] fixdep: exit with error code in error branches of do_config_file()
+[<pre itemprop="articleBody">2018-01-01 0:45 GMT+09:00 Nicholas Mc Guire &lt;der.herr@hofr.at&gt;:
+&gt; On Sun, Dec 31, 2017 at 01:51:33AM +0900, Masahiro Yamada wrote:
+&gt;&gt; 2017-12-22 4:10 GMT+09:00 Lukas Bulwahn &lt;lukas.bulwahn@gmail.com&gt;:
+&gt;&gt; &gt; do_config_file() should exit with an error code, and not return if it fails
+&gt;&gt; &gt; as then the error in do_config_file() would go unnoticed in the current
+&gt;&gt; &gt; code and allow the build to continue. The exit with error code will make
+&gt;&gt; &gt; the build fail in those very exceptional cases. If this occurs, this
+&gt;&gt; &gt; actually indicates a deeper problem in the execution of the kernel build
+&gt;&gt; &gt; process.
+&gt;&gt; &gt;
+&gt;&gt; &gt; Now, that the function exists, we do not explicitly free memory and close
+&gt;&gt; &gt; the file handlers in do_config_file(), as this is covered by exit().
+&gt;&gt; &gt;
+&gt;&gt; &gt; This issue in the fixdep script was introduced with its initial
+&gt;&gt; &gt; implementation back in 2002 by the original author Kai Germaschewski with
+&gt;&gt; &gt; this commit 04bd72170653 ("kbuild: Make dependencies at compile time").
+&gt;&gt;
+&gt;&gt; "04bd72170653" is just confusing.
+&gt;&gt;
+&gt;&gt; If you really want to mention this hash,
+&gt;&gt; please clearly say it is in the history repository
+&gt;&gt; outside of this.
+&gt;&gt;
+&gt;&gt;
+&gt;&gt; &gt; This issue was identified during the review of a previous patch that
+&gt;&gt; &gt; intended to address a memory leak detected by a static analysis tool.
+&gt;&gt; &gt;
+&gt;&gt; &gt; Link: <a href="https://lkml.org/lkml/2017/12/14/736">https://lkml.org/lkml/2017/12/14/736</a>
+&gt;&gt; &gt;
+&gt;&gt; &gt; Fixes: 04bd72170653 ("kbuild: Make dependencies at compile time")
+&gt;&gt;
+&gt;&gt; Please drop this pointless Fixes tag
+&gt;&gt; because that commit is not reachable from this patch.
+&gt;&gt;
+&gt;&gt;
+&gt;&gt;
+&gt;&gt; &gt; Suggested-by: Nicholas Mc Guire &lt;der.herr@hofr.at&gt;
+&gt;&gt; &gt; Suggested-by: Masahiro Yamada &lt;yamada.masahiro@socionext.com&gt;
+&gt;&gt; &gt; Signed-off-by: Lukas Bulwahn &lt;lukas.bulwahn@gmail.com&gt;
+&gt;&gt; &gt; ---
+&gt;&gt; &gt; compile tested on top of next-20171220 with clang and gcc
+&gt;&gt; &gt; Change in v2:
+&gt;&gt; &gt;   - no code change; only include proper Fixes tag and explain it
+&gt;&gt; &gt;
+&gt;&gt; &gt;  scripts/basic/fixdep.c | 11 +++++------
+&gt;&gt; &gt;  1 file changed, 5 insertions(+), 6 deletions(-)
+&gt;&gt; &gt;
+&gt;&gt; &gt; diff --git a/scripts/basic/fixdep.c b/scripts/basic/fixdep.c
+&gt;&gt; &gt; index bbf62cb..4274610 100644
+&gt;&gt; &gt; --- a/scripts/basic/fixdep.c
+&gt;&gt; &gt; +++ b/scripts/basic/fixdep.c
+&gt;&gt; &gt; @@ -284,19 +284,18 @@ static void do_config_file(const char *filename)
+&gt;&gt; &gt;                 exit(2);
+&gt;&gt; &gt;         }
+&gt;&gt; &gt;         if (st.st_size == 0) {
+&gt;&gt; &gt; -               close(fd);
+&gt;&gt; &gt; -               return;
+&gt;&gt; &gt; +               fprintf(stderr, "fixdep: error empty file config file: ");
+&gt;&gt; &gt; +               perror(filename);
+&gt;&gt; &gt; +               exit(2);
+&gt;&gt; &gt;         }
+&gt;&gt;
+&gt;&gt; No.  This is correct as-is.
+&gt;&gt;
+&gt;&gt; do_config_file() does not parse .cmd files
+&gt;&gt; but parse source files (.c .h .S etc.)
+&gt;&gt;
+&gt;
+&gt; What case for a legitimately empty source file would there be ?
+&gt; the files being checked are assumed to be mandatory for the
+&gt; given configuration right ? if so how can a configuration depend
+&gt; on an empty file ? would that not point to a config problem and
+&gt; rather be fixed there ? or am I misunderstanding this here ?
+&gt;
+&gt;&gt; Having an empty source file is rare, but possible.
+&gt;&gt;
+&gt;
+&gt; putting a printf in the empty case handling and running a set of
+&gt; randconfigs did not reveal such an event (10 runs).
+
+
+Remove the comment line in
+scripts/mod/empty.c
+
+
+
+
+
+
+
+&gt; thx!
+&gt; hofrat
+&gt;
+&gt;&gt;
+&gt;&gt;
+&gt;&gt;
+&gt;&gt;
+&gt;&gt;
+&gt;&gt; &gt;         map = malloc(st.st_size + 1);
+&gt;&gt; &gt;         if (!map) {
+&gt;&gt; &gt;                 perror("fixdep: malloc");
+&gt;&gt; &gt; -               close(fd);
+&gt;&gt; &gt; -               return;
+&gt;&gt; &gt; +               exit(2);
+&gt;&gt; &gt;         }
+&gt;&gt; &gt;         if (read(fd, map, st.st_size) != st.st_size) {
+&gt;&gt; &gt;                 perror("fixdep: read");
+&gt;&gt; &gt; -               close(fd);
+&gt;&gt; &gt; -               return;
+&gt;&gt; &gt; +               exit(2);
+&gt;&gt; &gt;         }
+&gt;&gt; &gt;         map[st.st_size] = '\0';
+&gt;&gt; &gt;         close(fd);
+&gt;&gt; &gt; --
+&gt;&gt; &gt; 2.7.4
+&gt;&gt; &gt;
+&gt;&gt;
+&gt;&gt; These two changes are OK.
+&gt;&gt;
+&gt;&gt;
+&gt;&gt;
+&gt;&gt; --
+&gt;&gt; Best Regards
+&gt;&gt; Masahiro Yamada
+&gt; --
+&gt; To unsubscribe from this list: send the line "unsubscribe linux-kbuild" in
+&gt; the body of a message to majordomo@vger.kernel.org
+&gt; More majordomo info at  <a href="http://vger.kernel.org/majordomo-info.html">http://vger.kernel.org/majordomo-info.html</a>
+
+
+
+-- 
+Best Regards
+Masahiro Yamada
+
+</pre>]

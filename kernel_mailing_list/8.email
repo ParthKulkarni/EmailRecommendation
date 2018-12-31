@@ -1,0 +1,39 @@
+Date : Mon, 1 Jan 2018 16:27:35 +0800
+From : kbuild test robot <>
+Subject : Re: [PATCH net-next 2/2] tuntap: XDP transmission
+[<pre itemprop="articleBody">Hi Jason,
+
+I love your patch! Perhaps something to improve:
+
+[auto build test WARNING on net-next/master]
+
+url:    <a href="https://github.com/0day-ci/linux/commits/Jason-Wang/XDP-transmission-for-tuntap/20180101-105946">https://github.com/0day-ci/linux/commits/Jason-Wang/XDP-transmission-for-tuntap/20180101-105946</a>
+reproduce:
+        # apt-get install sparse
+        make ARCH=x86_64 allmodconfig
+        make C=1 CF=-D__CHECK_ENDIAN__
+
+
+sparse warnings: (new ones prefixed by &gt;&gt;)
+
+
+vim +1274 drivers/net/tun.c
+
+  1270	
+  1271	static void tun_xdp_flush(struct net_device *dev)
+  1272	{
+  1273		struct tun_struct *tun = netdev_priv(dev);
+&gt; 1274		struct tun_file *tfile = tun-&gt;tfiles[0];
+  1275	
+  1276		/* Notify and wake up reader process */
+  1277		if (tfile-&gt;flags &amp; TUN_FASYNC)
+  1278			kill_fasync(&amp;tfile-&gt;fasync, SIGIO, POLL_IN);
+  1279		tfile-&gt;socket.sk-&gt;sk_data_ready(tfile-&gt;socket.sk);
+  1280	}
+  1281	
+
+---
+0-DAY kernel test infrastructure                Open Source Technology Center
+<a href="https://lists.01.org/pipermail/kbuild-all">https://lists.01.org/pipermail/kbuild-all</a>                   Intel Corporation
+
+</pre>]
