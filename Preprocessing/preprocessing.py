@@ -173,10 +173,10 @@ if __name__ == '__main__':
         nocode = obj.remove_code(body)
         #print(nocode)
         lemm = obj.lemmatize(nocode)
-        #print(lemm)
-        replaced = obj.replace_tokens(str(lemm))
+        print(lemm)
+        # replaced = obj.replace_tokens(str(lemm))
         #print(replaced)
-        preprocessed.append(replaced)
+        # preprocessed.append(replaced)
     
-    print(preprocessed)
+    # print(preprocessed)
 

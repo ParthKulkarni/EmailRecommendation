@@ -3,6 +3,7 @@ from flask_mysqldb import MySQL
 from wtforms import Form, StringField, TextAreaField, PasswordField, validators
 from passlib.hash import sha256_crypt
 from functools import wraps
+import model
 
 app = Flask(__name__)
 
@@ -150,25 +151,52 @@ def logout():
     return redirect(url_for('login'))
 
 
+def list_to_string(l) :
+    s = ''
+    for item in l :
+        s = s + "'" + str(item) + "',"
+    s = s[:-1]
+    return s
+
 # Dashboard
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET', 'POST'])
 @is_logged_in
 def dashboard():
+    cur = mysql.connection.cursor()
     if request.method == 'POST':
         # Get Form Fields
         user = request.form['query_name']
-    # Create cursor
-    cur = mysql.connection.cursor()
 
-    # Get articles
-    result = cur.execute("SELECT * FROM threads")
-    # Show articles only from the user logged in
-    # result = cur.execute("SELECT * FROM threads WHERE author = %s", [session['username']])
+        md = model.model()
+        li = md.generate_random_list()
+        str_li = list_to_string(li)
+        
+        result = cur.execute("SELECT * FROM threads WHERE id in ({first})".format(first=str_li))
 
-    threads = cur.fetchall()
+        threads = cur.fetchall()
 
-    if result > 0:
-        return render_template('dashboard.html', threads=threads)
+        if result > 0 :
+            return render_template('dashboard.html', threads=threads)
+        else :
+            msg = 'No Articles Found'
+            return render_template('dashboard.html', msg=msg)
+        
+        # Close connection
+        # cur.close()
+    # return render_template('dashboard.html')
+
+    # # Create cursor
+    # cur = mysql.connection.cursor()
+
+    # # Get articles
+    result1 = cur.execute("SELECT * FROM threads;")
+    # # Show articles only from the user logged in
+    # # result = cur.execute("SELECT * FROM threads WHERE author = %s", [session['username']])
+
+    threads1 = cur.fetchall()
+
+    if result1 > 0:  
+        return render_template('dashboard.html', threads=threads1)
     else:
         msg = 'No Articles Found'
         return render_template('dashboard.html', msg=msg)
