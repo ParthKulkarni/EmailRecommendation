@@ -1,10 +1,11 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# In[13]:
+# In[1]:
 
 
 import email, glob
+import tensorflow as tf
 import pandas as pd
 from flanker import mime
 import string
@@ -27,7 +28,7 @@ from keras.callbacks import EarlyStopping
 get_ipython().run_line_magic('matplotlib', 'inline')
 
 
-# In[14]:
+# In[2]:
 
 
 def remove_content_in_braces(msg) :
@@ -136,11 +137,11 @@ def flan(msg):
     return rt
 
 
-# In[15]:
+# In[3]:
 
 
 rt =''
-fpath = "/home/niki/Downloads/features (4)/Dataset/*/*.email"
+fpath = "/home/anuja/Desktop/BE project/Models/EmailRecommmendation/features/Dataset/*/*.email"
 files = glob.glob(fpath)
 for file in files :
   f = open(file, "r")
@@ -178,13 +179,14 @@ total_words = len(tokenizer.word_index) + 1
 max_words=total_words
 
 
-# In[17]:
+# In[4]:
 
 
-df = pd.DataFrame(columns=['body','replier'])
-h = []
-fpath = "/home/niki/Downloads/features (4)/Dataset/*"
+df = pd.DataFrame(columns=['body','replier', 'thread_no'])
+users = []
+fpath = "/home/anuja/Desktop/BE project/Models/EmailRecommmendation/features/Dataset/*"
 folder = glob.glob(fpath)
+th_no = 0
 
 for fol in folder:
     files = glob.glob(fol+'/*.email')
@@ -199,35 +201,50 @@ for fol in folder:
             temp = remove_code(temp)
             t = temp
             flag = 1
-            h.append(header)
+            users.append(header)
             
             continue
         data = open(file,'r')
         temp = data.read()
         header = get_header(temp)
-        h.append(header)
+        users.append(header)
         temp = flan(temp)
         temp = remove_code(temp)
-        df = df.append({'body': t,'replier':header}, ignore_index=True)
+        df = df.append({'body': t,'replier':header, 'thread_no':th_no}, ignore_index=True)
         t = t + temp
+    th_no += 1
 
 
-# In[18]:
+# In[5]:
+
+
+print(df.head)
+
+
+# In[6]:
 
 
 h = df.replier
 pprint(len(h))
 h=list(h)
 
+thread_no_list = df.thread_no
+thread_no_list = list(thread_no_list)
+print(thread_no_list)
 
-# In[19]:
+
+# In[7]:
 
 
 np.set_printoptions(threshold = sys.maxsize)
-val = np.array(h)
+val = np.array(users)
 w = open('one_hot.txt','w')
+
 label_encoder = LabelEncoder()
 integer_encoded = label_encoder.fit_transform(val)
+print(integer_encoded)
+user_indices = integer_encoded
+
 one_hot_encoder = OneHotEncoder(sparse=False)
 integer_encoded = integer_encoded.reshape(len(integer_encoded),1)
 one_hot_encoded = one_hot_encoder.fit_transform(integer_encoded)
@@ -236,14 +253,61 @@ w.write(str(one_hot_encoded))
 w.close()
 
 
-# In[20]:
+# In[8]:
+
+
+print(user_indices)
+input_weights = []
+user_size = max(user_indices) + 1
+print(user_size)
+
+
+# In[9]:
+
+
+onehot_encoded_final = []
+for replier in h:
+    idx1 = label_encoder.transform([replier])
+    onehot = np.zeros(user_size)
+    onehot[idx1] = 1
+    onehot_encoded_final.append(list(onehot))
+one_hot_encoded_final = np.array(onehot_encoded_final)
+print(type(one_hot_encoded_final))
+
+
+# In[10]:
+
+
+#Binary encoding of users participating in each thread
+
+index=0
+weight_list = []
+for i in range(0, max(thread_no_list)+1):
+#     temp = np.zeros(user_size)
+    temp_index=index
+#     print(temp)
+    array  = np.zeros(user_size)
+    for j in range(temp_index, temp_index + thread_no_list.count(i)):
+#         print(user_indices[j], end = ",")
+        array[user_indices[j]] += 1
+        weight_list.append(list(array))
+#         temp[user_indices[j]] += 1
+        index+=1
+#     print("\n")
+#     print(temp,"\n")
+
+weights = np.array(weight_list)
+pprint(weights.shape) 
+
+
+# In[11]:
 
 
 x_train = df.body
 # print(x_train)
 
 
-# In[21]:
+# In[12]:
 
 
 def longest(l):
@@ -254,7 +318,7 @@ def longest(l):
 max_len = longest(x_train)
 
 
-# In[22]:
+# In[13]:
 
 
 # max_words = 1294
@@ -263,25 +327,42 @@ tok = Tokenizer(num_words=max_words)
 tok.fit_on_texts(x_train)
 sequences = tok.texts_to_sequences(x_train)
 sequences_matrix = sequence.pad_sequences(sequences,maxlen=max_len)
+print(type(sequences_matrix))
+print(len(sequences_matrix))
 
 
-# In[23]:
+# In[14]:
 
 
+b=np.zeros(user_size)
+a=tf.convert_to_tensor(b)
+#dense_cat = Dense(256, activation='relu')(a)
+#flat1 = Dense(32, activation='relu')(dense_cat)
+
+
+# In[18]:
+
+
+from keras.layers.merge import concatenate
 def RNN():
     inputs = Input(name='inputs',shape=[max_len])
     layer = Embedding(max_words,50,input_length=max_len)(inputs)
     layer = LSTM(64)(layer)
     layer = Dense(256,name='FC1')(layer)
+    inputs2 = Input(name='inputs2',shape=[user_size])
+    layer2=Dense(256,name='FC2')(inputs2)
+    
+    merge=concatenate([layer,layer2])
+    
     layer = Activation('relu')(layer)
     layer = Dropout(0.5)(layer)
     layer = Dense(output_shape,name='out_layer')(layer)
     layer = Activation('sigmoid')(layer)
-    model = Model(inputs=inputs,outputs=layer)
+    model = Model(inputs=[inputs,inputs2],outputs=layer)
     return model
 
 
-# In[24]:
+# In[19]:
 
 
 model = RNN()
@@ -289,9 +370,21 @@ model.summary()
 model.compile(loss='binary_crossentropy',optimizer=RMSprop(),metrics=['accuracy'])
 
 
+# In[20]:
+
+
+model.fit([sequences_matrix,weights],one_hot_encoded_final,batch_size=128,epochs=10,
+          validation_split=0.2,callbacks=[EarlyStopping(monitor='val_loss',min_delta=0.0001)])
+
+
 # In[ ]:
 
 
-model.fit(sequences_matrix,one_hot_encoded,batch_size=128,epochs=10,
-          validation_split=0.2,callbacks=[EarlyStopping(monitor='val_loss',min_delta=0.0001)])
+
+
+
+# In[ ]:
+
+
+
 
