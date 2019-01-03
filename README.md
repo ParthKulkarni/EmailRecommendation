@@ -1,1 +1,1 @@
-# EmailRecommmendation
+# EmailRecommendation
