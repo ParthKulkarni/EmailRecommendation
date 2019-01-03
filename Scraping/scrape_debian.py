@@ -20,13 +20,13 @@ pprint(len(links))
 
 # # Visit each link in the list and scrape data. Data written to file
 x = 0
-file = open('debian.txt','w')
+# file = open('debian.txt','w')
 
 for l in links:
     page1 = requests.get(l)
     soup1 = BeautifulSoup(page1.text, 'html.parser')
-    # fname = str(x) + '.txt'
-    # file = open(fname,'w')
+    fname = str(x) + '.txt'
+    file = open(fname,'w')
     x = x+1
 
     li = soup1.find_all('li')
@@ -40,8 +40,8 @@ for l in links:
         if s[0] == 'Message-id':
             break
     dict['Message-id']=dict['Message-id'][5:-1]
-    # for n,m in dict.items():
-    #     file.write(n + ' : '+m+'\n')
+    for n,m in dict.items():
+        file.write(n + ' : '+m+'\n')
 
     pre = soup1.find_all('pre')
     tt  = soup1.find_all('tt')
@@ -57,7 +57,7 @@ for l in links:
     body = body.rstrip()
     # print(body)
     file.write(body)
-file.close()
+    file.close()
     
     
     
