@@ -1,0 +1,56 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Limiting the power of packages
+From : Florian Weimer <fw@deneb.enyo.de>
+Date : Thu, 04 Oct 2018 10:07:54 +0200
+Message-id : 87bm8ap21x.fsf@mid.deneb.enyo.de
+In-reply-to : <[🔎] 20181004074312.GA12203@espresso.pseudorandom.co.uk> (Simon	McVittie's message of "Thu, 4 Oct 2018 08:43:12 +0100")
+References : <[🔎] 20181003171917.GB2043@exolobe1.liw.fi>	<[🔎] CAKTje6HGgPkSxJsV=ksVgo+5696o-L2pJb4SDuW+RJofO-qSjQ@mail.gmail.com>	<[🔎] 87k1myp6e0.fsf@mid.deneb.enyo.de>	<[🔎] 20181004074312.GA12203@espresso.pseudorandom.co.uk>
+
+
+* Simon McVittie:
+> On Thu, 04 Oct 2018 at 08:34:15 +0200, Florian Weimer wrote:
+>> * Paul Wise:
+>> > To fully solve the problem you need a whitelist based approach that
+>> > ends up something completely different like Flatpak.
+>> 
+>> Flatpaks don't work this way.  Try installing gedit and open a file
+>> like ~/.ssh/id_rsa with it.  There are no security prompts whatsoever,
+>> yet the software in a flatpak can read your SSH private key.
+>
+> That particular app's whitelist presumably includes "share the entire
+> host filesystem"; the existence of a whitelist doesn't mean the whitelist
+> isn't large. General-purpose development tools and text editors generally
+> have larger whitelists than more limited apps, with GNOME Builder at
+> the extreme of least-confined.
+The other problem is that the whitelist comes from the application
+author, so it's like asking a drunk whether they are drunk.
+> % flatpak --user install flathub org.gnome.gedit
+> Installing in user:
+> org.gnome.Platform.Locale/x86_64/3.28 flathub 2823e3d81b74
+> org.gnome.gedit/x86_64/stable         flathub a03b66681bce
+>   permissions: ipc, wayland, x11
+>   file access: host, xdg-run/dconf, ~/.config/dconf:ro
+>                ^^^^
+>                 \- this is why it can read arbitrary files
+>   dbus access: ca.desrt.dconf, org.gtk.vfs.*
+> org.gnome.gedit.Locale/x86_64/stable  flathub c2974b37ef08
+> Is this ok [y/n]:
+>
+> I think the intention is that GUIs like GNOME Software prompt for apps
+> that need special permissions in a more user-friendly way, something
+> like how Android handles app permissions, although I don't think that's
+> actually implemented yet.
+Yes, I tried this on Fedora 28 before posting, which I consider the
+reference implementation.  There is no security prompt at all.
+I've also been told in an other context that it is up to the Flatpak
+repository to vet the permissions requested by the software authors.
+This model would be closer to what the Debian archive does in
+practice.
+> I don't know specifically why gedit has the host file access
+> permission: it's unnecessary for File->Open and File->Save
+> As... (e.g. org.gnome.Recipes is a good example of an app that
+> doesn't, but can still import and export recipes) but presumably some
+> of gedit's IDE-like features involve opening files other than the one
+> you directly asked for.
+I assume it's because gedit creates backup files when saving, and the
+document portal does not support that.

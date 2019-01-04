@@ -1,0 +1,120 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Christian Seiler <christian@iwakd.de>
+Date : Wed, 07 Jun 2017 15:26:35 +0200
+Message-id : 82ef3de4ec775682aa9dc5724001b640@iwakd.de
+In-reply-to : <87tw424kxc.fsf@deep-thought.43-1.org>
+References : <87tw424kxc.fsf@deep-thought.43-1.org>
+
+
+Hi there,
+I think one of the main problems with Recommends: is not
+actually the dependencies of packages themselves (I think
+that most things in your list I disagree with, those
+Recommends: are fine in my eyes), but rather in the way
+they are handled in APT.
+Let me make a couple of points (some are problems, some are
+suggestions):
+ - You install package A, which Recommends: B, but you don't
+   want B, notice that at the time, and either remove B
+   afterwards, or install A with --no-install-recommends. But
+   then you install package C at a later point in time, which
+   actually depends on B. You notice that C is not what you
+   wanted, purge it again, but apt-get autoremove will _not_
+   remove B, even though it's automatically installed, because
+   A recommends it.
+   So basically, the following command sequence may or may not
+   leave your system in an identical state, depending on the
+   packages that previously have been installed on your system:
+      apt-get install A
+      apt-get purge A
+      apt-get autoremove --purge
+   Unfortunately, I don't see a good solution to this problem,
+   and I've thought about this a lot in the past.
+ - When installing APT's text UI doesn't differentiate between
+   extra packages that were full dependencies, and those that
+   were just recommends. What would be great if APT could
+   somehow show this information.
+ - My guess is that most power users don't use any GUI, but
+   the command line client, for installing packages. (Like I
+   do.) However, it would be great if there could be some
+   possibility of dropping individual Recommends even with
+   the minimalistic text UI of APT.
+   Example:
+     # apt-get install $pkg
+     Reading package lists... Done
+     Building dependency tree
+     Reading state information... Done
+     The following additional packages will be installed:
+       $pkg2 $pkg3 $pkg4
+     Of these, the following only due to a recommendation:
+       $pkg3 $pkg4
+     Suggested packages:
+       $pkg5 $pkg6
+     The following NEW packages will be installed:
+       $pkg $pkg2 $pkg3 $pkg4
+     0 upgraded, 4 newly installed, 0 to remove and 0 not
+     upgraded.
+     Need to get 42 MB of archives.
+     After this operation, 108 MB of additional disk space will
+     be used.
+     Do you want to continue? [Y/c/n]
+   Where the 'c' button will first show a help (in case a more
+   inexperienced user presses it accidentally) and then allow
+   the user to remove packages from the list if they are pulled
+   in via Recommends: - transitively or intransitively.
+ - Instead of globally selecting "no recommends", it would be
+   great if one could use something like apt-preferences to
+   indicate that certain packages should not be installed
+   unless they are manually selected _or_ they are actual hard
+   Depends:-dependencies of other packages that do not fall
+   in this category. Then one could for example make sure that
+   -doc packages aren't installed unless they are hard
+   Depends:.
+ - What could also be nice would be a new dependency type that
+   works like this: if the package that declares this
+   dependency has been pulled in via Depends: or manually by
+   the user, it should act like Recommends:, otherwise like
+   Suggests:.
+   For example:
+      A
+        Depends: B
+        Recommends: C
+      B:
+        Depends: D
+        Recommends: E
+        Intransitive-Recommends: F
+      C:
+        Depends: G
+        Recommends: H
+        Intransitive-Recommends: I
+      G:
+        Intransitive-Recommends: J
+   Then "apt-get install A" would yield the following package
+   list:
+      A (duh)
+      B (Depends)
+      C (Recommends)
+      D (Depends -> Depends)
+      E (Depends -> Recommends)
+      F (Depends -> Intransitive-Recommends)
+      G (Recommends -> Depends)
+      H (Recommends -> Recommends)
+   Not pulled in:
+      I (Recommends -> Intransitive-Recommends)
+      J (Recommends -> Depends -> Intransitive-Recommends)
+   (Feel free to bikeshed over the name.)
+   This could make the transitivity issue of Recommends:
+   easier to deal with. Unfortunately this has some weird
+   side-effects: if you mark a specific package as manually
+   installed later, their Intransitive-Recommends: would need
+   to change from effective Suggests: to effective Recommends:,
+   which means APT somehow needs to figure out that it should
+   install them. Disadvantage: APT would need to add support
+   for this at the beginning of the Buster cycle, but it
+   could only be used in the archive starting with Buster+1,
+   otherwise upgrades from Stretch wouldn't work.
+I'm not sure how good of an idea each of these is, but maybe
+they could provide some inspiration for this topic.
+Regards,
+Christian

@@ -1,0 +1,100 @@
+To : debian-devel@lists.debian.org
+Subject : Re: "not authorised" doing various desktoppy things
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 4 Jan 2017 00:57:20 +0000
+Message-id : 20170104005720.zbxi7v4fgl4uma5k@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] o4h6r9$9r$1@blaine.gmane.org>
+References : <[🔎] 22636.1061.523880.253029@chiark.greenend.org.uk> <[🔎] o4h6r9$9r$1@blaine.gmane.org>
+
+
+On Tue, 03 Jan 2017 at 21:59:05 +0000, Sune Vuorela wrote:
+> If I recall correctly, for most
+> networky (and removable media things), the default policykit
+> configuration is that 'local logged in users' are allowed to do this.
+They must usually be active as well as locally logged in. (This means that
+if alice is on tty7, bob is on tty8, and tty7 is the visible one, then
+most polkit-mediated actions will not be available to bob, which is usually
+the right thing when using Ctrl+Alt+F? or many desktop environments'
+"fast user switching" features.)
+systemd-logind also gives active local users permission to do things with
+some device nodes (specifically the ones tagged "uaccess" in udev rules)
+directly, by setting POSIX ACLs on those device nodes, which are removed
+when switching VT. For many device types this can't revoke access to an
+already-opened device, but for some device types (input and sound, I
+think?) it's possible to revoke access. You can configure that by writing
+udev rules to (un)tag selected devices with "uaccess", or force the issue
+by writing udev rules to set the owner or group of selected device nodes
+to the one that you want to be privileged.
+None of this works unless you have libpam-systemd installed and enabled.
+That PAM module is somewhat mis-named: it's really for systemd-logind,
+the user/login manager, and not the systemd init/service manager.
+A (strong or weak) dependency relationship with libpam-systemd is
+considered to be the correct way for a Debian package to declare that
+it requires (or benefits from) a working systemd-logind, either via
+the systemd init/service manager or systemd-shim with some other init.
+> There is also somewhere iirc a configuration bit to require a password
+> on the way.
+Upstream defaults (along with descriptions and other metadata)
+go in /usr/share/polkit-1/actions/*.policy. For example, udisks2 installs
+a polkit policy file to describe the actions users can take when
+asking udisks2 to manipulate storage devices on their behalf.
+There are separate defaults for active local users (allow_active),
+other local users (allow_inactive) and everyone else (allow_any), each
+of which can be set to no, yes, auth_self, auth_admin, auth_self or
+auth_admin_keep. auth_self[_keep] means require the user's own password,
+auth_admin[_keep] means require the password of a root-equivalent user
+(in Debian that's uid 0 or gid sudo).  These are usually set to some
+reasonable compromise between "least privilege" and "things should work
+automatically".
+For finer-grained control or sysadmin overrides, there are configuration
+files, which are the right place to put site-specific rules like "smcv may
+mount and administer removable disks even if logged-in remotely". For
+example, here's what my NAS box has, to get approximately the equivalent of
+the old plugdev group semantics for USB disks plugged in to its front panel
+(ability to run `udisksctl mount -b /dev/sde` or
+`udisksctl power-off -b /dev/sde` in a ssh session):
+    # /etc/polkit-1/localauthority/50-local.d/usb-disks.pkla
+    [Allow mounting removable disks]
+    Identity=unix-group:plugdev
+    Action=org.freedesktop.udisks2.filesystem-mount-other-seat;org.freedesktop.udisks2.power-off-drive-other-seat;
+    ResultAny=yes
+Unlike *.policy, these configuration files can match specific *identities*
+(in practice Unix users and groups, although the concept is extensible).
+In polkit 0.105 (jessie and stretch), upstream or Debian configuration is in
+.ini-like files in /var/lib/polkit-1/localauthority/10-vendor.d/*.pkla,
+and sysadmin overrides are in /etc/polkit-1/localauthority/*/*.pkla.
+The syntax is like my example above.
+In polkit 0.113 (upstream and experimental), upstream or Debian configuration
+is JavaScript (just the language, not a full browser- or nodejs-style
+runtime environment!) in /usr/share/polkit-1/rules.d/*.rules, and sysadmin
+overrides for that go in /etc/polkit-1/rules.d/*.rules. My example above
+would look something like this in JavaScript:
+    // /etc/polkit-1/rules.d/usb-disks.rules
+    polkit.addRule(function(action, subject) {
+        if ((action.id == "org.freedesktop.udisks2.filesystem-mount-other-seat" ||
+             action.id == "org.freedesktop.udisks2.power-off-drive-other-seat") &&
+            subject.isInGroup("plugdev")) {
+          return polkit.Result.YES;
+        }
+    });
+> > Presumably there is also a way to override things and permanently
+> > grant my account the relevant privilege.  That would be fine for
+> > single-user computers (including most laptops). 
+> 
+> That would probably be some policykit configuration file you can do this
+The polkit configuration files are the right place to do this; but on a
+laptop with systemd-logind, libpam-systemd and a PAM-enabled *dm or
+login prompt working together correctly, you shouldn't usually need
+configuration. Those configuration files are mostly useful in two
+situations:
+* A user needs to grant privileges to sessions that do not involve
+  physically sitting at the machine (cron, ssh), for which the usual
+  arguments like "an active local user could hard-power-off the machine,
+  so letting them power off gracefully is not a new denial-of-service"
+  do not apply
+* A user needs to be allowed to do things that have an impact on other
+  users (administrative actions)
+In either case, the conservative upstream and Debian default is
+to say no, but a sysadmin can make better decisions about what should
+be allowed on this particular machine.
+    S

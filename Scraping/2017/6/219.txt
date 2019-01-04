@@ -1,0 +1,56 @@
+To : Henrique de Moraes Holschuh <hmh@debian.org>
+Subject : Re: Please add lzip support in the repository
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Mon, 19 Jun 2017 12:44:48 +0100
+Message-id : 22855.47408.628933.683031@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20170617030139.GB31021@khazad-dum.debian.net>
+References : <[🔎] CAA3kg_gykqU6TDeYg+yGJJeO7P0F+jhjZ-M=R7rwqBRFPM_TBA@mail.gmail.com>	<[🔎] 1497529370@msgid.manchmal.in-ulm.de>	<[🔎] 20170615233648.GB21283@khazad-dum.debian.net>	<[🔎] 20170616142643.uxeqeeppwzfjdjtm@localhost>	<[🔎] 20170617030139.GB31021@khazad-dum.debian.net>
+
+
+Henrique de Moraes Holschuh writes ("Re: Please add lzip support in the repository"):
+> On Fri, 16 Jun 2017, Adrian Bunk wrote:
+> > On Thu, Jun 15, 2017 at 08:36:48PM -0300, Henrique de Moraes Holschuh wrote:
+> > >...
+> > > We pretty much need Debian packages to be 100% correct in the first
+> > > place, they are not going to be subject to lossy recovery from
+> > > corruption (which is where lzip is supposed to be much better than xz):
+> > > we need to replace any that is even slightly corrupt with a fully
+> > > correct copy.
+> > > 
+> > > So, it would make more sense to have a par2 (or create a modern version
+> > > of it, actually) ECC layer on top of the compression layer, at which
+> > > point we can use one of the already supported compression formats.
+> > >...
+> > 
+> > A digital signature is an ECC layer.
+> 
+> ECC as in eliptic-curve crypto?  That's useless for repair.
+> 
+> It should have been obvious by context, especially since I even
+> mentioned "par2", but it was ECC as in Error-Correcting Code.
+> 
+> https://en.wikipedia.org/wiki/Error-correcting_code
+Adrian's point is correct.  He meant ECC as in error-correcting code.
+Of course most digital signature schemes, including the ones we use,
+are not able to correct errors.  But they are very good at detecting
+them.
+I think corrupted downloads are rare enough (due to ECC applied at
+lower layers in networks and storage media) that the additional
+complication of ECC would not be valuable.
+And, our current practice is to sign the compressed streams.  That
+means that a corrupted download would be rejected by our digital
+signature mechanism, before any compression-layer ECC would see it.
+We don't want to reverse the order, and do the compression after
+signature, for a number of reasons.  One very useful benefit of the
+digital signature scheme is that it means the decompressor used during
+package download (which typically runs with rather too much
+privilege) is not exposed to potentially hostile input.  Another is
+that the signatures can be verified with standard tools.
+For Debian binary and source packages, there is no benefit in ECC
+in the compression layer.
+I'm not sure why all of this isn't obvious.
+As an aside: I am sceptical of the value of ECC as part of a general
+purpose compression scheme.  That proponents of lzip are pushing this
+as an advantage merely adds to the scepticism which their marketing
+campaign is generating in my mind.
+Ian.

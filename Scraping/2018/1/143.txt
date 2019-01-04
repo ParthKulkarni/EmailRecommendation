@@ -1,0 +1,67 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#886238: Please introduce official nosystemd build profile
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 4 Jan 2018 01:26:17 +0000
+Message-id : 20180104012617.GA11482@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 85037c04-a3c8-49d9-444b-1dbadfeacf69@debian.org>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CACujMDNW4uEQNeDYnbKedHpjeEPMUroPKp+4B3g=wGMmqr-EUA@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180103132503.GA410@bongo.bofh.it> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180103144659.hx3kcjo7v76btc7x@santiago.connexer.com> <[🔎] 20180103190124.6eww4bqcf4rpotfs@virgil.dodds.net> <[🔎] 85037c04-a3c8-49d9-444b-1dbadfeacf69@debian.org>
+
+
+On Wed, 03 Jan 2018 at 22:34:01 +0100, Simon Richter wrote:
+> On 03.01.2018 20:01, Steve Langasek wrote:
+> > What a nosystemd build profile proposes to do is to avoid linking against
+> > *lib*systemd, which is an inert library dependency whose runtime impact
+> > rounds to zero when systemd is not in use.
+> 
+> The build profile is useful where upstream source can be configured in
+> different ways, e.g. because someone wrote a daemon that works on BSD
+> and can optionally activate "systemd mode" with additional integration
+> code.
+dbus-daemon in src:dbus is one such daemon (and one for which Devuan
+appears to have a patched version).
+On non-systemd Linux, dbus-daemon works the same way it always did;
+on Linux with systemd, it works a bit better than that. The runtime
+checks before doing something systemd-related (canonically: probe whether
+/run/systemd/system exists) are not difficult.
+A few features that are in practice very strongly correlated with systemd
+(those that rely on XDG_RUNTIME_DIR) don't explicitly check for systemd,
+so they would also work on non-systemd (and even non-Linux) systems if
+someone else put the work into providing an XDG_RUNTIME_DIR that meets
+the specification.
+There is no point in packaging dbus for Linux other than "in systemd
+mode": the only difference for a non-systemd machine is an amount of
+extra disk space that, as Steve said, rounds to zero. (Obviously it's
+still built "in non-systemd mode" on the non-Linux kernels, where the
+systemd-related build-dependencies are absent.)
+> My expectation at this point is "if it has a 'nosystemd' profile, then
+> at least it has probably been tested to work without systemd."
+Build profiles are not a Features field. Ideally, packages work with or
+without systemd without having to be compiled differently, the same way
+they might work with X11 or Wayland, or with ALSA or PulseAudio, without
+having to be compiled differently. In Debian, we conventionally enable
+all possible features unless they conflict or are otherwise problematic;
+"better systemd integration" is one such feature, and can usually be
+enabled without altering the behaviour of non-systemd systems.
+We currently expect packages to work with either a separate or a merged
+/usr; extrapolating from what you've said about nosystemd would lead
+to us having a usrmerge or nousrmerge build profile to signal that
+(depending which the default/more-tested case is considered to be), but
+we don't. Similarly, we don't have build profiles for whether the package
+works with {dash,bash,posh,mksh,busybox} as /bin/sh, or for whether the
+package works on Wayland, or Mir, or non-UTF-8 locales, or all sorts of
+other situations that might be considered unusual or non-standard.
+> we just had a discussion last week if it was truly a bug if a
+> package fails to work if systemd is not present
+I'd say it's certainly a bug if it fails to work and doesn't have
+a Depends: or Recommends: on systemd-sysv. (Recommends because in
+principle you might be booting systemd as pid 1 without it actually
+being /sbin/init.) As long as Debian supports non-systemd init, asking a
+maintainer to document the dependency seems reasonable, even if they're
+unwilling or unable to change the code to avoid it (for instance that
+seems vanishingly unlikely to happen for dbus-user-session, and is
+clearly not sensible at all for systemd-cron or runit-systemd because
+working with systemd is their entire purpose).
+Now, I'm sure there are packages that have an undeclared dependency on
+systemd; but there are also lots of packages with other unreported bugs,
+so this isn't unusual.
+    smcv

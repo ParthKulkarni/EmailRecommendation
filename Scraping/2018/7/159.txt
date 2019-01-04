@@ -1,0 +1,62 @@
+To : jonas@jones.dk
+Subject : Re: Re: Concerns to software freedom when packaging deep-learning based appications.
+From : Lumin <cdluminate@gmail.com>
+Date : Fri, 13 Jul 2018 14:34:44 +0000
+Message-id : 20180713143444.GA15216@Asuna
+In-reply-to : <[🔎] 153140098326.1905.3097635443644501049@auryn.jones.dk>
+
+
+Hi Jonas
+> Perhaps I am missing something, but if _possible_ just 100x slower to 
+> use CPUs instead of GPUs, then I fail to recognize how it cannot be 
+> reproduced, modified, and researched 100x slower.
+> 
+> Quite interesting question you raise!
+I can provide at least two data points:
+1. The alexnet[1] paper said that "We trained the network for roughly 90
+   cycles through the training set of 1.2 million images, which took five
+   to six days on two NVIDIA GTX 580 3GB GPUs."
+   This is an old but very famous paper. In this paper, the deep neural
+   network was trained on a public dataset named ImageNet[2]. For image
+   classification purpose, the dataset provides 1000 catogories of
+   images, and ships more than 100GB of pictures.
+   ImageNet is a typical large dataset. Training networks on it requires
+   expensive devices and takes a lot of time. As time goes by, the
+   latest GPUs and software stack has reduced the network training time
+   significantly, and the training time was reduced to less than half
+   an hour.
+   Nobody will train a neural network on ImageNet by CPU.
+   CPU takes ridiculously long time, compared to GPU.
+2. A very simple and reproducible CPU/GPU performance comparison.
+   This snippet imports a pretrained neural network from another
+   famous work, and calculates prediction result for 50 fake input
+   images.
+   │ import torch as th
+   │ import torchvision as vision
+   │ import time
+   │ 
+   │ net = vision.models.vgg19(pretrained=True)
+   │ batch = th.rand((50, 3, 224, 224))
+   │ net, batch = net.float(), batch.float()
+   │ 
+   │ t = time.time()
+   │ net(batch)
+   │ print('CPU version:', time.time() - t)
+   │ 
+   │ net, batch = net.cuda(), batch.cuda()
+   │ t = time.time()
+   │ net(batch)
+   │ print('CUDA versoin', time.time() - t)
+   My CPU is Intel(R) Core(TM) i7-6900K CPU @ 3.20GHz, running with MKL
+   My GPU is Nvidia TITAN X (Pascal), running with CUDA9.1 and cuDNN
+   CPU version: 30.960017681121826
+   CUDA versoin 0.17571759223937988
+   CUDA version is 176x faster than CPU.
+   Nobody will train a neural network on big dataset by CPU.
+   CPU takes ridiculously long time, compared to GPU.
+   (The framework used is PyTorch[5], vgg19 net comes from [4])
+[1] https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf
+[2] https://image-net.org/
+[3] oops, I think I lost the link to the mentioned paper
+[4] http://www.robots.ox.ac.uk/%7Evgg/research/very_deep/
+[5] https://pytorch.org/

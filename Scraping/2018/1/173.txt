@@ -1,0 +1,37 @@
+To : Hleb Valoshka <375gnu@gmail.com>, 886238@bugs.debian.org
+Subject : Bug#886238: Please introduce official nosystemd build profile
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 3 Jan 2018 13:30:55 +0000
+Message-id : 20180103133055.GB5875@perpetual.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 886238@bugs.debian.org
+In-reply-to : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com>
+
+
+On Wed, 03 Jan 2018 at 15:12:51 +0300, Hleb Valoshka wrote:
+> Please introduce official nosystemd build profile so downstream
+> distributions can send patches to package maintainers with
+> systemd-less build instead of keep them in home.
+In general, build profiles are not meant
+to result in functional changes to packages
+(<https://wiki.debian.org/BuildProfileSpec#Profile_built_binary_packages>),
+which seems like it isn't a great fit for omission of systemd support:
+if a package installs systemd units, links to libsystemd, etc., it's
+usually because it causes a functional difference to that package's
+behaviour on systems that booted with systemd as pid 1, or on systems
+where `systemd --user` is available.
+The speculation about a possible nosystemd profile in
+<https://wiki.debian.org/BuildProfileSpec#Derivative_specific_profiles> is
+not consistent with that design principle. If a package contains systemd
+units or uses of libsystemd, then it's safe to assume they were added
+for a reason. Whether you value that reason or not, it's nearly always
+true to say that cutting out systemd-related bits is a functional change.
+If the nosystemd profile is (exceptionally) allowed to cause functional
+changes, what would the policy be for this build profile? Would it be
+acceptable for a package built with nosystemd to be unusable or have
+incompatible behaviour if it is used on a system booted with systemd?
+(Clearly, that would be a silly thing to do, because if you care about
+avoiding systemd enough to be specially rebuilding packages, then you
+certainly shouldn't boot with systemd as your process 1; but there's no
+technical restriction that prevents that from happening.)
+    smcv

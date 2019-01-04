@@ -1,0 +1,51 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : Re: git vs dfsg tarballs
+From : "Enrico Weigelt, metux IT consult" <lkml@metux.net>
+Date : Mon, 19 Nov 2018 17:16:22 +0100
+Message-id : 07c35525-3eb0-b97f-af8e-3d354f83a082@metux.net
+In-reply-to : <[🔎] 23538.45564.887591.14863@chiark.greenend.org.uk>
+References : <[🔎] bdac38db-1551-2fce-9662-fcf915b716c5@metux.net> <[🔎] 23538.45564.887591.14863@chiark.greenend.org.uk>
+
+
+On 19.11.18 13:52, Ian Jackson wrote:
+> Clearly the transformation on the *tree* can't be reversible because
+> in the usual case it is deleting things.  So you'll need the history.
+It certain can be, if you know the exact orig commit.
+Maybe I wasn't really clear here: I wanna do a fully automatic import
+into a git history (optimally, by just having package name and version).
+> With most gitish workflows, the corresponding pre-dfsg upstream
+> *commit* can be found with `git-merge-base', assuming you have some
+> uploaded (or pushed) Debian commit and a suitable upstream branch.
+It's not entirely trivial, if the maintainers are doing wild merges.
+(eg. w/ kodi). Even worse: reconstructing the change history ontop
+of some given upstream release is pretty complicated and manual.
+Merging down from upstream into packaging branch (instead of just
+a simple rebase) turns out as bad idea here.
+>> My preferred way (except for rare cases where upstream history is
+>> extremely huge - like mozilla stuff) would be just branching at the
+>> upstream's release tag and adding commits for removing the non-dfsg
+>> files ontop of that. From that branching the debianized branch,
+>> where all patches are directly applied in git.
+> 
+> I think that most of the workflows recommended in these manpages
+> 
+>   https://manpages.debian.org/stretch-backports/dgit/dgit-maint-gbp.7.en.html
+>   https://manpages.debian.org/stretch-backports/dgit/dgit-maint-merge.7.en.html
+>   https://manpages.debian.org/stretch-backports/dgit/dgit-maint-debrebase.7.en.html
+Yet complicated for me (especially regarding automating/CI).
+Here're some examples on how my deb branches look like:
+https://github.com/oss-qm/flatbuffers/commits/debian/maint-1.9.0
+https://github.com/oss-qm/go/commits/debian/maint-1.11.1
+* canonical ref names
+* always based on the corresponding upstream's release tag
+* changes directly as git commits - no text-based patches whatsoever
+* generic changes below the deb-specific ones
+While gbp can help a bit here and there, it still far away from an
+fully-automated process.
+I'm currently helping myself w/ lots of mappings and import scripts,
+but I'd like to get rid of maintaining all these little pieces.
+--mtx
+-- 
+Enrico Weigelt, metux IT consult
+Free software and Linux embedded engineering
+info@metux.net -- +49-151-27565287

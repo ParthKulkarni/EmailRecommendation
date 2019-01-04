@@ -1,0 +1,192 @@
+To : debian-user@lists.debian.org, debian-devel@lists.debian.org
+Subject : [WARNING] Intel Skylake/Kaby Lake processors: broken hyper-threading
+From : Henrique de Moraes Holschuh <hmh@debian.org>
+Date : Sun, 25 Jun 2017 09:19:36 -0300
+Message-id : 20170625121936.GA7714@khazad-dum.debian.net
+
+
+This warning advisory is relevant for users of systems with the Intel
+processors code-named "Skylake" and "Kaby Lake".  These are: the 6th and
+7th generation Intel Core processors (desktop, embedded, mobile and
+HEDT), their related server processors (such as Xeon v5 and Xeon v6), as
+well as select Intel Pentium processor models.
+TL;DR: unfixed Skylake and Kaby Lake processors could, in some
+situations, dangerously misbehave when hyper-threading is enabled.
+Disable hyper-threading immediately in BIOS/UEFI to work around the
+problem.  Read this advisory for instructions about an Intel-provided
+fix.
+SO, WHAT IS THIS ALL ABOUT?
+---------------------------
+This advisory is about a processor/microcode defect recently identified
+on Intel Skylake and Intel Kaby Lake processors with hyper-threading
+enabled.  This defect can, when triggered, cause unpredictable system
+behavior: it could cause spurious errors, such as application and system
+misbehavior, data corruption, and data loss.
+It was brought to the attention of the Debian project that this defect
+is known to directly affect some Debian stable users (refer to the end
+of this advisory for details), thus this advisory.
+Please note that the defect can potentially affect any operating system
+(it is not restricted to Debian, and it is not restricted to Linux-based
+systems).  It can be either avoided (by disabling hyper-threading), or
+fixed (by updating the processor microcode).
+Due to the difficult detection of potentially affected software, and the
+unpredictable nature of the defect, all users of the affected Intel
+processors are strongly urged to take action as recommended by this
+advisory.
+DO I HAVE AN INTEL SKYLAKE OR KABY LAKE PROCESSOR WITH HYPER-THREADING?
+-----------------------------------------------------------------------
+The earliest of these Intel processor models were launched in September
+2015.  If your processor is older than that, it will not be an Skylake
+or Kaby Lake processor and you can just ignore this advisory.
+If you don't know the model name of your processor(s), the command below
+will tell you their model names.  Run it in a command line shell (e.g.
+xterm):
+    grep name /proc/cpuinfo | sort -u
+Once you know your processor model name, you can check the two lists
+below:
+  * List of Intel processors code-named "Skylake":
+    http://ark.intel.com/products/codename/37572/Skylake
+  * List of Intel processors code-named "Kaby Lake":
+    http://ark.intel.com/products/codename/82879/Kaby-Lake
+Some of the processors in these two lists are not affected because they
+lack hyper-threading support.  Run the command below in a command line
+shell (e.g. xterm), and it will output a message if hyper-threading is
+supported/enabled:
+  grep -q '^flags.*[[:space:]]ht[[:space:]]' /proc/cpuinfo && \
+	echo "Hyper-threading is supported"
+Alternatively, use the processor lists above to go to that processor's
+information page, and the information on hyper-threading will be there.
+If your processor does not support hyper-threading, you can ignore this
+advisory.
+WHAT SHOULD I DO IF I DO HAVE SUCH PROCESSORS?
+----------------------------------------------
+Kaby Lake:
+Users of systems with Intel Kaby Lake processors should immediately
+*disable* hyper-threading in the BIOS/UEFI configuration.  Please
+consult your computer/motherboard's manual for instructions, or maybe
+contact your system vendor's support line.
+The Kaby Lake microcode updates that fix this issue are currently only
+available to system vendors, so you will need a BIOS/UEFI update to get
+it.  Contact your system vendor: if you are lucky, such a BIOS/UEFI
+update might already be available, or undergoing beta testing.
+You want your system vendor to provide a BIOS/UEFI update that fixes
+"Intel processor errata KBL095, KBW095 or the similar one for my Kaby
+Lake processor".
+We strongly recommend that you should not re-enable hyper-threading
+until you install a BIOS/UEFI update with this fix.
+Skylake:
+Users of systems with Intel Skylake processors may have two choices:
+1. If your processor model (listed in /proc/cpuinfo) is 78 or 94, and
+   the stepping is 3, install the non-free "intel-microcode" package
+   with base version 3.20170511.1, and reboot the system.  THIS IS
+   THE RECOMMENDED SOLUTION FOR THESE SYSTEMS, AS IT FIXES OTHER
+   PROCESSOR ISSUES AS WELL.
+   Run this command in a command line shell (e.g. xterm) to know the
+   model numbers and steppings of your processor.  All processors must
+   be either model 78 or 94, and stepping 3, for the intel-microcode fix
+   to work:
+         grep -E 'model|stepping' /proc/cpuinfo | sort -u
+   If you get any lines with a model number that is neither 78 or 94, or
+   the stepping is not 3, you will have to disable hyper-threading as
+   described on choice 2, below.
+   Refer to the section "INSTALLING THE MICROCODE UPDATES FROM NON-FREE"
+   for instructions on how to install the intel-microcode package.
+2. For other processor models, disable hyper-threading in BIOS/UEFI
+   configuration.  Please consult your computer/motherboard's manual for
+   instructions on how to do this.  Contact your system vendor for a
+   BIOS/UEFI update that fixes "Intel erratum SKW144, SKL150, SKX150,
+   SKZ7, or the similar one for my Skylake processor".
+NOTE: If you did not have the intel-microcode package installed on your
+Skylake system before, it is best if you check for (and install) any
+BIOS/UEFI updates *first*.  Read the wiki page mentioned below.
+INSTALLING THE MICROCODE UPDATES FROM NON-FREE:
+-----------------------------------------------
+Instructions are available at:
+    https://wiki.debian.org/Microcode
+Updated intel-microcode packages are already available in non-free for:
+unstable, testing, Debian 9 "stretch" (stable), and Debian 8 *backports*
+(jessie-backports).
+THE MICROCODE PACKAGES FROM THE RECENT STABLE RELEASE (June 17th, 2017)
+ALREADY HAVE THE SKYLAKE FIX, BUT YOU MAY HAVE TO INSTALL THEM.
+Updated intel-microcode packages in non-free for Debian 8 "jessie"
+(oldstable) are waiting for approval and will likely be released in the
+next non-free oldstable point release.  They are the same as the
+packages in non-free jessie-backports, with a change to the version
+number.
+The wiki page above has instructions on how to enable "contrib" and
+"non-free", so as to be possible to install the intel-microcode package.
+Users of "jessie" (oldstable) might want to enable jessie-backports to
+get *this* intel-microcode update faster.  This is also explained in the
+wiki page above.
+MORE DETAILS ABOUT THE PROCESSOR DEFECT:
+----------------------------------------
+On 2017-05-29, Mark Shinwell, a core OCaml toolchain developer,
+contacted the Debian developer responsible for the intel-microcode
+package with key information about a Intel processor issue that could be
+easily triggered by the OCaml compiler.
+The issue was being investigated by the OCaml community since
+2017-01-06, with reports of malfunctions going at least as far back as
+Q2 2016.  It was narrowed down to Skylake with hyper-threading, which is
+a strong indicative of a processor defect.  Intel was contacted about
+it, but did not provide further feedback as far as we know.
+Fast-forward a few months, and Mark Shinwell noticed the mention of a
+possible fix for a microcode defect with unknown hit-ratio in the
+intel-microcode package changelog.  He matched it to the issues the
+OCaml community were observing, verified that the microcode fix indeed
+solved the OCaml issue, and contacted the Debian maintainer about it.
+Apparently, Intel had indeed found the issue, *documented it* (see
+below) and *fixed it*.  There was no direct feedback to the OCaml
+people, so they only found about it later.
+The defect is described by the SKZ7/SKW144/SKL150/SKX150/KBL095/KBW095
+Intel processor errata.  As described in official public Intel
+documentation (processor specification updates):
+  Errata:   SKZ7/SKW144/SKL150/SKX150/SKZ7/KBL095/KBW095
+            Short Loops Which Use AH/BH/CH/DH Registers May Cause
+            Unpredictable System Behavior.
+  Problem:  Under complex micro-architectural conditions, short loops
+	    of less than 64 instructions that use AH, BH, CH or DH
+	    registers as well as their corresponding wider register
+	    (e.g. RAX, EAX or AX for AH) may cause unpredictable
+	    system behavior. This can only happen when both logical
+	    processors on the same physical processor are active.
+  Implication: Due to this erratum, the system may experience
+	    unpredictable system behavior.
+We do not have enough information at this time to know how much software
+out there will trigger this specific defect.
+One important point is that the code pattern that triggered the issue in
+OCaml was present on gcc-generated code.  There were extra constraints
+being placed on gcc by OCaml, which would explain why gcc apparently
+rarely generates this pattern.
+The reported effects of the processor defect were: compiler and
+application crashes, incorrect program behavior, including incorrect
+program output.
+What we know about the microcode updates issued by Intel related to
+these specific errata:
+Fixes for processors with signatures[1] 0x406E3 and 0x506E3 are
+available in the Intel public Linux microcode release 20170511.  This
+will fix only Skylake processors with model 78 stepping 3, and model 94
+stepping 3.  The fixed microcode for these two processor models reports
+revision 0xb9/0xba, or higher.
+Apparently, these errata were fixed by microcode updates issued in early
+April/2017.  Based on this date range, microcode revision 0x5d/0x5e (and
+higher) for Kaby Lake processors with signatures 0x806e9 and 0x906e9
+*might* fix the issue.  We do not have confirmation about which
+microcode revision fixes Kaby Lake at this time.
+Related processor signatures and microcode revisions:
+Skylake   : 0x406e3, 0x506e3 (fixed in revision 0xb9/0xba and later,
+                              public fix in linux microcode 20170511)
+Skylake   : 0x50654          (no information, erratum listed)
+Kaby Lake : 0x806e9, 0x906e9 (defect still exists in revision 0x48,
+                              fix available as a BIOS/UEFI update)
+References:
+https://caml.inria.fr/mantis/view.php?id=7452
+http://metadata.ftp-master.debian.org/changelogs/non-free/i/intel-microcode/unstable_changelog
+https://www.intel.com/content/www/us/en/processors/core/desktop-6th-gen-core-family-spec-update.html
+https://www.intel.com/content/www/us/en/processors/core/7th-gen-core-family-spec-update.html
+https://www.intel.com/content/www/us/en/processors/xeon/xeon-e3-1200v6-spec-update.html
+https://www.intel.com/content/www/us/en/processors/xeon/xeon-e3-1200v5-spec-update.html
+https://www.intel.com/content/www/us/en/products/processors/core/6th-gen-x-series-spec-update.html
+[1] iucode_tool -S will output your processor signature.  This tool is
+    available in the *contrib* repository, package "iucode-tool".
+-- 
+  Henrique Holschuh

@@ -1,0 +1,23 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Questions about packaging systemd unit files
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Mon, 6 Aug 2018 11:52:00 -0700
+Message-id : 20180806185157.GA5262@localhost
+In-reply-to : <[🔎] 20180806131450.GA16126@thunk.org>
+
+
+Theodore Y. Ts'o wrote:
+> Finally, if I have a systemd timer file, as well as a crontab entry,
+> what is the recommended way to decide whether to install/use the
+> crontab versus the timer unit file?
+Unfortunately, there isn't a clean mechanism for that. For systemd unit files,
+systemd's built-in support for sysvinit scripts automatically ignores a
+sysvinit script if a corresponding unit file exists, which means you can just
+install a sysvinit script and a native unit and the latter will supersede the
+former. However, systemd doesn't have built-in support for cron files;
+systemd-cron exists, and implements a mechanism to mask cron files if a
+corresponding systemd timer file exists, but that assumes the use of
+systemd-cron, which doesn't get installed by default, and it isn't obvious if
+it's production-ready.
+(Note that putting a line in your cron entry to exit if under systemd still
+means cron needs to go run that script and have it exit, which is not ideal.)

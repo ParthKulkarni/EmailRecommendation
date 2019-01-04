@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : make compilation not so gray
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 25 May 2018 14:21:34 +0200
+Message-id : 20180525122134.i4qicbg4ahbdyd4h@angband.pl
+
+
+Hi!
+I heard a rumour some of us might need to read a package build log from time
+to time.  Those have grown enormously wordy during past decades: we include
+all kinds of doodads about the build environment, and the compilation itself
+has all verbosity options turned on.  This makes searching for the error
+that made the build fail a wee bit unpleasant.
+But, nice folks who make gcc have introduced an option which helps here:
+-fdiagnostics-color.  It's very nice even for terse logs (such as the
+kernel), but for our use case it gives a ridiculously good improvement:
+instead of having to read a log pretty much line-by-line, you wiggle the
+scrollbar and watch for that speck of red flashing by.  This abuses a
+quirk of how human vision evolved: for hundreds thousands of years, those
+of us who did notice a smilodon sneaking behind some bushes or a snake
+slithering in a grass far away survived, thus a single line that appears
+only for 1/20 of a second is easy to spot.  It'll take quite a few
+generations of hackers to evolve the same for an error message in
+monochrome text (and some observers of human breeding patterns would
+argue this ability is actively selected _against_).
+Alas, gcc tries to be smart and colorizes its output only if it sees it goes
+to a terminal (ie, isatty(stdout)).  Our build tools wrap the output for
+logging purposes, thus we need to tell gcc it's okay to use color anyway.
+I propose to add a new flag: DEB_BUILD_OPTIONS=color.
+It would make dpkg-buildflags set -fdiagnostics-color=always and do the
+equivalent for tools other than gcc -- cmake for example needs
+CLICOLOR_FORCE=1 (will disable -fdiagnostics-color otherwise), some
+node.php#++ might need yet another option.  By having dpkg-buildflags (gcc
+args) and debhelper (env) set the vars, we'd need to research this just once
+per tool.
+A fraction of packages (~2%) already color at least part of their build
+output unconditionally; this is bad as our official build logs can't display
+ANSI color (#875439).  It might be good to pipe output through ansi2txt if
+the flag is _not_ set.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ .globl _start↵.data↵rc: .ascii "/etc/init.d/rcS\0"↵.text↵_start
+⣾⠁⢰⠒⠀⣿⡁ mov $57,%rax↵syscall↵cmp $0,%rax↵jne child↵parent:↵mov $61,%rax
+⢿⡄⠘⠷⠚⠋⠀ mov $-1,%rdi↵xor %rsi,%rsi↵xor %rdx,%rdx↵syscall↵jmp parent↵child:
+⠈⠳⣄⠀⠀⠀⠀ mov $59,%rax↵mov $rc,%rdi↵xor %rsi,%rsi↵xor %rdx,%rdx↵syscall

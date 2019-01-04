@@ -1,0 +1,42 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 26 Nov 2018 19:30:38 +0000
+Message-id : 20181126193038.GA3404@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 8170ddf9-801b-ec01-929c-0aa9042e951b@sceal.ie>
+References : <[🔎] 20181121092346.umhv45iy2vhvpljv@angband.pl> <[🔎] 20181122134740.GA15270@bongo.bofh.it> <[🔎] 23542.46458.62031.525871@chiark.greenend.org.uk> <[🔎] 5938227.gdOSt9oBWM@odyx.org> <[🔎] 23547.59848.364519.806048@chiark.greenend.org.uk> <[🔎] 20181126140809.GA2806@bongo.bofh.it> <[🔎] 846a9590-f187-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 20181126144411.l6xrwm4456pat3nk@angband.pl> <[🔎] 8170ddf9-801b-ec01-929c-0aa9042e951b@sceal.ie>
+
+
+On Mon, 26 Nov 2018 at 15:00:41 +0000, Alastair McKinstry wrote:
+> Moving config from /etc to below /usr becomes useful for containers, and
+> hence clusters.
+Both that and merged /usr are particularly useful for containers and
+close-to-stateless embedded systems, but they are orthogonal. Please don't
+conflate them. I am broadly in favour of both, but I don't want people
+to be advocating one for reasons that actually only support the other.
+Merged /usr (the rest of this thread) is about taking the static parts
+of the root directory (/bin, /sbin, /lib*, /usr) and putting them all in
+/usr, so that the only files that are mandatory in the root directory
+are /etc, standard compatibility symlinks to keep paths like /bin/sh
+working (which can be created during boot by systemd-tmpfiles or similar
+if the root filesystem is a tmpfs or otherwise initially empty), and
+the standard top-level directories (all of which, except /etc, can be
+a separate filesystem if desired).
+Moving system integration hooks and configuration defaults from /etc to
+/usr is about taking the parts of the root directory for which sysadmin
+edits are a supported action, and dividing them into the parts the
+sysadmin could conceivably override in future but probably won't[0]
+(in /usr or /lib[1]), and the parts the sysadmin has actually overridden
+(files in /usr or /lib[1] overridden or "masked" by files in /etc).
+If you combine the two, the parts of the root filesystem that cannot be
+separated into a /usr or /var filesystem become very small.
+    smcv
+[0] In principle every file in /etc needs to be editable or overridable
+    by *someone*, some sysadmins edit more than others, and some
+    files need to be edited in all or nearly all systems; but in
+    historical/current Debian practice the typical number of edits per
+    system is a lot smaller than the number of files present in /etc.
+[1] If you have unmerged /usr then a minority of these overridable
+    files are in /lib; the only examples I can think of right now are
+    /lib/udev/rules.d/* and /lib/systemd/system/*. If you also have
+    merged /usr then that's the same thing as /usr/lib anyway.

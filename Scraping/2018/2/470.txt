@@ -1,0 +1,59 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Russell Stuart <russell-debian@stuart.id.au>
+Date : Wed, 28 Feb 2018 13:57:50 +1000
+Message-id : 1519790270.7383.15.camel@stuart.id.au
+Reply-to : russell-debian@stuart.id.au
+In-reply-to : <[🔎] 1747528.3EBMEs4rXA@odyx.org>
+References : 	<[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com>	 <[🔎] 20180216151129.GB18296@home.ouaza.com> <[🔎] 1747528.3EBMEs4rXA@odyx.org>
+
+
+On Tue, 2018-02-27 at 14:13 +0100, Didier 'OdyX' Raboud wrote:
+> > - we could ship those applications not as .deb but as container
+> >   and let them have their own lifecycle
+> 
+> tl;dr: a new package format is needed, with a new non-suite-specific 
+> repository is needed to bring the Debian added-value to these
+> ecosystems.
+To me 'container' is the right solution.  The problem is Debian doesn't
+support building light weight containers well.  In fact nobody does. 
+Docker makes an attempt, but distributing static file system images
+that have to get their security updates installed by replacing the
+entire image is ick.
+If I were do the entire thing over again, I would break Debian up into
+a series of rings.  In the inner most ring is like the inner most ring of Linux.  It's filesystem(s) is readonly to all other rings.  In it sits the code for dpkg,  But dpkg wouldn't do much beyond pulling down packages and their security upgrades into a /debian directory, which would look rather like /pool on the mirrors now, but the .deb's and .dsc's would being directories rather than tar archives.
+Other containers would run above this.  They create their /usr file
+systems by linking into dpkg's /debian directory (which is readonly to
+them).  Maintainer scripts would run when these are containers are
+built.  This means dpkg is no longer running maintainer scripts, so
+just like an Android application a malicious package is limited in the
+harm it could cause and in particular uninstall would always work.
+These containers would be notified when packages they are running have
+security upgrades installed, so they can swap to the new versions at a
+convenient time.  We still get to keep the "one copy of each library so
+we only have to fix a vulnerability once" advantage Debian has now (and
+other current solutions notably lack).
+Anybody who has fiddled with containers will have no trouble filling in
+the rest of the picture.  It gives us two things: much better security
+and a faster way to build containers (because the unpacking step has
+already been done).
+I realise it sounds grandiose and far fetched, however it can be broken
+down into small(ish) steps.  Step 1 would be having dpkg unpack
+everything to the /debian directory (including the state it currently
+stores under /var) rather than installing it in place, and just placing
+links in /usr, /etc and so on.   (I'm am optimist in that I think you
+could pull that off without too many things noticing.)  Step 2 would be
+to isolate /debian, so the rest of the world sits in its own container
+and run the maintainer scripts from within that container.  (I'm such a
+optimist that even I think doing this wouldn't require many changes
+beyond dpkg.)  The next steps would be moving each application into
+it's own container.  They would be much harder, but I suspect once
+you've done the refactoring to make dpkg maintained containers
+possible, the thing would take on a life of it's own.
+In this world, vdeb's are just packages that apt will only permit to be
+installed in a container the user has somehow marked as insecure (means
+no Debian QA, ie no security patches).  Anybody thinking "yeah, but not
+that insecure" should probably read this bug report:
+    https://github.com/npm/npm/issues/19883
+The idea Debian would by default prevent that from trashing my laptop
+is real appealing.signature.asc

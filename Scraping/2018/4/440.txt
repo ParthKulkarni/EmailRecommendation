@@ -1,0 +1,106 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: Bug#886968: btrfs-progs-udeb: depends on non-udeb: libzstd1
+From : Dimitri John Ledkov <xnox@debian.org>
+Date : Tue, 17 Apr 2018 22:52:18 +0100
+Message-id : CANBHLUgmcV4kY2M7_FCbBViouybY45kA_tvx3T+-u5S56vnROQ@mail.gmail.com
+In-reply-to : <20180417180143.yyi4qapbqcm6fk6p@mraw.org>
+References : <151571322653.16403.9246774229958587686.reportbug@armor.home> <20180115002702.eiwbeol2whkh74da@mraw.org> <CANBHLUiZ3wV4m8LjQ01_1==O34dg7EQu7AVRgeiCKL3drGEg6A@mail.gmail.com> <20180417180143.yyi4qapbqcm6fk6p@mraw.org>
+
+
+On 17 April 2018 at 19:01, Cyril Brulebois <kibi@debian.org> wrote:
+> Dimitri John Ledkov <xnox@debian.org> (2018-01-15):
+>> On 15 January 2018 at 00:27, Cyril Brulebois <kibi@debian.org> wrote:
+>> > Hi,
+>> >
+>> > Cyril Brulebois <kibi@debian.org> (2018-01-12):
+>> >> Your package is no longer installable (along with its rev-dep
+>> >> partman-btrfs) because it now depends on libzstd1, which isn't
+>> >> a udeb.
+>> >
+>> > It seems zstd is only an option for btrfs-progs, and I've just confirmed
+>> > that setting --disable-zstd on the dh_auto_configure line lets btrfs-progs
+>> > build just fine, without the libzstd1 dependency. As far as I can tell,
+>> > there's no absolute need for this feature in d-i, and we could consider
+>> > building the udeb without zstd support, instead of requesting the addition
+>> > of a libzstd1-udeb. What do you think?
+>> >
+>>
+>> That's an oversight on my part. From the recovery point of view, it
+>> would be desired to have zstd compression support built-into
+>> btrfs-progs-udeb such that one can use d-i recovery mode to
+>> backup/restore btrfs filesystems with zstd compression.
+>
+> Your unreviewed addition of udeb as seen in NEW (currently holding back
+> Helmut's work as noticed on #debian-ftp) is broken. It's missing a
+> version.
+>
+> Repeating the same request and piece of advice (since 2012 or so):
+> please get udeb-related things reviewed by debian-boot@/me?
+>
+> Thanks already.
+First, I apologize for not responding to this email earlier, as I have
+missed it in my mailbox.
+Secondly, my work has been blocked by this NEW processing too for
+btrfs-progs. I'm not aware as to which Helmut's work was blocked,
+could you please elaborate what Helmut is blocked on? And/or how can
+libzstd/me help to unblock Helmut? -> is that about patches for
+crossbuilding that are part of
+Now to respond to your main inquiry. I find the tone of above message
+unacceptable. It reads accusational to me, rather than inquisitive.
+It would have been much better to state:
+"I notice that a call to dh_makeshlibs does not pass the -V flag as it
+is custom for many libraries. Why have you not specified a minimum
+required version in this case?"
+It also feels like you (or others who were made aware of this lack of
+-V) possibly wanted to make this a bug report, and follow-on out of
+band events made it seem like it was felt that it is RC buggy and
+shouldn't clear NEW and/or migrate to testing if passed NEW. In that
+case  a new bug report should have been opened, with above request at
+an RC priority.
+I hope above is an adequate description, of the technical question you
+are alluding to.
+The proposed update that got rejected from NEW had
+```
+override_dh_makeshlibs:
+    dh_makeshlibs -plibzstd1 --add-udeb=libzstd1-udeb
+```
+(I hope this is enough context from said upload, for more details see
+tree at https://salsa.debian.org/med-team/libzstd/tree/50c4849ef0ea5d79d7d5f84fd0a46b6404a413eb)
+Note, that libzstd1 provides a symbols file, therefore packages that
+link against it, normally get the correct minimum version dependency
+based on the symbols file.
+Therefore lack of -V flag is irrelevant for the actual dependencies
+generated on packages that link/depend on libzstd1.
+However, it is good to point out at this time, that udeb version of
+libraries do not currently ship or use symbols files at all to
+generate dependencies.
+But also note that since libzstd1-udeb is a brand new package, any
+version of thereof would correctly and strictly satisfy any udeb
+package that gains a dependency on it. There are no linking or
+dependency bugs in above libzstd1, nor udeb edition of the binary
+packages.
+This is no different to some other library udebs, e.g. liblzo2-2-udeb
+Personally, I find it odd to have minimum -V arg version dependencies
+for udebs only, when symbols are present for the deb edition of the
+library. For example, btrfs-progs depends on libc6 (>= 2.8), yet
+btrfs-progs-udeb depends on libc6-udeb (>= 2.27). This causes an
+immense amount of pain, when rebuilding packages locally, mixing &
+matching packages when debugging issues in d-i, and does not at all
+correctly generate private dependencies for udebs that use e.g.
+@GLIBC_PRIVATE and thus require libc6-udeb (>> 2.27), libc6-udeb (<<
+2.28) style dependency instead. I'm not sure where/how .symbols should
+be used or shipped, to start generate genuinely correct version
+dependencies for udebs across the board. Debhelper? Dpkg?
+Based on all of the above, I believe libzstd1, and libzstd1-udeb are
+both policy complaint as previously uploaded.
+If you are still concerned about minimum version dependencies which
+are generated by packages that build/link/gain dependency on libzstd1
+and/or libzstd1-udeb, I welcome you, ftp masters, or anybody else to
+open a new (or clone this) bug report against libzstd for
+consideration. I also welcome references from the Debian Policy to
+educate myself further about library dependencies, and if and how,
+this package is not policy complaint and pointers on how to best fix
+it.
+-- 
+Regards,
+Dimitri.

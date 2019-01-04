@@ -1,0 +1,130 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Didier 'OdyX' Raboud <odyx@debian.org>
+Date : Tue, 27 Feb 2018 14:13:41 +0100
+Message-id : 1747528.3EBMEs4rXA@odyx.org
+In-reply-to : <[🔎] 20180216151129.GB18296@home.ouaza.com>
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com> <[🔎] 20180216151129.GB18296@home.ouaza.com>
+
+
+Le vendredi, 16 février 2018, 16.11:29 h CET Raphael Hertzog a écrit :
+> I don't have any definite answers although there are ideas to explore:
+> 
+> - we could relax our requirements and have a way to document the
+>   limitations of those packages (wrt our usual policies)
+> 
+> - we could ship those applications not as .deb but as container
+>   and let them have their own lifecycle
+tl;dr: a new package format is needed, with a new non-suite-specific 
+repository is needed to bring the Debian added-value to these ecosystems.
+My current understanding of the problem is that there are two problems 
+entangled with eachothers, for which Debian is currently not providing 
+solutions
+* version spread
+* layer-specific expectations
+# Version spread
+Certain software will need to be available in multiple versions to satisfy 
+reverse dependencies constraints, be it for convenience reasons ("the 
+only version of that library my application has been tested with"), 
+willingness to use the shiniest and latest, or any other reason.
+We have that problem already with jQuery and others, but it seems to be mostly 
+contained thanks to reasonable back- and forward- compatibility. As Debian, we 
+are insisting that our releases ideally only contain a single version of a 
+software, that we insist is made available at system-level. The reasons for 
+that are multiple, but the main one is the facilitated tracking and fixing of 
+security issues, that we then only have to fix once, thereby protecting all 
+its reverse dependencies. As has been mentioned with the example of Django, 
+some software change too rapidly and too much for that single-version 
+constraint to hold [0], and providing only one version is bound to not satisfy 
+most reverse dependencies' needs; in other words, it's not going to be used.
+Another aspect of the version spread is that it limits the set of software we 
+check DFSG-freeness of. There's an initial "seal-of-approval" from the FTP-
+Masters when going through NEW, but then it is currently left to the 
+maintainer and the community to do this ongoing check. The cristallization 
+towards the stable release will also encourage checking for eventual 
+violations in only one version per software.
+# Layer-specific expectations
+Debian has long insisted that all software shipped in 'main' is constrained by 
+the same standards (DFSG, Debian Policy, minimal code duplication, 
+buildability, portability, maintainability over the course of a stable release 
+cycle, etc), and gets the same support "in return" (security support, common 
+bugtracker, etc). This is a very good model for "lower layers"; the plumbing 
+(outside of new hardware support): I don't really care what version of CUPS I 
+get, as long as I can print; I don't really care what minor version of Apache 
+I get as long as it works, etc etc.
+On the other hand, when developing a <insert-your-language/framework-of-
+choice> application, with a rapidly-moving ecosystem, developer will insist on 
+having the latest version of plenty of my direct dependencies, because working 
+on whatever was released in Debian stable will just be a hassle more than a 
+help. Also, the friction for them to fix a bug they have experienced in one of 
+these dependencies is much lower than getting it fixed in Debian stable: given 
+a responsive maintainer, one can get a new release with a pull request merged 
+in a matter of days; and if that doesn't work, the tools allow to get a 
+precise git hash for a given project. They can fix the bug, use the fixed 
+version, and go on with my development.
+The point I'm trying to make, which I hope is obvious, is that the 
+expectations upon software in different layers are vastly different: I want 
+rock-solid kernel, libc and language interpreter, I want reasonably recent 
+intermediate layers, but I want bleeding edge direct dependencies. Of course, 
+fast-moving layers will not provide the same warranties as slow-moving layers.
+In a Debian-idealistic world, we could hold all layers up to the same 
+standards, stabilize them up to a point where they can become part of stable, 
+and all application developers would use Debian's set of libraries, from 
+stable. Point is, that's not what is expected from Debian either: a Python 
+application will only use Debian's python interpreter and virtualenv, all the 
+rest will be taken from somewhere else than Debian, because it's way closer to 
+how it'll be developped, and in many cases (just one missing library in 
+stable), the only reasonable way to deploy said application. Then, instead of 
+having only Debian as 'security' counterpart (getting the host to a secure 
+state through a `apt upgrade`), the application developer now has to (do 
+they?) care about the closer layer's security hirself.
+# Now, onto a solution
+In other words, vendorization is the tool that allows developers to get rid of 
+distribution constraints and get on with their development through installing 
+the dependencies from their ecosystem as they see fit (non-root), in the 
+(eventually precise) version they need. But using these "upper-layer" 
+management tools (pip, npm, bower, you-name-it), one doesn't get the 
+constraints from the distribution, but one doesn't get the benefits from the 
+distribution either. And Debian (amongst others) has value to offer to these 
+layers too: DFSG-freeness, traceability, reproducibility, a common package 
+format and a set of tools, etc.
+It would be really sad if Debian was incrementally reduced to only the 
+"boring" lower layers, for which only few really benefit from the Debian 
+added-value, and if the upper-layers were left to ecosystems with different 
+free software standards.
+Now, as a strawman proposition, here's what I fiddled with in my mind for some 
+days now:
+Imagine
+* a new .vdeb format variant that:
+** enables for multiple versions to be installed in parallel, where files are
+   unpacked in a version-specific paths
+** forbids any kind of maintainer scripts
+** is not bound to a specific suite
+** is restricted to be arch:all (~ shipping interpreter scripts)
+** can be built mostly automatically (from existing npm/composer/pypi
+   packages)
+** (ideally) can be user-installed
+* a repository of these .vdeb
+** whose DFSG-freeness is checked
+** which version set is known, and tracked
+** that can provide new versions "on-demand"
+In other words, this would be a Debian-provided whitelist of upper-layer 
+packages. The packaging would be the combination of a VCS repository reference 
+and a thin declarative-only packaging layer. A specific version would go 
+through NEW, but subsequent versions could be auto-generated. After-the-fact 
+license checking could/would still be possible of course (as is now for 
+conventional packages). I imagine some mechanism where the initial NEW 
+processing would whitelist a certain software-version combination and "the 
+system" could then indicate "how far from the DFSG check" a later version is.
+This hypothetical repository would allow upper-layer packaging to preferably 
+use Debian-provided packages, for their added value (DFSG, security tracking, 
+uniformity, etc), and given not-infinite effort, this repository could 
+whitelist enough packages accross enough framework environments to be of real 
+use.
+How does that sound?
+Thanks for your reading, and looking forward to reading your feedbacks!
+Cheers,
+	OdyX
+[0] For Django: "The plan is to have a new feature release every 8 months and 
+a new long-term support release (LTS) every 2 years." https://
+www.djangoproject.com/weblog/2015/jun/25/roadmap/signature.asc

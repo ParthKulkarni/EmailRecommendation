@@ -1,0 +1,109 @@
+To : Mike Gabriel <sunweaver@debian.org>,    Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+Subject : Re: Upcoming shift to Ayatana (App)Indicator(s) [and 1 more messages]
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 4 Apr 2018 14:51:35 +0100
+Message-id : 23236.55399.34878.735659@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20180404132813.Horde.qe0dwGnl0N5ilXOXgoIZxY8@mail.das-netzwerkteam.de>,	<[🔎] 20180404131846.Horde.8iPO_hsRxisXYBQC225eoId@mail.das-netzwerkteam.de>
+References : <20180329131154.Horde.0dm6UHwcZhy-QIAuhtXdI2n@mail.das-netzwerkteam.de>	<1522342707.2010060.1320514112.2CFE2C58@webmail.messagingengine.com>	<[🔎] 23235.50655.871706.442373@chiark.greenend.org.uk>	<[🔎] 20180404131846.Horde.8iPO_hsRxisXYBQC225eoId@mail.das-netzwerkteam.de>	<20180329135426.GA6400@espresso.pseudorandom.co.uk>	<20180329211935.Horde.QOiNXE02d8Cu2tshfnxaSlw@mail.das-netzwerkteam.de>	<20180329232901.GA1352@espresso.pseudorandom.co.uk>	<20180330180658.Horde.63k4HzapaeU6pa8JE4Z4ggr@mail.das-netzwerkteam.de>	<[🔎] 23235.50371.684501.71618@chiark.greenend.org.uk>	<[🔎] 20180404132813.Horde.qe0dwGnl0N5ilXOXgoIZxY8@mail.das-netzwerkteam.de>
+
+
+Mike Gabriel writes ("Re: Upcoming shift to Ayatana (App)Indicator(s)"):
+> On  Di 03 Apr 2018 20:15:31 CEST, Ian Jackson wrote:
+> > This seems encouraging for people like me who want to continue to use
+> > trayer.
+> 
+> Hmmm... The trayer package depends on GTK-2. I think that this will be  
+> your real problem in 2-3 years from now.
+> 
+> And... With some GTK knowledge, it could probably easily be ported to  
+> GTK3 and AppIndicator + Xembed support.
+OK, I guess we can cross that bridge when we come to it.  It doesn't
+sound too awful.
+> > Is this a general property of SNI indicators ?
+> > My n-m applet in trayer does have a right click menu.
+> 
+> The nm-applet in Debian has AppIndicator support disabled. If you  
+> build it with AppIndicator (see my patch in [1]) and you enable the  
+> AppIndicator code path with "nm-applet --indicator", you will see that  
+> the left-click and right-click menus have been merged.
+This seems undesirable to me.  As a user, will I be able to continue
+to use the xembed approach indefinitely ?
+> > Is there somewhere I can see a rationale which explains why the
+> > original protocol is wrong and why the replacement will not, itself,
+> > need to be replaced ?
+> 
+> The rationale is mainly about who does the X11 rendering [2].  
+Thanks.  I read your link.  Perhaps my use of the word `rationale' was
+unclear.  I meant, what is the reason.  "In SNI the panel does the
+rendering" is part of the design but does not explain why that
+design choice was made.
+The page you refer to says simply:
+ | This led to a lot of inconsistency as each application were
+ | responsible for the rendering and the behavior of their tiny
+ | windows.
+I discussed this when I wrote this:
+> > The motive for this change seems to have been to increase the
+> > behavioural uniformity of things in panels, but given that the plan
+> > involves changing every applet to use a new library, that could have
+> > been done without a change of protocol.
+So as I say the desire for uniformity does not seem to explain the
+change in protocol.
+> Furthermore, Xembed is X11. In Wayland, I have heard, there is no  
+> Wembed.
+There must surely be a way in Wayland for one application to swallow
+or contain another.  This is far from am unusual requirement.  (The
+details of the Xembed tray protocol would have to have been redone, I
+suppose.)
+It seems to me that the new proto is strictly worse than the old one.
+It has fewer capabilities.  In particular, it is not possible, with
+the new protocol, to make applets which deviate from the uniform SNI
+UI.  It is unarguable that such deviation is sometimes desirable,
+since no doubt there are users who prefer it.
+ISTM therefore that the old protocol needs to be retained
+indefinitely.  That might mean that in Wayland some applets (that want
+a richer UI) run in Wayland's X11 emulation, but I don't see a problem
+with that.  Nor do I see a problem with retaining that indefinitely.
+Mike Gabriel writes ("Re: Upcoming shift to Ayatana (App)Indicator(s)"):
+> The overall difference between both approaches is about who does the  
+> rendering of the systray icon and its menu.
+Thanks for the explanation.  I had understood this from reading the
+earlier links.
+> In Ayatana Indicators, we will provide a system indicator that will  
+> become container for xembed based applications. Furthermore, MATE's  
+> notification area applet (that hosts xembedded apps currently) is not  
+> planned to be removed any time soon (AFAIK).
+Jolly good.
+> However, when people start writing a new application and want to dock  
+> it to the panel... They should not use xembed anymore.
+I don't think I agree, for the reasons discussed above.
+> And: I am fully aware of the xembed-removal history in GNOME/Unity7  
+> [2]. That was not fun at all 5 years ago. We won't copy that  
+> over-assumptuous flaw again. Legacy support is important, so xembed  
+> support needs to stay,
+Thanks.
+>  while people should be encourage to go the  
+> AppIndicator way for new and actively maintained applications.
+So far, as I say, I don't see particular reasons for this.
+I think that application authors should be encouraged to use whatever
+interface seems most convenient for them.  If the applet-facing APIs
+provided for SNI meet their needs, and are convenient, then the applet
+author can choose SNI.
+If on the other hand, the SNI APIs are not convenient, or the applet
+author wants a richer UI than supported by SNI, then the xembed
+approach may be better.
+An applet written in Tcl/Tk is a good example of a case where xembed
+is probably better, since Tcl's tk-tktray package provides an
+interface which is simultaneously extremely convenient for the
+programmer, and powerful and flexible.  It is hard to see how the
+dbus-based SNI approach would fit nicely into Tcl/Tk.
+> Hope that soothes things a bit,
+Yes.  Thanks for taking the time to engage and explain.
+I still don't quite agree with all the design decisions here, as you
+will see, but it's not my design or my code.  If I can continue to use
+xembed indefinitely then I'm content.
+Regards,
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

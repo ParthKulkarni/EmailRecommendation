@@ -1,0 +1,47 @@
+To : debian-devel@lists.debian.org
+Subject : Re: e2fsprogs as Essential: yes?:  Maybe we should be separating l10n files first?
+From : Theodore Ts'o <tytso@mit.edu>
+Date : Mon, 1 Jan 2018 16:51:45 -0500
+Message-id : 20180101215145.GB2532@thunk.org
+In-reply-to : <20171113193508.ool6rpccmwgu2u6w@alf.mars>
+References : <20171002090318.z4at377oa7b5irxk@alf.mars> <2ebd4bae-a75c-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506941437.8204.22.camel@debian.org> <3cb53f2e-a760-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506942621.8204.25.camel@debian.org> <20171002113446.kazrk37bizfva7qe@angband.pl> <20171112191845.33rikhh3pay5fyot@thunk.org> <20171113142831.cleko3t7gkf6eeub@alf.mars> <20171113165946.wkwggt4ieeue5cvb@thunk.org> <20171113193508.ool6rpccmwgu2u6w@alf.mars>
+
+
+On Mon, Nov 13, 2017 at 08:35:10PM +0100, Helmut Grohne wrote:
+> > To to be clear, the key metric for your specific goal is the reduction
+> > of the _source_ package count since the goal is to reduce the number
+> > of packages which have to be built by "hand" (or by script), before
+> > you can create a sbuild/pbuild build chroot, correct?
+> 
+> Correct. Unless I am mistaken, removing e2fsprogs from the build set
+> also removes fuse.
+Apologies for the thread necromancy, but I was going through old bugs
+and old todo items for e2fsprogs debian package, and I was rereading
+this thread as part of that.
+This probably doesn't help much, but for people who are doing things
+by hand, you can skip the dependency on fuse by unpacking the
+e2fsprogs source packaging, adding the file debian/rules.custom which
+contains the single line, "SKIP_FUSE2FS=yes", and building by hand.
+It currently doesn't automatically fix up the control file, but I can
+set things up so that adding the rules.custom file with
+SKIP_FUSE2FS=yes, and running "./debian/rules debian-files" will
+automatically rewrite the control file dropping the fuse2fs
+dependencies and the "fuse2fs" package from the control.in file.
+Which might not matter that much, since when bootstrapping a new
+architecture, it's all done manually anyway, so having a properly
+update debian/control file might not matter that much.
+(The rules.custom infrastructure in e2fsprogs's debian/rules file was
+something I had put in a while ago to support building subsets of
+e2fsprogs for certain specialized use cases at $WORK.  It was also
+used way back when to support building new versions of e2fsprogs on
+extremely ancient old-old-old-old-stable.)
+Yeah, it's horribly manual, but when you need to bootstrap a newn
+architecture, it's all manual *anyway*.  And yes, it's a workaround
+compared to dropping e2fsprogs from the essential set (for which I
+still support), but it's a workaround that works today.  I suppose the
+real problem is that a random developer who is trying to bootstrap
+Debian on a new architecture won't know about this trick, but in case
+it's helpful, I thought I would mention it.  (Waving to the RISC-V
+folks.)
+Cheers,
+					- Ted

@@ -1,0 +1,184 @@
+To : Didier 'OdyX' Raboud <odyx@debian.org>
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Thu, 1 Mar 2018 11:48:09 +0000
+Message-id : 23191.59513.423314.847408@chiark.greenend.org.uk
+In-reply-to : <[🔎] 11021748.sr2Nt2CYEd@odyx.org>
+References : <151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com>	<1747528.3EBMEs4rXA@odyx.org>	<23189.25024.401726.386741@chiark.greenend.org.uk>	<[🔎] 11021748.sr2Nt2CYEd@odyx.org>
+
+
+Didier 'OdyX' Raboud writes ("Re: What can Debian do to provide complex applications to its users?"):
+> Le mardi, 27 février 2018, 14.48:48 h CET Ian Jackson a écrit :
+> > Instead, establish a formal convention about embedding the (stable
+> > part of) the version number in the package name.  This is important
+> > so that it is possible to replace a specific "version" of one of these
+> > packages with a modified package which is the "same version".
+> 
+> Good point: not all versions are desirable; "majors" can be installed in 
+> parallel, "minors" are updates to the formers.
+> 
+> But, assuming a new binary format, it feels really weak to abuse of the 
+> package name to embed a version.  (The filename is a different question). What 
+> about (in control.tar's control):
+> 
+> Package: simplejson
+> Version-Unique: 3.13
+> Version: 3.13.2-1
+Almost everything else in your message I agree with, or at least,
+think is arguable, or a matter of detail.  This, and your next
+suggestion, however, I think would be serious mistakes.
+I think for the success of your enterprise you need to make at least
+your .vdebs processable by the existing tools.  That means not
+changing the binary format in an incompatible way.  Otherwise you are
+addding "change every tool in the world which tries to process a .deb"
+to your todo list.
+As for the details:
+The "abuse" of which you speak is already done routinely in Debian and
+works very well, so there is not even a need to fear the unknown
+problems it might bring: we know what problems it brings - very few.
+> > These can be verified either the archive server as part of package
+> > acceptance, or by apt as an annotation in the sources.list.
+> 
+> Again, that's the main advantage I see from a new .*deb format: if these 
+> restrictions are part of the format, they can be checked and enforced at all 
+> steps in the process: dpkg-buildpackage would error out if there's a postinst, 
+> lintian would add an error, the server would block it and dpkg would not 
+> unpack the postinst, just because 'debian-binary' is 2.0-vdeb.
+As for checking: the right way to think about this is as a security
+and quality issue.  From a security point of view, the configuration
+needs to be in the apt sources.list, because that is where the
+authorisation happens on an individual system.  You will at least
+initially be using a less-firmly-protected signing key for your new
+archive, so you need to protect, as far as you can, users from
+compromise of that key.  From a quality point of view a check in your
+archive software is the right place.
+The properties which are important for security are: a whitelist of
+dpkg .deb features, to exclude maintainer scripts, triggers,
+conffiles, etc.  A restriction on package names.  And a restriction on
+paths.
+In terms of code changes that means, I think, a new apt option to
+enable the new behaviour, and probably a new dpkg option to implement
+the checks.  If you get resistance from dpkg upstream, you can invent
+a new checking tool and call that from apt at an appropriate point.
+As for source package format:
+> > OTOH we do not want to abandon the Debian source package format
+> > completely because we have lots and lots of tools which understand it
+> > well.
+> 
+> Although I share the sentiment, I see value in finding a suitable model for 
+> the problem at hand, rather than massage our existing tools to fix the 
+> problem, "just because" they are our existing tools.  I think we agree on 
+> that.
+If you use the existing source metdata format then existing Debian
+users can use their existing Debian tools.  You may find that those
+tools are too awkward of course - dgit-user(7) doesn't make for
+particularly pretty reading.  More on this below.
+> > Building should be done with "git clone" followed by
+> > "dpkg-buildpackage -b" (or some suitable wrapper).
+> 
+> That's pretty much what I had in mind, yes.  I'm not even sure there's much 
+> need for a complete traditional debian/ directory: iff the .vdeb ecosystem 
+> does much less than normal .debs, we could aim for a single declarative .vspec 
+> (yes, I know what you're thinking) file for instance.  Given we're tackling 
+> wide consistent (hmm) ecosystems, a set of fine tools and very minimal 
+> declarative packaging per-item could do it.
+You have a choice to make about how to deliver the ecosystem-specific
+build knowledge.
+ISTM that your basic choices are:
+ 1. Source in your repo is identical to upstream source with no
+    Debian-specific information.  Building is done by a new builder
+    tool which autodetects the source ecosystem, and runs appropriate
+    build rules (eg, by invoking dh).
+ 2. Source in your repo is *not* identical to upstream source.  It
+    contains some files which are autogenerated by a converter tool,
+    and perhaps some files which are manually added and maintained on
+    your vdeb branch.  (Hopefully manually adding information will
+    almost always be optional.)  Most of the build logic still lives
+    in an out-of-per-package-tree builder tool, but the per-package
+    tree specifies at least the source ecoysystem.
+Analysing this:
+In both cases you have two pieces of software: an ecosystem-specific
+upstream import/merge tool for each ecosystem (which understands
+upstream publication conventions), and some kind of new build tools.
+Scheme (1) has the apparent virtue of great simplicitly in its model.
+There is in most cases no need to maintain a separate vdeb branch
+even.  However, any metadata which is not provided by uptsream in some
+form cannot appear in the resulting binaries, so some things will have
+to be fudged.
+I think much of the simplicity is illusory - it comes from not solving
+enough of the problem, and leaving the hard parts to be dealt with in
+less convenient ways elsewhere:
+In scheme (1) the import/merge tool only *finds* input git branches
+and does not modify any source code.  The ecosystem is not formally
+recorded, and the new build tool must therefore re-autodetect it.
+(I'm assuming you would only want one new set of build invocation and
+scheduling machinery!)
+Worse, in scheme (1) your build-dependency information will only be
+available in the source trees in ecosystem-specific formats.  So you
+either your build scheduler and sbuild-a-like must have a suite of
+per-ecosystem build-deps parsers, or you must maintain a shadow of the
+build-dep information in a separate database (which the import tool,
+or a robot somewhere, must update).
+The suite of build-deps parsers, etc., could be made into a library,
+but many of these ecosystems have a tendency towards metadata formats
+parseable only by other tools within the ecosystem.  If you are trying
+to make a common build arrangement, your common builder might have to
+have a pet installation of every ecosystem.  You would be building
+your own production build infrastructure on software which we can't
+put in Debian proper because it's not stable enough.  Also it might
+mean that building packages locally could require (perhaps several)
+towering edifices even to get going.
+In Scheme (2) the import/merge tool also writes metadata in a common
+format into the git tree.  Ie, you commit some autogenerated files.
+I realise this is an anathema in some circles but my experience is
+that it works well.  git is a good distribution mechanism for mixtures
+of handwritten files and easily-autoregeneratable ones.
+Once you have bitten the bullet, in scheme (2), of having an
+import/convert/merge tool which edits the code and commits some
+autogenerated build machinery and rewritten metadata to your vdeb
+source repos, it would be daft not to have that autogenerated build
+machinery contain a debian/rules etc.
+Or to look at it another way, in scheme (2) if you are autogenerating
+and committing metadata which is converted from the upstream format,
+you have to decide on your output format.  IMO it would be foolish to
+design new metadata format when Debian already has a pretty good,
+battle tested and highly flexible, source package metadata format.
+The ability to reuse Debian's source metadata format is one of the
+main advantages of scheme (2).  It allows you to use existing build
+machinery.  You should not underestimate the value of this.  Debian
+has invested a lot of time in tools like sbuild, dpkg-checkbuilddeps,
+etc. etc.  If you make your thing incompatible you will have to
+rewrite all of that.
+There are some other wrinkles with (1): for example, in (1) the
+changelog.gz in your .debs will have to be a completely useless stub.
+In (2) your merging tool can write a changelog entry.  In (1) you will
+always find that after building the tree has untracked unignored
+files, because I doubt you will be able to find a way to build it that
+does not create files that ought to be in a .gitignore but which
+upstream haven't heard of; whereas with (2) you can have your
+import/merge/convert tool write a suitable .gitignore.
+Finally, whatever you do, do not dump a .vspec file into the root of
+the package.
+If you must invent a new format, use a subdirectory.  Originally
+debian/rules was debian.rules and this was a serious mistake (luckily,
+fairly easily corrected).  A subdirectory will provide you with
+somewhere to extend your format, and also a place where you can put
+temporary files which you can easily .gititnore (because your
+subdirectory can have its own .gitignore).
+Also, I would counsel against a single "spec"-type file format.  Such
+things generate needless merge conflicts, and even mismerges.  They
+can't be syntax highlighted easily.  You have to invent quoting rules
+for the sections.  Automatically processing them is more work.  There
+is a reason why in Debian we like to split things up into different
+files - it's not just because we like to overcomplicate things.
+But, really, you shouldn't invent a new metadata format unless you
+actually need to.  And you don't.
+As I argue above your source package format should either be
+(1) upstream source, unmodified (with your new tools guessing each
+time they need to look at it, and parsing upstream metadata directly);
+or (2) Debian-format metadata.
+I think (2) will be considerably less work as well as producing
+something more useful and useable.
+I hope you will take this as the constructive feedback I intend.
+Regards,
+Ian.

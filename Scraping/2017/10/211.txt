@@ -1,0 +1,98 @@
+To : Debian Developers <debian-devel@lists.debian.org>
+Subject : virtualbox-guest-utils as time server.
+From : Jörg Frings-Fürst <debian@jff-webhosting.net>
+Date : Mon, 09 Oct 2017 20:56:25 +0200
+Message-id : 1507575385.10511.46.camel@jff-webhosting.net
+Reply-to : debian@jff-webhosting.net
+
+
+Hello,
+today I update my system I got the following messages:
+[quote]
+$ sudo apt-get dist-upgrade
+Paketlisten werden gelesen... Fertig
+Abhängigkeitsbaum wird aufgebaut.       
+Statusinformationen werden eingelesen.... Fertig
+Paketaktualisierung (Upgrade) wird berechnet... Fertig
+Die folgenden Pakete wurden automatisch installiert und werden nicht
+mehr benötigt:
+  gir1.2-nm-1.0 sntp
+Verwenden Sie »sudo apt autoremove«, um sie zu entfernen.
+Die folgenden Pakete werden ENTFERNT:
+  ntp
+Die folgenden NEUEN Pakete werden installiert:
+  icc-profiles icc-profiles-free
+Die folgenden Pakete werden aktualisiert (Upgrade):
+[/quote]
+After some search I found:
+[quote]
+$ sudo apt-get install virtualbox-guest-utils
+Paketlisten werden gelesen... Fertig
+Abhängigkeitsbaum wird aufgebaut.       
+Statusinformationen werden eingelesen.... Fertig
+Die folgenden Pakete wurden automatisch installiert und werden nicht
+mehr benötigt:
+  gir1.2-nm-1.0 sntp
+Verwenden Sie »sudo apt autoremove«, um sie zu entfernen.
+The following additional packages will be installed:
+  virtualbox-guest-x11
+Die folgenden Pakete werden ENTFERNT:
+  ntp
+Die folgenden Pakete werden aktualisiert (Upgrade):
+  virtualbox-guest-utils virtualbox-guest-x11
+[/quote]
+From debian/control:
+[quote]
+Package: virtualbox-guest-utils
+Architecture: amd64 i386
+Depends: adduser, pciutils, ${misc:Depends}, ${shlibs:Depends}
+Conflicts: time-daemon, ntp
+Provides: time-daemon
+Replaces: time-daemon
+Recommends: virtualbox-guest-dkms (= ${source:Version}) | virtualbox-guest-source (= ${source:Version}) | virtualbox-guest-modules
+Suggests: virtualbox-guest-x11 (= ${binary:Version})
+Description: x86 virtualization solution - non-X11 guest utilities
+ VirtualBox is a free x86 virtualization solution allowing a wide range
+ of x86 operating systems such as Windows, DOS, BSD or Linux to run on a
+ Linux system.
+ .
+ This package provides the non-X11 guest utilities for VirtualBox. These
+ utilities are meant to be run inside the virtual machine.
+ They provide closer integration and allow to share data through shared folders
+ between the host system and the virtual machine.
+ .
+ Either the virtualbox-guest-dkms or the virtualbox-guest-source package is
+ also required in order to compile the kernel modules needed for
+ virtualbox-guest-utils.
+[/quote]
+That is why I opened a bug[1], which was closed within 8 minutes.
+I think virtualbox-guest-utils (v-g-u) have to fix the issue with ntp
+instead remove it.
+The main problem is that the ntp server was not designed to run inside
+of a virtual machine. But is here is a server.
+And one other point is the setup of the v-g-u time server. Search on
+virtualbox.org[1] found nothing about it at the first two sites.
+So I need your comments about it.
+Many thanks!
+CU
+Jörg
+[1] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=878074
+[2] https://www.google.de/search?lr=&hl=de&as_qdr=all&biw=1920&bih=891&btnG=Suche&q=setup+time+server+site%3Ahttps%3A%2F%2Fwww.virtualbox.org&search_plus_one=form&oq=setup+time+server+site%3Ahttps%3A%2F%2Fwww.virtualbox.org&gs_l=psy-ab.12..0i71k1l4.0.0.0.30893.0.0.0.0.0.0.0.0..0.0....0...1..64.psy-ab..0.0.0....0.9742yMsKiQU
+-- 
+New:
+GPG Fingerprint: 63E0 075F C8D4 3ABB 35AB  30EE 09F8 9F3C 8CA1 D25D
+GPG key (long) : 09F89F3C8CA1D25D
+GPG Key        : 8CA1D25D
+CAcert Key S/N : 0E:D4:56
+Old pgp Key: BE581B6E (revoked since 2014-12-31).
+Jörg Frings-Fürst
+D-54470 Lieser
+Threema: SYR8SJXB
+Wire:  @joergfringsfuerst
+Skype: joergpenguin
+Ring:  jff
+IRC: j_f-f@freenode.net
+     j_f-f@oftc.net
+My wish list: 
+ - Please send me a picture from the nature at your home.
+signature.asc

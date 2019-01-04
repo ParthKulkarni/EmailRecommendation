@@ -1,0 +1,58 @@
+To : evgeni@debian.org
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Sun, 23 Apr 2017 10:48:33 -0700
+Message-id : 20170423174832.cilayvlngdarhzdb@x
+In-reply-to : <[🔎] 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net>
+
+
+Evgeni Golov wrote:
+> LXC recently got a bug (#860974) that is best fixed by bumping a certain
+> sysctl limit above the default.
+Note that in addition to going this route, you might consider talking with the
+kernel maintainers about increasing the default limit, or potentially even
+getting the limit raised upstream.
+> However I could not find any documented policy how to do this (if at all).
+> 
+> Both, procps and systemd support (/usr)?/lib/sysctl.d/*.conf, however only
+> one package (systemd-coredump) uses it, all others drop files in
+> /etc/sysctl.d.
+> 
+> Some packages also trigger "sysctl -q -p <file>" in their postinst, but
+> most do not.
+> 
+> My gut feeling is that droping the file to /usr/lib and allowing the admin
+> to override it later via /etc. And then load it in postinst.
+That seems like exactly the right approach, and yes, you should put it
+in /usr/lib/50-yourpackagename.conf , following the conventions
+explicitly established for that purpose.  That makes it easy for the
+sysadmin to override *either* by directly creating a file with the same
+name in /etc *or* by adding a file later in the sequence to tweak
+individual settings, both of which can easily be done in packages for
+sysadmins who want to package their configuration tweaks.  (By contrast,
+a configuration package can't safely tweak or override existing files in
+/etc, only drop in a file later in the sequence.)  This also makes it
+easy to use tools to identify any local overrides, or to just look in
+/etc and see at a glance only what the sysadmin has modified, not large
+swathes of stock values.
+Effectively, the bits installed in /usr/lib (or /lib) represent the
+stock state of the package (similar to compiled-in defaults, but more
+easily adjusted by the distribution without patching).
+This is something that people have argued over in the past, and will
+likely continue to argue over; it's also highly correlated with general
+argument over systemd, since systemd is the most popular package
+following and encouraging this configuration pattern, though not the
+first such package.  However, this pattern is supported by upstream
+convention, convention across multiple distributions (meeting sysadmin
+expectations), and existing use by many other packages already in
+Debian.
+> But this does not account for the fact that this specific tunable may be
+> already overriden in another sysctl.d file and the package would reset
+> it to a lower value?
+You might ask systemd upstream if they'd consider extending the syntax
+to support "increase if below this value but don't decrease".  But in
+the absence of that, I don't think you need to worry about that kind of
+configuration conflict unless it comes up.  Ideally if multiple packages
+need to change this limit, they'll coordinate and agree on the new
+value, or perhaps even depend on a common configuration package.
+- Josh Triplett

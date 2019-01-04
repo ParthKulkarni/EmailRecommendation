@@ -1,0 +1,37 @@
+To : Marc Haber <mh+debian-devel@zugschlus.de>
+Subject : Re: Which checks should we mandate for source operations in shell scripts
+From : Wouter Verhelst <wouter@debian.org>
+Date : Thu, 21 Jun 2018 01:14:07 +0200
+Message-id : 20180620231407.GA2458@grep.be
+In-reply-to : <[🔎] E1fVj6f-00053J-RL@drop.zugschlus.de>
+References : <[🔎] E1fVj6f-00053J-RL@drop.zugschlus.de>
+
+
+On Wed, Jun 20, 2018 at 09:49:29PM +0200, Marc Haber wrote:
+> It has (finally, and to late) occurred to me that
+> 
+> |# back up /etc/default/foo
+> |cp /etc/default/foo ~/foo
+> |(try something in /etc/default)
+> |sudo mv ~/foo /etc/default/foo
+> 
+> will place a file owned by my "normal" user into /etc/default where it
+> might be used from an (unchanged) init script[1].
+This may well be intentional.
+Let's say the local root runs several services for the system's users,
+but doesn't want to maintain one particular service (because root is
+unfamiliar with that service, or considers it too labor intensive to
+maintain, or whatever). So maintaining that service is delegated to
+another user who specifically requested that the service be provided.
+One valid option to do so is to chown or chgrp the configuration files
+in question so that the user with delegated privileges has the ability
+to change the configuration file, and then also allow that user to
+restart the service through whatever means.
+If init (or whatever) scripts start failing in that case, then Debian is
+overruling local policy. That's never a good thing.
+So no, I don't think we should check this, unless upstream added the
+check (because patching away such features is not usually a good idea).
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

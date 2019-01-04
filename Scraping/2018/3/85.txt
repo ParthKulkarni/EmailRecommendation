@@ -1,0 +1,37 @@
+To : Ralf Treinen <treinen@free.fr>
+Subject : Re: alias in maintainer scripts?
+From : KAction@gnu.org
+Date : Fri, 02 Mar 2018 04:15:18 +0300
+Message-id : E1erZL7-0005BF-4w@eggs.gnu.org
+In-reply-to : <[🔎] 20180301215400.GA10591@seneca.home.org>
+References : <[🔎] 20180301215400.GA10591@seneca.home.org>
+
+
+[2018-03-01 22:54] Ralf Treinen <treinen@free.fr>
+> should we really allow for the usage of alias in maintainer scripts? 
+> 
+> Policy 10.4 says that /bin/sh scripts may assume an interpreter
+> that implements the POSIX standard, plus some additional features
+> listed in the policy. And the POSIX standards describes alias
+> substitution in shell scripts [1], so it seems we currently do
+> allow for it.
+> 
+> However, /bin/sh may be linked to bash, and bash does alias substitution
+> only when in interactive mode but not in batch mode [2]. That is, unless
+> a special bash option is set.
+>
+> Hence, maintainer scripts relying on alias substitution will not work
+> correctly when /bin/sh is bash. 
+Is it true? When invoked as /bin/sh, GNU Bash works in Posix-emulation
+mode, and it is not that bad:
+	$ cat foo.sh
+	alias ls='echo foo'
+	ls
+	$ /bin/dash foo.sh
+	foo
+	$ /bin/bash foo.sh
+	example.gdbm
+	firefox-esr_iu
+	[.. other junk in my /tmp ..]
+	$ chpst -b /bin/sh bash foo.sh
+	foo

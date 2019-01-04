@@ -1,0 +1,209 @@
+To : debian-devel@lists.debian.org
+Subject : Where can build scripts be found?
+From : Thomas Nyberg <tomuxiong@gmx.com>
+Date : Wed, 25 Jan 2017 14:05:12 -0800
+Message-id : d70a7b2a-51f5-beed-e219-8a72a3ea0130@gmx.com
+
+
+Hello,
+I'm trying to compile my own version of icedove to see if I can
+understand certain bugs I'm running into (at the moment I just get
+random crashes, so I can't really report anything useful). I tried the
+following steps on a new machine:
+$ mkdir $HOME/icedove
+$ cd $HOME/icedove/
+$ sudo apt-get install devscripts
+$ sudo apt-get build-dep icedove
+$ apt-get source icedove
+$ cd icedove-45.6.0/
+$ build -b -uc -us
+I then get an error (posting error below as a postscript). What I wonder
+is, how is that the packages are originally compiled? I was under the
+impression that this would be enough (if I'm wrong, please yell at me!).
+There must be some boxes somewhere building this. Are there scripts that
+I might follow to better understand what's going on? Am I incorrect in
+my believe that the steps above should in theory be enough?
+Thanks for any help.
+Cheers,
+Thomas
+P.S. Here's the error:
+$ debuild -b -uc -us
+ dpkg-buildpackage -rfakeroot -D -us -uc -b
+dpkg-buildpackage: source package icedove
+dpkg-buildpackage: source version 1:45.6.0-1~deb8u1
+dpkg-buildpackage: source distribution stable-security
+dpkg-buildpackage: source changed by Christoph Goehre <chris@sigxcpu.org>
+ dpkg-source --before-build icedove-45.6.0
+dpkg-buildpackage: host architecture amd64
+ fakeroot debian/rules clean
+dh clean
+   dh_testdir
+   debian/rules override_dh_auto_clean
+make[1]: Entering directory '/home/admin/icedove/icedove-45.6.0'
+# needed for icedove-l10n
+dh_auto_clean
+rm -rf debian/icedove-l10n-build
+# needed for iceowl-l10n
+rm -rf debian/iceowl-l10n-build
+make[1]: Leaving directory '/home/admin/icedove/icedove-45.6.0'
+   dh_clean
+ debian/rules build
+make: 'build' is up to date.
+ fakeroot debian/rules binary
+dh binary
+   dh_testdir
+   debian/rules override_dh_auto_configure
+make[1]: Entering directory '/home/admin/icedove/icedove-45.6.0'
+# update config.sub and config.guess
+dh_autotools-dev_updateconfig
+# run autoconf for all configure files
+if [ "Z2.13" != Z ] || [ ! -e
+/home/admin/icedove/icedove-45.6.0/configure ]; \
+then cd /home/admin/icedove/icedove-45.6.0 && `which autoconf2.13 ||
+which autoconf`; fi
+if [ "Z2.13" != Z ] || [ ! -e
+/home/admin/icedove/icedove-45.6.0/mozilla/configure ]; \
+then cd /home/admin/icedove/icedove-45.6.0/mozilla && `which
+autoconf2.13 || which autoconf`; fi
+if [ "Z2.13" != Z ] || [ ! -e
+/home/admin/icedove/icedove-45.6.0/mozilla/js/src/configure ]; \
+then cd /home/admin/icedove/icedove-45.6.0/mozilla/js/src && `which
+autoconf2.13 || which autoconf`; fi
+# prepare branding for the Icedove packages
+mkdir -p mail/branding/icedove
+# copy needed icons
+cp -a debian/icedove-branding/*    mail/branding/icedove
+cp debian/app-icons/icedove16.png  mail/branding/icedove/mailicon16.png
+cp debian/app-icons/icedove22.png  mail/branding/icedove/mailicon22.png
+cp debian/app-icons/icedove24.png  mail/branding/icedove/mailicon24.png
+cp debian/app-icons/icedove32.png  mail/branding/icedove/mailicon32.png
+cp debian/app-icons/icedove48.png  mail/branding/icedove/mailicon48.png
+cp debian/app-icons/icedove256.png mail/branding/icedove/mailicon256.png
+cp debian/app-icons/icedove48.png  mail/branding/icedove/content/icon48.png
+cp debian/app-icons/icedove64.png  mail/branding/icedove/content/icon64.png
+cp debian/preview.png mail/themes/linux/mail/preview.png
+# copy the mozconfig files
+cp debian/mozconfig.* .
+cp debian/mozconfig.default mozilla/
+echo 'mk_add_options
+MOZ_OBJDIR=/home/admin/icedove/icedove-45.6.0/obj-icedove' >>
+mozconfig.icedove
+# configure the various build settings
+# icedove, icedove-dev, calendar-google-provider, iceowl-extension
+make -f client.mk configure
+make[2]: Entering directory '/home/admin/icedove/icedove-45.6.0'
+client.mk:205:
+/home/admin/icedove/icedove-45.6.0/obj-icedove/.mozconfig.mk: No such
+file or directory
+mkdir -p '/home/admin/icedove/icedove-45.6.0/obj-icedove/'
+> /home/admin/icedove/icedove-45.6.0/obj-icedove/.mozconfig.mk
+cd /home/admin/icedove/icedove-45.6.0/obj-icedove
+/home/admin/icedove/icedove-45.6.0/configure
+creating cache ./config.cache
+Traceback (most recent call last):
+  File "/home/admin/icedove/icedove-45.6.0/mozilla/./mach", line 148, in
+<module>
+    main(sys.argv[1:])
+  File "/home/admin/icedove/icedove-45.6.0/mozilla/./mach", line 76, in main
+    mach = get_mach()
+  File "/home/admin/icedove/icedove-45.6.0/mozilla/./mach", line 67, in
+get_mach
+    mach = check_and_get_mach(dir_path)
+  File "/home/admin/icedove/icedove-45.6.0/mozilla/./mach", line 42, in
+check_and_get_mach
+    return load_mach(dir_path, mach_path)
+  File "/home/admin/icedove/icedove-45.6.0/mozilla/./mach", line 30, in
+load_mach
+    return mach_bootstrap.bootstrap(dir_path)
+  File "/home/admin/icedove/icedove-45.6.0/build/mach_bootstrap.py",
+line 14, in bootstrap
+    return build.mach_bootstrap.bootstrap(topsrcdir, mozilla_dir)
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/build/mach_bootstrap.py",
+line 314, in bootstrap
+    mach.load_commands_from_file(os.path.join(mozilla_dir, path))
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/python/mach/mach/main.py",
+line 258, in load_commands_from_file
+    imp.load_source(module_name, path)
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/addon-sdk/mach_commands.py",
+line 13, in <module>
+    from mozbuild.base import (
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/build/mach_bootstrap.py",
+line 340, in __call__
+    module = self._original_import(name, globals, locals, fromlist, level)
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/python/mozbuild/mozbuild/base.py",
+line 17, in <module>
+    from mach.mixin.process import ProcessExecutionMixin
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/build/mach_bootstrap.py",
+line 340, in __call__
+    module = self._original_import(name, globals, locals, fromlist, level)
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/python/mach/mach/mixin/process.py",
+line 29, in <module>
+    raise Exception('Could not detect environment shell!')
+Exception: Could not detect environment shell!
+loading cache ./config.cache
+checking host system type... x86_64-unknown-linux-gnu
+checking target system type... x86_64-unknown-linux-gnu
+checking build system type... x86_64-unknown-linux-gnu
+checking for mawk... mawk
+checking for python2.7... /usr/bin/python2.7
+Creating Python environment
+New python executable in
+/home/admin/icedove/icedove-45.6.0/obj-icedove/_virtualenv/bin/python2.7
+Also creating executable in
+/home/admin/icedove/icedove-45.6.0/obj-icedove/_virtualenv/bin/python
+Installing setuptools, pip...done.
+WARNING: Python.h not found. Install Python development headers.
+Error processing command. Ignoring because optional.
+(optional:setup.py:python/psutil:build_ext:--inplace)
+checking Python environment is Mozilla virtualenv... Traceback (most
+recent call last):
+  File "<string>", line 1, in <module>
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/build/mach_bootstrap.py",
+line 340, in __call__
+    module = self._original_import(name, globals, locals, fromlist, level)
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/python/mozbuild/mozbuild/base.py",
+line 17, in <module>
+    from mach.mixin.process import ProcessExecutionMixin
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/build/mach_bootstrap.py",
+line 340, in __call__
+    module = self._original_import(name, globals, locals, fromlist, level)
+  File
+"/home/admin/icedove/icedove-45.6.0/mozilla/python/mach/mach/mixin/process.py",
+line 29, in <module>
+    raise Exception('Could not detect environment shell!')
+Exception: Could not detect environment shell!
+configure: error: Python environment does not appear to be sane.
+------ config.log ------
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+configure:1206: checking host system type
+configure:1227: checking target system type
+configure:1245: checking build system type
+configure:1325: checking for mawk
+configure:1410: checking for python2.7
+configure:1520: checking Python environment is Mozilla virtualenv
+configure: error: Python environment does not appear to be sane.
+*** Fix above errors and then restart with\
+               "make -f client.mk build"
+client.mk:361: recipe for target 'configure' failed
+make[2]: *** [configure] Error 1
+make[2]: Leaving directory '/home/admin/icedove/icedove-45.6.0'
+debian/rules:64: recipe for target 'override_dh_auto_configure' failed
+make[1]: *** [override_dh_auto_configure] Error 2
+make[1]: Leaving directory '/home/admin/icedove/icedove-45.6.0'
+debian/rules:54: recipe for target 'binary' failed
+make: *** [binary] Error 2
+dpkg-buildpackage: error: fakeroot debian/rules binary gave error exit
+status 2
+debuild: fatal error at line 1376:
+dpkg-buildpackage -rfakeroot -D -us -uc -b failed

@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org, debian-dpkg@lists.debian.org
+Subject : Re: RFC: Support for zstd in .deb packages?
+From : Adrian Bunk <bunk@debian.org>
+Date : Sat, 28 Apr 2018 19:44:08 +0300
+Message-id : 20180428164408.GG3185@localhost
+In-reply-to : <[🔎] 20180427050212.GA9721@gaara.hadrons.org>
+References : <[🔎] 20180427050212.GA9721@gaara.hadrons.org>
+
+
+On Fri, Apr 27, 2018 at 07:02:12AM +0200, Guillem Jover wrote:
+>...
+> * Eternity contract: This would add yet another format that would need
+>   to be supported pretty much forever, to be able to at least unpack
+>   .deb's that might be available in the wild. This also increases the
+>   (Build-)Essential-set.
+> * Format stability: Although it's supposedly frozen now, it has
+>   changed quite often in recent times. AFAIR it was also mentioned at
+>   least in the past that the target was mainly real-time data streaming,
+>   so long-term data storage might not be a priority? Would need
+>   clarification from upstream I guess.
+This does not sound like something that should be done soon.
+>...
+> As a replacement for gzip, it would
+> definitely make sense, but otherwise I'm not sure I see it.
+The number of packages that use gzip as compressor if rebuilt should be 
+pretty close to 0. We need gzip for compatibility with older packages,
+but no replacement for it.
+> An area where there's still room for improvement with xz f.ex. when it
+> comes to decompression speed, is lack of multi-threaded support, as
+> liblzma currently only supports it for compression.
+>...
+This sounds like a much less invasive change to me.
+And it could already deliver benefits for buster if
+someone would be willing to implement that.
+And there's another potential low hanging fruit for buster:
+xz decompression time is linear with the compressed size,
+higher compression would bring both smaller packages and
+faster decompression.
+There are two downsides to switching xz compression from -6 to -9:[1]
+1. higher compression time
+This will increase build times.
+If this turns out to be a problem, most of our biggest packages are the 
+-dbgsym packages that could continue to use a lower compression if needed.
+2. more memory usage for uncompression
+64 MB memory usage can be a problem for some lower end machines.
+One way to mitigate both downsides might be different default compression 
+levels on different ports, the ports where something like faster setup
+of cloud servers would matter are not the ports with slow buildds or
+where 64 MB memory usage would matter much on any supported hardware.
+> Thanks,
+> Guillem
+cu
+Adrian
+[1] we are talking about perhaps 5-10% smaller packages and faster 
+    decompression speed
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

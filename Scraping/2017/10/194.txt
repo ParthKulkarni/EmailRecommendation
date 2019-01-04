@@ -1,0 +1,53 @@
+To : debianuser2017_ <gituser2194@gmail.com>, 877900@bugs.debian.org
+Subject : Bug#877900: general: en-us locale defaults to 24-hour "military" time on stock install
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 7 Oct 2017 07:17:56 +0200
+Message-id : 20171007051756.qqjbemebtql4csth@angband.pl
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 877900@bugs.debian.org
+In-reply-to : <[🔎] 150732536036.2828.2664414500692893435.reportbug@debian>
+References : <[🔎] 150732536036.2828.2664414500692893435.reportbug@debian> <[🔎] 150732536036.2828.2664414500692893435.reportbug@debian>
+
+
+Control: reassign -1 locales
+On Fri, Oct 06, 2017 at 05:29:20PM -0400, debianuser2017_ wrote:
+> When Debian 9 is installed with the en-us locale selected, the clock defaults
+> to 24 hour time in the resulting install. This is odd because the normal means
+> of representing the time in the area covered by en-us is to separate the day
+> into two 12-hour segments. (localization issue)
+Actually, not two but four discontinuous segments:
+12:00am..12:59am
+01:00am..11:59am
+12:00pm..12:59pm
+01:00pm..11:59pm
+-- ie, even inside an am/pm value, the order is bizarre.
+Also, there's no way to unambigously refer to noon or midnight, or whether a
+midnight belongs to the previous or next day, as even the same users often
+keep shifting between two possible variants; you can read more about this
+horror at:
+https://en.wikipedia.org/wiki/12-hour_clock#Confusion_at_noon_and_midnight
+But, the above reasons apply mostly to humans.  In a computing context, the
+main reasons are:
+* 12-hour times don't sort.  Save for some GUIs where display is distinct
+  from the internal format, most cases would do it wrong.  And sorting by
+  time is something with lots of use.
+* en_US (.UTF-8) is used as the default English locale for all places that
+  don't have a specific variant (and often even then).  Generally, technical
+  users use English as a system locale as translations of computing terms
+  tend to be a horror show: for example, in Polish even such a basic term
+  as "file" has two versions ("zbiór" — correct, and "plik" — Microsoftese)
+  that are not intelligible between some groups of people.  Anything more
+  complex gets bad enough that no one bothers translating advanced technical
+  documentation or running servers (rather than user-facing systems) in
+  pl_PL locale.  And as far as I know, same applies to most languages.
+Obviously, this is an abuse, but that's the cost of being the default.  If
+we had C.UTF-8 as a first-class locale, this wouldn't be that much an
+argument, but currently d-i falls back to en_US for English for most
+countries.
+The decision belongs to the maintainer (I'm reassigning), but per the above
+reasoning, I expect wontfix.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ We domesticated dogs 36000 years ago; together we chased
+⣾⠁⢰⠒⠀⣿⡁ animals, hung out and licked or scratched our private parts.
+⢿⡄⠘⠷⠚⠋⠀ Cats domesticated us 9500 years ago, and immediately we got
+⠈⠳⣄⠀⠀⠀⠀ agriculture, towns then cities.     -- whitroth on /.

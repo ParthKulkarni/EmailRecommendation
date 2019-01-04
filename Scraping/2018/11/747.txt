@@ -1,0 +1,47 @@
+To : Roberto C. Sánchez <roberto@debian.org>, debian-devel@lists.debian.org
+Subject : Re: Sending using my @debian.org in gmail
+From : Alexandre Viau <aviau@debian.org>
+Date : Fri, 30 Nov 2018 12:49:02 -0500
+Message-id : aea6139f-6777-b242-c413-e40faf578b90@debian.org
+In-reply-to : <[🔎] 20181130142925.fm3ici6r7a4opp5l@connexer.com>
+References : <CAPQicOyW3bMxmV2GgdEd3T+rt4g_eCP8Mfrsyxg3K1Dx9en0fg@mail.gmail.com> <[🔎] 51920dc3-2789-623b-e4f4-3c8218f751ba@gmail.com> <[🔎] 20181130142925.fm3ici6r7a4opp5l@connexer.com>
+
+
+On 2018-11-30 9:29 a.m., Roberto C. Sánchez wrote:
+> That is just how email works.  With the help of a cooperating mail
+> server (which is trivial to setup) anybody in the world can send mail
+> with any from address that they wish.  This problem is not unique to
+> Debian.
+Yes and no.
+It is true that others are vulnerable, but this is a choice that Debian
+makes and it can be fixed. If we wanted, we could largely limit this
+with more restrictive debian.org DNS records.
+When a mail server accepts incoming emails, it has the responsibility of
+checking the mail comes from.
+Debian can specify which servers it sends emails from and ask mail
+servers around the world to only accept emails from these servers and
+discard the others.
+This is done trough DNS, with DMARC and SPF records:
+ - https://en.wikipedia.org/wiki/Sender_Policy_Framework
+ - https://en.wikipedia.org/wiki/DMARC
+Currently, Debian does not publish such records so it opts out from this
+protection.
+== SPF example ==
+I use gmail to send mails from alexandre@alexandreviau.net.
+alexandreviau.net has the following TXT record:
+ - "v=spf1 include:_spf.google.com ~all"
+It reads:
+ - version: spf1
+ - include google's SPF config, effectively authorizing everything that
+google asks to authorize.
+ - ~ "SoftFail": don't take this rule too seriously but consider it when
+filtering spam
+ - "all": match all addresses (not sure if we can specify one or groups..)
+If I wanted, I could change "~all" to "-all" in my spf config, asking
+mail servers to discard every emails that pretends to be from
+alexandreviau.net but wasn't sent from google servers.
+Cheers,
+-- 
+Alexandre Viau
+aviau@debian.org
+signature.asc

@@ -1,0 +1,49 @@
+To : Evgeni Golov <evgeni@debian.org>
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Henrique de Moraes Holschuh <hmh@debian.org>
+Date : Sun, 23 Apr 2017 09:08:45 -0300
+Message-id : 20170423120845.GA12266@khazad-dum.debian.net
+In-reply-to : <[🔎] 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net>
+References : <[🔎] 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net>
+
+
+On Sun, 23 Apr 2017, Evgeni Golov wrote:
+> Both, procps and systemd support (/usr)?/lib/sysctl.d/*.conf, however only
+> one package (systemd-coredump) uses it, all others drop files in
+> /etc/sysctl.d.
+Please drop it in /etc, debhelper/dh should mark it as conffile and
+everything will work.
+Alternatively, use ufc (refer to ucf(1) and its documentation if you are
+not used to ucf.  Help is also available at debian-mentors@l.d.o), and
+handle it as a configuration file in /etc managed through ucf and
+package maintainer scripts.
+> Some packages also trigger "sysctl -q -p <file>" in their postinst, but
+> most do not.
+What to do here is decided on a case-by-case basis, I suppose.
+> My gut feeling is that droping the file to /usr/lib and allowing the admin
+> to override it later via /etc. And then load it in postinst.
+Drop it in /etc where it belongs, and let the maintainer to modify or
+override (by deleting, even).
+Leave the /usr/lib overriden by /etc thing alone.
+> But this does not account for the fact that this specific tunable may be
+> already overriden in another sysctl.d file and the package would reset
+> it to a lower value?
+Yes.  If you use ucf instead of the builtin dpkg conffile management,
+you can do something much better:
+1. read current levels (using sysctl, not directly).
+2. if they are above the default, don't change the state of the system:
+   if your config file is there, let ucf handle its update normally.  if
+   your config file is *NOT* there, assume deleted and help ucf a little
+   (ucf can do this by itself most of the time: we have always handled
+   deletion of config files in /etc as an action to be preserved, but
+   *not* at first install)
+3. if they are at a dangerous level, install your config file to /etc
+   normally, using ucf.  And document that the user needs to reboot
+   somewhere.
+The above is a rough idea.  You are likely to also have to have
+different paths for initial install and upgrade/downgrade.  And if you
+actually activate the new sysctl, you might not be able to do (1) that
+way should it would break indepondence (and complexity would go up a
+great deal).
+-- 
+  Henrique Holschuh

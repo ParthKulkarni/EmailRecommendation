@@ -1,0 +1,52 @@
+To : Michael Stone <mstone@debian.org>
+Subject : Re: Removal of upstart integration
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Thu, 5 Oct 2017 19:18:39 +0100
+Message-id : 22998.30591.960897.163193@chiark.greenend.org.uk
+In-reply-to : <[🔎] fb0e278c-a9f0-11e7-9b6a-00163eeb5320@msgid.mathom.us>
+References : <CANBHLUh_ZhEfbkVnOp8iM-j+4xVo5rzORvknVptyUna+b6B-EA@mail.gmail.com>	<CADsTwjJpe1RmVcR2r+GpAWMzSHFXTK3jw-DaMLqnr2AiHCLuMw@mail.gmail.com>	<22969.10990.314064.367698@chiark.greenend.org.uk>	<877ewlwae3.fsf@deep-thought.43-1.org>	<7111b904-0832-4319-efa2-4f2d9e33a3fa@iwakd.de>	<[🔎] 20171005170815.xbx2vjfaugjgpdqx@riva.ucam.org>	<[🔎] fb0e278c-a9f0-11e7-9b6a-00163eeb5320@msgid.mathom.us>
+
+
+Michael Stone writes ("Re: Removal of upstart integration"):
+> On Thu, Oct 05, 2017 at 06:08:15PM +0100, Colin Watson wrote:
+> >The frontend is often started via the confmodule sourced by a maintainer
+> >script (and then the maintscript re-execed under the frontend), so for
+> >better or worse you do need DISPLAY and the like in the current design.
+> 
+> What about setting a flag in the package asking dpkg to use a restricted 
+> environment, in hopes of eventually having dpkg reject packages that 
+> can't install with a restricted environment? That way, packages would need 
+> to opt in (or at least get rebuilt and presumably tested under the newer 
+> semantics). It's a longer transition, but maybe quicker to get started.
+In general I agree that it would be nice if arrangements were made so
+that in the usual case, a naive user will not find their shell
+environment variables leaking into maintainer scripts.
+However, I think that such arrangements are already made.  The
+majority of people use "sudo", which AIUI already launders the
+environment.
+Doing the same thing in dpkg seems like a waste of time, and will
+needlessly inconvenience people who want to do something unusual.
+Many useful effects can be achieved by setting environment variable
+which have deep effects: stunt versions of utilities on PATH;
+LD_PRELOADs for debugging or tracing; etc.
+If it is done in dpkg, there must have a way to tell dpkg to instead
+pass (at least) specific variables (and perhaps values).
+I think it is of course fine for a package maintainer to say "if you
+set weird environment variables which make my programs behave oddly,
+that isn't a bug".  The question then is whether what the user has
+done is "too weird", which is a question of judgement.  LC_MESSAGES
+and most LC_CTYPE=C.utf-8 clearly are not.  PATH=/dev/null clearly is
+too weird.  If particular cases come up a lot they should be
+documented in policy.
+The thing which started this thread was putting options after
+arguments.  FTR I think this is OK in maintainer scipts because
+someone who runs maintainer scripts with POSIXLY_CORRECT is inviting
+lossage.
+But writing that way is a bad habit to get into, because the pattern
+will then leak into normal shell scripts which must run in more varied
+environments.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

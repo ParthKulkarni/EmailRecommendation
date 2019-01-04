@@ -1,0 +1,46 @@
+To : Osamu Aoki <aoki.osamu@gmail.com>
+Subject : Re: Why small "Uncompressed Size: 2,048" for ssmtp
+From : James Cowgill <jcowgill@debian.org>
+Date : Mon, 11 Sep 2017 15:20:36 +0100
+Message-id : d72134db-854d-f324-7181-151395e6ba7b@debian.org
+In-reply-to : <[🔎] 20170911141105.rm4y26x2vgf2anvs@tc4.so-net.ne.jp>
+References : <[🔎] 20170911141105.rm4y26x2vgf2anvs@tc4.so-net.ne.jp>
+
+
+Hi,
+On 11/09/17 15:11, Osamu Aoki wrote:
+> I am wondering what makes aptitude screen to print:
+>   Compressed Size: 54.2 k
+>   Uncompressed Size: 2,048
+>   Source Package: ssmtp
+> for ssmtp package.
+> 
+> Uncompressed size is usually bigger than compressed Size.
+> Am I missing something.
+> 
+> INFO file in the ssmtp deb package has:
+> 
+>  new debian package, version 2.0.
+>  size 54172 bytes: control archive=17623 bytes.
+>       58 bytes,     2 lines      conffiles
+>     1082 bytes,    64 lines   *  config               #!/bin/sh
+>      940 bytes,    21 lines      control
+>     2312 bytes,    96 lines   *  postinst             #!/bin/sh
+>      362 bytes,    26 lines   *  postrm               #!/bin/sh
+>      367 bytes,    21 lines   *  preinst              #!/bin/sh
+>    38672 bytes,   317 lines      templates
+>  Package: ssmtp
+>  Source: ssmtp (2.64-8)
+>  Version: 2.64-8+b2
+>  Architecture: amd64
+>  Maintainer: Anibal Monsalve Salazar <anibal@debian.org>
+>  Installed-Size: 2
+> 
+> This 2 is in KB.  iConsistent with aptitude but why so small???
+The debian/rules file calls dpkg-gencontrol before installing anything,
+so dpkg-gencontrol doesn't "see" any of the binaries when calculating
+the installed size.
+https://sources.debian.net/src/ssmtp/2.64-8/debian/rules/
+Maybe it should start using debhelper...
+James
+signature.asc

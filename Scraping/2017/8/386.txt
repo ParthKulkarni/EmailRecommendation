@@ -1,0 +1,66 @@
+To : Paul Wise <pabs@debian.org>
+Subject : Re: Proposal: A new approach to differential debs
+From : Peter Silva <peter@bsqt.homeip.net>
+Date : Sun, 13 Aug 2017 10:53:16 -0400
+Message-id : CANpLOiTfiW0uxxMHuRDpxwCFt=P88=7zD+C4NMyqjG8RqZ8SPw@mail.gmail.com
+In-reply-to : <[🔎] CAKTje6E+dd3c5RQbTVH8ZnVS0Dc5ZJ9aeTocE6et+GUSkC_PRw@mail.gmail.com>
+References : <[🔎] 20170812135640.GA6037@debian.org> <[🔎] 20170813093856.2kk7zwy4u4qb2xpf@localhost> <[🔎] CAKTje6E+dd3c5RQbTVH8ZnVS0Dc5ZJ9aeTocE6et+GUSkC_PRw@mail.gmail.com>
+
+
+You are assuming the savings are substantial.  That's not clear.  When
+files are compressed, if you then start doing binary diffs, well it
+isn't clear that they will consistently be much smaller than plain new
+files.  it also isn't clear what the impact on repo disk usage would
+be.
+The most straigforward option:
+The least intrusive way to do this is to add differential files in
+addition to the existing binaries, and any time the differential file,
+compared to a new version exceeds some threhold size (for example:
+50%) of the original file, then you end up adding the sum total of the
+diff files in addition to the regular files to the repos.  I haven't
+done the math, but it's clear to me that it ends up being about double
+the disk space with this approach. it's also costly in that all those
+files have to be built and managed, which is likely a substantial
+ongoing load (cpu/io/people)  I think this is what people are
+objecting to.
+A more intrusive and less obvious way to do this is to use zsync (
+http://zsync.moria.org.uk/. ) With zsync, you build tables of content
+for each file, using the same 4k blocking that rsync does. To handle
+compression efficiently, there needs to be an understanding of
+blocking, so a customized gzip needs to be used.  With such a format,
+you produce the same .deb's as today, with the .zsyncs (already in
+use?) and the author already provides some debian Packages files as
+examples.  The space penalty here is probably only a few percent.
+the resource penalty is one read through each file to build the
+indices, and you can save that by combining the index building with
+the compression phase.  To get differential patches, one just fetches
+byte-ranges in the existing main files, so no separate diff files
+needed.  And since the same mechanisms can (should?) be used for repo
+replication, the added cost is likely a net savings in bandwidth
+usage, and relatively little complexity.
+The steps would be:
+   -- add gzip-ware flavour to package creation logic
+   -- add zsync index creation on repos. (potentially combined with first step.)
+   -- add zsync client to apt-* friends.
+To me, this makes a lot of sense to do just for repo replication,
+completely ignoring the benefits for people on low bandwidth lines,
+but it does work for both.
+On Sun, Aug 13, 2017 at 9:20 AM, Paul Wise <pabs@debian.org> wrote:
+> On Sun, Aug 13, 2017 at 5:38 AM, Adrian Bunk wrote:
+>
+>> It sounds like something that would have been a cool feature 20 years
+>> ago when I was downloading Debian updates over an analog modem.
+>>
+>> Today the required effort, infrastructure and added complexity would
+>> IMHO not be worth it for a potential few percent of bandwidth decrease.
+>
+> Low-speed connections and low bandwidth quotas (especially on mobile)
+> are still common enough around the world that delta upgrades make a
+> difference right now, IIRC even Google uses them for Chrome.
+>
+> --
+> bye,
+> pabs
+>
+> https://wiki.debian.org/PaulWise
+>

@@ -1,0 +1,58 @@
+To : debian-devel@lists.debian.org
+Subject : Re: e2fsprogs as Essential: yes?
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sun, 1 Oct 2017 01:29:54 +0200
+Message-id : 20170930232954.neej33sceofnodmj@angband.pl
+In-reply-to : <[🔎] 20170930224538.2pfhbxbnd7c245du@alf.mars>
+References : <20110326184708.GB18787@virgil.dodds.net> <[🔎] 20170930224538.2pfhbxbnd7c245du@alf.mars>
+
+
+On Sun, Oct 01, 2017 at 12:45:39AM +0200, Helmut Grohne wrote:
+> In 2011 Steve Langasek proposed dropping Essential: yes from e2fsprogs.
+> 
+> On Sat, Mar 26, 2011 at 11:47:08AM -0700, Steve Langasek wrote:
+> > Currently the e2fsprogs package is marked Essential: yes in the archive.  Is
+> > this a historical holdover?  I believe e2fsprogs used to ship /sbin/fsck,
+> > but since 2009 (i.e., util-linux (>= 2.15~rc1-1), which e2fsprogs has a
+> > pre-depends on), this has been provided by util-linux instead.
+> >
+> > The remaining programs provided by e2fsprogs are all specific to the ext*
+> > family of filesystems
+At least the following are universal:
+lsattr, chattr
+badblocks
+/usr/sbin/filefrag (really shouldn't be in sbin)
+> > so I don't think meet the definition of Essential any
+> > longer - their presence is certainly important if you have an ext[234]
+> > filesystem, but while this is the default, you can have systems that don't
+> > use ext* at all, which makes e2fsprogs no more essential in nature than the
+> > other per-filesystem fsck tools.
+I'm not sure if _host_ systems with space so low to care about getting rid
+of e2fsprogs are real use cases (such extreme embedded are not going to run
+unmodified Debian).  Containers on the other hand have little use for fsck
+or badblocks, and only rarely for {ls,ch}attr or filefrag.  Thus, requiring
+users of other filesystems to have e2fsprogs installed is not a big burden,
+even if we'd still want the option to not have any such tools at all.
+> I think we should revisit this proposal now that it becomes practical.
+> 
+> To get us going, I have come up with a plan:
+> 
+> 1) Analyze which packages would need dependencies on e2fsprogs.
+> 2) File a bug against lintian to stop complaining about e2fsprogs
+>    dependencies.
+> 3) MBF those packages that need an e2fsprogs dependency.
+> 4) Drop Essential: yes from e2fsprogs.
+Alas, this plan would break partial upgrades from stretch to buster.  Thus,
+we'd need to do 3) in buster then 4) only in bullseye.
+> So I thought, "how hard can it be?" All we need to do is grep the
+> archive for those tools and add those dependencies.
+> 318 occurrences in 133 binary packages.
+> I think we can check off the analysis part. How about proceeding with
+> the lintian bug and the MBF now? Did I miss anything?
+Sounds good to me.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ We domesticated dogs 36000 years ago; together we chased
+⣾⠁⢰⠒⠀⣿⡁ animals, hung out and licked or scratched our private parts.
+⢿⡄⠘⠷⠚⠋⠀ Cats domesticated us 9500 years ago, and immediately we got
+⠈⠳⣄⠀⠀⠀⠀ agriculture, towns then cities.     -- whitroth on /.

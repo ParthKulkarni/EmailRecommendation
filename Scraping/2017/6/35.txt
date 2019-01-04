@@ -1,0 +1,108 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Russ Allbery <rra@debian.org>
+Date : Tue, 06 Jun 2017 13:06:03 -0700
+Message-id : 87zidkev9w.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20170606193026.ee5bc3gdh7zm4vuv@angband.pl> (Adam Borowski's	message of "Tue, 6 Jun 2017 21:30:26 +0200")
+References : <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk>	<[🔎] 20170606000242.333F97C6433@relay.mailchannels.net>	<[🔎] 871sqyueya.fsf@hope.eyrie.org>	<[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl>	<[🔎] 87d1ahgkx5.fsf@hope.eyrie.org>	<[🔎] 20170606193026.ee5bc3gdh7zm4vuv@angband.pl>
+
+
+Adam Borowski <kilobyte@angband.pl> writes:
+> On Tue, Jun 06, 2017 at 09:06:46AM -0700, Russ Allbery wrote:
+>> And what happens here is, I think, typical: any one person often thinks
+>> choices of recommends make no sense, but a broader perspective provides
+>> quite a bit of justification.
+> It is remarkable that out of 94 unsatisfied recommends on my system you
+> disagreed with just 6, despite them going contrary to the maintainer's
+> wishes thus being certain to be controversial.
+I skipped all of the ones that you didn't mark as BAD, since the other
+classifications were beside the point, and commented only on the ones
+where your classification leaped out at me as incorrect.  I'm pretty
+dubious about the whole list, but as I said at the start of my message, I
+was giving some specific examples where I had the information readily to
+hand (or thought I did; I was wrong on libpurple).
+> Also, it's quite obvious this list was very hastily done, with often
+> just a few seconds per entry.
+And you did this in response to a message of mine that was asking for
+something more thoughtful, which is part of why I reacted the way that I
+did.
+> I did not happen to know ghostscript can also be used not for .ps but
+> also for some .pdf workflows (I prefer to not use blatantly fake-free
+> software) but my main point stands: an _image_ manipulation program
+> cannot be said to import _documents_ in "all but unusual installations".
+> And "gsfonts" is not even ghostscript itself but merely an add-on for it.
+PostScript is one of the common image types (in the form of EPS) that
+ImageMagick manipulates.  Use of ImageMagick to handle those files is not
+as common as JPEG or PNG, but certainly not unusual, particularly if you
+have tool chains that like to generate EPS; I used to run into it a lot
+when processing TeX documents, for instance.  gsfonts may be a requirement
+for correctly converting some of those files to other formats because it
+provides the fonts that are "built in to any PostScript printer" and
+therefore do not have to be embedded in files (by specification).
+This is pretty classic Recommends stuff, just in a field that you're not
+personally using ImageMagick for.  One can argue about the merits of
+having a Swiss Army knife tool like ImageMagick that is pretty much
+guaranteed to only be used for 10% of what it can do by any given user of
+it, but in that context, support for PostScript images is well within its
+scope and less obscure than many other formats it handles.
+>>> libmail-sendmail-perl: po-debconf
+>>> * BAD: why would po stuff want to send mail?
+>> This is for podebconf-report-po.  I assume you've not packaged something
+>> with translations?
+> I'm not dealing with any po-heavy packages at the moment, yeah.  It
+> might indeed be useful for some deep po stuff, but the package I want is
+> "debhelper".
+podebconf-report-po is not "deep po stuff."  It should be used by
+literally every maintainer who packages something with debconf
+translations, whenever the debconf templates are changed.
+> Technically, I do know how to package without debhelper (see "goodbye")
+> but I still would prefer to use it.
+po-debconf includes the tools the package maintainer should be using to
+manage debconf translations.  You could conceivably separate the ones
+needed during a build from the maintainer tools, but I'm not sure it's
+really worth the effort for the tiny amount of disk space this would save.
+>> This, like all other lib*-bin packages in Debian, are external helper
+>> utilities *run by the library* under specific situations, which are split
+>> into a separate package to avoid SONAME issues.
+> Nope, its contents are four misc "extra utilities" that are mean to run
+> _by the user_ or at most by some scripts.  They look somewhat useful
+> (purple-remote allows controlling pidgin from cmdline, etc) but are
+> seriously hampered by a lack of documentation.  On the other hand, not a
+> single one is ever called by the library:
+> strings `dpkg -L libpurple0`|grep purple-remote
+> strings `dpkg -L libpurple0`|grep purple-send
+> strings `dpkg -L libpurple0`|grep purple-send-async
+> strings `dpkg -L libpurple0`|grep purple-url-handler
+Ah, indeed, I apologize; you're entirely correct.  I made a bad assumption
+about how the URL handling in libpurple worked and should have done a
+little bit of research first.
+I think (barring other information I'm not aware of) I agree with you
+here, and also think that the name of this package is probably wrong and
+should be something more like purple-tools or the like.
+>> I'm going to stop here, since at this point I think this is just going
+>> to turn into a thread educating you about Debian packaging conventions
+>> you've apparently not encountered before, which is really not a good
+>> use of everyone's time.
+> Uhm... could you be please be a bit more civil?
+I apologize; you're right.  I should have been more civil.
+I do have to also add that I found your message considerably less civil
+than how I think you actually intended it.  I found your message rather
+condescending and dismissive of the analysis maintainers have put into
+their package metadata, and confrontational about your personal opinions
+about some widely used software, in a way that felt honestly like you were
+intentionally provoking people.
+That said, that's not an excuse, and I will try to be more civil.
+> The issue is systematic, and we have far more than "a few" cases.  The
+> very post you're responding to had 94 of them,
+There were absolutely not 94 real problems on that list.  It was a largely
+unfiltered dump of Recommends of packages on your system.  I would be
+surprised if there were more than 10 real problems there, most of which
+are quite minor in terms of user impact and didn't seem to be to be worth
+the amount of energy that you're putting into this.
+That said, I absolutely welcome bug reports against any of my packages for
+too-broad Recommends, and I think we all should feel the same!  And if
+there's wording we can change on the Policy side to try to make it clearer
+when Recommends should be used and to head off some of these issues, I'd
+love to talk that over (probably best on a Policy bug).
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

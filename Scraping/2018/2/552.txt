@@ -1,0 +1,52 @@
+To : APT Development Team <deity@lists.debian.org>
+Subject : "apt-get source snappy" pulls Extra-Source-Only 1.1.4-1 in Debian-Stretch?
+From : Philipp Hahn <hahn@univention.de>
+Date : Tue, 20 Feb 2018 17:45:53 +0100
+Message-id : 0ba72b06-d45c-3e26-c211-06bbd8080eef@univention.de
+
+
+Hello APT developers,
+today I encountered the strange situation, that Debian-Stretch
+officially has 1.1.3-3, but if I do a "apt-get source snappy" I get 1.1.4-1:
+> $ LANG=C apt-get -d --print-uris source snappy
+> Reading package lists... Done
+> Need to get 1498 kB of source archives.
+> 'http://deb.debian.org/debian/pool/main/s/snappy/snappy_1.1.4-1.dsc' snappy_1.1.4-1.dsc 1817 SHA256:a81ea405fe5710d0ee31e62d7007ce6fd4a5e9d2dcfd5767b1c8131b3459349f
+> 'http://deb.debian.org/debian/pool/main/s/snappy/snappy_1.1.4.orig.tar.gz' snappy_1.1.4.orig.tar.gz 1491767 SHA256:134bfe122fd25599bb807bb8130e7ba6d9bdb851e0b16efcb83ac4f5d0b70057
+> 'http://deb.debian.org/debian/pool/main/s/snappy/snappy_1.1.4-1.debian.tar.xz' snappy_1.1.4-1.debian.tar.xz 4400 SHA256:9be718653559b45d5bd6eab32d4f18e7b5a1dbff57463cd94ba3f51eb11b0a20
+Comparing that with <https://tracker.debian.org/pkg/snappy> and
+<https://packages.debian.org/search?searchon=sourcenames&keywords=snappy>
+shows "1.1.3-3" for Debian-Stretch.
+> $ curl -s http://ftp.de.debian.org/debian/dists/stretch/main/source/Sources.xz | xz -d | grep-dctrl -s Package,Version,Extra-Source-Only -PX snappy
+> Package: snappy
+> Version: 1.1.3-3
+> 
+> Package: snappy
+> Version: 1.1.4-1
+> Extra-Source-Only: yes
+So how can I tell "apt-get source" to pull the "right" version, e.g. the
+version "libsnappy1v5" was built from?
+> $ LANG=C apt-cache policy libsnappy1v5
+> libsnappy1v5:
+>   Installed: 1.1.3-3
+>   Candidate: 1.1.3-3
+>   Version table:
+>  *** 1.1.3-3 500
+>         500 http://deb.debian.org/debian stretch/main amd64 Packages
+>         100 /var/lib/dpkg/status
+This looks like a bug in APT and did I miss something?
+Philipp
+-- 
+Philipp Hahn
+Open Source Software Engineer
+Univention GmbH
+be open.
+Mary-Somerville-Str. 1
+D-28359 Bremen
+Tel.: +49 421 22232-0
+Fax : +49 421 22232-99
+hahn@univention.de
+http://www.univention.de/
+Geschäftsführer: Peter H. Ganten
+HRB 20755 Amtsgericht Bremen
+Steuer-Nr.: 71-597-02876

@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: apt-get dist-upgrade uninstalled most of KDE
+From : nobrin@gmail.com
+Date : Wed, 16 Aug 2017 18:25:43 -0700
+Message-id : CAP-9OuJX7ySMhiMOeq1oGk-GO4fm=2mucb5RuoO5G7e+Sg-FAg@mail.gmail.com
+In-reply-to : <[🔎] CAP-9OuKAJSMtpoxORB-a3NZ4-QkieXrLYyw1sM8RgbpavxZy8A@mail.gmail.com>
+References : <[🔎] CAP-9OuKsdxyrD6KgRnON7SOwCeQyFK=X1gT5u8JkT42GE0i6Sg@mail.gmail.com> <[🔎] 4021606.0gUckcaGSM@merkaba> <[🔎] 11564031.O8zQr7fMXz@merkaba> <[🔎] CAP-9OuJB1m67+M5tH9qSEDONQLnRnCEJxAUs9RzE6vnz+qORJg@mail.gmail.com> <[🔎] 325347df-ba16-843c-8535-121669555837@transient.nz> <[🔎] CAP-9OuKAJSMtpoxORB-a3NZ4-QkieXrLYyw1sM8RgbpavxZy8A@mail.gmail.com>
+
+
+Hi All,
+As a reference, I undid the last apt command in one (long) line:
+apt-get install `cat /var/log/apt/history.log | awk
+'/Start-Date/{last=""} /^Start-Date:/,/End-Date/{last=last $0 "\n"}
+END {print last}' | sed 's/ \([^ ]*\) (\([^,)]\+\)\(,
+[^)]\+\)\?)/\1=\2/g' | awk -F, '/Install:/{gsub(/^Install:/,"");
+gsub(/=[^,]*/,""); for(i=1;i<NF;i++) printf ($i "- ")}
+/(Upgrade|Remove):/{gsub(/^(Upgrade|Remove):/,""); $1=$1; print $0}' |
+sed 's/ \(heroku[^ ]*\) / /'`
+using the snapshot from a couple days ago in sources.list:
+deb http://snapshots.debian.org/archive/debian/20170814T210836Z/ sid
+main non-free contrib
+Cheers,
+Marco
+On Wed, Aug 16, 2017 at 3:35 PM,  <nobrin@gmail.com> wrote:
+> Thanks!
+>
+> I was thinking about implementing an "apt-get rollback-upgrade"
+> command, which would also remove any package installed by the previous
+> upgrade. To be reliable, though, it should also restore any
+> configuration overwritten by the install. So maybe it is not feasible.
+>
+> I agree, maybe "apt-mark hold" is a better strategy if one wants to
+> keep installing packages during the transition.
+>
+> Best,
+> Marco
+>
+> On Wed, Aug 16, 2017 at 3:28 PM, Ben Caradoc-Davies <ben@transient.nz> wrote:
+>> On 17/08/17 10:08, nobrin@gmail.com wrote:
+>>>
+>>> Using snapshot repositories and "apt-get install packagename=version"
+>>> sounds like a*great*  strategy to implement a quick-and-dirty rollback
+>>> function for apt-get. Do you think it would suffice to analyze
+>>> history.log and run "apt-get install" with
+>>> - "package-" for all packages installed by the last update and
+>>> - add "package=version" for all updated and removed packages?
+>>> The snapshot it would use is the one of the previous upgrade.
+>>
+>>
+>> "apt-get install package=version" should remove any packages that conflict
+>> with the installation, so you should not have to manually remove anything.
+>> The only other thing I did after the downgrade was to "apt-mark hold" the
+>> packages affected by the transition that I did not want to remove; this is
+>> my preferred tactic for surviving transitions.
+>>
+>>
+>> Kind regards,
+>>
+>> --
+>> Ben Caradoc-Davies <ben@transient.nz>
+>> Director
+>> Transient Software Limited <http://transient.nz/>
+>> New Zealand
+>>

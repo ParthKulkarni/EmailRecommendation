@@ -1,0 +1,54 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: Auto-update for sid? Auto-backport?
+From : Wouter Verhelst <wouter@debian.org>
+Date : Fri, 17 Nov 2017 09:54:37 +0100
+Message-id : 20171117085437.zfx52v4mynitpnlc@grep.be
+In-reply-to : <[🔎] 20171116190639.mquie4xss4gkwjyj@perpetual.pseudorandom.co.uk>
+References : <[🔎] f6db377a-b082-fa64-29c7-e29d931aeb8c@gmx.de> <[🔎] 87a7zn31cf.fsf@iris.silentflame.com> <[🔎] A2A20EC3B8560D408356CAC2FC148E53BB4876B9@SUN-DAG3.synchrotron-soleil.fr> <[🔎] 87h8tvxvik.fsf@hope.eyrie.org> <[🔎] 20171116154118.igjf6zelqryxkkwn@an3as.eu> <[🔎] 20171116162217.jdbkidzs7slrgzm5@grep.be> <[🔎] 23053.48370.141972.753720@chiark.greenend.org.uk> <[🔎] 20171116165340.a3xqsbq3p5upbjrq@grep.be> <[🔎] 20171116170200.trspifmuckci3yix@layer-acht.org> <[🔎] 20171116190639.mquie4xss4gkwjyj@perpetual.pseudorandom.co.uk>
+
+
+On Thu, Nov 16, 2017 at 07:06:39PM +0000, Simon McVittie wrote:
+> On Thu, 16 Nov 2017 at 17:02:00 +0000, Holger Levsen wrote:
+> > On Thu, Nov 16, 2017 at 05:53:40PM +0100, Wouter Verhelst wrote:
+> > > Yes; and semver.org is a formalized system for version numbering stuff.
+> > > If upstream has committed to it (and does not make mistakes), then the c
+> > > versions in the above example MUST (in the RFC definition of that word)
+> > > only contain bugfixes, and no interface changes.
+> >  
+> > oh shiny! thanks for pointing out semver.org!
+> 
+> Semantic versioning is not a panacea: it assumes that a developer can
+> know in advance whether changes are a compatibility break or not. In
+> simple cases where a bug fix or a new feature never causes any unintended
+> regressions, that's easy; but if there were no regressions, then we'd
+> all run unstable on servers.
+There are certainly problems with assigning the correct
+semver-compatible version number in some environments, as you point out.
+That's also part of why there are multiple revisions of semver itself, I
+would assume.
+However, those are upstream's problems, not ours; and given that
+upstream tries to do the right thing, we can infer from a version number
+which changes are expected, and whether it's a good idea.  I could
+imagine a policy which would do something along the following lines,
+given a X.Y.Z semver-compatible version number:
+- if X changes, automatically file a bug but don't do anything
+- if Y changes, try to rebuild the package and run any tests (if
+  available); post the result to the BTS, but don't upload.
+- if Z changes, try to rebuild the package. If autopkgtests exist, run
+  them; if they don't fail, upload. If no tests exist, build, but don't
+  upload. If uploading, file an "automatic upload happened" bug in the
+  BTS, marked release-critical, so that the package won't auto-migrate
+  unless someone has at least tested the package in a real-world
+  scenario.
+There will still be risks; there are always risks. In this context, and
+with that policy, however, I think that they are minimized and
+acceptable.
+(I could imagine that if the package was involved in a transition, the
+release managers would also not like it if the package was
+auto-uploaded; having the script that implements the above look at the
+transitions configuration before trying any upload might be helpful to
+avoid that)
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

@@ -1,0 +1,61 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: changelog practice, unfinalised vs UNRELEASED vs ~version
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Thu, 23 Feb 2017 17:57:33 +0000
+Message-id : 22703.8845.815119.347441@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20170223145854.i3sk7m6g7pd6ofga@perpetual.pseudorandom.co.uk>
+References : <[🔎] 22688.22947.749751.138991@chiark.greenend.org.uk>	<[🔎] 20170218170802.rmetedgkbknyyajz@bogon.m.sigxcpu.org>	<[🔎] 22699.19438.761643.442987@chiark.greenend.org.uk>	<[🔎] 20170223112753.356pjefxwqvobz5r@bogon.m.sigxcpu.org>	<[🔎] 22702.56148.104509.618413@chiark.greenend.org.uk>	<[🔎] 20170223145854.i3sk7m6g7pd6ofga@perpetual.pseudorandom.co.uk>
+
+
+Simon McVittie writes ("Re: changelog practice, unfinalised vs UNRELEASED vs ~version"):
+> On Thu, 23 Feb 2017 at 12:53:40 +0000, Ian Jackson wrote:
+> > We could decorate the suite instead, but that does not have any
+> > effect on generated binaries.
+> 
+> It does have an effect on the changelog inside the source and binary
+> packages,
+True.  But I still think it would be a good idea for unreleased
+binaries to show up as such in the dpkg database.
+> and on the changes file (which is precisely the signed
+> instruction to the archive,
+(Of course such things should not end up signed, but, this point is
+well-made.)
+How about the following, which provides more flexibility for what
+individual users want:
+ * Unfinalised changeslogs should contain UNRELEASED in either
+   the suite name or the version number.  (Currently there is
+   no consensus about this.)
+ * Where the suite contains UNRELEASED, it SHOULD NOT be simply
+   `UNRELEASED'.   It should be `unstable-UNRELEASED' or
+   `experimental-UNRELEASED' or such.
+ * Tools which generates .changes files (specifically,
+   dpkg-genchanges) should, if they find that the version contains
+   UNRELEASED and the suite does not, append UNRELEASED to the suite.
+   (This is to help save downstreams etc.)
+ * The Debian archive will be taught to reject anything with a version
+   containing UNRELEASED (as I proposed before).
+> As I noted on #542747, this property of changes files also means that if
+> a Debian derivative (or an addon repository like apt.postgresql.org) has
+> DD contributors, then that derivative should avoid using a Debian suite
+> name as its suite name. This is because anyone obtaining a DD-signed
+> .changes file for that addon repository could upload it to the main
+> Debian repository, and it would normally be accepted into the suite
+> of the same name. apt.postgresql.org seems to be one of the few addon
+> repositories that does this (IMO) correctly, by using a distinct suite
+> name (in their case jessie-pgdg).
+Yes.
+> I can't help wondering whether changes files ought to include some
+> globally unique indication of the project in which the change is
+> requested
+Yes, they should.
+>  (for instance debian.org, ubuntu.com or [apt.]postgresql.org);
+> but at the moment they don't, and I don't see an obvious place in the
+> workflow to declare "this is really for Debian" vs. "this is for
+> apt.postgresql.org". Maybe at debsign time?
+(`dgit push' already (thinks it) knows the answer to this question and
+could insert the right information.)
+I don't think debsign is the right place.
+If the suite name is not globally unique, then the full qualification
+should be in the changelog.  Ie, the changelog should contain the
+intended target archive.
+Ian.

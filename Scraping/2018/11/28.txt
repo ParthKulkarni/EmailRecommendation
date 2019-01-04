@@ -1,0 +1,65 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : Re: Should libpam-elogind Provide libpam-systemd ?
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 2 Nov 2018 21:04:56 +0100
+Message-id : 20181102200456.nehbt63sszk5pshr@angband.pl
+In-reply-to : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk>
+References : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk>
+
+
+On Fri, Nov 02, 2018 at 05:41:10PM +0000, Ian Jackson wrote:
+> tl/dr: would this be wrong
+>    Package: libpam-elogind
+>    Provides: libpam-systemd
+> and should there be a Conflicts too ?
+This has been briefly discussed before: it's a quite bad idea to have
+provides with same name as a real package.  This works in Devuan where
+there's no libpam-systemd, but in Debian we'd want something like:
+    Depends: default-logind | logind
+or, if a specific version is needed:
+    Depends: default-logind (>= 3.14.15.926) | logind (>= 3.14.15.926)
+(as suggested by smcv a while ago).
+I even prepared a set of packages with that dependencies, although they're
+badly outdated by now:
+deb http://angband.pl/debian logind main
+deb-src http://angband.pl/debian logind main
+Key at:
+https://angband.pl/debian/pool/main/k/kilobyte-archive-keyring/kilobyte-archive-keyring_3_all.deb
+or:
+wget -qO- https://angband.pl/deb/archive.html|apt-key add -
+If you guys still think these deps are ok, tell me so and I'll refresh the
+reverse dependencies in that repo.
+> (emailing the systemd maintainers since that's Providing their package
+>  name, and also d-devel since I'm not sure what input others may have)
+Yeah.
+> In stretch this was handled on many sysvinit systems by systemd-shim.
+> That is not really maintained - the version in sid right now is broken
+> - and its approach means that it keeps breaking and is awkward to fix.
+It never worked for me, even when it was "maintained".  All -shim did was to
+fulfill dependencies without actually bringing functionality such as suspend
+/etc from the GUI.  For that you had to recompile the Utopia stack against
+consolekit.  Elogind on the other hand does it ok.
+> In buster it looks like we are going to try to do this by using
+> elogind.  elogind is not in sid yet but we already have a half-working
+> prototype.
+Its packaging is tailored for Devuan where there's no systemd to deal with.
+On the other hand they're doing necromancy with consolekit which seems to be
+a waste of time to me.
+> The alternative to this Provides would seem to be an MBF requesting
+> updates of all the dependencies.  (Maybe some other virtual package is
+> needed.)
+I'm afraid this would be needed, per smcv's suggestion.
+> (Our draft package ships libpam_elogind.so, but there are some
+> difficulties with pam configuration ending up referring to both
+> libpam_elogind.so and libpam_systemd.so and generating warnings, and a
+> few packages seem to explicitly refer to pam_systemd.so, for instance
+> lightdm's /etc/pam.d/lightdm-greeter.  If we can't resolve that we may
+> need to ship the pam module as libpam_systemd.so and that might
+> involve Replaces as well as Conflicts.)
+I have yet to test newer packages, apologies for not having done that yet.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀
+⣾⠁⢰⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ A tit a day keeps the vet away.
+⠈⠳⣄⠀⠀⠀⠀

@@ -1,0 +1,69 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Simon McVittie <smcv@debian.org>
+Date : Fri, 10 Mar 2017 10:16:58 +0000
+Message-id : 20170310101658.yiq6e2l4x6zmlbzv@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20170309225205.trfsko4cxx26stht@basil.wdw>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org> <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk> <[🔎] 87d1dqfh41.fsf@hope.eyrie.org> <[🔎] 20170309225205.trfsko4cxx26stht@basil.wdw>
+
+
+On Thu, 09 Mar 2017 at 17:52:05 -0500, Marvin Renich wrote:
+> If more upstreams were careful to use dynamic loading in these
+> situations, it would be less of a problem.  In a perfect world, the
+> solution would be for foo's maintainer to convince upstream to switch to
+> dynamic loading.
+(For context, I maintain several game engines that default to dlopen()ing
+their dependencies, some of which I have patched to stop doing that.)
+I do not agree that dlopen()ing dependencies (what you have called "dynamic
+loading") is something we should encourage over normal linking with -lfoo
+(resulting in a DT_NEEDED entry, what you have called "static loading").
+dlopen()ing dependencies in the way that is most commonly implemented,
+with dlopen("libimobiledevice.so.6") and dlsym(handle, "idevice_new")
+or similar, has some practical problems for Debian:
+* The libraries used aren't visible to dpkg-shlibdeps. The maintainer has
+  to know what dlopen() calls the code will make, and either hard-code an
+  appropriate Depends (or in this case Recommends), or link a dummy
+  executable against the same things that are dlopen()ed (as is done
+  in packages like wine and openal-soft) and use that for dpkg-shlibdeps.
+  Either way, they have to remember to update it for every new upstream
+  release. This is the sort of tedious-but-subtle work that we automate
+  because otherwise it will inevitably be incorrect after a few releases.
+* The exact symbols used aren't visible to dpkg-shlibdeps. The maintainer
+  has to hard-code a version number that has all the required symbols.
+  Again, this is the sort of thing that we automate because it will
+  inevitably go wrong if done manually.
+It also has some practical problems for upstreams:
+* It adds a pile of code complexity. Maintainer attention is a scarce
+  resource :-)
+* It moves any compatibility issues from compile-time (where only the
+  developer and packagers will experience them) to runtime (where end users
+  will experience them).
+* If the library is present at runtime, but with an older version than at
+  compile-time, the code needs to be robust against that. This is the sort
+  of thing that a typical upstream will never test.
+* It isn't entirely portable. On common OSs like GNU/* and Windows
+  (and I think macOS, but I'm less sure about that one), it happens to work,
+  but in some OSs there is a distinction between loadable modules and
+  shared libraries, and some upstreams aim to be portable to those OSs.
+  (See the libtool documentation for more than you could possibly want
+  to know about this topic.)
+The pedantically correct way to have weak library dependencies is this
+multi-level chain of linking, analogous to what is documented for APIs
+that wrap dlopen() such as libltdl and GLib's GModule:
+    - eventual API user, e.g. /usr/bin/gnome-software
+      dlopen()s:
+        - a plugin intended to be dlopen()ed, e.g. libgs_plugin_flatpak-user.so
+          has DT_NEEDED on:
+            - libflatpak0
+(For best portability, you'd use libltdl or GModule or similar instead
+of direct dlopen().)
+Having done that, either the plugin can either be split out into its own
+package that is recommended or suggested by the main package (as was done
+for gnome-software support for Flatpak), or the plugin's dependencies can
+be downgraded to Recommends or Suggests with something like
+"dh_shlibdeps -- -e/usr/lib/myplugins/myplugin.so -dRecommends" and it
+will fail to dlopen if they are missing (as is done in at least iproute2 and
+thunar, see https://codesearch.debian.net/search?q=-dRecommends).
+If a library dependency is sufficiently "heavy" that it needs to become
+optional, please consider that approach.
+    S

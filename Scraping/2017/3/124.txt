@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Wed, 8 Mar 2017 18:33:20 -0800
+Message-id : 20170309023316.25sbngq3a2a6ormz@x
+In-reply-to : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl>
+
+
+Adam Borowski wrote:
+> I'd like to discuss (and then propose to -policy) the following rule:
+>
+> # Libraries which don't provide a convenient means of conditionally loading
+> # at runtime (this includes most libraries for languages such as C), SHOULD
+> # NOT declare a "Depends:" or "Recommends:" relationship, directly or
+> # indirectly, on packages containing anything more than dormant files.
+> # Those include, among others, daemons, executables in $PATH, etc.  Any such
+> # relationship should be instead declared by programs that use the library
+> # in question -- it is up to them to decide how important the relationship
+> # is.
+In general, I'd like to see something like this; I'd love to see the
+default install reduced, and Recommends made less painful to leave
+enabled.  I think it'll need some more precise definition, though, on a
+few points:
+- Regarding packages that install running daemons, I agree with this
+  entirely.  I wonder if we could establish some kind of substvar
+  mechanism similar to shlibdeps to make it easy for an application
+  package to say "I want a Depends/Recommends/Suggests on whatever this
+  -dev package's corresponding library needs to run".
+- A Depends with multiple alternatives, where the primary alternative
+  meets this requirement, seems fine overall even if some of the
+  alternatives would not meet this requirement.
+- I don't actually see any issue with a library having a Depends or
+  Recommends on a package that provides a binary executable, such as a
+  helper program.  Most of the time such an executable would live in a
+  library-specific directory under /usr/lib/, but if the program also
+  has value for the end user to run directly, having it in $PATH seems
+  fine.  (In which case it *has* to go in a separate package, to avoid
+  conflicts that would make the library not work with multiarch.)
+  Installing a library and ending up with an additional executable seems
+  far more reasonable than installing a library and ending up with a
+  running daemon.
+  As an example, consider something like libguestfs.  Or consider any
+  library that exists to wrap some command-line tool and give it an API.
+  (Yes, the right answer is "refactor or rewrite the tool to put its
+  implementation in a library", but that isn't always doable overnight.)
+- Configuration files seem fine, such as default configuration for
+  programs using the library, even though in some cases I wouldn't
+  describe such configuration as "dormant".
+- Plugins for other applications might consist of "libraries", but in
+  those packages should not fall under this restriction.  Likewise for
+  PAM and NSS modules and similar.
+- While in general I would prefer not to see library packages asking
+  debconf questions, I do see various libraries with dependencies on
+  debconf.  This would seem to prohibit that.
+And, of course, the usual issue of "policy shouldn't change to make
+large numbers of packages insta-buggy" applies.  It's relatively easy to
+construct a package limit (hit 'l') to browse such packages in aptitude;
+just use this expression:
+?section(libs) ?depends(?not(?or(?section(libs), ?name(^lib))))
+(You may want to refine it further from there.)

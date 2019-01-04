@@ -1,0 +1,42 @@
+To : Debian Devel <debian-devel@lists.debian.org>
+Subject : Re: P.S. Re: Debian 9 in a VM with Proxmox 5 system
+From : Tom H <tomh0665@gmail.com>
+Date : Thu, 13 Jul 2017 05:17:57 -0400
+Message-id : CAOdo=SyoiVTTVyO8_bC2Zu12fHzM0bhw7-DgbhxLpkC9oQkdOA@mail.gmail.com
+In-reply-to : <[🔎] d17i3e-ns5.ln1@castle.rilynn.me.uk>
+References : <[🔎] 5962B743.8030702@landfreak.com> <[🔎] 20170709234920.GA15631@DigitalMercury.dynalias.net> <[🔎] 59636880.9020609@landfreak.com> <[🔎] 20170710115708.GC13590@rene-engelhard.de> <[🔎] 20170710134714.33b4rbp4gqo4xj5r@sliepen.org> <[🔎] 20170710162228.v4teqev5vx3xxgj5@angband.pl> <[🔎] 20170710171158.ceif6hcseguo5amn@bongo.bofh.it> <[🔎] 20170710183653.seynvdj4fjn5ysoj@basil.wdw> <u1LLd-94-41@gated-at.bofh.it> <[🔎] d17i3e-ns5.ln1@castle.rilynn.me.uk>
+
+
+On Wed, Jul 12, 2017 at 2:40 PM, Roger Lynn <Roger@rilynn.me.uk> wrote:
+> On 10/07/17 19:40, Marvin Renich wrote:
+>>
+>> There is an easy fix to revert the default behavior while still allowing
+>> knowledgeable sysadmins to get the new behavior. On the other hand,
+>> those who need to administer systems but are not sysadmins by trade (and
+>> thus will have to do significantly more research to even know that the
+>> older behavior is possible) are the ones who need the older behavior as
+>> the default.
+>
+> This caught me out on a recent new installation, which gave me these new
+> names which are too complicated to be usable. I wasted hours working out
+> what had happened, how to fix it and how to write a udev rules file from
+> scratch. And having just read this thread, I've discovered that the rules
+> I've written are themselves apparently unreliable, for example:
+> SUBSYSTEM=="net", ATTR{address}=="1c:1b:0d:9a:34:98", NAME="eth0"
+> SUBSYSTEM=="net", ATTR{address}=="1c:1b:0d:9a:34:9a", NAME="eth1"
+It's simpler to use (for example)
+# cat /etc/systemd/network/77-en0.link
+[Match]
+MACAddress=1c:1b:0d:9a:34:98
+[Link]
+Name=en0
+# cat /etc/systemd/network/77-en1.link
+[Match]
+MACAddress=1c:1b:0d:9a:34:9a
+[Link]
+Name=en1
+This rule works even if you use sysvinit as pid 1.
+Renaming NICs within the kernel's "eth*" namespace is discouraged upstream.
+Suppose that the kernel names "1c:1b:0d:9a:34:9a" "eth0" and
+"1c:1b:0d:9a:34:98" "eth1". You'll have a renaming clash when udev
+tries to apply your rules.

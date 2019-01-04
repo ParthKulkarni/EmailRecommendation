@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Niko Tyni <ntyni@debian.org>
+Date : Sun, 2 Dec 2018 13:40:05 +0200
+Message-id : 20181202114005.GA12327@estella.local.invalid
+In-reply-to : <20181123153217.GA14862@thunder.hadrons.org>
+References : <20181120211617.gxnuwxpx2hy445ps@angband.pl> <6FEC5C58-827A-42EF-B7F4-F9603AFBB60D@gmail.com> <20181121092346.umhv45iy2vhvpljv@angband.pl> <20181123153217.GA14862@thunder.hadrons.org>
+
+
+On Fri, Nov 23, 2018 at 04:32:17PM +0100, Guillem Jover wrote:
+> Please, if we decide we want to do merged /usr, let's do it properly.
+I'm toying with the idea of creating a merged-usr package indicating
+'this system has merged /usr'. It could either fail to install with an
+informational message on unmerged-usr systems, or if we're brave enough,
+interactively or automatically convert the system (possibly utilizing
+the usrmerge package.)
+Then debhelper (or even dpkg-dev) could probe whether the build system
+has merged /usr, and automatically add dependencies on merged-usr to
+resulting binary packages, The dependency injection could be on either
+an opt-out or an opt-in basis.
+The opt-out way would be the more safe and conservative approach,
+assuming everything built on merged /usr is broken on non-merged /usr
+unless the maintainer indicates otherwise.
+On the contrary, the opt-in approach would require that all problematic
+packages (those that will not function fine when built on merged /usr
+systems but installed on non-merged /usr ones) be identified and tagged
+as needing this dependency. This obviously has a chance of missing
+some of the issues.
+Whether opt-out or opt-in, the transition in Debian could then be
+controlled by monitoring dependencies on merged-usr, possibly playing
+whack-a-mole rebuilding things that have gained this dependency in
+maintainer uploads, or letting the gates open at some point and allowing
+even core packages to gain this dependency (effectively forcing /usr
+merge on all systems.)
+All this would make the issues explicit and reflected in the package
+dependency metadata, which seems to me like at least a step forward.
+-- 
+Niko Tyni   ntyni@debian.org

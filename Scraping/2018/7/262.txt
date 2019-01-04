@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org, debian-release@lists.debian.org
+Subject : Re: GCC and binutils updates for buster
+From : Adrian Bunk <bunk@debian.org>
+Date : Mon, 30 Jul 2018 23:36:03 +0300
+Message-id : 20180730203603.GB13837@localhost
+In-reply-to : <[🔎] b6bfa3d9-3d25-e363-2030-db7fb9fa324d@debian.org>
+References : <[🔎] b6bfa3d9-3d25-e363-2030-db7fb9fa324d@debian.org>
+
+
+On Mon, Jul 16, 2018 at 05:59:28PM +0200, Matthias Klose wrote:
+>...
+>  - armel: The armv4t default isn't used very much anymore,
+The baseline is armv5te since last year.
+> and we had issues in the past.
+Could you elaborate on that?
+The latest major issue I am aware of was about #727621 and the backport 
+of the fix.[1] #727621 was not even a regression, this was new 
+functionality accidentally not provided by gcc on armel.
+>  - armhf: While arm-linux-gnueabihf is not explicitly listed as a primary
+>    architecture, I'm told that the arm-linux-armeabi triplet covers the
+>    hard float variants as well.
+> 
+>  - ppc64el: Not documented as primary architecture, but according to the
+>    backend maintainers the powerpc64-linux-gnu triplet includes the le variant.
+> 
+>  - mips*: There is no support for any mips-linux target either as a primary
+>    or secondary release architecture (only bare metal), which matches the
+>    experience with mips specific issues for the past Debian releases.
+> 
+> I understand that port maintainers want to have their port included as a release
+> architecture, however it becomes a burden if neither the upstream nor the Debian
+> port maintainers can keep up with the general upstream development. Maybe we
+> need something in between the alternatives of being a release arch or not,
+> having the benefit of packages in testing/stable, but not being supported in a
+> release.
+Your theoretical discussion based on upstream definitions misses which 
+architectures actually have a proven track record of frequent toolchain 
+problems in recent years.
+Any discussion about real problems has to include arm64 as a prime 
+candidate for demotion - no matter the upstream definition.
+We even had last-minute toolchain regressions like #863152, which means 
+that we cannot rebuild some packages we ship for arm64 in stretch.
+Such regressions are a problem both for security support and licence reasons.
+The root problem for most actual breakages is that regresssions are 
+usually not in boring stale old code nobody touches - regressions
+tend to be in sexy new code that is under heavy development.
+arm64 and mips64el are the most recent of the architectures in stretch.
+There is a lot of upstream toolchain development happening for arm64.
+These are the reasons why arm64 and mips64el have been a burden
+in recent years.
+And the next burden will be if riscv64 gets added in bullseye.
+I do not have the impression that this burden is unmanageable, but if 
+you disagree the actual discussion you have to start is about delaying
+the inclusion of ports for new hardware in a Debian stable release.
+> Matthias
+>...
+cu
+Adrian
+[1] Reminds me that I have to check which Breaks are missing for that.
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

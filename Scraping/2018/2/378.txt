@@ -1,0 +1,141 @@
+To : Colin Watson <cjwatson@debian.org>, debian-devel@lists.debian.org
+Subject : 回覆： What can Debian do to provide complex applications to its users?
+From : David Zhan <david.zhan.list@gmail.com>
+Date : Sun, 18 Feb 2018 12:08:35 +1100
+Message-id : 20180218010835.13865042.59086.3997@gmail.com
+In-reply-to : <[🔎] 20180217231451.3pqcso2sy53hfl2o@riva.ucam.org>
+References : <[🔎] 20180216151129.GB18296@home.ouaza.com> <[🔎] e7bb0d56-1333-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 20180216171204.GB4131@feivel> <[🔎] 87vaew939z.fsf@iris.silentflame.com> <[🔎] 20180216193816.GA3202@feivel> <[🔎] 87eflk8u7q.fsf@iris.silentflame.com> <[🔎] CAKTje6EpCJ+KBoh9nGW-7nzcs8EeFoAJXUxfb6tC0AJMVKoDiw@mail.gmail.com> <[🔎] 87sh9za5ai.fsf@hope.eyrie.org> <[🔎] 87sh9zh3xu.fsf@err.no> <[🔎] 20180217231451.3pqcso2sy53hfl2o@riva.ucam.org>
+
+
+原始訊息  
+寄件者： Colin Watson
+已傳送： Sonntag, 18. Februar 2018 10:15
+收件者： debian-devel@lists.debian.org
+主旨： Re: What can Debian do to provide complex applications to its users?
+On Sat, Feb 17, 2018 at 07:22:05PM +0100, Tollef Fog Heen wrote:
+> I think there's at least two types of vendoring you're referring to
+> here, and they're substantially different.
+> 
+> One is how Go currently does (but my understanding is that this is
+> changing in newer versions). Here, the source code of dependencies are
+> shipped together with the source code for the application. This leads
+> to trees like
+> https://github.com/kubernetes/kubernetes/tree/master/vendor where any
+> one of those dependencies might be a released version or tag, or it
+> might just be a random git snapshot, and there's not really any way to
+> know.
+> 
+> The other (you refer to this as freezing dependencies) is how
+> Node.js/npm/yarn, Ruby/gem, (to some extent) Python/pip, and Rust/cargo
+> does it. In those cases, you have some file specifying the versions of
+> libraries the application needs, usually as «this version of this
+> gem/crate/package» and there is somewhere those packages live by
+> default. Quite often, there's also a lock file of some sort which lists
+> out the exact versions used, recursively, which ensures you can deploy
+> the exact same code multiple times.
+> 
+> The second method means you can reason about what versions of code are
+> included where.
+This is an excellent point. (In fact, I think you can do some of that
+reasoning for the first method too; it's just going to take more effort.
+For example, you could run "govendor sync" or whatever and check that
+the output tree actually matches what's promised. In some ways this is
+similar to the question of "is this package's .orig.tar actually the
+version it claims to be?".)
+It's worth remembering that this isn't just some lazy upstreams not
+getting round to keeping their dependencies up to date:
+* Often they need newer versions of dependencies than are in Debian
+stable, because retaining compatibility back to whatever version we
+shipped for a half-million-line web application and actually testing
+the result is a combinatorially-hard problem.
+* Often the existence of packaged web applications in Debian itself
+makes it harder to upgrade the libraries they depend on. Take
+Django, for instance: it has really remarkably good documentation of
+what you need to do to upgrade an application to a newer version and
+a very clear deprecation policy, but you still have to do it and
+keeping your application compatible with more than two or three
+Django versions (by which I mean 1.8, 1.9, 1.10, etc.) before the
+newest one you support is likely to be pretty painful. Now package
+half a dozen Django applications and suddenly the library package
+maintainers have a heck of a time keeping everything working. [1]
+* And yes, sometimes an upstream can end up with out-of-date
+dependencies that are going to take significant effort to resolve,
+but there's something to be said for making it possible to shift the
+upgrade effort to a time when it's convenient to do so, even though
+there's obviously a trade-off with the possibility that you might end
+up putting it off indefinitely. Not to mention that if they did
+upgrade their dependencies, they might end up being incompatible with
+the versions in Debian stable, and as it is that doesn't help our
+users of packaged applications very much either. The lockstep
+problem is really nasty.
+* Packaging individual libraries that aren't especially useful on the
+client side can be pretty boring work and is often not very socially
+valued (the people trying to deal with JavaScript dependencies in
+Debian have taken a lot of flak, for instance).
+And yet ... it can be really nice to have some of these things packaged
+in a common format. I know roughly nothing about PHP, and I don't want
+to have to learn yet another packaging stack or another upstream's
+favourite container technology, so it's great that Icinga Web 2 is
+packaged so that I can just install it without having to learn that. I
+want it to be as easy as possible for the security team and the people
+who care about it to keep it up to date. For the case where something
+depends on OpenSSL, it's mostly pretty obvious where the trade-offs lie.
+For the case where something depends on 80 npm libraries and a security
+update to the application might require updating 10 of those and maybe
+breaking some other packaged application in the process, it's not so
+clear that it even serves our developers let alone our users.
+[1] Disclaimer: I only do in-house development at work of Django
+applications that aren't packaged in Debian, and I'm not involved in
+Django's Debian maintenance, so this is an outside view and I may
+have some details wrong.
+> You might still have to patch five versions of libvulnerable, but at
+> least it's possible to find which five versions are in use, and get
+> those fixed in a central place and then rebuild everything that's
+> vulnerable, recursively. Not the most fun job in the world, but it's
+> at least possible to automate somewhat.
+So maybe what we need is to run with that a bit further? Debian has
+historically been really good at coming up with ways to represent what
+disparate upstream developers are doing in formats that can be consumed
+in single common ways, so e.g. you can upgrade your system with a single
+command rather than having to go and work out what to do for each
+package. We could probably come up with a common format representing a
+package's frozen dependencies, in the spirit of Built-Using, and see if
+it's possible to build reasonable security workflows around those. For
+instance, as a strawman starting point, we could aim for rules like
+these:
+* Constrained to the sort of server-side applications that might
+reasonably be run in a container on their own, just to keep the
+problem size down a bit.
+* No freezing of stuff that's outside of the primary language ecosystem
+involved (so your Python webapp doesn't get to come up with a fancy
+way to vendor OpenSSL).
+* Maybe truncate the frozen dependency tree at C extensions, in order
+that we can make sure those are built for all architectures, so you'd
+still have to care about compatibility with those. It'd be a much
+smaller problem, though.
+* Every frozen dependency must be installed in a particular defined
+path based on (application name, dependency name, dependency
+version), and must be installed using blessed tools that generate
+appropriate packaging metadata that can be scanned centrally without
+having to download lots of source packages.
+* Updating a single frozen dependency (assuming no API changes to the
+application's source code) must be no harder than updating a single
+line in a single file and bumping the Debian package version.
+* Where applicable, deprecation warnings must be configured as
+warnings, not errors, to maximise compatibility.
+* Dependencies with a non-trivial CVE history would have an acceptable
+range of versions, so we could drop applications that persistently
+cause trouble while still allowing a bit of slack. For some
+dependencies it might not be a problem at all; e.g. we probably don't
+care what version of python-testtools something uses.
+* We put all this together in a separate archive that explicitly
+doesn't have security support; the security team wouldn't be expected
+to provide support until the tooling is in a state where it's easy
+enough for them.
+I dunno. Maybe this is all so much blowing smoke, since I'm not
+actually volunteering ... but I develop webapps in the
+frozen-dependencies style at work and still see value that a
+distribution like Debian could provide by way of packaging, so wanted to
+offer some suggestions that I think might be useful compromises.
+-- 
+Colin Watson [cjwatson@debian.org]

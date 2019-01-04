@@ -1,0 +1,49 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#899369: general: system freezes when sending SysRq-c signal instead of dumping the crashdump when on iSCSI root
+From : "Eugene M. Zheganin" <eugene@zhegan.in>
+Date : Wed, 23 May 2018 14:16:21 +0300
+Message-id : 152707418171.1865.3761107082297656964.reportbug@hv22.linx.playkey.net
+Reply-to : "Eugene M. Zheganin" <eugene@zhegan.in>, 899369@bugs.debian.org
+
+
+Package: general
+Severity: normal
+Dear Maintainer,
+*** Reporter, please consider answering these questions, where appropriate ***
+   * What led up to the situation?
+When on iSCSI root, Debian freezes after sending the SysRq-c signal. SysRq-c signal works in a frozen state just fine. I am aware about the fact that Linux cannot save the crashdump on iSCSI, so I configured the NFS resource for a crashdump. However, I don't see on an NFS server any network activity indicating that Debian tries to access the NFS share.
+   * What exactly did you do (or not do) that was effective (or
+     ineffective)?
+I have configured the kdump as follows:
+# kdump-config show
+DUMP_MODE:        kdump
+USE_KDUMP:        1
+KDUMP_SYSCTL:     kernel.panic_on_oops=1
+KDUMP_COREDIR:    /var/crash
+crashkernel addr: 0x15000000
+   /var/lib/kdump/vmlinuz: symbolic link to /boot/vmlinuz-4.16.0-1-amd64
+kdump initrd: 
+   /var/lib/kdump/initrd.img: symbolic link to /var/lib/kdump/initrd.img-4.16.0-1-amd64
+NFS:              10.0.2.4:/data/esx/kdump
+NFS_TIMEO:        600
+NFS_RETRANS       3
+HOSTTAG:          hv22
+current state:    ready to kdump
+kexec command:
+  /sbin/kexec -p --command-line="BOOT_IMAGE=/boot/vmlinuz-4.16.0-1-amd64 root=UUID=4e04292f-93d9-4020-acc3-fa7c3bb1ab88 intel_iommu=on iommu=pt modprobe.blacklist=nouveau quiet nr_cpus=1 systemd.unit=kdump-tools.service irqpoll nousb ata_piix.prefer_ms_hyperv=0" --initrd=/var/lib/kdump/initrd.img /var/lib/kdump/vmlinuz
+NFS share is accessible from the freezing host when just mounting it.
+   * What was the outcome of this action?
+Actual outcome is that Debian freezes as soon as I send the SysRq-c.
+   * What outcome did you expect instead?
+Expected output would be: system dumps kernel core on an NFS share.
+*** End of the template - remove these template lines ***
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.16.0-1-amd64 (SMP w/56 CPU cores)
+Locale: LANG=C, LC_CTYPE=C (charmap=ANSI_X3.4-1968), LANGUAGE=C (charmap=ANSI_X3.4-1968)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled

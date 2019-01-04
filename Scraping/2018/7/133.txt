@@ -1,0 +1,55 @@
+To : Andreas Tille <andreas@an3as.eu>, Debian Developers <debian-devel@lists.debian.org>
+Subject : Re: Is Access to Salsa restricted to a certain number of queries per time and host?
+From : Julien Cristau <jcristau@debian.org>
+Date : Wed, 11 Jul 2018 13:34:29 +0200
+Message-id : 097c5625-fe1a-b224-b8cb-6f39dc30a20e@debian.org
+In-reply-to : <[🔎] 20180711081851.umyripxk6xaymvqx@an3as.eu>
+References : <[🔎] 20180711081851.umyripxk6xaymvqx@an3as.eu>
+
+
+On 07/11/2018 10:18 AM, Andreas Tille wrote:
+> Hi,
+> 
+> I'm running a daily cron job on host blends.debian.net to gather machine
+> readable data from all blends packages.  The cron job fetches only the
+> following files
+> 
+>     debian/changelog
+>     debian/control
+>     debian/copyright
+>     debian/README.Debian
+>     debian/upstream/edam
+>     debian/upstream/metadata
+> 
+> (if the latter two exist) from about 2000 repositories.  These data are
+> consumed in UDD from where they are used in the Blends web sentinel.  The
+> script which is running can be found in Git[1].
+> 
+> Unfortunately the cron job seems to stop with
+> 
+> Traceback (most recent call last):
+>   File "/usr/lib/python3/dist-packages/gitlab/exceptions.py", line 251, in wrapped_f
+>     return f(*args, **kwargs)
+>   File "/usr/lib/python3/dist-packages/gitlab/mixins.py", line 48, in get
+>     server_data = self.gitlab.http_get(path, **kwargs)
+>   File "/usr/lib/python3/dist-packages/gitlab/__init__.py", line 728, in http_get
+>     streamed=streamed, **kwargs)
+>   File "/usr/lib/python3/dist-packages/gitlab/__init__.py", line 706, in http_request
+>     response_body=result.content)
+> gitlab.exceptions.GitlabHttpError: 429: b'Retry later\n'
+> 
+> During handling of the above exception, another exception occurred:
+> 
+> Traceback (most recent call last):
+>   File "/srv/blends.debian.org/misc/machine_readable/fetch-machine-readable_salsa.py", line 106, in <module>
+>     project = gl.projects.get(pr.attributes['id']) # without this extra get repository_tree() fails
+>   File "/usr/lib/python3/dist-packages/gitlab/exceptions.py", line 253, in wrapped_f
+>     raise error(e.error_message, e.response_code, e.response_body)
+> gitlab.exceptions.GitlabGetError: 429: b'Retry later\n'
+> 
+You could probably save yourself some trouble by not polling repos that
+have had no activity since you last looked at them.
+You're also right that salsa support issues don't really belong on this
+list.
+Cheers,
+Julien

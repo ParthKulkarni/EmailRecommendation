@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Russ Allbery <rra@debian.org>
+Date : Fri, 10 Mar 2017 10:07:53 -0800
+Message-id : 87bmt9huo6.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20170310121313.n3lvca2y3okwfgsg@grep.be> (Wouter Verhelst's	message of "Fri, 10 Mar 2017 13:13:13 +0100")
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl>	<[🔎] 87o9xbxhd2.fsf@hope.eyrie.org>	<[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk>	<[🔎] 87d1dqfh41.fsf@hope.eyrie.org>	<[🔎] 20170310121313.n3lvca2y3okwfgsg@grep.be>
+
+
+Wouter Verhelst <wouter@debian.org> writes:
+> On Thu, Mar 09, 2017 at 10:19:10AM -0800, Russ Allbery wrote:
+>> Now, if this were taken a further step so that dpkg-shlibdeps would
+>> provide some mechanism to *automatically* add those downstream
+>> dependencies to packages that depend on the library unless the
+>> dependencies were explicitly suppressed, I wouldn't be as strongly
+>> opposed.
+> I think this is probably the best way forward, and it doesn't even need
+> to be too complicated:
+> - Modify dpkg-shlibdeps so it supports the type "opt" in the shlibs file
+>   (see "man deb-shlibs" for details);
+> - Make dpkg-shlibdeps emit the conjunction of the regular shared library
+>   dependencies (i.e., typeless dependencies) and the "opt" type ones
+>   (the daemons etc that the library would need if used) in the
+>   ${shlibs:Depends} substvar, if no special command line parameter was
+>   passed to it;
+> - If a special command line was passed to it of the form
+>   "--suggests=libfoo0,libbar0" or "--recommends=libfoo0,libbar0", then
+>   pass the optional dependencies for the given packages in new
+>   ${shlibs:Suggests} or ${shlibs:Recommends} substvars instead (and pass
+>   any optional dependencies for packages not so given still in the
+>   ${shlibs:Depends} substvars).
+> With that, maintainers who consume libraries but don't do anything
+> special will continue to produce working packages; and maintainers who
+> consume libraries and care can use ${shlibs:Suggests} and
+> ${shlibs:Recommends} substvars to decide where the optional dependencies
+> must go without breaking anything for users.
+Yeah, I'm kind of coming around to something like this, although I suspect
+you'd need more granularity than just one pair of variables, at least
+eventually.  But that's an implementation detail.
+I think it's worth remembering, though, that this is unlikely to change
+anything about the particular use case that triggered this whole thread.
+I don't want us to lose track of the fact that the canonical example
+(upower -> usbmuxd via a library for Apple support) isn't a mistake or
+accident; it's a tradeoff disagreement between people with different
+preferences about what the ideal state should look like.
+If we put in place this mechanism or something like it, I fully expect
+that the upower maintainer would think "hm, actually, I want my package to
+work on Apple hardware out of the box without requiring anyone do
+something special, particularly since otherwise I get bug reports about it
+not working on that hardware, so adding the Recommends that brings in
+usbmuxd looks correct -- if people don't like it, they can always remove
+it or turn off Recommends."  And then we would be back to exactly where we
+are right now.
+We should make sure that we're actually solving a real problem here before
+doing work, which includes being sure that a solution, if implemented,
+would actually change things.  I continue to think that the disagreement
+isn't a theoretical one over how to handle library to binary dependencies,
+but an actual technical disagreement over the importance of out-of-the-box
+hardware support versus system bloat when Recommends is enabled.  We're
+not going to resolve that disagreement by writing more Policy or more code
+in dpkg-shlibdeps.
+(That said, the above system seems rather neat to me.)
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

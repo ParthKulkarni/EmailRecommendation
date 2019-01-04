@@ -1,0 +1,90 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>, debian-devel@lists.debian.org, Debian release team <debian-release@lists.debian.org>
+Subject : Re: Etiquette about test regression, bug severities, etc.
+From : Niels Thykier <niels@thykier.net>
+Date : Wed, 20 Jun 2018 19:30:00 +0000
+Message-id : d770ddda-0c43-8a09-2855-837caf1c5e56@thykier.net
+In-reply-to : <[🔎] 23338.9480.410521.134640@chiark.greenend.org.uk>
+References : <[🔎] 23338.9480.410521.134640@chiark.greenend.org.uk>
+
+
+Ian Jackson:
+> Now that we have autopkgtests blocking testing migration, there is a
+> much stronger incentive for people to keep their tests passing in
+> testing.
+> 
+s/blocking/delaying/
+While it is a goal to get it to a blocking state, we are not there yet.
+> If one's tests are broken by an update to another package, and the
+> increased britney migration delay doesn't do the job (perhaps the
+> delay is too short, or there is a problem with the ci arrangements)
+> then ideally there would be a bug open against the other package.
+> That bug would stop the migration.
+> 
+> There are some problems with this, though:
+> 
+>  * The only available bug severity is `serious' which also triggers
+>    testing autoremovals.  [...]
+FTR: If you want to block testing migration, you can simply file the RC
+bug against the unstable version of the package.  When the bug only
+affects unstable, britney counts it as a regression and blocks testing
+migration.  However, the auto-removal only considers bugs that affect
+testing, so the bug is not going to trigger an auto-removal.
+> 
+> [...]
+> IMO we need a bug severity or tag that has the following properties:
+> 
+> [...]
+This seems like a lot of work to implement a self-help system that will
+solve the interim/temporary phase where autopkgtests regressions are not
+blocking testing migrations.
+Cost-benefit-wise I think we are better off spending our resources
+working on making the autopkgtest infrastructure and tests mature enough
+that we can start to make the regressions blockers by default.
+> 
+> In the absence of such a self-help system, would it normally be
+> appropriate to ask the release team to manually defer the migration ?
+> If so then maybe that could be written down somewhere.  Also it should
+> probably make clear that such a request should not occur routinely,
+> only if either (i) the maintainers of the packages involved disagree
+> or (ii) the matter is urgent (eg because the dependency package will
+> migrate in the next day or two).
+> 
+> Thanks,
+> Ian.
+> 
+For (i), I would start with:  Can we agree that after the upload, the
+recent change:
+"""
+  makes the [reverse dependency] unusable or mostly so, or causes data
+  loss, or introduces a security hole allowing access to the accounts of
+  users who use the package?
+"""[0]
+If yes, then move the discussion to which package should be changed to
+resolve the situation.  Note that if the reverse dependency is the one
+that need changes to cope, then it often makes sense to file an RC bug
+against *both* packages[1].
+If you cannot agree on whether the reverse dependency is now so broken
+that it warrants an RC bug in at least one of the two packages involved,
+then the release team is officially the final arbiter for the RCness of
+a bug.  At that point, the release team will effectively decide whether
+the regression is severe enough that it should block testing migration
+(preferably via RC bugs, but failing that we will deploy a block hint).
+For (ii), a regression in the testing will cause a 10 day delay on top
+of the regular urgency under normal circumstances and will eventually be
+a migration blocker.
+  If we need a standardized process for blocking uploads in this
+situation, then it smells like we are doing something wrong (acting too
+slow, or focusing on the wrong aspects, etc.).
+Thanks,
+~Niels
+[0] I am using the definition for "grave" bugs here with minor
+modification; I would avoid the "package maintainer's [...]
+opinion"-clause for "serious" as it is ambiguous whose opinion counts in
+this case.
+[1] To ensure upgrade paths without breakage on the end user systems,
+the package triggering the regression in the reverse dependency will
+need a versioned Breaks (or a SONAME bump, etc.).  YMMV and alternatives
+can include:
+ 1) removing the reverse dependency from testing, or
+ 2) reverting the upload of the package triggering the regression
+if the issue is not resolved/resolvable in a timely fashion.

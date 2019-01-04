@@ -1,0 +1,96 @@
+To : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Subject : Re: Evaluation (Re: Proposal: A new approach to differential debs)
+From : Julian Andres Klode <jak@debian.org>
+Date : Tue, 22 Aug 2017 23:31:10 +0200
+Message-id : 20170822231413.GA3274@debian.org
+Mail-followup-to : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>,	debian-dpkg@lists.debian.org, deity@lists.debian.org,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170822205346.xtc64pyk7b3eemkf@breakpoint.cc>
+References : <[🔎] 20170812135640.GA6037@debian.org> <[🔎] 20170816000748.GA15914@debian.org> <[🔎] 20170822205346.xtc64pyk7b3eemkf@breakpoint.cc>
+
+
+On Tue, Aug 22, 2017 at 10:53:47PM +0200, Sebastian Andrzej Siewior wrote:
+> On 2017-08-16 00:21:09 [+0200], Julian Andres Klode wrote:
+> > libreoffice-core (size only):
+> > 
+> >   -rw-r--r-- 1 jak jak 29M Jul 22 20:02 libreoffice-core_5.3.5~rc1-3_amd64.deb
+> >   -rw-r--r-- 1 jak jak 31M Jul 16 00:10 libreoffice-core_5.4.0~rc2-1_amd64.deb
+> >   -rw-r--r-- 1 jak jak 31M Jul 28 18:29 libreoffice-core_5.4.0-1_amd64.deb
+> >   -rw-r--r-- 1 jak jak  18M Aug 15 23:44 libreoffice-core_5.3.5~rc1-3_5.4.0-1_amd64.pdeb
+> >   -rw-r--r-- 1 jak jak 4.5M Aug 15 23:42 libreoffice-core_5.4.0~rc2-1_5.4.0-1_amd64.pdeb
+> > 
+> > For 5.4~rc2 to 5.4 it made a huge difference, for 5.3.5~rc1 to 5.4 not so much,
+> > so it probably is a good fit for stable updates, but not for unstable and testing.
+> 
+> I would say it depends on the software. Some differs more than other.
+True.
+> 
+> > firefox (size & performance):
+> > 
+> >  -rw-r--r-- 1 jak jak 2.3M Aug 15 20:59 firefox_55.0-1_55.0-2_amd64.debdelta
+> >  -rw-r--r-- 1 jak jak 2.4M Aug 15 22:13 firefox_55.0-1_55.0-2_amd64.pdeb
+> 
+> and bsdfiff of old data.tar vs new data.dat 2.3MiB which is probably
+> what debdelta does. So I am not sure if it is worth the extra mile to
+> diff file by file. It might be faster and less memory hungry however.
+debdelta also does some file thing, but not sure. We definitely want
+to go per file, as we will not generate a new tar but directly patch
+the installed files (basically, changing the code that unpacks a file
+to .dpkg-new to apply the delta to the old file and write the result
+to .dpkg-new) - you might not even have to read (all) the old files.
+> 
+> > # Further extensions
+> > 
+> > If you put a pristine-tar delta into the delta file, you can fully
+> > reconstruct debs.
+> 
+> There is deltarpm [0] which does the same thing for rpm/fedora. I tried
+> to find a design document but it seems that there is none. It seems
+> however they grab all the binaries and make a delta via in-tree copy of
+> bsdiff (delta.c). They also have intree-zlib but I didn't look why…
+> I was mostly interrested if they have some filters to replace the
+> offsets in binaries with something else but didn't find anything yet.
+Right. We do have our own fork of bsdiff as well now, it's temporarily
+known as jkdiff (https://github.com/julian-klode/jkdiff). The goal is
+of course to turn this into a re-usable library and frontend programs,
+and not limit it to "just" dpkg.
+I did two changes compared to bsdiff:
+* Instead of storing three different control (tuples of delta length,
+  extra length, and an amount to seek), delta (sumwise difference
+  of bytes), and extra (extra bytes to write); it now stores the tuple
+  directly followed by the diff data and the extra data.
+  This makes the patches streamable - we don't have to read from
+  three different positions at the same time. Which is important for
+  us because we can now apply the deltas without even extracting
+  the individual diffs (which is important due to the next point).
+* jkdiff files are uncompressed, bsdiff uses bzip2 on the control,
+  delta, and extra blocks. We will store the files in an xz compressed
+  tarball, so not compressing them first saves time and space. Also,
+  xz is faster than bzip2 (or even gzip) when decompressing AFAICT.
+The diff tool is still based on bsdiff, but jkpatch was completely
+written from scratch and should be really easy to read. The jkpatch
+tool applies diffs using SIMD instructions (using GCCs vector_size
+attribute), which improved user time by about 50%.
+Also, I applied the following changes for the generator:
+* Debian: Do not support large files (> 2GB) - For large files, we need
+  (9 * old + 1 * new) memory (essentially because we build a suffix
+  offset array, so sizeof(off_t) * input size), so at 2GB that would
+  be about 20GB of  RAM needed already. By only supporting small files,
+  we reduce the memory overhead to 5 * old + new, so for the maximum of
+  2 GB we only need 12 GB of RAM.
+ 
+  This only affects generation though. The patches still use 64 bit
+  values, and the patch tool supports large files.
+* Chromium changes:
+  - Replace embedded qsufsort with linking to libdivsufsort - much
+    faster diff generation (for libreoffice it went from 93 seconds
+    to 5 seconds), especially in some pathological
+    cases
+  - Some more fixes for pathological cases
+  (See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=409664#44)
+I'll be writing a blog post and/or email with more details
+shortly.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

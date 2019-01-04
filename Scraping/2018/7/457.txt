@@ -1,0 +1,254 @@
+To : debian-devel@lists.debian.org
+Subject : Let's start salvaging packages!
+From : Tobias Frost <tobi@debian.org>
+Date : Sun, 29 Jul 2018 17:40:49 +0800
+Message-id : 20180729094048.GA29235@coldtobi.de
+
+
+Dear fellow Debinites,
+tl;dr: Let's bring the package salvage process discussed some years earlier to
+life!
+There will be a BoF at DebConf18 Thursday, August 2nd 11:00 in Room Xueshan [a]
+for dicussion and fine tuning. (We will likely have video coverage.)
+I'm sending out our proposal draft already now so you will be able to
+come well-prepared to the to the BoF, as we want to have as much time
+as possible for the discussion.
+There will be a also a gobby document for the BoF [b].
+[a] https://debconf18.debconf.org/talks/149-lets-start-salvaging-packages/
+[b] gobby infinote://gobby.debian.org/debconf18/bof/lets-start-salvaging-packages
+Why is a salvaging process necessary?
+=====================================
+Most of the packages within Debian are well maintained and you -- our
+maintainers do a tremendous job to keep it that way.  Let me start by
+saying a big thanks for that!
+However, we have to be honest: we've got also quite some packages which
+are not so well cared for. For these packages, unpackaged upstream
+versions and unreplied bugs are often seen.  As a result those packages
+are not quite up to the quality level our users expect when using
+Debian.
+I'm not talking about orphaned packages, as we have processes for those,
+but about packages that have fallen through the gaps, especially when
+the maintainer is otherwise active.
+As a project, we do not have effective processes to deal with such
+"neglected" packages.
+Even if someone shows up wanting to improve such a package, they are
+usually not entitled to do so without explicit consent of the current
+maintainer, which might be difficult to obtain.
+Salvaging Process Proposal
+==========================
+<proposal>
+Salvaging a package
+-------------------
+Salvaging is the process by which, one attempts to save a package that,
+while not officially orphaned, appear poorly maintained or completely
+unmaintained.  This is a weaker and faster procedure than orphaning a
+package officially through powers of the MIA team.  Salvaging a package
+is not meant to replace MIA handling, and in contrast to it, it does not
+comment about the overall activity of a maintainer. Instead, it handles
+a package maintainership transition for a single package only, leaving
+any other package or Debian membership or upload rights (when
+applicable) untouched.
+Reasons to salvage a package
+----------------------------
+A package is eligible for salvaging if it is in clear need of some love
+and care, i.e. there are open bugs, missing upstream releases, or there
+is work needed from a quality-assurance perspective; AND there is the
+need to upload the package to deal with these issues; AND at least one
+of these criteria applies:
+* There is no visible activity regarding the package [c] for /six
+  months/, OR
+* A previous NMU was not acknowledged, and a bug justifying another NMU
+  is pending for /one month/ [c,d], OR
+* The last upload was an NMU and there was no maintainer upload within
+  /one year/, OR
+* Bugs exist for more than one major missing upstream version and the
+  first bug is older than /one year/, OR
+* The package blocks a sourceful transition for /six months/ after a
+  transition bug was filed against the package in question.
+Procedure to salvage a package
+------------------------------
+If the criteria described above are fulfilled, anyone interested can
+start the following salvage procedure.
+1) A bug with severity "important" against the package in question must
+be filed, expressing the intent to take over maintainership of the
+package.  The reporter may also offer to only take co-maintenance of the
+package.  When filing the bug, all maintainers (incl. Team) and uploaders
+should be put explicitly in X-Debuggs-CC.
+(Note if the maintainer(s) seems to be generally inactive, it is
+also a good idea to inform the MIA team in this step by X-Debbugs-CC'ing
+mia@qa.debian.org )
+2) The maintainer, any current uploader or any member of the associated
+packaging team of the package in question may object publicly in
+response to the bug filed within 21 days, and this terminates the
+salvaging process.
+The current maintainers may also agree to the intent to salvage a
+package by filing a (signed) public response to the bug. The maintainer
+also might offer the reporter co-maintainership instead.  On team
+maintained packages, the associated team might also send out an signed
+agreement notice to the reporter, inviting him to become Co-Maintainer
+of the package if the team believes that this would beneficial for the
+package and the the current maintainer does not object to it.  In those
+three cases, a new package can be uploaded immediately by the new
+(co-)maintainer(s).
+3) The upload replacing the former maintainers of the package can be
+made can be prepared already after 21 days, but needs to go to
+DELAYED/7.  The salvage bug should be closed by the upload and an
+nmudiff sent to the bug. The nmudiff should also explictly CC the
+maintainer, the packaging team and all uploaders.
+[c] Level of activity should be defined in favor of the maintainer if in
+doubt.  A maintainer may ask for help or welcome a NMU. This counts as
+activity with respect to salvage criteria. If a package lacks uploads,
+there is no visible bug triaging, and - if applicable - the source
+package's VCS does not show commits this is an indication, that the
+package is not well maintained.
+[d] A NMU is automatically ACKED if there is a subsequent upload of the
+maintainer including the content/fixes of the NMU.
+</proposal>
+Thoughts behind the proposal.
+=============================
+The salvaging idea was written by Arno Töll in 2012 [e] and have been
+mentioned during the "if you love a package let it go" BoF held by David
+Bremner and myself at last years DebConf [f], and the audience at the
+BoF suggested that we should give this idea a spin.
+I've talked already with several people @DebCamp18 and everyone so far
+encouraged me to bring this idea forward.
+The idea is to create a procedure based on _clear_ rules defining when
+it will be acceptable to salvage a package and bring it back into
+maintainance by a new interested contributor -- and when it is not.
+The rules should be balanced to protect the interests of the current
+maintainer, but on the other hand  they should not make it too hard to
+actually take over a package if it is indeed neglected and needs love.
+Clear rules are important for several reasons:
+  - It will ensure that everyone knows when it is allowed to salvage a
+    package.
+  - This will lower the (mental) barrier to salvage a package, maybe
+    even attracting new contributors. Teams will also be able to recruit
+    new contributors.
+  - The rules puts an emphasis on communication -- to help avoid
+    misunderstandings.
+  - The rules will protect the potential contributor (new or otherwise)
+    to Debian, to avoid that someone who came to give a helping hand is
+    shouted at. As Arno wrote in the original thread:  "I think the most
+    important rationale is to get people not to be afraid to take over
+    packages anymore, if their intentions are meant well."
+  - They also protect a maintainer from finding his packages
+    unreasonably hijacked by someone else.
+One particularly important issue that could be (partially) addressed by
+salvaging is the following.  Outdated dependencies might make it
+impossible to update a certain package to the latest version. This is
+not only bad because now we have two outdated packages, but also easily
+can generated frustration that does even more damage: Lately I was
+handling a MIA process where the one being MIA cited exactly this as an
+reason why he threw in the towel and ceased activities within Debian.
+Another aspect I want to share with you is, during my MIA work, I
+noticed that this might help when someone reporting someone MIA is doing
+so because they are interested in a package. Currently we must say
+"please wait around half a year" even on cases were no one really expects
+a response from the former maintainer.  With the proposed process we can
+encourage them to take over the package accordingly and have it
+maintained well again. Making the reporter wait 1/2 year makes it
+unlikely they will take over a package.
+The severity of the "intend to salvage" bug is intentionally non-RC.
+While RC bugs would have a better visibility, package auto-removals could
+kick in and remove the package in question from testing.
+If a package is team-maintained, the team should also be able to veto a
+request, but should also be able to pave the way for a new
+maintainership, but not against the expressed will of the current
+maintainer. The team is also encouraged to invite the reporter to join
+the team.
+[e] https://lists.debian.org/debian-devel/2012/09/msg00654.html
+[f] https://gobby.debian.org/export/debconf17/bof/if_you_love_a_package_let_it_go
+Why NMUs and MIA aren't the solution.
+=====================================
+You might say that we have an NMU process and an MIA process for this,
+but both are not the silver bullet for this situations.
+Granted, the NMU process is great to handle urgent problems, to get a
+package in a (frankly, often barely) suitable state for the next
+release, but it has severe limitations: New upstream versions are out of
+scope, not-as-important-but-still-annoying bugs, etc…
+But even if those problems could be fixed by NMUs this is not very
+sustainable.  Especially if packages are solely NMU-maintained years
+after years, release after release.  As often those NMUs are done by the
+very same people I think it is realistic to assume that those would be a
+candiate for taking over the package and maybe do so if it would be easy
+for them. This would serve for sure also as some appreciation for their
+work and also is an nice opportunity to acquire new contributors to the
+project.
+On the other side, the MIA process is not a package based process. We
+only follow up if someone noticed that a person is no longer active.
+IOW, People which are mostly taking care of their packages are not in
+the scope of the MIA team. Additionally, the MIA process is a lengthy
+one. Even if everything looks like that the person is indeed MIA, and
+they do reply to our pings at all, it will take *months* until we can
+orphan the package.  If the one notifying us is interested in taking
+over the package, we have to tell him to come back months later, even if
+the package has not been touched for years. (In my experience, telling
+someone to wait for so long will likely lead to another opportunity lost
+to get it back into maintainance.) On the other hand, even if the MIA
+candidate is answering it still happens too often that there will be
+lots of well-intentioned words but zero action.
+Frequently Asked (Anticipated) Questions
+========================================
+Q: I'm not convinced that this is a problem. Can you show me some
+examples.
+A: I tried hard to come up with examples, but I really want to avoid any
+impression of finger pointing and it is hard to name specific examples
+without that. But I'm pretty sure that you have encountered
+sloppiliy/bad/un- maintained packages, maybe even wanted to improve them
+but then figured out that this would have been an hijack.
+Q: Isn't it _MY_ package, so I can do and not do as I please?
+A: Sure, Debian has a tradition of strong ownership of packages, so
+traditionally you have the say on the package. This proposal does not
+change that, so you can still do anything you want with your package.
+But remember that maintaining a packaging also brings responsibilities
+it and that means that you want to want the best for it. Actually, I
+hope you want the $best, whatever $best is, _for the  Debian project_.
+Q: Don't we have the MIA process for this?
+A: As I elaborated above already, the MIA process can only help if a
+persons disappears completely. The MIA team cannot work on a per-package
+basis, because of limited capacity and also because it is out of the
+scope of the team.  And especially in cases where the maintainer is
+active overall there might be still packages that are deprived of love
+and those won't be helped by the MIA procedure.
+Q: Don't we have the NMU process for this?
+Q: I'm on the LowNMU page.
+A: NMU has some really limited scope, it needs to fix at least
+"important" bugs and won't really help e.g with new upstream versions.
+It will not get a new maintainer on board, which would especially boost
+a long neglected package. It is also difficult for new contributors to
+get packages NMUed, especially for non-RC bugs.
+Q: But I did a new upstream version as NMU?
+A: I did that too, and it is possible to do. But then you also need to
+be prepared to take the pushback from this and not everyone has the
+thick skin required to survive a possible outbreak of a heated
+discussion.  IOW, The proposal adds some procedural safety for the
+salvager as well. But it also underlines the importance protecting
+maintainer from hijacks.
+Q: My packages are all team maintained, so this process is unnecessary
+as the team will take care of my neglected packages.
+A: A team can help to collaboratively maintain packages, but that does
+not mean that the team is capable to work on all the team's packages.
+But frankly, by just listing a team as maintainer makes it not magically
+maintained.
+Q: Theres the "LowThresholdAdoption" [g] list. Wouldn't that help?
+A: Personally I don't think so: Those on the list are likely already the
+people how anyway take good care about their packages but not those
+that simply lost interest.
+Q: Wouldn't be the ctte another possibilty?
+A: The ctte is another possiblity, but as this process is not
+lightweight at all, I think it isnot suitable to solve this problem, due
+to scalability and because the ctte process is designed to be a
+last-resort possiblity. Many people also do not have the time and energy
+to deal with a tech ctte bug.
+Q: How long will this process take?
+A: In total 28 days. After the salvaging bug is filed, the reporter has
+to wait 21 days for a reply, and the package must sit for 7 days in
+the DELAYED queue.
+Q: I like the proposal. How to implement it?
+A: Help discussing it. Help implementing it. Come to the BoF.
+[g] https://wiki.debian.org/LowThresholdAdoption
+Thanks for reading all the text,
+-- 
+tobi
+with lots of kudos to bremner, spwhitton and lamby for their valuable input and co-editing.
+signature.asc

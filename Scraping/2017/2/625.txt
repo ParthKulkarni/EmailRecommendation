@@ -1,0 +1,85 @@
+To : debian-devel@lists.debian.org
+Subject : Re: systemd, ntp, kernel and hwclock
+From : Daniel Pocock <daniel@pocock.pro>
+Date : Tue, 28 Feb 2017 10:15:23 +0100
+Message-id : 66e8e435-3551-43d3-432c-f107649f9cb2@pocock.pro
+In-reply-to : <[🔎] 1488227166.2821.1.camel@decadent.org.uk>
+References : <[🔎] afac576b-b2f3-ab27-124f-e58e1ac14561@pocock.pro> <[🔎] 8737ezl9we.fsf@hope.eyrie.org> <[🔎] 1488227166.2821.1.camel@decadent.org.uk>
+
+
+On 27/02/17 21:26, Ben Hutchings wrote:
+> On Mon, 2017-02-27 at 11:18 -0800, Russ Allbery wrote:
+>>> Daniel Pocock <daniel@pocock.pro> writes:
+>> 
+>>> I've observed a system that had a wildly incorrect hardware
+>>> clock (when it was first unboxed), I ran ntpdate to sync the
+>>> kernel clock but after a shutdown and startup again it had a
+>>> wacky time again. I came across the discussion about how the
+>>> hardware clock is no longer set at shutdown[1] The system has
+>>> ntpd running Looking at the output of adjtimex --print | grep
+>>> status the bit corresponding to 64 / STA_UNSYNC is 0 There is a
+>>> time and date page on the wiki[2] and in the manual[3], neither
+>>> of them appears to have up to date information about the way
+>>> it works with systemd or how to troubleshoot issues like this.
+>> 
+>> My understanding from reading a bit about this just now is that
+>> the short version is "install ntpd if you want this to happen."
+>> 
+>> My impression is that ntpdate has been obsolete for years and
+>> upstream has been slowly trying to kill it.  ntpd is the
+>> upstream-supported daemon, and it periodically asks the kernel to
+>> set the hardware clock.
+> 
+> The kernel actually does the periodic setting automatically, so
+> long as the NTP server reports that it's synchronised (by clearing
+> STA_UNSYNC in timex::status).
+> 
+> (The kernel will only set one RTC device, which is specified in
+> the build config.  On systems that have multiple RTCs and only one
+> of them works (e.g. the one in the SoC doesn't have battery power
+> but the one in the PMIC does) this may not work properly.  It may
+> be fixable by disabling the broken RTC in the device tree.)
+> 
+It would seem reasonable for ntpdate to clear that flag so I opened a
+bug report[1] for ntpdate
+>> (And it supports various command-line options to make it act like
+>> ntpdate if you really want.)
+>> 
+>> The much simpler systemd-timesyncd doesn't set the hardware clock
+>> for reasons that one may or may not agree with (I honestly
+>> haven't researched it in any depth),
+> 
+> It looks like it does iff the RTC is set to UTC:
+> 
+> /* * An unset STA_UNSYNC will enable the kernel's 11-minute mode, *
+> which syncs the system time periodically to the RTC. * * In case
+> the RTC runs in local time, never touch the RTC, * we have no way
+> to properly handle daylight saving changes and * mobile devices
+> moving between time zones. */ if (m->rtc_local_time) tmx.status |=
+> STA_UNSYNC;
+> 
+>> but you can just run ntpd instead if you care.
+> 
+> But ntpd is also known to have a large amount of code written
+> without as much regard for security as one would hope.  It seems
+> like an unnecessary risk for most systems.
+> 
+Thanks for that security tip, I'm tempted to get rid of some ntpd
+instances now, however a few more questions come to mind before I rush in:
+- for a site with several machines, should they all be querying
+pool.ntp.org servers directly or can any other local ntp daemon be
+relied on?
+- this discussion also reminded me of the clock drift issues[2] for
+Xen virtual machines / guests / domU systems.  I don't know if such
+problems still exist with modern hypervisors and kernels but I had
+encountered them in the past and had been running ntpd on each VM and
+then they all appeared to behave.  Does this apply to LXC, KVM or any
+other environment?  What are best practices for this today, does
+systemd-timesyncd solve everything and do people need to manually
+tweak any sysctl like /proc/sys/xen/independent_wallclock any more?
+Maybe some of this could go in the wiki too if it is still necessary.
+Regards,
+Daniel
+1. http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=856343
+2.
+http://serverfault.com/questions/245401/xen-hvm-guest-has-severe-clock-drift

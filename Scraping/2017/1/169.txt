@@ -1,0 +1,102 @@
+To : Don Armstrong <don@debian.org>
+Subject : Re: Migration despite an RC bug?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 3 Jan 2017 14:14:43 +0000
+Message-id : 22635.45523.288493.760480@chiark.greenend.org.uk
+In-reply-to : <20161231210150.5lna7qx65hyrcpdf@qor.donarmstrong.com>
+References : <87r34q4sb8.fsf@debian.org>	<b1e6c543-f8df-776d-f5c8-2c62b6b425db@debian.org>	<1483050577@msgid.manchmal.in-ulm.de>	<20161230234212.7xmev4ypocwbcuwg@qor.donarmstrong.com>	<22631.5956.713311.881259@chiark.greenend.org.uk>	<20161231210150.5lna7qx65hyrcpdf@qor.donarmstrong.com>
+
+
+Don Armstrong writes ("Re: Migration despite an RC bug?"):
+> On Sat, 31 Dec 2016, Ian Jackson wrote:
+> > I've debugged a lot of this kind of thing.  Point me at your
+> > (pre-just-fixed) code and I might spot it ?
+> 
+> These two are how I think I've fixed it:
+I don't think so.  I cloned[1] the code and looked at
+examples/debian/versions/build-versions-db.
+In this area the most obvious error handling bug is that you do not
+ever close $PACKAGES, which you earlier opened from a pipe.  Consult
+the docs for close in perlfunc(1).
+The result is that you ignore nonzero exit status from your
+decompression program.  My theory for the incident we are discussing
+is that your decompressor got a SIGTERM, and your script got EOF on
+the pipe.  Your script thought that the EOF meant "all data has been
+read" and exited status zero having written partial output.  If your
+script had closed $PACKAGES and checked the return value, it would
+have discovered the SIGTERM and died, instead.
+Other things I noticed:
+You do not check the error from readdir, nor glob.  (glob is
+particularly annoying to fix.)  Admittedly, failures of opendir and
+readdir are quite rare as they normally result only from very serious
+problems, or absurd permissions.
+You use perl's `-d' and `-f' operators other than on `_'.  This is
+wrong (at least, if you can't safely tolerate false negatives) because
+they return false if stat fails with an unexpected error code (eg,
+EIO).  The right pattern is to use [l]stat, check for undef and check
+$!, and then perhaps say `-d _'.
+This code in the suites loop
+    my $sources = (grep { -f $_ } \
+        glob "$suitedir/$component/source/Sources.*")[0];
+    next unless defined $sources;
+seems perhaps too forgiving of unexpected situations.
+Also, have you checked whether your DB library properly throws errors
+on writes to a tied hash ?
+Of the above only the process exit status bug seems likely to have
+resulted in an empty output database occuring as a consquence of
+running this script during system shutdown.  But, see below, because
+I'm confused about what version was running when the bug triggered.
+The only other possibility I can think of is that the input files it
+reads were empty or missing.
+> http://git.donarmstrong.com/?p=debbugs.git;a=commitdiff;h=29b55e4d5535a68cc6d2294f5c362d271b53c6d2
+> http://git.donarmstrong.com/?p=debbugs.git;a=commitdiff;h=d83ffb68f75ae98ad5005eee9b173d5dac08c343
+I can't see how that would fix any such underlying bug.  AFAICT it
+just arranges to update an existing database rather than generating a
+fresh one.  In general that seems likely to introduce more bugs rather
+than fixing bugs, although I haven't thought about it in detail.
+Also I was very puzzled by this hunk:
+   sub read_packages {
+  -    my ($packages, $component,$arch,$dist) = @_;
+  -    my $PACKAGES = open_compressed_file($packages)
+  +    my ($db,$db2,$packages, $component,$arch,$dist) = @_;
+  +    my $PACKAGES = open_compressed_file($packages) or
+	   die "Unable to open $packages for reading: $!";
+The "old" code is:
+   sub read_packages {
+       my ($packages, $component,$arch,$dist) = @_;
+       my $PACKAGES = open_compressed_file($packages)
+	   die "Unable to open $packages for reading: $!";
+which is a syntax error.
+> [I believe I exposed this bug because I switched to IO::Uncompress,
+> which is incredibly slow; I've now switched relevant pieces of code
+> back.]
+I think this isn't right.  If my theory above is right, the bug was in
+the open_compressed_file version.  But that version seems to have this
+syntax error, which was only fixed in git on the 2nd of January.  Is
+it possible that the switch to open_compressed_file was made directly
+in the running working tree, and committed only later ?
+FWIW IMO using an in-process library, rather than forking an
+(un)compressor, is an antipattern.  Using a library rather than
+fork/exec:
+ * introduces additional ABI/API coupling
+ * makes poorer use of modern multicore computers (or, if you
+   are really unlucky, uses threads)
+ * makes it more work to support an additional compression formats
+On my system IO::Uncompress::AnyUncompress does not seem to fork.  But
+maybe it does on the debbugs machine, in which case it could have a
+similar error handling bug.
+Also, I'm not sure why it would be "incredibly slow".  In a
+singlethreaded cpubound task (the worst case) I wouldn't expect worse
+than a 50% slowdown.
+Finally, examples/debian/versions/update-mldbm starts with
+  #! /bin/sh -e
+I would normally use `set -e' instead, because foolish people
+sometimes run scripts by saying `bash /path/to/script' or `sh
+/path/to/script'.  (This doesn't seem to be a problem in debbugs.)
+Regards,
+Ian.
+[1] IWBNI your gitweb had the git clone url.  I guessed.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

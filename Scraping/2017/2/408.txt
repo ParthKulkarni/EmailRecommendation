@@ -1,0 +1,52 @@
+To : debian-devel@lists.debian.org
+Subject : Re: De-Branding of Icedove, reintroducing Thunderbird packages into Debian
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Thu, 16 Feb 2017 20:14:48 +0100
+Message-id : 20170216191448.xoa4jidabs5j2sxu@angband.pl
+In-reply-to : <[🔎] 508f3603-2dd0-bf64-3196-1616f3ee29f6@t-online.de>
+References : <20170215173552.lptr6d7tj6qg7n7v@anna.chris.local> <[🔎] 20170215211217.3mntpyffpeubmay6@angband.pl> <[🔎] 508f3603-2dd0-bf64-3196-1616f3ee29f6@t-online.de>
+
+
+On Thu, Feb 16, 2017 at 07:15:38PM +0100, Carsten Schoenert wrote:
+> Am 15.02.2017 um 22:12 schrieb Adam Borowski:
+> >> * Copy the contents of the old profile folder into the new folder ~/.icedove_moved_by_thunderbird_starter
+> > 
+> > I see no deletion step.  This is bad for a couple of reasons:
+> > * my .icedove takes north of 2GB (mostly imap cache of multiple servers),
+> >   one of my users clocks above 7GB for a single server
+> > * if you have some sensitive mail and delete it, you really don't want a
+> >   copy to stick forever.  Especially if you then go through a border...
+> 
+> there is a reason why we decided to not delete anything here that is
+> related to the users scope. We don't want delete user files and
+> configuration as the impact of a deleted folder or files is much bigger
+> as not used backup of a folder. So we have to go into one direction in
+> the end.
+> And I don't see a needed discussion about that small issue as mostly
+> every singe MP3 file is bigger than the common users profile folder for
+> Mozilla Thunderbird.
+I have yet to see a multi-gigabyte single MP3 file.  If you insist on this
+extra backup, you could at least delete the IMAP cache -- for an IMAP-only
+user this might indeed reduce the profile to something small.  For POP and
+locally saved mails, though, this still wouldn't help.
+Leaving an unknown to the user copy of mails is a major security hole, as
+this is precisely the kind of data criminals[1] at the border are looking
+for.  Following good general practice and having the disk encrypted is of no
+help as they force you to enter your password, often with multi-year jail
+time (UK) if you fail to comply.  Thus, data the user believes to be purged
+must be actually purged, no hidden backups "just in case".
+What about this: in your startup wrapper, check if
+~/.icedove_moved_by_thunderbird_starter is present.  If it is, display a
+nagging popup asking the user to verify if their mails are still present,
+and if so, delete the directory.  This would fix both gigabytes of junk and
+the privacy hole.
+Or perhaps, just rename the directory silently.  That would bring no less
+safety than previous upgrades that reused the directory name.
+Or possibly make a symlink instead.
+Meow!
+[1]. In countries with no equivalent of US 4th Amendment the spooks don't
+even have to break any laws, but that doesn't make your situation any
+better.
+-- 
+Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
+  ./configure --host=zx-spectrum --build=pdp11

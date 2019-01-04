@@ -1,0 +1,128 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : Re: changelog practice, unfinalised vs UNRELEASED vs ~version
+From : Guillem Jover <guillem@debian.org>
+Date : Sat, 25 Mar 2017 19:49:41 +0100
+Message-id : 20170325184941.mfk3x3zzrg5sttea@gaara.hadrons.org
+Mail-followup-to : Ian Jackson <ijackson@chiark.greenend.org.uk>,	Simon McVittie <smcv@debian.org>, debian-devel@lists.debian.org
+In-reply-to : <22703.8845.815119.347441@chiark.greenend.org.uk>
+References : <22688.22947.749751.138991@chiark.greenend.org.uk> <20170218170802.rmetedgkbknyyajz@bogon.m.sigxcpu.org> <22699.19438.761643.442987@chiark.greenend.org.uk> <20170223112753.356pjefxwqvobz5r@bogon.m.sigxcpu.org> <22702.56148.104509.618413@chiark.greenend.org.uk> <20170223145854.i3sk7m6g7pd6ofga@perpetual.pseudorandom.co.uk> <22703.8845.815119.347441@chiark.greenend.org.uk>
+
+
+Hi!
+On Thu, 2017-02-23 at 17:57:33 +0000, Ian Jackson wrote:
+> Simon McVittie writes ("Re: changelog practice, unfinalised vs UNRELEASED vs ~version"):
+> > On Thu, 23 Feb 2017 at 12:53:40 +0000, Ian Jackson wrote:
+> > > We could decorate the suite instead, but that does not have any
+> > > effect on generated binaries.
+> > 
+> > It does have an effect on the changelog inside the source and binary
+> > packages,
+> 
+> True.  But I still think it would be a good idea for unreleased
+> binaries to show up as such in the dpkg database.
+I can agree with that.
+> > and on the changes file (which is precisely the signed
+> > instruction to the archive,
+> 
+> (Of course such things should not end up signed, but, this point is
+> well-made.)
+> 
+> How about the following, which provides more flexibility for what
+> individual users want:
+> 
+>  * Unfinalised changeslogs should contain UNRELEASED in either
+>    the suite name or the version number.  (Currently there is
+>    no consensus about this.)
+Please, not the version number. Globally overloading the version to
+convey this kind of information would be unfortunate IMO. This, not
+only affects us but derivatives too, and depending on whether the
+package is native or not, and depending ono where the marking is
+placed (upstream or revision part) it also affects the versioning
+of upstream projects.
+I was very happy when proposing the binary-only=yes keyword and it
+being accepted, so that I will be able to eventually remove the
+hardcoded parsing of +bN from dpkg-dev. Unfortunately we still have
+hardcoded parsing for ~bpo and ~vola to use magic behavior based on
+that. I should propose a new backport=yes or similar to deprecate
+that too.
+>  * Where the suite contains UNRELEASED, it SHOULD NOT be simply
+>    `UNRELEASED'.   It should be `unstable-UNRELEASED' or
+>    `experimental-UNRELEASED' or such.
+The suite should be "invalid" to avoid accidental or unwanted uploads
+by third parties in case one needs to sign an intermediate build.
+I think using a magic value in the suite name is better. We then could
+either use:
+  source (1.0) UNRELEASED; urgency=medium, suite=unstable
+or
+  source (1.0) UNRELEASED; urgency=medium, unreleased-for=unstable
+or
+  source (1.0) unstable-UNRELEASED; urgency=medium
+The advantage of the ones using the metadata key/values is that those
+can very easily end up in the generated binaries as fields. So in that
+case something like the "Unreleased-For: unstable" would be a pretty
+obvious marker?
+>  * Tools which generates .changes files (specifically,
+>    dpkg-genchanges) should, if they find that the version contains
+>    UNRELEASED and the suite does not, append UNRELEASED to the suite.
+>    (This is to help save downstreams etc.)
+>
+>  * The Debian archive will be taught to reject anything with a version
+>    containing UNRELEASED (as I proposed before).
+For these two points, see above. Also this implies having to hunt down
+any archive software and fix it, even local scripts etc. It seems too
+unsafe to me. :/
+> > As I noted on #542747, this property of changes files also means that if
+> > a Debian derivative (or an addon repository like apt.postgresql.org) has
+> > DD contributors, then that derivative should avoid using a Debian suite
+> > name as its suite name. This is because anyone obtaining a DD-signed
+> > .changes file for that addon repository could upload it to the main
+> > Debian repository, and it would normally be accepted into the suite
+> > of the same name. apt.postgresql.org seems to be one of the few addon
+> > repositories that does this (IMO) correctly, by using a distinct suite
+> > name (in their case jessie-pgdg).
+> 
+> Yes.
+Right, that's why for exampel we initially chose "unreleased" as suite
+name for the Debian ports archive when they were hosted at gnuab.org!
+> > I can't help wondering whether changes files ought to include some
+> > globally unique indication of the project in which the change is
+> > requested
+> 
+> Yes, they should.
+We are currently somewhat lacking both, where the changes were built
+in, and what they were targetting.
+I've had a draft [O] for this for years (as a result of an initial
+proposal for more generalized bug closure support [C]), which was the
+base for the dpkg-vendor, but it seems I never ended up discussing it
+more widely within the project for full support. :/ At least from the
+initial discussion years ago of [C] in [T], there didn't seem to be
+much consensus or wide interest.
+  [C] <http://www.hadrons.org/~guillem/debian/docs/closes.proposal>
+  [O] <http://www.hadrons.org/~guillem/debian/docs/origin.proposal>
+  [T] <https://lists.debian.org/debian-project/2006/11/msg00100.html
+We are now already recording the Origin where the build was done in the
+.buildinfo file in the Build-Origin field. IMO the binaries should all
+gain an Origin field too, automatically injected at build time.
+And the target distribution is now somewhat encoded in the changelog
+suite, but that has the problem that many derivatives seem to just use
+"unstable" instead of naming their own suite, so it's not a very good
+discriminator. Annotating the origin in the changelog would be the way
+to go IMO, as noted in the [O].
+> >  (for instance debian.org, ubuntu.com or [apt.]postgresql.org);
+> > but at the moment they don't, and I don't see an obvious place in the
+> > workflow to declare "this is really for Debian" vs. "this is for
+> > apt.postgresql.org". Maybe at debsign time?
+> 
+> (`dgit push' already (thinks it) knows the answer to this question and
+> could insert the right information.)
+> 
+> I don't think debsign is the right place.
+> 
+> If the suite name is not globally unique, then the full qualification
+> should be in the changelog.  Ie, the changelog should contain the
+> intended target archive.
+Yeah, also because the changes in general target a specific origin/suite,
+but please check [O]. (Although I perhaps should start a new thread
+with just the proposal itself.)
+Thanks,
+Guillem

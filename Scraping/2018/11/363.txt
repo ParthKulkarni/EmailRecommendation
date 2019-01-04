@@ -1,0 +1,66 @@
+To : debian-devel@lists.debian.org
+Subject : usrmerge -- plan B?
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Tue, 20 Nov 2018 22:16:17 +0100
+Message-id : 20181120211617.gxnuwxpx2hy445ps@angband.pl
+
+
+Hi!
+There's been another large bout of usrmerge issues recently, and a bunch of
+new problems have been identified.  The point of the whole idea has been
+questioned, as well.
+Thus, I'd propose holding our horses and thinking a bit.  I'd also like to
+suggest an alternate approach:
+* let's scrap the usrmerge package
+* move binaries to /usr/bin one by one, without hurry.  If it takes 10
+  years, so what?
+* /bin would be left populated with nothing but /bin/sh, /bin/bash and
+  whatever else POSIX demands.
+Note that usrmerge isn't really related to dropping support for split fs
+without initrd.  That's already done, and was a case of trading a sizeable
+drop of developer effort for the loss of a rare user setup.  I for one
+consider it an okay deal -- some disagree, but it's a separate matter.
+Somehow, most of usrmerge flamewars are about that topic.
+What we are discussing here is the plan to 1. move everything from /bin to
+/usr/bin[1] and 2. "ln -s /usr/bin /bin".
+That move turned out to be problematic (see #914204, and individual FTBFS/
+uninstallability/unupgradeability bugs).  Even the proposed workaround, to
+disable usrmerge on buildds, doesn't really work -- a lot of binary uploads
+are still built on developers' machines, and remember that there's a whole
+world besides DDs -- being able to compile packages is a core freedom for
+many of our users, and they usually lack the knowledge how to troubleshoot
+this particular problem.
+Another question is, why?
+14:18 < bunk> What are the "of course" benefits of merged /usr for a user? 
+              For a distribution I see the benefits of moving to merged /usr
+              only, but I honestly don't know in what cases "Installing the
+              usrmerge package will solve your problem." would be a correct
+              answer to a user problem.
+... which hasn't received an answer.
+The only writeup pro the move I've seen pointed at is:
+  https://www.freedesktop.org/wiki/Software/systemd/TheCaseForTheUsrMerge/
+which describes other users, but provides no compelling arguments.  Its
+main reason is compatibility with Solaris -- which hasn't been relevant for
+a long long time.  Even the other distribution (Fedora) that has done the
+split is rapidly following Solaris into obscurity (the whole RPM world has
+gone to 20% of web servers from 65% a few years ago, other server uses seem
+to be alike[2], Red Hat has been gobbled up).  This leaves mostly claim #4:
+# Fact: The /usr merge makes sharing the vendor-supplied OS resources
+# between a host and networked clients as well as a host and local
+# light-weight containers easier and atomic.  Snapshotting the OS becomes a
+# viable option.  The /usr merge also allows making the entire
+# vendor-supplied OS resources read-only for increased security and
+# robustness.
+-- which is untrue as a system with /etc and /var out of sync with /usr is
+broken.  There are attempts of reducing /etc but I have seen nothing about
+/var.
+Thus, it seems to me that the plan A for usrmerge has serious downsides for
+dubious benefits.  What about the plan B I described above?
+Meow!
+[1]. For simplicity I'm not mentioning /sbin.
+[2]. It's hard to find good data on anything but web servers.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ .globl _start↵.data↵rc: .ascii "/etc/init.d/rcS\0"↵.text↵_start
+⣾⠁⢰⠒⠀⣿⡁ mov $57,%rax↵syscall↵cmp $0,%rax↵jne child↵parent:↵mov $61,%rax
+⢿⡄⠘⠷⠚⠋⠀ mov $-1,%rdi↵xor %rsi,%rsi↵xor %rdx,%rdx↵syscall↵jmp parent↵child:
+⠈⠳⣄⠀⠀⠀⠀ mov $59,%rax↵mov $rc,%rdi↵xor %rsi,%rsi↵xor %rdx,%rdx↵syscall

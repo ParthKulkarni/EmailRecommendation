@@ -1,0 +1,229 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Tue, 6 Jun 2017 15:55:48 +0200
+Message-id : 20170606135548.nmjiv5khqsdc7gfn@angband.pl
+In-reply-to : <[🔎] 871sqyueya.fsf@hope.eyrie.org>
+References : <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk> <[🔎] 20170606000242.333F97C6433@relay.mailchannels.net> <[🔎] 871sqyueya.fsf@hope.eyrie.org>
+
+
+On Mon, Jun 05, 2017 at 05:39:41PM -0700, Russ Allbery wrote:
+> Maybe someone has a list of things they view as Recommends inflation that
+> have (a) been reported as bugs to the appropriate package maintainers, and
+> (b) have been rejected by those package maintainers?  Those are the
+> controversial ones that we'd need to talk about.
+Here's something even better: an automated way to list bad Recommends that
+personally affect you -- ones that made you take steps to ignore them when
+installing a package you actually use:
+.--==[ list-unsatisfied-recommends ]
+#!/usr/bin/python
+import apt
+c = apt.Cache()
+for pkg in c:
+    if pkg.installed is not None:
+        for rd in pkg.candidate.get_dependencies("Recommends"):
+            if not rd.installed_target_versions:
+                print pkg, rd
+`----
+Forgot whom to credit for this tool; alas, it's written in a language that
+itself is bloat[1].
+More seriously, though, let's go through the list of 94 unsatisfied ones on
+my desktop; the list below is transposed to collate recommendees.
+Categories:
+OK: "Recommends:" looks warranted
+DEBATABLE: duh.
+BLOAT: potentially useful but I wouldn't make it a Recommends
+BAD: downgrade please
+TRANSITIVELY BAD: useful for a direct user but not when pulled via a
+    dependency -or- causes this lower in the chain
+alpine-doc: alpine
+* OK: this one looks reasonable
+at: devscripts
+* BAD: only use: pts-{,un}subscribe.  Why would I ever be interested in a
+  package for only a limited time?  The listed use case is bad: NMUs are
+  done on unmaintained packages, thus they won't magically fix themselves in
+  30 days.
+bash-completion: bash dput-ng licensecheck
+* DEBATABLE: I like the Tab key to do something reasonable,
+  "bash-completion" means you never know what you'll get.
+<ton of Java crap>: libreoffice-base
+* BLOAT: they're no longer owned by Sun, what's the reason to keep Java
+  scripting?
+dnsmasq-base: lxc
+* BAD: how often are you on a network without a DNS server?
+fonts-cantarell: fontforge-common
+* BAD: FontForge works perfectly without it
+fonts-noto-cjk: fonts-noto
+* BLOAT: unlike greek/runes/etc, you can't learn Chinese hieroglyphs on a
+  whim, thus it's useless for most users.  You may want a _single_ CJK font
+  so you can tell whether a text is in C, J or K but that's it.
+freedoom | game-data-packager: prboom-plus
+* DEBATABLE: freedoom is too ugly to live, shareware Doom has assets missing
+  for running pretty much anything Doom-related (and AFAIK its license
+  forbids add-ons).  On the other hand, this is an excuse for Doom engines
+  in main.
+freepats: libwildmidi-config timidity
+* BAD: freepats is too ugly to live: abysmal quality, lacks instruments for
+  pretty much any .mid file in the wild.  We do have a bunch of good
+  alternatives.  timgm6mb-soundfont for one is 5.6 times smaller yet is
+  complete.
+geoclue-2.0: redshift
+* TRANSITIVELY BAD: insane dependency chains, otherwise would be useful for
+  a mobile device (this desktop is not one)
+gfortran-mingw-w64: gcc-mingw-w64
+* BAD: seriously, Fortran?
+ghostscript: gimp imagemagick-6.q16 libmagickcore-6.q16-3 netpbm
+* BAD: why would editing images care about a grossly obsolete _document_
+  format?
+gimp-gmic: gimp-plugin-registry
+* BLOAT: an obscure plugin, looks useful for only for a small minority of
+  users; -plugin-registry is not pulled by default though so it's debatable
+gnat-mingw-w64: gcc-mingw-w64
+* BAD: see Fortran.
+gnupg-l10n: gnupg
+* DEBATABLE: I don't think anyone tech skilled enough to use GPG would have
+  problems with English, but localization is important.  On the other hand,
+  this is 4.5MB in the default install.
+gsfonts: libmagickcore-6.q16-3 libwmf0.2-7
+* BAD: see ghostscript
+gvfs: atril easytag thunar
+* BAD: gvfs is a major annoyance and a security hole
+libaacs0: libbluray1
+* BLOAT: useful only if you rip optical media
+libatm1 >= 2.4.1-17~: iproute2
+* BLOAT: I'm rather certain my desktop machine has no direct ATM link --
+  unfit for the default install
+libclass-xsaccessor-perl: libmoo-perl
+* BLOAT: wut?
+libgit-wrapper-perl: devscripts
+* ????: I've never used git-deborig, is it actually useful?  Tiny package,
+  though.
+libgnomeui-0: xscreensaver
+* BAD: Gnome users won't run xscreensaver
+libgpm2: libncurses5:i386
+* OK: or rather, not doable with current tools: we do want mouse support
+  in curses programs (libgpm2 handles X terminals too, right?) but in this
+  case it's a multiarch copy of an otherwise important package
+libgpod-common: libgpod4
+* BLOAT: nope, I don't use iJunk
+libgtk2-perl: tablet-encode
+* out of archive
+libhtml-format-perl: libhtml-tree-perl libwww-perl
+* ????: wut?
+libhttp-daemon-perl: libwww-perl
+* TRANSITIVELY BAD: dependency comes from a client package; if I want to run
+  a http server I know where to find it
+libimage-magick-perl: inkscape
+* ????: wut?
+liblist-compare-perl: devscripts
+* ????: again, git-deborig
+libmail-sendmail-perl: po-debconf
+* BAD: why would po stuff want to send mail?
+libpackage-stash-xs-perl: libpackage-stash-perl
+* TRANSITIVELY BAD: dependencies pulling more dependencies, why?
+libpam-cap: libcap2-bin
+* ????: no idea.
+libpam-cgfs: lxc
+* OK: sounds useful, likely a victim of --no-install-recommends overlooked
+  due to bloat in the rest of this list
+libpam-systemd: xfce4-power-manager xfce4-session
+* BAD: Depends:systemd, utterly pointless without it.
+libpng-tools: libpng-dev
+* BAD: I see no connection between compiling or coding a program using
+  libpng and repairing a corrupted image (pngfix is the only contents of
+  this package)
+libpurple-bin: libpurple0
+* BAD: a library has no reason to install programs
+<an imperial buttload of obscure libreoffice plugins>: libreoffice
+* BAD: especially in a default install, why would I want to build reports
+  using a weird Java-only database I never heard about (despite not being
+  born yesterday)?
+libsoap-lite-perl: devscripts
+* ????: apparently some obscure option of dch, I don't know.
+libtasn1-doc: libtasn1-6-dev
+* TRANSITIVELY BAD: probably useful if you do TASN (whatever it is), pulled
+  in by a very-widespread library (gnutls)
+libunicode-utf8-perl: libpath-tiny-perl
+* ????: isn't Perl's built-in UTF-8 decoding good enough?
+libwacom-bin = 0.24-1: libwacom2
+* BAD: dependency from a library; I'm certain I never even walked close to
+  a drawing tablet
+libwmf-bin: inkscape
+* BLOAT: image support is useful, an ancient format with ActiveX-level
+  concept of security not quite so.
+libx11-doc: libx11-dev
+* TRANSITIVELY BAD: useful for developing stuff using ancient X11 protocol,
+  useless for anyone using something meant for humans.  We don't code
+  assembly every day, you see.
+light-locker: xfce4-session
+* BAD: needs to absolutely, immediately, $EXPLETIVE die!!1!elebenty-one!
+musescore-soundfont-gm | fluid-soundfont-gm | freepats: libsdl-mixer1.2
+* BAD: depends from a library -- if a program actually does MIDI, it should
+  depend on sound fonts itself
+pavucontrol: xfce4-pulseaudio-plugin
+* BAD: PulseAudio means no working sound, until you fix it, sorry no.
+perl5: xscreensaver
+* BAD: any dependency on a non-existent package is bad, m'kay?
+pulseaudio: xfce4-pulseaudio-plugin
+* BAD: I want working sound, duh.
+python-bs4: python-lxml
+* BAD: no idea what BeautifulSoup 4 is, I don't want it.
+python-html5lib: python-lxml
+* TRANSITIVELY BAD: pulled by transitive recommends of nmap: ndiff sounds
+  sort-of useful, it definitely doesn't decode HTML5 though
+python-paramiko: dput-ng python-dput
+* ????: dput seems to work fine without it?
+python-validictory: python-dput
+* BAD: no idea what dput would use a "schema validator" for
+qt-at-spi: libqtgui4
+* ????: wut?
+qttranslations5-l10n: libqt5core5a
+* BAD: dependency from a library
+rename: perl
+* BAD: old transition from many years ago
+rpm-common: librpm3
+* BAD: dependency from a library, I'm rather certain I don't run Red Hat
+systemd-sysv | systemd-shim: xfce4-session
+* BAD: no, a window manager has no business picking an init implementation
+tcpd: libwrap0 libwrap0:i386
+* BAD: dependency from a library, obsolete tool: I'm rather certain I don't
+  use "incoming telnet, ftp, rsh, rlogin, finger", support in newer stuff is
+  rather exotic
+timidity-daemon: timidity
+* BAD: why, oh why, I would want a daemon?  When I play a .mid file (once in
+  a blue moon these days), timidity works fine then exits.
+transfig: inkscape
+* BLOAT: a badly obsolete image format, pulls in ghostscript and other crap
+u-boot-sunxi:armhf: sunxi-tools
+* ????: this machine can run natively only amd64/i386/x32 code, the only
+  target machine I can talk FEL to is arm64.  Recommends could be possibly
+  warranted if turned to an |arm64 alternative.
+usbmuxd: libimobiledevice6
+* BLOAT: I don't do iJunk, apparently this daemon is started only on demand
+  though so it's not in the BAD category
+uuid-runtime: libuuid1 libuuid1:i386
+* BAD: useful only if you generate many many UUIDs per second, certainly
+  unfit when coming from a transitively essential library
+va-driver-all | va-driver: libva1:i386
+* ????
+vbetool: pm-utils
+* BLOAT: I assume x86 graphic cards made this millenium have at least basic
+  support in the kernel, without running real-mode BIOS code, right?
+wordnet-gui | artha: wordnet
+* BAD: a Tcl/Tk interface, really?  Way less convenient than the
+  command-line one.
+xml-core: libxml2 libxml2:i386
+* BAD: what the heck I'd want a "XML catalog" for?
+xserver-xorg-legacy: xserver-xorg
+* DEBATABLE: grossly obsolete hardware, but maintainers apparently know
+  what they're doing
+yelp: easytag
+* BAD: easytag appears to ship no help, invoking a web browser instead
+Meow!
+[1]. At least Python is merely bloat when you have better alternatives like
+Perl, unlike atrocities like .NET or PHP that deserve a cpl. Hicks solution.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ A tit a day keeps the vet away.
+⣾⠁⢰⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ (Rejoice as my small-animal-murder-machine got unbroken after
+⠈⠳⣄⠀⠀⠀⠀ nearly two years of no catch!)

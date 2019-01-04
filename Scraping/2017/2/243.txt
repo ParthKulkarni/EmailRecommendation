@@ -1,0 +1,82 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: changelog practice, unfinalised vs UNRELEASED vs ~version
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 14 Feb 2017 22:37:16 +0000
+Message-id : 22691.34460.158594.131202@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20170212141112.ra6nwi3npojhkugc@perpetual.pseudorandom.co.uk>
+References : <[🔎] 22688.22947.749751.138991@chiark.greenend.org.uk>	<[🔎] 20170212141112.ra6nwi3npojhkugc@perpetual.pseudorandom.co.uk>
+
+
+Simon McVittie writes ("Re: changelog practice, unfinalised vs UNRELEASED vs ~version"):
+> If I'm understanding correctly, your motivation to do so is that you
+> have a strong belief that building a Debian source package with `debuild`
+> or similar, directly from a VCS checkout, should always work and should
+> always produce results that could be considered correct (in terms of not
+> having the version number of a prior version, not having the version
+> number of a future version either, not claiming to have been released
+> by a person who did not in fact release it, and so on).
+I wouldn't say I have a "strong belief" in these notions.  I mean, I
+do broadly agree with them.
+I think it is much more tolerable to have build reuse the version
+number of an actually-uploaded previous version.  This is because in
+that case the uploaded version is still available via the archive.  So
+confusion is less likely.  But I still don't think it's very
+desirable.
+> Broadly, the two extremes of workflows for Debian packages' changelogs
+> maintained in git seem to be:
+> 
+> * Write the changelog as you go along: [...]
+> * Write the changelog later: each commit just has a commit message
+>   in a normal git way, and its debian/changelog is out of date. [...]
+> * Mostly write the changelog later, as in the second model.
+>   Periodically summarize the changelog so far [...]
+Contrary to what Ben seems to have read into my message, I don't have
+an opinion about this.  I use all three of these workflows on
+different occasions.  I don't understand why you and Ben see a
+connection between my suggestions and the choice between these
+workflows.
+> While as an abstract model I agree that the uploader name and date
+> are not meaningful in an unreleased version, I can't help thinking
+> that this is a "boil the ocean" sort of change - a lot of tools follow
+> and require Policy syntax, in which the uploader name and date are
+> non-optional.
+Policy can be changed.  Obviously what I am proposing should be
+written in policy.
+> Allowing and ignoring an arbitrary and non-meaningful uploader and date,
+> or possibly establishing a convention like Unreleased <nobody@localhost>
+> for the unreleased uploader, seems more pragmatic.
+I don't understand why it is better to have dummy (or wrong) data than
+no data.  Of course there will be a bit of work to update our tools
+but there is a fairly limited set of them and the changes are not
+difficult.
+> Our experience with this script and workflow has mostly been very positive,
+> and I intend to integrate similar functionality into Vectis[2] soon. The
+> one thing I'm regretting is making it switch behaviour based on whether
+> the current version is tagged; I think that's "too much magic", and it
+> forces you to tag a version before you have built and tested it.
+I confess I don't understand all of this, but I think we should agree,
+as a project on some conventions about what debian/changelog would
+mean if you find it in some vcs branch (or, for that matter, a tarball
+or whatever someone sends you).  I definitely don't think vcs tags are
+the right answer.  They are not always transported with the revision
+and vcs-unaware tools cannot see them at all.
+> Clearly, the down side of this approach is that it doesn't work as-is
+> with debuild or similar, violating what I believe to be the axiom you're
+> working from - the developer has to run a special script instead.
+I think we should be aiming to reduce the need for special scripts.
+I think our current practices (and tooling) are mostly a mess, and
+when they are not a mess they are quite suboptimal.  If we want to
+improve this, it can't be done by telling everyone to "just run this
+script".
+> > Q1. Should the suite in the changelog entry be UNRELEASED,
+> >     or the suite at which the vcs branch is targeted ?
+> 
+> If you're trying to change common practice (being prescriptive rather than
+> descriptive) *anyway*, maybe something like experimental-UNRELEASED that
+> contains both, with UNRELEASED being shorthand for unstable-UNRELEASED
+> (or possibly ${current development suite}-UNRELEASED in Ubuntu
+> and other derivatives)?
+This would be another approach.  But it is not as good as decorating
+the version, because it's not usually desirable to generate binaries
+with version numbers that will be reused.
+Ian.

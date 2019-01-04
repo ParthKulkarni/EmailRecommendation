@@ -1,0 +1,53 @@
+To : debian-devel@lists.debian.org, 856033@bugs.debian.org
+Subject : Re: Bug#856033: ITP: brailleimg -- produce text images and graphs abusing Braille glyphs
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 25 Feb 2017 22:31:57 +0100
+Message-id : 20170225213157.usv5il3i5owzyui4@angband.pl
+In-reply-to : <[🔎] 20170225190532.tmcaj455logkxwsk@var.youpi.perso.aquilenet.fr>
+References : <[🔎] 148794333668.3763.17093112744065284614.reportbug@umbar.angband.pl> <[🔎] 20170224134531.j4nhyzihwve6t2l2@var.youpi.perso.aquilenet.fr> <[🔎] 20170224144438.wzuidgjfhxkxupmu@angband.pl> <[🔎] 20170225134657.diyqm6ou6ockqetm@var.youpi.perso.aquilenet.fr> <[🔎] 20170225172433.g4akpzpz6yundvki@angband.pl> <[🔎] 20170225190532.tmcaj455logkxwsk@var.youpi.perso.aquilenet.fr>
+
+
+On Sat, Feb 25, 2017 at 08:05:32PM +0100, Samuel Thibault wrote:
+> Adam Borowski, on sam. 25 févr. 2017 18:24:33 +0100, wrote:
+> > Alas, it won't work: I see that, while alignment of the graph itself works
+> > well, anything but terminals (which force a char-cell grid) fails to give
+> > Braille and ASCII characters the same width, despite requesting fixed-width
+> > display.
+> 
+> That's not normal: fixed-width fonts should really have fixed-width for
+> the characters used by gnuplot.
+"Should have" and "have" are different things. :(
+> > You can see how bad it is on https://angband.pl/doc/alluni.txt -- you should
+> > get an aligned grid with right edge of every full block forming an even
+> > vertical line, yet most blocks fail to align even within themselves.
+> 
+> That's expected: some characters have double-width, others have
+> zero-width.
+My test sheet accounts for that: it includes only wcwidth()==1 and 2
+characters (recently updated for unstable's glibc).  You can see that most
+lines include 64 characters, CJK ones have 32, a few lines are mixed.
+> But for characters that have single-width, they are really
+> aligned with a proper fixed-width font.
+Depends on your software.  xterm, libvte, pterm, rxvt-unicode get it right,
+mousepad, firefox, chromium and Microsoft Edge don't.  They prefer
+appearance over accuracy, and when borrowing a glyph from another font, they
+use the other font's horizontal advance which breaks the fixed width rule.
+> > gnuplot relies on being able to place labels within the image, which works
+> > for ASCII and maybe Latin/Greek/Cyrillic but, except for most terminals, not
+> > for anything else.
+> 
+> Then gnuplot is missing taking into account the value returned by
+> wcwidth() (0, 1, 2, ...), that's the bug.
+I don't know whether gnuplot is doing it correctly, I haven't tested -- but
+even if it does, the output will be misrendered by browsers.
+This is not restricted to Braille tricks, same happens if your label
+includes letters that happen to not be in the recipient's chosen font, and
+you can't control the latter.
+Thus, the only safe way to use Braille for drawing is to not mix it with any
+other character range at all -- or at most, place labels exclusively to the
+right of a rectangular graph.  Even labels at the bottom turned out to be
+badly shifted.
+Meow!
+-- 
+Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
+  ./configure --host=zx-spectrum --build=pdp11

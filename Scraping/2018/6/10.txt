@@ -1,0 +1,80 @@
+To : Guillem Jover <guillem@debian.org>
+Subject : Re: packages which have not been rebuild since December 2016
+From : Chris Lamb <lamby@debian.org>
+Date : Fri, 01 Jun 2018 10:40:18 +0100
+Message-id : 1527846018.978673.1392820176.56A829BC@webmail.messagingengine.com
+In-reply-to : <20180531153310.GA28168@thunder.hadrons.org>
+References : <20180530191110.kgz4wly6r7vp5sjc@layer-acht.org> <1527715764.3695455.1391017056.4EE2C9BE@webmail.messagingengine.com> <20180531153310.GA28168@thunder.hadrons.org>
+
+
+Hi Guillem,
+> I think this should be relatively easy to compute:
+Indeed — 9182/33705 packages need a rebuild in sid.
+(Full output of following script attached.)
+#!/usr/bin/env python3
+import os
+import re
+import glob
+import bisect
+import psycopg2
+import collections
+from debian import deb822
+from debian.debian_support import version_compare
+re_installed_build_depends = re.compile(
+    r'^(?P<package>[^ ]+) \(= (?P<version>.+)\)'
+)
+def get_buildinfos():
+    path = '/srv/ftp-master.debian.org/buildinfo/*/*/*/*.buildinfo'
+    result = collections.defaultdict(list)
+    for x in glob.glob(path):
+        src = os.path.basename(x).split('_')[0]
+        bisect.insort(result[src], x)
+    return result
+def gen_sources():
+    connection = psycopg2.connect(
+      user='udd-mirror',
+      dbname='udd',
+      password='udd-mirror',
+      host='udd-mirror.debian.net',
+    )
+    c = connection.cursor()
+    c.execute("""
+        SELECT
+            source
+        FROM
+            all_sources
+        WHERE
+            distribution = 'debian'
+        AND
+            release = 'sid'
+        ORDER BY
+            source ASC
+    """)
+    for x in c:
+        yield x[0]
+def main():
+    buildinfos = get_buildinfos()
+    for src in gen_sources():
+        try:
+            with open(buildinfos[src][-1]) as f:
+                data = deb822.Deb822(f)
+        except IndexError:
+            print("{} needs rebuild (no .buildinfo)".format(src))
+            continue
+        built_using = {}
+        for x in data['Installed-Build-Depends'].strip().splitlines():
+            m = re_installed_build_depends.match(x.strip())
+            built_using[m.group('package')] = m.group('version')
+        dpkg_version = built_using.get('dpkg-dev', '0~missing')
+        if version_compare(dpkg_version, '1.18.17') == -1:
+            print("{} needs rebuild (built using dpkg-dev {})".format(
+                  src, dpkg_version))
+if __name__ == '__main__':
+    main()
+Regards,
+-- 
+      ,''`.
+     : :'  :     Chris Lamb
+     `. `'`      lamby@debian.org / chris-lamb.co.uk
+       `-
+output.txt.gz

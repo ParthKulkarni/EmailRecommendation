@@ -1,0 +1,52 @@
+To : debian-devel@lists.debian.org
+Subject : tinysshd: Use Recommends: systemd rather than Depends
+From : Marvin Renich <mrvn@renich.org>
+Date : Sun, 21 Oct 2018 13:01:47 -0400
+Message-id : 20181021170146.s23mmzyiqjknsswe@basil.wdw
+In-reply-to : <[🔎] m3k1mbiak1.fsf@debian.org>
+References : <[🔎] CAKTje6Hazu=FfHc9-YT7Ftyz0E9oUbJNf2NayvLiv9OOfS_zJg@mail.gmail.com> <[🔎] 8736t1axpr.fsf@marvin.43-1.org> <[🔎] 87sh10imog.fsf@web.de> <[🔎] 20181020171607.2khryydow7bnqfdc@shell.thinkmo.de> <[🔎] 87lg6s8nxb.fsf_-_@violet.siamics.net> <[🔎] 87va5vg13z.fsf@err.no> <[🔎] 154011468574.1793.17134216390366195697@auryn.jones.dk> <[🔎] pqhir3$558$1@blaine.gmane.org> <[🔎] 877eib8mqe.fsf@violet.siamics.net> <[🔎] m3k1mbiak1.fsf@debian.org>
+
+
+Package: tinysshd
+Version: 20180201-1
+[Jan Mojžíš: this is a reply to a thread on debian-devel; some of the
+statements below are directed toward that thread, not to you
+personally.]
+* Vincent Bernat <bernat@debian.org> [181021 11:29]:
+>  ❦ 21 octobre 2018 13:15 GMT, Ivan Shmakov <ivan@siamics.net>:
+> 
+> >  >>> tinysshd only ships a systemd unit file; neomutt links against
+> >  >>> libgpgme11 which again Depends on gnupg.  It’s the kind of
+> >  >>> dependencies that individually make sense,
+> >
+> > 	I beg to differ; I suppose (though haven’t actually tried) I
+> > 	can start tinysshd straight from rc.local just as well, or even
+> > 	write my own init.d script, right?  Having the dependency in
+> > 	place just makes it harder to me to contribute an init.d script
+> > 	for the package.
+> 
+> tinysshd requires some kind of socket server to run. It could run from
+> inetd, so if you were an actual user, I would propose you file a bug
+> report against the package to let the maintainer knows the dependency is
+> too strong for your use (and maybe propose a patch to integrate with
+> inetd).
+> 
+> As you are not, please, do not. Our resources are scarce and we already
+> cater for the need of many non-existent users.
+Recommends, rather than Depends is correct, based on your description,
+even without a patch to enable use with inetd.  Anyone who is not using
+systemd, either out of dislike of systemd or because they have real
+requirements for no or a stripped-down init system, is able to add a
+single line to inetd (or one of its successors).
+However, adding Depends just because the package ships with a systemd
+unit file, and no other init integration, is simply wrong.
+Don't let the fact that systemd antagonists keep annoying you prevent
+you from doing the right thing.  openssh-server has an uncompressed size
+of 922k with a long list of Depends.  tinysshd has an uncompressed
+size of 606k with only two Depends, libc6 and systemd.  Changing systemd
+to a Recommends would make tinysshd significantly more useful in some
+of the use cases where its stated description "minimalistic SSH server"
+already makes it the preferred ssh server.
+As a general rule, please use Recommends over Depends whenever it will
+not truly break the package.  This is exactly what Recommends is for.
+...Marvin

@@ -1,0 +1,53 @@
+To : debian-devel@lists.debian.org
+Subject : Re: individual packages moving binaries from /bin to /usr/bin (was: Re: usrmerge -- plan B?)
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 22 Nov 2018 20:55:32 +0000
+Message-id : 20181122205532.GA2907@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 87r2fc7u4x.fsf_-_@marvin.43-1.org>
+References : <[🔎] 20181122101009.GA4511@chew.redmars.org> <[🔎] 20181122113214.GA12919@bongo.bofh.it> <[🔎] 658285fa-ee55-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 20181122134003.GA15016@bongo.bofh.it> <[🔎] 23542.45791.680048.340285@chiark.greenend.org.uk> <[🔎] 20181122134740.GA15270@bongo.bofh.it> <[🔎] 23542.46458.62031.525871@chiark.greenend.org.uk> <[🔎] 86091949a96126d6717d6a1a33a91eca9d6fde99.camel@43-1.org> <[🔎] 871s7dozao.fsf@hope.eyrie.org> <[🔎] 87r2fc7u4x.fsf_-_@marvin.43-1.org>
+
+
+On Thu, 22 Nov 2018 at 21:08:14 +0100, Ansgar Burchardt wrote:
+> If we want to support packages such as iptables moving binaries from
+> /{s,}bin to /usr/{s,}bin
+To be honest, I'm not sure whether we do want this. We should be careful,
+at least.
+Now that we don't support booting without /usr[1], it is no longer
+necessary to move an executable from /bin to /usr/bin if it gains
+a dependency on a library that is in /usr/lib, and similarly, it is
+unnecessary to move executables in the opposite direction to make them
+available in early boot.
+Unlike merged /usr, doing this move doesn't make things like containers
+any simpler until literally every executable in /bin has undergone this
+transition; the work happens now, but the benefit doesn't happen until
+the transition is complete. If the compat symlink isn't created
+carefully, it can easily break merged-/usr systems.
+However, it can easily cause the same issue that started this thread -
+when a dependent package detects "the" path to the iptables executable,
+it will get different answers depending on $PATH order, just like it would
+on a merged /usr system. That's fine if we can guarantee that iptables
+exists in both places, but during a partial upgrade, we can't count on
+that being the case without a versioned dependency on the moved iptables,
+which I assume nobody is seriously intending to mass-bug-file?
+For iptables, maybe that's no big deal, because not many packages depend
+on it and hard-code its path, but we have evidence from our accidental
+merged-/usr-buildds experiment (and its subsequent intentional equivalent
+in reproducible-builds) that the paths to programs like grep, sed and
+(of course) sh are more widespread.
+(Everything I've said about /bin applies equally to /sbin of course,
+I just didn't want to keep typing /{s,}bin.)
+I'm not sure yet what the best plan for merged /usr is. I would definitely
+like to make sure it's at least possible to continue to use merged
+/usr for special-purpose systems (particularly containers and embedded
+systems), even if it comes with major caveats like "can't reliably build
+Debian packages suitable for other systems"; I personally think everyone
+should be using sbuild or equivalent, either on a buildd or locally,
+to build "release-quality" packages suitable for distribution to other
+systems *anyway*, but I know that view isn't necessarily universal.
+For at least special-purpose systems, merged /usr seems to work fine with
+stretch, and I was able to get it working in an Ubuntu 12.04 derivative
+by backporting a single-digit number of changes, so that particular genie
+has been out of the bottle for quite some time anyway.
+    smcv
+[1] in the sense that if /usr is separate, we require it to be mounted
+    by the initramfs

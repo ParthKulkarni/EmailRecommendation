@@ -1,0 +1,54 @@
+To : Theodore Ts'o <tytso@mit.edu>
+Subject : Re: e2fsprogs as Essential: yes?:  Maybe we should be separating l10n files first?
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 3 Jan 2018 20:16:35 +0000
+Message-id : 20180103201338.GA10151@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180103174045.GA23421@thunk.org>
+References : <3cb53f2e-a760-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506942621.8204.25.camel@debian.org> <20171002113446.kazrk37bizfva7qe@angband.pl> <20171112191845.33rikhh3pay5fyot@thunk.org> <20171113142831.cleko3t7gkf6eeub@alf.mars> <20171113165946.wkwggt4ieeue5cvb@thunk.org> <20171113193508.ool6rpccmwgu2u6w@alf.mars> <[🔎] 20180101215145.GB2532@thunk.org> <[🔎] 20180101234219.GA26669@perpetual.pseudorandom.co.uk> <[🔎] 20180103174045.GA23421@thunk.org>
+
+
+On Wed, 03 Jan 2018 at 12:40:45 -0500, Theodore Ts'o wrote:
+> From the BuildProfile web page and
+> looking at the package versions, support for it appears to be in
+> Jessie, or at least "preliminary support" is present.
+jessie's apt/dpkg at least don't choke on the new syntax (I
+tried backporting flatpak from buster, which has <!nodoc>, for
+jessie-backports-sloppy and it seemed OK), although I didn't actually
+try doing a nodoc build for jessie. I'd suggest using jessie-backports'
+debhelper (and dh-exec if you use that) if targeting jessie.
+(buster's flatpak isn't actually present in jessie-backports-sloppy
+because I'm not sure I can commit to having the time or feasibility
+to patch it into working on jessie for the entire lifetime of buster,
+which seems to be the bar set by the backports maintainers.)
+> Since the autodetection isn't there, I would have to just manually
+> build with some kind of pkg.e2fsprogs.old-dbg build profile, or some
+> such, instead.  I guess it's about the same level of inconvenience of
+> needing to run ./debian/rules in order to generate the control file
+> from control.in.
+Right. If you're doing special package-specific runes anyway, you could
+add a `debian/build-backport` that activates the right build profiles
+for you instead?
+The examples of build profiles in my packages are all "negative"
+(Build-Profiles: <!nodoc>), which I think are much more common; but
+it's also possible to have "positive" build profiles which enable
+extra packages that are not normally built
+(Build-Profiles: <pkg.e2fsprogsdbg> or something).
+> My "./debian-rules debian-files" scheme used to do a lot more,
+> including rewriting several other files in debian/ using m4
+dh-exec covers a lot of the uses for that sort of trick, although (like
+everything invoked at build time) it can't touch debian/control.
+> we had just migrated libuuid and libblkid from e2fsprogs to
+> util-linux, and I wanted to support backports to stable, old-stable,
+> and Ubuntu LTS.
+For the Flatpak family (some of which need non-trivial patching to
+support jessie's older GLib) I've been happy with `git merge` into a
+separate branch, tbh...
+> Has there been any thought about having the build
+> profiles framework support for having the rules file autoselect a
+> build profile based on the build environment?
+I suspect that might be a "considered and rejected" sort of thing,
+because toolchain maintainers want the same command to always do more
+or less the same thing. If you want some automation for enabling special
+build profiles, I'd suggest wrapping it around the outside instead.
+That also means it's allowed to edit debian/control if it needs to.
+    smcv

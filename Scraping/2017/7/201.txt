@@ -1,0 +1,58 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Naming of network devices - how to improve it in buster
+From : Henrique de Moraes Holschuh <hmh@debian.org>
+Date : Wed, 12 Jul 2017 19:16:16 -0300
+Message-id : 20170712221616.e3rok54x26mo6zvx@khazad-dum.debian.net
+In-reply-to : <[🔎] 04f1ad56-b04d-9a33-ae77-3d806aa74b8f@debian.org>
+References : <[🔎] 20170710134714.33b4rbp4gqo4xj5r@sliepen.org> <[🔎] 20170710162228.v4teqev5vx3xxgj5@angband.pl> <[🔎] 12214332.2fR4hsN12g@merkaba> <[🔎] 658546a9-4ecf-18d0-4fb2-1e8d1a9c2dcc@debian.org> <[🔎] 20170711101459.uglna6qjj7jd5zq7@sliepen.org> <[🔎] 896774a5-3f5f-fa91-1a50-da892bcd0236@debian.org> <[🔎] E1dVJfL-0007Up-5d@swivel.zugschlus.de> <[🔎] 3f080b42-4a5e-6771-749c-147c08c2fd10@debian.org> <[🔎] CAOLfK3XHV=89k2oLZeeZ5q1vNRZEP4JGY=FRNT5c2umah3KK=A@mail.gmail.com> <[🔎] 04f1ad56-b04d-9a33-ae77-3d806aa74b8f@debian.org>
+
+
+On Wed, 12 Jul 2017, Michael Biebl wrote:
+> Am 12.07.2017 um 18:58 schrieb Matt Zagrabelny:
+> > On Wed, Jul 12, 2017 at 11:47 AM, Michael Biebl <biebl@debian.org
+> > <mailto:biebl@debian.org>> wrote:
+> > 
+> >     Am 12.07.2017 um 17:35 schrieb Marc Haber:
+> >     > My finger memory will still type tcpdump -i eth0 before the brain can
+> >     > intervene ten years from now.
+> > 
+> >     thankfully tcpdump (and lots of other tools) have nice shell completion.
+> >     tcpdump -i <TAB> works great her.
+> > 
+> > 
+> > Agreed. However, I'd still rather deal with names like /dev/sda and eth0
+> > than /dev/disk/by-id/ata-SanDisk_SSD_U100_252GB_122339300522 and en<blah>.
+> > 
+> > It is kind of like using people's first names as opposed to their Social
+> > Security Number (in US) or other form of national identification. I know
+> > when I can use the name Matt and I know who it refers to, even if
+> > another Matt enters the room. I'm comfortable with eth0 being the name,
+> > even when another interface appears.
+> > 
+> > I completely understand, and largely agree with, the need for persistent
+> > naming - but I think we are selling ourselves and our users short by not
+> > pressing harder for network interface aliases. It seems to be too useful
+> > of a solution for this problem.
+> 
+> Indeed, the best solution would be to never rename the interfaces and
+> simply create aliases / symlinks. Then again, I'm no kernel hacker so I
+> have no idea if that would be feasible.
+ip link set dev eth0 alias foo0
+But don't expect everything to work right with this: it is the same
+mechanism that was used for adding "extra IP addresses" when using
+braindamaged crap from a decade ago (old ifconfig), so I very much bet
+there are going to be stuff misbehaving...
+The obvious thing would be to just tell the kernel to change namespaces
+in the first place (kconfig + command line), and have userspace aware of
+the kernel namespace using sysfs.  Just beware the kernel default would
+be "unspecified" (and not "eth*", etc) because this is not central
+policy in the kernel at all).  I have never understood why this wasn't
+done, since it is absolutely trivial to implement, even if it is a lot
+of busywork (you have to patch each !@#$ network driver).  But you could
+clean up a _LOT_ of crap kernel side while at it, AND create both a
+central point for naming this stuff AND better device grouping, so it
+would be worth the trouble.  And it would be opt-in, default N, and
+detectable from userspace, so that it would not regress anything not
+prepared for it.
+-- 
+  Henrique Holschuh

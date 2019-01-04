@@ -1,0 +1,58 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Steve Langasek <vorlon@debian.org>
+Date : Tue, 27 Nov 2018 12:28:19 -0800
+Message-id : 20181127202819.GB6167@virgil.dodds.net
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 23549.16194.204341.181900@chiark.greenend.org.uk>
+References : <[🔎] 23542.46458.62031.525871@chiark.greenend.org.uk> <[🔎] 5938227.gdOSt9oBWM@odyx.org> <[🔎] 23547.59848.364519.806048@chiark.greenend.org.uk> <[🔎] 20181126140809.GA2806@bongo.bofh.it> <[🔎] 20181126T152904.GA.e90dc.stse@fsing.rootsland.net> <[🔎] 09faa7a66859a1c844dd9ac19f039e26fbfa86e7.camel@decadent.org.uk> <[🔎] 20181126230502.Horde.8oLHpL94tNJoJopQdvB0TJY@webmail.in-berlin.de> <[🔎] 20181127T091148.GA.94c2b.stse@fsing.rootsland.net> <[🔎] 20181127085443.GA8257@espresso.pseudorandom.co.uk> <[🔎] 23549.16194.204341.181900@chiark.greenend.org.uk>
+
+
+On Tue, Nov 27, 2018 at 12:57:38PM +0000, Ian Jackson wrote:
+> > In the case of unmerged /usr, the only benefits I'm aware of for the more
+> > complex case (unmerged /usr) are circular: existing Debian installations
+> > have it, so switching to merged /usr is a change;
+> I think this is true for Debian itself now that we have bitten the
+> bullet of requiring /usr to be mounted along with /, early during
+> boot.  (For the record I think that was a good decision.)
+> Unmerged /usr could have continuing benefits for Debian derivatives
+> who have avoided requiring early mounting of /usr.  IDK whether such
+> derivatives exist.  They could do, if they support a narrower range of
+> approaches to storage access than Debian proper.  If such derivatives
+> exist then Debian adopting merged /usr would be likely to cause
+> problems for them, as we would introduce changes in Debian which would
+> be bugs in those derivatives.  I don't know how serious a problem that
+> would be.
+Support for such a configuration is actively bitrotting as we speak. 
+Library dependencies of /bin and /sbin are no longer isolated in /lib; udev
+will not reliably set up all devices without access to programs under /usr. 
+Even if some derivative based on a recent Debian release has managed to keep
+usr-on-separate-partition-without-initramfs working for their purposes, this
+is not sensibly maintainable over the longer term, and the existence of such
+a derivative should carry very little weight with Debian when deciding
+whether to merge /usr.
+Example: even *without* merged /usr, an entirely sensible course of action
+for any maintainer of a Debian library package is to undo all special casing
+of /lib vs. /usr/lib in their debian/rules (.so -dev symlinks vs. runtime
+libraries, etc) and ship everything in /usr/lib, because the maintainer can
+rely on /usr/lib always being available.
+> I think it would be good to hear from any derivatives in this
+> position.  We should probably ask them more formally than by having a
+> horrible flamewar on -devel: ie, in a way that invites the expression
+> of concerns and which reassures people that they will not be flamed or
+> dismissed.  That would satisfy what I see as our social duty to
+> consult our downstreams.  And if we did that and didn't get replies,
+> that might give us confidence that such derivatives don't exist.  So
+> we could go ahead with a clear conscience.
+I don't agree that there's a social duty to consult downstreams that have
+made self-evidently poor engineering decisions, before making a change that
+will inconvenience them solely as a result of those same poor decisions.
+I don't mean that I'm unsympathetic to downstreams in that situation, or
+that I wouldn't want to help them; only that their plight /should not/ be an
+obstacle to Debian doing the right thing.
+-- 
+Steve Langasek                   Give me a lever long enough and a Free OS
+Debian Developer                   to set it on, and I can move the world.
+Ubuntu Developer                                   https://www.debian.org/
+slangasek@ubuntu.com                                     vorlon@debian.org
+signature.asc

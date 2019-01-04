@@ -1,0 +1,79 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Questions about VRF function in /etc/network/interfaces
+From : Geert Stappers <stappers@stappers.nl>
+Date : Sat, 29 Dec 2018 08:32:26 +0100
+Message-id : 20181229073226.4k5t6rglnjeg5gj7@gpm.stappers.nl
+In-reply-to : <[🔎] CAOE=1Z3sZHvCYYTwMf_+v20baaVCcf7pagprG=ewPPW2kU6DvQ@mail.gmail.com>
+References : <[🔎] CAOE=1Z3sZHvCYYTwMf_+v20baaVCcf7pagprG=ewPPW2kU6DvQ@mail.gmail.com>
+
+
+On Sat, Dec 29, 2018 at 01:36:37PM +0800, Simon Jones wrote:
+> Hi all,
+> 
+> I'm working on SONiC project management vrf function
+SONiC: https://azure.github.io/SONiC/ Software for Open Networking in the Cloud, SONiC
+VRF: https://en.wikipedia.org/wiki/Virtual_routing_and_forwarding
+> under debian with kernel 4.3.
+> 
+> This is my OS:
+> 
+> > # uname -a
+> > Linux dut211 4.9.0-7-amd64 #1 SMP Debian 4.9.110-3+deb9u2 (2015-12-19) x86_64 GNU/Linux
+Euh,  that 4.9 is not 4.3 ...
+> This is SONiC project management vrf function:
+> 
+> > https://www.youtube.com/watch?v=uAHmZKEdqDE&feature=youtu.be
+> 
+> 
+> Now I have to rewrite /etc/network/interfaces to implement this function,
+> but I got errors, so I want to know if there is demo about how to define
+> VRF interface and implement VRF function in /etc/network/interfaces.
+> 
+> As I follow your man file, I don't know how to do, and gots errors.
+> 
+> This is my try on this feature, rewrite /etc/network/interfaces like this
+> 
+> iface eth0 inet static
+> >     address 172.18.8.211
+> >     netmask 255.255.255.0
+> >     ########## management network policy routing rules
+> >     # management port up rules
+> >     up ip -4 link add mgmtvrf type vrf table 10
+> >     up ip -4 link set dev mgmtvrf up
+> >     up ip -4 link set dev eth0 master mgmtvrf
+> >     up ip -4 route add default via 172.18.8.1 dev eth0 table 10
+> >     up ip -4 route add 172.18.8.0/24 dev eth0 table 10
+> >     up ip -4 rule add from 172.18.8.211/32 table 10
+> >     post-up sysctl -w net.ipv4.tcp_l3mdev_accept=1
+> >     # management port down rules
+> >     down ip -4 route delete default via 172.18.8.1 dev eth0 table 10
+> >     down ip -4 route delete 172.18.8.0/24 dev eth0 table 10
+> >     down ip -4 rule delete from 172.18.8.211/32 table 10
+> >     down ip -4 link set dev eth0 nomaster
+> 
+> 
+> This is errors I got
+> 
+> > Dec 29 02:38:48 dut211 ifup[8690]: RTNETLINK answers: File exists
+That means "defining something twice is not allowed".
+See if you can find what is being defined for a second time.
+> > Dec 29 02:38:48 dut211 ifup[8690]: ifup: failed to bring up eth0
+> > Dec 29 02:38:48 dut211 systemd[1]: networking.service: Main process exited, code=exited, status=1/FAILURE
+> > Dec 29 02:38:48 dut211 systemd[1]: Failed to start Raise network interfaces.
+> > -- Subject: Unit networking.service has failed
+> > -- Defined-By: systemd
+> > -- Support: https://www.debian.org/support
+> > --
+> > -- Unit networking.service has failed.
+> > --
+> > -- The result is failed.
+> > Dec 29 02:38:48 dut211 systemd[1]: networking.service: Unit entered failed state.
+> > Dec 29 02:38:48 dut211 systemd[1]: networking.service: Failed with result 'exit-code???.
+> 
+> 
+> Thank you.
+> 
+Groeten
+Geert Stappers
+-- 
+Leven en laten leven

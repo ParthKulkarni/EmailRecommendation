@@ -1,0 +1,52 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#886238: Please introduce official nosystemd build profile
+From : Simon McVittie <smcv@debian.org>
+Date : Fri, 5 Jan 2018 00:41:00 +0000
+Message-id : 20180105004100.GB23195@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 1515103267.30205.1.camel@gmail.com>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CACujMDNW4uEQNeDYnbKedHpjeEPMUroPKp+4B3g=wGMmqr-EUA@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CAAB-KckBwYqMsJHk9UzAL4Lo=+HZfQNuV0AM+3-Yo6o9AEtcQg@mail.gmail.com> <[🔎] 1515103267.30205.1.camel@gmail.com>
+
+
+On Thu, 04 Jan 2018 at 23:01:07 +0100, Svante Signell wrote:
+> What about creating a linux-nosystemd architecture, e.g.
+> dbus-1.12.2/debian/control
+> Build-Depends:
+>  libsystemd-dev [linux-any !linux-nosystemd]
+> etc.
+We've never applied such drastic measures for other small libraries that
+enable optional features, even when the size of Debian was a much larger
+proportion of typical storage media than it is now.
+dbus is a nice example so I'll stick with it. It also depends on
+libapparmor and libselinux, and it's literally impossible[1] for both of
+those libraries to be useful on the same Debian machine; but dbus-daemon
+depends on them anyway, because the benefit for people who use the
+appropriate LSM is significant, and the cost to everyone else is
+trivially small.
+libsystemd is no different. It's a library that is relevant on some
+system configurations, and does basically nothing on others. Debian is
+a binary distribution, so we enable the majority of optional features
+at build-time to maximize the applicability of our binaries.
+If you want proponents of continued support for non-systemd init to be
+taken seriously, I would recommend treating libsystemd as part of the
+price you pay for using generic binaries that came from a general-purpose
+distribution's buildd, just like libapparmor (if you don't use AppArmor)
+and libselinux (if you don't use SELinux). I'm sure you wouldn't want
+to create the (hopefully false) impression that opposition to systemd
+is based on superficial appearances more than on technical considerations.
+Here are some examples of more constructive/less negative ways that
+Debian contributors could improve the state of traditional init systems,
+if that's something they are interested in putting work into:
+* maintain init systems (I notice initscripts currently has a
+  release-critical bug open)
+* evaluate alternatives to systemd-logind that achieve the same goals
+  without requiring systemd as pid 1 (elogind looks promising)
+I'm trying hard to be even-handed, assume good faith, and not get into
+an "us vs. them" mindset, but every time I find myself reading a thread
+like this, that gets a bit harder to do. If threads like this frustrate
+enough people, there's a risk that they'll tilt the project consensus
+towards considering the cost of choice of init system to exceed the
+benefit, and dropping support for non-systemd inits altogether, which
+is presumably not what you want to happen.
+    smcv
+[1] until "LSM stacking" is implemented in the kernel, which I hear will
+    happen any year now

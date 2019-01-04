@@ -1,0 +1,61 @@
+To : debian developers <debian-devel@lists.debian.org>
+Subject : Re: allowed uses of non-baseline CPU extensions
+From : Adrian Bunk <bunk@debian.org>
+Date : Mon, 23 Oct 2017 11:23:12 +0300
+Message-id : 20171023082312.xitb5eemtjdr3jyd@localhost
+In-reply-to : <[🔎] CAMr=8w4YARSL71CipiU0wbC7LGKRH=59B_uZQ=JAPRVFJs-4xA@mail.gmail.com>
+References : <[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl> <[🔎] 20171022093302.ph4rlxwnymmd4l4c@localhost> <[🔎] CAMr=8w4YARSL71CipiU0wbC7LGKRH=59B_uZQ=JAPRVFJs-4xA@mail.gmail.com>
+
+
+On Sun, Oct 22, 2017 at 06:53:49PM +0800, Aron Xu wrote:
+>...
+> With packages like sse2-support maintainers have the option of
+> creating different flavors of their packages with modern instructions
+> enabled/disabled,
+The opposite is true.
+The result are not different flavors (which would be OK),
+the result is one package that does not support the baseline.
+If what you have in mind is a foo-avx package in addition to
+a foo package, then that's not the problematic case (the only
+technical question would be whether foo-avx should be in a
+separate package or in the foo package).
+> this gives great possibility to some very common use
+> cases, for instance "avx-support" on amd64, which is critical to most
+> scientific software to run at appropriate performance. In this case we
+> can avoid a painful tradeoff between keeping and raising the baseline
+> which has zero flexibility.
+There is no such tradeoff, the only thing we avoid is either upstream or 
+the maintainer supporting both.
+The proper upstream solution are several versions of the performance 
+critical part with runtime selection.
+If a maintainer wants to provide different flavors, I remember seeing 
+some package (in Debian Med?) taking the approach of compiling the whole 
+program twice with a tiny wrapper program that does runtime detection 
+and then calls the actual program.
+And if things should *really* be optimimized for maximum performance,
+you'd end up with a -src package that compiles the software with
+no hardening and -march=native.
+> Users of really old or rare hardware should be able to handle their
+> own case - by recompiling critical packages themselves,
+Debian is a binary distribution, it is not for the individual maintainer 
+to decide how many users to screw by not supporting their hardware.
+And if the package can just be recompiled to support the baseline,
+this is somehting the maintainer is supposed to be able to handle
+(see above).
+> by producing something like raspbian,
+The raspian baseline has never been supported by the Debian armhf port.
+non-AVX on amd64 and non-NEON on armhf are fully supported by Debian.
+> or at least by staying on an old release if
+> they need something can't be supported at all (i.e. upstream removed
+> compatibility in current release).
+How many packages can you name that do support non-SSE2 in a previous 
+Debian stable but cannot be made to compile without SSE2-support now?
+> Regards,
+> Aron
+cu
+Adrian
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

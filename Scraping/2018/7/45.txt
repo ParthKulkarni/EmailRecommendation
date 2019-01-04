@@ -1,0 +1,54 @@
+To : Simon McVittie <smcv@debian.org>, debian-devel@lists.debian.org
+Subject : Re: A message from CMake upstream: announcing dh-cmake
+From : Kyle Edwards <kyle.edwards@kitware.com>
+Date : Thu, 05 Jul 2018 11:11:36 -0400
+Message-id : 1530803496.30662.85.camel@kitware.com
+In-reply-to : <[🔎] 20180705143821.GA14169@espresso.pseudorandom.co.uk>
+References : <[🔎] 1530647802.30662.24.camel@kitware.com>	 <[🔎] 8469811.VszcyU8jI2@tonks> <[🔎] 1530796855.30662.67.camel@kitware.com>	 <[🔎] 20180705143821.GA14169@espresso.pseudorandom.co.uk>
+
+
+So, to clarify: we've changed VTK to use GNUInstallDirs, which *itself*
+sets the proper directories for Debian, as I will explain below.
+On Thu, 2018-07-05 at 15:38 +0100, Simon McVittie wrote:
+> debhelper's Debian::Debhelper::BuildSystem::cmake already passes
+> -DCMAKE_INSTALL_LIBDIR=lib/$DEB_HOST_MULTIARCH (among other options)
+> to packages built using cmake, although for some reason it only does
+> this when cross-compiling (this seems sufficiently odd that I've
+> reported it as a bug).
+The CMAKE_INSTALL_LIBDIR variable comes from the GNUInstallDirs module,
+which already sets it to lib/$DEB_HOST_MULTIARCH if it detects a Debian
+installation and if CMAKE_INSTALL_PREFIX is set to /usr. Though, as you
+have pointed out, CMAKE_INSTALL_LIBDIR can be overridden if so desired.
+> The most helpful thing that CMake could do here would be to have a
+> predictable set of conventional installation paths, similar to the
+> --libdir, --bindir etc. in Autotools and Meson, so that debhelper can
+> define the same paths for all CMake-built packages and have the right
+> things happen 99% of the time, as it already does for Autotools and
+> Meson. If I understand correctly, CMake doesn't *necessarily* provide
+> anything like this, but individual CMake-using projects can opt-in to
+> it
+> by using <https://cmake.org/cmake/help/latest/module/GNUInstallDirs.h
+> tml>?
+> (debhelper does set many of those variables, in the hope that the
+> project
+> being built uses GNUInstallDirs.)
+Yes, we've changed VTK to use GNUInstallDirs for this exact reason.
+GNUInstallDirs should be considered the standard set of installation
+directories for CMake projects.
+> In general I think we prefer upstream build systems to do something
+> predictable rather than something clever, because we're usually going
+> to be passing options to them anyway
+I think we're on the same page here. In fact, another predictable thing
+we'd like to see upstream buildsystems do is install their libraries in
+the "Libraries" or "Runtime" component (via the install() command's
+COMPONENT argument) and install the headers and symlinks in the
+"Development" component. Then, Debian maintainers can use dh-cmake with
+these standard options and have everything go in the correct packages.
+Or, if it's a large project with lots of output packages, it could have
+more fine-grained components like "example1-Development", "example2-
+Development", etc., and then the Debian packaging can take this into
+account. (This is exactly what we plan to do with VTK.)
+The whole point of this project is to encourage upstream CMake projects
+to follow a set of standards that are Debian-friendly (and distro-
+friendly in general), so that they "do something predictable."
+Kyle

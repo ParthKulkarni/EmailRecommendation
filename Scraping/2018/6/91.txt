@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: concerns about Salsa
+From : Russell Stuart <russell-debian@stuart.id.au>
+Date : Sun, 10 Jun 2018 11:36:51 +1000
+Message-id : 1528594611.9712.1.camel@stuart.id.au
+Reply-to : russell-debian@stuart.id.au
+In-reply-to : <[🔎] 23323.52627.675939.733125@chiark.greenend.org.uk>
+References : <[🔎] 3155612.nf7Q4P6B6c@deblab>	 <[🔎] 23317.10360.626230.429328@chiark.greenend.org.uk>	 <[🔎] 20180604215221.s6ravo5kgmrgysmn@scru.org>	 <[🔎] 20180604221230.xp2kyr2do5hvb7lf@mail.wookware.org>	 <[🔎] 23318.41424.965984.242582@chiark.greenend.org.uk>	 <[🔎] 1528243905.7414.3.camel@stuart.id.au> <[🔎] 878t7qmv5j.fsf@err.no>	 <[🔎] 1528411610.5006.1.camel@stuart.id.au> <[🔎] 87o9gkl8wg.fsf@err.no>	 <[🔎] 23323.52627.675939.733125@chiark.greenend.org.uk>
+
+
+On Sat, 2018-06-09 at 13:52 +0100, Ian Jackson wrote:
+> As a service owner who has chosen to run the service out of git
+> for other reasons, I don't really care.  But someone who wants to run
+> the service from packages might have a different view.
+In my very limited experience with containers they don't need
+the host privileges that come with root.  The only reason containers
+want root is to continue doing privilege separation (eg, prevent the
+web from installing packages) in the way they've always done it.  For
+example a fakeroot that persisted across reboots and somehow worked
+with ldd / ld.so would be fine.  
+It turns out if this is all you need its already available.  Some
+container systems can already map root inside of the container to a
+less privileged user outside of the container.  Docker for example [0].
+And it is generally all you need. A container seems to reduce to:
+- Program(s) that run in their own little ephemeral POSIX universe
+  (ephemeral in the sense when it is stopped all internal state is
+  lost, as if it was stored in RAM and the power was cycled) that
+  has no connections with the outside world whatsoever, except:
+- They listen to TCP/UCP ports inside the container.  But these are
+  completely isolated from the outside world until the sysadmin
+  connects an outside IP Address / port to them, and
+- Stores data that should be persisted or perhaps just visible (eg
+  logs) in a few well known directories, onto which the sysadmin can
+  bind mount appropriate storage (the convention seems to be /data),
+  and
+- Has unfettered access to the network as a client. 
+Root is either not required for these things or easily avoided.  For
+example even though the external world connects to Salsa on port 80 and
+it would require root privileges to listen on port 80, Salsa can listen
+on port 8888 inside the container and if the sysadmin wants it to serve
+port 80, he maps some_ip_addr:80 to the container 8888.
+There are inefficiencies built into this system.  For example you may
+end up with 100 containers all polling Debian for security updates and
+installing them into ephemeral little worlds.  But these inefficiencies
+don't seem like good reason to avoid using containers.
+[0] https://docs.docker.com/engine/security/userns-remap/#user-namespace-known-limitationssignature.asc

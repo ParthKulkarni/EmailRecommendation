@@ -1,0 +1,38 @@
+To : Adam Borowski <kilobyte@angband.pl>
+Subject : Re: Removing conflicts of init system
+From : Guillem Jover <guillem@debian.org>
+Date : Sat, 22 Dec 2018 21:46:14 +0100
+Message-id : 20181222204614.GA3189@gaara.hadrons.org
+Mail-followup-to : Adam Borowski <kilobyte@angband.pl>,	Thorsten Glaser <t.glaser@tarent.de>,	Dmitry Bogatov <KAction@debian.org>, systemd@packages.debian.org,	sysvinit@packages.debian.org, runit@packages.debian.org,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20181222191113.xbvci7ahgij5hrtg@angband.pl>
+References : <[🔎] E1gaPwU-0002fD-Bb@eggs.gnu.org> <[🔎] alpine.DEB.2.21.1812212356270.11761@tglase.lan.tarent.de> <[🔎] 20181222165426.GA1288@gaara.hadrons.org> <[🔎] 20181222191113.xbvci7ahgij5hrtg@angband.pl>
+
+
+On Sat, 2018-12-22 at 20:11:13 +0100, Adam Borowski wrote:
+> On Sat, Dec 22, 2018 at 05:54:26PM +0100, Guillem Jover wrote:
+> > On Fri, 2018-12-21 at 23:57:38 +0100, Thorsten Glaser wrote:
+> > > No. update-alternatives is too fragile to handle things like
+> > > /bin/sh and init(8).
+> > 
+> > While this certainly used to be true, I don't it has been the case for
+> > a long time now? It seems like oral tradition to me now. :) There is I
+> > think a single non-wishlist bug report against u-a in the BTS. So if
+> > there are still problems I'd be more than happy to hear about them.
+> 
+> I believe this is a misconception based on an actual problem: the
+> alternatives system cannot be used for /bin/sh symlinks as
+> 1. it uses shell scripts itself (making it impossible to recover) and
+I don't think u-a has used any shell in any of its recent history. The
+only external thing u-a itself it currently still uses is mv(1) via an
+execvp(3), *only* in case a rename(3) failed for example due to a
+cross-device move.
+> 2. is not atomic, leaving a brief time window when there's no /bin/sh.
+But it should! It uses a temporary file first and then does the usual
+atomic rename(3) dance over it. If there is any place where this is
+not the case, I'm also happy to hear. :)
+> Nothing of that issue applies to /bin/init which is ever executed only
+> during the boot process then at controlled moment during package updates.
+It's still as important, as you might suffer from a sudden crash and
+be left w/o a /bin/init program.
+Thanks,
+Guillem

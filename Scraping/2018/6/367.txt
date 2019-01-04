@@ -1,0 +1,51 @@
+To : 902736-done@bugs.debian.org, debian-devel@lists.debian.org
+Subject : dropping #902736: ITP: maildir-deduplicate -- find and delete duplicated mails in a Maildir
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 30 Jun 2018 17:19:25 +0200
+Message-id : 20180630151925.pus5wdnpvmiulbbt@angband.pl
+In-reply-to : <[🔎] 153032249880.4467.7410619857298321212.reportbug@umbar.angband.pl>
+References : <[🔎] 153032249880.4467.7410619857298321212.reportbug@umbar.angband.pl>
+
+
+On Sat, Jun 30, 2018 at 03:34:58AM +0200, Adam Borowski wrote:
+> * Package name    : maildir-deduplicate
+>   Version         : 2.1.0
+>   Upstream Author : Kevin Deldycke
+> * URL             : https://maildir-deduplicate.readthedocs.io/en/develop/
+>   Programming Lang: Python
+>   Description     : find and delete duplicated mails in a Maildir
+>  This program searches a set of mail folders for duplicated mails.  Those
+>  are notorious when you receive the same notification via different ways,
+>  get mails crossposted to multiple mailing lists, etc.  Detection is done
+>  by coercing a subset of headers into a canonical form and taking a hash.
+>  As protection against false positives, message bodies of candidate
+>  duplicates are diffed as well, rejecting those that don't look similar
+>  enough.  This should avoid most decoration from mailing lists.
+>  .
+>  Only the Maildir format is supported.
+Turns out the current version sucks too much to deserve packaging.
+The version I used for years was a single self-contained script that worked
+reliably.  Current one:
+* uses a long string of libraries with API stability worthy of NPM
+  (https://github.com/click-contrib/click-log/issues/10 being one of two
+  needed to even let it load)
+* requires an long list of mandatory options instead of taking sane
+  defaults.  For example, what used to be
+    maildir-deduplicate Maildir/.Trash
+  now is:
+    mdedup deduplicate -n -s delete-non-matching-path -t date-header Maildir/.Trash/
+  You need to say "deduplicate" just because there's an obscure debug option
+  that hashes a single file (-H in the old interface), and the author
+  decided to put regular functionality behind a subcommand!
+* prints a lot of crap that used to be tersely given within two lines
+* crashes in many mysterious ways -- I dealt with some but ran out of damn
+  to give
+So the only good option would be to stick with the old version, but that one
+is Python2 only and unmaintained.
+Not impressed.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ There's an easy way to tell toy operating systems from real ones.
+⣾⠁⢰⠒⠀⣿⡁ Just look at how their shipped fonts display U+1F52B, this makes
+⢿⡄⠘⠷⠚⠋⠀ the intended audience obvious.  It's also interesting to see OSes
+⠈⠳⣄⠀⠀⠀⠀ go back and forth wrt their intended target.

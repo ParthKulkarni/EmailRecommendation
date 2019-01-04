@@ -1,0 +1,44 @@
+To : Dirk Eddelbuettel <edd@debian.org>
+Subject : Re: Our build system may be broken: /bin vs /usr/bin
+From : Marco d'Itri <md@Linux.IT>
+Date : Mon, 19 Nov 2018 17:10:04 +0100
+Message-id : 20181119161004.GA2045@bongo.bofh.it
+Mail-followup-to : Dirk Eddelbuettel <edd@debian.org>,	Debian Developers <debian-devel@lists.debian.org>
+In-reply-to : <[🔎] 23538.52963.365294.710701@rob.eddelbuettel.com>
+References : <[🔎] 23538.52963.365294.710701@rob.eddelbuettel.com>
+
+
+On Nov 19, Dirk Eddelbuettel <edd@debian.org> wrote:
+> GNU R has long been relying on sed, tar, bzip2, ... and many more base
+> tools. No issues there. Generally looked for in /bin and found there.
+Actually this is the root problem: policy says that packages should use 
+the $PATH to search for commands, but your package (like many others) 
+hardcodes their full path.
+If you cannot easily fix this then the correct workaround is to nail the 
+full path at configure time.
+E.g. inn2 had something like this in debian/rules for many years:
+        CONFIG_SHELL=/bin/sh \
+        BZIP2=/bin/bzip2 \
+        GZIP=/bin/gzip \
+        PERL=/usr/bin/perl \
+        ac_cv_path_CAT=cat \
+        ac_cv_path_EGREP=egrep \
+        ac_cv_path_OPENSSL=openssl \
+        ac_cv_path_SED=sed \
+        ac_cv_path_SORT=sort \
+        ac_cv_path_GPGV=/usr/bin/gpgv \
+	... \
+        LDFLAGS="-Wl,--as-needed $(LDFLAGS)" \
+        ./configure \
+	...
+Since some people strongly requested to maintain support for 
+non-merged-/usr systems then there is this unfortunate need to keep 
+supporting both "old" and "new" paths instead of just removing /bin and 
+/sbin from the $PATH.
+An handful of bugs like this have been reported since buildds switched 
+to merged-/usr for their chroots, but they are few enough that I think 
+they can be fixed easily.
+-- 
+ciao,
+Marco
+signature.asc

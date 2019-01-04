@@ -1,0 +1,51 @@
+To : debian-devel@lists.debian.org
+Subject : Re: let's drop non-UTF-8 locales
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 1 Sep 2017 22:19:59 +0200
+Message-id : 20170901201959.c77qfy4naflyjimo@angband.pl
+In-reply-to : <[🔎] 20170901163157.7z7ynuth76tlufjf@angband.pl>
+References : <[🔎] 303d8fe7-0d26-1907-2e3c-a46009bb8f91@eds.org> <[🔎] 20170901163157.7z7ynuth76tlufjf@angband.pl>
+
+
+On Fri, Sep 01, 2017 at 06:31:57PM +0200, Adam Borowski wrote:
+> and ensure that if the user fails to specify a locale, C.UTF-8 is used.
+Fun thing: build the attached program with glibc then with musl.
+glibc:
+"C.UTF-8"     iswalpha: 1 (want 1), mbtowc: 2 (want 2)
+"C"           iswalpha: 0 (want 1), mbtowc: -1 (want 2)
+unset         iswalpha: 0 (want 1), mbtowc: -1 (want 2)
+musl:
+"C.UTF-8"     iswalpha: 1 (want 1), mbtowc: 2 (want 2)
+"C"           iswalpha: 1 (want 1), mbtowc: 1 (want 2)
+unset         iswalpha: 1 (want 1), mbtowc: 2 (want 2)
+Ie, if none of LC_ALL, LANG, LC_CTYPE are set, musl considers this to mean
+C.UTF-8, exactly what I wanted here.  This does match POSIX:
+http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08_02
+# 4. If the LANG environment variable is not set or is set to the empty
+#    string, the implementation-defined default locale shall be used.
+This looks drastically more robust than what I had in mind (mucking with
+login defs and env of daemons), and is all standards-kosher.
+Ie, if you don't choose a locale at all (as opposed to picking C or
+ko_KP.ISO-8859-1), you'll get UTF-8.  
+Any thoughts?  As this idea has distro-wide effects, I'm asking you guys
+first before annoying glibc maintainers (ours or upstream).
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ Vat kind uf sufficiently advanced technology iz dis!?
+⢿⡄⠘⠷⠚⠋⠀                                 -- Genghis Ht'rok'din
+⠈⠳⣄⠀⠀⠀⠀ 
+#include <locale.h>
+#include <stdio.h>
+#include <wctype.h>
+#include <stdlib.h>
+#include <string.h>
+int main()
+{
+    const char *in="ą\n";
+    wchar_t out;
+    setlocale(LC_CTYPE, "");
+    printf("iswalpha: %d (want 1), mbtowc: %d (want 2)\n",
+            iswalpha(0x105), mbtowc(&out, in, strlen(in)));
+    return 0;
+}

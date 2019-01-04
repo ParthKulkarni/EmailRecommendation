@@ -1,0 +1,47 @@
+To : debian-arm@lists.debian.org
+Subject : Upcoming Qt switch to OpenGL ES on arm64
+From : Dmitry Shachnev <mitya57@debian.org>
+Date : Thu, 22 Nov 2018 21:37:29 +0300
+Message-id : 20181122183729.GA13435@mitya57.me
+
+
+Hi all!
+The Qt framework can be built either with “desktop” OpenGL, or with OpenGL ES
+support. At the moment we are building it with OpenGL ES on armel and armhf,
+and with desktop OpenGL on all other architectures.
+However we have received a request [1] from two different persons to add arm64
+to the list of architectures where OpenGL ES is used.
+We want your feedback! If you are using an arm64 device or board with Qt,
+please let us know your opinion about this change, by replying to this mail
+or to [1], and describe your use case.
+So far we are going to make this change starting with the Qt 5.11.3 packages.
+In case you already want to test it, the updated qtbase package is available
+in experimental [2]. However the reverse dependencies are not yet rebuilt.
+This change will affect packages using Qt Gui [3], Qt Widgets [4], Qt Quick
+and some other modules. It will not affect packages using the deprecated Qt
+OpenGL module because it loads the OpenGL library at runtime.
+The best way to check whether some package needs changes is checking Ubuntu
+[5], which has been building Qt with OpenGL ES on arm64 since version 16.10
+(yakkety) [6].
+We will send a new mail with DD-list of packages that we detect to be affected
+a bit later.
+There are some packages that are not compatible with OpenGL ES. For example,
+packages using libglu and Qt simultaneously will most likely have to drop
+their arm64 binaries (like they already have no armel or arm64 binaries).
+An example of such package is qwtplot3d.
+Also note that as this change breaks ABI on arm64, we are renaming libqt5gui5
+to libqt5gui5a, which will need binNMUs of all reverse dependencies. The list
+of all such dependencies is available here [7]. This will happen together with
+the Qt 5.11.3 transition.
+Please Cc me or pkg-kde-talk on reply.
+[1]: https://bugs.debian.org/881333
+[2]: https://tracker.debian.org/news/1004843/
+[3]: https://doc.qt.io/qt-5/qtgui-index.html#opengl-and-opengl-es-integration
+[4]: https://doc.qt.io/qt-5/qopenglwidget.html
+[5]: https://launchpad.net/ubuntu/+source/${SOURCE_PACKAGE_NAME},
+     or the “ubuntu patches” link in the right panel of tracker.debian.org
+[6]: https://salsa.debian.org/qt-kde-team/qt/qtbase/commit/197063f08928ac9c
+[7]: https://perezmeyer.com.ar/ben/qtbase.html
+--
+Dmitry Shachnev
+signature.asc

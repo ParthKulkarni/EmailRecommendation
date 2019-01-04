@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Didier 'OdyX' Raboud <odyx@debian.org>
+Date : Thu, 01 Mar 2018 10:55:29 +0100
+Message-id : 3109839.N6Au9VJDbT@odyx.org
+In-reply-to : <20180227141402.GA3441@espresso.pseudorandom.co.uk>
+References : <151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com> <1747528.3EBMEs4rXA@odyx.org> <20180227141402.GA3441@espresso.pseudorandom.co.uk>
+
+
+Le mardi, 27 février 2018, 15.14:02 h CET Simon McVittie a écrit :
+> Here is a different straw man, which I think might be similarly effective
+> and a lot less work:
+> 
+> On Tue, 27 Feb 2018 at 14:13:41 +0100, Didier 'OdyX' Raboud wrote:
+> > As Debian, we
+> > are insisting that our releases ideally only contain a single version of a
+> > software, that we insist is made available at system-level.
+> 
+> ...
+> 
+> > In other words, vendorization is the tool that allows developers to get
+> > rid of distribution constraints and get on with their development through
+> > installing the dependencies from their ecosystem as they see fit
+> > (non-root), in the (eventually precise) version they need.
+> 
+> I can't help wondering whether vendorizing dependencies (embedded code
+> copies) would be a better route for ecosystems like npm that we might
+> categorise as "aggressively modular" - package the app, but not the
+> dependencies, and treat the vendorized/embedded dependencies as part
+> of the app. Not embedding or duplicating libraries is already an ideal
+> that we have to compromise on for pragmatic reasons - browsers use
+> system libraries in testing/unstable but gradually make increasing use
+> of embedded code copies in stable[1], drifting further away from the
+> "no embedded code copies" ideal as time goes on and the latest browser
+> version becomes increasingly unbuildable against the increasingly old
+> libraries in stable. It's also how many Rust dependencies are already
+> managed, as far as I'm aware.
+Sure.  That would just be a different use of these .vdebs where these would be 
+embedded/repacked in the end application packages rather than installed 
+globally and used from their installation paths.
+The added value that Debian can provide are source traceability, and trust 
+mechanisms for package updates (although my proposal would most certainly 
+weaken that) The issue I have with npm/pypi/you-name-it ecosystems is that I 
+have to rely on _binary_ distribution made by non-Debian actors (with their 
+own standards), to get dependencies for my applications. (I'm not saying their 
+standards are necessarily bad; just that they often are not Debian's.)
+So I was talking about Debian providing a new source-to-binary_artifact 
+pipeline, which I think is an area where there's something to be done, by 
+Debian.  Your proposal about embedding vendorized dependencies within 
+applications (through embedded code copies or through Flatpak) is good, but I 
+think the two proposals are orthogonal.
+The advantage of having Debian-provided version-specific dependencies is the 
+centralization of the DFSG-freeness checking, of the copyright assignment, 
+etc. (and of the security patching, but that's harder).
+I envision a hypothetical situation where instead of having embedded code 
+copies of, say, jquery in various software, we had a centralized jquery source 
+repository to which any arbitrary version (even patched) could be requested 
+from.  Need jQuery Core 2.2.3 ? We have it for your package, so please either:
+* depend on jquery_core_2.2.3.vdeb and add a symlink to
+  /opt/vdebs/jquery-core/2.2.3;
+* build-depend on jquery-core_2.2.3.vdeb and add
+  Built-Using: jquery-core_2.2.3
+Need jQuery Core 3.3.1 with your specific patches? Add your patches to a 
+branch, and get your jquery-core_3.3.1+g1231234.vdeb.
+That'd be a neat way to entirely eliminate code copies, and win metadata 
+(which is currently fuzzy, at best) about these.
+> I'm just not sure that taking the rules we follow for C/C++ shared
+> libraries and applying them to every other language's ecosystem is either
+> feasible or desirable - nodejs libraries are not the same as C libraries,
+> and their tradeoffs are not the same tradeoffs.
+Yes.signature.asc

@@ -1,0 +1,150 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Tue, 6 Jun 2017 21:30:26 +0200
+Message-id : 20170606193026.ee5bc3gdh7zm4vuv@angband.pl
+In-reply-to : <[🔎] 87d1ahgkx5.fsf@hope.eyrie.org>
+References : <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk> <[🔎] 20170606000242.333F97C6433@relay.mailchannels.net> <[🔎] 871sqyueya.fsf@hope.eyrie.org> <[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl> <[🔎] 87d1ahgkx5.fsf@hope.eyrie.org>
+
+
+On Tue, Jun 06, 2017 at 09:06:46AM -0700, Russ Allbery wrote:
+> Adam Borowski <kilobyte@angband.pl> writes:
+> 
+> > More seriously, though, let's go through the list of 94 unsatisfied ones
+> > on my desktop; the list below is transposed to collate recommendees.
+> 
+> And what happens here is, I think, typical: any one person often thinks
+> choices of recommends make no sense, but a broader perspective provides
+> quite a bit of justification.
+It is remarkable that out of 94 unsatisfied recommends on my system you
+disagreed with just 6, despite them going contrary to the maintainer's
+wishes thus being certain to be controversial.
+Also, it's quite obvious this list was very hastily done, with often just a
+few seconds per entry.  Thus, I admit the list does contain inaccuracies
+that fail when confronted with a bit more research.  The intent is just to
+have a sample -- not to file actual bugs yet.
+> A good example:
+> 
+> > dnsmasq-base: lxc
+> > * BAD: how often are you on a network without a DNS server?
+> 
+> Your question here indicates to me that you've missed the point of this
+> dependency entirely.  lxc uses the dnsmasq program (not service, hence
+> -base) for *DHCP* for containers on the container network.
+I do use lxc quite heavily, usually choosing IP addresses within config
+files but sometimes using DHCP.  And it seems to work just fine without
+dnsmasq -- thus, unless I'm missing something, it's not something that
+"would be found together [...] in all but unusual installations".
+> If you do a search for lxc dnsmasq, you'll see tons of justification for
+> this Recommends.  lxc is already pulling in tons of stuff; it would be
+> dumb to make it harder to use by omitting this small recommends of a few
+> binaries.
+906kB is bigger than most of Recommends on this list, but as not a part of
+the default install you do have a point that it may make it easier to have
+pre-installed: while it's a common setup to store a lxc host on a separate
+small filesystem, typical lxc boxes aren't on the small side overall.
+I'm not persuaded about the importance of this add-on, but that's exactly
+why we're having this debate.
+The point of a debate is not to "win" but to find the best solution...
+> > gsfonts: libmagickcore-6.q16-3 libwmf0.2-7
+> > * BAD: see ghostscript
+> 
+> Your concept of what file formats are obsolete is not even remotely
+> similar to mine.
+I did not happen to know ghostscript can also be used not for .ps but also
+for some .pdf workflows (I prefer to not use blatantly fake-free software)
+but my main point stands: an _image_ manipulation program cannot be said to
+import _documents_ in "all but unusual installations".
+And "gsfonts" is not even ghostscript itself but merely an add-on for it.
+> > libgnomeui-0: xscreensaver
+> > * BAD: Gnome users won't run xscreensaver
+> 
+> What?  The hell they won't.
+There's gnome-screensaver, which has better integration with Gnome at the
+cost of using a ton of gnome-related bloat (which doesn't hurt a Gnome user
+in any way -- they already have that installed).  Thus, a _typical_ Gnome
+user won't install xscreensaver, and a typical xscreensaver user won't
+install Gnome.  And "Recommends:" is all about typical use.
+Plus, as Simon McVittie mentioned, libgnomeui-0 is strongly deprecated even
+within Gnome itself.
+> > libmail-sendmail-perl: po-debconf
+> > * BAD: why would po stuff want to send mail?
+> 
+> This is for podebconf-report-po.  I assume you've not packaged something
+> with translations?
+I'm not dealing with any po-heavy packages at the moment, yeah.  It might
+indeed be useful for some deep po stuff, but the package I want is
+"debhelper".  Technically, I do know how to package without debhelper (see
+"goodbye") but I still would prefer to use it.  And as someone involved in
+both QA and sponsoring -- thus dealing with hundreds of packages -- I have
+yet to use podebconf-report-po once.  Thus, it's quite hard to say that
+debhelper and libmail-sendmail-perl "would be found together in all but
+unusual installations".
+> > libpam-systemd: xfce4-power-manager xfce4-session
+> > * BAD: Depends:systemd, utterly pointless without it.
+> 
+> This is a whole other discussion, but we had *endless* discussions of
+> this, and there are very sound technical reasons for structuring the
+> dependency chain this way.
+Let's not waste too much time right now, but if I recall that discussion
+correctly, the sane way would be to have a non-systemd alternative _first_:
+on a systemd install, the second alternative would be already present and
+thus satisfy the dependency, while the first one would avoid imposing
+systemd when not wanted.
+> > libpurple-bin: libpurple0
+> > * BAD: a library has no reason to install programs
+> 
+> This, like all other lib*-bin packages in Debian, are external helper
+> utilities *run by the library* under specific situations, which are split
+> into a separate package to avoid SONAME issues.
+Nope, its contents are four misc "extra utilities" that are mean to run _by
+the user_ or at most by some scripts.  They look somewhat useful
+(purple-remote allows controlling pidgin from cmdline, etc) but are
+seriously hampered by a lack of documentation.  On the other hand, not a
+single one is ever called by the library:
+strings `dpkg -L libpurple0`|grep purple-remote
+strings `dpkg -L libpurple0`|grep purple-send
+strings `dpkg -L libpurple0`|grep purple-send-async
+strings `dpkg -L libpurple0`|grep purple-url-handler
+As for your claim that "like all other lib*-bin packages in Debian", let's
+check the rest on my list:
+libpng-bin: usr/bin/png-fix-itxt usr/bin/pngfix
+libwmf-bin: usr/bin/wmf2{eps,fig,gd,svg,x}
+strings `dpkg -L libwacom2`|grep libwacom-list-local-devices
+> This is an entirely correct packaging strategy for optional library APIs
+> (in this case, things like opening remote URLs).
+> 
+> I'm going to stop here, since at this point I think this is just going to
+> turn into a thread educating you about Debian packaging conventions you've
+> apparently not encountered before, which is really not a good use of
+> everyone's time.
+Uhm... could you be please be a bit more civil?  Especially when making
+statements that are easily debunked (like the bit about "packaging
+conventions" of lib*-bin above).  Somehow, neither Jonas nor Tom used a
+single angry word.  And, their responses were informative even when I'm
+disagreeing with them.
+> I am completely unconvinced that there is any real problem here.
+That we're having another repeat of this thread, and that people tend to use
+--no-install-recommends despite that being supposed to be exceptional, says
+otherwise.
+> There are doubtless some bugs, most of them minor, in our separation
+> between Recommends and Suggests, and there's probably some opportunity to
+> craft better language to guide packagers to do the right thing, but mostly
+> there's an opportunity for people to file a few bugs after a *thoughtful*
+> analysis of package Recommends and why they might be there.
+The issue is systematic, and we have far more than "a few" cases.  The very
+post you're responding to had 94 of them, and my desktop has only a small
+slice of packages in Debian installed -- and I looked at Recommends I have
+currently unfulfilled, there's far more where I either did not have the time
+to micromanage or have package B installed not because of Recommends from A
+but because of a dependency from C.
+> There certainly doesn't seem to be a problem large enough to warrant TC
+> involvement.
+TC would be an appropriate venue for a conflict with a _single_ maintainer,
+which is not the case here.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ A tit a day keeps the vet away.
+⣾⠁⢰⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ (Rejoice as my small-animal-murder-machine got unbroken after
+⠈⠳⣄⠀⠀⠀⠀ nearly two years of no catch!)

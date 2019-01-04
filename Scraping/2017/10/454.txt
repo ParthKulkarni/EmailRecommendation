@@ -1,0 +1,50 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Compressed apt index files by default?
+From : Julian Andres Klode <jak@debian.org>
+Date : Mon, 23 Oct 2017 02:53:01 +0200
+Message-id : 20171023024528.GA23003@debian.org
+Mail-followup-to : Julian Andres Klode <jak@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <20170909144829.ulxdkz6w2awnja7e@jak-x230>
+References : <20170909144829.ulxdkz6w2awnja7e@jak-x230>
+
+
+On Sat, Sep 09, 2017 at 04:48:29PM +0200, Julian Andres Klode wrote:
+> Hi,
+> 
+> I'd like us to try out using LZ4 compressed index files in
+> /var/lib/apt/lists for the next APT release series, starting
+> in October, after the release of Ubuntu 17.10 "artful".
+It turns out there's a complication. The file:/ and copy:/ methods
+currently disable privilege dropping when dealing with repositories
+that the _apt user cannot access, so they run as root (which is OK-ish,
+all they do is copy files and hash them).
+If we enable compression support however (or if you have apt-file
+installed and Contents files in the repo, I guess), these files are
+handled by the store method. This one does not privileges, and the
+repositories would thus start to fail.
+There are three options if we want to push this out:
+(1) Remove the fallback for inaccessible repositories
+(2) Allow store to fallback to root
+(3) Open files as root and pass them via a unix domain socket to the
+    method
+(2) seems a bad choice. The methods run compression and decompression
+code, we really don't want that to run as root (especially the
+decompression code). Well, at least they can't spawn subprocesses
+anymore with apt 1.6's seccomp sandboxing...
+Long term, I definitely want to do (3), but I'm not sure how much
+work that is and I don't have a lot of time at the moment. Basically,
+the control pipe() would become a socketpair(), and when we send a
+600 URI Acquire message with Uri and FileName fields, we also send
+one or two file descriptors with it.
+A complete implementation of (3) would allow us to not grant the
+methods any access to the partial directory anymore (except for rred,
+which needs to read directories at the moment), vastly improving
+security again.
+Should we go with option (1)? I don't really know. I think we had
+the fallback for a long time now, I'd hope everyone has fixed their
+setup now.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

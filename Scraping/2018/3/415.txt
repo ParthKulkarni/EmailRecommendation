@@ -1,0 +1,147 @@
+To : debian-devel@lists.debian.org
+Subject : Re: New lintian warning: vcs-deprecated-in-debian-infrastructure
+From : Guillem Jover <guillem@debian.org>
+Date : Fri, 23 Mar 2018 05:27:57 +0100
+Message-id : 20180323042757.GB31274@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] d2342ec4-3927-8553-0c41-c3676d4efd0c@debian.org>
+References : <[🔎] 20180322085850.wr5cao6cotq3nh7m@an3as.eu> <[🔎] 1521715664.3514.29.camel@liw.fi> <[🔎] 20180322144021.GA4960@thunder.hadrons.org> <[🔎] d2342ec4-3927-8553-0c41-c3676d4efd0c@debian.org>
+
+
+On Thu, 2018-03-22 at 23:23:22 +0100, Markus Koschany wrote:
+> Am 22.03.2018 um 15:40 schrieb Guillem Jover:
+> > On Thu, 2018-03-22 at 12:47:44 +0200, Lars Wirzenius wrote:
+> >> On Thu, 2018-03-22 at 09:58 +0100, Andreas Tille wrote:
+> >>> I admit I do not agree with this and it was discussed here before.  Can
+> >>> we please agree that anonscm.debian.org remains a valid URL and stop
+> >>> starting another round of package uploads for the sake of changing Vcs
+> >>> fields.
+> > 
+> >> I'm repeating myself, but could we please find another way to store
+> >> this information than in the source package? I'd like to see all of
+> >> the following stored somewhere else than the source package:
+> > 
+> >> * Maintainer, Uploaders
+> >> * Vcs-*
+> >> * Homepage
+> >> * debian/watch
+> >>
+> >> Possibly also Section and Priority.
+> 
+> Yes!
+> 
+> > I'm not sure now if this also has been said before, but I'm happy to
+> > repeat it in any case. :) I'd very strongly object to completely moving
+> > those fields out of the source packages, because it means when you get
+> > or have a source package lying around then it's missing important
+> > metadata and it stops being standalone, which would require checking
+> > somewhere online, and you might first need to infer which distro/repo
+> > was this coming from. I'll happily take outdated data than no data any
+> > day, because usually you can use that outdated data to trace your way
+> > to the current one, not so if it's missing.
+> You need online access to make use of the above information in any way.
+> If you want to contact the maintainer you need internet access, if you
+> want to visit the upstream homepage you need internet access, etc.
+Not really. For starters, we'd need to have network access to be able
+to run dch or lintian, because they do check whether an upload is
+supposed to be an NMU, team upload, etc. This seems ridiculous.
+Some people like to add branch information in the Vcs- fields, this
+would then require to support adding that info before the package
+exists in tha vcs or archive branch (which means less sanity checks)
+or afterwards (which means it's prone to be forgotten).
+The Section and Priority are overridden by ftp-masters, but the
+maintainer tends to fill it more or less correctly. Without them,
+ftp-masters would need to come up with values from scratch, which
+is more difficult than correcting them if they seem off.
+If one has got to update the data for several of those fields, it can
+currently be done off-line, and then pushed when one's back on-line,
+this is getting back into the centralized development model.
+These fields/files are generally useful outside Debian, if we stop
+providing them then it's to be expected that tooling might bit-rot.
+While requiring someone with a tiny local archive to install a tracker
+instance seems just onerous.
+> These
+> information are distribution-independent because they are either the
+> same like "Homepage" or you could simply look them up if you define a
+> common and central platform like tracker.debian.org as your main hub for
+> external/additional/random information about package X.
+This still means keeping the package and its metadata separate, which
+is prone to be forgotten by maintainers when updating packaging locally.
+So it's a locality problem too. Look at the current debtags coverage. :(
+> Look how Fedora
+> have solved the same issue. They have https://src.fedoraproject.org/ and
+> everything is organized by convention in an identical way. There is no
+> need for them to put the same information into their spec files and they
+> also have derivatives. Be sure Ubuntu or Mint users don't care about our
+> Vcs or maintainer fields as well.
+Well, Fedora is not Debian, we have wildly different history, practices
+and workflows for a reason, etc. And, I'd say what you provide is actually
+a counter-example. They list the Group (our Section), Url (our Homepage)
+and the SourceN (our watch file) in the spec file. And they do not need
+(ahem) Vcs fields because they have a unified and properly namespaced (!)
+git managed set of packaging-only repos. And when it comes to the
+contributors, well in many cases it does not even reflect reality between
+what's listed on the site and who is doing the changes, so there you go.
+> >> All of the above can change and it's silly to have to make a source
+> >> upload to change them. They also easily get out of date and so are
+> >> likely out of date for a stable release.
+> > 
+> > Yes, it might be silly to have to upload a package just and only to
+> > update that information, or having that data being permanently
+> > out-of-date on stable. But this problem can be easily solved already,
+> > the archive, and most (if not all!?) repo managers have had the
+> > concept of overrides for a very long time, starting with things like
+> > dpkg-scanpackages/dpkg-scansources!
+> 
+> I don't understand why some people always think it is smart to create or
+> use some new program or tool to solve a problem when the most efficient
+> way would be to solve a problem non-programmatically. Reduce the
+> complexity by defining conventions which all developers have to follow
+> in Debian like maintaining external information in tracker.debian.org
+> instead of the source package.
+That depends on the context. In the Debian context, people like to do
+and work in very different ways, that's why we have all these many
+workflows, helpers and vcs used (it's both a curse and a blessing).
+Would you be happy if the project forced upon you a workflow, helper
+and vcs you cannot stand f.ex.? Imagine trying to switch in the future
+when something new and interesting pops up.
+Also, just backtracking a bit, this subthread was triggered by the Vcs
+URLs needing updates due to the salsa switch. Even with a solution
+based entirely on tracker.d.o, you could not do any mass conversion
+there, because salsa does not follow any namespace convention at all.
+> A switch of Vcs platform would become a
+> trivial matter in the future by replacing some strings on the server. It
+> would take seconds and could be solved by a single person.
+The current switch should be proof that this cannot be done right now
+anyway.
+> I have already seen hundreds of uploads just for the sake of changing the
+> Vcs-fields in debian/control. That is crazy.
+Well sure. But what also seems crazy to me is that we are discussing some
+kind of centralized storage for these URLs (because they change too often)
+that cannot be automatically migrated anyway, because there's no global 1:1
+mapping. Instead of, I don't know, considering that if we had proper stable
+URLs preserved, we'd not need to do any update at all? :)
+> >> I think this would be a better thing to spend time on than talking
+> >> again about keeping anonscm around.
+> > 
+> > And this is still missing the point, as I've also said in the past. The
+> > worst part of this is not IMO to have to update the Vcs fields, which
+> > TBH is one more time too many. It's that it implies any downstream, any
+> > service pulling from the repo, any mirror and checkout, needs to be
+> > noticed in time (while the redirect is in place, because there's now
+> > recommendation to remove it after the next upload!) and then someone or
+> > something needs to update all those references lying around. :(
+> 
+> If you store this information on tracker.debian.org there would be no
+> delay and no inconvenience for downstreams at all. In most circumstances
+> they have their own "tracker.debian.org" service like launchpad.net.
+> Things like the maintainer or Vcs field get overridden anyway and other
+> information could be provided via a simple API and thus kept in sync
+> with their services.
+I'm not sure what this has to do with what I said above. Who or what is
+going to fix the URLs in remotes of all the existing chekouts, or things
+like say openhub.net, mirrors in github.com (or other hosting) sites,
+etc., etc. How does having a centralized storage or an API help here at
+all?
+Regards,
+Guillem

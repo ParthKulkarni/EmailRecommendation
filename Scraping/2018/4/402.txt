@@ -1,0 +1,110 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Usage of real m68k hardware
+From : Thorsten Glaser <t.glaser@tarent.de>
+Date : Tue, 17 Apr 2018 19:15:24 +0200 (CEST)
+Message-id : alpine.DEB.2.21.1804171850250.14619@tglase.lan.tarent.de
+In-reply-to : <17e6983d-4a66-a2a9-4d00-81b95dfb0716@physik.fu-berlin.de>
+References : <20180328063809.6omgul5dh5yq4nek@an3as.eu> <9c80cfc5-5c7b-c3c8-e91d-185c3075b103@physik.fu-berlin.de> <20180328075912.77yzl4yxovkxchfw@an3as.eu> <1522227699.2231470.1318730680.1E66584A@webmail.messagingengine.com> <17e6983d-4a66-a2a9-4d00-81b95dfb0716@physik.fu-berlin.de>
+
+
+Adrian wrote:
+>Yes, of course. But Andreas hit a nerve with this on me. This project
+>has cost me lots of blood, tears and sweat and if someone is asking
+>for it to be completely thrown out out of nothing, I'm getting a bit
+>stressed out.
+I completely agree here. While I’m no longer involved with the
+m68k port specifically, after having spent THREE YEARS of blood,
+sweat and pain to resurrect it, there are several reasons:
+• odd architectures *do* help in finding odd bugs, often before
+  they hit other architectures where they’re hidden by, for
+  example, compiler optimisations (more aggressive inlining)
+  or arch-specific asm code, until these hiding things no longer
+  appear
+  ‣ granted, m68k has this specific “2-byte alignment” thing,
+    but then, anything that actually relies on the precise amount
+    of struct padding is relying on IB/UB in the first place and,
+    with that, buggy
+• I have come to actually like that, having been a die-hard 8088
+  user in my childhood, and found the people and community very
+  interesting
+  ‣ there are fun projects like a PCI bridge, which allows using
+    a PCI Radeon graphics card with LCDs at 1900x12something
+    resolution, currently with GEM/AES only, not yet in Linux
+• it sends a signal, and the wrong signal in my eyes, that
+  everything not-mainstream is not worth to be supported
+  ‣ specialisation is for downstreams, Debian should stay universal
+  ‣ read up on monoculture in agriculture and why everyone, by now,
+    thinks it’s a bad idea
+    ⇒ hint: Meltdown/Spectre…
+• I’m running (and helping to work on) x32… another port
+• I found Debian ports very useful to gain deep insight on
+  how Debian and all of its components work, and can recommend
+  porting a new or resurrecting an old architecture to everyone
+  wishing to peek below the surface
+• I’ve heard someone’s working on making dak dports-capable,
+  solving the current worst problem of the fact we use mini-dak
+  in that NBS packages are removed from the archive even if
+  they’re still Depended upon, which made me really excited
+  about dports work
+On the more technical side, while Adrian’s buildds are qemu,
+I’ve continued running an ARAnyM (also emulation, but different
+and thanks to Doko even FPU-complete) buildd for as long as the
+system it was hosted on allowed me to do so. (That GPLhost domU
+is currently unusable because of spontaneous reboots and other
+problems. I might look into running one on some other system;
+I have a couple of VMs on my workplace desktop but can’t use
+those as they are bridged into the company LAN.)
+We also have a number of Amiga and Atari and I believe at least
+one or two Macintosh systems which, at one point or the other,
+are or were in use as buildds and/or porterboxen.
+I’ve also made a point in making ready-to-use ARAnyM images
+in the Debian wiki which any maintainer could use to run a
+box locally, due to the lack of currently-accessible porterboxen.
+This has eroded a bit since I moved away from m68k.
+I don’t know how the actual hardware can be helped to become
+more usable. I also don’t know if the standard Debian porterbox
+setup can be used on/for them. DSA normally does these things;
+in dports we want to make things as closely to the main Debian
+as possible, but as long as dports are officially unsupported,
+it’s hard. (Also, you’d have to talk to Ingo, perhaps Adrian
+and ragnar76 about the actual hardware.)
+As for the “qemu bug” issue, using an ARAnyM, Amiga, Atari
+or Macintosh machine to retry the build (since they all are
+slower, although my previous desktop could emulate a 200 MHz
+m68k with ARAnyM) before complaining would certainly help.
+But this is also not easy, and only a few problems are caused
+by qemu issues (I’m actually surprised, I’d have not thought
+a qemu-based buildd a viable solution, and I recall Adrian
+and me fighting a bit over it initially), so I don’t understand
+An3as’ violent reaction.
+Contrasted to that, x32 hardware is actually easy: use an amd64
+system with “syscall.x32=y” in GRUB_CMDLINE_LINUX then just use
+a foreign-arch chroot with pbuilder/cowbuilder or schroot/sbuild
+like you would with i386. (I’ve had two cases in which an FTBFS
+was actually a hiccup of the buildd, or a difference in host CPU,
+and which built just fine on my system, again, in a clean&minimal
+environment, so I just did a porter upload.) These are dead useful
+to reproduce issues, by the way.
+It might also be useful to create one or two buildds with
+large hard discs (and possibly RAM) since some of the recent
+packages (gcc-*-cross-* most prominently) make Adrian’s
+systems explode… especially as his virtual buildds share
+(limited) space.
+Adrian is currently the single most-involved person driving
+debian-ports forwards, on a *lot* of architectures, (not saying
+there are no other porters) so I can understand his frustration.
+I might even look if I can help any further. Unfortunately, as
+I said above, I have no easy solution for running a buildd or
+porterbox (company LAN), only for local porter builds (in clean
+environments sufficiently suitable for uploadinig to the archive,
+of course).
+We need people helping with debugging issues all the time, e.g.
+the new Qt 5.10 bugs on sparc64 and x32, and this seems to be
+more like an upstream code issue than a ports-specific issue, and
+I plain down don’t understand C++ well enough, even *if* I recently
+have tried to become involved in MuseScore upstream.
+So, please DO NOT leave us alone!
+Thanks,
+//mirabilos (tg@d.o)
+-- 
+15:41⎜<Lo-lan-do:#fusionforge> Somebody write a testsuite for helloworld :-)

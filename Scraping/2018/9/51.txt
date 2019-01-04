@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org
+Subject : Re: New package netgen-lvs with binary /usr/bin/netgen - already taken
+From : Ruben Undheim <lists@beebeetle.com>
+Date : Fri, 7 Sep 2018 22:10:21 +0200
+Message-id : 20180907201021.a5sdi6eyqjwi2kig@macbookair
+In-reply-to : <[🔎] 20180904203028.GB1636@belkar.wrar.name>
+
+
+>> What is the recommendation? Any links to previous discussions / documents about
+>> this subject?
+> Policy 10.1.
+Thanks Andrey for pointing out the relevant policy chapter. I should have
+mentioned it in my first post since exactly that section in a way brought me to
+this list.
+However, I think the policy gives us a lot of freedom to choose (it is not very
+strict in this case). The alternatives system is supposed to be used for
+packages which provide similar functionality (as far as I have understood), and
+that is absolutely not the case here.
+Let me do it this way then: I will propose what I intend to do with netgen-lvs
+(what i think may be best), and then we will see if anyone has better ideas. :)
+1. The new source package netgen-lvs will contain two binary packages:
+  - netgen-lvs
+  - netgen-lvs-base
+2. netgen-lvs  will have a Conflict: netgen (existing unrelated package).
+3. The netgen-lvs-base binary package comes with all the (main) files for
+   netgen-lvs. The executable will be called /usr/bin/netgen-lvs
+   It will NOT conflict with "netgen".
+4. the netgen-lvs source package will be patched such that it works with the
+   executable called /usr/bin/netgen-lvs (there are some tcl scripts and python
+   scripts)
+5. The netgen-lvs binary package provides basically just a symlink from
+   /usr/bin/netgen to /usr/bin/netgen-lvs
+6. The netgen-lvs binary package depends on netgen-lvs-base
+7. A paragraph is added to the long description for netgen-lvs which explains that
+   it conflicts with netgen (3d tetrahedral mesh generator), and if both are
+   supposed to be installed at the same time, the package netgen-lvs-base must be
+   installed instead of netgen-lvs.
+Also:
+i.   A similar paragraph in the long description can later be added to netgen's
+     long description.
+ii.  A "Conflict: netgen-lvs" should be added to netgen later.
+iii. Maybe in the future, the "netgen" package can provide a similar "alternative
+     binary package" for people who would like to have both netgen and netgen-lvs
+     installed, but /usr/bin/netgen representing netgen-lvs
+This will allow people to run "apt install netgen-lvs" and they will get a
+netgen install which behaves exactly as the upstream version. (usr/bin/netgen
+is what they think it is)
+This still allows people to have both netgen and netgen-lvs(source) installed, but
+then netgen-lvs will be found as /usr/bin/netgen-lvs.
+I know that the alternatives system can technically be used to achieve similar
+functionality, but it feels like it is meant only for cases where the various
+programs provide similar functionality, and therefore not for this case.
+Best regards
+Ruben

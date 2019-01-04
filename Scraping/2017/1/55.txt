@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Feedback on 3.0 source format problems
+From : Russell Stuart <russell-debian@stuart.id.au>
+Date : Wed, 04 Jan 2017 14:47:36 +1000
+Message-id : 1483505256.3570.4.camel@stuart.id.au
+Reply-to : russell-debian@stuart.id.au
+In-reply-to : <[🔎] 87lgurh7oa.fsf@hope.eyrie.org>
+References : <[🔎] 87h95ght4g.fsf@hope.eyrie.org>	 <[🔎] 87ful0q97e.fsf@thinkpad.rath.org>	 <[🔎] 20170103201509.s3swo4w666qeieow@iris.silentflame.com>	 <[🔎] 20170104021016.5xiymbf26uyymccl@jadzia.comodo.priv.at>	 <[🔎] 87lgurh7oa.fsf@hope.eyrie.org>
+
+
+On Tue, 2017-01-03 at 18:37 -0800, Russ Allbery wrote:
+> Even if we never used tarballs, and instead our unit of operation was
+> the upstream Git repository plus Debian branches, I would maintain a
+> rebased branch of Debian changes to upstream
+This is not a novel requirement.  Most projects I've worked with insist
+you rebase your patches.  This is not new.  Before git they insisted
+your patches applied cleanly - which amounts to the same thing. 
+Breaking up large patches into a series of smaller independent patches
+each with a simple and documented purpose isn't an unusual requirement
+either.
+To me this is just the software engineering 101 rule "break just large
+software projects into smaller, easily understood and documented
+modules" applied to change control.  The reason is identical - it's so
+someone coming along behind you can easily understand what you have
+done and why.   For those of us at a certain age, that someone else
+coming along behind might be ourselves a few months later.
+Whether it's mandatory seems to depend on how big the team is.  A large
+DD team packaging who submits patches upstream to large project will
+find it unavoidable.  (The Debian kernel currently carries 400 patches,
+totalling 50K lines.  Managing that as a single lump would be
+impossible.)  On the other hand a one person team who doesn't
+contribute upstream could reasonably say it's pointless.  I know most
+Debian packages are a one horse affair, but I am still surprised by the
+number of DD's here claiming this software 101 process is _always_
+pointless.
+Source format "3.0 (quilt)" is a straightforward way of storing a
+series of small documented patches.  This is in contrast to quilt(1)
+the program, which is a way maintaining those patches.  I'm not fond of
+quilt(1) as I regularly manage to get myself into states I can only get
+out of using "rm -r; dpkg-source -x ...; reapply work done so far".
+The kernel uses git as a better quilt (both are spin-offs from  the
+kernel).  Gits adds some new tricks.  It doesn't get into impossible to
+recover from states (yeh!).   The history it keeps allows it compare
+and merge change sets - something that has to be done manually with
+quilt.  That history also provides some extra features like git bisect,
+and the ability to trace copyright - but they aren't so important.
+What is important is git as it is used by the kernel devs still
+produces small, rebased, documented patches.  If it didn't I doubt the
+kernel would be using it.  The central issue here appears to be that
+none of the proposed ways of using git within Debian help with that
+task.  Debian packages that do use git and have patches don't use git
+to generate the patches.  Eg, the kernel team appears[0] to use
+quilt(!) to maintain its patch series, even though they use git too. 
+If you are using quilt anyway because you like small documented
+patches, but you are a one horse team and so aren't concerned about
+parallel work flows a reasonable question is: why use git at all?
+[0] I'm not on the kernel team, so I can't be sure about them using
+    quilt.  I guess they do because their debian/bin/test-patches tool
+    does use quilt.
+signature.asc

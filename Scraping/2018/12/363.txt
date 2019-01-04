@@ -1,0 +1,250 @@
+To : debian-release@lists.debian.org  <debian-release@lists.debian.org>,  W. Martin Borgert <debacle@debian.org>,  debian-devel@lists.debian.org  <debian-devel@lists.debian.org>,  debian-backports@lists.debian.org  <debian-backports@lists.debian.org>
+Subject : RE: Proposal: Repository for fast-paced package backports
+From : L.P.H. van Belle <belle@bazuin.nl>
+Date : Thu, 27 Dec 2018 10:49:47 +0100
+Message-id :  vmime.5c24a03b.7eef.3fadbf9d27fedc6b@ms249-lin-003.rotterdam.bazuin.nl
+In-reply-to : <[🔎] 20181225204607.GD32147@portux.naturalnet.de>
+References : <[🔎] 20181225204607.GD32147@portux.naturalnet.de>
+
+
+Hai, 
+A very interesting thread this, since im doing this already for samba, my comments.. 
+If i may ..
+Im running a samba repo now for jessie and stretch. ( and ubuntu 18.04 ) 
+I really needed newer samba packages and i was not able to get them uploaded to unstable. 
+So i decided to build them myself and share them. 
+And now people are more and more using my samba package over the official debian package. 
+Because the newer version are build against debian stable or oldstable, and people can choose there upgrade.
+If the might be a fast-lane repo, why not per package version.
+This way we can keep the changes to other packages small and limited. 
+What i now now do. 
+I have 4 repo's for jessie,  jessie-samba45 jessie-samba46 jessie-samba47 jessie-samba48 
+I have 4 repo's for stretch, stretch-samba46 stretch-samba47 stretch-samba48 stretch-samba49
+(And for the ubuntu supporters a samba49 in amd64 only.)
+Why 4? 
+https://wiki.samba.org/index.php/Samba_Release_Planning 
+Debian version 4.5 (in stable)  And the 3 maintanted samba versions. 
+Currely Debian samba is 4.5.12, which is fine, but if you want a more advanced samba, you really need to upgrade.
+The difference between 4.5.12 and 4.5.16, is major in winbind fixed already. 
+What i also do, at least try to, keep 2 versions of samba in sync, above shows 3 but i need 2 at least. 
+I do this so the OS upgrade wont affect a samba upgrade. 
+Users choose a samba version and stay in that version, untill they dicede to upgrade samba, or get new when new debian stable has a higher release.
+Im doing this since samba 4.1.x debian Wheezy, and main reason is the fast samba pace and slow debian packages.
+Not that i mind that, i do love debian and its stability so, keep it slow, yes, but an option for fast moving packages would be nice. 
+So how about something like this. 
+deb http://deb.debian.org/debian fastmove/stretch-samba48 main contrib non-free" 
+And if one want a samba 4.9 that does not exist withing debian, you create the stretch-samba49 line. 
+deb http://deb.debian.org/debian fastmove/stretch-samba49 main contrib non-free" 
+And if the stable version gets thats a higher version then the fastmove, its automaticly picked up again. 
+So if a contibuter wants a higher version, he can build it, and upload it. 
+And the original maintains should get a ping of a higher release version, so if needed they can adopt it to experimental before it goes to unstable. 
+This is a bit what i do for samba ( and debian ) 
+Just my suggest as community helper. 
+Greetz, 
+Louis
+> -----Oorspronkelijk bericht-----
+> Van: Dominik George [mailto:natureshadow@debian.org] 
+> Verzonden: dinsdag 25 december 2018 21:46
+> Aan: debian-devel@lists.debian.org; 
+> debian-backports@lists.debian.org; debian-release@lists.debian.org
+> Onderwerp: Proposal: Repository for fast-paced package backports
+> 
+> Heisann, alle sammen,
+> 
+> as announced in the recent thread about maintaining, I hereby 
+> propose a
+> repository that allows making “backports” of packages 
+> available to users
+> of the stable distribution, if those packages cannot be maintained in
+> testing and backported in the usual way. If you are interested in what
+> lead up to that, please see bug #915050. I will give a short 
+> summary of
+> it here.
+> 
+> 
+> Reasons for having a special place for some packages
+> ====================================================
+> 
+> (You may want to skip this part if you are familiar with the 
+> situation.)
+> 
+> As all developers know (but passers-by may not), for software to enter
+> the Debian archive, it is always uploaded to the unstable 
+> distribution,
+> then migrates to testing (hopefully ;)), which is at some 
+> point snapshot
+> and made the new stable release. From there on, maintainers have two
+> obligations: Firstly, keep the package in stable good and secure, e.g.
+> by uploading security fixes for it once they become available 
+> upstream,
+> or even backport fixes themselves. Secondly, provide the package in
+> unstable with updates and ensure its migration, to keep it 
+> ready for the
+> next stable release.
+> 
+> Now, for some software packages, this process is problematic, because
+> upstream may have another idea about software lifecycles. 
+> Concerning the
+> GitLab example, upstream provides security fixes for three months for
+> their stable releases. Backporting fixes from newer versions is very
+> hard or impossible because the massive amounts of changes to the
+> software in every new versions. This is something that also affects
+> other packages, like Mozilla Firefox, which has a firefox package in
+> unstable, and a separate firefox-esr package, with the ESR version of
+> Firefox. Only the latter migrates to testing.
+> 
+> Users of Debian honour it for its stability, but as an agile software
+> lifecycle is adapted by more and more very popular software packages,
+> not being able to install these packages in the trusted, well-known
+> fashion through the official apt repositories is becoming 
+> more and more
+> of a drawback.
+> 
+> It can easily be assumed that the normal release and maintenance cycle
+> of Debian stable will not change, which is very good, so we 
+> should find
+> a way to still provide such software as described above to users.
+> 
+> 
+> Why backports is not enough
+> ===========================
+> 
+> This also is well-known, but for completeness: Formal backports in
+> stable-backports are required to be direct backports from testing, and
+> are a stepping stone within the upgrade from stable to 
+> stable+1. Thus, a
+> version of a package that is not in testing can never be in
+> stable-backports.
+> 
+> 
+> Name of the new repository
+> ==========================
+> 
+> In the past, the name “volatile” was used for a similar 
+> repository, but
+> with a different scope (limited to data packages for things like virus
+> scanners). I will thus use the working title volatile throughout this
+> proposal, although this may change.
+> 
+> Other ideas: fastlane, unsupported
+> 
+> (Please feel free to add other ideas.)
+> 
+> 
+> Requirements for a package to go into stable-volatile
+> =====================================================
+> 
+> The new volatile proposal is not intended to ease life for package
+> maintainers who want to bypass the migration and QA 
+> requirements of the
+> regular stable lifecycle, so special need must be taken to ensure only
+> packages that need it go into volatile. I want to summarise the
+> requirements like so:
+> 
+>  - The package must be maintained in unstable, like every 
+> other package.
+>  - The package must not be in testing, and care must be taken for the
+>    package not to migrate to testing.
+>  - Regular maintenance for the lifetime of stable must be impossible
+>    or unnecessarily hard, and this requirement should be assessed in
+>    a verifiable manner, e.g. referring to upstream’s lifecycle model.
+>  - There must be notable need for the package. Like for 
+> backports, user
+>    requests might be an indicator.
+>  - Should the package be removed from unstable, it must also 
+> be removed
+>    from volatile.
+>  - Should the package begin to migrate to testing again, it must
+>    be moved to stable-backports.
+> 
+> Before starting to maintain a volatile package, the maintainer shall
+> seek consent (or doubt) on debian-devel.
+> 
+> 
+> Building packages and package dependencies
+> ==========================================
+> 
+> Packages for volatile are built the same way as formal backports, only
+> that the source is taken from unstable rather than testing. In
+> particular:
+> 
+>  - Changes shall be kept as small as possible.
+>  - The package is rebuilt against stable.
+>  - The package may depend on packages in stable, 
+> stable-backports or stable-volatile.
+> 
+> Dependencies on other packages in volatile should be avoided if
+> possible. Especially, dependencies of the package that also need
+> backporting must not be added to volatile just because they are
+> dependencies???—???every dependency that is needed to be backported to
+> support the volatile package must be considered on its own and in all
+> but unprobable edge cases be maintained as a formal backport. 
+> Obviously,
+> the unprobable edge case occurs when the package depends on another
+> package that also fully qualifies for volatile, as described above.
+> 
+> 
+> Versions of packages in volatile
+> ================================
+> 
+> I am not yet certain about this. As stressed before, volatile 
+> should be
+> an extension of backports, so starting with the well-known backports
+> suffix ~bpoN seems reasonable. I’d even say this is enough, 
+> as a package
+> is never both in volatile and backports, and if maintenance changes to
+> the regular lifecycle, it can easily be moved to backports.
+> 
+> 
+> Responsibility and location of the repository
+> =============================================
+> 
+> I propose to add the volatile repository next to the backports
+> repository, and treat it as part of backports. This should not impose
+> new workload on the backports ftp-masters, so this needs people who
+> volunteer to do the extra work. It should, however, be not 
+> too much of a
+> workload anyway, as the number of packages qualifying for volatile is
+> quite limited. (I do volunteer for the backports team, not only for my
+> own proposal, but also in general.)
+> 
+> This implies that new binary uploads to volatile have to undergo the
+> same NEW queue as backports.
+> 
+> 
+> volatile repositories for other distributions
+> =============================================
+> 
+> You guessed it: Same as for backports, but in green ;).
+> 
+> 
+> Technical requirements
+> ======================
+> 
+> Apart from the new section in the repository, care needs to 
+> be taken to
+> ensure removal from volatile if a package moves to -backports 
+> again. The
+> mechanisms used for decrufting experimental might apply.
+> 
+> 
+> Implications for the situation at hand (gitlab)
+> ===============================================
+> 
+> As there were quite a few concerns raised (some of which I share, and
+> some I don’t): Of course, if a software intended for volatile 
+> has a ton
+> of dependencies (intended to go into backports), all 
+> backports rules and
+> powers of the ftp-masters apply. Repeating myself: volatile 
+> is not meant
+> to ease the life of maintainers.
+> 
+> 
+> 
+> I ask the community, the backports team and the release team 
+> for their opinions.
+> 
+> Cheers, ha det bra,
+> Nik
+>

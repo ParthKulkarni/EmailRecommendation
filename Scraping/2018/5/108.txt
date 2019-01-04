@@ -1,0 +1,68 @@
+To : Debian devel <debian-devel@lists.debian.org>
+Subject : Re: Dealing with ci.d.n for package regressions
+From : Paul Gevers <elbrus@debian.org>
+Date : Thu, 3 May 2018 22:56:09 +0200
+Message-id : 3d5b46c0-b03f-b5c7-1216-271e858e2710@debian.org
+In-reply-to : <[🔎] 1525371184.2547707.1359869592.58FAC093@webmail.messagingengine.com>
+References : <[🔎] e83b1d1c-477b-2ee4-3bc2-86a30748fd7d@debian.org> <[🔎] 1525371184.2547707.1359869592.58FAC093@webmail.messagingengine.com>
+
+
+Hi Chris,
+On 03-05-18 20:13, Chris Lamb wrote:
+> Secondly, I was just wondering if you are collecting statistics
+> over what percentage of packages have autopkgtests, or, perhaps
+> more usefully which special/important packages have such tests?
+https://ci.debian.net/status/ has a bit. Regarding important packages: I
+personally don't mind special/important packages not having such tests
+as long as loads of their reverse dependencies have them. E.g. perl is
+very well tested (> 1000 tests).
+In the end what count is not the quantity of autopkgtests but the
+quality. I rather have fewer tests if the tests we have are smarter.
+> I can hack together quick things like:
+> 
+>   import psycopg2
+>   import fileinput
+>   
+>   NUM = 100
+>   
+>   missing = set()
+>   for x in fileinput.input():
+>       xs = x.strip().split(' ', 6)
+>       if xs[-1] == 'testsuite-autopkgtest-missing':
+>           missing.add(xs[1])
+>   
+>   conn = psycopg2.connect(
+>       user='udd-mirror',
+>       dbname='udd',
+>       password='udd-mirror',
+>       host='udd-mirror.debian.net',
+>   )
+>   
+>   cur = conn.cursor()
+>   cur.execute('SELECT source FROM popcon_src '
+>       'ORDER BY insts DESC LIMIT {}'.format(NUM))
+>       
+>   print(' '.join(sorted({x[0] for x in cur} & missing)))
+> 
+> This returns:
+> 
+>   $ wget -Olintian.gz https://lintian.debian.org/resources/4b0282b7cc918d444724c9a7f1985bf486a39ab5c0a2793f7cddc7113a475cad.gz
+>   $ gunzip lintian.gz
+>   $ python3 script.py lintian
+>   acl attr base-files base-passwd bash bsdmainutils busybox bzip2
+>   coreutils cpio cron cyrus-sasl2 debconf debian-archive-keyring
+>   debianutils dmidecode dpkg e2fsprogs expat file findutils
+>   freetype gcc-6 gcc-7 gcc-8 gdbm gettext groff gzip hostname
+>   initramfs-tools iputils klibc libedit libidn libselinux libsepol
+>   libtext-charwidth-perl libtext-iconv-perl libtext-wrapi18n-perl
+>   libusb libx11 libxau libxdmcp libxext logrotate lsb lvm2 mawk
+>   mime-support ncurses netbase newt openldap openssl pam pciutils
+>   pcre3 perl popt popularity-contest procps python-defaults
+>   readline sed shadow slang2 sqlite3 sysvinit tar tcp-wrappers
+>   tzdata ucf wget zlib
+> 
+> ie. 75 out of "top" 100 packages according to popcon are missing
+> autopkgtests.
+Yes, go provide patches to add them ;) But let's make them smart.
+Paul
+signature.asc

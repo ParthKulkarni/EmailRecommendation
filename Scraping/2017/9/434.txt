@@ -1,0 +1,173 @@
+To : debian-cloud@lists.debian.org
+Subject : Summary of the Cloud Team BoF at DC17
+From : Steve McIntyre <steve@einval.com>
+Date : Fri, 29 Sep 2017 07:22:15 +0100
+Message-id : 20170929062215.w5rjv7dg7kmtgesz@tack.einval.com
+Reply-to : debian-cloud@lists.debian.org
+
+
+[ Please note the cross-post and Reply-To ]
+Hi folks,
+As promised, here's my summary of what was discussed at the Cloud Team
+BoF session in Montréal. Apologies for the delay in posting - life's
+hectic atm. Please correct the following if you think I've made
+mistakes!
+Thanks to the awesome efforts of our video team, the session is
+already online [1]. I've taken a copy of the Gobby notes too,
+alongside my small set of slides for the session. [2]
+Status update
+-------------
+We had an excellent sprint in November last year, and lots of planning
+happened for Debian cloud images. We've made some progress on those
+plans since, but not as much as we'd hoped.
+At the sprint, we agreed to work on using FAI to make all of our image
+types, but we're not there yet:
+ * AWS: Noah and Marcin have made progress using FAI. kuLa is working
+   on builds for AWS and GCP on casulana.
+ * GCE builds are still using the bootstrap-vz tooling, just updated
+   for Stretch.
+ * Azure builds are still using openstack-debian-images, updated to
+   Stretch.
+ * Openstack is also using openstack-debian-images (same as for wheezy
+   & jessie). We now have arm64 images too, after work from Steve.
+ * Vagrant images: Emmanuel is working on using FAI, will push to the
+   same git repo as others are using.
+ * We *did* have some GCE images building at the sprint using FAI, but
+   apparently bootable Stretch images don't work atm. Work needed...
+Accounts
+--------
+Individual access to Azure for building and testing is easy - mail
+Steve Z to get a subscription which comes with some free Azure cloud
+time.
+We've currently got separated accounts and credentials across the
+various cloud platforms. DSA (Luca) is looking into setting up a more
+integrated approach, using SAML/LDAP/$stuff with Debian-controlled
+credentials rather than depending on specific platform features. See
+the DSA BoF discussion for more details. Still more work to happen
+here yet. Marcin is keen to help with this on the cloud team side.
+Tests
+-----
+At the sprint, we came up with an initial set of tests that we'd want
+to use for our images. We need to make progress on that work, to help
+us validate changes like the agreed move to FAI-based tooling.
+Tomasz has volunteered (yay!) to drive the test suite work for our
+images, and has some work already done that he can use as the base for
+this.
+What exactly are the current cloud providers testing, and how? Steve Z
+listed some tests on Azure, all up on github
+(https://github.com/Azure/azure-linux-automation):
+ * BVT (test the image runs and config is correct)
+ * network performance & infiniband
+ * GPU
+ etc.
+They depend on the Azure tools to run things. Could maybe open up the
+CI automation to run on official Debian images, to make sure they're
+equivalent to what's produced today.
+There's relevant work from a startup doing cloud image comparisons too:
+  https://github.com/cloudscreener/debian-image-tester
+Google have a full test suite too, for at least:
+ * platform integration
+ * metadata interaction
+ * image configuration
+ * upcoming infrastructure changes
+Jimmy said that yhey depend on Google infrastructure, so may not be
+all that helpful for external people.
+Thomas Goirand suggested that we need sponsored hardware to run an
+OpenStack one time deployement, and test images on that. The test
+suite and scenarios (tempest), install scripts (openstack-deploy
+package) are all in Debian (Stretch included) already.
+So, we want to get tests running against the images that we produce so
+that we can have some reasonable QA on our official images. If builds
+fail, we will not publish them. We should be adding more tests,
+especially to pick up on regressions. Future sprint work should
+involve defining and implementing tests.
+Building
+--------
+We'd agreed to build on central Debian-controlled machines and
+publishing them out, but there's been some push-back on that. More
+discussion on that point.
+ * Once we move to using FAI for all the images, should we do all of
+   them on Debian machines?
+ * Some people are OK using cloud-hosted machines to build on.
+The current box for central image builds is pettersson hosted by Umeå
+University in Sweden, but we're going to be moving to a new, bigger
+machine (casulana) hosted at Bytemark in the UK. We'll still be
+pushing the images back to the distribution network set up in Umeå,
+though. That should not be an issue - networking is good between the
+sites. We might even set up another site for publishing to get
+redundancy, but it's not a priority right now.
+We *don't* currently have machines available near the build box for
+bare-metal testing but maybe we might in future.
+The Vagrant folks want to be doing their builds on the same
+infrastructure, which will also allow them to expand the range of
+images they make. They want to be doing CI and automated build and
+uploads.
+We want to test using FAI to make images for all the platforms, and
+debug any problems we find. Zach tried it for GCE Stretch and got
+images that didn't boot. We clearly need to debug that. If we can get
+everything working, we should be committing to using FAI for all the
+builds, as initially agreed.
+Moving to the big central machine (casulana) should enable us to get a
+much better CI process for all our builds, with automated testing and
+publishing. We should be building in temporary VMs (one for each
+build, created on demand). We should have a set of tools to create VMs
+and run the build there. We do *not* want to build on the bare
+hardware because we don't run processes as root on the bare
+hardware. Also need something generic so we can run the same process
+(build VM, run in VM, etc.) on local machines as well as on casulana
+to help with development and testing. The existing persistent VMs on
+pettersson for live and openstack builds shouldn't really be pushed
+any further. We will need to look into tools for making new VMs.
+Package updates
+---------------
+The release team are of course happy for us to get things updated in
+stable, modulo sanity. We just need to do the work and show them sane
+patches for review, just like any other proposed updates.
+We don't need to (necessarily) be using toolchains that are packaged
+in stable, of course. Newer versions of FAI, debian-cd etc. running
+from git are expected and OK for day-to-day building.
+Docker images
+-------------
+We still haven't had any contact with the people (Tiago and ???)
+providing "Debian" Docker images. We should! Can we invite them to the
+next cloud team sprint?
+cloud-init
+----------
+We spoke about this a lot last year - maybe even forking it to get a
+load of patches integrated. What happened on that front? We're still
+not really tracking the ubuntu upstream at the moment. Do we still
+want to follow them as upstream? We were worried about lack of
+progress, but upstream seem to have improved. They have been making
+more regular releases.
+We still need to check on the status of the changes we were wanting.
+Cloud-init sprint at the end of August at Google in Seattle - anybody
+going? Please make sure we're involved. We're all worried about lack
+of cross-distro support!
+Next sprint
+-----------
+As the last cloud sprint (at Google) worked so well, we're planning
+another one for this year. Steve Z is already organising for Microsoft
+to host, Mon 16 to Wed 18 October at the Azure offices in Redmond. [3]
+We'll also be online too so remote people can join in.
+The plan for the sprint this year is to spend more time implementing
+the plans that we came up with last year.
+Image locator
+-------------
+One more item we discussed at the sprint last year was an image
+locator tool to help users find the right image for their
+needs. Martin Behrends(sp?) has already started work on that (yay!)
+and has a prototype. We could also add our other images - live,
+installer, etc.
+TODO
+----
+ * Test the result image of the Azure patch merge inside current
+   version of openstack-debian-images (ie: finish the merge)
+ * Test if the OpenStack image works on AWS (no reason it wouldn't)
+[1] http://meetings-archive.debian.net/pub/debian-meetings/2017/debconf17/debian-cloud-bof.vp8.webm
+[2] https://www.einval.com/~steve/talks/Debconf17-cloud-team-BoF/
+[3] https://wiki.debian.org/Sprints/2017/DebianCloudOct2017
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+Into the distance, a ribbon of black
+Stretched to the point of no turning back
+signature.asc

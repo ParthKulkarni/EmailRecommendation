@@ -1,0 +1,111 @@
+To : debian-devel@lists.debian.org
+Subject : changelog practice, unfinalised vs UNRELEASED vs ~version
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Sun, 12 Feb 2017 12:48:35 +0000
+Message-id : 22688.22947.749751.138991@chiark.greenend.org.uk
+
+
+We do not seem to have a coherent approach to how to handle
+debian/changelog in trees (eg, vcs branches) which are not yet ready
+for upload.
+See below two examples of things done differently.
+The questions are:
+Q1. Should the suite in the changelog entry be UNRELEASED,
+    or the suite at which the vcs branch is targeted ?
+Q2. Should the changelog entry be finalised ?  That is, should it
+    have an uploader name and date ?
+Q3. Should the version number be the intended next version number,
+    or should it be decorated with ~something ?  If it should
+    be decorated, what should it be decorated with ?
+Discussion:
+Q1: Replacing the suite with "UNRELEASED" means that it is not
+possible to distinguish a branch intended for experimental from one
+intended for sid, other than by branch name (and of course branch
+names are often used for other purposes).  I think this is very
+undesirable.  AFAICT only reason to use UNRELEASED is to prevent
+accidental upload, but maybe we can do that some other way.
+Q2: The information in the trailer line of the changelog entry in a
+new branch is not meaningful.  Depending on the vcs etc. in use, it
+can cause pointless merge conflicts.  Often the information is quite
+wrong: for example, a date which is earlier than the most recent
+commit.  The Emacs changelog mode doesn't like editing finalised
+changelog entries.  IME several of our tools deal badly with
+unfinalised changelog entries.  For example, mergechangelogs
+mishandles them, and some parts of the package building toolchain
+sometimes complain.  However, such bugs can be fixed and the fixes
+deployed fairly easily (via backports if necessary).
+Q3. If the version number is not decorated, then binaries (or even
+source packages!) built for testing (or for other reasons other than
+upload) are not always distinguishable from intended-for-release
+builds.  IMO this is very undesirable.  Also, it can make the "version
+X contains changelog entry for version Y" relation confusing: ideally
+that would mean that X contains all the changes in Y, but if Y had a
+vcs branch with finalised changelog entry that was not uploaded, and
+the person who uploaded made further changes but forgot to push, then
+X might be missing those changes from Y, accidentally.  Therefore IMO
+"working" changelog entries should have a decorated version number.  I
+suggest "~UNRELEASED" because (i) it resembles the UNRELEASED suite
+which is sometimes used; (ii) U sorts before all the uppercase
+letters, so it's quite early.
+Proposal:
+Step 1: dak should be changed to reject all uploads whose version
+number contains UNRERLEASED.
+Step 2: All tools should be changed to produce/expect that
+working versions have:
+     - suite = the intended suite
+     - unfinalised changelog entry
+     - version ending in ~UNRELEASED
+In particular:
+ * Tools which currently have a "suite=UNRELEASED" check should check
+   the version number too, the same way as dak.
+ * Tools which add/edit changelog change items should insist that the
+   changelog is unfinalised and contains ~UNRELEASED in its version.
+ * Tools which generate new suite=UNRELEASED changelog entries should
+   be changed to generate unfinalised version~UNRELEASED ones, with a
+   real suite, instead.
+ * Tools which prepare changelogs for upload (eg by finalising the
+   changelog) should now remove ~UNRELEASED from the version, and
+   finalise the changelog.  Tools which currently replace UNRELEASED
+   with a suite can continue to do so, but should print a warning when
+   they find themselves doing so.
+ * Anything which barfs on or mishandles unfinalised changelogs should
+   be fixed.
+What do people think ?
+Ian.
+dgit (3.10~) unstable; urgency=medium
+  Bugfixes:
+  * dgit: Copy several user.* settings from main tree git local config
+    to dgit private workarea.  Closes:#853085.
+  * dgit: Strip initial newline from Changes line from dpkg-parsechangelog
+    so as to avoid blank line in commit messages.  Closes:#853093.
+  * dgit: Do not fail when run with detached HEAD.  Closes:#853022.
+  * dgit: Be much better about commas in maintainer changelog names.
+    Closes:#852661.
+  Test suite:
+  * quilt-useremail: New test for user config copying (#853085).
+  * lib-import-chk: Test that commits have smae authorship as appears in
+    the changelog.  (Or, at least, the same authorship set.)
+  * import-maintmangle: New test for changelog Maintainer mangling.
+  Documentation:
+  * Fix typos.  Closes:#853125.  [Nicholas D Steeves]
+ --
+sysvinit (2.88dsf-59.9) UNRELEASED; urgency=medium
+  [ Martin Pitt ]
+  * Mark sysvinit-utils as Multi-Arch: foreign, like sysv-rc and initscripts.
+  [ Michael Biebl ]
+  * Demote priority of sysv-rc and initscripts to optional.
+  [ Petter Reinholdtsen ]
+  * Avoid remounting tmpfs, linprocfs and linsysfs on kFreeBSD
+    (Closes: #833687).  These file systems are not remountable.  The
+    change avoid a warning from mount.  Based on Patch from Jon Boden.
+  [ Ian Jackson ]
+  * Add myself to Uploaders, as part of adopting the package.
+    Closes:#811377 (RFA bug).
+  * Add Benda Xu to Uploaders, as requested in #811377.
+  [ Ben Hutchings ]
+  * Keep /usr mounted read-only on shutdown (Closes: #757083)
+ -- Ian Jackson <ijackson@chiark.greenend.org.uk>  Wed, 18 Jan 2017 23:23:35 +0000
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

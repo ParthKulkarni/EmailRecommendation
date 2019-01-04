@@ -1,0 +1,62 @@
+To : Lionel Debroux <debroux.lionel@gmail.com>, Scott Kitterman <debian@kitterman.com>, debian-devel@lists.debian.org
+Subject : Re: Reducing the attack surface caused by Berkeley DB...
+From : Lionel Debroux <lionel_debroux@yahoo.fr>
+Date : Mon, 18 Jun 2018 22:52:25 +0200
+Message-id : 3c63f578-fa98-8c87-0a18-ae896ce348b5@yahoo.fr
+In-reply-to : <90ec0093-5afd-8b29-8a9e-8369a9c2b25f@yahoo.fr>
+References : <20bd977f-1d31-cc17-358d-98d150098fbe@yahoo.fr> <5602950.nBR1kOtBLI@kitterma-e6430> <49a79787-af6f-7439-af05-e49c7f48df06@yahoo.fr> <90ec0093-5afd-8b29-8a9e-8369a9c2b25f@yahoo.fr>
+
+
+Time to reply to myself again :)
+I went silent in this thread since the end of January because I spent
+time fuzzing 8 libraries + CLI front-ends of the DBM family, starting
+with LMDB:
+> > liblmdb* or libleveldb* are much less popular in popcon by_inst than
+> > libdb, yeah...
+> >
+> >
+> > Do we know whether LMDB, and other candidate databases for replacing
+> > BDB, have received suitable hardening against data corruption and
+> > fuzzing ?
+> Well, now I know: some parts of LMDB have not received the appropriate
+> amount of hardening against data corruption.
+>
+> A direct LMDB translation of the simple BDB fuzzing run I posted in
+> Debian BTS #652036:
+>
+> # apt install lmdb-utils
+> $ rm -f input*
+> $ echo -e "key\nvalue" | mdb_load -T -n input
+> $ zzuf -qcs 0:1000 -C 10 -U 3 mdb_dump -n -l input
+> $ zzuf -qcs 0:1000 -C 10 -U 3 mdb_dump -n -a input
+> $ zzuf -qcs 0:1000 -C 10 -U 3 mdb_stat -n -e -fff -r -a input
+>
+> yields an interesting assortment of SIGFPE, SIGABRT and SIGSEGV...
+> That's under sid amd64, with lmdb-utils / liblmdb0 0.9.21-1, which
+> packages the latest upstream release.
+> I replaced the sources with the latest ones from
+> https://github.com/LMDB/lmdb , since the commit logs mention e.g. "fix
+> FIRST_DUP/LAST_DUP cursor bounds check". AFAICS, it changes the set of
+> symbols, but not the outcome of zzuf... and unsurprisingly, afl-fuzz
+> following a build with afl-clang-fast destroys both mdb_dump and
+> mdb_stat within 2 seconds.
+>
+> Oh well... time to report the issues, after letting afl run for a
+> little while longer, probably until tomorrow morning.
+Last week-end, I published on oss-sec the fuzzer findings, subsequent
+interaction (or lack thereof) with upstream maintainers, and fixes:
+http://www.openwall.com/lists/oss-security/2018/06/17/1
+Being closer to BDB and more scalable than the other DBs, and
+maintained, LMDB is part of the solution to the insecurity of the
+outdated versions of BDB everyone uses... despite being far from robust
+against offline data corruption, at least for now.
+Also, I started diving into BDB -> LMDB conversion for C/C++ code, using
+lmdb.h, db.h and http://www.lmdb.tech/doc/starting.html .
+I had a glance at the mocp TUI music player (moc package): it's not
+popular, but it's the one which made me aware of BDB's intolerance to
+data corruption, and also, the use of BDB in moc happens to be limited
+to the single tags_cache.c file and the main BDB API functions (no
+complex batching or fancy stuff), so moc should make for a gentle
+BDB/LMDB learning curve. Of course, the devil might be in the details.
+Bye,
+Lionel.

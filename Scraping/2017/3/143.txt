@@ -1,0 +1,72 @@
+To : Russ Allbery <rra@debian.org>
+Subject : Re: Depends/Recommends from libraries
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Thu, 9 Mar 2017 17:29:09 +0000
+Message-id : 22721.37093.430317.401024@chiark.greenend.org.uk
+In-reply-to : <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl>	<[🔎] 87o9xbxhd2.fsf@hope.eyrie.org>
+
+
+Russ Allbery writes ("Re: Depends/Recommends from libraries"):
+> I feel like the problem here is that people are failing to fix bugs in
+> their packages (unnecessary dependencies on libraries that have heavy
+> dependencies),
+No.  The problem is that for an ordinary library, if package foo ever
+wants to call functions in library bar, /usr/bin/foo ends up linked
+against libbar.so.  If the libbar runtime is not installed, foo fails
+to start at all.
+So foo ends up with a Depends on libbar - even if the bar
+functionality in foo is an extreme niche feature, or even is only
+relevant for some other package wombat (depending on foo).
+If libbar has a Depends or Recommends on bar-daemon then default
+installations of foo all have bar-daemon installed.
+This is a problem because:
+ * bar-daemon may have undesirable security properties
+ * bar-daemon may need or want configuration, resulting in unnecessary
+   config management (including potential exposure of foo's users to
+   defects or lacunae in bar's config manageent, migrations, etc.)
+ * bar-daemon may be large (disk space, backup, and bandwidth costs,
+   especially if bar gets many updates)
+ * bar-daemon's dependency stack may itself be large, causing large
+   quantities of further unnecessary software to be installed,
+   increasing the risks of problems I've just discussed
+If foo executed /usr/bin/bar directly, or connected to
+/run/bar/socket, or something, then the maintainers of foo (and maybe
+wombat) could control the strength of the dependencies themselves,
+based on their knowledge of the likely need of foo's (or wombat's)
+users for bar, and the error behaviour if the bar-related
+functionality is requested without the right pieces installed.
+But because foo must Depend on libbar, with our current arrangements
+the strength of the dependency is determined by the dependencies of
+libbar.
+But the bar authors:
+ * do not know how or why libbar is called in any particular
+    circumstances
+ * have a natural tendency to assume that their package is more
+    important than perhaps it is in the global scheme of things
+ * are in any case unable to set the dependencies differently
+    for different callers
+I think the right way to solve this problem is to declare that:
+ * When a library package is installed, the Depends and Recommends
+   of the library should be appropriate on the assumption that:
+     - the library package is only installed because it is the dormant
+       runtime-link-dependency of an executable or other library;
+     - none of the functions in the library are going to be
+       called.
+   Normally this will mean that the library will reference only other
+   library packages, on which it has runtime-link dependencies.
+ * If a library needs or wants additional software installed,
+   if and when functions in that library are called, this
+   should be documented in the /usr/share/doc/BAR/README.Debian.gz for
+   the corresponding -dev library package.  (If churn is
+   likely, a library-specific virtual package name may need
+   to be documented, and provided as appropriate.)
+ * Programs which call functions in libraries (directly or indirectly)
+   should arrange to Depend on, Recommend, or Suggest, the appropriate
+   infrastructure, as documented by the -dev package(s).
+This applies to libraries in C and C++.  For libraries in other
+languages, it depends on whether the conventional calling pattern for
+the library, and the language, is to load it unconditionally (so that
+anyone who might call it, no matter how rarely, must require it to be
+installed), or to load it on demand.
+Ian.

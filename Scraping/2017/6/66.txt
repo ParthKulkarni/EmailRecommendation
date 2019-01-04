@@ -1,0 +1,127 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Afif Elghraoui <afif@debian.org>
+Date : Tue, 6 Jun 2017 00:14:05 -0400
+Message-id : 6bcc08ee-e439-236f-240c-d30bf2495f5a@debian.org
+In-reply-to : <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk>
+References : <87tw424kxc.fsf@deep-thought.43-1.org> <[🔎] 64d759ee-ac0e-7b23-df80-b799926c8580@debian.org> <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk>
+
+
+على الإثنين  5 حزيران 2017 ‫08:43، كتب Ian Jackson:
+> 
+> I think we should take a test case or two to the Technical Committee.
+> 
+> Before doing that, it would be wise to try to find the answer to the
+> key question which the TC will ask.  Suppose A recommends B.  In what
+> way, or in what circumstances, will A fail due to lack of B ?
+> 
+> In #849619 I don't see the answer to that question.
+> 
+I see now that python-networkx has some integration with those
+visualization libraries [1], which is not what I expected to be the
+case, though the page also says:
+~~~
+NetworkX provides basic functionality for visualizing graphs, but its
+main goal is to enable graph analysis rather than perform graph
+visualization. In the future, graph visualization functionality may be
+removed from NetworkX or only available as an add-on package.
+~~~
+so I guess until that integration is removed, it makes sense to keep it
+as Recommends. My main problem remains, however, and it is that networkx
+brings in a graphics stack when you try to install pbhoney on a headless
+machine, like cluster compute nodes. See in an unstable chroot:
+# apt-get install pbhoney
+Reading package lists... Done
+Building dependency tree
+...
+The following NEW packages will be installed:
+  blasr blt ca-certificates dbus file fontconfig fontconfig-config
+fonts-liberation fonts-lyx
+  gnome-icon-theme graphviz gtk-update-icon-cache hicolor-icon-theme
+javascript-common
+  krb5-locales libaec0 libann0 libatk1.0-0 libatk1.0-data
+libavahi-client3 libavahi-common-data
+  libavahi-common3 libblas-common libblas3 libblasr libbsd0 libcairo2
+libcdt5 libcgraph6
+  libcroco3 libcups2 libcurl3-gnutls libdatrie1 libdbus-1-3 libexpat1
+libexpat1-dev libffi6
+  libfontconfig1 libfreetype6 libgail-common libgail18 libgd3
+libgdk-pixbuf2.0-0
+  libgdk-pixbuf2.0-common libgfortran3 libglade2-0 libglib2.0-0
+libglib2.0-data libgnutls30
+  libgraphite2-3 libgssapi-krb5-2 libgtk2.0-0 libgtk2.0-bin
+libgtk2.0-common libgts-0.7-5
+  libgts-bin libgvc6 libgvpr2 libharfbuzz0b libhdf5-100 libhdf5-cpp-100
+libhogweed4 libhts1
+  libice6 libicu57 libidn2-0 libjbig0 libjpeg62-turbo libjs-jquery
+libjs-jquery-ui libk5crypto3
+  libkeyutils1 libkrb5-3 libkrb5support0 liblapack3 liblcms2-2
+libldap-2.4-2 libldap-common
+  libltdl7 libmagic-mgc libmagic1 libnettle6 libnghttp2-14 libp11-kit0
+libpango-1.0-0
+  libpangocairo-1.0-0 libpangoft2-1.0-0 libpathplan4 libpbbam libpbdata
+libpbihdf libpbseq
+  libpixman-1-0 libpng16-16 libpsl5 libpython-dev libpython-stdlib
+libpython2.7 libpython2.7-dev
+  libpython2.7-minimal libpython2.7-stdlib librsvg2-2 librsvg2-common
+librtmp1 libsasl2-2
+  libsasl2-modules libsasl2-modules-db libsm6 libssh2-1 libssl1.1 libsz2
+libtasn1-6 libtcl8.6
+  libthai-data libthai0 libtiff5 libtk8.6 libunistring0 libwebp6
+libwebpdemux2 libwebpmux2
+  libx11-6 libx11-data libxau6 libxaw7 libxcb-render0 libxcb-shm0
+libxcb1 libxcomposite1
+  libxcursor1 libxdamage1 libxdmcp6 libxdot4 libxext6 libxfixes3 libxft2
+libxi6 libxinerama1
+  libxml2 libxmu6 libxpm4 libxrandr2 libxrender1 libxss1 libxt6
+libyaml-0-2 mime-support openssl
+  pbdagcon pbhoney pbjelly publicsuffix python python-cairo
+python-cycler python-dateutil
+  python-decorator python-dev python-functools32 python-glade2
+python-gobject-2 python-gtk2
+  python-h5py python-imaging python-intervaltree python-intervaltree-bio
+python-matplotlib
+  python-matplotlib-data python-minimal python-networkx python-numpy
+python-pbbanana
+  python-pbsuite-utils python-pil python-pkg-resources python-pygraphviz
+python-pyparsing
+  python-pysam python-scipy python-six python-sortedcontainers
+python-subprocess32 python-tk
+  python-tz python-yaml python2.7 python2.7-dev python2.7-minimal
+samtools sgml-base
+  shared-mime-info tk8.6-blt2.5 ttf-bitstream-vera ucf x11-common
+xdg-user-dirs xml-core
+0 upgraded, 197 newly installed, 0 to remove and 0 not upgraded.
+Need to get 98.7 MB/120 MB of archives.
+After this operation, 361 MB of additional disk space will be used.
+and without recommends:
+The following NEW packages will be installed:
+  blasr libaec0 libblas-common libblas3 libblasr libcurl3-gnutls
+libexpat1 libffi6 libgfortran3
+  libgnutls30 libgssapi-krb5-2 libhdf5-100 libhdf5-cpp-100 libhogweed4
+libhts1 libidn2-0
+  libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 liblapack3
+libldap-2.4-2 libldap-common
+  libnettle6 libnghttp2-14 libp11-kit0 libpbbam libpbdata libpbihdf
+libpbseq libpsl5
+  libpython-stdlib libpython2.7-minimal libpython2.7-stdlib librtmp1
+libsasl2-2
+  libsasl2-modules-db libssh2-1 libssl1.1 libsz2 libtasn1-6
+libunistring0 mime-support pbhoney
+  pbjelly python python-decorator python-h5py python-intervaltree
+python-intervaltree-bio
+  python-minimal python-networkx python-numpy python-pbbanana
+python-pbsuite-utils python-pysam
+  python-six python-sortedcontainers python2.7 python2.7-minimal samtools
+0 upgraded, 61 newly installed, 0 to remove and 0 not upgraded.
+Need to get 15.0 MB/23.8 MB of archives.
+After this operation, 86.6 MB of additional disk space will be used.
+But with the latter, you won't get pbdagcon (Recommends of pbhoney) and
+will end up using pbhoney's inferior fallback implementation.
+regards
+Afif
+1.
+https://networkx.github.io/documentation/networkx-1.10/reference/drawing.html
+-- 
+Afif Elghraoui | عفيف الغراوي
+http://afif.ghraoui.name

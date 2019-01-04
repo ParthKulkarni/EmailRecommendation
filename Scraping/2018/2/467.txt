@@ -1,0 +1,76 @@
+To : Sean Whitton <spwhitton@spwhitton.name>
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 28 Feb 2018 13:26:24 +0000
+Message-id : 23190.44544.673145.685759@chiark.greenend.org.uk
+In-reply-to : <[🔎] 87606hpus1.fsf@hephaestus.silentflame.com>
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com>	<[🔎] 20180216151129.GB18296@home.ouaza.com>	<[🔎] 1747528.3EBMEs4rXA@odyx.org>	<[🔎] 23189.25024.401726.386741@chiark.greenend.org.uk>	<[🔎] 87606hpus1.fsf@hephaestus.silentflame.com>
+
+
+Sean Whitton writes ("Re: What can Debian do to provide complex applications to its users?"):
+> On Tue, Feb 27 2018, Ian Jackson wrote:
+> > I would like to suggest a radical approach to the source code
+> > management for your system: abandon source *packages* in favour of git
+> > trees.
+> 
+> Why do you think Didier's proposal, in particular, represents an
+> opportunity to do this?  Is it simply that it will require whole new
+> tools to prepare and distribute the .vdebs, so we might as well not use
+> source packages from the start?
+Yes.
+In particular, Didier's proposal is mostly a change to _source code_
+management.
+Most of Didier's features require no changes to the binary package
+format; none require changes to the binary package distribution
+mechanisms, nor the development of significant amounts of new software
+for managing the construction and publication of (repositories of)
+binary packages.
+However, Didier's suggestion involves a radical departure in source
+code management: specifically, automatic bulk conversion of upstream
+sources with very lightweight human approval.  And, a new approach to
+build scheduling and source->binary (build) management.  That involves
+writing new software.
+That new software should be as small as possible.
+In Didier's proposal, there is no actual need to publish source
+*packages*.  All the upstreams are all using the same VCS (git) in
+roughly the same way, and developers who are used to working with this
+software in other contexts all expect to be working with VCS trees
+(git branches) rather than tarballs.  Ie, the reasons why Debian uses
+.dscs rather than git branches do not apply.
+Didier's approach *does* involve creating a new tool to do the
+automatic conversion (and merging of any delta).  That tool will have
+to consume upstream git branches because that's how the upstreams
+publish things.  It would be daft not to publish the resulting Debian
+source packages as git branches.
+So the tool has to consume and produce git branches.  Having it
+produce source packages too is more work.  Work that is not
+neceessary.  For the success of Didier's suggested project,
+nonessential work should be postponed until (i) the project has become
+a success enough to justify adding bells and whistles (ii) someone
+actually cares enough to do it.
+(It is possible that building source packages rather than git branches
+would enable the reuse, rather than replacement, of tools like
+wanna-build.  But wanna-build is much more complicated than is needed
+for Didier's suggestion, and not easy to set up - in part because of
+its need to support multiple architectures, which Didier's proposal
+rules out.)
+> > Furthermore, abandon the patch queue approach to Debian package
+> > management.  We will not be able to maintain a big delta to any of
+> > these packages anyway.
+> 
+> No, but we might often have reason to maintain a small delta.  We patch
+> upstream source for all sorts of reasons; it is hard to believe it
+> wouldn't come up.
+Yes.  But the changes will be very small.  Partly because the upstream
+packages are usually very small, and partly because rebasing of a
+large delta is inherently difficult and will therefore be impractical
+to do automatically, frequently and reliably.
+This means that there is a much reduced need to represent the delta
+(where there is one) in a rich patch-queue form.  Using plain "git
+merge" is good for small deltas.  (As you recognise yourself in your
+dgit-maint-merge(7) tutorial manpage...)
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

@@ -1,0 +1,42 @@
+To : debian-dpkg@lists.debian.org, deity@lists.debian.org,	debian-devel@lists.debian.org
+Subject : Re: Evaluation (Re: Proposal: A new approach to differential debs)
+From : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Date : Tue, 22 Aug 2017 22:53:47 +0200
+Message-id : 20170822205346.xtc64pyk7b3eemkf@breakpoint.cc
+In-reply-to : <[🔎] 20170816000748.GA15914@debian.org>
+References : <[🔎] 20170812135640.GA6037@debian.org> <[🔎] 20170816000748.GA15914@debian.org>
+
+
+On 2017-08-16 00:21:09 [+0200], Julian Andres Klode wrote:
+> libreoffice-core (size only):
+> 
+>   -rw-r--r-- 1 jak jak 29M Jul 22 20:02 libreoffice-core_5.3.5~rc1-3_amd64.deb
+>   -rw-r--r-- 1 jak jak 31M Jul 16 00:10 libreoffice-core_5.4.0~rc2-1_amd64.deb
+>   -rw-r--r-- 1 jak jak 31M Jul 28 18:29 libreoffice-core_5.4.0-1_amd64.deb
+>   -rw-r--r-- 1 jak jak  18M Aug 15 23:44 libreoffice-core_5.3.5~rc1-3_5.4.0-1_amd64.pdeb
+>   -rw-r--r-- 1 jak jak 4.5M Aug 15 23:42 libreoffice-core_5.4.0~rc2-1_5.4.0-1_amd64.pdeb
+> 
+> For 5.4~rc2 to 5.4 it made a huge difference, for 5.3.5~rc1 to 5.4 not so much,
+> so it probably is a good fit for stable updates, but not for unstable and testing.
+I would say it depends on the software. Some differs more than other.
+> firefox (size & performance):
+> 
+>  -rw-r--r-- 1 jak jak 2.3M Aug 15 20:59 firefox_55.0-1_55.0-2_amd64.debdelta
+>  -rw-r--r-- 1 jak jak 2.4M Aug 15 22:13 firefox_55.0-1_55.0-2_amd64.pdeb
+and bsdfiff of old data.tar vs new data.dat 2.3MiB which is probably
+what debdelta does. So I am not sure if it is worth the extra mile to
+diff file by file. It might be faster and less memory hungry however.
+> # Further extensions
+> 
+> If you put a pristine-tar delta into the delta file, you can fully
+> reconstruct debs.
+There is deltarpm [0] which does the same thing for rpm/fedora. I tried
+to find a design document but it seems that there is none. It seems
+however they grab all the binaries and make a delta via in-tree copy of
+bsdiff (delta.c). They also have intree-zlib but I didn't look why…
+I was mostly interrested if they have some filters to replace the
+offsets in binaries with something else but didn't find anything yet.
+I am not sure if they keep old rpm around for the delta to apply or if
+they reconstruct if from the file system (minus the config files).
+[0] https://gitorious.org/deltarpm/deltarpm
+Sebastian

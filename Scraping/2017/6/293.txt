@@ -1,0 +1,99 @@
+To : Andreas Beckmann <anbe@debian.org>, 863801@bugs.debian.org
+Subject : Re: Bug#863801: grub-coreboot: fails to upgrade from jessie to stretch if init-select was installed
+From : Colin Watson <cjwatson@debian.org>
+Date : Fri, 23 Jun 2017 12:22:34 +0100
+Message-id : 20170623112234.amfssam4jlgrzp7x@riva.ucam.org
+Mail-followup-to : Andreas Beckmann <anbe@debian.org>,	863801@bugs.debian.org, init-select@packages.debian.org,	debian-devel@lists.debian.org
+In-reply-to : <20170531114234.26807.5124.reportbug@zam581.zam.kfa-juelich.de>
+References : <20170531114234.26807.5124.reportbug@zam581.zam.kfa-juelich.de>
+
+
+On Wed, May 31, 2017 at 01:42:34PM +0200, Andreas Beckmann wrote:
+> during a test with piuparts I noticed your package fails to upgrade from
+> 'jessie'.
+> It installed fine in 'jessie', then the upgrade to 'stretch' fails.
+> 
+> >From the attached log (scroll to the bottom...):
+> 
+>   Setting up grub-coreboot (2.02~beta3-5) ...
+>   Installing new version of config file /etc/kernel/postinst.d/zz-update-grub ...
+>   Installing new version of config file /etc/kernel/postrm.d/zz-update-grub ...
+>   /var/lib/dpkg/info/grub-coreboot.config: 1: /etc/default/grub.d/init-select.cfg: /usr/lib/init-select/get-init: not found
+>   dpkg: error processing package grub-coreboot (--configure):
+>    subprocess installed post-installation script returned error exit status 127
+> 
+> 
+> This is most likely a bug in init-select, but since that package
+> does not exist in stretch any more (and it will be removed during the
+> upgrade from jessie to stretch due to dependencies/conflicts),
+> grub-coreboot will have to work around the bug.
+This is a tricky bug, so CCing debian-devel for comments.  (Note that
+this applies to all grub-<platform> binary packages, not just
+grub-coreboot.)
+The basic problem in init-select is of course the good old favourite of
+a conffile not behaving correctly when the package has been removed but
+not purged.  This is probably worth fixing in unstable as follows, since
+init-select is still there:
+--- a/init-select.cfg
++++ b/init-select.cfg
+@@ -1,1 +1,1 @@
+-GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT $(/usr/lib/init-select/get-init)"
++GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT $([ ! -x /usr/lib/init-select/get-init ] || /usr/lib/init-select/get-init)"
+I propose to NMU init-select with this change after a bit of testing and
+the usual delay, since it would generally make life easier if there were
+a non-broken version around somewhere.  We might also want to think
+about putting that into jessie-proposed-updates.
+However, I take Andreas's point that we need to work around this
+somehow, probably in a stretch point release now, and that's where I
+need feedback.  One possible approach would be to change grub-mkconfig
+to do something like this:
+  for x in ${sysconfdir}/default/grub.d/*.cfg ; do
+    if [ "$(basename "$x")" = init-select.cfg ] && [ ! -x /usr/lib/init-select/get-init ]; then
+      # work around #863801
+      continue
+    fi
+    if [ -e "${x}" ]; then
+      . "${x}"
+    fi
+  done
+But that lumbers me with having to maintain a workaround patch forever,
+since there's no guarantee that init-select would ever be purged from
+affected systems.  I appreciate that it's only a few lines, but these
+things pile up over time.  I also don't think that ignoring errors from
+/etc/default/grub.d/*.cfg scripts is a good idea: they might actually be
+important to booting the system, even though they aren't in this case.
+I'd rather do something like checking in the postinst whether these
+conditions hold:
+ * init-select is removed but not purged
+ * /etc/default/grub.d/init-select.cfg contents match the buggy contents
+   shown above
+... and if so, replace /etc/default/grub.d/init-select.cfg with the
+corrected version, coordinated with the NMU above.  This ought to mean
+that if a fixed version of init-select is installed in the future, then
+there'll be no conffile prompt because the new version is already in
+place.  It would open the possibility of a potential conffile prompt in
+future if the conffile in question is changed further, but it doesn't
+seem to me that init-select has a sufficiently long likely future
+lifespan for this to be very probable.  Replacing the file with a
+corrected version is better than removing it, moving it aside, or
+commenting out the offending line, since none of those would have the
+desired behaviour in the event that a fixed version of init-select is
+installed.
+The benefit of this approach, even though it's a bit more complicated,
+is that I could eventually drop it once users can be expected to have
+upgraded through a grub-* package containing this workaround.  That
+means that I don't have to carry a permanent patch just because some
+other package made use of my package's extension facilities and got it
+wrong.
+I fully appreciate that this is skating along the edge of policy's
+requirements regarding conffiles, and arguably violates at least 10.7.4
+"The maintainer scripts must not alter a conffile of any package,
+including the one the scripts belong to".  However, I think that this is
+a reasonable case of self-defence, and could be tolerable with
+sufficient commentary and care.  I doubt I would be contemplating it if
+init-select hadn't been removed from stretch.
+Thoughts?  Can anyone think of a better solution than either of the two
+I've outlined here?
+Thanks,
+-- 
+Colin Watson                                       [cjwatson@debian.org]

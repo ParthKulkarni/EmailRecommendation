@@ -1,0 +1,66 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#860368: installer: create network bridges by default?
+From : Daniel Pocock <daniel@pocock.pro>
+Date : Thu, 20 Apr 2017 07:48:25 +0200
+Message-id : 35dbb936-d2a7-f4b6-a918-af722d4a039e@pocock.pro
+In-reply-to : <[🔎] 1492504146.7061.7.camel@debian.org>
+References : <[🔎] accf61de-2c85-403b-09a0-35662db6f918@pocock.pro> <[🔎] 20170416065123.7bzmowy6g5oabk3m@nana.phantasia.die-welt.net> <[🔎] 1492504146.7061.7.camel@debian.org>
+
+
+On 18/04/17 10:29, Ritesh Raj Sarraf wrote:
+> On Sun, 2017-04-16 at 08:51 +0200, Evgeni Golov wrote:
+>>> The solution is for people to configure a bridge or Open
+>>> vSwitch (OVS) in /etc/network/interfaces.  (Notice OVS can be
+>>> configured[4] in the interfaces file).  Maybe it would be
+>>> useful to offer one or both of these options at install time,
+>>> or even configure a standard (non-OVS) bridge by default in
+>>> case the user decides to try KVM in future?
+>> 
+>> IMHO the above implements option 1?
+>> 
+>>> Are there other use cases apart from KVM that would benefit
+>>> from this?
+>> 
+>> I also use LXC on the same bridge, just for the fact that it is
+>> already set up and provides DHCP, DNS and NAT.
+> 
+> I used to have a similar setup but eventually migrated to a systemd
+> based setup with systemd-networkd. With s-networkd, I have an
+> independent bridge, which serves KVM/Libvirt, User Mode Linux and
+> systemd-nspawn.
+> 
+Could you give an example of how that is configured and what you need
+in /etc/network/interfaces?  At some point I will also document how
+I've done this with the Open vSwitch packages on both server and
+desktop virtualization.
+> VBox, running in bridged mode, used to have a network bug. I am not
+> sure if that still applies. 
+> https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=775266
+> 
+> 
+That bug applies to a situation where VBox guests are in bridged mode
+to a bridge in the host
+I've been bridging them directly to eth0, without any bridge in the
+host and haven't observed any problems like that one.
+When XCP was in Debian, Open vSwitch was a mandatory part of the
+platform but it didn't configure it in /etc/network/interfaces.  This
+was slightly confusing if you had already configured interfaces,
+although README.Debian explains[1] that you need to clobber the
+interfaces file because XCP will automatically set up bridges and put
+IP addresses on them during boot.
+The key difference between the XCP approach and the KVM/libvirt
+approach is that XCP would do everything for you, even with an empty
+interfaces file, but with KVM/libvirt you do need to configure the
+bridges and put IP addresses on them (using the normal interfaces
+file) and declare them to libvirt with "virsh net-define" before using
+them the first time.
+Another thing that comes to mind is network-manager:
+- for those who think a pre-configured bridge would make life
+difficult, far worse has been said about network-manager but it is
+still installed by default
+- does network-manager have a way to help people setup a bridge
+suitable for KVM/libvirt when doing virtualization on a desktop level?
+Regards,
+Daniel
+1.
+https://sources.debian.net/src/xen-api/1.3.2-15/debian/README.Debian/#L143

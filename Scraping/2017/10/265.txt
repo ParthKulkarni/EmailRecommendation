@@ -1,0 +1,56 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Let's talk about conflicts and omissions in the udeb distribution
+From : Dimitri John Ledkov <xnox@debian.org>
+Date : Thu, 12 Oct 2017 17:35:41 +0100
+Message-id : CANBHLUiOxf0WkLvqv-YbMH9zOtLcnpx_96KHk9o5XWovm9YGDg@mail.gmail.com
+
+
+Unpacking libkmod2-udeb (24-1) ...
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/sbin/depmod', which is also in
+package busybox-udeb 1:1.27.2-1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/sbin/insmod', which is also in
+package busybox-udeb 1:1.27.2-1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/sbin/lsmod', which is also in
+package busybox-udeb 1:1.27.2-1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/sbin/modinfo', which is also in
+package busybox-udeb 1:1.27.2-1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/sbin/modprobe', which is also in
+package busybox-udeb 1:1.27.2-1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/sbin/rmmod', which is also in
+package busybox-udeb 1:1.27.2-1
+Do we need both implementations of modprobe tools? Should one of them
+(kmod, busybox) stop building/shipping them? Or should those tools be
+shipped in busybox-kmod-udeb and kmod-udeb?
+Ditto:
+Unpacking wget-udeb (1.19.1-4) ...
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/usr/bin/wget', which is also in
+package busybox-udeb 1:1.27.2-1
+Also note that libkmod2-udeb does not actually ship libkmod.so.2... on
+that note this:
+INFO: Using /lib64/ld-linux-x86-64.so.2 as dynamic linker
+INFO: library reduction pass 1
+WARNING: Library libkmod.so.2 found in the default path /lib/x86_64-linux-gnu/
+WARNING: Library libslang.so.2 found in the default path /lib/x86_64-linux-gnu/
+WARNING: Library libnewt.so.0.52 found in the default path
+/usr/lib/x86_64-linux-gnu/
+WARNING: Library libgcc_s.so.1 found in the default path /lib/x86_64-linux-gnu/
+INFO: library reduction pass 2
+INFO: stripping and copying dynamic linker to ..//lib64/ld-linux-x86-64.so.2
+I've changed mklibs-copy to print a warning whenever libraries are
+pulled from the host instead of the udeb.
+Shouldn't the all of the above be shipped in udebs? As in do we expect
+.udebs to be selfcontained? I was a bit perplexed that libkmod2-udeb
+does not ship shared library and thus system one is used which is
+built differently.
+(all of udeb is build without hardening, but deb library is built with
+hardening)
+-- 
+Regards,
+Dimitri.

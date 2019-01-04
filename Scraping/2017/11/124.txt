@@ -1,0 +1,70 @@
+To : Theodore Ts'o <tytso@mit.edu>
+Subject : Re: e2fsprogs as Essential: yes?:  Maybe we should be separating l10n files first?
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Mon, 13 Nov 2017 15:28:32 +0100
+Message-id : 20171113142831.cleko3t7gkf6eeub@alf.mars
+Mail-followup-to : Theodore Ts'o <tytso@mit.edu>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20171112191845.33rikhh3pay5fyot@thunk.org>
+References : <20170930224538.2pfhbxbnd7c245du@alf.mars> <20170930232954.neej33sceofnodmj@angband.pl> <55b01424-a6eb-11e7-9b6a-00163eeb5320@msgid.mathom.us> <20171002090318.z4at377oa7b5irxk@alf.mars> <2ebd4bae-a75c-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506941437.8204.22.camel@debian.org> <3cb53f2e-a760-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506942621.8204.25.camel@debian.org> <20171002113446.kazrk37bizfva7qe@angband.pl> <[🔎] 20171112191845.33rikhh3pay5fyot@thunk.org>
+
+
+Hi Theodore,
+Thanks for speaking up.
+On Sun, Nov 12, 2017 at 02:18:45PM -0500, Theodore Ts'o wrote:
+> 1)  If people really want to make e2fsprogs non-essential, I'm not
+> going to object seriously.  It's the downgrade of e2fsprogs from
+> Priority: required to Priority: important which where things get
+> super-exciting.
+It's true that merely making e2fsprogs non-essential will not shrink
+minbase. There are other chroot generators such as multistrap that
+permit making smaller chroots though. From my pov, the important bit in
+making e2fsprogs non-essential is to get the relevant dependencies in
+place to figure out when it is safe to remove it. (See below.)
+> 2) I'm at this point I'm not really enthuiastic to move lsattr out of
+> e2fsprogs.  We are still adding new features to ext4, some of which
+> will require new flags, and chattr/lsattr et.al. *were* originally
+> designed to be only for ext 2/3/4.  Other file systems have decided to
+> use the same ioctl, which is fine, but I've always considered
+> chattr/lsattr to be an ext 2/3/4 utility first, and more generic file
+> system utility second.  Moving lsattr out of e2fsprogs to some other
+> package (e.g., util-linux) will make my kernel development much more
+> inconvenient.
+> 
+> 3) Lsattr/chattr et.al depend on the e2fsprogs shared libraries, so
+> moving them into a separate binary package isn't going to save as much
+> space as you would like.  So it's not at all clear the complexity is
+> worth it.
+I'm not enthusiastic about moving lsattr either for precisely the reasons
+you name.
+> 4) If the real goal is reduce the size of minbase, there is a much
+> more effective thing we can do first, or at least, in parallel.  And
+> that is to move the l10n files to a separate foo-l10n package.  The
+> last time I did this analysis was with Debian Jessie, but I don't
+> think the numbers have changed that much.  Of the 201 MB i386 minbase
+> chroot, 33MB, or over 16% can be found in /usr/local/locale.  The
+> breakdown (using Debian Jessie numbers) are:
+My goal here is a twofold shrinking. You can shrink the package count
+and the installation size.
+Reducing the package count lowers the complexity of the bootstrap
+problem. If e2fsprogs (or anything else) can be moved to the native
+phase, that's a win.
+Using Debian for embedded typically requires moving beyond minbase.
+Removing locales is typically done with --path-exclude or similar,
+because it is mostly riskless. Following your proposal (from your next
+reply) to simply remove binaries is not riskless, as anything might use
+them (due to being essential). Removing a whole package is less risky as
+apt will complain when you do something stupid.
+So if you go beyond the locale and /usr/share/doc removal, e2fsprogs
+suddenly looks like low hanging fruit after perl, but perl is much
+harder to remove. In a sense, e2fsprogs might be the lowest hanging
+fruit. (And that always depends on what the goal is.)
+> Does this mean trying to get to Essential: no for e2fsprogs is a bad
+> thing?  No, but if your goal is reduce the size of minbase for Debian,
+> I just want to point out that there is **much** lower hanging fruit
+> that folks might want to consider harvesting first.
+For reducing e.g. docker images, your idea to tackle coreutils is a good
+one. I leave that for others to work on and note that the second step
+(after splitting coreutils and others) will become easier due to making
+e2fsprogs non-essential.
+I note that I tend to ignore the Priority field. ;)
+Helmut

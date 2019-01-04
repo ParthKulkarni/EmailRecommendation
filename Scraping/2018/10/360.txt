@@ -1,0 +1,35 @@
+To : Andreas Beckmann <anbe@debian.org>, 911090@bugs.debian.org
+Subject : Re: Bug#911090: libapt-pkg5.0: incompatible with apt/stretch
+From : Julian Andres Klode <jak@debian.org>
+Date : Mon, 15 Oct 2018 18:18:58 +0200
+Message-id : 20181015181458.GA19234@debian.org
+Mail-followup-to : Julian Andres Klode <jak@debian.org>,	Andreas Beckmann <anbe@debian.org>, 911090@bugs.debian.org,	debian-devel@lists.debian.org
+In-reply-to : <153961633069.30422.6420629169965579823.reportbug@zam581.zam.kfa-juelich.de>
+References : <153961633069.30422.6420629169965579823.reportbug@zam581.zam.kfa-juelich.de>
+
+
+On Mon, Oct 15, 2018 at 05:12:10PM +0200, Andreas Beckmann wrote:
+> Package: libapt-pkg5.0
+> Version: 1.7.0
+> Severity: serious
+> 
+> Hi,
+> 
+> I just did a partial upgrade on a stretch+buster+sid development
+> system resulting in apt-get erroring out with 
+> 
+> apt-get: relocation error: /usr/lib/x86_64-linux-gnu/libapt-private.so.0.0: symbol _ZN3URIcvNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEB5cxx11Ev version APTPKG_5.0 not defined in file libapt-pkg.so.5.0 with link time reference
+> 
+> Looks like some Breaks may be needed ...
+So, I think this affects more than just apt. gcc 7 broke the ABI
+by adding a new mangling
+  URI::operator std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >()
+and only linking to that. It seems that some new gcc version then
+got rid of the old one
+  URI::operator std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >[abi:cxx11]()
+and now it's crashing.
+And that's a problem for _every_ library with operator string(), not
+just apt.
+-- 
+debian developer - deb.li/jak | jak-linux.org - free software dev
+ubuntu core developer                              i speak de, en

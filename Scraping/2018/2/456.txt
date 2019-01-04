@@ -1,0 +1,56 @@
+To : "Jonathan Carter (highvoltage)" <jcarter@linux.com>,	debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Gunnar Wolf <gwolf@debian.org>
+Date : Tue, 20 Feb 2018 13:12:09 -0600
+Message-id : 20180220191208.cvopy63rrmlqyprh@gwolf.org
+In-reply-to : <[🔎] 20180219141959.GD30036@home.ouaza.com>
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com> <[🔎] 20180216151129.GB18296@home.ouaza.com> <[🔎] 6a48788f-8b52-23ff-4ecd-c023d9e1715c@linux.com> <[🔎] 20180219141959.GD30036@home.ouaza.com>
+
+
+Raphael Hertzog dijo [Mon, Feb 19, 2018 at 03:19:59PM +0100]:
+> On Fri, 16 Feb 2018, Jonathan Carter (highvoltage) wrote:
+> > > - we could relax our requirements and have a way to document the
+> > >   limitations of those packages (wrt our usual policies)
+> > 
+> > Which requirements are you referring to? If it's relaxing the need for
+> > source for minified javascript, then no thanks.
+> 
+> Instead of requiring the source to be provided in the source package as a
+> non-minified file, we could require the packager to document in
+> debian/README.source where the upstream sources actually are.
+Pointing to sources outside our system might go away, and that would
+make us instant-buggy. That's why we have introduced the
+debian/missing-sources mechanism; your source package bloats, but is
+source-complete. Further, you can parse them with the "correct"
+minifiers and compare the results are identical (or provide our
+minified versions if they are not).
+> When I was maintaining wordpress, I introduced the idea of providing
+> debian/missing-sources/ to comply with the Debian policy.
+Yay, so it's not you who I have to lecture on this ;-)
+> I would just dump there the upstream tarball of the bundled
+> libraries to be sure that we have the source for the correct
+> version. The Debian/ftpmaster rules are respected but it's not
+> really better than the above because you still don't have a simple
+> way to rebuild a modified version of the javascript library shipped
+> in the package.
+build-depend on yui-compressor, node-uglifyjs-webpack-plugin,
+libjavascript-minifier-perl, or whatever minifier suits you; add them
+to the binary package in debian/rules instead of just copying over the
+upstream-provided minified versions. That is, think of minification as
+you would think of compilation.
+> So instead of ugly work-arounds, it might be better to just acknowledge
+> that we can't have the same level of support for all applications.
+> (...)
+> Those applications could rely on the package manager of their ecosystem to
+> setup the dependencies as they need them without polluting the host
+> system.
+...But that pollutes the host system for all of their ecosystem. And
+that's what I suggest - Paraphrasing the SC, «We acknowledge that some
+of our users require the use of works that do not conform to the
+Debian Free Software Guidelines». We might come up with an area
+similar to contrib or non-free (or even decide to ship such systems
+there, as they kind-of-belong there!)
+Maybe Drupal, WordPress, NextCloud or WhatEver are not non-free by
+themselves. But they are not allowing for a practical source
+distribution; they force our hands into trusting software we cannot
+vouch for or give warranties on. So, maybe they belong in non-free.

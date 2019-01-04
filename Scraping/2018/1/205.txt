@@ -1,0 +1,61 @@
+To : Johannes Schauer <josch@debian.org>
+Subject : Re: Storing build profiles in binary packages (was: Re: Bug#886238: Please introduce official nosystemd build profile)
+From : Guillem Jover <guillem@debian.org>
+Date : Thu, 11 Jan 2018 01:46:26 +0100
+Message-id : 20180111004626.GA12715@thunder.hadrons.org
+Mail-followup-to : Johannes Schauer <josch@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 151562804856.1442.14683052322745301095@localhost>
+References : <[🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108183711.2vrs643yrokpapuq@mail.wookware.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108200909.7o6ovj2ajzseik2m@virgil.dodds.net> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 4de2303e-f4dd-11e7-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180110204902.m7woymenuifcxkh7@virgil.dodds.net> <[🔎] 151562804856.1442.14683052322745301095@localhost>
+
+
+[ Just few comments to complement josch's veyr nice reply, with which I
+  completely agree with. ]
+On Thu, 2018-01-11 at 00:47:28 +0100, Johannes Schauer wrote:
+> Quoting Steve Langasek (2018-01-10 21:49:02)
+> > As a policy, I think it's clear that packages built with non-default profiles
+> > should never be included in the Debian archive;
+> 
+> Why? By enforcing (via a policy and checkable via reproducible builds) that the
+> binary packages that are being built with one (possibly empty) set of build
+> profiles active are bit-by-bit identical to those built with a different set of
+> build profiles active, it doesn't matter whether a given binary package was
+> built with either set.
+Yes, and in addition this information is recorded in both .changes
+and .buildinfo files. I was initially among the ones wanting this
+information in the .debs to be able to trace it, but the need
+disappeared when we introduced .buildinfo files, because then we've
+got the upload specific recording for the archive processor (.changes),
+and the supposedly public facing record of what was done during the
+build (.buildinfo), although the later can never be fully trusted
+anyway. :)
+> > and segregating packages into archives by stage is a sensible way to do this
+> > for bootstrapping.
+> 
+> We don't want "stages" for bootstrapping. This is also why the "stage1" and
+> "stage2" build profiles are marked as "deprecated" on the wiki page. Those
+> profile names are only used by toolchain packages for reasons that go beyond
+> the scope of this thread. The reason we don't want "stageX" profiles but
+> instead nofoo profiles (disabling foo) are:
+> 
+>  - dependency relationships change regularly. Thus, what is a stage1 today
+>    might not even be needed for bootstrapping anymore tomorrow. But the profile
+>    might have other uses, for example by downstreams.
+> 
+>  - dependency relationships change regularly. Thus the notion of what a
+>    "stage1" build of a package is also changes regularly. At some point, the
+>    state of the archive might require a source package to be built without
+>    libfoo-dev and without libbar-dev. At another point in time, it is
+>    sufficient to build the source package only without libfoo-dev. At another
+>    point, it would make sense to build it without libfoo-dev and also without
+>    libbaz-dev. If there are separate profiles for foo, bar and baz, then an
+>    automated machinery can exactly choose how to build source packages.
+> 
+>  - the functionality removed or changed by a stageX profile might overlap with
+>    another profile name that is needed for a purpose that is not bootstrapping
+>    (for example by a downstream). Then, in all places where this functionality
+>    is activated or deactivated, the full list of profiles that touch it must be
+>    repeatedly enumerated. It is easier to maintain a single build profile that
+>    is directly connected with exactly that functionality.  See my argument
+>    about maintainability of build profiles for each distribution in [1].
+> 
+> [1] [🔎] 151553652380.1442.14816198615195092481@localhost">https://lists.debian.org/[🔎] 151553652380.1442.14816198615195092481@localhost

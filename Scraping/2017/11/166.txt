@@ -1,0 +1,66 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto-update for sid? Auto-backport?
+From : Adrian Bunk <bunk@debian.org>
+Date : Fri, 17 Nov 2017 20:59:20 +0200
+Message-id : 20171117185920.eogl4f2mkxa7ytal@localhost
+In-reply-to : <[🔎] f6db377a-b082-fa64-29c7-e29d931aeb8c@gmx.de>
+References : <[🔎] f6db377a-b082-fa64-29c7-e29d931aeb8c@gmx.de>
+
+
+On Wed, Nov 15, 2017 at 04:43:17PM +0100, Steffen Möller wrote:
+> Hello,
+> 
+> my QA page or our blend's task page (like
+> https://blends.debian.org/med/tasks/bio-ngs) regularly informs me about
+> updates that should be performed to packages I alone maintain or (more
+> likely) with the help of my blend. The updates are often (but now
+> always, admittedly) easy to do.
+> 
+> I would really like to see updates performed in some automated fashion.
+> Maybe into a different section of Debian like sid-auto? The problem with
+> that obviously is the missing scrutiny by the human maintainer, so it
+> cannot go straight into sid. Or can it? Maybe with an auto-created bug
+> report against the package so it does not auto-migrate into testing?
+>...
+We do have DDs who seem to consider "maintaining" their packages to 
+consist only of uploading the latest upstream versions and perhaps
+look at RC bugs in their packages (sometimes not even that).
+IMHO such people are a disgrace for Debian.[1]
+Such disgrace maintainers could be replaced with a script
+that automatically uploads the latest upstream version.
+But who will actually maintain the packages?
+Testing before uploading has already been mentioned.
+There might also be a "Caveats" section in the upstream
+release announcement that should be read and implemented
+e.g. in the package dependencies or NEWS.Debian.
+An upload is also a good opportunity to check whether there
+are fixable lintian warnings.
+If the new upstream version does FTBFS everywhere except amd64,
+the maintainer is supposed to fix or at least forward this in
+a timely manner.
+And the maintainer is also supposed to handle all other incoming bugs.
+Automated updates for non-leaf packages could also force other people
+to fixup the mess they created, e.g. an automatic upload of a broken 
+library package at the first day of the month-long summer vacation
+of the maintainer would not be good timing.
+The part you want to automate is some variant of
+  uscan && dpkg-buildpackage && dput
+if done manually.[2]
+If you want to automate that it is fine, but the majority of maintainer 
+work on a new upstream version is what happens after the automated part 
+or if the automated part fails. And this maintainer work should happen 
+before the package hits users in sid.
+> Many thanks for your opinions
+> 
+> Steffen
+cu
+Adrian
+[1] I am not talking about teams maintaining popular packages
+    where the team simply lacks enough people for handling all
+    incoming bugs
+[2] exact commands vary depending on personal preferences
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

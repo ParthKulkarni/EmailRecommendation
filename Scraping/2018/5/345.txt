@@ -1,0 +1,58 @@
+To : Federico Ceratto <federico@debian.org>, 899058@bugs.debian.org
+Subject : Re: Bug#899058: ITP: domoticz -- Home automation system
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Wed, 23 May 2018 16:29:12 +0200
+Message-id : 20180523142912.zuvc2adrtixy2gde@fatal.se
+In-reply-to : <[🔎] 152666840196.13637.542105405986036526.reportbug@localhost>
+References : <[🔎] 152666840196.13637.542105405986036526.reportbug@localhost>
+
+
+Hello Federico Ceratto,
+On Fri, May 18, 2018 at 07:33:21PM +0100, Federico Ceratto wrote:
+> Package: wnpp
+> Severity: wishlist
+> Owner: Federico Ceratto <federico@debian.org>
+> 
+> * Package name    : domoticz
+[...]
+> The package will be maintained at https://salsa.debian.org/debian/domoticz
+[...]
+Thanks for packaging domoticz. I've not used it myself but I hear good
+things about it and think it'll be a great addition to the debian
+archive.
+I had a quick look at the packaging bits in your git repo and
+have some questions and comments. Maybe something can be useful
+for you, but maybe not. Anyway...
+I see you're using alot of the security features in your service file,
+great! I wish more packages where better at using these features.
+I can't help but wonder though if it's not possible for you to use
+DynamicUser=yes ?
+You seem to already use some of the strict limitations implied by
+DynamicUser=yes anyway. Using it would allow you to get away without
+creating a static system user for your service, but your service
+also won't be able to create any persistent files (which I don't know
+if you might need).
+You also added a 'default' file. Personally I think the only good usage
+for a default file is with init scripts. Unless I missed something
+you seem to not have any init script so I don't think that argument
+applies here. Thus I'd suggest you switch from EnvironmentFile to
+plainly setting the variables via Environment=. That way users
+can easily ports via 'systemctl edit ...' the same way they would
+override any other thing in the service. (Fwiw, I think splitting
+out the port numbers to an environment variable like you did
+can be useful even when not using a default file. If the ExecStart
+line is long and has many different arguments overriding the entire
+line completely for just a simple port change might be suboptimal
+for upgrades where you might add, remove or change another unrelated
+command line argument. Thus being able to just override the environment
+variable is safer.)
+Not really willing to take on any (co-)maintainership, but if there's
+a limited task you think I can help out with don't be shy to ask.
+(Ofcourse since I'm not a user myself, yet, I'll need help from someone
+who is to test whatever I implement though.....)
+Regards,
+Andreas Henriksson
+PS. You already seem to be very well versed with systemd services but in
+case you're not already familiar with DynamicUser=yes information about
+it can be found, except from the systemd documentation ofcourse, at
+http://0pointer.net/blog/dynamic-users-with-systemd.html

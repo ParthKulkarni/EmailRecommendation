@@ -1,0 +1,41 @@
+To : Andreas Beckmann <anbe@debian.org>, 863801@bugs.debian.org,	init-select@packages.debian.org, debian-devel@lists.debian.org
+Subject : Re: Bug#863801: grub-coreboot: fails to upgrade from jessie to stretch if init-select was installed
+From : Guillem Jover <guillem@debian.org>
+Date : Sun, 2 Jul 2017 03:15:36 +0200
+Message-id : 20170702011536.kux7dnmybmbsvjdc@gaara.hadrons.org
+Mail-followup-to : Andreas Beckmann <anbe@debian.org>,	863801@bugs.debian.org, init-select@packages.debian.org,	debian-devel@lists.debian.org
+In-reply-to : <20170623112234.amfssam4jlgrzp7x@riva.ucam.org>
+References : <20170531114234.26807.5124.reportbug@zam581.zam.kfa-juelich.de> <20170623112234.amfssam4jlgrzp7x@riva.ucam.org>
+
+
+Hi!
+On Fri, 2017-06-23 at 12:22:34 +0100, Colin Watson wrote:
+> The basic problem in init-select is of course the good old favourite of
+> a conffile not behaving correctly when the package has been removed but
+> not purged.  This is probably worth fixing in unstable as follows, since
+> init-select is still there:
+> 
+> --- a/init-select.cfg
+> +++ b/init-select.cfg
+> @@ -1,1 +1,1 @@
+> -GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT $(/usr/lib/init-select/get-init)"
+> +GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT $([ ! -x /usr/lib/init-select/get-init ] || /usr/lib/init-select/get-init)"
+> However, I take Andreas's point that we need to work around this
+> somehow, probably in a stretch point release now, and that's where I
+> need feedback.  One possible approach would be to change grub-mkconfig
+> to do something like this:
+> I fully appreciate that this is skating along the edge of policy's
+> requirements regarding conffiles, and arguably violates at least 10.7.4
+> "The maintainer scripts must not alter a conffile of any package,
+> including the one the scripts belong to".  However, I think that this is
+> a reasonable case of self-defence, and could be tolerable with
+> sufficient commentary and care.  I doubt I would be contemplating it if
+> init-select hadn't been removed from stretch.
+Isn't the obviously correct and policy compliant approach to just
+Conflicts/Replaces (or Breaks/Replaces depending on the force you want
+to apply here) with the init-select package from one of the grub
+packages, and on that grub package ship a stub init-select.cfg with
+just a comment explaining what's going on. And in the next release cycle,
+just make that package remove its (now) own conffile?
+Thanks,
+Guillem

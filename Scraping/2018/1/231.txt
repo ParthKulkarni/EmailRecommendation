@@ -1,0 +1,76 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : sysvinit-utils essentialness (was: Re: Bug#886238: Please introduce official nosystemd build profile)
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Tue, 9 Jan 2018 04:04:39 +0100
+Message-id : 20180109030439.l7obajohhalee6fd@fatal.se
+In-reply-to : <[🔎] 20180107115449.GA7245@perpetual.pseudorandom.co.uk>
+References : <[🔎] 87h8s2j07z.fsf@hope.eyrie.org> <[🔎] 20180104033616.3bt7732el4n7sviu@angband.pl> <[🔎] 87po6q9s9i.fsf@hope.eyrie.org> <[🔎] 5A504E01.5030203@debian.org> <[🔎] 20180106134232.GB10711@perpetual.pseudorandom.co.uk> <[🔎] a6fbe31d-c04f-b43a-8e09-d76b2b8272d0@debian.org> <[🔎] 20180106181714.GA14323@bongo.bofh.it> <[🔎] 20180106223509.6pmj5gs7rqfe3wlu@angband.pl> <[🔎] 87zi5qbmb0.fsf@43-1.org> <[🔎] 20180107115449.GA7245@perpetual.pseudorandom.co.uk>
+
+
+Hello all,
+Given I've poked a bit at what Simon mentions below in the past and
+don't really have any intention to follow this (and any other remaining
+item mentioned at [0]) through (and not aware of anyone else picking it
+up either), I thought I'd take this opportunity to share a bit about my
+view on it in the hope that it can help someone pick it up.
+On Sun, Jan 07, 2018 at 11:54:49AM +0000, Simon McVittie wrote:
+[...]
+> sysvinit-utils is still Essential: yes, because it contains binaries that
+> were historically part of the Essential set; *that* keeps src:sysvinit
+> in testing. There are plans to make sysvinit-utils non-Essential by
+> moving pidof to a new Essential package built from src:procps (lots
+> of packages blindly assume that pidof exists, so adding dependencies
+> doesn't seem feasible) and adding dependencies for the few uses of the
+> other sysvinit-utils binaries, which have been OK'd in principle by the
+> maintainer of src:sysvinit, but haven't happened yet.
+[...]
+First, what Simon says is in my view an accurate description.
+Using the pidof implementation provided by procps (upstream) would
+mean we atleast use the same implementation as other distros, but
+wouldn't gain us much else and could even give us new problems.
+By building an essential procps-pidof package would relieve src:sysvinit
+from bootstrapping, but instead introduce src:procps. I assume
+bootstrappers have sysvinit well under control already, but no idea if
+procps would cause issues for them (possibly it may need to introduce
+some build profiles atleast).
+In the best of worlds we would make pidof non-essential. So who are
+the users? Well unfortunately it's not very easy to codesearch[1]
+for pidof users, because there are lots of "false positives" (and
+I'm not as patient and thorough as Helmut has been while investigating
+e2fsprogs), but from glancing over the results the main users of pidof
+seems to be init scripts. One potential solution here could be to
+replace the pidof usage with the LSB function pidofproc[2] (but note how
+the optional last "unspecified method" in practise seems to be
+implemented by calling pidof[3] when available and I'm not what the
+impact would be if the first condition that today always is true starts
+becoming false most of the time instead). While looking at a selection
+of these init scripts they stand out as very old style. Likely updating
+them to be somewhat modern (by sysvinit standards) would likely mean
+totally rewriting them as LSB compatible init scripts.
+I personally doubt we'll see a major widespread effort within the Debian
+community to overhaul init scripts in our archive at this point. (Even
+the Debian LSB maintainer says LSB is basically dead at this point, but
+as a challenge to all potential sysvinit supporters out there please
+prove me wrong by makin Debians init scritps LSB compatible!)
+If anyone out there has ideas on how we could practically (iow, with a
+somewhat sane amount of work) accomplish this in a different way I'd be
+interested in hearing about it.
+The most practical thing to do at this point seems to be to just wait
+until sysvinit is eventually removed from Debian, add a lintian check
+that suggests people to also drop any init scripts they're shipping
+in their packages (cf. the upstart removal which happened surprisingly
+quickly in my view but may not be comparable), and then investigate
+after a while again where we have pidof users and if the package
+providing pidof can be demoted to non-Essential. Given that we're still
+having these threads like the one leading up to this message makes me
+think this in not happening any time soon though....
+If anyone out there is interested in working on this (or any other item
+on [0], or anything similar/related to it) please contact me!
+HTH
+Regards,
+Andreas Henriksson
+PS. Don't assume I'm subscribed to this (or any other) list!
+[0]: https://wiki.debian.org/BusterPriorityRequalification
+[1]: https://codesearch.debian.net/search?q=pidof&perpkg=1
+[2]: http://refspecs.linuxbase.org/LSB_3.0.0/LSB-PDA/LSB-PDA/iniscrptfunc.html
+[3]: https://sources.debian.org/src/lsb/9.20170808/init-functions/#L108

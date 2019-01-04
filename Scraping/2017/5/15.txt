@@ -1,0 +1,72 @@
+To : Pirate Praveen <praveen@onenetbeyond.org>, 861639@bugs.debian.org, "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Re: Bug#861639: ITP: node-elliptic -- fast elliptic curve cryptography in pure javascript
+From : Christian Seiler <christian@iwakd.de>
+Date : Tue, 2 May 2017 09:03:35 +0200
+Message-id : 5ad74e77-26d7-8aa8-a201-998191097c75@iwakd.de
+In-reply-to : <[🔎] 086ea65c-5849-f597-b9a9-b8df982909cf@onenetbeyond.org>
+References : <[🔎] 086ea65c-5849-f597-b9a9-b8df982909cf@onenetbeyond.org>
+
+
+Hi there,
+On 05/02/2017 07:49 AM, Pirate Praveen wrote:
+> Package: wnpp
+> Severity: wishlist
+> Owner: Pirate Praveen <praveen@debian.org>
+> X-Debbugs-CC: debian-devel@lists.debian.org
+> 
+> * Package name    : node-elliptic
+>   Version         : 6.4.0
+>   Upstream Author : Fedor Indutny <fedor@indutny.com>
+> * URL             : https://github.com/indutny/elliptic
+> * License         : Expat
+>   Programming Lang: JavaScript
+>   Description     : faster elliptic curve cryptography in pure javascript
+> 
+>  Fast elliptic-curve cryptography in a plain javascript implementation.
+>  Incentive for Elliptic: ECC (another library with comparable features) is
+>  much slower than regular RSA cryptography, the JS implementations are even
+>  more slower.
+As with the other pure JS crypto package ITP here recently [1]: has
+this library been designed with timing attacks in mind? In contrast
+to the first example, where upstream says that it's so slow that
+nobody is probably going to use it in real life anyway [2], this
+library claims to be quite fast - in which case the chance of the
+library being used in actual real-life applications is higher. And
+it uses the same bignum library that the other package is also
+using, which doesn't appear to have been designed with timing
+considerations in mind. (Which is fine for a bignum library not
+intended for crypto purposes.)
+As with the previous package, the README of the project and the
+other documentation does not discuss timing attacks at all, which
+doesn't give me confidence that the author of the library has
+thought about these issues.
+A couple of pointers:
+ - For curves that are not Edwards curves there is a very trivial
+   timing attack, which is really hard to mitigate, where it is
+   trivially possible to extract the private key through a side
+   channel near-instantaneously.
+   The library supports all sorts of types of curves, and while I
+   haven't tested it, I'd be extremely surprised if it wasn't
+   susceptible to this type of attack for non-Edwards curves.
+ - For curves that are Edwards curves, the trivial timing attacks
+   described above are mitigated. However, I don't have any
+   confidence (especially since this is pure Javascript, where
+   I imagine mitigating this to be extremely difficult) that the
+   code doesn't contain any other side channels. Again, I didn't
+   test that, but there is no documentation even mentioning side
+   channels, and no comment in the code either. (If you grep
+   through e.g. OpenSSL's source code, you'll see lots of
+   comments discussing side channels and timing attacks. And even
+   OpenSSL has advisories on side channel attacks every now and
+   then, because someone comes up with something very clever that
+   they didn't think of. [3])
+I understand you're probably packaging this because it's a
+dependency of something else, but I'm seriously concerned about
+any package that uses this library for real-world applications
+other than generating key pairs.
+Regards,
+Christian
+[1] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=860771#10
+[2] https://github.com/crypto-browserify/diffie-hellman/issues/22#issuecomment-296645560
+[3] Look at CVE-2013-4576 to see how creative these side channel
+    attacks can become.

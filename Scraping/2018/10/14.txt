@@ -1,0 +1,62 @@
+To : Steve Robbins <steve@sumost.ca>,    Shengjing Zhu <zhsj@debian.org>
+Subject : Re: gbp import-orig has defeated me [and 1 more messages]
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 2 Oct 2018 12:59:54 +0100
+Message-id : 23475.23994.995703.573626@chiark.greenend.org.uk
+In-reply-to : <[🔎] CAFyCLW_OAZGxkyO5mWc0LyMuuge0EvNygSQ7hCGnuqWNJZsb2A@mail.gmail.com>,	<[🔎] 6195604.Hj5TQeSvYR@riemann>
+References : <[🔎] 24436867.D8oMuRpllI@riemann>	<[🔎] CAFyCLW_OAZGxkyO5mWc0LyMuuge0EvNygSQ7hCGnuqWNJZsb2A@mail.gmail.com>	<[🔎] 6195604.Hj5TQeSvYR@riemann>
+
+
+Shengjing Zhu writes ("Re: gbp import-orig has defeated me"):
+> I think you have configured your git to auto convert the line ending
+> when commit.
+> 
+> In the pristine-tar tarball,
+> $ file googletest-release-1.8.1/googlemock/msvc/2005/gmock.sln
+> googletest-release-1.8.1/googlemock/msvc/2005/gmock.sln: UTF-8 Unicode
+> (with BOM) text, with CRLF line terminators
+> 
+> In your master and upstream branch
+> $ file googletest-1.8.1/googlemock/msvc/2005/gmock.sln
+> googletest-1.8.1/googlemock/msvc/2005/gmock.sln: UTF-8 Unicode (with BOM) tex
+Well spotted.
+> I import the orig tarball in my env, these files are CRLF in my git tree.
+> I'm not sure what git config influences this, but maybe core.eol,
+> core.autocrlf, core.safecrlf.
+Debian packging git tools could perhaps suppress these options, or
+warn about them.
+I know that dgit and git-deborig already take care to suppress
+.gitattributes.  I hadn't considered the eol configurastion
+parameters.  Maybe they need to be squashed or warned about too -
+although unlike with .gitattributes, the default git configuration is
+safe.
+Steve Robbins writes ("Re: gbp import-orig has defeated me"):
+> I think you've pointed in the right direction.  I have started
+> reading through
+> https://adaptivepatchwork.com/2012/03/01/mind-the-end-of-your-line/
+> and discovered that I have one non-default: core.autocrlf=input.
+> According to the article, this is recommended for linux.  Maybe
+> that's not true;
+I think you should not set any of these options.  I disagree with the
+discussion in that article surrounding the suggestion to use
+core.autocrlf=input.  Almost no-one should do this on Linux.
+In the Debian context, if the orig tarball contains files with cr-lf
+line endings, then so must your git tree.  So you must not tell git to
+convert things.
+If these files with cr line endings are a nuisance should probably
+complain to upstream.  It is highly unusual to provide a tarball
+containing DOS/Windows-format text files.  In the meantime you'll have
+to repack the tarball :-/.
+> or maybe I just need to generate a .gitattributes file?  I'll try
+> that tomorrow.
+Please don't do that.  (I don't think it would work, anyway.)
+See also:
+  https://manpages.debian.org/stretch/dgit/dgit.7.en.html#GITATTRIBUTES
+This applies even if you are not intending to upload with dgit.
+But, of course, you should upload with dgit.
+Good luck.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

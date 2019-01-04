@@ -1,0 +1,68 @@
+To : 856033@bugs.debian.org, debian-devel@lists.debian.org
+Subject : Re: Bug#856033: ITP: brailleimg -- produce text images and graphs abusing Braille glyphs
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 25 Feb 2017 18:24:33 +0100
+Message-id : 20170225172433.g4akpzpz6yundvki@angband.pl
+In-reply-to : <[🔎] 20170225134657.diyqm6ou6ockqetm@var.youpi.perso.aquilenet.fr>
+References : <[🔎] 148794333668.3763.17093112744065284614.reportbug@umbar.angband.pl> <[🔎] 20170224134531.j4nhyzihwve6t2l2@var.youpi.perso.aquilenet.fr> <[🔎] 20170224144438.wzuidgjfhxkxupmu@angband.pl> <[🔎] 20170225134657.diyqm6ou6ockqetm@var.youpi.perso.aquilenet.fr>
+
+
+Control: retitle -1 ITP: braillegraph -- simple histogram tool producing text dot-matrix graphs
+On Sat, Feb 25, 2017 at 02:46:57PM +0100, Samuel Thibault wrote:
+> Indeed, apparently I forgot to add documentation. I have submitted
+> patch, thanks.
+Awesome, thanks!
+ 
+> > I wonder about the histogram tool.
+> 
+> Actually I was thinking that it could be part of gnuplot (it has "set
+> terminal dumb", but it could have a "set terminal braille")
+Alas, it won't work: I see that, while alignment of the graph itself works
+well, anything but terminals (which force a char-cell grid) fails to give
+Braille and ASCII characters the same width, despite requesting fixed-width
+display.
+You can see how bad it is on https://angband.pl/doc/alluni.txt -- you should
+get an aligned grid with right edge of every full block forming an even
+vertical line, yet most blocks fail to align even within themselves.
+gnuplot relies on being able to place labels within the image, which works
+for ASCII and maybe Latin/Greek/Cyrillic but, except for most terminals, not
+for anything else.  Too many people use in-browser webmails or GUI clients
+(a heresy, mutt is the way to go!), or read list archives via WWW.
+> but a very simple script that emits histograms from basic data makes sense
+> to me too.  I was wondering whether such simple tool already exist, using
+> just ASCII to produce the histograms, but couldn't find one with a quick
+> search.
+That's what we have ITPs for -- thanks for pointing out my image converter
+is redundant.  It looks like no one made a histogram tool using
+high-resolution Braille yet, thus I'll add some features (like auto-scaling
+Y axis -- doing it manually is tedious, horizontal mode, etc) and package
+this part.
+ 
+> It would probably be useful to make such tool have an optional ASCII
+> mode.
+Meh, I don't think mail clients, terminals and web browsers without Unicode
+support deserve much thought.  There's a problem in jessie-'s FreeMono where
+it produces a grayish block for Braille (both legitimate use and our abuse)
+but since the fix comes a release cycle before this graphing tool, it might
+be good enough.
+> It should also not assume UTF-8 output, but use something like "|
+> iconv -f utf-8", since chinese people have their own way of encoding
+> unicode.
+I'm about to raise a thread about dropping ancient locale support in buster,
+almost no one uses them anymore, GUI stuff hardly pays lip service to
+non-Unicode, and it seriously burdens i18n efforts.
+In any case, there wasn't a single bug report filed with such an old Chinese
+locale since 2012; 2013-2017 stats are:
+ ISO-8859-1     |   736
+ ISO-8859-15    |   187
+ ISO-8859-2     |    46
+ KOI8-R         |    39
+ EUC-JP         |    14
+ TIS-620        |     2
+Unrelated: perhaps some other name than "braillegraph" would be better?  The
+glyphs used belonging to the Braille range is an implementation detail,
+users probably won't care other than for requiring Unicode.
+Meow!
+-- 
+Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
+  ./configure --host=zx-spectrum --build=pdp11

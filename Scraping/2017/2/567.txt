@@ -1,0 +1,184 @@
+To : debian-devel@lists.debian.org
+Subject : Re: mining system information of bugs
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Thu, 23 Feb 2017 16:13:13 +0100
+Message-id : 20170223151313.fh5krviduoykzxbg@angband.pl
+In-reply-to : <[🔎] CAKTje6G1j3LbGZ1XDB7OaBQDMkh_AQ4XsJ3iom15mrnh=c2dOg@mail.gmail.com>
+References : <[🔎] 20170222181610.yksor7jy4cwshu36@angband.pl> <[🔎] CAKTje6G1j3LbGZ1XDB7OaBQDMkh_AQ4XsJ3iom15mrnh=c2dOg@mail.gmail.com>
+
+
+On Thu, Feb 23, 2017 at 11:53:33AM +0800, Paul Wise wrote:
+> I'd be interested in stats of Debian releases, preferred suites, apt
+> policies and how many bugs were filed from systems running Debian
+> derivatives, or other distros if any.
+Alas, this data looks really unreliable.  Entries often point to a given
+release while preferring a derivative, claiming to be stable not testing
+while being filed many months before release (one-shot "apt -t testing
+dist-upgrade"?), etc.
+Only part I'd somewhat trust is "APT prefers unstable" and possibly testing,
+but the converse, "APT prefers stable" is notoriously a lie.
+All data below is 2016+, nulls not removed.
+"Debian Release:"
+Raw data:
+ stretch/sid    | 9839
+ 8.3            |  647
+ 8.6            |  639
+ 8.5            |  611
+ 8.4            |  541
+ 8.2            |  308
+ jessie/sid     |  123
+                |  108
+ Jessie*        |   71
+ 8.0            |   58
+ 7.11           |   55
+ 7.9            |   52
+ 7.10           |   26
+ 8.1            |   19
+ sid (unstable) |   15
+ wheezy/sid     |   15
+ 7.4            |   13
+ sid            |    9
+ 6.0.10         |    9
+ 7.8            |    7
+ squeeze/sid    |    6
+ 7.7            |    5
+ jessie         |    4
+ 7.0            |    4
+ stretch        |    4
+ 7.1            |    2
+ 5.0.4          |    2
+ lenny/sid      |    2
+ 6.0.7          |    2
+ 7.6            |    1
+ wheezy/testing |    1
+ 7.2            |    1
+ 6.0.4          |    1
+Grouped by first digit:
+ stretch/sid    | 9839
+ 8              | 2827
+ 7              |  166
+ jessie/sid     |  123
+                |  108
+ Jessie*        |   71  <-- why the star?
+ sid            |   24
+ wheezy/sid     |   15
+ 6              |   12
+ squeeze/sid    |    6
+ stretch        |    4
+ lenny/sid      |    2
+ 5              |    2
+ wheezy/testing |    1
+"APT prefers"
+ unstable        | 4456
+ testing         | 4385
+ stable          | 3023
+                 |  687
+ xenial          |  152
+ oldstable       |  142
+ unreleased      |   71
+ buildd-unstable |   49
+ yakkety         |   45
+ trusty          |   44
+ wily            |   34
+ proposed        |   26
+ oldoldstable    |   25
+ squeeze         |   20
+ experimental    |   20
+ jessie          |   11
+ vivid           |    3
+ precise         |    3
+ zesty           |    2
+ oneiric         |    1
+ local           |    1
+> apt policies
+I did not collect this part.
+> Are you planning on producing these graphs/stats continuously/automatically?
+> 
+> Got any information on how they were produced?
+I did not have the foresight to automate the steps involved.
+First, I logged into bugs-mirror.debian.org and tarred up .report files,
+both open and archived.  This took over two hours, I would really prefer not
+burdening project machines this way.  Picking only new reports can be done,
+preferably without having to stat() everything.
+I've then thrown them into a single dir and grepped away those without
+"^-- System Information:$".  Then parsed and imported them into SQL (script
+attached).
+Then came the worst part, fixing mangled data.  There's a lot of common ways
+to corrupt it and a bunch more uncommon ones.  Looking in my .psql_history
+I see for example:
+select arch,count(*) from si group by arch;
+update si set arch='s390' where arch like 's390Locale%';
+update si set arch=null where arch like 'dpkg: %';
+update si set arch=null where arch like 'sh: %';
+update si set arch=null where arch like 'All%';
+update si set arch=null where arch like 'packages%';
+update si set arch=null where arch like 'Any%';
+update si set arch=trim(arch),farch=trim(farch);
+update si set arch=null where arch like 'should%';
+update si set arch=null where arch like '3.4.10%';
+update si set arch=null where arch like 'Linux%';
+update si set arch=regexp_replace(arch,'\).*',')');
+and so on.  Ie, after you select distinct to manually check there's no
+entry like "death to systemd!" you can assume any prose or mail-caused
+corruption that contains the substring "systemd" means that, but writing
+such rules can't be automated.  Then there are random strings inserted
+in the middle of a word, this somehow happens really a lot.
+Only then you get to analyze the data.  group by date_trunc('month',
+timestamp) is the workhorse.
+In the hindsight, I could have taken the other way: assume that any data
+that's not valid after a few common rules can be thrown away -- but then,
+even that single "Jessie*" entry that survived data massaging is over 0.5%
+of data for 2016.  And we really want to see reports with arch="or1k" and
+such.
+Meow!
+-- 
+Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
+  ./configure --host=zx-spectrum --build=pdp11
+#!/usr/bin/perl -w
+use DBI;
+my $dbh = DBI->connect("dbi:Pg:dbname=bugs;host=narchost");
+$dbh->do("begin");
+$dbh->do(<<END);
+create table si
+(
+    bug varchar,
+    timestamp timestamp,
+    debrel varchar,
+    maxapt varchar,
+    arch varchar,
+    farch varchar,
+    kernel varchar,
+    locale varchar,
+    shell varchar,
+    init varchar
+)
+END
+my $ins=$dbh->prepare("insert into si values(?,to_timestamp(?),?,?,?,?,?,?,?,?)");
+undef $/;
+opendir(my $dh, "si") or die "opendir\n";
+while (readdir $dh)
+{
+    my $f="si/$_";
+    $f=~/(\d+)\.report/ or next;
+    my $bug=$1;
+    my $time=(stat($f))[9];
+    open F, "<", "$f" or die "Can't open $f\n";
+    $_=<F>;
+    close F;
+    s/.*^-- System Information:$//sm or die "No System Information\n";
+    s/^ --.*//sm;
+    s/=3D/=/g;
+    s/=3D/=/g;
+    s/fran.ais/français/g;
+    my $debrel=$1 if /^Debian Release: (.*)/m;
+    my $maxapt=$1 if /^  APT prefers (.*)/m;
+    my $arch=$1 if /^Architecture: (.*)/m;
+    my $farch=$1 if /^Foreign Architectures: (.*)/m;
+    my $kernel=$1 if /^Kernel: (.*)/m;
+    my $locale=$1 if /^Locale: (.*)/m;
+    my $shell=$1 if /^Shell: (.*)/m;
+    my $init=$1 if /^Init: (.*)/m;
+    $ins->execute($bug,$time,$debrel,$maxapt,$arch,$farch,$kernel,$locale,$shell,$init)
+        or die;
+}
+$dbh->do("commit");

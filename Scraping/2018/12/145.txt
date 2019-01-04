@@ -1,0 +1,62 @@
+To : debian-science@lists.debian.org, debian-devel@lists.debian.org
+Subject : Re: python3-tensorflow; lintian tag for pretrained neural net
+From : Mo Zhou <lumin@debian.org>
+Date : Tue, 11 Dec 2018 07:49:40 +0000
+Message-id : 20181211074939.GA18168@Asuna
+In-reply-to : <CAKcpw6UFUYCBa=zJ1p30Do1i5eE81dOCP_JSuZYpJDy4JtKQLw@mail.gmail.com>
+References : <20181211064019.ivmzsjuptqtn27t7@an3as.eu> <CAKcpw6UFUYCBa=zJ1p30Do1i5eE81dOCP_JSuZYpJDy4JtKQLw@mail.gmail.com>
+
+
+Hi -science and -devel,
+----------------------------
+this section is for -science
+----------------------------
+As said by Yunqiang, tensorflow itself is a very complex system and it
+is even worse that we have to write our own build system for it.  Our
+current build system for Tensorflow 1.X (in experimental) is frozen[1]
+and I'm basically not going to update it anymore, because it will soon
+be replaced by Yunqiang's when Tensorflow 2.X comes out, which is
+expected to happen in spring 2019. At that time the python3 interface
+will also be available. Python3 package[2] for TF1.X is hopeless since
+I've already given up.
+TF2.0 is expected to be significantly different compared to the 1.X
+series. So whoever wants to package Tensorflow-related applications,
+please make sure your upstream will be happy to support TF2.0 when it's
+available.
+[1] Yunqiang have more time than me to work on this.
+[2] Although the current build system is not far from building a working
+    python3 interface package.
+--------------------------
+this section is for -devel
+--------------------------
+Apart from that, I'm thinking whether we should add one more
+experimental lintian tag
+  X: possibly-pretrained-neural-network /usr/share/.../foobar.binaryblob
+which reminds package maintainers that the license problem underlying
+pretrained networks is still *unresolved* if the training data is not
+available under a free software license or any compliant one.
+However it is not quite easy to detect suspicious files since there are
+way too much means to serialize neural nets and store them in some kind
+of format. The only reasonable solution I came up with is[3]
+  if is_binary_blob(file) and
+     any(x in filename for x in (list_of_popular_pretrained_model_names))
+Accordingly, since such a tag is proposed as sort of reminder to package
+maintainers, we should also determine what to do if a license-problematic
+pretrained net sneaked into the archive by chance.
+I raised this topic again because I really see an upstream embed
+pretrained net in the source[4].
+[3] A similar existing lintian tag could be "...lena..." which
+    blacklists some certain hashsums. However hashsum matching will never
+    work for neural networks.
+[4] https://github.com/pytorch/pytorch/tree/master/caffe2/mobile/contrib/arm-compute/models
+    FYI: squeezenet is a typical pretrained net expecially for mobile devices.
+    FYI: pytorch is a strong competitor to TF.
+On Tue, Dec 11, 2018 at 02:53:47PM +0800, YunQiang Su wrote:
+> Andreas Tille <andreas@an3as.eu> 于2018年12月11日周二 下午2:40写道：
+> >
+> > I intend to package deepbinner[1] which needs python3-tensorflow.
+> > Is there any reason you do not provide this Python3 module in
+> > tensorflow source package?
+> 
+> The build system of tensorflow is quite complicated, and we are working on it.
+> tensorflow is still in experimental now, we are improving it.

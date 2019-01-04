@@ -1,0 +1,106 @@
+To : debian-devel@lists.debian.org
+Subject : Re: A message from CMake upstream: announcing dh-cmake
+From : Lisandro Damián Nicanor Pérez Meyer <perezmeyer@gmail.com>
+Date : Thu, 05 Jul 2018 14:04:43 -0300
+Message-id : 1631961.4oqYP2Pffo@tonks
+In-reply-to : <[🔎] 1530796855.30662.67.camel@kitware.com>
+References : <[🔎] 1530647802.30662.24.camel@kitware.com> <[🔎] 8469811.VszcyU8jI2@tonks> <[🔎] 1530796855.30662.67.camel@kitware.com>
+
+
+El jueves, 5 de julio de 2018 10:20:55 -03 Kyle Edwards escribió:
+> Hi Lisandro,
+> 
+> Thank you for expressing your concerns. You bring up some very valid
+> points, and I will try to address all of them here.
+[snip] 
+> > If upstream happens to be the Debian maintainer then *maybe* this
+> > might be desirable. But if upstream is *not* the Debian maintainer
+> > then the later must be able to easily override whatever upstream has
+> > planned as "packaging".
+> 
+> You are correct that this works best if the upstream project has done
+> its packaging correctly, and/or if the upstream maintainer is also the
+> Debian maintainer. We would certainly like to see projects use CMake in
+> a way that makes the life of downstream maintainers easier, and the
+> install() command's COMPONENT parameter is designed specifically for
+> this purpose.
+> 
+> If upstream hasn't done its packaging correctly, then we would
+> certainly advise you to use your own judgment and possibly not use it,
+> or even try to get your changes upstreamed. (Though, there may be cases
+> where upstream gets it 99% correct, in which case the solution is
+> "install the 'Development' component in libexample-dev, then remove
+> this one file that shouldn't be there.")
+And that will be the vast majority of cases.
+> In our case, we plan on using this to package VTK. Our plan is to
+> change VTK's upstream CMake scripts to make it more distro-friendly,
+> then provide packaging scripts that take advantage of these changes.
+> (We've already made some of these changes in the latest VTK master - it
+> now automatically installs its libraries in /usr/lib/<arch> if built as
+> a Debian package.)
+And when upstream == maintainer *or* upstream wants to produce their own 
+Debian package, that sounds just right, exactly like in your VTK case. Having 
+the developer being also the maintainer must be the best experience out there.
+From what you write above I tend to think that simply by not using dh-cmake 
+whatever upstream has defined as packaging it will be simply ignored (ie, it 
+will become a "standard" CMake project).
+If all the above is true I would really love to see this concerns explained in 
+the man page and/or Readme.Debian, possibly even with a note in the package's 
+long description noting that the user must read those.
+ 
+> > Debian buildds do not allow network connections. Except maybe if some
+> > day we deploy something specifically for this.
+> 
+> Not to worry, we've already thought about this. Even if the packaging
+> turns on the CTest functionality, dh-cmake won't actually try to submit
+> anything to a server unless the builder/developer gives it explicit
+> permission to do so, via the DEB_CTEST_OPTIONS environment variable
+> (this was inspired by DEB_BUILD_OPTIONS). This allows for packages that
+> simulaneously support two workflows: one for in-house development,
+> where the build machine gives permission to submit results to CDash,
+> and one for production (Debian's buildd instances) where it doesn't
+> submit anything, and just acts as a thin wrapper around the dh_auto_*
+> commands.
+That sounds just right, cool :)
+> The CTest functionality isn't meant to be turned on in production
+> buildd instances. It's meant to be used as part of the continuous
+> integration/nightly build process of an upstream software project,
+> where a Debian package is one of the supported builds. In our case, we
+> plan on making Debian one of the supported nightly builds of VTK, and
+> having this information submitted to CDash is very valuable to us, as
+> it allows us to spot problems with the Debian build as they occur. VTK
+> is a very large project that is constantly growing, evolving, and
+> changing, and supporting it on Debian now and for the rest of the
+> foreseeable future requires the use of this workflow.
+Yes, it has a lot of potential indeed.
+> > All that being said discussing details in this list might be
+> > appropiate. We might find a use for it which suites both sides :-)
+> 
+> Yes, my hope is that we've designed this in a way that works for both
+> upstream and downstream. I think we've done our best to address all of
+> your concerns while also supporting upstream's needs.
+I agree that there is a niche of users which would really benefit from this. 
+But beware, you might need to have a double-versioned project.
+Take for example VTK. If I'm not mistaken the current version in Debian is 
+7.1.1. But currently the tarball needs to be modified to comply with Debian 
+Free Software Guidelines' [+dfsg]. And there's the Debian revision.
+Now let's suppose you fix whatever makes the package not DFSG-compliant and 
+release version 7.2.0. Then the Debian package would be 7.2.0-1.
+Now it turns out that you get a bug report where you need to split the 
+packaging. It's not an upstream issue per-se, but rather a packaging one. 
+Following normal Debian workflow that would mean simply creating a new Debian 
+revision.
+What would happen with dh-cmake? Would be a new upstream release required? 
+Would the package maintainer need to patch the packaging editing a CMake file?
+[+dfsg] Maybe you can work out to fix this so a repackaging is not needed? 
+That would be *really* welcomed.
+Kinds regards, Lisandro.
+-- 
+<perrito666> SlackDeb: velo como un entrenamiento shaolin para geeks,
+en vez de meditación y tortura física, abstinencia de internet y sexo
+  Horacio Francisco Sebastián "Perrito" Durán Barrionuevo, sobre un
+  viaje que Federico "SlackDeb" Peretti estaba planeando con su novia.
+Lisandro Damián Nicanor Pérez Meyer
+http://perezmeyer.com.ar/
+http://perezmeyer.blogspot.com/
+signature.asc

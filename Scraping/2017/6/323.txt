@@ -1,0 +1,44 @@
+To : debian-user@lists.debian.org, debian-devel@lists.debian.org
+Subject : Re: [WARNING] Intel Skylake/Kaby Lake processors: broken hyper-threading
+From : Henrique de Moraes Holschuh <hmh@debian.org>
+Date : Sun, 25 Jun 2017 22:41:55 -0300
+Message-id : 20170626014155.GA3255@khazad-dum.debian.net
+In-reply-to : <[🔎] 20170625121936.GA7714@khazad-dum.debian.net>
+References : <[🔎] 20170625121936.GA7714@khazad-dum.debian.net>
+
+
+Minor update on the issue:
+The check command provided in the advisory to test for hyper-threading
+doesn't work: it will always report hyper-theading as enabled.  A better
+command is provided below.
+Note: this also means the perl script will give some false-positives.
+I apologise for the inconvenience.
+On Sun, 25 Jun 2017, Henrique de Moraes Holschuh wrote:
+> Once you know your processor model name, you can check the two lists
+> below:
+> 
+>   * List of Intel processors code-named "Skylake":
+>     http://ark.intel.com/products/codename/37572/Skylake
+> 
+>   * List of Intel processors code-named "Kaby Lake":
+>     http://ark.intel.com/products/codename/82879/Kaby-Lake
+> 
+> Some of the processors in these two lists are not affected because they
+> lack hyper-threading support.  Run the command below in a command line
+> shell (e.g. xterm), and it will output a message if hyper-threading is
+> supported/enabled:
+> 
+>   grep -q '^flags.*[[:space:]]ht[[:space:]]' /proc/cpuinfo && \
+> 	echo "Hyper-threading is supported"
+The above test (using "grep") does not work, and will always report that
+hyper-threading is enabled.
+Please use the "lscpu" utility from the util-linux package in a command
+line shell (e.g.  xterm):
+    lscpu
+If the lscpu output reports: "Thread(s) per core: 2", that means
+hyper-threading is enabled and supported.
+If the lscpu output reports: "Thread(s) per core: 1", that means
+hyper-threading either disabled or not supported.  In this case, the
+specific defect mentioned in the advisory will not trigger.
+-- 
+  Henrique Holschuh

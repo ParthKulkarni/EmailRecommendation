@@ -1,0 +1,187 @@
+To : debian-dpkg@lists.debian.org, deity@lists.debian.org, debian-devel@lists.debian.org
+Subject : A radically different proposal for differential updates
+From : Christian Seiler <christian@iwakd.de>
+Date : Tue, 15 Aug 2017 09:26:24 +0200
+Message-id : b0b1a98f-9b65-b405-8ac4-42e136dd69a5@iwakd.de
+In-reply-to : <[🔎] 20170812135640.GA6037@debian.org>
+References : <[🔎] 20170812135640.GA6037@debian.org>
+
+
+Hi there,
+I've come to believe that binary diff packages are not the best way of
+solving this issue. Intead I'd like to propse a radically different
+solution to this issue.
+The gist of it: instead of adding a format for how deltas work, I
+propose to introduce a new format for storing Debian packages that will
+be used for both the initial installation _and_ incremental updates.
+This idea was inspired by the following talk given by Lennart
+Poettering about a new tool he's written (which is already packaged for
+Debian by the way):
+https://www.youtube.com/watch?v=JnNkBJ6pr9s
+Now to my proposal:
+A Debian package currently consists of two files: control.tar.gz and
+data.tar.xz (or .gz). What I want to propose is a new format that does
+not contain a data.tar.xz at all. Instead I'd like to split the
+data.tar.xz into chunks and have the new format only contain an index
+that references these chunks. Let me call this new format "cdeb" for
+"chunked deb".
+A .deb package can be decomposed trivially into a .cdeb via the
+following process:
+  - uncompress data.tar.xz to obtain data.tar
+  - split data.tar into chunks (see below)
+  - create a list of cryptographically secure hashes of these chunks
+    and store them in an index file
+  - compress each chunk individually
+  - the .cdeb would then contain control.tar.gz and data.chunks.gz,
+    where the latter is the aforementioned chunk index
+If you have a .cdeb package and all the chunks it references, one can
+unpack that by decompressing each chunk in order, concatenating them
+and then running tar.
+In and by itself this just gives us a lot more overhead. However, there
+are two key ideas that additionally come into play here:
+1. The way the chunks are split: instead of splitting this up into
+chunks of a fixed size, use a rolling hash function instead. Lennart's
+casync tool uses Buzhash for this. The basic idea behind a rolling
+hash is that you update the hash function with each byte until the
+current hash value fulfills a certain property (such as that it's
+divisible by a specific number). That's when you put a chunk boundary
+there. This has the consequence that even if you insert a byte into
+the data stream that is being chunked at some point this will only have
+local consequences, and once you're far away from that position you
+will still have the chunk boundaries placed at the same points.
+Note that the hash function used here is just for splitting the files
+up (and is not a cryptographic hash function); a separate hash function
+is to be used to identify chunks once they're split.
+2. Reconstruction of data.tar from the currently installed package.
+When doing updates we do not want to have to store either the previous
+full .deb files nor all of the previous chunks on the system. Instead
+we can recreate data.tar from the installed package: we do know which
+files belong to the package (dpkg has that information) and we can read
+those files and recreate a tarball from them. We can then split that
+back into chunks - and reuse any chunks that are still the same during
+updates. Thus the installed system is an implicit cache of Debian's
+packages, and we don't need to store additional data.
+The following would be an example of APT installing a new package:
+1. Download the .cdeb for the package.
+2. Extract the list of chunks in the package.
+3. Download those chunks from the archive
+4. Recreate data.tar from these chunks
+5. Proceed normally
+The following would be an example of APT upgrading an existing package:
+1. Download the .cdeb for the package.
+2. Extract the list of chunks in the package.
+3. Reconstruct a data.tar of the current package with what's currently
+   in the filesystem, and apply the same chunking algorithm to it.
+4. Any chunks that are common with the new package should be stored in
+   the download directory.
+5. Download the remaining chunks from the archive.
+6. Recreate data.tar from these chunks.
+7. Proceed normally
+This scheme has a lot of advantages:
+ - No need to decide what packages to diff against each other,
+   everything "just works"[tm]
+ - No need to explicitly cache anything on the client side (no older
+   debs etc.)
+ - You download only what you actually need. If you haven't modified
+   the files installed by a package, an upgrade is going to be cheap.
+   If you have you'll need to download more.
+ - Deduplication within the archive. I expect that the mirrors will
+   actually require less space when using this scheme - in the long
+   term at least (see below).
+ - Required tooling changes are relatively simple
+There are some disadvantages:
+ - Obviously this will incur some overhead in case there is no older
+   version of a package installed.
+ - How to implement this: as we want to support upgrades between Debian
+   versions we either have to wait until Buster is released with APT
+   supporting this before we change the archive in Bullseye (leading to
+   a lot less testing opportunities), _or_ we keep the archive around
+   in both formats for at least a release, which would increase the
+   mirror sizes quite a bit in the short term
+ - You don't have a "single file for a single binary package" concept
+   anymore, at least not in transit. You can easily reconstruct such a
+   package though
+ - Currently packages can set a specific compression level for their
+   .deb files if they so require. (For example large game data packages
+   might opt to xz -9 to save space, because that might be worth it,
+   but you don't want that on all packages, otherwise embedded systems
+   might not be able to unpack their own packages due to the RAM
+   requirements of xz when used at that level.) But as chunks are
+   compressed individually you'll likely have a single compression
+   level for all of the chunks. There may be ways around this (i.e.
+   detect the compression level when converting and reuse that for the
+   chunks).
+ - Removing stuff from the archive gets a bit more complicated. We'd
+   need a garbage collector for chunks, and an efficient one.
+AFAQ (Anticipated frequently asked questions):
+Q: How can you reconstruct a tarball from the installed system? Won't
+   that change quite a bit? How will you ever be able to get more than
+   just a couple of similar chunks out of this scheme?
+A: If you modify stuff on your system: yes, the tarball you can
+   generate from that will differ from the tarball that is in the .deb.
+   However, as we want our .deb files to be reproducible, we are posing
+   additional restrictions on the tarballs inside .deb files that are
+   not part of the .tar standard. Most importantly the file ordering
+   has to be well-defined - and currently this is done via sorting in
+   the C locale. If we recreate the tarball from the system with these
+   same constrains, we should ideally get an identical tarball back if
+   no files are changed.
+   Lennart has introduced a different format in his 'casync' tool
+   because of three reasons: reproducibility, metadata and
+   addressability. The latter two don't apply to us here, so we can
+   get away with keeping .tar as our format, and just posing additional
+   restrictions on it - which we already due for other reasons in the
+   project.
+   Also, this scheme will not break down if the tarball in the .deb
+   doesn't have a predetermined order, it will just not save any
+   bandwidth on updates anymore. So even in pathlogical cases we do
+   degrade gracefully.
+Q: Can I reconstruct a .deb file from a .cdeb and all of its chunks?
+A: Yes.*
+   * If you use a different version of xz than what was used to
+     compress data.tar then the output might differ and it won't be
+     bit-by-bit identical. With the same version of xz you should be
+     able to get the same .deb file on a bit level. In either case
+     the .deb will be functionally equivalent.
+Q: Does this actually work?
+A: Well, I don't have any code to test just now. But if you watch
+   Lennart's talk you can see that the general principle works
+   really well.
+Q: How much will be saved for incremental updates?
+A: Unfortunately I don't know yet.
+Q: How much overhead will there be?
+A: Unfortunately I don't know yet.
+Q: Why keep .control.tar.gz in the .cdebs
+A: Because it's metadata, and typically really small, and I do think
+   that splitting this up further has no additional benefit. I may
+   be wrong about that though.
+Q: What about really small packages?
+A: I think we should make an exception for tiny packages (for example
+   less than 10k) and simply store them directly, as the overhead for
+   additional network requests is likely going to be too high in that
+   case.
+Q: What about building Debian packages?
+A: That's the beauty of this: people would still upload regular .deb
+   packages, so the workflow for developers wouldn't change a single
+   bit - and all the chunking magic would happen in the archive.
+Q: What about tools like debootstrap etc.?
+A: I believe it should be possible to implement this format in
+   debootstrap in a relatively straight-forward manner.
+Q: What kind of hash functions do you want to use? What kind of
+   parameters?
+A: I don't know yet. This will have to be best determined via tests.
+   I could also imagine that we might want to use different
+   parameters for the main archive and e.g. the debug archive.
+What are the next steps?
+ - First I'd like to get some feedback: what do others here think?
+ - If there is positive feedback towards this I'd like to write a tool
+   that can convert .deb files into .cdeb + chunks and run that over a
+   local copy of the entire archive to get some numbers about this:
+   What kind of overhead is there? How much does this type of
+   deduplication save? How long does this take?
+ - With some numbers there we would then decide if this is something
+   that we'd want to implement in dpkg, APT, dak, etc. or not.
+   
+Anyway: thoughts?
+Regards,
+Christian

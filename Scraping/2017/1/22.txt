@@ -1,0 +1,58 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Feedback on 3.0 source format problems
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Mon, 2 Jan 2017 03:25:29 -0800
+Message-id : 20170102112526.rkfbeyypzzdfilvq@x
+In-reply-to : <[🔎] m34m1hsrq5.fsf@luffy.cx>
+
+
+Vincent Bernat wrote:
+> > Personally, when I want to patch a random package, I run "debcheckout
+> > package-name", make changes, commit them, format-patch, and mail that
+> > to
+> > the BTS.  If the package doesn't have an appropriate Vcs field for
+> > debcheckout to read, I instead run "apt source package-name",
+> > "cp package-name-version{,.orig}", edit,
+> > "diff -Naur package-name-version{.orig,}", and then submit the
+> > result.  Either way, if someone wants to manage their patches in quilt
+> > or similar, they can take the resulting patch and insert it into
+> > debian/patches/ easily enough.
+>
+> Your debcheckout assumes that the VCS is git.
+No, it doesn't; I can cope with other things, or fall back to the
+alternate "apt source package-name" workflow.  A substantial majority of
+packages use git, though.
+> Moreover, it assumes that
+> the patch management system is in an "applied" state for the Debian
+> branch.
+Yes, it assumes that the output of "debcheckout" supports an immediate
+"debuild -b".  That seems like a safe assumption for the vast majority
+of packages I've run into.  For others, it often still works as long as
+your patch doesn't conflict with some other patch (which would cause
+significant pain even if known in advance).  And not having patches
+already applied makes editing painful.
+> And if you want to test your change, you may be in additional
+> pain. Is the package using plain quilt? Is it using some esoteric patch
+> management system like "git-dpm"?
+Again, I expect "debuild -b" to work on the result of "debcheckout",
+which tends to work.
+> Does the source from debcheckout
+> includes the upstream branch or do you have to grab the tarball from
+> somewhere else? In this case, how do you make your patch?
+Grumble and fall back to "apt source".
+> Your second method assumes that existing patches are already applied
+> (which is the case with 3.0 (quilt)).
+Or that the unapplied patches don't conflict, but yes.
+> My point is just that we have too many ways to represent a source
+> package and its modifications. 3.0 (quilt) is definitely an
+> improvement.
+In some ways (and again, I do use it), but it seems like an improvement
+built around a non-VCS patches-and-tarballs world, not a VCS world.
+> Making everybody uses the same git workflow (like gbp pq)
+> would be better IMO, but I understand many will object.
+Not necessarily the same workflow, but the same repository layout.  And
+yes, until a single repository layout exists that satisfies all
+requirements, people will object vehemently.
+Currently working on some improvements in that direction, to separate
+repository format from workflow.
+- Josh Triplett

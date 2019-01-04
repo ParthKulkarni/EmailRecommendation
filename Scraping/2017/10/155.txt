@@ -1,0 +1,70 @@
+To : debian-devel@lists.debian.org
+Subject : Re: allowed uses of non-baseline CPU extensions
+From : Johannes Schauer <josch@debian.org>
+Date : Tue, 24 Oct 2017 07:44:22 +0200
+Message-id : 150882386288.1757.1391330357434526846@localhost
+Mail-followup-to : Josh Triplett <josh@joshtriplett.org>, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20171024022928.rxs57jfteb46o725@x>
+References : <[🔎] 20171024022928.rxs57jfteb46o725@x>
+
+
+Quoting Josh Triplett (2017-10-24 04:29:32)
+> Philipp Kern wrote:
+> > I think that's a very important observation. I don't think you can
+> > necessarily conclude that the system where the package is initially
+> > installed is the system were the code is executed.
+> >
+> > In many kinds of image-based environments the machines the image is
+> > shipped to have very likely a different instruction capability than the
+> > machine where the image is built on.
+> >
+> > You argued in #873733[1] that you'd rather see the package installation
+> > fail. I see the appeal of that, especially to alert the admin. But there
+> > needs to be some kind of switch to flip to ignore these. Right now it
+> > seems that switch is IGNORE_ISA in the environment. But given the
+> > attempts to get a cleaner environment for dpkg, I'm not sure that's the
+> > best file. I.e. it'd be better to also have a flag file.
+> 
+> As with others in this thread, I'd prefer to have apt understand the
+> concept of architecture variations and instruction set features, as a
+> variation on multiarch. (apt could potentially have a command-line
+> option to override that and install a package onto a system that didn't
+> understand the instruction set features, but that would potentially
+> require delaying the execution of any code from the package, which could
+> include maintainer scripts, until runtime, much like debootstrap's cross
+> mode.)
+I fail to see where else in this thread multiarch was mentioned but let me
+mention some multiarch related issues related to this topic.
+One way to handle packages requiring extensions that are not part of an
+architecture's baseline would be to introduce a partial architecture, for
+example armhf-neon which would be armhf but with NEON support. A partial
+architecture would not contain the Essential:yes packages or build-essential.
+It would be an architecture that one cannot build natively with but that one
+cross-builds to. Thus, the archive of this partial architecture would only
+contain the few packages that want to make use of certain CPU extensions.
+Of course right now we are lacking the infrastructure for packages to declare
+that they should be cross-compiled for such a partial architecture and due to
+missing or wrong multiarch annotations, cross compilation support in Debian is
+also still far from ideal.
+Also related is the topic "Partial archives for different ISAs" as talked about
+in the 2014 bootstrap sprint. Search for the heading here:
+https://lists.debian.org/20140829095214.GV19999@stoneboat.aleph1.co.uk
+An orthogonal problem is the issue of how dpkg and apt shall know which
+architectures are can be executed on the current system. This problem does not
+only affect this discussion about packages using instructions that are not part
+of the baseline but is also an undocumented issue with multiarch. Right now,
+the problem only doesn't surface much because apt by default prefers packages
+of the native architecture over packages from architectures declared as
+foreign. But for issues like this one as well as for cross compiling it would
+be useful if there was a way to declare or detect which architecture can be
+executed on a system. For example an amd64 system might be able to execute code
+for:
+ - i386
+ - amd64
+ - x32
+ - armhf (through binfmt-support and qemu-user mode)
+Though nothing in the multiarch spec prevents a mipsel package marked as
+Multi-Arch:foreign to satisfy dependencies on that system even if mipsel code
+cannot be executed...
+cheers, josch
+signature.asc

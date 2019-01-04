@@ -1,0 +1,37 @@
+To : debian-devel@lists.debian.org
+Subject : Planning the removal of c_rehash | mass bug filling
+From : Brian Murray <brian@ubuntu.com>
+Date : Wed, 25 Apr 2018 15:44:33 -0700
+Message-id : 20180425224433.GS3388@murraytwins.com
+
+
+> Hi,
+> 
+> the openssl package provides the c_rehash script which creates the links
+> from XXXXXXXX.Y to the actual certificate in /etc/ssl/certs/. During the
+> transition from 0.9.8 to 1.0.0 the hash (for the X part) changed from
+> md5 to sha1. Since that transition in Debian the c_rehash script
+> provides both symlinks: the old hash (md5) and the new (sha1) one. 
+> 
+> The c_rehash script is considered by upstream as a fallback script and
+> will disappear at some point. The recommended way is to use the "openssl
+> rehash" command instead which appeared in 1.1.0.  This command creates
+> half that many symlinks (one per certificate instead of two) because it
+> uses only the sha1 hash. There is also the -compat option which creates
+> both symlinks (and behaves like c_rehash currently does) but as
+> explained above it should not be required to use it.
+I thought it was worth mentioning that the behavior of 'openssl rehash'
+when encountering a duplicate certificate was to return 1 while
+'c_rehash' would return 0. I say was because I filed an upstream bug[1]
+about it which was resolved.
+This difference in behavior resulted in the following Debian and Ubuntu
+bug reports.
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=895473
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=895482
+https://bugs.launchpad.net/ubuntu/+source/openssl/+bug/1764848
+We've gone ahead and patched openssl in Ubuntu for the 18.04 release but
+it would be good to get openssl updated in Debian.
+[1] https://github.com/openssl/openssl/issues/6083
+Thanks!
+--
+Brian Murray

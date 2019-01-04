@@ -1,0 +1,131 @@
+To : 793404@bugs.debian.org
+Subject : Bug#793404: massive waste of CPU time in debian/rules by inline commands
+From : Niels Thykier <niels@thykier.net>
+Date : Thu, 03 Jan 2019 11:11:00 +0000
+Message-id : ac069e30-5846-0a79-6060-c84c08d9272a@thykier.net
+Reply-to : Niels Thykier <niels@thykier.net>, 793404@bugs.debian.org
+In-reply-to : <20150724101936.GA7131@jwilk.net>
+References : <20150723174346.GA28738@rotes76.wohnheim.uni-kl.de> <20150723190815.GA4385@jwilk.net> <20150723194030.2202.2533@auryn.jones.dk> <20150724101936.GA7131@jwilk.net> <20150724101936.GA7131@jwilk.net> <20150723174346.GA28738@rotes76.wohnheim.uni-kl.de>
+
+
+Hi,
+In the past 3½ years, several things have been improved and I am
+therefore taking the liberty of closing this bug against general
+(remaining issues as I understand it will be in individual packages).
+In particular, I think we have identified all major issues, solved most
+of them and triaged/assigned the remaining ones.
+For individual packages, improvements are often a question of:
+ * Migrating to "Rules-Requires-Root: no" where possible.
+ * Avoid calling dpkg-parsechangelog directly and instead use dpkg's
+   makefile snippets.
+ * Replace "comment only" override targets with completely empty
+   override targets.
+(Not necessarily listed in order of "best performance for value" as that
+depends on exactly what the package does)
+On Fri, 24 Jul 2015 12:19:36 +0200 Jakub Wilk <jwilk@debian.org> wrote:
+> * Jonas Smedegaard <dr@jones.dk>, 2015-07-23, 21:40:
+> >>One mistake boost makes is using ":=" instead of plain "=". Contrary 
+> >>to popular belief, the former almost always causes more evaluation of 
+> >>$(shell) stuff, specially when dh is involved.
+> >Could you elaborate on that?
+> 
+> dpkg-buildpackage -B will run debian/rules 4 times: once to determine if 
+> build-arch exist, and once for every target: clean, build(-arch), 
+> binary-arch.
+> 
+> dh adds even more debian/rules invocations. It runs it once every target 
+> (clean, build(-arch), binary-arch), and once for every override.
+> 
+> So your ":=" variable will be evaluated 4 times, or 7+N times if you use 
+> dh.
+> 
+> "=" variables will be evaluated only when they are used, which is less 
+> than 4 or 7+N in most cases.
+> 
+> -- 
+> Jakub Wilk
+> 
+> 
+This issue is still prevalent but we now have support for reducing the
+number of calls to debian/rules, which is "opt-in" for packages at the
+moment.
+With "Rules-Requires-Root: no" (recently added to policy), you can
+remove two debian/rules invocation on the dpkg side and one on the dh
+side.  Which brings us down to:
+  * 2 calls from dpkg (one for clean and one for the binary target)
+  * 2+N calls for dh to probe the rules file for override targets plus
+    the N (non-empty) overrides a package might have.
+Guillem Jover wrote:
+> Control: block -1 by 793330
+> 
+> Hi!
+> 
+> [...]
+> 
+> There are multiple culprits that pile up here:
+> 
+> 1) The /usr/share/dpkg/architecture.mk and /usr/share/dpkg/buildflags.mk
+>    lazy and caching value initialization is not effective. I had noticed
+>    it but had not yet checked if it was a problem with the makefiles or
+>    in make, etc. It appears is a bad interaction with the foreach, which
+>    defeats the lazy and cached evaluation. I guess I'll try to make the
+>    foreach work, or revert to an unrolled implementation.
+> 
+I believe this has been fixed now.
+> 2) debhelper's Dh_Lib.pm does not try to use existing dpkg-architecture
+>    variables from the environment. Those should not be expected to be
+>    present, but when using dpkg-buildpackage they will be present so it
+>    would be an optimization. I'll file a bug report about this.
+> 
+This has been fixed now.
+> 3) Slow dpkg-parsechangelog implementation and usage:
+> 
+Lintian now flags use of dpkg-parsechangelog in most cases and
+recommends people to migrate to the optimized makefile snippets in dpkg.
+https://lintian.debian.org/tags/debian-rules-parses-dpkg-parsechangelog.html
+>> In the emulated m68k environment, it spends about half an hour (guessed,
+>> not measured) before starting the actual build, doing things like:
+>> 
+>> |      \_ /usr/bin/perl -w /usr/bin/dh build --with python2 --with python3
+>> |          \_ /usr/bin/make -f debian/rules override_dh_auto_configure
+>> |              \_ /bin/sh -c dpkg-parsechangelog | grep Version | cut -d' ' -f2
+>> |                  \_ /usr/bin/perl /usr/bin/dpkg-parsechangelog
+>> |                  |   \_ /usr/bin/perl /usr/lib/dpkg/parsechangelog/debian -ldebian/changelog --file debia
+> 
+> 3.1) As mentioned in the thread, callers can avoid the other shell
+>      commands and pipes by using -S.
+> 
+(Will be handled by the lintian tag)
+> 3.2) debian/rules (or debhelper/cdbs) will still call the program for
+>      different changelog values. But dpkg-buildpackage has to parse the
+>      current and previous entries anyway, so we could preset values for
+>      those in the environment that could opportunistically be used by
+>      debian/rules and debhelper/cdbs. A possible drawback is that
+>      packages might accidentally rely on those variables w/o setting
+>      them beforehand.
+> 
+This has not been implemented.  However, debhelper has implemented two
+features to improve performance here:
+ * debhelper now uses the Dpkg module internally instead of forking
+   dpkg-parsechangelog, which reduces a bit of runtime.
+ * debhelper now caches the result from d/changelog so we at most parse
+   that file once per helper needs to know the version ($dh{VERSION}).
+   (Down from "one per binary package built per helper needing
+   $dh{VERSION}")
+In the default sequence, the only (non-error) case of $dh{VERSION}
+appears in dh_makeshlibs in the -VUpstream-Version case (which is the
+default).  Thus only source packages with shared libraries are affected
+(there is considerably amount of those but it is far from "every package").
+> 3.3) dpkg-parsechangelog supports other changelog formats, and those
+>      are implemented by external parsers. This means it needs to scan
+>      the changelog twice, and then parse+output+parse the data from
+>      the parser. I've already implemented an optimization (to be
+>      included in dpkg 1.18.2) when forcing the format to be debian,
+>      that uses a builtin parser, which halves the execution time.
+>      «dpkg-parsechangelog -Fdebian». I guess I can take this further
+>      and use the builtin parser whenever the format is debian.
+> 
+To my knowledge, Guillem has implemented an improvement that makes the
+default case faster.
+Thanks,
+~Niels

@@ -1,0 +1,77 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Moving away from (unsupportable) FusionForge on Alioth?
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Sun, 14 May 2017 22:06:06 +0100
+Message-id : 1494795966.29474.22.camel@decadent.org.uk
+In-reply-to : <[🔎] 20170514174934.sgji2yc3nzkfzp7y@iris.silentflame.com>
+References : <[🔎] 2427425.7kBbIdvgt6@hosiet-tp>	 <[🔎] 20170514174934.sgji2yc3nzkfzp7y@iris.silentflame.com>
+
+
+On Sun, 2017-05-14 at 10:49 -0700, Sean Whitton wrote:
+> Hello,
+> 
+> On Sun, May 14, 2017 at 04:53:18PM +0800, Boyuan Yang wrote:
+> > As a result, I'm writing to suggest we find an answer to such a problem soon.
+> > Migration to Jessie or Stretch with new FusionForge version might be possible. 
+> > Or we should just drop outdated FusionForge and move to some modern platforms 
+> > like GitLab (with an alternated workflow possibly).
+> > 
+> > There are much room for discussion but we should start evaluation
+> > without 
+> > delay, since migration would take much time and the time left is
+> > pretty 
+> > limited.
+> 
+> One possibility that I don't believe has yet been raised is a minimal
+> git hosting tool, like gitolite.  This is stable, supported software,
+> and there is a good Debian package in the archive.
+> 
+> Alitoh is 90% simple git hosting, 5% managing push access to git repos,
+> and 5% mailing lists.
+Let's say VCS hosting, not git hosting.
+> Alioth lists could be moved to lists.d.o.  As for
+> access control, the current situation with -guest accounts must be
+> rewritten anyway, because it is tied to FusionForge.  We could extend
+> sso.d.o to handle registering -guest accounts, and then use some scripts
+> to make all sso.d.o users visible to gitolite.
+Would gitolite be able to support the most popular types of git hooks
+(e.g. mail and IRC notifications for pushes)?
+> Perhaps it is simply naïve to think that a piece of software as simple
+> as gitolite could serve our needs.  However, one of the main blockers
+> that keeps coming up in these threads is that many of us are very uneasy
+> about monolithic web services like gitlab and pagure.  I suspect that a
+> big part of the worry is that we'll be in a similar situation to where
+> we find ourselves with FusionForge, a few years down the line.  So it is
+> worth discussing alternatives to another monolithic web service.
+There is no free lunch.  The more we want to be able to control our
+code hosting, the more time Debian people will have to spend on it over
+the long term.  I don't think it makes much difference whether the
+implementation is monolithic or put together from more independent
+pieces.
+> (None of this helps with non-git repos on alioth, but neither do gitlab
+> or pagure.)
+Here's a tally of live packaging repositories hosted on Alioth, based
+on Vcs fields for sources in unstable:
+$ for type in arch bzr cvs darcs git hg mtn svn; do
+>     printf '%s: ' $type
+>     grep-dctrl -FVcs-$type -sPackage 'debian.org' /var/lib/apt/lists/httpredir.debian.org_debian_dists_unstable_*_Sources \
+>     | wc -l
+> done \
+> | sort -k2 -nr
+git: 18907
+svn: 2377
+bzr: 71
+hg: 27
+darcs: 22
+arch: 7
+cvs: 2
+mtn: 0
+It looks like git hosting would cover ~90% and git+svn would cover
+>99%.
+Ben.
+-- 
+Ben Hutchings
+Life is what happens to you while you're busy making other plans.
+                                                               - John
+Lennon
+signature.asc

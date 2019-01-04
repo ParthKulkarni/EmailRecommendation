@@ -1,0 +1,97 @@
+To : debian-boot@lists.debian.org
+Subject : xvi patch to generate UDEB for Debian-Installer
+From : Jose R R <jose.r.r@metztli.com>
+Date : Mon, 12 Jun 2017 14:19:14 -0700
+Message-id : CAM12Q5SezvWNpA4GLDERN1g4OYAy7YZEFCcmPP8mO24Pav2wcg@mail.gmail.com
+
+
+Niltze [Hello]-
+If anyone finds it useful, of course, attached please find a patch to
+generate a small xvi UDEB -- suitable for embedding in d-i.
+from git:
+< https://github.com/martinwguy/xvi >
+Best Professional Regards
+-- 
+Jose R R
+http://metztli.it
+---------------------------------------------------------------------------------------------
+Download Debian-Reiser4 for AMD64 https://sf.net/projects/debian-reiser4/
+---------------------------------------------------------------------------------------------
+Try at no charge http://b2evolution.net for http://OpenShift.com PaaS
+---------------------------------------------------------------------------------------------
+from our GitHub http://Nepohualtzintzin.com repository. Cloud the easy way!
+From b981d84eff3265bca9f37a35ad0d3168b358f744 Mon Sep 17 00:00:00 2001
+From: Metztli Information Technology <jose.rodriguez@metztli.com>
+Date: Mon, 12 Jun 2017 07:42:53 -0700
+Subject: [PATCH] Enabled generation of UDEB for Debian-Installer (d-i)
+---
+ debian/changelog | 7 +++++++
+ debian/control   | 9 +++++++++
+ debian/rules     | 4 +++-
+ 3 files changed, 19 insertions(+), 1 deletion(-)
+diff --git a/debian/changelog b/debian/changelog
+index 293380b..105637c 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,10 @@
++xvi (2.50-1.1) UNRELEASED; urgency=medium
++
++  * Non-maintainer upload.
++  * Enabled generation of UDEB for Debian-Installer (d-i) 
++
++ -- Metztli Information Technology <jose@metztli-it.com>  Mon, 12 Jun 2017 04:39:05 -0700
++
+ xvi (2.50-1) unstable; urgency=low
+ 
+   * Release 2.50. See RELNOTES-2.50 for a detailed list of changes.
+diff --git a/debian/control b/debian/control
+index 896c5dc..b0ab835 100644
+--- a/debian/control
++++ b/debian/control
+@@ -5,6 +5,15 @@ Maintainer: Martin Guy <martinwguy@yahoo.it>
+ Build-Depends: debhelper (>= 4.0.0), libncurses5-dev
+ Standards-Version: 3.6.2
+ 
++Package: xvi-udeb
++XC-Package-Type: udeb
++Section: debian-installer
++Priority: optional
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Description: xvi - udeb
++ Do not install it on a normal system.
++
+ Package: xvi
+ Architecture: any
+ Depends: ${shlibs:Depends}, ${misc:Depends}
+diff --git a/debian/rules b/debian/rules
+index 49e7bdb..c86b3d4 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -11,7 +11,6 @@
+ 
+ 
+ 
+-
+ CFLAGS = -g
+ 
+ ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+@@ -53,6 +52,7 @@ install: build
+ 	dh_installdirs
+ 
+ 	$(MAKE) install DESTDIR=$(CURDIR)/debian/xvi
++	$(MAKE) install DESTDIR=$(CURDIR)/debian/xvi-udeb
+ 
+ 
+ # Build architecture-independent files here.
+@@ -68,6 +68,8 @@ binary-arch: build install
+ #	dh_install
+ 	dh_installmenu
+ #	dh_installman
++# Remove the info-bloat from -udeb
++	-rm -rf debian/xvi-udeb/usr/share
+ 	dh_link
+ 	dh_strip
+ 	dh_compress
+-- 
+2.11.0

@@ -1,0 +1,157 @@
+To : debian-devel@lists.debian.org
+Subject : Tainted builds (was Re: usrmerge -- plan B?)
+From : Guillem Jover <guillem@debian.org>
+Date : Wed, 28 Nov 2018 14:57:52 +0100
+Message-id : 20181128135752.GA21401@thunder.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 2d3113fc-e79b-babe-4981-b1bc24fadfd7@gmail.com>
+References : <[🔎] 878t1esau1.fsf@hope.eyrie.org> <[🔎] 2d3113fc-e79b-babe-4981-b1bc24fadfd7@gmail.com>
+
+
+Hi!
+On Wed, 2018-11-28 at 07:52:08 +0500, Alexander E. Patrakov wrote:
+> Well, the buildd configuration change has been reverted. What worries me now
+> is that there is a risk not yet mitigated, coming from personal systems of
+> Debian developers, and we should also check porter boxes.
+> 
+> As long as there is one Debian Developer (or any other person who has the
+> right to upload binary packages) who has a merged /usr on his system used
+> for building packages, there is a risk of reintroducing the bug through his
+> package. Maybe we should somehow, in the short term, modify dpkg to add
+> something like "Tainted-By: usr-merge" control field to all binary packages
+> produced, if a package is built on a system with merged /usr (detected via
+> /bin being a symlink). And a corresponding automatic check that would
+> auto-reject binary packages with any Tainted-By control field from being
+> uploaded to the Debian archive.
+This is actually a great idea! I went ahead and implemented this, see
+attached tentative patch which I'm planning on including in dpkg 1.19.3.
+Thanks,
+Guillem
+diff --git i/man/deb-buildinfo.man w/man/deb-buildinfo.man
+index 5013aa047..8aa333965 100644
+--- i/man/deb-buildinfo.man
++++ w/man/deb-buildinfo.man
+@@ -149,6 +149,19 @@ via some pattern match to avoid leaking possibly sensitive information.
+ On Debian and derivatives only build paths starting with \fI/build/\fP
+ will emit this field.
+ .TP
++.BR Build\-Tainted\-By: " \fItaint-reasons...\fP"
++The list of reasons in the form of string tags (alphanumeric and dash),
++that can taint the current build.
++.RS
++.TP
++.B merged-usr-via-symlinks
++The system has a merged /usr via symlinks.
++This will confuse \fBdpkg\-query\fP as it messes with the \fBdpkg\fP
++understanding of the filesystem it manages.
++It can also produce packages with hardcoded paths that will be incompatible
++with non-usr-merged filesystems.
++.RE
++.TP
+ .BR Installed\-Build\-Depends: " (required)"
+ .TQ
+ .I " package-list"
+diff --git i/scripts/Dpkg/Control/FieldsCore.pm w/scripts/Dpkg/Control/FieldsCore.pm
+index b100366e1..f460433fc 100644
+--- i/scripts/Dpkg/Control/FieldsCore.pm
++++ w/scripts/Dpkg/Control/FieldsCore.pm
+@@ -176,6 +176,11 @@ our %FIELDS = (
+         allowed => CTRL_INFO_PKG,
+         separator => FIELD_SEP_SPACE,
+     },
++    'build-tainted-by' => {
++        name => 'Build-Tainted-By',
++        allowed => CTRL_FILE_BUILDINFO,
++        separator => FIELD_SEP_SPACE,
++    },
+     'built-for-profiles' => {
+         name => 'Built-For-Profiles',
+         allowed => ALL_PKG | CTRL_FILE_CHANGES,
+@@ -634,7 +639,7 @@ our %FIELD_ORDER = (
+         qw(format source binary architecture version binary-only-changes),
+         @src_checksums_fields,
+         qw(build-origin build-architecture build-kernel-version build-date
+-        build-path installed-build-depends environment),
++        build-path build-tainted-by installed-build-depends environment),
+     ],
+     CTRL_FILE_CHANGES() => [
+         qw(format date source binary binary-only built-for-profiles architecture
+diff --git i/scripts/Dpkg/Vendor/Debian.pm w/scripts/Dpkg/Vendor/Debian.pm
+index 7d4b6d802..0a1ad0b50 100644
+--- i/scripts/Dpkg/Vendor/Debian.pm
++++ w/scripts/Dpkg/Vendor/Debian.pm
+@@ -81,6 +81,8 @@ sub run_hook {
+         $self->_add_build_flags(@params);
+     } elsif ($hook eq 'builtin-system-build-paths') {
+         return qw(/build/);
++    } elsif ($hook eq 'build-tainted-by') {
++        return $self->_build_tainted_by();
+     } else {
+         return $self->SUPER::run_hook($hook, @params);
+     }
+@@ -439,6 +441,24 @@ sub _add_build_flags {
+     }
+ }
+ 
++sub _build_tainted_by {
++    my $self = shift;
++    my %tainted;
++
++    foreach my $pathname (qw(/bin /sbin /lib /lib32 /lib64 /libx32 /libo32)) {
++        next unless -l $pathname;
++
++        my $linkname = readlink $pathname;
++        if ($linkname eq "usr$pathname") {
++            $tainted{'merged-usr-via-symlinks'} = 1;
++            last;
++        }
++    }
++
++    my @tainted = sort keys %tainted;
++    return @tainted;
++}
++
+ =head1 CHANGES
+ 
+ =head2 Version 0.xx
+diff --git i/scripts/Dpkg/Vendor/Default.pm w/scripts/Dpkg/Vendor/Default.pm
+index 40815efde..0ad0568df 100644
+--- i/scripts/Dpkg/Vendor/Default.pm
++++ w/scripts/Dpkg/Vendor/Default.pm
+@@ -140,6 +140,14 @@ field will be created if the current directory is "/build/dpkg-1.18.0". If
+ the list contains "/", the path will always be recorded. If the list is
+ empty, the current path will never be recorded.
+ 
++=item build-tainted-by ()
++
++The hook is called by dpkg-genbuildinfo to determine if the current system
++has been tainted in some way that could affect the resulting build, which
++will be recorded in the B<Build-Tainted-By> field (since dpkg 1.19.3). It
++takes no parameters, but returns a (possibly empty) list of tainted reason
++tags (alphanumeric with dashes).
++
+ =back
+ 
+ =cut
+@@ -172,6 +180,8 @@ sub run_hook {
+ 	my $flags = shift @params;
+     } elsif ($hook eq 'builtin-system-build-paths') {
+         return ();
++    } elsif ($hook eq 'build-tainted-by') {
++        return ();
+     }
+ 
+     # Default return value for unknown/unimplemented hooks
+diff --git i/scripts/dpkg-genbuildinfo.pl w/scripts/dpkg-genbuildinfo.pl
+index fe296506e..a324d960c 100755
+--- i/scripts/dpkg-genbuildinfo.pl
++++ w/scripts/dpkg-genbuildinfo.pl
+@@ -437,6 +437,8 @@ if ($use_feature{path}) {
+     }
+ }
+ 
++$fields->{'Build-Tainted-By'} = join ' ', run_vendor_hook('build-tainted-by');
++
+ $checksums->export_to_control($fields);
+ 
+ $fields->{'Installed-Build-Depends'} = collect_installed_builddeps($control);

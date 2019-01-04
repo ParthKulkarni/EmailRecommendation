@@ -1,0 +1,50 @@
+To : Julian Andres Klode <jak@debian.org>, 901001@bugs.debian.org
+Subject : Re: Bug#901001: python3-minimal should Pre-Depend on python3.N-minimal
+From : Steve Langasek <vorlon@debian.org>
+Date : Fri, 8 Jun 2018 22:20:03 -0700
+Message-id : 20180609052003.GA20663@virgil.dodds.net
+Mail-followup-to : Julian Andres Klode <jak@debian.org>,	901001@bugs.debian.org, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20180607145701.GA23316@debian.org>
+References : <[🔎] 20180607145701.GA23316@debian.org>
+
+
+On Thu, Jun 07, 2018 at 03:00:46PM -0700, Julian Andres Klode wrote:
+> Package: python3-default
+> Severity: serious
+> When python3 default version changes, and a new python3-minimal is
+> unpacked before its python3.N-minimal, we end up with a system without a
+> working python3 symlink.  This breaks upgrades because prerm scripts of
+> python3 packages use:
+> if which py3clean >/dev/null 2>&1; then
+>         py3clean -p PKGNAME 
+> the which succeeds, as py3clean exists, but since the python3 symlink will be broken,
+> py3clean will be run and fail with Not Found.
+> (originally reported at https://bugs.launchpad.net/bugs/1768379)
+> (CCing debian-devel)
+As discussed elsewhere, I concur that a pre-depends is the right solution
+here.
+However, just to explore the alternatives:  only the prerms are at issue,
+because python3 packages should depend on python3; so while they also call
+py3compile in the postinst, at time of postinst invocation the dependency
+should always be satisfied which means that python3 -> python3-minimal ->
+python3.X-minimal should all be unpacked and configured and therefore
+/usr/bin/python (the interpreter of py3compile and py3clean) is a valid
+symlink.
+In the prerm case, there are two possible scenarios:
+- the package is being removed; it is important to run py3clean so that
+  stray files are not left behind in /usr/lib/python3.
+- the package is being upgraded; it is in the common case (when no python
+  module names have been dropped from within the package) less important to
+  run py3clean because the same files will be recreated shortly afterwards
+  by py3compile from the new postinst.
+It is possible that the dh_python prerm snippet could be changed to skip the
+redundant py3clean in the upgrade case; but in the removal case, this code
+does need to be run unless python3 itself is also being removed, and there
+is no way to enforce the availability of /usr/bin/python during a
+dist-upgrade without this pre-depends.
+-- 
+Steve Langasek                   Give me a lever long enough and a Free OS
+Debian Developer                   to set it on, and I can move the world.
+Ubuntu Developer                                   https://www.debian.org/
+slangasek@ubuntu.com                                     vorlon@debian.org
+signature.asc

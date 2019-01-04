@@ -1,0 +1,55 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#856538: ITP: pgsql-ogr-fdw -- PostgreSQL foreign data wrapper for OGR
+From : Michael Fladischer <fladi@debian.org>
+Date : Thu, 02 Mar 2017 08:57:57 +0100
+Message-id : 148844147266.24078.13867582241671203709.reportbug@kashyyyk
+Reply-to : Michael Fladischer <fladi@debian.org>, 856538@bugs.debian.org
+
+
+Package: wnpp
+Severity: wishlist
+Owner: Michael Fladischer <fladi@debian.org>
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+* Package name    : pgsql-ogr-fdw
+  Version         : 1.0.2
+  Upstream Author : Paul Ramsey <pramsey@cleverelephant.ca>
+* URL             : https://github.com/pramsey/pgsql-ogr-fdw/
+* License         : Expat
+  Programming Lang: C
+  Description     : PostgreSQL foreign data wrapper for OGR
+ OGR is the vector half of the GDAL spatial data access library. It allows
+ access to a large number of GIS data formats using a simple C API for data
+ reading and writing. Since OGR exposes a simple table structure and PostgreSQL
+ foreign data wrappers allow access to table structures, the fit seems pretty
+ perfect.
+ .
+ This implementation currently has the following limitations:
+  * Only non-spatial query restrictions are pushed down to the OGR driver.
+    PostgreSQL foreign data wrappers support delegating portions of the SQL
+    query to the underlying data source, in this case OGR. This implementation
+    currently pushes down only non-spatial query restrictions, and only for the
+    small subset of comparison operators (>, <, <=, >=, =) supported by OGR.
+  * Spatial restrictions are not pushed down. OGR can handle basic bounding box
+    restrictions and even (for some drivers) more explicit intersection
+    restrictions, but those are not passed to the OGR driver yet.
+  * OGR connections every time Rather than pooling OGR connections, each query
+    makes (and disposes of) two new ones, which seems to be the largest
+    performance drag at the moment for restricted (small) queries.
+  * All columns are retrieved every time. PostgreSQL foreign data wrappers don't
+    require all columns all the time, and some efficiencies can be gained by
+    only requesting the columns needed to fulfill a query. This would be a
+    minimal efficiency improvement, but can be removed given some development
+    time, since the OGR API supports returning a subset of columns.
+ .
+ I'm planning to maintian this package as part of the Debian GIS team.
+-----BEGIN PGP SIGNATURE-----
+iQFFBAEBCgAvFiEEqVSlRXW87UkkCnJc/9PIi5l90WoFAli30HURHGZsYWRpQGRl
+Ymlhbi5vcmcACgkQ/9PIi5l90WqMwwgAnpDFroGZmxvjY/0O/xSzgikktZnX5TyS
+ujoTxcxyLggLDMduuKwuiMWUP3RvsH2JlcTBNDsOWcm5wAK+Glmy9KmEs5DJWFPJ
+yFcjS4iKrCnTgPaWmVO81yk3/x5GcyrdKcj5u4U1y20KzWiOZwOzFKzaVZyKOrpE
+h2mR2/BgJ4HsG4cH73luw4FK2LUa5GVkpJMGg4/dvLKQP5+Xqpm2DmaV9qEfrxpC
+8hLeaxuydb+JG1Pf69B3xqnwb4kHC9CeuIBszijdzbE4SYQwVTaPzmMWBJnhLNJA
+0Dr7hJhD7kwFpFBHfLJQMr/667im4j6GnH/SkDsl6muF2Jtbbukp6A==
+=EchT
+-----END PGP SIGNATURE-----

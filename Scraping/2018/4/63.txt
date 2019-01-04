@@ -1,0 +1,66 @@
+To : Holger Levsen <holger@layer-acht.org>
+Subject : Re: distributing .buildinfo files (Re: Bad interaction between pbuilder/debhelper/dpkg-buildinfo/dpkg-genchanges and dak on security-master)
+From : Philipp Kern <pkern@debian.org>
+Date : Thu, 5 Apr 2018 10:43:04 +0200
+Message-id : a70db195-ca54-d3a0-697d-14e75c3aa953@debian.org
+In-reply-to : <8830e4bec1775b489feaaaffce1ba935@debian.org>
+References : <m2n.s.1dS0ni-153949@chiark.greenend.org.uk> <22874.19978.163146.67401@chiark.greenend.org.uk> <2a804fb40b6ad1e488da8ced58bb4659@mail.kern.pm> <20170703170645.rdeiizuxb4whls2n@mapreri.org> <65f77b5c-c7a4-fde7-3caf-b4e27ef79e78@debian.org> <20170902214841.GA26056@layer-acht.org> <8830e4bec1775b489feaaaffce1ba935@debian.org>
+
+
+On 9/3/17 11:40 AM, Philipp Kern wrote:
+> On 2017-09-02 23:48, Holger Levsen wrote:
+>> On Mon, Jul 03, 2017 at 07:23:29PM +0200, Philipp Kern wrote:
+>>> > Not yet.  We people from the reproducible team couldn't find a way to
+>>> > usefully talk to ftp-masters people, whom never replied to any of the
+>>> > questions in the thread at #763822 (they only did some quick
+>>> comments on
+>>> > IRC, and we have been left on guessing what they would like…).
+>>> >
+>>> > Anyhow, .buildinfo files are stored in ftp-master, just not
+>>> exported to
+>>> > the mirrors, you can find them in
+>>> > coccia.debian.org:/srv/ftp-master.debian.org/<something>.
+>>>
+>>> So I suppose we talk about 13 GB[1] of static content in about 1.7M
+>>> files. Is that something that could be distributed through
+>>> static.debian.org if there are concerns around inodes for the main
+>>> mirrors? Given that they would be accessed mostly rarely[2]?
+>>>
+>>> [1] 7.7kB (75%ile as mentioned in the referenced bug) * 55000 binary
+>>> packages * 10 architectures * 3 versions - so quite conservatively
+>>> [2] So supposedly a CDN wouldn't bring a lot of benefit as individual
+>>> files aren't likely to be hit frequently.
+>>
+>> using static.debian.org seems to be a good idea to me, what would be
+>> needed to make
+>> this happen?
+>>
+>> or, we could put them in a git repo instead, and use git.debian.org…
+> 
+> Git is an interesting thought for incremental mirroring. But then it
+> also seems to be a poor choice for something that is an only growing
+> repository of data.
+> 
+> What I think should be a requirement is that the data is pushed out
+> before the mirror pulse. Otherwise you end up with a race where you try
+> to mirror the data including the buildinfo but can't access it. (It's a
+> little unfortunate that we don't simply put them onto the mirrors.
+So what would be needed to make at least a simple export of the data
+happen? I think the requirements I'd have are these:
+* Data is sufficiently fresh and optimally accessible before the mirror
+pulse happens so that you can always fetch the corresponding buildinfo
+for a newly pushed package.
+* Some way of actually deducing the path to the buildinfo file, either
+through some sort of redirector or by naming the files in a consistent
+fashion.
+Right now the second point does not work with the date-based farm that
+is used to archive the buildinfo files. It would work if we were to just
+apply the same splitting as in the regular pool. For the former just
+pushing the content through static.d.o should work and dak could push
+the content before pushing the mirrors?
+Intuitively I would not care about cryptographic authentication of the
+data. After all it can be verified by rebuilding if the package is
+reproducible.
+Kind regards and thanks
+Philipp Kern
+signature.asc

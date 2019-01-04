@@ -1,0 +1,40 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Naming of network devices - how to improve it in buster
+From : Guus Sliepen <guus@debian.org>
+Date : Sat, 15 Jul 2017 22:30:59 +0200
+Message-id : 20170715203059.ydiz55npkqce7qth@sliepen.org
+Mail-followup-to : Guus Sliepen <guus@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170711160429.2huwxkmlhgsd6vpk@sliepen.org>
+References : <[🔎] 5962B743.8030702@landfreak.com> <[🔎] 20170710134714.33b4rbp4gqo4xj5r@sliepen.org> <[🔎] 20170710162228.v4teqev5vx3xxgj5@angband.pl> <[🔎] 12214332.2fR4hsN12g@merkaba> <[🔎] 658546a9-4ecf-18d0-4fb2-1e8d1a9c2dcc@debian.org> <[🔎] 20170711101459.uglna6qjj7jd5zq7@sliepen.org> <[🔎] 87bmorb3je.fsf@miraculix.mork.no> <[🔎] 20170711160429.2huwxkmlhgsd6vpk@sliepen.org>
+
+
+On Tue, Jul 11, 2017 at 06:04:29PM +0200, Guus Sliepen wrote:
+> This is not impossible to do. I actually have some code to make ifupdown
+> use interface matching, I'm afraid I was too late in the stretch cycle
+> to have a well-tested implementation. I will try to add this early in
+> buster so it can be tested properly and any kinks resolved.
+Initial support for interface matching has been uploaded, so once it
+hits your mirror you can apt-get upgrade to ifupdown 0.8.20 and use it.
+An example to match an interface by MAC address:
+    allow-hotplug mac/01:23:45:67:89:ab/=foo
+    iface foo inet dchp
+    iface foo inet6 auto
+    auto type/1/2=bar
+    iface bar inet static
+        address 192.168.1.1/24
+This will match any interface that has MAC address 01:23:45:67:89:ab,
+and will use the "foo" stanzas to configure it. It will also match the
+second Ethernet interface (whose /sys/class/net/interfaces/$IFACE/type
+file contains the line "1") and bring it up using the "bar" stanza.
+Details are in the interfaces(5) manpage.
+You can also use pattern matching on the ifup and ifdown command line.
+You cannot use pattern matching in "iface" stanzas (yet).
+The reason I used the / is that this is, as far as I know, the only
+character that is never allowed in interface names on Linux. On that
+note, the above examples will not work on Hurd and FreeBSD, support for
+pattern matching on those platforms besides just the interface name will
+follow later.
+-- 
+Met vriendelijke groet / with kind regards,
+      Guus Sliepen <guus@debian.org>
+signature.asc

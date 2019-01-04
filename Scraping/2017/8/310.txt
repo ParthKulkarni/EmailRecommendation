@@ -1,0 +1,65 @@
+To : debian-devel@lists.debian.org
+Subject : Re: bind9 shipping outdated root hint file (etc.)
+From : Robert Edmonds <edmonds@debian.org>
+Date : Tue, 8 Aug 2017 17:50:25 -0400
+Message-id : 20170808215025.l4vf3wu6bb2n4rml@mycre.ws
+In-reply-to : <[🔎] 1502225247.4129988.1067263248.086C549E@webmail.messagingengine.com>
+References : <[🔎] 1502225247.4129988.1067263248.086C549E@webmail.messagingengine.com>
+
+
+Chris Lamb wrote:
+> It was just mentioned "en passant" in a conversation at DebConf that
+> bind9 is shipping a root hint file from 2003.
+No, this is just wrong. The hints file shipped in the bind9 package in
+stretch is from 2016:
+    ;       This file holds the information on root name servers needed to
+    ;       initialize cache of Internet domain name servers
+    ;       (e.g. reference this file in the "cache  .  <file>"
+    ;       configuration file of BIND domain name servers).
+    ;
+    ;       This file is made available by InterNIC 
+    ;       under anonymous FTP as
+    ;           file                /domain/named.cache
+    ;           on server           FTP.INTERNIC.NET
+    ;       -OR-                    RS.INTERNIC.NET
+    ;
+    ;       last update:    February 17, 2016
+    ;       related version of root zone:   2016021701
+    […]
+There are now 26 root server addresses, and root servers are renumbered
+slowly enough that the normal Debian release process is more than
+adequate for keeping up with those renumbering events. Over the past
+decade or more the DNS root server network has added IPv6 addresses, and
+has renumbered out of network prefixes used by larger networks into
+network prefixes dedicated solely to root DNS service. So my guess is
+that renumbering events will become even more rare over time.
+The consequences for having an out-of-date root hints file are fairly
+minimal. All modern recursive DNS servers employ a "priming" technique
+where the initial hints list is used to obtain the latest set of root
+server addresses at server startup. See RFC 8109, "Initializing a DNS
+Resolver with Priming Queries".
+An up-to-date set of root hints is shipped in the dns-root-data package,
+but I believe only a few DNS software packages have been updated to take
+advantage of it. Some DNS servers also embed a copy of root server
+addresses in compiled binaries as a hedge against missing or obsolete
+hints files, and this practice is fine as long as the upstream
+developers keep that list up-to-date and make regular releases. Priming
+will ensure that those binaries obtain an up-to-date set of addresses at
+startup.
+The only package in the archive that I know of that has a seriously
+deficient set of root hints is djbdns; it has 11/13 of the current set
+of IPv4 root server addresses, and 0/13 IPv6 root server addresses.
+(However, I don't believe the 'djbdns' binary package ships with the
+IPv6 patch applied.)
+> I had a quick glance at the bug list and saw it was a little larger
+> than I would have liked for what is clearly a critical piece and
+> infrastructure. :)
+It may have been true in 2003 that bind9 was a critical piece of DNS
+infrastructure for Linux distributions, but it has become much less true
+over time: there are multiple, modern implementations of authoritative
+and recursive DNS servers in the Debian archive today. On the recursive
+side: PowerDNS Recursor, Knot Resolver, and Unbound. On the
+authoritative side: Power DNS Authoritative, Knot DNS, and NSD.
+-- 
+Robert Edmonds
+edmonds@debian.org

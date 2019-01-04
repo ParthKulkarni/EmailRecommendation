@@ -1,0 +1,67 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Pirate Praveen <praveen@onenetbeyond.org>
+Date : Mon, 19 Feb 2018 22:34:25 +0530
+Message-id : eee066d9-a56d-a0e8-ddf3-451ddf9e12aa@onenetbeyond.org
+In-reply-to : <[🔎] 20180216151129.GB18296@home.ouaza.com>
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com> <[🔎] 20180216151129.GB18296@home.ouaza.com>
+
+
+On വെള്ളി 16 ഫെബ്രുവരി 2018 08:41 വൈകു, Raphael Hertzog wrote:
+> - while gitlab is packaged in Debian, its packaging took years and the
+>   result is brittle because it can break in many ways whenever one the 
+>   dozens of dependencies gets updated to some new upstream version
+>   (BTW salsa.debian.org does not use the official package)
+I maintain complex packages like gitlab and diaspora and I agree about
+the amount of work required. But the reason why library updates break
+can be improved by two steps.
+1. Enable functionality tests for all dependencies (we already have
+pretty good test coverage and that should be increased).
+2. Find out about possible breakages before the upload.
+This can be achieved by using scripts like build-and-upload which runs
+autopkgtests of all reverse dependencies and rebuilds all reverse
+dependencies. Unfortunately use of this script is not wide spread yet
+and we need to include it in a commonly used package like devscripts.
+Many if the recent breakages could have been avoided if the uploaders
+used this option.
+3. When introducing a breaking change, we need to help upstreams to move
+to the new version along with us. This is not different from how we
+handle transitions, but the number of transitions will increase.
+> I'm sure we are missing lots of good applications due to our requirements.
+> What can we do to avoid this?
+I think the situation regarding javascript have improved largely in last
+two years. It took me more than 2 years to get handlebars in debian
+because none of the build tools were packaged. Now with many common
+build tools like grunt, gulp, webpack, rollup, babel etc packaged, the
+effort required to package a new library has significantly reduced (a
+complex library like react took only a fraction of time required for
+handlebars). I believe this will encourage more people to start
+maintaining javascript libraries as the barrier of entry has been
+reduced significantly. Case before two years was reverse engineering the
+build system using tools like sed, which is not the case now.
+As for the number of packages to maintain is very large, I realized it
+would be hard for me to maintain these long dependencies alone, so I
+have been aggressively seeking and mentoring more people to maintain
+packages. I have organized countless offline and online packaging
+sessions. I have reasonable success (compared to the effort I put in)
+and hope to continue those efforts.
+We not only have to get more people to package, but since upstream is
+not listening to us, we need to get more people to help with fixing
+upstream compatibility issues too.
+I have got some very good help from people like Shanavas, Jishnu, Aruna
+and Harish to make upstream compatible with the library versions we have
+in debian (moving handlebars to babel 6 and webpack 3, moving many
+libraries to chai 4, adding global library support to grunt, etc to name
+a few). They have been helping with node specific issue and got upstream
+to accept pull requests. In other pending cases, even though they don't
+help us, they are willing to take pull requests.
+Also I have decided to package a module only if a at least two packages
+depend on it, which will speed up the process and also reduce the load
+on ftp masters (please help ftp masters review the long queue if you can).
+See
+https://salsa.debian.org/js-team/node-ava/tree/master/debian/node_modules
+(some of those currently embedded there will need to be packaged
+separately because they are generated files. But if a module is pure es5
+and required only for one module it could be embedded. Also in newer
+nodejs versions we may be able to do this with es6 modules too).
+signature.asc

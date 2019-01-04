@@ -1,0 +1,29 @@
+To : debian-devel@lists.debian.org
+Subject : seccomp jailing for applications (was: recommends for apparmor in newest linux-image-4.13)
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 29 Nov 2017 17:36:30 -0800
+Message-id : 87efogcztt.fsf_-_@hope.eyrie.org
+In-reply-to : <[🔎] f959b121-7b92-5f18-f91e-d8c9a2581a9a@gmail.com> (Vincas Dargis's	message of "Wed, 29 Nov 2017 19:24:22 +0200")
+References : <[🔎] 20171123131846.GA27575@lst.de>	<[🔎] 1511445349.14687.63.camel@decadent.org.uk>	<[🔎] 20171123135822.GA28776@lst.de>	<[🔎] 1511445584.14687.64.camel@decadent.org.uk>	<[🔎] 20171123140109.GA28885@lst.de>	<[🔎] 20171123144310.gac6zwqysfzdsh3i@exolobe3>	<[🔎] 20171128185445.GA5602@lst.de> <[🔎] 20171128230308.GB769@bongo.bofh.it>	<[🔎] 18deb24e-d4b3-11e7-9b6a-00163eeb5320@msgid.mathom.us>	<[🔎] 87609tg1d1.fsf@hope.eyrie.org> <[🔎] 20171129072514.GA31212@chew>	<[🔎] f959b121-7b92-5f18-f91e-d8c9a2581a9a@gmail.com>
+
+
+Vincas Dargis <vindrg@gmail.com> writes:
+> Since mentioned, I would like that these daemons would implement seccomp
+> filtering themselves, meaning like within application itself, using
+> libeseccomp. Thy can fine-grain what thread what syscalls can make.
+Yes, this is potentially even better.  But there are cases where we can
+apply filters that upstream may not be able to assume for various reasons,
+and a lot of upstreams who won't be willing to take Linux-specific code
+inside the daemon itself.
+But this would be fantastic for things like ImageMagick, which are
+otherwise a notorious source of RCEs.
+Does libeseccomp now have maintained system call classes similar to
+systemd?  If we could build a tool that could apply namespace and filter
+rules using system call classes like that, it would make it easy to
+support similar hardening in sysvinit as well.  Last time I looked at the
+various stand-alone jailing utilities like firejail, they seemed to be
+missing the nice system call groupings that let you not have to know
+exactly what system calls result from standard IO operations, but
+hopefully someone has since tackled this.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

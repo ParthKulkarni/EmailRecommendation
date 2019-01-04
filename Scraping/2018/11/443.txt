@@ -1,0 +1,63 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 26 Nov 2018 17:06:27 +0100
+Message-id : 20181126160627.3uubezgtn26acacb@angband.pl
+In-reply-to : <[🔎] 8170ddf9-801b-ec01-929c-0aa9042e951b@sceal.ie>
+References : <[🔎] 20181121092346.umhv45iy2vhvpljv@angband.pl> <[🔎] 20181122134740.GA15270@bongo.bofh.it> <[🔎] 23542.46458.62031.525871@chiark.greenend.org.uk> <[🔎] 5938227.gdOSt9oBWM@odyx.org> <[🔎] 23547.59848.364519.806048@chiark.greenend.org.uk> <[🔎] 20181126140809.GA2806@bongo.bofh.it> <[🔎] 846a9590-f187-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 20181126144411.l6xrwm4456pat3nk@angband.pl> <[🔎] 8170ddf9-801b-ec01-929c-0aa9042e951b@sceal.ie>
+
+
+On Mon, Nov 26, 2018 at 03:00:41PM +0000, Alastair McKinstry wrote:
+> 
+> On 26/11/2018 14:44, Adam Borowski wrote:
+> > On Mon, Nov 26, 2018 at 09:29:50AM -0500, Michael Stone wrote:
+> > > On Mon, Nov 26, 2018 at 03:08:09PM +0100, Marco d'Itri wrote:
+> > > > I disagree both that simple testing (that you could do with a KVM
+> > > > snapshot as well) would be hard and I disagree that the benefits of
+> > > > merged-/usr would be minor.
+> > > Nobody has thus far pointed out a single benefit to someone merging usr on
+> > > an ordinary system.
+> > Nor for clusters, for that matter.  I don't get how having the /usr part of
+> > the filesystem (no /var, /lib, /etc, etc) would help --
+> 
+> Moving config from /etc to below /usr becomes useful for containers, and
+> hence clusters.
+... well, how?
+> containers become important for clusters - we are now using Singularity in
+> our HPC clusters. Singularity is a development of Docker that allows for
+> non-root container execution; we can build containers on our laptops, etc
+> (requiring root), and copy them to the cluster, where they will run, even
+> connecting with mpiexec / slurm ,etc
+You still need all the rest of the files.  There might be cases where making
+them volatile and copying from a base state to tmpfs on every boot could be
+workable, but that's a pretty odd setup -- which is handled just as well by
+more generic solutions.
+So why won't you use any of the many ways you pruned from my post you
+responded to?
+> Now, we can build a container on a laptop, with Debian inside, and run it on
+> a 1000-node cluster.  Its realistic to see million-core jobs on Debian in
+> the future.
+So you propose to make that cluster have every node be more resource
+contrained than the weakest Debian-capable SoC / phone available in the
+wild?  The vast majority of non-GUI installs I've seen have /usr of below
+1GB, with available storage massively larger than that.  So any realistic
+HPC cluster will have many orders of magnitude more space, per node --
+making even deduplication a waste of human time.  If there's indeed no
+storage per-node, please don't insult our intelligence by suggesting having
+the central server keep that /usr shared would require a non-laughable
+effort.  And if it does... well, please read the list of solutions I
+mentioned.
+I quite recently worked with multi-container hosting -- there's no problem
+with deduplication using already existing tools.  And in hindsight, it was a
+waste of my time -- it's customers' data that takes space, not /usr.
+> So, while supporting containers may support a minority of users, I suspect
+> some will be big users, and as library and app complexity grows, its an
+> important Debian use-case.
+Yes, it's an important use-case.  And one already solved without merging
+/usr.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ 
+⢿⡄⠘⠷⠚⠋⠀ ... what's the frequency of that 5V DC?
+⠈⠳⣄⠀⠀⠀⠀

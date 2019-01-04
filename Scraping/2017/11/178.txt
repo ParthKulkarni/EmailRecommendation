@@ -1,0 +1,129 @@
+To : Bálint Réczey <balint@balintreczey.hu>
+Subject : Re: Auto-update for sid? Auto-backport?
+From : Guido Günther <agx@sigxcpu.org>
+Date : Sun, 26 Nov 2017 10:28:31 +0100
+Message-id : 20171126092831.a4nt734uzmw6e5ep@bogon.m.sigxcpu.org
+Mail-followup-to : Guido Günther <agx@sigxcpu.org>,	Bálint Réczey <balint@balintreczey.hu>,	Steffen Möller <steffen_moeller@gmx.de>,	debian developers <debian-devel@lists.debian.org>
+In-reply-to : <[🔎] CAK0OdpwW6RQrvcUWzJ04aq65_wGs0bpu984tM9N6PMvyJEMpPg@mail.gmail.com>
+References : <[🔎] CAK0OdpwW6RQrvcUWzJ04aq65_wGs0bpu984tM9N6PMvyJEMpPg@mail.gmail.com>
+
+
+Hi Bálint,
+On Sun, Nov 26, 2017 at 04:34:40AM +0100, Bálint Réczey wrote:
+> Hi Guido,
+> 
+> 2017-11-24 12:48 GMT+01:00 Guido Günther <agx@sigxcpu.org>:
+> > Hi,
+> > On Fri, Nov 17, 2017 at 04:31:43PM +0100, Guido Günther wrote:
+> >> Hi,
+> >> On Wed, Nov 15, 2017 at 04:43:17PM +0100, Steffen Möller wrote:
+> >> > Hello,
+> >> >
+> >> > my QA page or our blend's task page (like
+> >> > https://blends.debian.org/med/tasks/bio-ngs) regularly informs me about
+> >> > updates that should be performed to packages I alone maintain or (more
+> >> > likely) with the help of my blend. The updates are often (but now
+> >> > always, admittedly) easy to do.
+> >> >
+> >> > I would really like to see updates performed in some automated fashion.
+> >> > Maybe into a different section of Debian like sid-auto? The problem with
+> >> > that obviously is the missing scrutiny by the human maintainer, so it
+> >> > cannot go straight into sid. Or can it? Maybe with an auto-created bug
+> >> > report against the package so it does not auto-migrate into testing?
+> >>
+> >> What I have started to do is having jobs that run once a day uscan,
+> >> rebase patches, build in pbuilder, run autopkgtests via pbuilder's
+> >> autopkgtest hook[1] (to be put into a Jenkins instance).
+> >>
+> >> That's about 99% of the busy work since I know in advance which packages
+> >> will need work (because patches no longer apply, tests fail or lintian
+> >> reports errors) while others can be uploaded right away after more
+> >> manual testing (if they don't have excessive test suites). Would that
+> >> help already? if so we could look into making this more usable to
+> >> others.
+> >
+> > I've cleaned stuff up a bit and moved some of the (smaller) jobs to a
+> > public instance:
+> >
+> >     http://autoff.sigxcpu.org
+> >
+> > and dumped the ansible to setup jenkins and the jobs here:
+> >
+> >     http://github.com/agx/debautoff
+> >     http://github.com/agx/debautoff-projects
+> >
+> > (Autopkgtests are currently disabled to not make the vm explode). If
+> > this make sense for others as well it needs to be moved to a bigger
+> > instance (maybe integrated with jenkins.debian.net)?
+> 
+> Thanks! I believe at some point such service will need much bigger
+> machines. :-)
+Yeah, but adding more nodes is fortunately easy with jenkins.
+> 
+> I was thinking about automating the repetitive tasks, too for some time
+> but could not find time to implement fully what I wanted to share as an
+> initial release.
+> I just uploaded a prototype/skeleton of the idea here:
+> https://anonscm.debian.org/cgit/collab-maint/debian-dad.git
+> 
+> Instead of starting with the service concept I went with the distributed
+> usage model to let everyone play with the tool easily even with
+> private packages.
+The "distributed usage model" in the above service is in gbp-try-ff
+already. It relies on having a gbp compatible branch layout at the
+moment.
+> The idea was starting from a known source package name and helping
+> the maintainer as much as possible in an automated manner and providing
+> the changes in a git repository nicely separated commit by commit.
+> 
+> The set of packages which can be updated easily includes the ones
+> without any packaging repository and the the update is not limited to
+> updating to latest upstream and testing the result. There are many minor
+> changes which can be easily applied like fixing smaller problems
+> already reported by Lintian and as an example I already implemented
+> updating symbols files.
+That's true. My main focus is automating one thing: updating to new
+upstreams via uscan for packages that already use git as a VCS. The
+motivation is to know what amount of work to exepct when doing this (do
+patches still apply, does it still build, to tests still pass).
+Happy to apply patches to fix up other things as well. In this case we
+should indeed use git repos to keep the made changes for easily pulling
+these in.
+Oh and if you want you package on alioth integrated please send a PR, we
+can do so until we run of resources.
+Cheer,
+ -- Guido
+> Please take a look and if you like the concept I'll go ahead with an ITP
+> and welcome contributions.
+> I don't plan sticking to one particular packaging repository format, for
+> example I plan adding support for tracking upstream branches
+> commit-by-commit with gbp but Subversion repository support will most
+> likely exist only via git-svn.
+> 
+> Cheers,
+> Balint
+> 
+> 
+> >
+> > Cheers,
+> >  -- Guido
+> >
+> >>
+> >> > A similar situation I see with backports. Most commonly all that is
+> >> > needed is a recompilation. Would an automation of that process be
+> >> > acceptable? Would it be acceptable for packages that offer some means of
+> >> > automated testing and are in backports already?
+> >> >
+> >> > Many thanks for your opinions
+> >> >
+> >> > Steffen
+> >> >
+> >>
+> >> [1]: /usr/share/doc/git-buildpackage/examples/gbp-try-ff
+> >>
+> 
+> --
+> I fixed #875980 in git before sending this email to debian-devel.
+> http://balintreczey.hu/blog/my-debian-devel-pledge
+> Actually I fixed it using 'dad update' and tested the results manually. :-)
+>

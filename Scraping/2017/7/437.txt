@@ -1,0 +1,32 @@
+To : Jeff <jffry@posteo.net>
+Subject : Re: Running tests with xvfb
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Mon, 31 Jul 2017 13:08:43 +0100
+Message-id : 22911.7627.982828.99973@chiark.greenend.org.uk
+In-reply-to : <[🔎] 843bcf27-c79a-9050-3d89-117e5c178b5c@posteo.net>
+References : <[🔎] 843bcf27-c79a-9050-3d89-117e5c178b5c@posteo.net>
+
+
+Jeff writes ("Running tests with xvfb"):
+> I have a package whose tests crash X on my machine, which uses nouveau.
+> This makes testing rather inconvenient.
+> 
+> Running the tests in a chroot with xvfb works, but takes an age (i.e. a
+> couple of minutes) to set up the chroot. This is also not conducive to
+> rapid testing of small changes.
+1. Why are you setting up the chroot each time ?  You could keep it
+set up.
+> Running the test outside the chroot with xvfb still crashes X, because
+> xvfb seems to grab the "real" X if it is there.
+2. I think you mean "the test grabs the real X" not that xvfb grabs
+it.
+3. Probably the actual difference is that when you run the tests in a
+chroot, something launders your environment so that DISPLAY is not
+set.  (Or maybe that your chroot tool is providing a separate AF_UNIX
+display numbering space, so that a default of ":0" now goes to Xvfb.)
+If I am right you can fix this problem by starting Xvfb in your main
+session, and running the tests with the appropriate setting of
+DISPLAY.
+If this does not work then I think it is a bug in the tests, which
+should honour DISPLAY.
+Ian.

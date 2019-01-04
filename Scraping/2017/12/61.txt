@@ -1,0 +1,53 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian Stretch new user report (vs Linux Mint)
+From : Paul Wise <pabs@debian.org>
+Date : Thu, 7 Dec 2017 12:41:53 +0800
+Message-id : CAKTje6GMhA=XqOzc22eBiQVEhrHtWH2ZeDSBwMySNu0Q8gOPtw@mail.gmail.com
+In-reply-to : <[🔎] 20171207033956.f3cb7lblfw5a7niq@angband.pl>
+References : <[🔎] CAKTje6HYXv+vXS2WuvD0jQ9-4gjbBB5G6Pmif20JpB0TSMjQyg@mail.gmail.com> <[🔎] 20171204180314.23tjibyvko7plcos@layer-acht.org> <[🔎] 648f703a-6b9e-067f-1258-f715105c50ee@philkern.de> <[🔎] 2066265.X7fRo6Q3d4@odyx.org> <[🔎] CAKTje6EGaW=_M9KyoFmc5qhti8v+_gON9F3+bMwJ8JiLovnDbw@mail.gmail.com> <[🔎] 20171207033956.f3cb7lblfw5a7niq@angband.pl>
+
+
+On Thu, Dec 7, 2017 at 11:39 AM, Adam Borowski wrote:
+> It might be less disruptive to add a new field like Subsection; that'd avoid
+> the need to change any of archive tools -- including ones not used on the
+> official archive, like reprepro.
+...
+> Because Section: implies an unique section, while we want the same package
+> to be present in both non-free and non-free/firmware, I'd suggest
+> Subsection: or abusing debtags instead.
+We are talking about sub-*components* here not sub-*sections*.
+Sections are only simple tags, they don't affect the archive structure
+at all, except through the component, because the current Section
+field conflates the component (main/contrib/non-free) and the section
+(sound/kernel/etc).
+I would either continue the conflation and go with:
+Section: component/subcomponent/section
+Section: non-free/firmware/sound
+Or get rid of the conflation:
+Section: section
+Component: component/subcomponent
+Section: sound
+Component: non-free/firmware
+Or for even more separation:
+Component: component
+Subcomponent: subcomponent
+Section: section
+Component: non-free
+Subcomponent: firmware
+Section: sound
+> Turns out you don't need to mess with dak; it's an one-liner to produce such
+> a Packages file
+...
+> Obviously encapsulating such a feature as an option of dak would be
+> reasonable, but it's in no way dak exclusive.
+Sure, but if we want them on ftp.debian.org (the main place we want to
+use them) we need to modify or configure dak to generate them :)
+> Apt (and aptitude) should work flawlessly: there's security.debian.org
+> jessie/updates, and we had non-free/non-us in the past.
+FYI ftpmasters vetoed the proposal of using the syntax
+non-free/firmware in the component. They also want to kill
+jessie/updates and rename it to jessie-security.
+-- 
+bye,
+pabs
+https://wiki.debian.org/PaulWise

@@ -1,0 +1,32 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 31 May 2017 11:31:43 +0100
+Message-id : 20170531103143.y2gbj3oel7jsedyx@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] cd9b6fc4-f44a-35c8-ade8-4477775cb1cb@transient.nz>
+References : <[🔎] 87tw424kxc.fsf@deep-thought.43-1.org> <[🔎] cd9b6fc4-f44a-35c8-ade8-4477775cb1cb@transient.nz>
+
+
+On Wed, 31 May 2017 at 11:32:29 +1200, Ben Caradoc-Davies wrote:
+> Trust is not transitive. Perhaps Recommends should not be either?
+Recommends are for the relationship "wanting foo but not bar is unusual".
+If A Recommends B and B Recommends C, and if we assume for example
+that "unusual" means 10% of users of A do not need B and 10% of users
+of B do not need C, then installing Recommends means somewhere
+between 0% and 20% of users of A get C unnecessarily. (The real figure
+depends on whether not wanting B and not wanting C are positively or
+negatively correlated, or independent.)
+That still seems like it qualifies as "unusual" to me, so I think
+Recommends are effectively transitive.
+More practically, apt does not keep track of whether a package was
+installed as a result of a recommendation, a hard dependency or user
+request (the closest it gets is "automatically installed", but that
+could be anywhere between Depends and Suggests), so non-transitive
+Recommends are not currently implementable: when apt is upgrading B
+and there is a new Recommends on C, apt does not know whether B
+was installed due to a hard dependency or user request (in which
+case you would say its Recommends on C should be respected),
+or whether it was only installed because it was recommended by A
+(in which case you would say the transitive Recommends on C should
+be ignored).
+    S

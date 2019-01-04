@@ -1,0 +1,33 @@
+To : debian-devel@lists.debian.org
+Subject : Re: The value of unmodified conffiles left on disk of removed, but not purged, packages
+From : Don Armstrong <don@debian.org>
+Date : Sun, 25 Feb 2018 14:42:32 -0800
+Message-id : 20180225224227.526ga6wchlacrmp7@qor.donarmstrong.com
+In-reply-to : <[🔎] CANBHLUiAMN3Hqqog5PDuDLxRu2_W7=y+NrXUOFymxtc0fADLLg@mail.gmail.com>
+References : <[🔎] CANBHLUiAMN3Hqqog5PDuDLxRu2_W7=y+NrXUOFymxtc0fADLLg@mail.gmail.com>
+
+
+On Sun, 25 Feb 2018, Dimitri John Ledkov wrote:
+> A couple of conffiles were /etc/X11/Xsession.d/00upstart and
+> /etc/X11/Xsession.d/99upstart which assumed that upstart would be
+> alwasy be available, and in bionic after the above described update
+> started to error out, and prevent gdm3 from completing a login.
+Conffiles which continue to have an effect on the system after their
+package has been removed seems like a bug to me. I'd be tempted in this
+case to provide a transitional upstart package which fixed these
+conffiles to properly test for upstart.[1]
+> Surely, there is no value in keeping them on disk, and unmodified
+> conffiles should be removed, upon package removal.
+> 
+> Thoughts?
+This breaks the expectation that `apt remove foo; apt install foo;`
+would lead to foo working with the same configuration if deletion of
+configuration files is meaningful for foo. [For example, apache operates
+this way.]
+1: Though this sort of guarding is easy for Xsession.d, I'm certain that
+there are configuration systems where this is not easy to implement.
+-- 
+Don Armstrong                      https://www.donarmstrong.com
+Whatever you do will be insignificant, but it is very important that
+you do it.
+ -- Mohandas Karamchand Gandhi

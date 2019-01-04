@@ -1,0 +1,43 @@
+To : debian-devel@lists.debian.org, debian-dpkg@lists.debian.org,	deity@lists.debian.org
+Subject : Re: A radically different proposal for differential updates
+From : Guillem Jover <guillem@debian.org>
+Date : Wed, 16 Aug 2017 03:25:23 +0200
+Message-id : 20170816012523.454ydzqddo64qrpm@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org,	debian-dpkg@lists.debian.org, deity@lists.debian.org
+In-reply-to : <[🔎] b0b1a98f-9b65-b405-8ac4-42e136dd69a5@iwakd.de>
+References : <[🔎] 20170812135640.GA6037@debian.org> <[🔎] b0b1a98f-9b65-b405-8ac4-42e136dd69a5@iwakd.de>
+
+
+Hi!
+While this sounds indeed interesting, I think it's impractical for at
+least the two reason below:
+On Tue, 2017-08-15 at 09:26:24 +0200, Christian Seiler wrote:
+> AFAQ (Anticipated frequently asked questions):
+> 
+> Q: How can you reconstruct a tarball from the installed system? Won't
+>    that change quite a bit? How will you ever be able to get more than
+>    just a couple of similar chunks out of this scheme?
+> A: If you modify stuff on your system: yes, the tarball you can
+>    generate from that will differ from the tarball that is in the .deb.
+>    However, as we want our .deb files to be reproducible, we are posing
+>    additional restrictions on the tarballs inside .deb files that are
+>    not part of the .tar standard. Most importantly the file ordering
+>    has to be well-defined - and currently this is done via sorting in
+>    the C locale. If we recreate the tarball from the system with these
+>    same constrains, we should ideally get an identical tarball back if
+>    no files are changed.
+Unforuntately that's not the case. Reproducible .debs are based on
+using the same tool versions as were used when originally generating
+those .deb:s.
+The .deb format keeps being updated, for example it changed default
+compressor recently-ish. I expect it will keep evolving. And what's
+installed on the system gives no information about what dpkg version
+was used to generate its original .deb.
+> Q: What about tools like debootstrap etc.?
+> A: I believe it should be possible to implement this format in
+>    debootstrap in a relatively straight-forward manner.
+As Julian has mentioned, tons of things expect actual .deb packages
+to be around, starting with humans doing stuff like
+«wget URL && dpkg -i foo.deb» or dget, and tooling, etc.
+Thanks,
+Guillem

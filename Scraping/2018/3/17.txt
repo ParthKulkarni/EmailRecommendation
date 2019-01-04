@@ -1,0 +1,106 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Didier 'OdyX' Raboud <odyx@debian.org>
+Date : Thu, 01 Mar 2018 10:26:27 +0100
+Message-id : 11021748.sr2Nt2CYEd@odyx.org
+In-reply-to : <23189.25024.401726.386741@chiark.greenend.org.uk>
+References : <151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com> <1747528.3EBMEs4rXA@odyx.org> <23189.25024.401726.386741@chiark.greenend.org.uk>
+
+
+Le mardi, 27 février 2018, 14.48:48 h CET Ian Jackson a écrit :
+> I have some specific comments:
+> > Imagine
+> > * a new .vdeb format variant that:
+> > ** enables for multiple versions to be installed in parallel, where files
+> >    are unpacked in a version-specific paths
+> 
+> Instead, establish a formal convention about embedding the (stable
+> part of) the version number in the package name.  This is important
+> so that it is possible to replace a specific "version" of one of these
+> packages with a modified package which is the "same version".
+Good point: not all versions are desirable; "majors" can be installed in 
+parallel, "minors" are updates to the formers.
+But, assuming a new binary format, it feels really weak to abuse of the 
+package name to embed a version.  (The filename is a different question). What 
+about (in control.tar's control):
+Package: simplejson
+Version-Unique: 3.13
+Version: 3.13.2-1
+> > ** forbids any kind of maintainer scripts
+> > ** is not bound to a specific suite
+> > ** is restricted to be arch:all (~ shipping interpreter scripts)
+> 
+> These can be verified either the archive server as part of package
+> acceptance, or by apt as an annotation in the sources.list.
+Again, that's the main advantage I see from a new .*deb format: if these 
+restrictions are part of the format, they can be checked and enforced at all 
+steps in the process: dpkg-buildpackage would error out if there's a postinst, 
+lintian would add an error, the server would block it and dpkg would not 
+unpack the postinst, just because 'debian-binary' is 2.0-vdeb.
+> > ** (ideally) can be user-installed
+> 
+> This one would require some thought.  Do the target ecosystems support
+> transplantation of installed directory trees, without modification ?
+> 
+> Perhaps the experience of other projects doing "prefixed" uses of dpkg
+> might be relevant.  Eg
+>   https://wiki.termux.com/wiki/FAQ#Is_Termux_a_complete_Linux_Environment.3F
+> (But the prefix there is baked into the .deb.)
+> 
+> How is this going to work for build-dependencies ?  If one says
+> "build-depends: npm-vdeb-foo", will the build system know to look in
+> $HOME as well as /usr ?
+user-installation embeds two different problems: prefixed unpack and non-root 
+unpack.  Given this is something orthogonal to the vdebs proposal (+ a hard 
+problem), it's probably easier (for a start) to just leave that requirement 
+off.
+> > * a repository of these .vdeb
+> > ** whose DFSG-freeness is checked
+> > ** which version set is known, and tracked
+> > ** that can provide new versions "on-demand"
+> 
+> It is important to appreciate what we are *discarding* as too hard.
+Yes.
+> > How does that sound?
+> 
+> Your proposal depends on continuous and almost-automatic
+> incorporation of upstream code.  Our current source package workflows
+> are not suited to this.
+Yes.  With Debian approval / whitelisting at various points in the lifetime of 
+a "package: initial submission (as our NEW) and ideally at later points / 
+versions.
+> OTOH we do not want to abandon the Debian source package format
+> completely because we have lots and lots of tools which understand it
+> well.
+Although I share the sentiment, I see value in finding a suitable model for 
+the problem at hand, rather than massage our existing tools to fix the 
+problem, "just because" they are our existing tools.  I think we agree on 
+that.
+> I would like to suggest a radical approach to the source code
+> management for your system: abandon source *packages* in favour of git
+> trees.  Furthermore, abandon the patch queue approach to Debian
+> package management.  We will not be able to maintain a big delta to
+> any of these packages anyway.
+> 
+> So instead, we should have a Debian branch of each upstream git tree,
+> which we should "git merge".  We will have to have a tool, for each
+> ecosystem, that converts the metadata provided in the upstream package
+> into the Debian format in debian/.  The "update to new upstream"
+> process would be:
+>    git fetch upstream
+>    git merge upstream/master
+>    npm-to-debian-autoconvert-update
+>    git commit -s -a -m npm-to-debian-autoconvert-update debian
+> 
+> Building should be done with "git clone" followed by
+> "dpkg-buildpackage -b" (or some suitable wrapper).
+That's pretty much what I had in mind, yes.  I'm not even sure there's much 
+need for a complete traditional debian/ directory: iff the .vdeb ecosystem 
+does much less than normal .debs, we could aim for a single declarative .vspec 
+(yes, I know what you're thinking) file for instance.  Given we're tackling 
+wide consistent (hmm) ecosystems, a set of fine tools and very minimal 
+declarative packaging per-item could do it.
+Thanks for your inputs; I should probably find some time to put a refined 
+version of these thoughts in a wiki page somewhere.
+Cheers,
+    OdyXsignature.asc

@@ -1,0 +1,69 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : AMD64 problem: mips cross gcc munmap_chunk(): invalid pointer (on AVX cpu only)
+From : Yunqiang Su <wzssyqa@gmail.com>
+Date : Sun, 2 Dec 2018 16:39:45 +0800
+Message-id : DC32E190-648B-4AF2-829E-A85200D3495A@gmail.com
+
+
+I meet a problem of Debian’s cross toolchain.[1]
+It happens for gcc-7/gcc-8 in Debian Sid/Buster, while not for gcc-6 in stretch.
+This problem only appears on amd64, not on i386.
+And this problems seems only on CPUs with AVX support, I have an old HP server, with CPU
+   Intel(R) Xeon(R) CPU E7- 4807  @ 1.87GHz
+works well. Which don’t support AVX.
+Anybody has machines with AMD CPUs?
+FYI: Windows Subsystem for Linux has this problem, too.
+1. Install Debian testing/sid env on amd64
+2. apt-get install gcc-8-mips64el-linux-gnuabi64 gcc-8-mips64-linux-gnuabi64 gcc-8-mips-linux-gnu
+These bellow cmd will show:
+ munmap_chunk(): invalid pointer
+ Aborted
+$ echo "int a(){ return 1; }" | mips64el-linux-gnuabi64-gcc-8 -c -mabi=32 -xc -
+$ echo "int a(){ return 1; }" | mips64el-linux-gnuabi64-gcc-8 -B/non_exists/ -c -mabi=32 -xc -
+$ echo "int a(){ return 1; }" | mips64el-linux-gnuabi64-gcc-8 -B/usr/share -c -mabi=32 -xc -
+$ echo "int a(){ return 1; }" | mips64el-linux-gnuabi64-gcc-8 -EB -c -mabi=32 -xc -
+These bellow cmd works well
+# for both n32 or 64 abi, it works well
+$ echo "int a(){ return 1; }" | mips64el-linux-gnuabi64-gcc-8 -c -mabi=n32 -xc -
+$ echo "int a(){ return 1; }" | mips64el-linux-gnuabi64-gcc-8 -c -mabi=64 -xc -
+# -B a path which contains MIPS cross assembler
+$ echo "int a(){ return 1; }" | mips64el-linux-gnuabi64-gcc-8 -B/usr/mips64el-linux-gnuabi64/bin/ -c -mabi=32 -xc -
+$ echo "int a(){ return 1; }" | mips64el-linux-gnuabi64-gcc-8 -B/usr/bin/ -c -mabi=32 -xc -
+# none mips64el-linux-gnuabi64 toolchains works well.
+$ echo "int a(){ return 1; }" | mips64-linux-gnuabi64-gcc-8 -c -mabi=32 -xc -
+$ echo "int a(){ return 1; }" | mips64-linux-gnuabi64-gcc-8  -EL -c -mabi=32 -xc -
+$ echo "int a(){ return 1; }" | mipsel-linux-gnu-gcc-8 -c -mabi=64 -xc -
+$ echo "int a(){ return 1; }" | mipsel-linux-gnu-gcc-8 -c -mabi=n32 -xc -
+$ echo "int a(){ return 1; }" | mipsel-linux-gnu-gcc-8 -c -mabi=32 -xc -
+With some debug, this problem is triggered in  gcc/gcc.c
+static int
+execute (void)
+{
+ ….
+  pex_free (pex);
+[1]  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=915194
+[2] gcc -v for these toolchains.
+xxx@xxx:~$ mipsel-linux-gnu-gcc-8 -v
+Using built-in specs.
+COLLECT_GCC=mipsel-linux-gnu-gcc-8
+COLLECT_LTO_WRAPPER=/usr/lib/gcc-cross/mipsel-linux-gnu/8/lto-wrapper
+Target: mipsel-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Debian 8.2.0-10' --with-bugurl=file:///usr/share/doc/gcc-8/README.Bugs --enable-languages=c,ada,c++,go,d,fortran,objc,obj-c++ --prefix=/usr --with-gcc-major-version-only --program-suffix=-8 --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-libitm --disable-libsanitizer --disable-libquadmath --disable-libquadmath-support --enable-plugin --enable-default-pie --with-system-zlib --disable-libphobos --enable-multiarch --disable-werror --enable-multilib --with-arch-32=mips32r2 --with-fp-32=xx --with-madd4=no --with-lxc1-sxc1=no --enable-targets=all --with-arch-64=mips64r2 --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=mipsel-linux-gnu --program-prefix=mipsel-linux-gnu- --includedir=/usr/mipsel-linux-gnu/include
+Thread model: posix
+gcc version 8.2.0 (Debian 8.2.0-10)
+xxx@xxx:~$ mips64el-linux-gnuabi64-gcc-8 -v
+Using built-in specs.
+COLLECT_GCC=mips64el-linux-gnuabi64-gcc-8
+COLLECT_LTO_WRAPPER=/usr/lib/gcc-cross/mips64el-linux-gnuabi64/8/lto-wrapper
+Target: mips64el-linux-gnuabi64
+Configured with: ../src/configure -v --with-pkgversion='Debian 8.2.0-10' --with-bugurl=file:///usr/share/doc/gcc-8/README.Bugs --enable-languages=c,ada,c++,go,d,fortran,objc,obj-c++ --prefix=/usr --with-gcc-major-version-only --program-suffix=-8 --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-libitm --disable-libsanitizer --disable-libquadmath --disable-libquadmath-support --enable-plugin --enable-default-pie --with-system-zlib --disable-libphobos --enable-multiarch --disable-werror --enable-multilib --with-mips-plt --with-arch-64=mips64r2 --with-madd4=no --enable-targets=all --with-arch-32=mips32r2 --with-fp-32=xx --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=mips64el-linux-gnuabi64 --program-prefix=mips64el-linux-gnuabi64- --includedir=/usr/mips64el-linux-gnuabi64/include
+Thread model: posix
+gcc version 8.2.0 (Debian 8.2.0-10)
+xxx@xxx:~$  mips64-linux-gnuabi64-gcc-8 -v
+Using built-in specs.
+COLLECT_GCC=mips64-linux-gnuabi64-gcc-8
+COLLECT_LTO_WRAPPER=/usr/lib/gcc-cross/mips64-linux-gnuabi64/8/lto-wrapper
+Target: mips64-linux-gnuabi64
+Configured with: ../src/configure -v --with-pkgversion='Debian 8.2.0-10' --with-bugurl=file:///usr/share/doc/gcc-8/README.Bugs --enable-languages=c,ada,c++,go,d,fortran,objc,obj-c++ --prefix=/usr --with-gcc-major-version-only --program-suffix=-8 --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-libitm --disable-libsanitizer --disable-libquadmath --disable-libquadmath-support --enable-plugin --enable-default-pie --with-system-zlib --disable-libphobos --enable-multiarch --disable-werror --enable-multilib --with-mips-plt --with-arch-64=mips64r2 --enable-targets=all --with-arch-32=mips32r2 --with-fp-32=xx --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=mips64-linux-gnuabi64 --program-prefix=mips64-linux-gnuabi64- --includedir=/usr/mips64-linux-gnuabi64/include
+Thread model: posix
+gcc version 8.2.0 (Debian 8.2.0-10)

@@ -1,0 +1,92 @@
+To : pkg-kde-talk@alioth-lists.debian.net, debian-arm@lists.debian.org
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Lisandro Damián Nicanor Pérez Meyer <perezmeyer@gmail.com>
+Date : Tue, 27 Nov 2018 19:58:17 -0300
+Message-id : 1739322.4binucu7PP@tonks
+Reply-to : debian-arm@lists.debian.org
+In-reply-to : <[🔎] 20181127220627.GC6167@virgil.dodds.net>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] 1978113.NGEtsr0Vo0@tonks> <[🔎] 20181127220627.GC6167@virgil.dodds.net>
+
+
+Hi Steve!
+First of all: thanks for chiming in!
+El martes, 27 de noviembre de 2018 19:06:27 -03 Steve Langasek escribió:
+> Hi Lisandro,
+[snip]
+> > This waterfall schema means *multiple* libraries would have to start doing
+> > this two-binaries thing, as Ubuntu devs discovered. But remember that Qt
+> > is
+> > really a set of submodules, so in any later version any submodule could
+> > start using this switch for something. So whatever change could mean yet
+> > another set of binaries with a transition with multiple rebuilds of the
+> > big part of rdeps of Qt... no, we don't want to enter that mess.
+> 
+> Hmm, so I'm not sure this reflects the actual state of the art wrt dual Qt
+> stacks as it existed in Ubuntu at the time Ubuntu Touch was sunsetted.
+> 
+> Yes, GL vs. GLES impacts the ABI of libqt5gui5; HOWEVER, the set of
+> reverse-dependencies that are actually impacted by the GL-specific ABI
+> difference is actually quite small; and by using clever symbols files, the
+> impact on the dependency tree can be minimized.
+> 
+> If anyone wants to dig into this further, perhaps for proof-of-concept, here
+> is packaging that could be used as a starting point for the symbols files:
+> 
+>  
+> https://launchpad.net/ubuntu/+source/qtbase-opensource-src-gles/5.7.1+dfsg-> 2ubuntu4~1
+> 
+> And here is the list of all packages that required dual-stack at least as of
+> 2017, when Ubuntu stopped development on this:
+> 
+> $ wget -O - -q
+> http://old-releases.ubuntu.com/ubuntu/dists/zesty/universe/source/Sources.g
+> z \ zcat | grep-dctrl -FPackage -r qt.*gles -sPackage
+> Package: qt3d-opensource-src-gles
+> Package: qtbase-opensource-src-gles
+> Package: qtdeclarative-opensource-src-gles
+> Package: qtlocation-opensource-src-gles
+> Package: qtmir-gles
+> Package: qtmultimedia-opensource-src-gles
+> Package: qtubuntu-gles
+> $
+> 
+> i.e. 7 source packages total, and 2 of them Ubuntu-Touch-specific (qtmir,
+> qtubuntu).
+And to be honest two of those packages where exclusive to ubuntu: qtmir-gles 
+and qtubuntu-gles.
+> Maybe you were already aware of this, but it didn't come across to me in
+> your mail, sorry. 
+Yes, we are :-) Dmitry has been working on them (he is also an Ubuntu Qt 
+maintainer). He points me out that those 7 packages were needed for the Ubuntu 
+Touch port which, I presume, does not counts KDE's Plasma or KF libraries. The 
+question is then: how would this affect other stacks like the ones I mentioned 
+before? And then there might be other libraries involved. Granted, we do not 
+know exactly which ones but...
+> If you still think it is too much maintenance overhead to
+> provide a dual stack for these 5 libraries (plus any others that later
+> start to use GL-dependant ABIs), I think you're absolutely entitled to that
+> view.
+..yes, we are a team of roughly 3 people, mostly not available the three at 
+the same time. It is not a strange situation that *just* one of us prepares 
+almost (if not all) the full stack when a new release happens and sometimes 
+even one of the others gets to handle the transition needed for private 
+symbols (and thus getting it into unstable properly).
+We are indeed having help from new contributors in some points, and I really 
+hope they step up even more in the future, but currently the stack is huge for 
+us. Heck, we don't even manage to handle tests for some submodules, let's not 
+even think on autopkgtests.
+But then let's suppose new manpower arrives, maybe dedicated to the task. The 
+question is then: how many other packages this will affect? Will all the other 
+maintainers be able to handle double stacks if needed? Is it really good to 
+"kind of" impose even more work to maintainers? The KDE-related stack is 
+possibly even bigger than Qt, and to the best of my knowledge there are just a 
+handful of people maintaining it.
+My current answer is: I really don't know.
+-- 
+Q. How did the programmer die in the shower?
+A. He read the shampoo bottle instructions: Lather. Rinse. Repeat.
+  http://www.devtopics.com/best-programming-jokes/
+Lisandro Damián Nicanor Pérez Meyer
+http://perezmeyer.com.ar/
+http://perezmeyer.blogspot.com/
+signature.asc

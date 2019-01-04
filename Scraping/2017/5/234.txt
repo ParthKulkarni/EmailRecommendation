@@ -1,0 +1,49 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : A proposal for a tool to build local testing debs (was: Re: infinite number of Debian workflows)
+From : Sean Whitton <spwhitton@spwhitton.name>
+Date : Thu, 25 May 2017 11:25:26 +0100
+Message-id : 20170525102526.s6jiipnajwoj5nns@zephyr.silentflame.com
+In-reply-to : <[🔎] 22820.6975.60967.311454@chiark.greenend.org.uk>
+References : <[🔎] 20170515082530.GB25041@chew.redmars.org> <[🔎] 149485223657.12228.1562828497455621076@localhost> <[🔎] 20170517201924.GF30781@an3as.eu> <[🔎] 20170519113558.xvn35oywbcumm3sf@bogon.m.sigxcpu.org> <[🔎] 20170519115617.GA5019@an3as.eu> <[🔎] 20170522075234.GA30264@kos.to> <[🔎] 20170522090752.GA11790@layer-acht.org> <[🔎] 22818.61614.463281.227751@chiark.greenend.org.uk> <[🔎] 20170522202914.zxsleytr5jussjz7@zephyr.silentflame.com> <[🔎] 22820.6975.60967.311454@chiark.greenend.org.uk>
+
+
+On Tue, May 23, 2017 at 12:21:35PM +0100, Ian Jackson wrote:
+> It would be best if the user would just pass an option to say `pls
+> pick version number' and some tool would make a reasonable stab at it.
+How about a new dgit subcommand 'build-deb' which does this:
+- create a new git worktree somewhere temporary
+- in that worktree:
+  - git checkout -b dgit-build-deb
+  - gbp dch -S --since=dgit/dgit/foo --ignore-branch --commit
+  - dpkg-buildpackage -uc -b
+- move .deb from temporary_worktree/.. to ..
+- delete dgit-build-deb branch & temporary worktree
+We would state very clearly in dgit(1) that this command is meant for
+users, not package maintainers.  I think the name is quite intuitive.
+It makes sense to get a .deb file with a version that embeds a git
+commit hash, when I ask dgit to build me a deb from my git HEAD.
+Then in dgit-user(7), the SUMMARY would become
+SUMMARY
+       (These runes will be discussed later.)
+           % dgit clone glibc jessie,-security
+           % cd glibc
+           % wget 'https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=28250;mbox=yes;msg=89' | patch -p1 -u
+           % git commit -a -m 'Fix libc lost output bug'
+           % sudo apt-get build-dep glibc
+           % dgit build-deb
+           % sudo dpkg -i ../libc6_*.deb
+       Occasionally:
+           % git clean -xdf
+           % git reset --hard
+       Later:
+           % cd glibc
+           % dgit pull jessie,-security
+           % dgit build-deb
+           % sudo dpkg -i ../libc6_*.deb
+While the total number of commands has not been much reduced, the
+Debian-specific knowledge required to understand the commands that
+remain does not go beyond what we would expect of administrators of
+Debian systems.  There's nothing especially off-putting.
+-- 
+Sean Whitton
+signature.asc

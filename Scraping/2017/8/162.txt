@@ -1,0 +1,52 @@
+To : debian-devel@lists.debian.org
+Subject : sse{2,3,4.2}, altivec, neon, ...
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 5 Aug 2017 19:53:02 +0200
+Message-id : 20170805175302.ewj5jks7sbl6ukyl@angband.pl
+
+
+Hi ladies and the ugly kind!
+i386:[~]$ chromium
+.----[ xmessage ]
+The hardware on this system lacks support for the sse2 instruction set.
+The upstream chromium project no longer supports this configuration.
+For more information, please read and posibly provide input to their
+bug tracking system at http://crbug.com/348761.
+`----
+i386:[~]$ PCSX2
+Illegal instruction
+Two observations:
+* losing at runtime, be it an error message or outright SIGILL, is ɴᴏᴛ ɴɪᴄᴇ.
+* I had to use qemu -cpu to reproduce this.  I tried raiding junk piles
+  of nearby friends and businesses, failing to find a single pre-SSE3
+  machine[1].  Likewise, my 2009 phone has NEON too.
+Thus, there's rather little point in spending too much time trying to get
+ancient non-baseline extensions non-mandatory on some packages.  No one is
+going to run scientific number-crunching on a Pentium2.
+There are also some packages where such support would be nice (like
+libhighwayhash, a good general-purpose hash -- no reason to exclude crappy
+gear), yet upstream refuses to do the porting and you don't have the tuits
+either.
+Dropping baseline support is giving up, but let's at least surrender nicely.
+Thus, here's a proposed solution: in unstable, there's now a bunch of
+packages that do such checking in preinst, and thus refuse (overridably) to
+even install such software.
+Currently this includes:
+* sse2: i386 (inc. hurd-i386, kfreebsd-i386)
+* sse3: i386, amd64, x32 (〃, kfreebsd-amd64)
+* sse4.2: i386, amd64, x32 (〃)
+* neon: armhf
+* altivec: powerpc
+(amd64 always has sse2, arm64 neon, ppc64el altivec)
+Package names are $(ISA)-support, thus sse2-support if you need SSE2.
+To use: make your package:
+Depends: sse2-support [any-i386]
+Lemme know if anything is amiss; in particular, adding a new extension is a
+two-line change.
+Meow!
+[1]. You can eBay one, but you can get a working PDP-11 that way too.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ What Would Jesus Do, MUD/MMORPG edition:
+⣾⠁⢰⠒⠀⣿⡁ • multiplay with an admin char to benefit your mortal
+⢿⡄⠘⠷⠚⠋⠀ • abuse item cloning bugs (the five fishes + two breads affair)
+⠈⠳⣄⠀⠀⠀⠀ • use glitches to walk on water

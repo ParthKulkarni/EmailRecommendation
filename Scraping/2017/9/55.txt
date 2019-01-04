@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Summary of the 2038 BoF at DC17
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 2 Sep 2017 23:27:22 +0200
+Message-id : 20170902212722.blujrvxpnw2xxg7s@angband.pl
+In-reply-to : <[🔎] 1504370469.4448.42.camel@decadent.org.uk>
+References : <[🔎] 20170901235854.ds4hffumd2ktggau@tack.einval.com> <[🔎] 20170902020427.cde7vsez3lontcd6@angband.pl> <[🔎] 1504370469.4448.42.camel@decadent.org.uk>
+
+
+On Sat, Sep 02, 2017 at 05:41:09PM +0100, Ben Hutchings wrote:
+> On Sat, 2017-09-02 at 04:04 +0200, Adam Borowski wrote:
+> > On Sat, Sep 02, 2017 at 12:58:54AM +0100, Steve McIntyre wrote:
+> > > UNIX time_t is 31 bits (signed), counting seconds since Jan 1,
+> > > 1970. It's going to wrap.. It's used *everywhere* in UNIX-based
+> > > systems. Imagine the effects of Y2K, but worse.
+> > > Glibc is the next obvious piece of the puzzle - almost everything
+> > > depends on it. Planning is ongoing at
+> > > 
+> > >   https://sourceware.org/glibc/wiki/Y2038ProofnessDesign
+> > > 
+> > > to provide 64-bit time_t support without breaking the existing 32-bit
+> > > code.
+> > 
+> > I find it strange that you don't mention x32 anywhere.  Dealing with
+> > assumptions that time_t = long was the majority of work with this port; a
+> > lot of software still either did not apply submitted patches or accepted
+> > only dumb casts to (long) instead of a proper y2038-proof solution.
+> 
+> AFAIK, various compat ioctl implementations assume 32-bit time_t and so
+> don't work properly for x32.  The work being done to add 64-bit time
+> support for older 32-bit architectures will work for both i386 and x32.
+> So x32 doesn't solve any problems.
+Parts of the userland↔kernel interface indeed fail.  The obvious parts (such
+as off_t and friends) are cleanly 64-bit but many ioctls were/are broken,
+and don't match uapi headers.  Most of those have been fixed since, usually
+on the kernel side, but indeed a concerted effort to get everything right
+can't hurt.
+But the section that I responded to was about userland API/ABI.  And on x32
+all of the following types are 64-bit:
+    time_t
+    struct timeval (both tv_sec and tv_usec)
+    struct timespec (both tv_sec and tv_nsec)
+Sub-second fields are pointlessly wide (both usec and nsec fits within 31
+bits fine).  This is not a problem on amd64 where it matches "long" but is a
+frequent cause of unjoy on x32 where it's longer than long.
+Usually the FTBFS comes from printf("%l", t) where it causes a warning which
+in turns triggers -Werror (used by way too many packages).
+In other cases, a pointer to time_t or a struct time{val,spec} field is
+taken for a pointer to long.  #874018 is an example I filed less that 22
+hours ago -- a library that package uses (libstartupnotification) has the
+following prototype:
+    sn_startup_sequence_get_last_active_time (SnStartupSequence *sequence,
+                                          long              *tv_sec,
+                                          long              *tv_usec);
+which will accept pointers to timespec.tv_{,sec} on every architecture but
+x32 -- until this planned y2038 change when every 32-bit arch will follow.
+Thus, there are good news and bad news:
+* good: userspace time_t↔long mismatches are almost all fixed
+* bad: in many cases they were cast into (long) as there's no PRId for
+  time_t, which makes your work harder: instead of a nice warning/error,
+  the y2038 bug is silent.
+The latter doesn't affect cases like libstartupnotification -- once that
+library's API changes from long to the new type, users will nicely FTBFS.
+There's nothing wrong with tv_{u,n}sec as no one plans to extend a second
+above 1000000μs or 1000000000ns, but casts on time_t are not nice.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ Vat kind uf sufficiently advanced technology iz dis!?
+⢿⡄⠘⠷⠚⠋⠀                                 -- Genghis Ht'rok'din
+⠈⠳⣄⠀⠀⠀⠀

@@ -1,0 +1,69 @@
+To : debian-devel@lists.debian.org
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Tue, 25 Apr 2017 16:17:29 +0100
+Message-id : 20170425151725.3xf6sbaiccpo7rja@x
+In-reply-to : <[🔎] 20170424131015.geopkjepwhazd4ze@angband.pl>
+
+
+Adam Borowski wrote:
+> On Mon, Apr 24, 2017 at 11:17:48AM +0200, Marco d'Itri wrote:
+> > While this scheme was probably instigated by limitations in RPM, at this 
+> > point we have had multiple packages (kmod, systemd, udev for a start) 
+> > using it for years.
+> > 
+> > Moving the sysctl.d default settings to /etc would be:
+> > - a waste of developers time
+> > - a gratuitous incompatibility with other distributions
+> > - inconsistent with the documentation both inside and outside Debian
+> > - inconsistent with other configuration files implementing this scheme
+> 
+> And:
+> - inconsistent with every package in Debian not in that particular stack
+Untrue.  A quick search confirmed a dozen other packages that use the
+same approach, most of them in the default desktop install.
+> - hard for admins to make edits (one needs to guess this particular scheme
+>   is in place and find the file to modify)
+Speaking as a sysadmin, I find this approach far easier to work with.
+It allows me to *package* my configuration, including both standalone
+configuration and overrides of other packages.  Then I simply install
+the configuration packages on various systems.
+As for "guessing this particular scheme is in place", that's typically
+documented directly in the manpage for the configuration file.
+> - fails whenever the files in /usr are rearranged
+A package should ideally have only one such file, named after the
+package.  But in any case, such changes would typically get mentioned in
+NEWS.Debian.
+> - can't be managed sanely with usual configuration management systems
+>   (including raw git)
+All of the actual configuration can easily be managed with a
+configuration management system, including raw git or etckeeper.  What's
+in /usr isn't configuration, it's package defaults.  All configuration
+(potentially none) lives in /etc.
+> - makes the history of changes done by you vs the package (on a
+>   non-overridden file) hard to audit
+On a non-overridden file, there are no changes by you, and all of them
+come from the package.  And it's *easy* to audit the changes made by
+you versus by the package: your changes are in /etc, and the package's
+are in /usr.
+> All of this is caused by Red Hat having no support for upgrades:
+No, this has nothing to do with limitations of Red Hat.  This exists to
+make sysadmin's lives easier, and to support new use cases.
+> Thus, what about we stop digging the hole and at least forbid this scheme
+> for new packages?
+No, we should not patch *out* all the support that people have added
+upstream; if anything, we should improve more upstreams by adding
+support for this mechanism, so that /etc can contain nothing but
+sysadmin configuration.  Stateless systems are much easier to work with.
+> > There are also good arguments for having the whole default configuration 
+> > live in /usr and only local changes in /etc: e.g. this allows supporting 
+> > systems with an empty /etc, which greatly reduces the administrative 
+> > time needed to manage a large number of servers/containers.
+> 
+> If all your boxes are identical and get their snowflake number from the net,
+> /etc can come from the same place /var and /usr does.  You do need to
+> ensure the rest is unmodified anyway.  Shoving things under the carpet
+> doesn't help.
+What you're referring to here is not the same thing.
+> But beside the maintainer hat, do you wear a sysadmin hat sometimes?
+That was entirely uncalled for.

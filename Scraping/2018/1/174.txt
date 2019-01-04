@@ -1,0 +1,84 @@
+To : 886238@bugs.debian.org
+Subject : Bug#886238: Please introduce official nosystemd build profile
+From : Johannes Schauer <josch@debian.org>
+Date : Wed, 03 Jan 2018 20:24:49 +0100
+Message-id : 151500748931.32386.8459340540929450089@localhost
+Reply-to : Johannes Schauer <josch@debian.org>, 886238@bugs.debian.org
+In-reply-to : <[🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com>
+
+
+Quoting Simon McVittie (2018-01-03 14:30:55)
+> On Wed, 03 Jan 2018 at 15:12:51 +0300, Hleb Valoshka wrote:
+> > Please introduce official nosystemd build profile so downstream
+> > distributions can send patches to package maintainers with
+> > systemd-less build instead of keep them in home.
+> 
+> In general, build profiles are not meant
+> to result in functional changes to packages
+> (<https://wiki.debian.org/BuildProfileSpec#Profile_built_binary_packages>),
+> which seems like it isn't a great fit for omission of systemd support:
+> if a package installs systemd units, links to libsystemd, etc., it's
+> usually because it causes a functional difference to that package's
+> behaviour on systems that booted with systemd as pid 1, or on systems
+> where `systemd --user` is available.
+Main author of that wiki page here.
+Disclaimer: These "policies" outlined on that page have been agreed upon by the
+people involved in bootstrapping Debian. AFAIK there was never a project-wide
+consensus about these rules.
+The reason why most build profiles completely forbid changes to the produced
+binary packages is, that otherwise this would undermine the contracts formed by
+our dependency system. Ultimately, we want to automatically resolve dependency
+cycles. But reasoning over dependencies in that way is only possible if a
+binary package with the same name, version and architecture also always
+contains the same content. Otherwise a package foo (build-)depending on another
+package bar would not be able to rely on the functionality it expects bar to
+provide. Ideally, binary packages would even stay the same bit-by-bit. Thus, a
+package which for example wants to add the nopython build profile would need to
+move all its Python-specific content into a separate binary package (if that's
+not the case already) and then not build that binary package if the nopython
+build profile is active.
+> The speculation about a possible nosystemd profile in
+> <https://wiki.debian.org/BuildProfileSpec#Derivative_specific_profiles> is
+> not consistent with that design principle. If a package contains systemd
+> units or uses of libsystemd, then it's safe to assume they were added for a
+> reason. Whether you value that reason or not, it's nearly always true to say
+> that cutting out systemd-related bits is a functional change.
+Cutting out systemd-related bits is probably a functional change in most cases.
+The only way to introduce a nosystemd profile and adhere to the restriction of
+not introducing functional changes into existing binary packages once that
+profile is active, would be to add a new set of "nosystemd" binary packages. So
+the speculation you quote above is consistent with the design principle but it
+requires invasive changes to the packaging of all packages surrounding systemd.
+So a debian/control would look like:
+# this is the normal package
+Package: foo
+Build-Profiles: <!nosystemd>
+Depends: libsystemd, bar, [...]
+# this is the package built when the nosystemd build profile is active
+Package: foo-nosystemd
+Build-Profiles: <nosystemd>
+Depends: bar, [...]
+Plus all required changes in debian/rules to support this. Pulling this off
+while adhering to the existing rules would certainly go beyond the complexity
+that other build profiles currently require.
+> If the nosystemd profile is (exceptionally) allowed to cause functional
+> changes, what would the policy be for this build profile? Would it be
+> acceptable for a package built with nosystemd to be unusable or have
+> incompatible behaviour if it is used on a system booted with systemd?
+> 
+> (Clearly, that would be a silly thing to do, because if you care about
+> avoiding systemd enough to be specially rebuilding packages, then you
+> certainly shouldn't boot with systemd as your process 1; but there's no
+> technical restriction that prevents that from happening.)
+If such an exception were added, then any tool used for bootstrapping would
+have to carry a list of profiles that are not safe to use because packages
+built with that profile do potentially break dependency assumptions. Right now,
+the only set of build profile names that are allowed to produce binary packages
+with functional changes is the pkg.$sourcepackage.$anything pattern which
+allows source package maintainers to experiment. For that reason, I'd like to
+avoid introducing more build profiles that are allowed to break dependency
+contracts.
+Thanks!
+cheers, josch
+signature.asc

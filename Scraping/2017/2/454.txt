@@ -1,0 +1,122 @@
+To : debian-devel@lists.debian.org
+Subject : convention on listen port local or all network interfaces etc.
+From : Patrick Schleizer <patrick-mailinglists@whonix.org>
+Date : Tue, 21 Feb 2017 00:55:00 +0000
+Message-id : 2b18082d-56f3-80b4-8945-d2a91472d107@riseup.net
+
+
+A convention on listen port local or all network interfaces etc. would
+be desirable.
+At the moment it looks like there is no convention for where server
+applications are configured to listen by default, on localhost vs. all
+interfaces. Looks like deciding that is up to the upstream author of the
+software as well as the packager. Then it's up to the system
+administrator to decide on where the server application should listen.
+There is no great place for derivatives to globally modify this setting.
+Usually applications using Tor ephemeral hidden services such as
+ricochet-im, onionshare, ZeroNet, unMessage listen on localhost only.
+Whonix is a Debian derivative with focus on anonymity, privacy and
+security. To oversimplify it, we preconfigure Debian with these goals in
+mind.
+Due to Whonix's workstation, gateway split design, applications using
+Tor ephemeral hidden services need to listen on the workstation's
+external interface rather than on the workstation's localhost.
+A global configuration file such as `/etc/ricochet-im.conf` works for
+system administrators, but not for derivatives.
+Why is a config folder `/etc/ricochet-im.d` strongly preferred over a
+config file `/etc/ricochet-im.conf`? When a config file such as
+`/etc/ricochet-im.conf` is owned by one package `ricochet-im`, it cannot
+be owned by another package. If another package was to modify it using
+`sed` or so, then dpkg would regard that file as user modified. The
+problem is, next time that config file is changed by upstream, this
+throws an interactive dpkg conflict resolution dialog at the user, which
+is a usability bug. (example [x]) `sed` style config modifications are a
+Debian policy violation as well.
+So far we at Whonix had discussions with ricochet-im, onionshare,
+ZeroNet and unMessage. They are all interested to make their
+applications compatible with Whonix. However, asking each individual
+project to `/etc/application-specific.d` folder where Whonix then could
+drop a `/etc/application-specific.d/30_whonix.conf` that says
+`listen=10.152.152.10` is a lot duplicate effort and not that desirable
+for these applications because they have not yet any need for
+`/etc/application-specific.d/`.
+Having these applications auto detect Whonix also does not seem like
+great solution. Seems unsafe. If the auto detection code kicks in as a
+false positive, users would be at risk. Since it's Whonix specific and
+general solutions reusable by anyone are to be preferred. At least that
+is my interpretation of *nix philosophy.
+May the following convention be suggested.
+* Parse in lexical order.
+** `/usr/lib/server-config.d`
+** `/etc/server-config.d`
+** `~/.config/server-config.d`
+** Similar to how systemd would parse these folders. I.e. for example
+start with parsing  `/usr/lib/server-config.d/30_default.conf`, followed
+by `/usr/lib/server-config.d/31_other.conf`, followed by
+`/etc/server-config.d/30_user.conf`, followed by
+`/etc/server-config.d/40_user.conf` and so forth.
+* The pseudo code in shell / bash:
+```
+for file_name in /usr/lib/server-config.d/*.conf ; do
+   file_list="$file_list $file_name"
+done
+for file_name in /etc/server-config.d/*.conf ; do
+   file_list="$file_list $file_name"
+done
+for file_name in /home/.config/server-config.d/*.conf ; do
+   file_list="$file_list $file_name"
+done
+for item in $file_list ; do
+   source "$item"
+done
+```
+* config options:
+```
+# lines starting with # are ignored
+# global fallback setting for all listeners
+listen_ip=127.0.0.1
+listen_ip=10.152.152.10
+listen_ip=0.0.0.0
+listen_ip=UNIX-LISTEN:/path/to/<application-name>.sock
+listen_ip=eth0
+# web interfaces
+listen_ip_web=127.0.0.1
+listen_ip_web=10.152.152.10
+listen_ip_web=0.0.0.0
+listen_ip_web=UNIX-LISTEN:/path/to/<application-name>_web.sock
+listen_ip_web=eth0
+# listen incoming IP
+listen_ip_incoming=127.0.0.1
+listen_ip_incoming=10.152.152.10
+listen_ip_incoming=0.0.0.0
+listen_ip_incoming=UNIX-LISTEN:/path/to/<application-name>_incoming.sock
+listen_ip_incoming=eth0
+# optional application specific listen port
+listen_port_<application-name>=15000
+listen_range_<application-name>=16000-17000
+```
+For example...
+```
+# /etc/server-config.d/30_default.conf
+listen_ip=0.0.0.0
+# /etc/server-config.d/50_user.conf
+listen_ip=127.0.0.1
+```
+Would mean listen on `0.0.0.0` as well as on `127.0.0.1`.
+This disable listeners by previous lower priority configuration files,
+one could use `listen_ip=`. For example:
+```
+# /etc/server-config.d/30_default.conf
+listen_ip=0.0.0.0
+# /etc/server-config.d/50_user.conf
+listen_ip=
+listen_ip=127.0.0.1
+```
+Would result in listening on `127.0.0.1` only. This is similar to how
+systemd parses systemd unit files.
+To prevent different applications to parse the configuration
+differently, to avoid unexpected results, it would be useful to have a
+python library and command line tool to query it.
+Any questions? Any suggestions? What do you think?
+[x]:
+https://www.whonix.org/wiki/Whonix_Configuration_Files#dpkg_interactive_conflict_resolution_dialog

@@ -1,0 +1,53 @@
+To : Mo Zhou <lumin@debian.org>, debian-devel@lists.debian.org, 	debian-science@lists.debian.org
+Subject : Re: RFC: Naming convention for ILP64 variant of BLAS/LAPACK
+From : Sébastien Villemot <sebastien@debian.org>
+Date : Tue, 23 Oct 2018 22:45:01 +0200
+Message-id : 1540327501.2345.9.camel@debian.org
+In-reply-to : <[🔎] 20181023141215.GB10165@Asuna>
+References : <[🔎] 20181021095114.GA24382@Asuna>	 <[🔎] 20181021151615.6ipnkpz3bmlncoh7@shell.thinkmo.de>	 <[🔎] 20181021175116.frpge6rogmut4fm4@mail.wookware.org>	 <[🔎] 20181022150709.GB18121@Asuna>	 <[🔎] d950b9a242315288cba488847b279a8191132eb7.camel@decadent.org.uk>	 <[🔎] 20181022173823.GA13554@espresso.pseudorandom.co.uk>	 <[🔎] 1540230910.2345.2.camel@debian.org>	 <[🔎] 20181022175837.ioj7p7eb47axoqs3@shell.thinkmo.de>	 <[🔎] 20181023141215.GB10165@Asuna>
+
+
+Le mardi 23 octobre 2018 à 14:12 +0000, Mo Zhou a écrit :
+> On Mon, Oct 22, 2018 at 07:58:38PM +0200, Bastian Blank wrote:
+> > On Mon, Oct 22, 2018 at 07:55:10PM +0200, Sébastien Villemot wrote:
+> > > For BLAS/LAPACK implementations implemented in C, like OpenBLAS, they
+> > > will be compiled using LP64, and not ILP64. Only integers exposed
+> > > through the interface will be affected, through the use of appropriate
+> > > types.
+> > 
+> > So you could also to a proper library transition and drop the support
+> > for 32-bit indicies completely?
+> 
+> Completely dropping 32-bit-index version of BLAS/LAPACK for 64-bit
+> architectures is a long way to go. We can keep 32-bit-index version and
+> 64-bit-index version at the same time for a while and see if the
+> 32-bit-version is really droppable.
+> 
+> This reminds me two points about wheter the 32-bit-index version is
+> droppable. As far as I know, Debian (will) have these BLAS[1] providers:
+> 
+> (1) bin:libblas3  from  src:lapack
+> (2) bin:libatlas3-base  from  src:atlas
+> (3) bin:libopenblas-base  from  src:openblas
+> (4) bin:libblis1  from  src:blis  [WIP]
+> (5) bin:libmkl-rt  from  src:intel-mkl  [non-free]
+> (6) bin:libnvblas9.1  from  src:nvidia-cuda-toolkit  [non-free] [2]
+> 
+> * I confirm these providers support 64-bit index in the API.
+>   (2) (3) (4) (5)
+> 
+>   @Sebastien could you please confirm the status of 64-bit-index support
+>   in lapack, i.e. (1) ?
+Since the BLAS and LAPACK implementations provided by src:lapack are
+pure Fortran code, my understanding is that it's just a matter of
+compiling them with -fdefault-integer-8 to get 64-bit indexing.
+This package also provides C interfaces (resp. CBLAS and LAPACKE).
+LAPACKE provides the necessary type aliases to get 64-bit indexing.
+Curiously, CBLAS does not seem to have that flexibility, and will
+probably need some (reasonably simple) patching.
+-- 
+⢀⣴⠾⠻⢶⣦⠀  Sébastien Villemot
+⣾⠁⢠⠒⠀⣿⡁  Debian Developer
+⢿⡄⠘⠷⠚⠋⠀  http://sebastien.villemot.name
+⠈⠳⣄⠀⠀⠀⠀  http://www.debian.org
+signature.asc

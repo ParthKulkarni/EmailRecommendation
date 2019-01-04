@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Standards 4.1.3 and apt-cacher
+From : Mark Hindley <mark@hindley.org.uk>
+Date : Wed, 7 Feb 2018 10:14:15 +0000
+Message-id : 20180207101415.GT20496@hindley.org.uk
+
+
+Hello,
+I am trying to upgrade apt-cacher to Standards version 4.1.3. In particular
+using DISABLED=yes|no in /etc/defaults is now prohibited.
+apt-cacher can be run as a daemon or from /etc/inetd.conf and this configuration
+is set in response to a debconf question.
+I have a working version of the postinst which I believe complies with the new
+policy by no longer changing a value in /etc/default/apt-cacher, however it
+contains multiple calls to update-rc.d (one to register the init file and then
+calls to enable/disable as appropriate in response to db_get). This produces the
+lintian error: duplicate-updaterc.d-calls-in-postinst.
+Is my approach flawed or is lintian being overzealous?
+Any other suggestions?
+A pruned version of postinst is below.
+Thanks for your help.
+Mark
+# Split of standard dh_installinit block. invoke-rc.d at end of script
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ]; then
+	if [ -x "/etc/init.d/apt-cacher" ]; then
+		update-rc.d apt-cacher defaults >/dev/null
+	fi
+fi
+case "$1" in
+    reconfigure|configure)
+	db_get apt-cacher/mode
+	case "$RET" in
+	    daemon)
+		echo "Setup apt-cacher running as standalone daemon."
+		update-inetd --remove "3142\s.+/usr/sbin/apt-cacher" # PCRE
+		update-rc.d apt-cacher enable > /dev/null
+		;;
+	    inetd)
+		echo "Setup apt-cacher running from /etc/inetd.conf."
+		update-inetd --add "3142\tstream\ttcp\tnowait\twww-data\t/usr/sbin/apt-cacher\tapt-cacher\t-i"
+		update-rc.d apt-cacher disable > /dev/null
+		;;
+	    manual)
+	        # Disable inetd and daemon
+		update-inetd --remove "3142\s.+/usr/sbin/apt-cacher" # PCRE
+		update-rc.d apt-cacher disable > /dev/null
+		cat <<EOF 
+Manual configuration of apt-cacher startup selected. No changes made.
+If you are operating legacy CGI mode, this is deprecated and you really should
+consider changing to one of the daemon modes. See cgi_advise_to_use and
+cgi_redirect in man apt-cacher(8) for help in redirecting your clients.
+To change your choice, run 
+  dpkg-reconfigure apt-cacher
+EOF
+		;;
+	esac
+	db_stop
+	;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ]; then
+	if [ -x "/etc/init.d/apt-cacher" ]; then
+		invoke-rc.d apt-cacher start || exit $?
+	fi
+fi
+exit 0

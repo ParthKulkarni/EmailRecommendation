@@ -1,0 +1,72 @@
+To : debian-devel@lists.debian.org
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Christian Seiler <christian@iwakd.de>
+Date : Mon, 1 May 2017 11:09:26 +0200
+Message-id : 7b586432-f771-e856-5fa4-a83204f2091a@iwakd.de
+In-reply-to : <[🔎] E1d55Wi-00026x-Bg@swivel.zugschlus.de>
+References : <20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net> <20170423190041.x6slcy7vpaqw245z@grep.be> <CAOdo=SxugG5=F2EXwZSz65tuZN9sAS5HjSDB5wgP1guf-d6UxQ@mail.gmail.com> <20170427071854.tmpt2eav2hjyvfhq@grep.be> <CAOdo=SxpzqqVtZEEhY1Cq2nhDhxWkomaF1Zcp-6zpx_A7ssitA@mail.gmail.com> <20170430182245.egom55et7vpz6nst@grep.be> <[🔎] E1d55Wi-00026x-Bg@swivel.zugschlus.de>
+
+
+On 05/01/2017 09:13 AM, Marc Haber wrote:
+> I find it already disturbing that we have diverged from "our" way in
+> systemd, which is probably the first package a local admin will be
+> exposed to.
+This is nothing new though. For example, DBus has had the /usr and
+/etc split since as far back as I can remember. (Granted, DBus isn't
+a great example, because I consider its configuration to be quite
+horrible for an end-user, especially because it's XML.)
+Another example: Firefox stores its default preferences in
+/usr/share/firefox-esr/browser/defaults/preferences/firefox.js,
+and while there is /etc/firefox-esr/firefox.js, that is applied as
+a delta. (Plus then the user's local configuration is applied as
+a delta on top of that.)
+binfmt-support, the Debian-specific way of adding binfmts to the
+kernel [1], is _only_ configured in /usr/share/binfmts. There is
+no way for users to override this other than by using dpkg-divert.
+The entire XDG menu and MIME specifications are built around the
+defaults being in /usr and /usr/local.
+LXC's configuration system works via includes, and containers
+created by the default templates just add
+   include /usr/share/lxc/config/$TYPE.common.conf
+to the container's specific configuration file.
+The current X server supports split-snippets in
+/usr/share/X11/xorg.conf.d and /etc/X11/xorg.conf.d - and all
+Debian packages that install snippets put them in /usr/share.
+(Granted, most are part of the X11 project.)
+dput-ng searches for its configuration in /usr/share/dput-ng,
+/etc/dput.d and ~/.dput.d. (Plus /etc/dput.cf and ~/.dput.cf
+for compatibility reasons.) You can't get more Debian-specific
+than that. And support for dput.d is 5 years old already.
+The nano editor's default configuration has
+include "/usr/share/nano/*.nanorc"
+in /etc/nanorc.
+AppArmor has
+Include /usr/share/apparmor
+in its default configuration.
+There are likely quite a few more examples.
+My point is just the following: this is really nothing new.
+Some packages have been doing things like this for over a
+decade. Of course, since systemd is quite a central component
+to a system, this has become more prominent, but the systemd
+authors were not the first to implement a scheme like this.
+And if you look at the subtle differences between all of the
+examples I've provided in how they read stuff from /usr, I'm
+pretty sure that several of them came up with that type of
+scheme independently of each other. Which is why the list of
+examples I've provided is not necessarily a list of "good"
+examples in the sense that "yes, they're doing it right",
+but rather a list of examples that demonstrate that this
+scheme scratches a very real itch.
+And as I said in other places in this thread: I personally
+think that the separate /usr <-> /etc scheme is much better
+than just storing everything in /etc, so I would really
+prefer if as much software as possible would switch to that,
+but do it consistently, following e.g. dput-ng or systemd,
+but not for example like binfmt-support.
+Regards,
+Christian
+[1] This is _not_ systemd. systemd introduced an own scheme via
+    /usr/lib/binfmt.d + /etc/binfmt.d, which no package in Debian
+    sid or stretch currently uses.
+    And note that binfmt-support has always worked that way, for
+    at least 15 years, way before systemd came around.

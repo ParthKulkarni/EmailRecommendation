@@ -1,0 +1,68 @@
+To : debian-devel@lists.debian.org
+Subject : Re: infinite number of Debian workflows (Re: Moving away from (unsupportable) FusionForge on Alioth?)
+From : Emilio Pozuelo Monfort <pochu@debian.org>
+Date : Tue, 23 May 2017 18:38:29 +0200
+Message-id : f70705ea-ded3-5535-0f88-d78ec8081e09@debian.org
+In-reply-to : <[🔎] 20170522142538.GA2119@Jamess-MacBook.local>
+References : <[🔎] 20170522140648.GB11499@chew.redmars.org> <[🔎] 20170522142538.GA2119@Jamess-MacBook.local>
+
+
+On 22/05/17 16:25, James Clarke wrote:
+> On Mon, May 22, 2017 at 03:06:48PM +0100, Jonathan Dowland wrote:
+>> On Mon, May 22, 2017 at 12:47:51PM +0100, Sean Whitton wrote:
+>>> Someone else already had this idea:
+>>>
+>>> https://people.debian.org/~stapelberg//2016/11/25/build-tools.html
+>>
+>> Excellent, this is a great start, and seeing "Michael Stapelberg" for me is an
+>> indication of quality.
+> 
+> You say that, but this is incredibly biased. Even he admits that in the
+> colour choice. Disclaimer: as the cowbuilder maintainer (which comes
+> from the cow*dancer* source package, for historical reasons, despite
+> what the diagram may tell you) I am of course also biased. But I notice
+> that for the sbuild path, schroot is completely missing, which is
+> implemented in C++ and therefore probably deserves a bright red colour
+> just like cowbuilder in his second picture (or maybe even something
+> worse, depending on your views of C++). Then there's the extremely
+> unhelfpul, hostile comment at the end:
+> 
+>> I propose to eliminate complexity in Debian by deprecating the
+>> pbuilder toolchain in favor of sbuild.
+> 
+> Now, I am not necessarily against simplifying workflows, but choosing
+> one to rule the all arbitrarily because you prefer the language it's
+> written in is not the way to go about it. There are also benefits to
+> having a variety of implementations; they behave slightly differently,
+> sometimes not implementing policy in the same way, and this can be a
+> good thing, allowing policy to be clarified, or finding mistakes in the
+> other builder, or just exposing flaws in your package. For example,
+> pbuilder will by default use a new isolated network namespace for the
+> build, whereas sbuild won't, so if you just use sbuild you may not be
+> aware of violating policy (4.9). I'm not trying to sell pbuilder over
+> sbuild here though; there are also many ways in which sbuild is better
+> than pbuilder.
+Besides, the sbuild/pbuilder duplicity is the least of your problems in terms of
+multiple workflows, because once you choose one of those and set it up, you can
+build all packages, and don't have to set the other one up or learn it.
+Compare that to hacking on a package which may use
+ - debhelper, dh, cdbs or no helper at all (!) for debian/rules
+ - quilt, dpatch, simple-patchsys, single-debian-patch for patch management
+ - format 1.0, 3.0, native, non-native, multiple tarballs... for the source
+ - git-buildpackage, git-dpm, other git repo structure with no helper tools,
+svn, bzr, etc for the repository
+ - ...
+Some of those are easy to learn, and some you don't have to deal with if you are
+doing an NMU (e.g. the repository). It's still a pretty complicated picture and
+a steep learning curve if you want to start contributing, or want to join a team
+that has a completely different setup.
+I have to deal with packages in svn, git-bp and plain git, and have started to
+write a set of (ugly) scripts that perform common actions in each of those
+formats, and a generic wrapper that calls the right one depending on which repo
+I'm on, so that I can just do e.g. 'deb update; dch; deb commit; deb build; deb
+release; deb tag' and not having to remember all the different command line
+switches and options and so on (I have a bad memory and am lazy). This shouldn't
+be necessary in the first place; at least a bit of homogenization would make
+sense imho.
+Cheers,
+Emilio

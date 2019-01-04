@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Reducing the attack surface caused by Berkeley DB...
+From : Colin Watson <cjwatson@debian.org>
+Date : Fri, 26 Jan 2018 11:02:46 +0000
+Message-id : 20180126110246.tahyw6tw55s7j34m@riva.ucam.org
+Mail-followup-to : debian-devel@lists.debian.org,	Lionel Debroux <debroux.lionel@gmail.com>
+In-reply-to : <[🔎] 20180126103929.GB24998@crossbow>
+References : <[🔎] 20bd977f-1d31-cc17-358d-98d150098fbe@yahoo.fr> <[🔎] 20180126103929.GB24998@crossbow>
+
+
+On Fri, Jan 26, 2018 at 11:39:29AM +0100, David Kalnischkies wrote:
+> On Thu, Jan 25, 2018 at 11:59:06PM +0100, Lionel Debroux wrote:
+> > In practice, Berkeley DB is a core component of most *nix distros.
+> > Debian popcon indicates that libdb5.3 is installed on ~80% of the
+> > computers which report to popcon.
+> 
+> I wonder how many of this ~80% is only due to having installed apt-utils
+> (99.83%) for apt-extracttemplates (which is responsible for having many
+> debconf questions before the installation process starts).
+> 
+> Anyway, the only util in apt-utils making use of libdb is apt-ftparchive
+> which a) isn't used much in Debian – but by some derivatives¹ and b) can
+> operate without the backing of a db, but you don't want to run a large
+> archive without it.
+I agree that the database cache makes a substantial difference at this
+scale.  On the occasions when we've suffered corruption and had to
+rebuild it, it's taken on the order of 12 hours for a single suite,
+while normal runs are more like 15-20 minutes.
+> Famous last words, but I doubt there is anything libdb does for
+> ftparchive which couldn't be done by any other database, so switching
+> shouldn't be too hard database-wise…
+> 
+> Finding someone performing the daunting task of actually switching code,
+> documentation and existing databases over on the other hand… I at least
+> don't see me enthusiastically raising my arm crying "let me, let me, …".
+I don't blame you!
+> ¹ The Census has a field for "Archive tool", but that isn't filled by
+> everyone in the census. The biggest fish might be launchpad/Ubuntu.
+It's true that Launchpad uses apt-ftparchive for the Ubuntu archive.  We
+publish PPAs directly from our database rather than going via
+apt-ftparchive, but we've never quite managed to get that to perform
+acceptably at the scale of the Ubuntu archive.  I suppose it might be
+worth another go.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

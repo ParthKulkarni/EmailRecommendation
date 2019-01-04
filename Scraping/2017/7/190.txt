@@ -1,0 +1,47 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Naming of network devices - how to improve it in buster
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Wed, 19 Jul 2017 23:32:38 +0200
+Message-id : 20170719213238.rcdvhqcxjpk3orni@angband.pl
+In-reply-to : <[🔎] 20170719205334.mqaya56o4f7xjej6@sliepen.org>
+References : <[🔎] 20170711101459.uglna6qjj7jd5zq7@sliepen.org> <[🔎] 87bmorb3je.fsf@miraculix.mork.no> <[🔎] 20170711160429.2huwxkmlhgsd6vpk@sliepen.org> <[🔎] 20170715203059.ydiz55npkqce7qth@sliepen.org> <[🔎] 20170715211241.aacc63jga4lnxz5j@angband.pl> <[🔎] 20170716012522.ebzbyqslybuk54cx@khazad-dum.debian.net> <[🔎] 20170716115427.peuq7btalmnrqqsh@sliepen.org> <[🔎] 20170717031207.tapeptwpsepq52ds@angband.pl> <[🔎] 20170717162214.bk672ztjfjme3y7v@sliepen.org> <[🔎] 20170719205334.mqaya56o4f7xjej6@sliepen.org>
+
+
+On Wed, Jul 19, 2017 at 10:53:34PM +0200, Guus Sliepen wrote:
+> On Mon, Jul 17, 2017 at 06:22:14PM +0200, Guus Sliepen wrote:
+> 
+> > > Thus, what about this:
+> > > auto mac/00:16:0a:26:99:c6/=en0
+> > > iface en0 inet6 static
+> > > 	address 3:1415:9265:3589:7932:3846:2643:3832/64
+> > > 	gateway 3:1415:9265:3589::1
+> > > 	rename
+> > > 
+> > > With the rename command taking an optional argument (the new name) that
+> > > defaults to the logical name (ie, after =).
+> > 
+> > Yes, that should be implementable.
+> 
+> Actually, that is not as easy as it sounds. It works in the above
+> example because mac/00:16:0a:26:99:c6 would still match en0 after the
+> rename, but that is not always true. For example, doing auto /eth0/=en0
+> means the pattern eth0 matches on ifup, but it no longer matches when
+> you do ifdown. Also, ifupdown supports changing the MAC address of an
+> interface, so even mac/.../ patterns are problematic.
+Well, but on the way up, /eth0/=en0 or mac/.../=en0 will match logical
+interface "en0", and on the way down, and subsequent manual ups, it will
+match the kernel name "en0".  Am I missing something?
+> It's better to split it:
+> 
+> rename mac/00:16:0a:26:99:c6/=en0
+> auto en0
+> iface en0 ...
+Slightly more typing, but that'd work, too.
+> And do the renames whenever ifup is run, before it processes anything
+> else.
+That's obvious, in both cases.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢠⠒⠀⣿⡁ A dumb species has no way to open a tuna can.
+⢿⡄⠘⠷⠚⠋⠀ A smart species invents a can opener.
+⠈⠳⣄⠀⠀⠀⠀ A master species delegates.

@@ -1,0 +1,52 @@
+To : Dashamir Hoxha <dashohoxha@gmail.com>, 903815@bugs.debian.org
+Subject : Re: Bug#903815: ITP: pw -- A simple command-line password manager
+From : Philipp Kern <pkern@debian.org>
+Date : Sun, 15 Jul 2018 11:31:31 +0200
+Message-id : ac0827e2-5469-a1c9-da89-b4ebaf9e458d@debian.org
+In-reply-to : <[🔎] 20180715084224.5kzlh4mfiy7z4qzc@dashamir>
+References : <[🔎] 20180715084224.5kzlh4mfiy7z4qzc@dashamir>
+
+
+On 15.07.2018 10:42, Dashamir Hoxha wrote:
+> Description:
+>   A simple command-line password manager that keeps passwords inside a
+>   gpg encrypted tgz archive. The content of the archive is a directory tree
+>   with a file for each password entry. The first line of the file is the
+>   password, and the rest can optionally be additional or related info.
+>   It provides commands for manipulating the passwords, allowing the user
+>   to add, remove, edit, generate passwords etc.
+> 
+> Repository: https://github.com/dashohoxha/pw
+> Documentation: http://dashohoxha.github.io/pw/man/
+> 
+> This program started by forking 'pass': http://www.passwordstore.org/
+> I sugessted a few changes to it, which were not accepted, so I forked
+> it and made further changes and improvements, until it became a
+> completely different program.
+> See:
+> - https://lists.zx2c4.com/pipermail/password-store/2016-January/001887.html
+> - https://lists.zx2c4.com/pipermail/password-store/2016-January/001902.html
+> - https://lists.zx2c4.com/pipermail/password-store/2016-January/001928.html
+I have to say that I'm pretty unconvinced of this code.
+* The archive is temporarily stored unencrypted on disk: encrypt and
+decrypt do an in-place operation with gpg, which is done wherever the
+encrypted archive lives. So tar stores onto disk into the target path,
+then the result is encrypted with gpg and the original is erased using
+rm -rf (also ignoring errors in case the file fails to delete). The
+inverse happens for decryption.
+* Symmetric and asymmetric encryption are not actually exclusive as the
+author makes it sound on the mailing list thread as gpg can wrap the
+session key with both symmetric and asymmetric keys.
+* Error handling in the script is wonky. I wonder if we could end up
+with an actual "rm -rf /" in case mktemp for WORKDIR fails. Errors on
+untar and tar are suppressed...
+* Comments like [0] aren't exactly inspiring either. The quoting in the
+script is "interesting". Sure, maybe you're asking for trouble anyway if
+your home directory contains a space, but this script will break in
+interesting ways. :)
+I did not look at the original code of pass, but I don't find this code
+handling secrets confidence inspiring, to be honest.
+Kind regards
+Philipp Kern
+[0]
+https://lists.zx2c4.com/pipermail/password-store/2016-January/001932.html

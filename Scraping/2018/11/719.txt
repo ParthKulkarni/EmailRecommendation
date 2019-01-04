@@ -1,0 +1,42 @@
+To : debian-devel@lists.debian.org,  debian-runit@freelists.org
+Subject : Re: wicd-daemon-run_1.0_amd64.changes REJECTED
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 28 Nov 2018 14:39:55 -0800
+Message-id : 87lg5c25dw.fsf@hope.eyrie.org
+In-reply-to : <[🔎] CAOEhTLyKDu4QuVaatJ1Yh4P6k59ms7dv7+tFRKi_X9uFLsNCtQ@mail.gmail.com>	(Lorenz's message of "Wed, 28 Nov 2018 23:03:54 +0100")
+References : <[🔎] CAOEhTLyKDu4QuVaatJ1Yh4P6k59ms7dv7+tFRKi_X9uFLsNCtQ@mail.gmail.com>
+
+
+Lorenz <lorenzo.ru.g@gmail.com> writes:
+> That will work for runit-init, but what about runit-sysv and
+> runit-systemd?  Let's say I have systemd (as init), runit-systemd and a
+> foo daemon installed; and 'runscripts' package ship a run script for
+> foo. How can I detect if the user wants to manage foo with runit or with
+> systemd?
+I think a command would work for that case as well.  What I'm imagining
+would look something like this:
+- If runit-init is installed, it installs a trigger that runs the command
+  for any change to the runit metadata directory.  That command sets up
+  the users, runit configuration, and does whatever other actions are
+  needed to maintain a consistent system.
+- If runit-init is not installed, by default all services are run through
+  the regular init system.  However, the local system administrator can
+  run the command manually, specifying a specific service, and it then
+  sets up that service to run via runit in a similar way and also disables
+  the systemd unit or init script.
+- runit-sysv and runit-systemd install a different trigger that runs the
+  script with a flag that says to update all configuration that was
+  previously manually enabled by the system administrator (so that you can
+  update service definitions or delete ones when packages are removed),
+  and ignore all the other configurations.
+Note that a lot of the runit metadata can probably be derived from systemd
+units for services that have unit files.  For example, if the systemd unit
+runs the daemon as a different user, runit can probably use the same user,
+and the systemd unit may well also run the daemon in the foreground since
+systemd prefers that for the same reasons runit does.  So it's conceivable
+that you could get out of shipping explicit runit data for a lot of
+packages, or ship something that just notes that the unit file can be
+autoconverted.  This would cut down on the maintenance burden of the
+primary package maintainer a lot.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

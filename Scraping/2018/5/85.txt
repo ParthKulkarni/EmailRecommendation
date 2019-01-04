@@ -1,0 +1,91 @@
+To : Debian devel <debian-devel@lists.debian.org>
+Subject : RFR: email about regressions [was: Dealing with ci.d.n for package regressions]
+From : Paul Gevers <elbrus@debian.org>
+Date : Sun, 6 May 2018 20:55:34 +0200
+Message-id : e05b6834-2be2-cf74-3742-c911014dd9f7@debian.org
+In-reply-to : <[🔎] a50182ac-5039-7207-30e4-881c5adc066e@debian.org>
+References : <[🔎] e83b1d1c-477b-2ee4-3bc2-86a30748fd7d@debian.org> <[🔎] 23274.64703.262783.215659@chiark.greenend.org.uk> <[🔎] 91ffa9ba-b546-55f5-9ca0-33cb47a697a1@debian.org> <[🔎] 23276.15084.748760.107356@chiark.greenend.org.uk> <[🔎] a50182ac-5039-7207-30e4-881c5adc066e@debian.org>
+
+
+Hi all,
+On 06-05-18 07:27, Paul Gevers wrote:
+>> But, anyway, thanks for your effort, but it obviously doesn't scale to
+>> have the central infrastructure team triage things.  How easy would it
+>> be to have the CI automatically send an email to the maintainers of
+>> the rdependency and the dependency ?
+> 
+> I have already created multiple personal scripts to parse excuses.yaml
+> and store state on regressions, so this is trivial. However, people have
+> voiced their concerns about auto creation of bugs. I estimate that a
+> plain email for now is acceptable. I think I'll ask about converting the
+> email to a bug I guess. I'll create a cronjob that does this soon,
+> putting myself in CC to follow the discussion as it would actually
+> reduce my work for now.
+Please find a proposed text for such an e-mail below. Comments or
+improvements very welcome.
+Paul
+=============================================================
+To: $trigger@packages.debian.org, $broken@packages.debian.org
+CC: elbrus@debian.org
+Subject: New version of $trigger breaks autopkgtest of $broken in testing
+Dear maintainers,
+[This e-mail is automatically sent.]
+As recently announced¹ Debian is now running autopkgtests in testing to
+check if migration of a new source package causes regressions. It does
+this with the binary packages of the new version of a source package
+from unstable.
+With the upload of version $ver of $trigger the autopkgtest of $broken
+started to fail in testing². This is currently delaying the migration of
+$trigger version ${ver}³.
+This e-mail is meant to trigger direct communication between the
+maintainers of the involved packages as one party has insight in what
+changed and the other party insight in what is being tested. After all,
+a regression in a reverse dependency can come due to one of the
+following reasons (of course not complete):
+* new bug in the candidate package (fix the package)
+* bug in the test case that only gets triggered due to the update (fix
+  the reverse dependency, but see below)
+* out-of-date reference date in the test case that captures a former bug
+  in the candidate package (fix the reverse dependency, but see below)
+* deprecation of functionality that is used in the reverse dependency
+  and/or its test case (discussion needed)
+Unfortunately sometimes a regression is only intermittent. Ideally this
+should be fixed, but it may be OK to just have the autopkgtest retried
+(a link is available in the excuses³).
+There are cases where it is required to have multiple packages migrate
+together to have the test cases pass, e.g. when there was a bug in a
+regressing test case of a reverse dependency and that got fixed. In that
+case the test cases need to be triggered with both packages from
+unstable (reply to this e-mail and/or contact the ci-team⁴) or just wait
+until the aging time is over (if the fixed reverse dependency migrates
+before that time, the failed test can be retriggered³).
+Of course no system is perfect. In case a framework issue is suspected,
+don't hesitate to raise the issue via bts or to the ci-team⁴ (reply to
+me is also fine for initial cross-check).
+To avoid stepping on peoples toes, this e-mail is not automatically
+generating a bug in the bts, but it is highly recommended to forward
+this e-mail there (psuedo-header boilerplate below⁵⁶) in case it is
+clear which package should solve this regression.
+¹ https://lists.debian.org/debian-devel-announce/2018/05/msg00001.html
+² https://ci.debian.net/packages/$b/$broken/testing/amd64/
+³ https://qa.debian.org/excuses.php?package=$trigger
+⁴ #debci on oftc or debian-ci@lists.debian.org
+⁵ $trigger has an issue
+============
+Source: $trigger
+Version: $ver
+Severity: normal or higher
+Control: affects -1 src:$broken
+User: debian-ci@lists.debian.org
+Usertags: breaks
+============
+⁶ $broken has an issue
+============
+Source: $broken
+Version: $ver_of_broken_that_ran
+Severity: normal or higher
+Control: affects -1 src:$trigger
+User: debian-ci@lists.debian.org
+Usertags: needs-update
+============
+signature.asc

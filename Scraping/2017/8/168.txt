@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: sse{2,3,4.2}, altivec, neon, ...
+From : Christian Seiler <christian@iwakd.de>
+Date : Sat, 5 Aug 2017 22:38:02 +0200
+Message-id : c05350b2-097c-8148-f464-40779b2ae9ac@iwakd.de
+In-reply-to : <[🔎] debc4db7-4b37-eb36-b542-dddea5f6056e@debian.org>
+References : <[🔎] 20170805175302.ewj5jks7sbl6ukyl@angband.pl> <[🔎] debc4db7-4b37-eb36-b542-dddea5f6056e@debian.org>
+
+
+On 08/05/2017 10:04 PM, Philipp Kern wrote:
+> On 08/05/2017 07:53 PM, Adam Borowski wrote:
+>> Thus, here's a proposed solution: in unstable, there's now a bunch of
+>> packages that do such checking in preinst, and thus refuse (overridably) to
+>> even install such software.
+>>
+>> Currently this includes:
+>> * sse2: i386 (inc. hurd-i386, kfreebsd-i386)
+>> * sse3: i386, amd64, x32 (〃, kfreebsd-amd64)
+>> * sse4.2: i386, amd64, x32 (〃)
+>> * neon: armhf
+>> * altivec: powerpc
+>> (amd64 always has sse2, arm64 neon, ppc64el altivec)
+>> Package names are $(ISA)-support, thus sse2-support if you need SSE2.
+>>
+>> To use: make your package:
+>> Depends: sse2-support [any-i386]
+>>
+>> Lemme know if anything is amiss; in particular, adding a new extension is a
+>> two-line change.
+> 
+> I suppose it wouldn't be possible to add autodetection to debhelper or
+> at least lintian based on instructions present in the binary? For the
+> latter I'd imagine something with a low certainty suggesting that you
+> depend on a certain meta package. (To catch the cases where there's
+> actually autodetection at runtime.)
+I don't think doing that via debhelper is a good idea because
+there is far too high a chance of false positives here.
+For example:
+if (cpu_has_sse4())
+   call_sse4_func();
+else
+   call_generic_func();
+As recent gcc versions support function multi-versioning (FMV)
+that can automate this kind of CPU detection [1], once could
+perhaps look to see if every function that uses FMV has a
+generic fallback variant available - but then you'd get false
+positives when ISA-specific functions call other functions
+which aren't called from generic-only functions. And then you
+start getting into automated call graph analysis. In addition
+to the false positives for all code that does the check directly
+instead of using FMV.
+I really think this is something the package maintainer needs
+to decide for each package individually, I don't think this can
+be automated.
+The lintian warning might be worth-while though: either the
+package maintainer adds e.g. Depends: sse4.2-support or they
+override the warning if it is indeed a false positive due to
+runtime checks with generic fallbacks. But I don't think even
+that is easy, as you'd need to understand the machine code to
+some extent and you'd need long lists of instructions for
+each instruction set you want to detect.
+Regards,
+Christian
+[1] https://lwn.net/Articles/691932/

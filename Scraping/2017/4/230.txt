@@ -1,0 +1,48 @@
+To : debian-devel@lists.debian.org
+Subject : default config not in /etc [was: policy for shipping sysctl.d snippets in packages?]
+From : Vincent Danjean <vdanjean.ml@free.fr>
+Date : Sun, 23 Apr 2017 21:22:12 +0200
+Message-id : fe220e79-bd5f-5a38-f578-5032877f3190@free.fr
+In-reply-to : <[🔎] 20170423174832.cilayvlngdarhzdb@x>
+References : <[🔎] 20170423174832.cilayvlngdarhzdb@x>
+
+
+Le 23/04/2017 à 19:48, Josh Triplett a écrit :
+> Evgeni Golov wrote:
+>> My gut feeling is that droping the file to /usr/lib and allowing the admin
+>> to override it later via /etc. And then load it in postinst.
+> 
+> That seems like exactly the right approach, and yes, you should put it
+> in /usr/lib/50-yourpackagename.conf , following the conventions
+> explicitly established for that purpose.  That makes it easy for the
+> sysadmin to override *either* by directly creating a file with the same
+> name in /etc *or* by adding a file later in the sequence to tweak
+> individual settings, both of which can easily be done in packages for
+> sysadmins who want to package their configuration tweaks. 
+  It is very easy to override, yes. But, once done, it is very difficult
+to know that a modification is done in /usr/lib/* that must be adapted
+to the overriding /etc/* file.
+  For me, this is a major regression over the 'all config is in /etc'
+that has been pushed by Debian for a long time.
+  Moreover, my /etc is tracked by etckeeper (and this save me several
+times). Files in /usr/lib/* with the default configuration are not
+(and there is even no way to 'automatically know where they are).
+  On several of my systems, I moved /lib/systemd to /etc/something and
+created a symlink from /lib/systemd to /etc/something so that
+etckeeper track the default configuration on my system. It is a pity
+that the same thing should be done more and more now.
+  Perhaps, Debian can try to standardize this (for future releases),
+for example asking to put the default config files in a central
+place (with symlinks if required), for example /etc/default-config
+or even /lib/default-config and/or /usr/lib/default-config.
+  So we can imagine programs (such as etckeeper) that will track this
+(these) directory(ies) and dpkg/apt hooks that can tell the admin
+that a default config file has been modified when a override file
+as been installed in /etc.
+  Regards,
+    Vincent
+-- 
+Vincent Danjean       GPG key ID 0xD17897FA         vdanjean@debian.org
+GPG key fingerprint: 621E 3509 654D D77C 43F5  CA4A F6AE F2AF D178 97FA
+Unofficial pkgs: http://moais.imag.fr/membres/vincent.danjean/deb.html
+APT repo:  deb http://people.debian.org/~vdanjean/debian unstable main

@@ -1,0 +1,52 @@
+To : Russ Allbery <rra@debian.org>
+Subject : Re: Depends/Recommends from libraries
+From : Wouter Verhelst <wouter@debian.org>
+Date : Fri, 10 Mar 2017 13:13:13 +0100
+Message-id : 20170310121313.n3lvca2y3okwfgsg@grep.be
+In-reply-to : <[🔎] 87d1dqfh41.fsf@hope.eyrie.org>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org> <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk> <[🔎] 87d1dqfh41.fsf@hope.eyrie.org>
+
+
+On Thu, Mar 09, 2017 at 10:19:10AM -0800, Russ Allbery wrote:
+> Now, if this were taken a further step so that dpkg-shlibdeps would
+> provide some mechanism to *automatically* add those downstream
+> dependencies to packages that depend on the library unless the
+> dependencies were explicitly suppressed, I wouldn't be as strongly
+> opposed.
+I think this is probably the best way forward, and it doesn't even need
+to be too complicated:
+- Modify dpkg-shlibdeps so it supports the type "opt" in the shlibs file
+  (see "man deb-shlibs" for details);
+- Make dpkg-shlibdeps emit the conjunction of the regular shared library
+  dependencies (i.e., typeless dependencies) and the "opt" type ones
+  (the daemons etc that the library would need if used) in the
+  ${shlibs:Depends} substvar, if no special command line parameter was
+  passed to it;
+- If a special command line was passed to it of the form
+  "--suggests=libfoo0,libbar0" or "--recommends=libfoo0,libbar0", then
+  pass the optional dependencies for the given packages in new
+  ${shlibs:Suggests} or ${shlibs:Recommends} substvars instead (and pass
+  any optional dependencies for packages not so given still in the
+  ${shlibs:Depends} substvars).
+With that, maintainers who consume libraries but don't do anything
+special will continue to produce working packages; and maintainers who
+consume libraries and care can use ${shlibs:Suggests} and
+${shlibs:Recommends} substvars to decide where the optional dependencies
+must go without breaking anything for users.
+The only problem with that scheme is that there will need to be a
+transition for libraries where all their users will need to be rebuilt
+before they themselves can drop the new optional dependencies, otherwise
+new packages will fail to pick up the dependencies that become their
+responsibility. This is something that can be done by triggering binNMUs
+though, so shouldn't be a showstopper.
+This doesn't cover symbols files (because there's currently no way to
+specify a "type" in a symbols file), but I don't think that's impossible
+to fix.
+(you'll also need to modify helpers such as CDBS and debhelper so that
+the given parameters can be passed; but none of that needs to be a
+showstopper...)
+-- 
+< ron> I mean, the main *practical* problem with C++, is there's like a dozen
+       people in the world who think they really understand all of its rules,
+       and pretty much all of them are just lying to themselves too.
+ -- #debian-devel, OFTC, 2016-02-12

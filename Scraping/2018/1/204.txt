@@ -1,0 +1,83 @@
+To : debian-devel@lists.debian.org
+Subject : Storing build profiles in binary packages (was: Re: Bug#886238: Please introduce official nosystemd build profile)
+From : Johannes Schauer <josch@debian.org>
+Date : Thu, 11 Jan 2018 00:47:28 +0100
+Message-id : 151562804856.1442.14683052322745301095@localhost
+In-reply-to : <[🔎] 20180110204902.m7woymenuifcxkh7@virgil.dodds.net>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108183711.2vrs643yrokpapuq@mail.wookware.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108200909.7o6ovj2ajzseik2m@virgil.dodds.net> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 4de2303e-f4dd-11e7-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180110204902.m7woymenuifcxkh7@virgil.dodds.net>
+
+
+Quoting Steve Langasek (2018-01-10 21:49:02)
+> On Mon, Jan 08, 2018 at 08:36:50PM -0500, Michael Stone wrote:
+> > On Mon, Jan 08, 2018 at 12:09:09PM -0800, Steve Langasek wrote:
+> > > Top-posting to just say +1, and that I was going to reply with much the
+> > > same.
+> 
+> > > I don't even think the requirement for the bootstrap profiles to not
+> > > functionally change the packages is necessary, but it's the way the folks
+> > > working on bootstrappability have chosen to do it, so it's their call.  But
+> > > that's definitely not a binding precedent on other build profiles that might
+> > > be implemented.
+> 
+> > How, then, would you tell by looking at the package name+version which kind
+> > of package you have? If you're going to change the name or version string
+> > anyway, why use some complicated profile system instead of just applying a
+> > patch? This seems overly complicated for simple cases and overly fragile for
+> > complex cases.
+> 
+> The fact that this information is no longer exposed in the binary control
+> file is news to me, and very disappointing.  It seems clear to me that one
+> *should* be able to determine what profile(s) a package was built with by
+> looking at the package itself.
+Why?
+Picture two binary packages with the same name/version/arch tuple, they were
+maybe even built by the exact same source package but they were built on
+different distributions (or at different times with some build dependencies
+having changed) so their contents differ. Even today we are not storing the
+information on which platform a source package was built in binary packages. We
+only expect binary packages with the same name/version/arch from the same
+distribution to play well with each other. And that distribution controls the
+build profiles it builds binary packages with. What makes build profiles so
+different when you compare it with other factors that change binary package
+content? We are also not storing that information in binary packages. But we
+have a place to store that information: buildinfo files. Those files also store
+with which build profiles a source package was built.
+I only see one reason for which one could want to store with which build
+profile a package was built in the binary package itself: if that information
+becomes relevant for dependency resolution.
+Though I guess for downstreams who want to have the Build-Profiles field in the
+binary packages they build, I guess there could be a solution involving dpkg
+vendors.
+> As a policy, I think it's clear that packages built with non-default profiles
+> should never be included in the Debian archive;
+Why? By enforcing (via a policy and checkable via reproducible builds) that the
+binary packages that are being built with one (possibly empty) set of build
+profiles active are bit-by-bit identical to those built with a different set of
+build profiles active, it doesn't matter whether a given binary package was
+built with either set.
+> and segregating packages into archives by stage is a sensible way to do this
+> for bootstrapping.
+We don't want "stages" for bootstrapping. This is also why the "stage1" and
+"stage2" build profiles are marked as "deprecated" on the wiki page. Those
+profile names are only used by toolchain packages for reasons that go beyond
+the scope of this thread. The reason we don't want "stageX" profiles but
+instead nofoo profiles (disabling foo) are:
+ - dependency relationships change regularly. Thus, what is a stage1 today
+   might not even be needed for bootstrapping anymore tomorrow. But the profile
+   might have other uses, for example by downstreams.
+ - dependency relationships change regularly. Thus the notion of what a
+   "stage1" build of a package is also changes regularly. At some point, the
+   state of the archive might require a source package to be built without
+   libfoo-dev and without libbar-dev. At another point in time, it is
+   sufficient to build the source package only without libfoo-dev. At another
+   point, it would make sense to build it without libfoo-dev and also without
+   libbaz-dev. If there are separate profiles for foo, bar and baz, then an
+   automated machinery can exactly choose how to build source packages.
+ - the functionality removed or changed by a stageX profile might overlap with
+   another profile name that is needed for a purpose that is not bootstrapping
+   (for example by a downstream). Then, in all places where this functionality
+   is activated or deactivated, the full list of profiles that touch it must be
+   repeatedly enumerated. It is easier to maintain a single build profile that
+   is directly connected with exactly that functionality.  See my argument
+   about maintainability of build profiles for each distribution in [1].
+[1] [🔎] 151553652380.1442.14816198615195092481@localhost">https://lists.debian.org/[🔎] 151553652380.1442.14816198615195092481@localhostsignature.asc

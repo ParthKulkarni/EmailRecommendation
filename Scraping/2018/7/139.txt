@@ -1,0 +1,25 @@
+To : Andreas Tille <andreas@an3as.eu>
+Subject : Re: Is Access to Salsa restricted to a certain number of queries per time and host?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 11 Jul 2018 16:17:45 +0100
+Message-id : 23366.8089.29969.57590@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20180711145927.sfnuxtirilupyfg6@an3as.eu>
+References : <[🔎] 20180711081851.umyripxk6xaymvqx@an3as.eu>	<[🔎] 097c5625-fe1a-b224-b8cb-6f39dc30a20e@debian.org>	<[🔎] 23365.61044.755872.873048@chiark.greenend.org.uk>	<[🔎] 20180711145927.sfnuxtirilupyfg6@an3as.eu>
+
+
+Andreas Tille writes ("Re: Is Access to Salsa restricted to a certain number of queries per time and host?"):
+> on Alioth.  But this does not work for remote repositories.  May be
+> I'm missing something but how can I do this by using
+>     git ls-remote
+> ?  I have not found out how to get the said files.
+git-ls-remote does not get you the files.  It can just tell you if the
+ref you are interested in (HEAD, I guess) has been updated.
+So your algorithm would be:
+   sleep 5
+   read <last-$package last
+   current=`git ls-remote https://salsa/blah HEAD`
+   if [ "x$current" = "x$last" ]; then exit 0; fi
+   ... do stuff you currently do to fetch the individual files ...
+   printf >last-$package.new "%s\n" "$current"
+   mv last-$package.new last-$package
+Ian.

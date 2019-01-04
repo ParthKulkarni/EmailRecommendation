@@ -1,0 +1,41 @@
+To : Ben Caradoc-Davies <ben@transient.nz>, debian-devel@lists.debian.org
+Subject : Re: [apparmor] Let's enable AppArmor by default (why not?)
+From : John Johansen <john.johansen@canonical.com>
+Date : Sat, 18 Nov 2017 12:44:28 -0800
+Message-id : ee82b12b-e410-4d6e-76e6-8203ffddca39@canonical.com
+In-reply-to : <[🔎] c05b560e-0c49-1268-41d2-db8054b7af45@transient.nz>
+References : <857eyij4fb.fsf@boum.org> <857evij6ji.fsf@boum.org> <a55bcdd0-b5ee-3b42-b620-c548a950e6de@derobert.net> <[🔎] 85shdsvh7v.fsf@boum.org> <[🔎] 85wp2pq61a.fsf@boum.org> <[🔎] c05b560e-0c49-1268-41d2-db8054b7af45@transient.nz>
+
+
+On 11/17/2017 05:34 PM, Ben Caradoc-Davies wrote:
+> On 18/11/17 04:27, intrigeri wrote:
+>> Thanks in advance, and sorry for any inconvenience it may cause (e.g.
+>> the AppArmor policy for Thunderbird has various issues in sid; all of
+>> those I'm aware of are fixed in experimental already).
+> 
+> Where "various issues" means no thunderbird external helpers work under xfce. Not a single one, as far as I can tell. And there goes another one: what happened to my .signature? I have filed as many bugs as I can given the time available. I will file one more for the missing .signature, and then I am disabling apparmor.
+> 
+thank you for taking time to file bugs and provide a report here to help make the apparmor experience better. You have several options for disabling parts of apparmor policy enforcement or its enforcement entirely.
+You can disable individual profiles without editing them and messing up the packaging by using aa-disable
+  sudo aa-disable /etc/apparmor.d/usr.bin.thunderbird
+or by manually by manually removing the profile and dropping a symlink in
+ /etc/apparmor.d/disable/
+so for example to disable the thunderbird profile you can do
+  sudo apparmor_parser -R /etc/apparmor.d/usr.bin.thunderbird
+  sudo ln -s /etc/apparmor.d/usr.bin.thunderbird /etc/apparmor.d/disbale/thunderbird
+it is important to do the removal before adding the symlink, and as in the example above the symlink does not have to be the same name as that of the profile file.
+you can reverse the above by using
+  sudo aa-enable /etc/apparmor.d/usr.bin.thunderbird
+or manually by removing the symlink and loading the profile
+  sudo rm /etc/apparmor.d/disable/thunderbird
+  audo apparmor_parser -r /etc/apparmor.d/usr.bin.thunderbird
+You can disable the apparmor service at the systemd level with
+  sudo systemctl disable apparmor
+You can remove the apparmor package
+  sudo apt-get remove apparmor
+or
+  sudo dpkg --remove apparmor
+and you can also set the kernel boot parameter
+  apparmor=0
+to disable apparmor on a particular boot, or set it as part of your grub config to permanently disable it without touching the packaging
+* for the above examples I have used /etc/apparmor.d/ for the profile location but it could be configured to other locations like /var/lib/apparmor/ etc, it depends on the distro and sometimes the package eg. ubuntu has profiles configured to different locations depending on whether they are system profiles, snap profiles, etc.

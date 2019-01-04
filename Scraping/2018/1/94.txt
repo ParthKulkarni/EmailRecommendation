@@ -1,0 +1,44 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: e2fsprogs as Essential: yes?:  Maybe we should be separating l10n files first?
+From : Theodore Ts'o <tytso@mit.edu>
+Date : Wed, 3 Jan 2018 12:40:45 -0500
+Message-id : 20180103174045.GA23421@thunk.org
+In-reply-to : <[🔎] 20180101234219.GA26669@perpetual.pseudorandom.co.uk>
+References : <1506941437.8204.22.camel@debian.org> <3cb53f2e-a760-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506942621.8204.25.camel@debian.org> <20171002113446.kazrk37bizfva7qe@angband.pl> <20171112191845.33rikhh3pay5fyot@thunk.org> <20171113142831.cleko3t7gkf6eeub@alf.mars> <20171113165946.wkwggt4ieeue5cvb@thunk.org> <20171113193508.ool6rpccmwgu2u6w@alf.mars> <[🔎] 20180101215145.GB2532@thunk.org> <[🔎] 20180101234219.GA26669@perpetual.pseudorandom.co.uk>
+
+
+On Mon, Jan 01, 2018 at 11:43:23PM +0000, Simon McVittie wrote:
+> 
+> Perhaps you could convert this into a pkg.e2fsprogs.nofuse build profile?
+> <https://wiki.debian.org/BuildProfileSpec>
+> This would look something like the attached (untested!) patches.
+Thanks, I'll give this a try.  From the BuildProfile web page and
+looking at the package versions, support for it appears to be in
+Jessie, or at least "preliminary support" is present.  Is that
+correct?  Is there any gotchas I should be aware of when backporting
+to Jessie?
+It looks like one thing which my scheme supports which build profiles
+does not is that when backporting to Jessie, I can just check out the
+tree from git, and then run:
+	./debian/rules debian-files
+	dpkg-buildpackage
+... and it will autodetect that the system doesn't support *-dbgsym
+packages, and create e2fsprogs-dbg, e2fslibs-dbg, et.al packages for
+Jessie instead.
+Since the autodetection isn't there, I would have to just manually
+build with some kind of pkg.e2fsprogs.old-dbg build profile, or some
+such, instead.  I guess it's about the same level of inconvenience of
+needing to run ./debian/rules in order to generate the control file
+from control.in.
+My "./debian-rules debian-files" scheme used to do a lot more,
+including rewriting several other files in debian/ using m4, back when
+we had just migrated libuuid and libblkid from e2fsprogs to
+util-linux, and I wanted to support backports to stable, old-stable,
+and Ubuntu LTS.  I did like the fact that it could detect which build
+option (now, "build profile") to use automatically, so the folks
+building backports for various Debian derivitives didn't need to do
+anything special.  Has there been any thought about having the build
+profiles framework support for having the rules file autoselect a
+build profile based on the build environment?
+Cheers,
+						- Ted

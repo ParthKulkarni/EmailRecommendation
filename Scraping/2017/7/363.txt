@@ -1,0 +1,51 @@
+To : debian-devel@lists.debian.org
+Subject : Re: User-installable Debian packages?
+From : Simon McVittie <smcv@debian.org>
+Date : Sat, 22 Jul 2017 13:00:06 +0100
+Message-id : 20170722120006.hmu2uiwnld4onk75@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] b6683708-9b2b-289d-6686-82fcf7bbbeff@gmx.de>
+References : <[🔎] b6683708-9b2b-289d-6686-82fcf7bbbeff@gmx.de>
+
+
+On Sat, 22 Jul 2017 at 12:28:04 +0200, Steffen Möller wrote:
+> And quite some packages in our
+> distribution do not really need to be installed as root if they were
+> installed where the user has write permissions. There would hence be
+> little overhead over what we have now. Should we not somehow find ways
+> to tag any such location-agnostic packages and prepare dpkg for
+> installing e.g. in $HOME/.debian when it is executed as non-root?
+Rather than inventing a new wheel and having another Debian-specific
+thing that can only be used on Debian (and not even on derivatives
+without it being a "Frankendebian" system), might it be better to use
+Debian's source, binaries or a mixture of the two as input to creating
+something cross-distribution like Flatpak, AppImage or Snap? I would
+personally recommend Flatpak.
+A Flatpak runtime (the library/platform layer shared by multiple Flatpak
+apps) is basically just a copy of /usr after applying the /usr merge (as
+in usrmerge or debootstrap --merged-usr). The reference runtimes
+produced by Flatpak upstream consist of a Yocto base system with
+flatpak-builder build scripts (flatpak-builder is a bit like Flatpak's
+equivalent of debhelper) layering useful libraries above it; but there
+is nothing to stop a distribution from building their own runtimes from
+dpkg or RPM packages without using flatpak-builder, and I believe Fedora
+and Endless are already doing this. Debian could too.
+A Flatpak app (the user-facing part) is basically the app and any bundled
+libraries that are needed in addition to what's in the runtime, all
+built with --prefix=/app. Again, the apps produced by upstreams like
+GNOME and KDE are typically built from source with flatpak-builder,
+but that is not required. I believe Fedora are already building their
+leaf packages into Flatpak apps using their normal RPM spec files (which
+are mostly position-independent), by overriding the prefix used for their
+standard macros to /app.  Relocatable packages like the ones you describe
+are trivial to convert into a Flatpak app (just move the files around,
+like I did for rxvt in http://smcv.pseudorandom.co.uk/2016/xdg-app/ -
+xdg-app is the old name for Flatpak). Non-relocatable packages (those
+that hard-code paths) need rebuilding from source, but I have some ideas
+about using dh-exec to parameterize the packaging (a bit like the way it
+works in RPM spec files, but simpler) so that can be done automatically.
+If this interests you, there are two talks at Debconf that you could
+attend or stream, both on Monday: one by Cosimo Cecchi of Endless,
+covering both OSTree and Flatpak, and one by me, focusing on Flatpak.
+I'm hoping to have a proof-of-concept Debian runtime and a couple of
+apps that use it (probably games) ready by the time I give my talk.
+    S

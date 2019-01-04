@@ -1,0 +1,58 @@
+To : debian-devel@lists.debian.org, John Johansen <john.johansen@canonical.com>
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : intrigeri <intrigeri@debian.org>
+Date : Wed, 09 Aug 2017 17:31:18 -0400
+Message-id : 853790qvh5.fsf@boum.org
+In-reply-to : <[🔎] slrnoogef4.20r.jmm@inutil.org> ("Moritz \=\?utf-8\?Q\?M\=C3\=BChle\?\= \=\?utf-8\?Q\?nhoff\=22's\?\= message of	"Mon, 7 Aug 2017 11:59:00 +0200")
+References : <[🔎] 857eyij4fb.fsf@boum.org> <[🔎] slrnoodm52.55v.jmm@inutil.org>	<[🔎] 85zibcr9t5.fsf@boum.org>	<[🔎] 226a3f19-63e7-b37c-0b2b-205456609048@iwakd.de>	<[🔎] slrnoogef4.20r.jmm@inutil.org>
+
+
+Hi,
+[John, there's a question for you at the bottom, but you probably have
+useful input about the first part of the discussion below too.]
+Moritz Mühlenhoff:
+> Christian Seiler <christian@iwakd.de> schrieb:
+>> Another thing to consider: if a profile is too restrictive, but the
+>> part that is too restrictive isn't in the upstream kernel yet, then
+>> things could break if you upgrade the kernel to a newer version from
+>> e.g. backports later on. How would you deal with that kind of
+>> breakage during the lifetime of a stable release?
+> Agreed, that was pretty much my concern.
+Thank you so much for highlighting problems I had missed! :)
+A simple, but not entirely satisfying answer is:
+1. Gather info about how real this problem has been in practice for
+   Ubuntu: they frequently update their kernel for various already
+   released distros with the latest AppArmor bits. I think they
+   occasionally have to update other packages accordingly to adjust
+   AppArmor policy. I don't know how often this happens. I'll ask them
+   to compile a list of such stable updates.
+2. Evaluate for a year how it goes for Stretch + Linux from backports.
+   Desktop: I'm in a good place to provide data points, as Tails
+   generally ships this combination and we exercise the vast majority
+   of the desktop AppArmor stuff that's in Debian.
+   Server: sorry, I use the stable kernel except on bare-metal
+   virtualization hosts. But I think (1) will give us enough data on
+   this front.
+3. Depending on what (1) and (2) tell us, decide whether "we might
+   have to update AppArmor policy from time to time in stable
+   point-releases or backports" is good enough… keeping in mind that
+   other distros are already dealing with the exact same problem, so
+   we won't have to do this alone.  And if it's not good enough:
+> Ideally the feature set used would also be controlled by the
+> apparmor userspace side.
+If we need to go this far: apparmor_parser has a --features-file
+option that we could leverage to tie the feature set being used to
+something else than the version of the running kernel, e.g.
+with a file shipped in a new package built from src:linux with
+appropriate versioned dependencies.
+> Also, I'm wondering about the status of kernel support which is
+> currently not upstreamed: intrigeri mention that new features are
+> now added to Linux mainline. Was there ever an attempt to upstream
+> those existing patches (e.g. for network socket mediation); was it
+> NACKed by upstream for conceptual problems or was it simply never
+> attempted due to time/resource constraints?
+I'm not sure, so I'll let the main AppArmor kernel developer (John,
+Cc'ed) answer this.
+Cheers,
+-- 
+intrigeri

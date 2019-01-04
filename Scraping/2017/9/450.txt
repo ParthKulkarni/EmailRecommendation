@@ -1,0 +1,561 @@
+To : debian-devel@lists.debian.org
+Subject : Re: e2fsprogs as Essential: yes?
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Sun, 1 Oct 2017 00:45:39 +0200
+Message-id : 20170930224538.2pfhbxbnd7c245du@alf.mars
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <20110326184708.GB18787@virgil.dodds.net>
+
+
+In 2011 Steve Langasek proposed dropping Essential: yes from e2fsprogs.
+On Sat, Mar 26, 2011 at 11:47:08AM -0700, Steve Langasek wrote:
+> Currently the e2fsprogs package is marked Essential: yes in the archive.  Is
+> this a historical holdover?  I believe e2fsprogs used to ship /sbin/fsck,
+> but since 2009 (i.e., util-linux (>= 2.15~rc1-1), which e2fsprogs has a
+> pre-depends on), this has been provided by util-linux instead.
+>
+> The remaining programs provided by e2fsprogs are all specific to the ext*
+> family of filesystems, so I don't think meet the definition of Essential any
+> longer - their presence is certainly important if you have an ext[234]
+> filesystem, but while this is the default, you can have systems that don't
+> use ext* at all, which makes e2fsprogs no more essential in nature than the
+> other per-filesystem fsck tools.
+>
+> Now that the transition to util-linux is done in a stable release, is it
+> time for us to drop the Essential: yes flag from e2fsprogs?  This will
+> benefit those targetting embedded systems that don't use ext, where the
+> package will be dead weight; the risk of any packages assuming availability
+> of these e2fs-specific interfaces without a dependency is quite low; and
+> we're at the right point in the cycle to make changes to the Essential set,
+> where we have time to deal with any unexpected fallout.
+Since then we have fully transitioned to systemd and init has become
+non-essential. The issue around pulling e2fsprogs into essential via
+logsave has thus solved itself.
+I think we should revisit this proposal now that it becomes practical.
+To get us going, I have come up with a plan:
+1) Analyze which packages would need dependencies on e2fsprogs.
+2) File a bug against lintian to stop complaining about e2fsprogs
+   dependencies.
+3) MBF those packages that need an e2fsprogs dependency.
+4) Drop Essential: yes from e2fsprogs.
+So I thought, "how hard can it be?" All we need to do is grep the
+archive for those tools and add those dependencies. So I unpacked sid
+main amd64 and grepped[1] each and every file (potentially decompressing
+gzip) for those e2fsprogs. The results[2] are 5666 occurrences in 1250
+binary packages. From there, I started looking[3] into the actual uses
+and filtered common non-uses such as documentation, debug symbols,
+kernel images, locales and other stuff. I manually checked the remaining
+packages and thus went down[4] to 318 occurrences in 133 binary
+packages. Thus I arrive at the final dd-list (attached) for an MBF. We
+can now say that our package lists will increase by less than 1.5kb
+uncompressed if we make e2fsprogs non-essential. In comparison, the
+average binary package weighs 767 bytes. I believe that the method used
+is mostly free from false negatives (by looking for bare program names
+in each and every file) and has a manageable number of false positives.
+I think we can check off the analysis part. How about proceeding with
+the lintian bug and the MBF now? Did I miss anything?
+Again, we are at the right point in the cycle to handle unexpected
+fallout. :)
+Helmut
+[1] Attached e2fsprogsimport.py + the software behind
+    https://dedup.debian.net/
+[2] http://subdivi.de/~helmut/e2fsprogsimport.result.xz
+[3] Attached e2fsprogsanalyze.py
+[4] http://subdivi.de/~helmut/e2fsprogsanalyze.result.xz
+Aaron M. Ucko <ucko@debian.org>
+   gbrowse (U)
+Adam Conrad <adconrad@0c3.net>
+   initramfs-tools (U)
+Adrian Vondendriesch <adrian.vondendriesch@credativ.de>
+   resource-agents (U)
+Alejandro Garrido Mota <garridomota@gmail.com>
+   libsys-filesystem-perl (U)
+Alexander Wirt <formorer@debian.org>
+   grml-debootstrap (U)
+Andreas B. Mundt <andi@debian.org>
+   debian-lan-config (U)
+Andreas Cadhalpun <Andreas.Cadhalpun@googlemail.com>
+   havp (U)
+Andreas Henriksson <andreas@fatal.se>
+   libblockdev (U)
+Andreas Tille <andreas@an3as.eu>
+   manila (U)
+Andreas Tille <tille@debian.org>
+   gbrowse (U)
+Andrew Lee (æ??å?¥ç§?) <ajqlee@debian.org>
+   obs-build (U)
+Andriy Senkovych <jolly_roger@itblog.org.ua>
+   salt (U)
+Anibal Monsalve Salazar <anibal@debian.org>
+   gparted (U)
+   xfsprogs (U)
+Ansgar Burchardt <ansgar@debian.org>
+   libsys-filesystem-perl (U)
+Anthony Prades <toony.debian@chezouam.net>
+   cyrus-imapd (U)
+Antonio Radici <antonio@debian.org>
+   cfengine3
+Antonio Terceiro <terceiro@debian.org>
+   cloud-utils (U)
+   ruby-specinfra (U)
+Apollon Oikonomopoulos <apoikos@debian.org>
+   ganeti-instance-debootstrap (U)
+Aron Xu <aron@debian.org>
+   dkms (U)
+Aurelien Jarno <aurel32@debian.org>
+   qemu (U)
+AurÃ©lien GÃ?RÃ?ME <ag@roxor.cx>
+   rsrce (U)
+Axel Beckert <abe@debian.org>
+   xen-tools
+Bastian Blank <waldi@debian.org>
+   cloud-init (U)
+   linux (U)
+   lvm2 (U)
+Bdale Garbee <bdale@gag.com>
+   plinth (U)
+Ben Hutchings <ben@decadent.org.uk>
+   initramfs-tools (U)
+   linux (U)
+Benda Xu <heroxbd@gmail.com>
+   sysvinit (U)
+Benjamin Drung <benjamin.drung@profitbricks.com>
+   salt (U)
+Benjamin J. Scott <benscott@nwlink.com>
+   kvpm
+Bernd Schumacher <bernd.schumacher@hpe.com>
+   bootcd
+Carlos Alberto Lopez Perez <clopez@igalia.com>
+   util-vserver
+ChangZhuo Chen (é?³æ??å?¬) <czchen@debian.org>
+   tomb (U)
+Charles Plessy <plessy@debian.org>
+   cloud-init (U)
+   euca2ools (U)
+   gbrowse (U)
+Chris AtLee <chris@atlee.ca>
+   drobo-utils
+Chris Grzegorczyk <grze@eucalyptus.com>
+   euca2ools (U)
+Chris Lamb <lamby@debian.org>
+   diffoscope (U)
+   installation-birthday
+Christian Hofstaedtler <zeha@debian.org>
+   boot-info-script
+   grml-debootstrap (U)
+Christoph Berg <myon@debian.org>
+   postgresql-common (U)
+   resource-agents (U)
+Christophe Monniez <christophe.monniez@fccu.be>
+   recoverdm (U)
+ClamAV Team <pkg-clamav-devel@lists.alioth.debian.org>
+   havp
+Corey Bryant <corey.bryant@canonical.com>
+   tempest (U)
+Daniel Jared Dominguez <jared.dominguez@dell.com>
+   fwupdate (U)
+Dave Love <fx@gnu.org>
+   singularity-container (U)
+David Paleino <dapal@debian.org>
+   dkms (U)
+Debian Accessibility Team <pkg-a11y-devel@lists.alioth.debian.org>
+   edbrowse
+Debian buildd-tools Developers <buildd-tools-devel@lists.alioth.debian.org>
+   sbuild
+Debian Cloud Team <cloud-packages@lists.alioth.debian.org>
+   bootstrap-vz
+Debian Cloud Team <debian-cloud@lists.debian.org>
+   cloud-init
+Debian Cyrus Team <pkg-cyrus-imapd-debian-devel@lists.alioth.debian.org>
+   cyrus-imapd
+Debian DNS Packaging <pkg-dns-devel@lists.alioth.debian.org>
+   dnssec-trigger
+Debian Edu Developers <debian-edu@lists.debian.org>
+   debian-edu-config
+Debian EFI <debian-efi@lists.debian.org>
+   fwupdate
+Debian Eucalyptus Maintainers <pkg-eucalyptus-maintainers@lists.alioth.debian.org>
+   euca2ools
+Debian Forensics <forensics-devel@lists.alioth.debian.org>
+   recoverdm
+   rkhunter
+   safecopy
+Debian Ganeti Team <pkg-ganeti-devel@lists.alioth.debian.org>
+   ganeti-instance-debootstrap
+Debian Go Packaging Team <pkg-go-maintainers@lists.alioth.debian.org>
+   nomad (U)
+Debian HA Maintainers <debian-ha-maintainers@lists.alioth.debian.org>
+   resource-agents
+Debian kernel team <debian-kernel@lists.debian.org>
+   initramfs-tools
+Debian Kernel Team <debian-kernel@lists.debian.org>
+   linux
+Debian LAN Developers <debian-lan-devel@lists.alioth.debian.org>
+   debian-lan-config
+Debian LAVA team <pkg-linaro-lava-devel@lists.alioth.debian.org>
+   lava-dispatcher
+Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
+   libguestfs
+   libvirt-sandbox
+   supermin
+   virt-manager
+Debian Live <debian-live@lists.debian.org>
+   live-build
+Debian LVM Team <pkg-lvm-maintainers@lists.alioth.debian.org>
+   lvm2
+Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
+   gbrowse
+Debian pbuilder maintenance team <pbuilder-maint@lists.alioth.debian.org>
+   cowdancer
+Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
+   libsys-filesystem-perl
+Debian PostgreSQL Maintainers <pkg-postgresql-public@lists.alioth.debian.org>
+   postgresql-common
+Debian Privacy Tools Maintainers <pkg-privacy-maintainers@lists.alioth.debian.org>
+   tails-installer
+Debian QA Group <packages@qa.debian.org>
+   boxbackup
+   gfxboot
+   lxctl
+   partimage
+   ploop
+Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+   qemu
+Debian Ruby Extras Maintainers <pkg-ruby-extras-maintainers@lists.alioth.debian.org>
+   ruby-specinfra
+Debian Salt Team <pkg-salt-team@lists.alioth.debian.org>
+   salt
+Debian Security Tools Packaging Team <pkg-security-team@lists.alioth.debian.org>
+   tomb
+Debian systemd Maintainers <pkg-systemd-maintainers@lists.alioth.debian.org>
+   casync
+   mkosi
+   systemd
+Debian sysvinit maintainers <pkg-sysvinit-devel@lists.alioth.debian.org>
+   sysvinit
+Debootloaders miBoot Maintainers Team <debootloaders-miboot@lists.alioth.debian.org>
+   rsrce
+Diane Trout <diane@ghic.org>
+   dnssec-trigger (U)
+Dimitri John Ledkov <dimitri.j.ledkov@linux.intel.com>
+   obs-build (U)
+Dmitry Smirnov <onlyjob@debian.org>
+   nilfs-tools (U)
+   nomad
+Docker Packaging Team <docker-maint@lists.alioth.debian.org>
+   docker.io (U)
+Dustin Kirkland <kirkland@ubuntu.com>
+   euca2ools (U)
+Dynamic Kernel Modules Support Team <pkg-dkms-maint@lists.alioth.debian.org>
+   dkms
+Eric Delaunay <delaunay@debian.org>
+   scsitools
+Etienne DublÃ© <etienne.duble@gmail.com>
+   debootstick
+Fathi Boudra <fabo@debian.org>
+   lava-dispatcher (U)
+   linaro-image-tools (U)
+FAUmachine Team <faumachine@potyra.de>
+   faumachine
+Federico Ceratto <federico@debian.org>
+   plinth (U)
+Felipe Sateler <fsateler@debian.org>
+   casync (U)
+   mkosi (U)
+Felix Zielcke <fzielcke@z-51.de>
+   reiserfsprogs
+Filesystems Group <filesystems-devel@lists.alioth.debian.org>
+   nilfs-tools
+Francesco Paolo Lovergine <frankie@debian.org>
+   sbuild (U)
+Francisco Manuel Garcia Claramonte <francisco@debian.org>
+   lynis
+Franck Joncourt <franck@debian.org>
+   libsys-filesystem-perl (U)
+Francois Marier <francois@debian.org>
+   rkhunter (U)
+Franklin G Mendoza <franklin.g.mendoza@gmail.com>
+   salt (U)
+FreedomBox packaging team <freedombox-pkg-team@lists.alioth.debian.org>
+   plinth
+FrÃ©dÃ©ric Bonnard <frediz@linux.vnet.ibm.com>
+   rear
+Georges Khaznadar <georgesk@debian.org>
+   clonezilla
+   drbl
+Gergely Nagy <algernon@balabit.hu>
+   edbrowse (U)
+Giuseppe Iuculano <iuculano@debian.org>
+   dkms (U)
+GonÃ©ri Le Bouder <goneri@debian.org>
+   fusioninventory-agent
+Graziano Obertelli <graziano@eucalyptus.com>
+   euca2ools (U)
+Grml Team <team@grml.org>
+   grml-debootstrap
+Guido GÃ¼nther <agx@sigxcpu.org>
+   libguestfs (U)
+   libvirt-sandbox (U)
+   virt-manager (U)
+Guido Trotter <ultrotter@debian.org>
+   ganeti-instance-debootstrap (U)
+gustavo panizzo <gfa@zumbi.com.ar>
+   nova (U)
+Harlan Lieberman-Berg <hlieberman@debian.org>
+   ansible
+Helge Deller <deller@gmx.de>
+   palo
+Henrique de Moraes Holschuh <hmh@debian.org>
+   cyrus-imapd (U)
+Herbert Parentes Fortes Neto <hpfn@debian.org>
+   pyparted
+Hideki Yamane <henrich@debian.org>
+   snapper
+Hilko Bengen <bengen@debian.org>
+   libguestfs (U)
+   supermin (U)
+Holger Levsen <holger@debian.org>
+   debian-edu-config (U)
+   diffoscope (U)
+HÃ©ctor OrÃ³n MartÃ­nez <zumbi@debian.org>
+   obs-build (U)
+Iain R. Learmonth <irl@debian.org>
+   vmdebootstrap (U)
+Ian Jackson <ijackson@chiark.greenend.org.uk>
+   sysvinit (U)
+James Clarke <jrtc27@debian.org>
+   cowdancer (U)
+Jan Christoph Nordholz <hesso@pool.math.tu-berlin.de>
+   autofs (U)
+Jean-Michel Kelbert <kelbert@debian.org>
+   opensvc
+Jeremie Koenig <sprite@sprite.fr.eu.org>
+   rsrce (U)
+Joachim Wiedorn <joodebian@joonet.de>
+   lilo
+Joao Eriberto Mota Filho <eriberto@debian.org>
+   safecopy (U)
+Joe Healy <joehealy@gmail.com>
+   salt (U)
+Johannes Schauer <josch@debian.org>
+   sbuild (U)
+John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+   kvpm (U)
+Jonathan Yu <jawnsy@cpan.org>
+   libsys-filesystem-perl (U)
+Jordi Mallach <jordi@debian.org>
+   lava-dispatcher (U)
+Julien Danjou <acid@debian.org>
+   cloud-init (U)
+   cloud-utils (U)
+KURASHIKI Satoru <lurdan@gmail.com>
+   ruby-specinfra (U)
+Kyo Lee <kyo.lee@eucalyptus.com>
+   euca2ools (U)
+LaMont Jones <lamont@debian.org>
+   postfix
+Lars Wirzenius <liw@liw.fi>
+   vmdebootstrap (U)
+Laurent LÃ©onard <laurent@open-minds.org>
+   virt-manager (U)
+Lee Garrett <debian@rocketjump.eu>
+   ansible (U)
+Linaro Packagers <packages@lists.linaro.org>
+   linaro-image-tools
+Louis Bouchard <louis.bouchard@ubuntu.com>
+   sosreport
+Louis Zuckerman <me@louiszuckerman.com>
+   glusterfs (U)
+Malihe Asemani <ml.asemani@gmail.com>
+   manila (U)
+Marcin Kulisz (kuLa) <debian@kulisz.net>
+   bootstrap-vz (U)
+Marco d'Itri <md@linux.it>
+   systemd (U)
+Marco Nenciarini <mnencia@debian.org>
+   resolvconf (U)
+Mario Limonciello <mario.limonciello@dell.com>
+   fwupdate (U)
+Mario Limonciello <Mario_Limonciello@dell.com>
+   dkms (U)
+Martin Pitt <mpitt@debian.org>
+   casync (U)
+   libblockdev (U)
+   postgresql-common (U)
+   systemd (U)
+   udisks2 (U)
+Mateusz Å?ukasik <mati75@linuxmint.pl>
+   spacefm
+Mattia Rizzolo <mattia@debian.org>
+   cowdancer (U)
+   diffoscope (U)
+maximilian attems <maks@debian.org>
+   initramfs-tools (U)
+   linux (U)
+Mehdi Dogguy <mehdi@debian.org>
+   singularity-container (U)
+Michael Banck <mbanck@debian.org>
+   sbuild (U)
+Michael Biebl <biebl@debian.org>
+   fsarchiver
+   systemd (U)
+   udisks2 (U)
+Michael Prokop <mika@debian.org>
+   fai (U)
+   grml-debootstrap (U)
+   initramfs-tools (U)
+Michael Tokarev <mjt@tls.msk.ru>
+   autofs
+   qemu (U)
+Michael Vogt <mvo@debian.org>
+   ansible (U)
+Miguel Landaeta <miguel@miguel.cc>
+   euca2ools (U)
+Miguel Landaeta <nomadium@debian.org>
+   cloud-init (U)
+Mike Gabriel <sunweaver@debian.org>
+   debian-edu-config (U)
+Nathan Scott <nathans@debian.org>
+   xfsprogs (U)
+Neil Williams <codehelp@debian.org>
+   lava-dispatcher (U)
+NeuroDebian Team <team@neuro.debian.net>
+   singularity-container
+Nick Daly <Nick.M.Daly@gmail.com>
+   plinth (U)
+Olivier Sallou <osallou@debian.org>
+   gbrowse (U)
+OndÅ?ej SurÃ½ <ondrej@debian.org>
+   cyrus-imapd (U)
+   dnssec-trigger (U)
+Patrick MatthÃ¤i <pmatthaei@debian.org>
+   glusterfs
+Paul Tagliamonte <paultag@debian.org>
+   docker.io (U)
+Peter Eisentraut <petere@debian.org>
+   postgresql-common (U)
+Petter Reinholdtsen <pere@debian.org>
+   debian-edu-config (U)
+   dkms (U)
+   plinth (U)
+Phillip Susi <psusi@ubuntu.com>
+   gparted
+Pierre Chifflier <pollux@debian.org>
+   ocsinventory-agent
+Piotr Krysiuk <piotras@gmail.com>
+   rsrce (U)
+Piotr OÅ¼arowski <piotr@debian.org>
+   plinth (U)
+PKG OpenStack <openstack-devel@lists.alioth.debian.org>
+   manila
+   nova
+   openstack-debian-images
+   openstack-trove
+   puppet-module-swift
+   python-diskimage-builder
+   sahara
+   tempest
+Python Applications Packaging Team <python-apps-team@lists.alioth.debian.org>
+   drobo-utils (U)
+RaphaÃ«l Hertzog <hertzog@debian.org>
+   live-build (U)
+Reiner Herrmann <reiner@reiner-h.de>
+   diffoscope (U)
+Rene Mayrhofer <rene.mayrhofer@gibraltar.at>
+   havp (U)
+Reproducible builds folks <reproducible-builds@lists.alioth.debian.org>
+   diffoscope
+resolvconf maintainers <resolvconf-devel@lists.alioth.debian.org>
+   resolvconf
+Richard Jones <rjones@redhat.com>
+   libguestfs (U)
+Riku Voipio <riku.voipio@iki.fi>
+   qemu (U)
+RPM packaging team <pkg-rpm-devel@lists.alioth.debian.org>
+   obs-build
+RW Penney <rwpenney@users.sourceforge.net>
+   cryptmount
+Salvatore Bonaccorso <carnil@debian.org>
+   linux (U)
+Samuel Thibault <sthibault@debian.org>
+   edbrowse (U)
+Scott Kitterman <scott@kitterman.com>
+   havp (U)
+   postfix (U)
+Scott Leggett <scott@sl.id.au>
+   ruby-specinfra (U)
+Sean Whitton <spwhitton@spwhitton.name>
+   propellor
+Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+   havp (U)
+Senthil Kumaran S (stylesen) <stylesen@gmail.com>
+   lava-dispatcher (U)
+Simon Quigley <tsimonq2@ubuntu.com>
+   note
+Sjoerd Simons <sjoerd@debian.org>
+   systemd (U)
+Stefan Potyra <sistpoty@ubuntu.com>
+   faumachine (U)
+Steffen Moeller <moeller@debian.org>
+   python-cgcloud
+Steve McIntyre <93sam@debian.org>
+   fwupdate (U)
+   vmdebootstrap (U)
+Sunil Mohan Adapa <sunil@medhas.org>
+   plinth (U)
+Sven Luther <luther@debian.org>
+   rsrce (U)
+Thomas Goirand <zigo@debian.org>
+   cloud-init (U)
+   cloud-utils (U)
+   dtc-xen
+   manila (U)
+   nova (U)
+   openstack-debian-images (U)
+   openstack-trove (U)
+   puppet-module-swift (U)
+   python-diskimage-builder (U)
+   sahara (U)
+   tempest (U)
+Thomas Hood <jdthood@gmail.com>
+   resolvconf (U)
+Thomas Lange <lange@debian.org>
+   dracut
+   fai
+Tiago Ilieve <tiago.myhro@gmail.com>
+   bootstrap-vz (U)
+   cloud-utils
+Tianon Gravi <tianon@debian.org>
+   docker.io (U)
+Tim Potter <tpot@hpe.com>
+   docker.io
+Tzafrir Cohen <tzafrir@debian.org>
+   mock
+   plinth (U)
+Ulrich Dangel <mru@spamt.net>
+   grml-debootstrap (U)
+Ulrike Uhlig <ulrike@debian.org>
+   tails-installer (U)
+Utopia Maintenance Team <pkg-utopia-maintainers@lists.alioth.debian.org>
+   libblockdev
+   udisks2
+Valentin Vidic <Valentin.Vidic@CARNet.hr>
+   resource-agents (U)
+VMDebootstrap List <vmdebootstrap-devel@lists.alioth.debian.org>
+   vmdebootstrap
+Volkmar Sieh <volkmar.sieh@informatik.uni-erlangen.de>
+   faumachine (U)
+William Dauchy <wdauchy@gmail.com>
+   autofs (U)
+Wolfgang Schweer <wschweer@arcor.de>
+   debian-edu-config (U)
+Wolodja Wentland <debian@babilen5.org>
+   salt (U)
+Wookey <wookey@debian.org>
+   sbuild (U)
+XFS Development Team <linux-xfs@vger.kernel.org>
+   xfsprogs
+Ximin Luo <infinity0@debian.org>
+   diffoscope (U)
+Yaroslav Halchenko <debian@onerussian.com>
+   singularity-container (U)

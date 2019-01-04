@@ -1,0 +1,44 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#859199: ITP: dh-curl-sudo-bash -- debhelper tools for automated non-packaging
+From : Stuart Prescott <stuart@debian.org>
+Date : Sat, 01 Apr 2017 00:00:35 +1100
+Message-id : 149096523579.15477.14124205401536506294.reportbug@jatayu.nanonanonano.net
+Reply-to : Stuart Prescott <stuart@debian.org>, 859199@bugs.debian.org
+
+
+Package: wnpp
+Severity: wishlist
+Owner: Stuart Prescott <stuart@debian.org>
+* Package name    : dh-curl-sudo-bash
+  Version         : 1.1
+  Upstream Author : Lars Wirzenius <liw@liw.fi> and Stuart Prescott <stuart@debian.org>
+* URL             : http://deb.li/U67E
+* License         : BSD 3 clause
+  Programming Lang: POSIX shell, Perl
+  Description     : debhelper tools for automated non-packaging
+The dh-curl-sudo-bash package provides a build-system method for debhelper
+that automates the non-packaging of programs for which the preferred form of
+distribution is the sequence
+    "curl http://example.com/setup.sh | sudo bash -"
+dh-curl-sudo-bash causes debhelper to create a maintainer post-install script
+that runs the above command on the target machine when the package is installed.
+Running dpkg-reconfigure is therefore enough to upgrade the package too, thus
+preventing problems with upgrades. The dh-curl-sudo-bash source package
+Build-Depends on devscripts so that uscan can be embedded into the postinst to
+find the correct URL for upgrades.
+Example usage:
+  debian/rules:
+      %:
+              dh $@ --buildsystem=curl_sudo_bash
+  debian/curl_sudo_bash.watch:
+      http://example.com/setup-(.*\..*).sh
+For completeness, other shells can also be selected by exporting the variable
+DH_CURL_SUDO_SHELL from debian/rules:
+    export DH_CURL_SUDO_SHELL=mksh
+A future extension to dh-curl-sudo-bash is planned that will permit any github
+repository to be automatically (non-)packaged; the following version will
+iterate over all github and gitlab repositories packaging everything available.
+We anticipate that this will make all other Debian Developers redundant as
+from now on the only thing that is now required to make high quality packages
+for Debian is to include the relevant URL. This package also obsoletes the
+previous apt-gentoo package.

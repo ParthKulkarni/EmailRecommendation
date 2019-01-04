@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#886238: Please introduce official nosystemd build profile
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 4 Jan 2018 11:45:13 +0000
+Message-id : 20180104114513.GA28354@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180104033616.3bt7732el4n7sviu@angband.pl>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 87h8s2j07z.fsf@hope.eyrie.org> <[🔎] 20180104033616.3bt7732el4n7sviu@angband.pl>
+
+
+On Thu, 04 Jan 2018 at 04:36:16 +0100, Adam Borowski wrote:
+> * utopia stack (policykit and friends) which have a hard dependency on
+>   systemd
+policykit-1 depends on libpam-systemd, which is currently how you spell
+"requires a working systemd-logind" in Debian dependencies. systemd-logind
+is part of systemd.deb, and requires something that looks a bit like
+systemd, either the real systemd as pid 1 or systemd-shim.
+> * dependencies on libpam-systemd (including "mere" Recommends, which make
+>   apt force an init switch or abort an upgrade without a workaround obvious
+>   to an user who doesn't know what to look for)
+Many of these are more about having a working systemd-logind (an improved
+ConsoleKit replacement) than they are about having systemd as pid 1:
+they need to be able to identify and enumerate user sessions, and match
+processes to sessions. If there's a good alternative to systemd-logind
+for that purpose, they could talk to that instead.
+It looks as though elogind is a fork of systemd-logind with reduced
+functionality, no dependency on systemd as pid 1, and logind's D-Bus API
+(so, basically systemd-shim done right), so it should be possible for
+most of those to talk to elogind's logind-compatible API without code
+changes (via libsystemd, even). Now that we have versioned Provides,
+one way to achieve that might be for implementations of the logind API
+to add Provides: logind (= v) where v is the version of systemd whose
+logind API is implemented (currently 219 for elogind and 236 for systemd),
+and for depending packages to depend on libpam-systemd (>= v) | logind
+(>= v), or even on default-logind | logind (>= v) (with default-logind
+provided by libpam-systemd on Debian) to be nice to anti-systemd
+derivatives. Obviously >= v can be omitted if recent logind features
+are not required.
+A few packages do genuinely need systemd as pid 1, or `systemd --user`
+as an init-like service manager for user sessions (which in turn requires
+both systemd as pid 1 and systemd-logind). dbus-user-session is an example
+of a package that requires the `systemd --user` service manager. Packages
+in this category are unlikely to be ported to not-systemd, unless the
+chosen non-systemd infrastructure grows a lot of functionality that is
+basically systemd with the bike shed painted a different colour.
+    smcv

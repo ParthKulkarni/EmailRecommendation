@@ -1,0 +1,115 @@
+To : Boyuan Yang <byang@debian.org>
+Subject : Re: Behaviour inconsistency between apt and aptitude (on nvidia-related packages)
+From : Sven Joachim <svenjoac@gmx.de>
+Date : Wed, 26 Sep 2018 19:24:20 +0200
+Message-id : 87h8icf9yz.fsf@turtle.gmx.de
+Mail-followup-to : Boyuan Yang <byang@debian.org>,	debian-devel@lists.debian.org,	pkg-nvidia-devel@alioth-lists.debian.net
+In-reply-to : <[🔎] 3241424.5EHy8oSdfm@gaolab004> (Boyuan Yang's message of "Wed, 26	Sep 2018 10:38:45 -0400")
+References : <[🔎] 3241424.5EHy8oSdfm@gaolab004>
+
+
+On 2018-09-26 10:38 -0400, Boyuan Yang wrote:
+> I just encountered some weird problem around installing bumblebee-nvidia using 
+> apt and aptitude on Debian Unstable. Here's what I did:
+>
+> $ sudo apt purge '*nvidia*'
+> $ sudo apt autoremove --purge
+> $ sudo apt update
+> $ dpkg --print-architecture
+> amd64
+> $ dpkg --print-foreign-architectures
+> i386
+>
+> For apt:
+>
+> $ sudo apt install bumblebee-nvidia primus- nvidia-driver-
+> Reading package lists... Done
+> Building dependency tree       
+> Reading state information... Done
+> Package 'primus' is not installed, so not removed
+> Package 'nvidia-driver' is not installed, so not removed
+> The following additional packages will be installed:
+>   bbswitch-dkms bumblebee dkms glx-alternative-mesa glx-alternative-nvidia 
+> glx-diversions libegl1-nvidia-legacy-340xx libgl1-nvidia-legacy-340xx-glx
+>   libnvidia-legacy-340xx-eglcore libnvidia-legacy-340xx-glcore libnvidia-
+> legacy-340xx-ml1 linux-headers-amd64 nvidia-installer-cleanup nvidia-kernel-
+> common:i386
+>   nvidia-legacy-340xx-alternative nvidia-legacy-340xx-driver nvidia-
+> legacy-340xx-driver-bin nvidia-legacy-340xx-driver-libs nvidia-legacy-340xx-
+> kernel-dkms
+>   nvidia-legacy-340xx-kernel-support:i386 nvidia-legacy-340xx-vdpau-driver 
+> nvidia-modprobe:i386 nvidia-support update-glx xserver-xorg-video-nvidia-
+> legacy-340xx
+> Suggested packages:
+>   python3-apport menu nvidia-driver
+> Recommended packages:
+>   virtualgl | primus nvidia-settings-legacy-340xx nvidia-persistenced nvidia-
+> legacy-340xx-driver-libs-i386 libgles1-nvidia-legacy-340xx libgles2-nvidia-
+> legacy-340xx
+>   libnvidia-legacy-340xx-cfg1
+> The following NEW packages will be installed:
+>   bbswitch-dkms bumblebee bumblebee-nvidia dkms glx-alternative-mesa glx-
+> alternative-nvidia glx-diversions libegl1-nvidia-legacy-340xx libgl1-nvidia-
+> legacy-340xx-glx
+>   libnvidia-legacy-340xx-eglcore libnvidia-legacy-340xx-glcore libnvidia-
+> legacy-340xx-ml1 linux-headers-amd64 nvidia-installer-cleanup nvidia-kernel-
+> common:i386
+>   nvidia-legacy-340xx-alternative nvidia-legacy-340xx-driver nvidia-
+> legacy-340xx-driver-bin nvidia-legacy-340xx-driver-libs nvidia-legacy-340xx-
+> kernel-dkms
+>   nvidia-legacy-340xx-kernel-support:i386 nvidia-legacy-340xx-vdpau-driver 
+> nvidia-modprobe:i386 nvidia-support update-glx xserver-xorg-video-nvidia-
+> legacy-340xx
+> 0 upgraded, 26 newly installed, 0 to remove and 0 not upgraded.
+> Need to get 23.7 MB of archives.
+> After this operation, 137 MB of additional disk space will be used.
+> Do you want to continue? [Y/n]
+>
+> And for aptitude:
+>
+> $ sudo aptitude install bumblebee-nvidia primus- nvidia-driver-
+> Package primus is not installed, so it will not be removed
+> Package nvidia-driver is not installed, so it will not be removed
+> Package primus is not installed, so it will not be removed
+> Package nvidia-driver is not installed, so it will not be removed
+> The following NEW packages will be installed:
+>   bbswitch-dkms{a} bumblebee{a} bumblebee-nvidia dkms{a} glx-alternative-
+> mesa{a} glx-alternative-nvidia{a} glx-diversions{a} libegl-mesa0:i386{a} 
+> libegl-nvidia0{a} 
+>   libegl-nvidia0:i386{a} libegl1:i386{a} libgbm1:i386{a} libgl1-nvidia-glvnd-
+> glx{a} libgl1-nvidia-glvnd-glx:i386{a} libgles-nvidia2:i386{a} 
+> libgles2:i386{a} 
+>   libglx-nvidia0{a} libglx-nvidia0:i386{a} libnvidia-cfg1:i386{a} libnvidia-
+> egl-wayland1{a} libnvidia-egl-wayland1:i386{a} libnvidia-eglcore{a} 
+>   libnvidia-eglcore:i386{a} libnvidia-glcore{a} libnvidia-glcore:i386{a} 
+> libnvidia-ml1{a} libopengl0:i386{a} libvulkan1:i386{a} libwayland-
+> client0:i386{a} 
+>   libwayland-server0:i386{a} libxnvctrl0{a} linux-headers-amd64{a} nvidia-
+> alternative{a} nvidia-driver-libs:i386{a} nvidia-driver-libs-i386:i386{a} 
+>   nvidia-egl-common{a} nvidia-egl-icd:i386{a} nvidia-egl-wayland-common{a} 
+> nvidia-egl-wayland-icd:i386{a} nvidia-installer-cleanup{a} nvidia-kernel-
+> common{a} 
+>   nvidia-kernel-dkms{a} nvidia-kernel-support{a} nvidia-legacy-check{a} 
+> nvidia-modprobe{a} nvidia-settings{a} nvidia-support{a} nvidia-vdpau-driver{a} 
+>   nvidia-vulkan-common{a} nvidia-vulkan-icd{a} nvidia-vulkan-icd:i386{a} 
+> update-glx{a} xserver-xorg-video-nvidia{a} 
+> The following packages are RECOMMENDED but will NOT be installed:
+>   libcuda1 nvidia-driver primus 
+> 0 packages upgraded, 53 newly installed, 0 to remove and 0 not upgraded.
+> Need to get 49.1 MB of archives. After unpacking 201 MB will be used.
+> Do you want to continue? [Y/n/?]
+>
+> As you can see, the behaviour of apt is expected (choosing an dependency from 
+> alternative list when a dependency "nvidia-driver" is not to be installed) but 
+> aptitude is giving a weird answer: it just ignored the hard dependnecy that 
+> "bumblebee-nvidia depends on nvidia-driver | ... " but downgraded this 
+> dependency to "RECOMMENDED but will NOT be installed". That is really strange 
+> since aptitude seems to have ignored a hard dependency.
+It didn't, it just chose to install nvidia-kernel-dkms rather than
+nvidia-legacy-340xx-driver.  The installation of various 386 packages is
+certainly odd and probably not what you want, but I am pretty sure that
+aptitude's solution is valid, if suboptimal.
+The xserver-xorg-video-nvidia package recommends nvidia-driver, so the
+"RECOMMENDED but will NOT be installed" statement is also explained.
+Cheers,
+       Sven

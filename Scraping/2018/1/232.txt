@@ -1,0 +1,40 @@
+To : debian-devel@lists.debian.org
+Subject : Re: sysvinit-utils essentialness
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 9 Jan 2018 08:56:49 +0000
+Message-id : 20180109085649.GA15681@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180109030439.l7obajohhalee6fd@fatal.se>
+References : <[🔎] 20180104033616.3bt7732el4n7sviu@angband.pl> <[🔎] 87po6q9s9i.fsf@hope.eyrie.org> <[🔎] 5A504E01.5030203@debian.org> <[🔎] 20180106134232.GB10711@perpetual.pseudorandom.co.uk> <[🔎] a6fbe31d-c04f-b43a-8e09-d76b2b8272d0@debian.org> <[🔎] 20180106181714.GA14323@bongo.bofh.it> <[🔎] 20180106223509.6pmj5gs7rqfe3wlu@angband.pl> <[🔎] 87zi5qbmb0.fsf@43-1.org> <[🔎] 20180107115449.GA7245@perpetual.pseudorandom.co.uk> <[🔎] 20180109030439.l7obajohhalee6fd@fatal.se>
+
+
+On Tue, 09 Jan 2018 at 04:04:39 +0100, Andreas Henriksson wrote:
+> Using the pidof implementation provided by procps (upstream) would
+> mean we atleast use the same implementation as other distros, but
+> wouldn't gain us much else and could even give us new problems.
+The other gain would be that one more binary in the Essential set comes
+from a source package with an active maintainer, and that the maintainers
+of src:sysvinit (who appear to be too busy with other things to be unable
+to respond to RC bugs at the moment[0]) can concentrate on supporting
+systems that boot using the sysvinit/sysv-rc/initscripts cluster of
+packages, while able to ignore all systems that boot using systemd
+(and chroots/containers that don't really "boot" at all) as outside
+their scope. Ian Jackson was positive about that approach in [1].
+[0] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=811377#104
+    (I'm not saying that #872039 *should* necessarily be RC, but it's
+    been 4½ months without a maintainer response or a downgrade.)
+[1] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=851747#56
+> The most practical thing to do at this point seems to be to just wait
+> until sysvinit is eventually removed from Debian
+There's a circular dependency here: that can't happen, regardless of
+the quality or maintenance status of sysv-rc/initscripts, as long as
+sysvinit-utils is Essential. If there was consensus that booting with
+sysv-rc/initscripts was no longer something the project had any interest
+in, then a more likely implementation would be to simplify src:sysvinit
+by removing all binary packages except sysvinit-utils, which is what's
+happened in derivatives that require/assume systemd, like Ubuntu (and
+if Debian was as hostile to non-systemd init systems as some people
+apparently believe it is, then the same would presumably have happened
+in Debian).
+I agree that, if sysvinit *was* ever removed from Debian, that would be
+a great time to reassess whether pidof needs to be Essential.
+    smcv

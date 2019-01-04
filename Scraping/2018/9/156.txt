@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org,	Debian kernel maintainers <debian-kernel@lists.debian.org>
+Subject : Re: Limiting the size of installed changelogs
+From : Lars Wirzenius <liw@liw.fi>
+Date : Thu, 13 Sep 2018 13:46:34 +0300
+Message-id : 20180913104634.GA24018@exolobe1.liw.fi
+In-reply-to : <[🔎] c435ca8dca20b7866e87f53fac780c9493591487.camel@decadent.org.uk>
+References : <[🔎] c435ca8dca20b7866e87f53fac780c9493591487.camel@decadent.org.uk>
+
+
+On Thu, Sep 13, 2018 at 11:22:37AM +0100, Ben Hutchings wrote:
+> The src:linux package has a very big changelog (about 1700 kiB
+> uncompressed, 600 kiB gzipped).  On my system the largest installed
+> changelogs, by some way, are all versions of this.  (The next largest
+> changelogs come from src:glibc, at about 200 kiB gzipped.)
+I was curious, so I ran the following on my laptop:
+$ find /usr/share/doc -name '*changelog*' -printf '%s %p\n' | sort -n | tail -n10 | while read size path; do echo $(humanify "$size") "$path"; done
+2 MB /usr/share/doc/libgstreamer-plugins-bad1.0-0/changelog.gz
+2 MB /usr/share/doc/xserver-common/changelog.gz
+2 MB /usr/share/doc/xserver-xephyr/changelog.gz
+2 MB /usr/share/doc/xserver-xorg-core/changelog.gz
+2 MB /usr/share/doc/xserver-xorg-legacy/changelog.gz
+2 MB /usr/share/doc/xwayland/changelog.gz
+2 MB /usr/share/doc/gimp/changelog.gz
+2 MB /usr/share/doc/gimp-data/changelog.gz
+2 MB /usr/share/doc/libgimp2.0/changelog.gz
+4 MB /usr/share/doc/libvirt0/changelog.gz
+While changelogs are sometimes really useful, that's a fair bit of
+diskspace on my laptop, and a fair bit of bandwidth to transfer, for
+fairly little gain.
+> The older history is unlikely to be of any use to users.  So on smaller
+> systems this could be a significant waste of space.  (I know it's
+> possible to filter out the installation of docs entirely, but I don't
+> think this option is well known.)
+I agree that we can drop older changelog entries. I suggest truncating
+changelogs, at least large ones, by dropping any entries from before
+stable, when uploading to unstable. So uploading to unstable today,
+any entries from before stretch can be dropped. When a changelog is
+truncated, there should be a URL to the full changelog, so those who
+really are curious can find it. (Possibly oldstable would be a better
+cut-off point.)
+Alternatively, we could change things so that the changelog for each
+Debian release (major part of version) is put in its own file.
+With this scheme, uploads to unstable today would have
+/usr/share/doc/*/changelog.debian10.gz. Once buster is released,
+uploads would include changelog.debian11.gz instead. This would allow
+a fairly natural rotation.
+> - Does it make sense to compress changelogs with xz?  For src:linux,
+> this achieves about a 20-25% reduction over gzip.
+I'd be OK with using xz -9 to compress changelogs. This would also be
+easily doable in debhelper. From the ten files I showed at the
+beginning, I get about a 29% savings recompressing as xz.
+-- 
+I want to build worthwhile things that might last. --joeyh
+signature.asc

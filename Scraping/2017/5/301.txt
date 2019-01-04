@@ -1,0 +1,65 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Packaging of libraries with unstable ABI (D, Rust, Go, ...)
+From : Matthias Klumpp <mak@debian.org>
+Date : Thu, 18 May 2017 16:37:58 +0200
+Message-id : CAKNHny_vTGsFNWJkmJdF-ypTDfmJhF1-OWeDHVSD-xOgv5tYuA@mail.gmail.com
+
+
+Hi!
+Recently, I have been packaging some libraries written in the D
+programming language[1]. Since the D team didn't have many libraries
+packaged, there was no policy on how to package libraries, so I
+packaged them like C/C++ libraries: Make a shared lib package and have
+the software requiring it depend on that.
+Unfortunately though, the D language ABI isn't stable, so any future
+compiler update might break the software in weird ways unless all D
+software is recompiled when a new compiler is released.
+To make things worse, D also has three different compilers (which
+share the same frontend), the GNU D Compiler (GDC), LLVM D Compiler
+(LDC) and the reference compiler Digital Mars D compiler (DMD).
+All compilers have different advantages, but they also have
+incompatible ABI, especially because each comes with a seperate
+version of the D runtime and standard libraries.
+So, if we ship a D package containing a shared library compiled with
+LDC, there is a high chance that you can't use that with DMD or GDC.
+Also, D makes excessive use of template programming, so quite a bit of
+code gets embedded into the target executable even if you have shared
+libraries.
+Looking at what other languages with the same problem have done, there
+are basically two ways to deal with the issue:
+ 1) Rebuild every reverse-dependency of the languages' compiler every
+time the compiler is updated. This is done by Haskell and OCaml and
+resulted in permanent transition trackers for the libraries.
+ 2) Ship source code instead of libraries in packages, and compile it
+directly into the target binaries. That way, the maintenance overhead
+of the languages' packages is greatly reduced, but code is statically
+linked (boo!) and a lot of code needs to be rebuilt for every
+dependency (meaning more work for the autobuilders). This is done by
+Go, and apparently also the plan to do for Rust.
+The workflows for packaging we have in Debian are very tailored to
+C/C++ packages. So I wonder, for new packages for a programming
+language with no ABI stability guarantees, what is the best way to
+package libraries?
+Also more specifically: If we ship source-code, should the packages
+shipping it also build the source code, or should we rely on the
+dependencies to build the code and catch issues?
+What about very large libraries, or ones which take long to compile?
+Should those be always recompiled too, for every dependency, or should
+there be exceptions for it?
+In general, I am interested in whether we have a "best practices" for
+this issue yet, and I would love to hear from people maintaining
+Go/Rust/etc. stuff on what works and how this issue should be handled.
+Cheers,
+    Matthias
+P.S: The D language authors are aware of the ABI issue, and apparently
+there is even come level of compatibility between the GDC and LDC
+compilers at least. D also has some rules for how it's ABI should
+work, but apparently going the final steps is rather difficult and
+given the template-centric nature of D, stabilizing the ABI doesn't
+have the highest priority too (it apparently also is impractical in
+some cases).
+In ay case, ABI compatibility does sometimes work, but we can not rely
+on it at all, especially not with multiple compilers.
+[1]: https://dlang.org/
+-- 
+I welcome VSRE emails. See http://vsre.info/
