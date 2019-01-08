@@ -1,0 +1,91 @@
+To : Johannes Schauer <josch@debian.org>
+Subject : Re: Feedback on 3.0 source format problems
+From : James Clarke <jrtc27@debian.org>
+Date : Sun, 8 Jan 2017 11:14:07 +0000
+Message-id : 20170108111407.GA84878@Jamess-MacBook.home
+In-reply-to : <[🔎] 148383683147.12501.5702048653172544292@localhost>
+References : <[🔎] 148383683147.12501.5702048653172544292@localhost>
+
+
+On Sun, Jan 08, 2017 at 01:53:51AM +0100, Johannes Schauer wrote:
+> Quoting Thibaut Paumard (2017-01-07 07:12:59)
+> > I manage my patches using quilt. I would really prefer if sbuild et al.
+> > would revert the patches after building by default, but that's life. I
+> > respect that other people have other views.
+>
+> you could always file a wishlist bug against sbuild with your feature request.
+> ;)
+>
+> I guess you are using sbuild from within an unpacked source package?
+>
+> The input for sbuild is always a source package. If all you give to sbuild is a
+> directory, then it first needs to create that source package. It uses
+> "dpkg-source -b ." for this purpose. It is dpkg-source which applies the
+> patches.
+>
+> What you could already do today with sbuild is to say:
+>
+> sbuild --pre-build-commands="dpkg-source --after-build $(pwd)" ...
+>
+> You can also put this into your ~/.sbuildrc but that would then prevent you
+> from using sbuild outside of unpacked source package directories.
+>
+> Sbuild could do this cleanup itself if there was a way to automatically
+> determine whether the user would like their tree to be patches applied or
+> unapplied. I do not even know of a way to determine upfront whether a source
+> tree is patches applied or unapplied (that check has to be independent of the
+> source format). Heck, with quilt, the source tree could even have patches half
+> applied. I'm not so sure how fragile it will be to let sbuild try to put your
+> source directory back into the state that it found it.
+dpkg-source can almost do this for you; see later :)
+> This also brings me to a question about the --unapply-patches option. The man
+> page says:
+>
+>        --no-unapply-patches, --unapply-patches
+>               By  default,  dpkg-source will automatically unapply the patches
+>               in  the  --after-build  hook  if  it  did  apply   them   during
+>               --before-build    (--unapply-patches    since    dpkg    1.15.8,
+>               --no-unapply-patches since dpkg 1.16.5).   Those  options  allow
+>               you  to  forcefully  disable  or  enable the patch unapplication
+>               process.    Those    options     are     only     allowed     in
+>               debian/source/local-options   so   that   all  generated  source
+>               packages have the same behavior by default.
+>
+> Is --before-build not also run when using --build? That patches are applied
+> when using --build indicates to me that it is.
+No, it's not, but per dpkg-source(1) you can see that for 3.0 (quilt),
+both --before-build and --build apply patches.
+> But the --unapply-patches option
+> seems to have no effect when used with --build. So is there a way to apply and
+> unapply patches with a single dpkg-source call?
+No, there isn't. The standard invocation by dpkg-buildpackage -S is:
+dpkg-source --before-build .
+fakeroot debian/rules clean
+dpkg-source -b .
+dpkg-source --after-build .
+(also dpkg-gencontrol and dpkg-genbuildinfo)
+> And if --unapply-patches does
+> not have any effect together with --build, why do I not get a warning on the
+> command line about this?
+Wishlist bug against dpkg? :)
+> And then there is the mysterious hint about
+> debian/source/local-options which doesn't increase my understanding of the
+> matter....
+Indeed, but they seem to work when given on the command-line for
+--after-build.
+Now, if you look at the --(no-)unapply-patches description, you will see
+> By default, dpkg-source will automatically unapply the patches in the
+> --after-build hook if it did apply them during --before-build
+This turns out to be true. Working in a patches-applied tree:
+    $ dpkg-source --before-build .
+    $ dpkg-source -b .
+    $ dpkg-source --after-build .
+leaves the patches applied. Working in a patches-unapplied tree, the
+patches are unapplied during the --after-build. This seems to do exactly
+what you want, with the caveat that, if patches are only *part*-applied,
+they will be completely unapplied by the --after-build, but this seems
+like a very strange edge-case.
+This behaviour is exactly what pdebuild has been doing forever (and
+therefore git-buildpackage --git-pbuilder and others).
+Regards,
+James

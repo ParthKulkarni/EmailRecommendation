@@ -1,0 +1,79 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Scott Kitterman <debian@kitterman.com>
+Date : Mon, 16 Jan 2017 12:24:08 -0500
+Message-id : 1560757.FfsSeBlZPG@kitterma-e6430
+In-reply-to : <[🔎] 20170116120902.7dfff89e@subdivisions.wooz.org>
+References : <[🔎] 20170116120619.GD1595@donald> <[🔎] 148461145.JRZtBEgSOn@kitterma-e6430> <[🔎] 20170116120902.7dfff89e@subdivisions.wooz.org>
+
+
+On Monday, January 16, 2017 12:09:02 PM Barry Warsaw wrote:
+> On Jan 16, 2017, at 10:52 AM, Scott Kitterman wrote:
+> >This is going to take a lot of work.  I see random failures routinely block
+> >migrations in Ubuntu (postfix is a current example - there's two alleged
+> >regressions that to the extent they are valid are completely unrelated to
+> >anything that changed in the package).
+> >
+> >The question is who's going to do the work?  I don't see the release team
+> >having tons of spare cycles to dive into the details of individual test
+> >results and package failures and decide what's RC and what's not.  The only
+> >thing that scales to something the size of the Debian archive is to let the
+> >maintainers decide.
+> 
+> Speaking only about our experiences in Ubuntu, I can anecdotally but
+> emphatically claim that gating promotions on passing autopkgtests has
+> dramatically improved the quality of the running end user systems.
+> 
+> It used to be that you had to be very careful about running and especially
+> dist-upgrading the current devel series.  You never knew if something major
+> like the kernel or X would break, or even when minor breakages would be
+> highly inconvenient.  It just wasn't safe without a lot of precaution.
+> 
+> But now I don't hesitate to run devel almost as soon as the new series
+> opens. That's not to say that serious breakage never happens; not
+> everything is tested of course, and stuff happens.  But it's rare, maybe
+> once or twice a cycle for boot-to-desktop to break, or a package regression
+> sneaks through.  I just have way way more confidence in the distro now that
+> these tests block promotion.
+> 
+> Yes, it can be more work at times, and it's not always easy to diagnose or
+> reproduce promotion problems.  (I'm currently flummoxed by a systemd
+> regression triggered by a network-manager fix.)  But I'd much rather have
+> the luxury of debugging these problems on a still-functioning system and
+> without also-frustrated users hammering me on IRC, with deadlines looming.
+> 
+> I think it does mean that maintainers will have to step up and take more
+> responsibility for nursing their packages through to promotion, but I also
+> think they are in a much better position to do so than J Random User who
+> runs an upgrade only to be left with a broken system or application.
+> 
+> One other point.  I don't know how many folks run unstable (or in Ubuntu's
+> case, devel), but for most software I work on, few users really test
+> pre-release versions.  As much as you plead with them, "hey, beta 3 is out,
+> please test!" they just won't for totally understandable reasons.  So
+> problems arise *after* the final release because that's when people start
+> to really hammer on it, and integrate it with their own software,
+> environments, and workflows.  That means day-to-day user testing just can't
+> be all that reliable because there are so few data points, and it's another
+> reason why I think automated testing/CI is so important.  (It's also an
+> investment over time; you don't have to have 100% coverage from day one,
+> but every new test can improve overall quality just a little bit.)  It's
+> also why I feel it's important for *me* to run unstable/devel.  True, it's
+> my day job, but I also feel a responsibility to help ensure the little
+> corner of stuff I use, care about, and know about is in as good a shape as
+> possible before it gets into the hands of our users.  I *want* to feel the
+> pain before they do.
+The before/after comparison for Debian and Ubuntu is apples and oranges.  
+Before Ubuntu had the auto package test migration there we nothing other than 
+installability blocking migration, it had (and still doesn't AFAIK) any notion 
+of blocking due to RC bugs.
+Back to my experience with postfix: I don't recall the auto package test 
+catching anything.  When I upload it broken to unstable (and via autosync to 
+the Ubuntu devel release) people notice pretty much right away.
+I'm sure it's generally helped, but so far, I've found it mostly a nuisance.  
+If Debian started enforcing auto package test pass for Testing migration, the 
+first thing I'd do is remove the postfix tests (it's never worked on Debian as 
+far as I've noticed, despite intermittently working on Ubuntu, and I've no 
+idea why).  Postfix doesn't have rdepends, so at least for that package, I can 
+side step the problem.
+Scott Ksignature.asc

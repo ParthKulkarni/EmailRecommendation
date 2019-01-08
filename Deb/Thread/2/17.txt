@@ -1,0 +1,74 @@
+To : Guillem Jover <guillem@debian.org>
+Subject : Re: Feedback on 3.0 source format problems
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 3 Jan 2017 16:58:21 +0000
+Message-id : 22635.55341.122650.678601@chiark.greenend.org.uk
+In-reply-to : <m2n.s.1cNjpp-274474@chiark.greenend.org.uk>
+References : <m2n.s.1cNjpp-274474@chiark.greenend.org.uk>
+
+
+Guillem Jover writes ("Feedback on 3.0 source format problems"):
+> I'm interested in what things people still find so off-putting to the
+> point of not wanting to use the new 3.0 source formats, or what makes
+> people use them in anger and similar (if people would state which one
+> of these apply that would be helpful). All these including objective
+> and subjective issue. And even existing bug references would be fine.
+Thanks for explicitly inviting critical opinions!
+AIUI the only significant 3.0 format supported in Debian right now is
+`3.0 (quilt)'.
+I think it is very poor.  Its only virtue is that it is better than
+in-tree ad-hoc patch systems implemented in debian/rules, which it has
+(thankfully!) almost entirely replaced.
+IMO it's not a `source package format'.  This is because a `source
+package format' would be a way to represent and transport a package's
+source code tree.  But `3.0 (quilt)' puts extraneous data in the
+source tree (in debian/patches/), and requires those files to be kept
+in step.  Or to look at it another way, it insists on execution of
+special commands after editing files.
+Looked at another way, it is trying to be a version control system,
+layered on top of the Debian archive.  But it is only about a quarter
+of a VCS.  There are no formal interfaces to do proper VCS operations.
+If there is a formal interface, it is quilt(1) (which is itself very
+poor.  NB that is not quilt's fault: quilt inevitably has a hard job
+because can't make enough assumptions).
+I think if we want to be storing patch queues we should be doing so in
+a real version control system.  Indeed, most people are doing that.
+For now many people are using `3.0 (quilt)' as an interchange format,
+but ideally we would switch to a useable git workflow that did a
+similar thing, and then we could use git as our history interchange
+format.
+Additionally, `3.0 (quilt)' unfairly privileges the Debian Project: it
+provides facilities (which apparently some people find helpful) for
+maintaining a delta from an upstream tarball.  But because it excludes
+patches to debian/* from its patch series, it cannot be used the same
+way by a Debian derivative to maintain their packaging patch stack, on
+top of their own upstream (which might be Debian or might be an
+intermediate derivative).
+There are other 3.0 formats, which are all quite different.  The only
+interesting one of these which is a serious contender is `3.0 (git)'.
+IMO `3.0 (git)' is a very silly way of transporting git branches
+about.  It doesn't solve any underlying technical problems; it just
+tries to wedge git into the ftp.debian.org-shaped hole.
+`3.0 (native)' exists too but I don't quite understand the point of
+that.  1.0 could be extended to support other compression formats, and
+it does not make any logical sense that ignore rules depend on the
+source format.
+I have already said that I would like a source format which can
+faithfully represent every possible reasonable tree (let us say, every
+git tree).
+We need such a format to retain the space and bandwidth advantages of
+.orig tarballs.  It needs to be very stable and not to accidentally
+grow new incompatible features (as `3.0 (quilt)' has done due to its
+reliance on patch).
+If we manage to store our the revision control history elsewhere, in a
+proper revision control server, we do not need the archive to contain
+the revision control history.
+I think my proposal for `3.0 (rsync)' would meet these requirements
+and I'm still sad it won't make stretch.  It means we can't use that
+for developing buster.
+Regards,
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

@@ -1,0 +1,81 @@
+To : Paul Gevers <elbrus@debian.org>
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Sat, 14 Jan 2017 12:58:14 +0000
+Message-id : 22650.8294.207620.826781@chiark.greenend.org.uk
+In-reply-to : <[🔎] 1854659a-b021-2382-6f3d-fd9390186e28@debian.org>
+References : <[🔎] 22649.6909.709941.18707@chiark.greenend.org.uk>	<[🔎] 20170113193510.ygehzkrm7trmib2v@perpetual.pseudorandom.co.uk>	<[🔎] 87a8au20ad.fsf@debian.org>	<[🔎] 1854659a-b021-2382-6f3d-fd9390186e28@debian.org>
+
+
+Paul Gevers writes ("Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS"):
+> On 01/13/17 21:05, Ole Streicher wrote:
+> > Simon McVittie <smcv@debian.org> writes:
+> >> On Fri, 13 Jan 2017 at 18:22:53 +0000, Ian Jackson wrote:
+> >>> Maybe an intermediate position would be to respond to a CI failure by:
+> >>>  * Increasing the migration delay for the affecting package
+> 
+> I like this and will suggest it to the release team. Especially for the
+> start up time.
+I definitely think we should start with this.  It provides a good
+incentive to add tests to one's package: namely, advance notice of
+problems which occur with newer dependencies.
+But there are a lot of things that I think we are going to have to
+work out.  Some of them have been mentioned in this thread.
+At the moment we (Debian) 1. have very little experience of how
+autopkgtests will work in practice 2. haven't really tackled any of
+the social questions.  The Ubuntu experience is valuable for (1) but
+Ubuntu has a very different social structure, so doesn't tell us much
+about (2).
+Questions which will come to the fore include: if a new version of a
+core package A breaks an "unimportant" leaf package B, such that B
+becomes RC-buggy, is that an RC bug in A ?  The only coherent answer
+is "yes" but if B is just "too wrong" or unfixable, at some point
+something will have to give.  I think our social structures will come
+under some additional strain.
+> One can always file bug reports against the release.debian.org pseudo
+> package to ask for britney to ignore the autopkgtest result.
+I think that if autopkgtests are a success, there will be far too much
+of this for the release team to be involved in first-line response.
+Since the autopkgtests are controlled by the depending package, I
+suggest that there should be a way for the depending package
+maintainer to provide this information and control the way the tests
+affect migrations.
+The information would want to be kept outside the depending package's
+source tree, but rather in some kind of management system, because
+uploads are disruptive in this context.  We could use the BTS: one way
+would be for the autopkgtest analyser to look for a bug with a new
+kind of tag "this bug causes broken tests".  Ideally there would be a
+way to specify the specific failing tests.
+If the bug is actually in the dep package, but the maintainer of the
+rdep with the failing tests wants it not to block migration of the
+dep, they would still file a bug against the rdep and mark it blocked
+in the bts by the bug in the dep.
+This way our existing rule that the maintainer of a packgae is (at
+least in the first instance) in charge of the bugs against their
+package extends naturally to giving the rdep first instance control
+over migration of deps which cause test failures.
+That is consistent with the principle of providing an incentive for
+adding tests.  It also provides a way to work around broken tests that
+is not throwing the package out of the release.  That is very
+important because otherwise adding tests is a risky move: your package
+might be removed from testing as a result of your excess of zeal.
+The release team would become involved if the dep maintainer and the
+the rdep maintainer disagree.  Ie, if the dep maintainer wants such a
+"broken test" bug to exist, and the rdep maintainer wants not, then
+the rdep maintainer would ask release@.  The existing principle that
+the release team are the first escalation point for disagreements
+about testing migration (currently, RC bug severity) extends naturally
+to this case.
+> > What is the reason not to use automated bug reports here? This would
+> > allow to use all the tools the bug system has: severities, reassigning
+> > closing etc.
+The difficulty with automated bug reports is this: how do you tell
+whether something is the same bug or not ?
+If you're not careful, a test which fails 50% of the time will result
+in an endless stream of new bugs from the CI system which then get
+auto-closed...
+(If there are bugs, we want them to auto-close because no matter how
+hard we try, test failures due to "weather" will always occur some of
+the time.  Closing such bugs by hand would be annoying.)
+Thanks,
+Ian.

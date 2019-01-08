@@ -1,0 +1,60 @@
+To : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Subject : Re: Feedback on 3.0 source format problems
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Fri, 6 Jan 2017 15:37:48 +0000
+Message-id : 22639.47564.765774.861136@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20170104212809.vwvd6rvu4gn5cn4v@breakpoint.cc>
+References : <m2n.s.1cNjpp-274474@chiark.greenend.org.uk>	<[🔎] 22635.55341.122650.678601@chiark.greenend.org.uk>	<[🔎] 20170104212809.vwvd6rvu4gn5cn4v@breakpoint.cc>
+
+
+Sebastian Andrzej Siewior writes ("Re: Feedback on 3.0 source format problems"):
+> On 2017-01-03 16:58:21 [+0000], Ian Jackson wrote:
+> > Looked at another way, it is trying to be a version control system,
+> > layered on top of the Debian archive.  But it is only about a quarter
+> > of a VCS.  There are no formal interfaces to do proper VCS operations.
+> > If there is a formal interface, it is quilt(1) (which is itself very
+> > poor.  NB that is not quilt's fault: quilt inevitably has a hard job
+> > because can't make enough assumptions).
+> 
+> there quilt push, pop and header which seems enough.
+Well, it seems you don't really think so :-), because:
+> I usually have git-dpm which creates the quilt series and I try to
+> keep patches documented.
+So you are using git operations to manipulate your patch stack.
+git-dpm is one of the tools we have which lets you do that.
+> > I think if we want to be storing patch queues we should be doing so in
+> > a real version control system.  Indeed, most people are doing that.
+> > For now many people are using `3.0 (quilt)' as an interchange format,
+> > but ideally we would switch to a useable git workflow that did a
+> > similar thing, and then we could use git as our history interchange
+> > format.
+> 
+> I read this a few times in this thread that people want the patches in a
+> VCS. I never saw this a missing feature or requirement on my side.
+...
+> I can't think of an example where having a patch history somewhere else
+> than within the patch itself is useful. My thinking is probably limited
+> by my workflow :) Would you have an example where and how this could be
+> usefull?
+You have misunderstood, I think.  I don't mean (and I think most
+other people don't mean) that they want the history _of_ a patch.
+That is, we aren't saying we want to look at the output of
+`git blame debian/patches/01-sponge.patch'.
+Rather, we think manipulating a stack of patches is much easier if one
+converts the patches to a git branch, with each patch becoming a
+commit (using a tool morally equivalent to git-am, such as gbp pq
+import).
+Naturally that doesn't end up recording a history _of_ the patches,
+because the patches _become_ `the history'.  Then one manipulates the
+patches with git-rebase (or similar tools), git-commit,
+git-cherry-pick, etc.
+Finally, when doing an upload, one converts the git branch back into
+patches (with a tool morally equivalent to git-format-patch).
+I think only a minority of people are actually using quilt on
+debian/patches.
+Regards,
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

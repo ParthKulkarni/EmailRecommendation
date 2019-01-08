@@ -1,0 +1,43 @@
+To : submit@bugs.debian.org
+Subject : Bug#851427: sysvinit makes /dev/shm a symlink to /run/shm, should be other way round
+From : Simon McVittie <smcv@debian.org>
+Date : Sat, 14 Jan 2017 21:15:42 +0000
+Message-id : 20170114211542.c32b655wfa7hueej@perpetual.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 851427@bugs.debian.org
+In-reply-to : <[🔎] 20170114190051.b2sqzbcqzi3kelp7@virgil.dodds.net>
+References : <[🔎] 6fcffac4-ba79-86b3-8561-150a8b063c39@onenetbeyond.org> <[🔎] CAOO6c=w64j02BYmMhtm=-_=XEUXS7vZ1fBCaaPo8KiZPMdr9-g@mail.gmail.com> <[🔎] 20170113141409.GD31005@layer-acht.org> <[🔎] 20170113155430.x6xmqyc6h5ma3w74@perpetual.pseudorandom.co.uk> <[🔎] 20170114190051.b2sqzbcqzi3kelp7@virgil.dodds.net>
+
+
+Package: initscripts
+Version: 2.88dsf-59.8
+Severity: normal
+On Sat, 14 Jan 2017 at 11:00:51 -0800, Steve Langasek wrote:
+> On Fri, Jan 13, 2017 at 03:54:30PM +0000, Simon McVittie wrote:
+> > If I'm reading the initscripts code correctly, sysvinit does the reverse
+> > by default, for some reason (/run/shm is the mount point and /dev/shm the
+> > symlink). I think the motivation might have been to be able to use the
+> > same tmpfs for /run and /run/shm,
+> 
+> I recall this being a misguided attempt to move it out of /dev "because it's
+> not a device".  The migration did not go well, especially in the face of
+> chroots that need to have it mounted, and since systemd did not handle this
+> the same way sysvinit had, we effectively now have a mess in the other
+> direction.
+> 
+> We should fix it so that everything again treats /dev/shm as the mountpoint.
+Let's have a bug number for that, then. Please escalate its severity if you
+think that's correct.
+Steps to reproduce:
+* install Debian (I used vmdebootstrap according to autopkgtest-virt-qemu(1))
+* apt install sysvinit-core
+* reboot
+* mount
+* ls -al /dev/shm /root/shm
+Expected result:
+* /dev/shm is a tmpfs
+* /run/shm is a symlink with target /dev/shm
+Actual result:
+* /dev/shm is a symlink with target /run/shm
+* /run/shm is a tmpfs
+----
+This might also be related to #697003, #818442.

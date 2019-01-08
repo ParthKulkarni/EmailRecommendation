@@ -1,0 +1,50 @@
+To : debian-devel@lists.debian.org
+Subject : Re: [RFC] The PIE unholy mess
+From : Adrian Bunk <bunk@debian.org>
+Date : Thu, 19 Jan 2017 11:40:53 +0200
+Message-id : 20170119094053.ogndk3nk27ugmkke@localhost
+In-reply-to : <[🔎] 20170118033424.k2yzdyihedyafmxc@gaara.hadrons.org>
+References : <[🔎] 20170118033424.k2yzdyihedyafmxc@gaara.hadrons.org>
+
+
+On Wed, Jan 18, 2017 at 04:34:24AM +0100, Guillem Jover wrote:
+>...
+> At about the same time this was being considered, I realized that dpkg
+> could enable this "safely" by using gcc specs files. But this is in
+> any case also required to be able to disable PIE when it is implicitly
+> enabled by default in gcc. So we'll need specs files no matter what,
+> at least for now.
+-no-pie is how PIE has been disabled in the packages where it was 
+required, and this was already nearly finished before dpkg started
+with the specs.
+>...
+> So, I'd like to know how people feel about the requested interface
+> (i.e. not enabling PIE globally from dpkg-buildflags). If there's
+> consensus that porters and maintainers want that, I'll just change
+> dpkg-buildflags to do this, even though I think it's a very
+> suboptiomal behavior.
+The mess is that gcc and dpkg both try to set policy on PIE.
+This should be done in one place.
+Both gcc and dpkg would be options for being the one place.
+gcc also covers the many packages that are not yet properly
+passing flags from dpkg to the compiler, and this default
+is working fine for 3 months now.
+The number of packages requiring -no-pie was so low that I do not
+think any support from dpkg is required for dis/enabling PIE when
+gcc enables it by default.
+> Alternatively, porters could as well request PIE be enabled by default
+> in gcc on their port, which could make this also globally enabled.
+This is a very good suggestion.
+When PIE works without problems on a port, a porter should request that 
+it gets enabled by default for that port in gcc.
+When PIE does not work without problems on a port, nothing should 
+enable it on that port.
+> Thanks,
+> Guillem
+cu
+Adrian
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

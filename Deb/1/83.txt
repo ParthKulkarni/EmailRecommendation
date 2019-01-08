@@ -1,0 +1,56 @@
+To : Thibaut Paumard <thibaut.paumard@obspm.fr>
+Subject : Re: Feedback on 3.0 source format problems
+From : Johannes Schauer <josch@debian.org>
+Date : Sun, 08 Jan 2017 01:53:51 +0100
+Message-id : 148383683147.12501.5702048653172544292@localhost
+Mail-followup-to : Thibaut Paumard <thibaut.paumard@obspm.fr>, "Ian Jackson" <ijackson@chiark.greenend.org.uk>, "Sebastian Andrzej Siewior" <sebastian@breakpoint.cc>, "Guillem Jover" <guillem@debian.org>, debian-devel@lists.debian.org, debian-dpkg@lists.debian.org
+In-reply-to : <[🔎] c49c467e-3307-93c2-a3f5-fb50ee5e3773@obspm.fr>
+References : <m2n.s.1cNjpp-274474@chiark.greenend.org.uk> <[🔎] 22635.55341.122650.678601@chiark.greenend.org.uk> <[🔎] 20170104212809.vwvd6rvu4gn5cn4v@breakpoint.cc> <[🔎] 22639.47564.765774.861136@chiark.greenend.org.uk> <[🔎] c49c467e-3307-93c2-a3f5-fb50ee5e3773@obspm.fr>
+
+
+Hi,
+Quoting Thibaut Paumard (2017-01-07 07:12:59)
+> I manage my patches using quilt. I would really prefer if sbuild et al.
+> would revert the patches after building by default, but that's life. I
+> respect that other people have other views.
+you could always file a wishlist bug against sbuild with your feature request.
+;)
+I guess you are using sbuild from within an unpacked source package?
+The input for sbuild is always a source package. If all you give to sbuild is a
+directory, then it first needs to create that source package. It uses
+"dpkg-source -b ." for this purpose. It is dpkg-source which applies the
+patches.
+What you could already do today with sbuild is to say:
+sbuild --pre-build-commands="dpkg-source --after-build $(pwd)" ...
+You can also put this into your ~/.sbuildrc but that would then prevent you
+from using sbuild outside of unpacked source package directories.
+Sbuild could do this cleanup itself if there was a way to automatically
+determine whether the user would like their tree to be patches applied or
+unapplied. I do not even know of a way to determine upfront whether a source
+tree is patches applied or unapplied (that check has to be independent of the
+source format). Heck, with quilt, the source tree could even have patches half
+applied. I'm not so sure how fragile it will be to let sbuild try to put your
+source directory back into the state that it found it.
+This also brings me to a question about the --unapply-patches option. The man
+page says:
+       --no-unapply-patches, --unapply-patches
+              By  default,  dpkg-source will automatically unapply the patches
+              in  the  --after-build  hook  if  it  did  apply   them   during
+              --before-build    (--unapply-patches    since    dpkg    1.15.8,
+              --no-unapply-patches since dpkg 1.16.5).   Those  options  allow
+              you  to  forcefully  disable  or  enable the patch unapplication
+              process.    Those    options     are     only     allowed     in
+              debian/source/local-options   so   that   all  generated  source
+              packages have the same behavior by default.
+Is --before-build not also run when using --build? That patches are applied
+when using --build indicates to me that it is. But the --unapply-patches option
+seems to have no effect when used with --build. So is there a way to apply and
+unapply patches with a single dpkg-source call? And if --unapply-patches does
+not have any effect together with --build, why do I not get a warning on the
+command line about this? And then there is the mysterious hint about
+debian/source/local-options which doesn't increase my understanding of the
+matter....
+Thoughts?
+Thanks!
+cheers, josch
+signature.asc

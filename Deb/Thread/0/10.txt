@@ -1,0 +1,78 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : Re: [buildd-tools-devel] Bug#843773: Bug#843773: misleading timestamps in binnmus
+From : Guillem Jover <guillem@debian.org>
+Date : Sun, 1 Jan 2017 17:40:44 +0100
+Message-id : 20170101164044.ivfh2esdssbl5y7o@gaara.hadrons.org
+Mail-followup-to : Ian Jackson <ijackson@chiark.greenend.org.uk>,	Johannes Schauer <josch@debian.org>, 843773@bugs.debian.org,	debian-devel@lists.debian.org
+In-reply-to : <22569.49554.511742.566777@chiark.greenend.org.uk>
+References : <22562.25660.33985.347132@chiark.greenend.org.uk> <147865142178.3099.18231141250118657134@localhost> <871syl6n37.fsf@turtle.gmx.de> <1478768421.3628.23.camel@43-1.org> <b6f93afb-4ead-983b-e8fa-6aa6940ebdd2@debian.org> <147877558815.3099.12687864797140636215@localhost> <20161110121816.GA10218@layer-acht.org> <8b47a583-45ad-ecc5-0a41-80a9bc337f9e@debian.org> <147893548818.3755.2446661748926874577@localhost> <22569.49554.511742.566777@chiark.greenend.org.uk>
+
+
+[ Had this half-drafted, but had not found the time to finish it up
+  until now. ]
+Hi!
+On Mon, 2016-11-14 at 13:52:18 +0000, Ian Jackson wrote:
+> Johannes Schauer writes ("Re: [buildd-tools-devel] Bug#843773: Bug#843773: misleading timestamps in binnmus"):
+> > Instead, file conflicts might be created from files with
+> > content that depends on SOURCE_DATE_EPOCH.
+> 
+> tl;dr:
+>    Analysis.  Revised proposal:
+>    Introduce BUILD_DATE_EPOCH (= time of sbuild binnmu invocation)
+>    and use it for file timestamps (only (for now))
+Thanks for the analysis. Although I see few problems with it.
+* binNMUs are not co-installable anyway, and although I've got code
+  to make them so on the dpkg side, other parties who have to deal
+  with dependency resolution are less than enthused on the prospect
+  of having to cover that new invariant.
+* Even if we made binNMUs co-installable, they would contain files
+  with different metadata, which is currently not considered when
+  checking for the same-ness of the files, but I think it does
+  make sense to consider in the future.
+* Even if we didn't consider the metadata part of the criteria for
+  same-ness, it still will need to be stored in the dpkg db, but the
+  filesystem is a shared resource and only one of the instances can
+  be present so the divergent metadata will make verification somewhat
+  worthless, or way more complex to implement or reason about.
+* Even if any of the above are ignored/solved somehow, the binNMUs
+  will contain different metadata, which means you could end up
+  with timestamps on disk going back and forth in time for the same
+  content. Say you install one of each on several consecutive days
+  libfoo_1+b2_arch-a, libfoo_1+b1_arch-b and libfoo_1+b3_arch-c,
+  which might also upset some backup solutions.
+And this would be yet another reason why allowing coexistence of
+Multi-Arch:same and binNMUs that are not in lockstep for all
+architectures would be a bad idea.
+In any case the concept of binNMUs as being pure rebuilds is simply
+an illusion. They are sourceful updates where the source is discarded,
+and not only is the environment they are built against different, their
+contents will be at least different just because of the different
+version and different changelog entry.
+So, yes, again IMO Multi-Arch:same plus ref-counted files are broken by
+design, and they are pretty much incompatible with binNMUs. I stated
+this in the monumental multiarch thread here some years ago. There
+was rough consensus that this was either not a problem or one where
+its benefits outweighted the potential problems. Fine, but then do not
+expect miracles out of the current situation we got into. :)
+So, I think this has been already implemented in sbuild and pbuilder,
+but indeed, my proposal would be for now to ignore all this, and just
+emit a changelog entry with the current build date for each binNMU.
+When combined with the M-A:same and ref-counted files requirements, this
+*is* still conceptually and practically wrong, because binNMUs are not
+triggered for all architectures in lockstep, and are not triggered for
+the same reasons (a b1_arch-y might not exist for the same reasons a
+b1_arch-z).
+The only correct "solution" I see while keeping the current mess, would
+be to declare binNMU versions a globally shared resource across all
+architectures (in and out of archive!), trigger them globally for all
+architectures (or replay them for late comers), and use the binNMU
+trigger date for the changelog entry (and ideally also the email address
+of the person or role who triggered the binNMU, instead of the buildd
+doing the build).
+(Well the *only* correct solution would be IMO to ban ref-counted files,
+but I don't think that will gain much favor this time around either,
+although I think I might make it possible to disable it at dpkg build
+time for those downstreams that do not want anything to do with this
+insanity. :)
+Thanks,
+Guillem

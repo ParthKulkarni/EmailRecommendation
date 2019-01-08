@@ -1,0 +1,42 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Converting to dgit
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 4 Jan 2017 12:34:53 +0000
+Message-id : 20170104123453.7opi45aabikqry6r@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 874m1f4ade.fsf@hope.eyrie.org>
+References : <[🔎] 20170103194117.7bal6rcnv4v2yhus@iris.silentflame.com> <[🔎] 87zij7hdek.fsf@hope.eyrie.org> <[🔎] 9F7A6681-A43A-4950-BC90-522BCDF880A7@kitterman.com> <[🔎] 877f6bbjuk.fsf@vostro.rath.org> <[🔎] 87eg0j4hlm.fsf@hope.eyrie.org> <[🔎] 87shoz9yo8.fsf@vostro.rath.org> <[🔎] 874m1f4ade.fsf@hope.eyrie.org>
+
+
+On Tue, 03 Jan 2017 at 22:17:33 -0800, Russ Allbery wrote:
+> Usually what I have to do (and I think this is a pretty common use case
+> for anyone who customizes Debian packages) is that I need to start from a
+> package from unstable (or at least newer than stable, or oldstable, or
+> ancient Ubuntu, or whatever crap I'm having to work on), apply some local
+> patches, and backport it
+...
+> But what happens
+> to me a lot is that [changes] *do* conflict, or maybe the new upstream is a
+> completely new version of the package (and then it's pretty much
+> guaranteed to conflict).
+I think the bottom line here is that what you are doing *is* rebasing: you
+are treating the new upstream (or new security-patched downstream)
+as the new baseline for your local work, discarding any of your changes
+that are no longer necessary, and adjusting the rest to apply on top of
+the new version.
+That's also what we do as Debian maintainers (and, in my day job, as a
+maintainer in a Debian derivative) when we update the patch stack in a
+package. You can tell it's (in git terms) a rebase rather than a merge,
+because as a community we have spent 20+ years going to significant
+effort to separate pristine upstream source from distro changes. We
+don't treat upstream and downstream as equivalent: we (IMO correctly)
+give the upstream code that we share with other distributions a privileged
+position, and often treat downstream changes as a costly thing, to be
+tolerated when they're justified, but minimized whenever we can.
+> None of this is unique to me or requires any deep knowledge of the Debian
+> package format.  It's that individual patches are a way easier unit to
+> work with when resolving conflicts than a patched tree.
+Yes. There's a reason git users (and git commands) often work in terms
+of changesets (the differences between commits) rather than in terms of
+the commits themselves, even though git's data model is fundamentally
+about commits and trees.
+    S

@@ -1,0 +1,65 @@
+To : Sean Whitton <spwhitton@spwhitton.name>
+Subject : Re: Feedback on 3.0 source format problems
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Fri, 6 Jan 2017 15:29:38 +0000
+Message-id : 22639.47074.971099.320107@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20170105201448.6wudflmzuv25c7xz@iris.silentflame.com>
+References : <[🔎] 87h95ght4g.fsf@hope.eyrie.org>	<[🔎] 87ful0q97e.fsf@thinkpad.rath.org>	<[🔎] 20170103201509.s3swo4w666qeieow@iris.silentflame.com>	<[🔎] 20170104021016.5xiymbf26uyymccl@jadzia.comodo.priv.at>	<[🔎] 87lgurh7oa.fsf@hope.eyrie.org>	<[🔎] 22636.58841.674428.944655@chiark.greenend.org.uk>	<[🔎] 20170105201448.6wudflmzuv25c7xz@iris.silentflame.com>
+
+
+Sean Whitton writes ("Re: Feedback on 3.0 source format problems"):
+> Could you explain in general terms the difference between the
+> interchange and packaging-only branches
+See modified diagram below.  Are the annotations I have added (and the
+name change) any help ?
+>  Does the packaging-only branch contain debian/ alone?
+No, it also contains a complete unmodified copy of the upstream code.
+(Except that if upstream had a debian/ directory, it is completely
+replaced.)  Perhaps this is the wrong name.  Let's try
+`merging-baseline'
+For `3.0 (quilt)' the merging-baseline branch contains roughly what
+you would get if you untarred the origs and the debian.tar.gz, and
+then deleted all the patches without applying them.
+Not shown on the diagram is the commit `add patch queue to
+debian/patches', which would be needed for `3.0 (quilt)'.  This is
+because the diagram is in terms of a sane source format, not `3.0
+(quilt)'.  For use with quilty sources, there would be such a commit
+(probably dgit-generated) on top of the actual upstream change
+commits:
+           ------/--A!----/--B3!--%--/--> interchange view
+                /        /          /      with debian/ directory
+               %        %          %       all upstream changes applied
+              /        /          /        3.0 (quilt) has debian/patches
+             /        2*         2*
+            /        /          /
+           2*       2          2
+          /        /          /
+         1        1          1    `merging-baseline' branch
+        /        /          /     unmodified upstream code
+    ---p-----p--A----p--B--C-->   plus debian/ (but no debian/patches)
+      /     /       /
+   --#-----#-------#-----> upstream
+    Key:
+      1,2,3   commits touching upstream files only
+      A,B,C   commits touching debian/ only
+      B3      mixed commit (eg made by an NMUer)
+      #       upstream releases
+     -p-      special merge, takes contents of debian/ from the
+     /         previous `merging-baseline' commit and rest from upstream
+     -/-      pseudomerge; contents are identical to
+     /         parent lower on diagram.
+      %       dgit-generated commit of debian/patches.
+              `3.0 (quilt)' only; dropped by rebase tool.
+      *       Maintainer's HEAD was here while they were editing,
+              before they said they were done, at which point their
+              tools generated [% and] -/- commit[s] to convert to
+              the fast-forwarding interchange branch.  (Maybe the
+              tooling is simply `dgit push'.)
+      !       NMUer's HEAD was here when they said `dgit push'.
+              Rebase branch launderer turns each ! into an
+              equivalent *.
+Ian.
+--
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

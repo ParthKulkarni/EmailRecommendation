@@ -1,0 +1,102 @@
+To : Russ Allbery <rra@debian.org>
+Subject : Re: Feedback on 3.0 source format problems
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 4 Jan 2017 12:08:57 +0000
+Message-id : 22636.58841.674428.944655@chiark.greenend.org.uk
+In-reply-to : <[🔎] 87lgurh7oa.fsf@hope.eyrie.org>
+References : <[🔎] 87h95ght4g.fsf@hope.eyrie.org>	<[🔎] 87ful0q97e.fsf@thinkpad.rath.org>	<[🔎] 20170103201509.s3swo4w666qeieow@iris.silentflame.com>	<[🔎] 20170104021016.5xiymbf26uyymccl@jadzia.comodo.priv.at>	<[🔎] 87lgurh7oa.fsf@hope.eyrie.org>
+
+
+Russ Allbery writes ("Re: Feedback on 3.0 source format problems"):
+> Even if we never used tarballs, and instead our unit of operation was the
+> upstream Git repository plus Debian branches, I would maintain a rebased
+> branch of Debian changes to upstream
+I think this is definitely the right thing for many packages.
+I don't think this depends on the interchange format representing the
+changes as patches rather than commits.  At a technical level, they
+represent roughly the same information and it is possible to
+interconvert.  However:
+  * There are many changes that patches cannot represent.
+  * git (working with a rebasing branch) is a much more powerful tool
+    for editing a patch series than quilt or diff/patch or emacs
+    (working with a series of patches as files).  Ie, patches are a
+    poor editing format.  Consequently most people actually gateway to
+    git at the first opportunity, and out again for export.
+  * Few people outside Debian work with quilt stacks any more.
+All of these things mean that patches are a really poor interchange
+format.
+The only difficulty is this one:
+> This is actually, in a way, *harder* if we were using pure Git, since if I
+> have a rebased branch of Debian changes on top of upstream, and I need a
+> place to integrate that with Debian packaging, what does that
+> debian/master branch look like?  I don't really want it to be a constantly
+> rebased branch; I want it to be a conventional branch.  But I want to keep
+> merging the changes against upstream into it (but not maintain them on
+> that branch, only maintain the Debian packaging files on that branch).
+My preferred answer is that it is a constantly rebasing branch topped
+with a series of pseudomerges to make it fast-forwarding.
+git-dpm sort of does this.  I have been experimenting with and
+blundering towards another approach, which is closer to raw git.
+Something like this:
+       	 ------/--A-----/---B3---/--> interchange view
+       	      /	       /       	/
+       	     / 	      /	       3
+       	    /	     /	      /
+       	   2	    2	     2
+       	  /	   /   	    /
+       	 1     	  1        1
+       	/  	 /     	  /
+    ---p-----p--A----p---B---> `packaging-only' branch
+      /     /  	    /
+   --#-----#-------#-----> upstream
+    Key:       1,2,3   commits touching upstream files
+	       A,B     commits touching debian/ only
+               B3      mixed commit (eg made by an NMUer)
+	       #       upstream releases
+       	      -p-      special merge, takes contents of debian/
+              /          from the previous `packaging only'
+	                 commit and rest from upstream
+       	      -/-      pseudomerge; contents are identical to
+       	      /         parent lower on diagram.
+Looking from the tip of the interchange view, it is I think always
+possible to classify these commits appropriately: pseudomerges are
+fairly obvious (if all three trees are identical, we descend to the
+parent with the most recent commit date), and the `p' special merge is
+the only non-psuedo merge and has a special form.
+So it would be possible to write a `git-debian-rebase' tool which
+would take (for example) B3, above, and be able to perform functions
+like:
+ * Strip pseudomerges: Rewrite the current branch so it contains no
+   pseudomerges, turning ...B3 into ...p-A-1-2-B3.  (This should make
+   a note, in your .git/ somewhere, of the latest pseudomerge to be
+   deleted.)
+ * Cleanup branch: Reorganise the current branch so that the debian/
+   changes come first, turning -p-A-1-2-B3 into ...p-A-B-1-2.
+ * New upstream rebase: Start rebasing onto a new upstream version,
+   turning ...#...p-A-B-1-2 into ...#'...p'-1-2.  This would be a
+   wrapper around git-rebase, which prepares p' and then tries to
+   rebase 1 2 onto p'.  So if you ask for an interactive rebase p'
+   doesn't appear in your commit list.
+   Note that the rebasing of p into p' cannot fail because p' simply
+   copies debian/ from B and and everything else from #'.  (Rebasing A
+   and B is undesirable.  We want the debian/ files to be non-rebasing
+   so we can `git log' and get the packaging history.)
+ * Record pseudomerge.  This is like "committing" your patch queue.
+   The LH parent is taken from the previous strip pseudomerge.  (We
+   should probably check that this is consistent with what we see in
+   debian/changelog, but that is not a sufficient check.)
+Maybe some of these operations should automatically edit
+debian/changelog.
+The only thing that this can't easily do is permit nonlinear (ie,
+merging) history on the `packaging-only' branch, because upstream
+might contain debian/ files too, so it is not possible to distinguish
+a merge of two `packaging-only' branches from the special merge `p'.
+(Indeed I since upstream might copy debian/ from us, I think it is not
+easy to reliably distinguish the two parents of a `p'.  In the most
+exciting edge case, upstream might `git merge' a previous instance of
+our interchange view, but I think even then everything still works.)
+Ian.
+--
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

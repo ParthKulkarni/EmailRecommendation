@@ -1,0 +1,80 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Converting to dgit
+From : Sean Whitton <spwhitton@spwhitton.name>
+Date : Wed, 4 Jan 2017 11:43:29 +0000
+Message-id : 20170104114329.x5zezolisvnxrma5@iris.silentflame.com
+In-reply-to : <[🔎] 87k2ab4htd.fsf@hope.eyrie.org> <[🔎] 9F7A6681-A43A-4950-BC90-522BCDF880A7@kitterman.com> <[🔎] 87zij7hdek.fsf@hope.eyrie.org> <[🔎] 87d1g3bks2.fsf@vostro.rath.org>
+
+
+Hello,
+On Tue, Jan 03, 2017 at 04:33:39PM -0800, Russ Allbery wrote:
+> Curating a patch series is only 5% slower than commiting directly to the
+> Git repository to me.  I just have to remember to gbp pq import before
+> making new changes, gbp pq export when I'm done, and once in a great while
+> I have to do a small bit of rebasing to merge changes back into other
+> patches.  It's quite easy for someone who is very familiar with Git, using
+> good tools.  That 5% would be even less if I did it more often.
+Development of most software involves diverging branches of development
+that have to be merged into each other at various points and for various
+reasons.  To my mind, Debian's patching of upstream source is just
+another kind of branching, parts of which will hopefully be merged back,
+and parts of which never will be.
+Most git-using upstreams handle this divergence and merging with
+standard git tools.  Using workflows like dgit-maint-merge(7), we can
+handle our Debian divergence and merging in just the same way.  You can
+use gbp-pq to curate a series of patches.  But then we're singling out
+the Debian branch as somehow special and inconvenient.  We wouldn't
+suggest an upstream developer working on a feature branch use gbp-pq...
+I'm grateful that you've noted in this discussion that you find `gbp pq
+import` and `gbp pq export` not to be burdensome.  However, while I
+haven't had nearly as much experience as you, I have to add that I find
+gbp-pq to be a complete pain.  I just want to switch to a new git
+branch, iterate on my problem with as much committing as I need, and
+then merge back (possibly with --squash).  This takes up so much fewer
+of my brain cycles.
+(this is not to say that gbp-pq isn't a cool piece of software -- dgit
+uses it internally, for one thing)
+On Tue, Jan 03, 2017 at 06:50:53PM -0800, Nikolaus Rath wrote:
+> On Jan 03 2017, Sean Whitton <spwhitton@spwhitton.name> wrote:
+> > On Tue, Jan 03, 2017 at 10:36:22AM -0800, Nikolaus Rath wrote:
+> >> I still haven't really made up my mind if I want to use git-maint-merge
+> >> or git-dpm. Russ recently raised a valid point with the Debian
+> >> modifications over-time becoming all tangled up and impossible to
+> >> separate.
+> >
+> > I also read Russ's e-mail, but I'm not yet convinced that powerful tools
+> > like `git diff` and `git log` won't be able to give you the information
+> > you need pretty quickly.
+> 
+> Can you give an example? Eg if I have to Debian patched that both
+> produced merge conflicts at some point, how do I disentangle them into
+> two separate patches with just git log and git diff?
+Use the `git log` command I gave previously, and cherry-pick the commits
+you want.  Thanks to the merges, they won't apply cleanly, and you'll
+have to manually resolve the cherry-picks.  However, as evidenced by
+Russ's examples, manual resolution will always be required in these
+sorts of cases, and git minimises the amount of it you have to do.
+> > It might take a little time to craft the right command, but that is
+> > easily outweighed by the time saved curating a patch series.
+> 
+> Well - that is obviously very much dependent on the git-fu of the person
+> doing the work.
+Yes, fair enough, this is moderately advanced git-fu.
+On Tue, Jan 03, 2017 at 07:36:46PM -0800, Russ Allbery wrote:
+> That said, gbp pq does something else I really like, namely it exports in
+> the source package all of the metadata that anyone else would need to pick
+> up the package without needing a copy of my Git repository (except for
+> history).
+On Wed, Jan 04, 2017 at 12:52:44AM +0000, Scott Kitterman wrote:
+> And the thing that gets source delivered to users is the source
+> package, not a git repository.  A proper set of patches is far more
+> understandable than an undifferentiated pile of diff.
+> 
+> Sometimes I feel like people lose track of the fact that the VCS is a
+> means to an end and not the end target of the work we're doing.
+The official dgit-repos fixes both these issues.
+`dgit clone foo jessie,-security` is at least a good a way of delivering
+source to users as `apt-get source`.
+-- 
+Sean Whitton
+signature.asc

@@ -1,0 +1,92 @@
+To : Ole Streicher <olebole@debian.org>
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Mon, 16 Jan 2017 14:29:25 +0000
+Message-id : 22652.55493.636957.994447@chiark.greenend.org.uk
+In-reply-to : <[🔎] 87k29xzrel.fsf@debian.org>
+References : <[🔎] 22649.6909.709941.18707@chiark.greenend.org.uk>	<[🔎] 20170113193510.ygehzkrm7trmib2v@perpetual.pseudorandom.co.uk>	<[🔎] 87a8au20ad.fsf@debian.org>	<[🔎] 1854659a-b021-2382-6f3d-fd9390186e28@debian.org>	<[🔎] 871sw60xdv.fsf@debian.org>	<[🔎] 22650.9079.413319.446283@chiark.greenend.org.uk>	<[🔎] 87k29xzrel.fsf@debian.org>
+
+
+Ole Streicher writes ("Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS"):
+> Ian Jackson <ijackson@chiark.greenend.org.uk> writes:
+> >  * It eliminates a timing problem, where the testing migration
+> >    infrastructure[1] needs to somehow decide whether the test have
+>                    ^^^ reference/footnote not found
+> >    been run.  (This is needed because in the future we may want to
+> >    accelerate migration, perhaps dramatically when there are lots of
+> >    tests; and then, the testing queue may be longer than the minimum
+> >    migration delay.)
+> 
+> I would not see this a big problem: the bug can also be filed against a
+> migrated package.
+That should not be the default.  I think you have missed my point.  If
+the migration delay for a particular upload is less than the waiting
+time to get the tests run, then somehow we will need to delay the
+migration on the grounds that the tests have not been run.
+Obviously this could be done but it involves a new data exchange (and
+new protocol) between the testing migration decision tools[1] and the
+CI system, which are supposed to be arms-length.
+There are other intertwinings: typically batches of packages need to
+be tested together, and it's the testing migration system that knows
+which packages to test.
+So it would be simpler to do the CI as part of the testing migration.
+Ultimately this is a decision for Paul I think.
+[1] is the same missing footnote as before, which was:
+ [1] The name "britney" is IMO not cool.  I wish it would be renamed.
+> Just copying from your other mail:
+> > The difficulty with automated bug reports is this: how do you tell
+> > whether something is the same bug or not ?
+> >
+> > If you're not careful, a test which fails 50% of the time will result
+> > in an endless stream of new bugs from the CI system which then get
+> > auto-closed...
+> 
+> Just allow only one bug report per version pair, report only changes,
+> and don't report is another bug for the package pair is still
+> open. Either have a local database with the required information, of
+> store this as metadata in the bug reports. and query the BTS before
+> sending.
+> 
+> Basically the same procedure as one would do manually.
+No, it isn't.  What you propose produces one bug report per uploaded
+version of each dependency.  What one would do manually is have one
+report that describes the scope of the problem.
+Also a manual bug report can have a better introduction.
+> > You should help enhance autopkgtest so that a single test script can
+> > report results of multiple test.  This will involve some new protocol
+> > for those test scripts.
+> 
+> Sorry, but I can't evaluate all 9000 tests and categorize them which are
+> RC and which are not -- this will not work. It is also not realistic to
+> force upstream to do so. The only thing I can do is reactively tag a
+> certain failure being RC or not.
+You have misunderstood my proposal, I think.
+I am suggesting that you should arrange that your 9000 tests each
+show up as one test case as far as autopkgtest is concerned.  That can
+probably be done wholesale: these kind of systems already produce
+systematic (or nearly-systematic) output.  So you don't need to
+categorise them up-front.
+Then when you get a test failure you would look at (only) the failing
+tests, and perhaps file a bug
+ To: submit@bugs.debian.org
+ Subject: gnomovision monochrome gnomes are pink and blue
+ Package: gnomovision
+ Version: 1.2-3
+ Severity: minor
+ Control: user ci.debian.net
+ Control: usertags -1 + nonblock-G32-PINK nonblock-G33-BLUE
+ The gnomes in these tests should be black and white.  This is caught
+ by the autopkgtests which check the colour configuration.
+ The bug is cosmetic - even on a monochrome display, you can tell the
+ gnomes apart.
+Doing things this way also means that you fix the bug in the changelog
+in the usual way.  If you're wrong, the CI will nag you until you
+reopen the bug.
+FWIW: in my day job I maintain osstest, the Xen Project's CI system,
+so I have a lot of experience of how CI blocking workflows should be
+managed.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

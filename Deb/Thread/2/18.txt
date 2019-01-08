@@ -1,0 +1,50 @@
+To : Vincent Bernat <bernat@debian.org>
+Subject : Re: Feedback on 3.0 source format problems
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 3 Jan 2017 17:09:55 +0000
+Message-id : 22635.56035.68254.506676@chiark.greenend.org.uk
+In-reply-to : <[🔎] m34m1hsrq5.fsf@luffy.cx>
+References : <[🔎] 20170102094541.uka57l4t543ibhok@x>	<[🔎] m34m1hsrq5.fsf@luffy.cx>
+
+
+Vincent Bernat writes ("Re: Feedback on 3.0 source format problems"):
+> 2 janvier 2017 01:45 -0800, Josh Triplett <josh@joshtriplett.org> :
+> > Personally, when I want to patch a random package, I run "debcheckout
+> > package-name", make changes, commit them, format-patch, [...]
+Really, I can't let this pass without plugging dgit :-).
+For working on packages that aren't your own, you should use dgit
+instead of debcheckout.  If you do then:
+> Your debcheckout assumes that the VCS is git.
+With dgit, the VCS you get is always git.
+>  Moreover, it assumes that the patch management system is in an
+> "applied" state for the Debian branch.
+With dgit, the tree you get is always patches-applied.
+>   And if you want to test your change, you may be in additional
+> pain.
+With dgit, you can use `dpkg-buildpackage -uc -b' directly in the
+working tree.  (You can use git clean and git reset if
+debian/rules dirties the tree.)
+>  Is the package using plain quilt? Is it using some esoteric patch
+> management system like "git-dpm"?
+With dgit, you can ignore all of that.
+>  Does the source from debcheckout includes the upstream branch
+With dgit, you always get the upstream branch.
+> My point is just that we have too many ways to represent a source
+> package and its modifications. 3.0 (quilt) is definitely an
+> improvement. Making everybody uses the same git workflow (like gbp pq)
+> would be better IMO, but I understand many will object.
+With dgit, you can even NMU with linear git commits on top of the
+existing package, whilch will be turned into nice patches which the
+gbp pq (or git-dpm or quilt) user will be happy with.
+The only downside is that if the maintainer didn't use dgit, you don't
+get the maintainer's history.  But if debcheckout would have given you
+a git tree, dgit will set up a `vcs-git' remote which you can `git
+fetch', if you want to go history-diving.
+See dgit-user(7) and dgit-nmu-simple(7):
+ https://manpages.debian.org/cgi-bin/man.cgi?query=dgit-user&apropos=0&sektion=0&manpath=Debian+unstable+sid&format=html&locale=en
+ https://manpages.debian.org/cgi-bin/man.cgi?query=dgit-nmu-simple&apropos=0&sektion=0&manpath=Debian+unstable+sid&format=html&locale=en
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.
