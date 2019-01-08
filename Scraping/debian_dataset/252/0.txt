@@ -1,0 +1,120 @@
+To : Toni Mueller <support@oeko.net>, 754513@bugs.debian.org
+Subject : Re: Bug#754513: RFP: libressl -- SSL library, forked from OpenSSL
+From : Colin Watson <cjwatson@debian.org>
+Date : Mon, 16 Oct 2017 17:29:09 +0100
+Message-id : 20171016162908.blj5mhl5ibaa7dza@riva.ucam.org
+Mail-followup-to : Toni Mueller <support@oeko.net>, 754513@bugs.debian.org,	debian-devel@lists.debian.org, openssl@packages.debian.org
+In-reply-to : <20140711220627.24261.14073.reportbug@spruce.wiehl.oeko.net>
+References : <20140711220627.24261.14073.reportbug@spruce.wiehl.oeko.net>
+
+
+On Sat, Jul 12, 2014 at 12:06:27AM +0200, Toni Mueller wrote:
+> * Package name    : libressl
+>   Version         : 2.0.0
+>   Upstream Author : The OpenBSD project, the OpenSSL project et al.
+> * URL             : http://www.libressl.org/
+> * License         : BSD, OpenSSL, SSLeay, Public Domain.
+>   Programming Lang: C
+>   Description     : SSL library, forked from OpenSSL
+> 
+> 
+> LibreSSL strives to maintain API compatibility with OpenSSL, but
+> do away with all the cruft.
+> 
+> After a long series of OpenSSL problems, recently highlighted by
+> the infamous Heartbleed bug, a group inside OpenBSD decided to
+> fork OpenSSL and adapt the code to modern coding standards.
+> Along the way, a lot of compatibility with older architectures
+> and toolchains was discarded.
+[I won't quote everything, but people replying to this should probably
+read the bug log in the BTS first.]
+This was some years ago, and in the meantime Toni said it was too much
+for them at the moment and retitled the bug to RFP.
+In the meantime, the situation with OpenSSH is becoming critical.
+OpenSSL has moved to a new API in version 1.1 which does a much better
+job of making internal data structures opaque, but requires significant
+changes to application code.  (LibreSSL has not yet adopted this API.)
+OpenSSH needs to continue working on OSes that only have OpenSSL 1.0,
+not to mention with LibreSSL.
+While there does exist a skeletal compatibility layer linked from the
+upstream wiki [1], the OpenSSL developers explicitly don't want to
+maintain this properly [2], and the OpenSSH developers say that it is
+"unversioned, incomplete, barely documented, and seems to be
+unmaintained" [3].  Kurt Roeckx proposed a patch to add a compatibility
+shim [4], and a number of other projects have done something similar,
+but the OpenSSH developers have explicitly said that they do not want to
+take that approach [5].
+It's not currently clear to me whether anyone has explicitly talked with
+the OpenSSL developers about this problem from the point of view of the
+OpenSSH developers, rather than just as users trying to get OpenSSH to
+compile against the new version.
+Furthermore, the OpenSSL maintainers in Debian now want to drop their
+1.0 compatibility packages, which the Debian OpenSSH packages rely on.
+I can't exactly fault them for wanting to reduce their maintenance
+burden, but it is going to put me in a very difficult position soon; and
+I assume that they don't actually want to break OpenSSH either.
+The OpenSSH developers are starting to talk about bundling LibreSSL to
+avoid this problem [3], noting that OpenBSD and Apple already link
+OpenSSH against LibreSSL.  (Note that OpenSSH only uses libcrypto, not
+libssl, so while this has all the usual problems of bundling, the
+exposure isn't quite as horrific as it might first seem.)
+At the moment I can see the following somewhat realistic paths forward:
+ * Convince people to keep OpenSSL 1.0 on life support in Debian for a
+   while longer.  This probably only postpones the problem, but it might
+   be helpful anyway.  One possibility which might help would be to
+   split libcrypto into separate runtime and development packages, and
+   then drop just libssl 1.0; this would allow keeping around packages
+   which only use libcrypto, while still being able to make progress on
+   packages that use libssl, which AIUI is the more pressing problem.
+ * Convince people to package LibreSSL for Debian in parallel.  As noted
+   in the log of this bug, there are some problems to solve there, both
+   technical and political, but they don't seem insurmountable.  Of
+   course it would mean another SSL implementation in the archive, which
+   I realise is probably not the favourite outcome for the security
+   team.
+ * Accept an upstream bundling of LibreSSL (still hypothetical, but
+   plausible).  I'm sure this would also not be the security team's
+   favourite outcome, although presumably only a subset of LibreSSL CVEs
+   would apply to OpenSSH, and it wouldn't be making it available as a
+   general-purpose library.
+ * Take Kurt's patch to switch to the 1.1 API.  Fedora have done this.
+   I'm extremely reluctant to do this because it's a >3000-line patch
+   touching most of OpenSSH's cryptographic internals, which is bound to
+   produce lots of difficult conflicts on pretty much every new upstream
+   release.  We carry another patch of a similar size (GSS-API key
+   exchange), but at least the bulk of that is a matter of plugging new
+   mechanisms into relatively general interfaces, and I more or less
+   understand how it all works; even so, that patch alone has delayed my
+   uploads of some new upstream releases by weeks or more.  The 1.1 API
+   patch would probably be more than I can cope with maintaining for the
+   long term.
+I have heard suggested or thought of some other plans that I don't think
+are viable and I will not pursue:
+ * Switch to PKIX-SSH, an OpenSSH fork with 1.1 support.  This fork adds
+   new features, making it a one-way transition.  With all due respect,
+   as far as I can tell it's a one-person fork with very limited uptake
+   compared to OpenSSH, and I don't think it would be wise to switch
+   Debian over to it.  (If somebody wants to package it separately for
+   the extra features, that's their affair, but it wouldn't solve the
+   problem at hand.)
+ * Start a team to maintain an OpenSSL 1.1 compatibility layer myself.
+   Ingo Schwarze persuaded me on openssl-unix-dev that this was a bad
+   idea.  I would be happy if the OpenSSL developers carried this
+   forward as a proper project rather than just as an unversioned
+   tarball dump, but I'm not in a position to tell them what to do.
+ * Configure OpenSSH using --without-openssl, and use only its internal
+   crypto functions.  I mention this mainly for completeness, but if you
+   do this you only get a very limited feature set (e.g. only ED25519
+   keys); it's a long way off being viable.
+Out of all of these, I think the option that I think has the fewest
+downsides overall is to convince people to package LibreSSL, but I'm not
+myself in a position to contribute to that effort.
+Does anyone have thoughts or other options, or want to help?
+[1] https://wiki.openssl.org/index.php/OpenSSL_1.1.0_Changes
+[2] https://mta.openssl.org/pipermail/openssl-users/2017-April/005540.html
+[3] https://lists.mindrot.org/pipermail/openssh-unix-dev/2017-October/036346.html
+[4] https://github.com/openssh/openssh-portable/pull/48
+[5] Sorry, I don't have a link for this right now; if needed I can trawl
+    back through openssh-unix-dev history for it.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

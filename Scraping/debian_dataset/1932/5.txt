@@ -1,0 +1,105 @@
+To : debian-devel@lists.debian.org
+Subject : let's drop non-UTF-8 locales
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 1 Sep 2017 18:31:57 +0200
+Message-id : 20170901163157.7z7ynuth76tlufjf@angband.pl
+In-reply-to : <[🔎] 303d8fe7-0d26-1907-2e3c-a46009bb8f91@eds.org>
+References : <[🔎] 303d8fe7-0d26-1907-2e3c-a46009bb8f91@eds.org>
+
+
+On Fri, Sep 01, 2017 at 10:23:59AM +0200, Hans-Christoph Steiner wrote:
+> More and more packages are adding unicode files as unicode support has
+> become more reliable and available.  The package building process is not
+> guaranteed to happen in a unicode locale since the Debian default locale
+> is LC_ALL=C, which is ASCII not UTF-8.  Reading UTF-8 filenames when the
+> system is using ASCII causes errors (Python makes them very visible, for
+> example).
+> 
+> Setting C.UTF-8 as the global default in Debian would be the best
+> solution to this and many other issues
+I'd go farther: make UTF-8 guaranteed, and drop all support for ancient
+encodings as LC_*.
+Unlike exim vs postfix vs ssmtp, systemd vs sysvinit, vi or emacs or a
+better editor, xfce vs mate, etc, where each alternative has its upsides,
+UTF-8 is basically strictly[1] better for text transmission[2].
+As for use, lemme repeat the pretty graphs from January's bug mining:
+max=51%; X scale: 1 dot = 1 month
+⠀⠀⢠⠀⠀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⣄⣾⠀⠀⣦⣿⣿⡄⠀⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⢠⣿⣿⣄⡇⣿⣿⣿⡇⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣷⣿⣿⣿⣇⡄⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡇⡀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⢸⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣸⣿⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣾⣧⣤⣶⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⡀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣤⣾⣇⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣧⣿⣦⣠⣷⣄⣰⣠⡀⢀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣾⣷⣷⣠⡀⠀⠀⡀⢸⣿⡄⠀⠀⠀⠀⠀⡄⣠⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣾⣿⣾⣿⣿⣶⣴⣤⣠⣷⣷⣿⣧⣰⣴⡄⣤⣀⣀⣀⣀⣠⣄⣀⣄⢀⢰⡀⣀⣀⣀⢀
+Oct 2004                                                          Jan 2017
+Enlarged:
+max=7%; X scale: 1 dot = 1 month
+⠀⡄⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⣿⣧⠀⠀⠀⠀⠀⢰⢀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⡀⣿⣿⡄⠀⠀⠀⢰⢸⢸⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣷⣿⣿⣷⡆⡄⠀⢸⣸⣸⣿⠀⡀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡄⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣷⣿⡆⣿⣿⣿⣿⡄⣿⣷⢠⡄⢠⠀⡀⡀⣦⠀⢰⠀⠀⡇⠀⠀⠀⠀⠀
+⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣼⣷⣿⣿⣿⣿⣿⣿⣾⣦⣧⣿⣼⣶⣶⣆⡆
+Jan 2012               Jan 2017
+Avg for 2016+: 0.8%.
+Ancient encodings don't grant any extra functionality, merely provide compat
+for a connector issue -- and per the above graphs, I believe we can drop it. 
+During a recent house renovation, my father insisted on having every second
+electricity socket have no earthing pin, because it makes it impossible to
+use old Soviet-style plugs.  I challenged him to show me one he uses, and it
+turned out he did not even have any anywhere on storage.  Here, keeping
+compat makes you lose functionality (no earthing when you need it), adds
+extra complexity, etc.  Any support for alternatives has such costs: the
+question is, do we anything in return?  For MTAs, inits, editors, desktop
+environments -- we do.  For locale encodings?  I can't think of an upside.
+On the other hand, gains from such droppage would be nice.  An example:
+dash, while striving for 100% POSIX compliance, wontfixed a "must"
+requirement that ${#variable} returns length in characters not bytes.
+If we assume UTF-8, all you need to do is count bytes outside 0x80..0xBF;
+if you want to detect malformed data and reinvent the wheel, it takes a page
+of code.  But to support ancient encodings, you need complex machinery to
+locate and read a file from disk and call such pluggable code.  This was
+deemed to be too costly for dash.
+There's a lot of other insanity we'd get rid of: what would you say about
+people demanding for every /etc/passwd entry to allow a different encoding? 
+Or see how badly random Python programs started failing recently because of
+some changes to locale handling.  And so on, so on...
+Thus, I propose: let's declare all non-UTF-8 locales unsupported. 
+Code-wise, a program that doesn't call setlocale() may still use "C"
+(changes as to its meaning are up to glibc's upstream[3]), but setting the
+env vars to anything non-UTF-8 by the user would no longer be supposed to
+work.  We close all such bugs, and ensure that if the user fails to specify
+a locale, C.UTF-8 is used.
+What would you folks say?
+Meow!
+[1]. For non-strictly, you need to seek obscure scenarios, such as as purely
+Chinese plain text with no markup nor formatting might take slightly less
+space when encoded in a two-byte encoding vs usually-three-byte UTF-8.
+[2]. Internal processing, such as random access array of codepoints, might
+want a fixed-width encoding, but that's orthogonal to outside
+representation.  Just convert to UCS-4 or whatever.  Or if you insist you
+need only your country's characters and no customer ever will have an umlaut
+in name, shoehorn it into a single-byte array, while using UTF-8 outside.
+Then there's plenty of other locale handling insanity, but that's again
+mostly independent from encoding (other than Unicode giving you more rope to
+hang yourself on, like "ǳ" or NFD).
+[3]. The C standard doesn't say anything about the behaviour of functions
+like wcrtomb() or iswalpha() for characters above 0x80 (with the odd
+exception of iswblank()), thus replacing "C" with "C.UTF-8" completely
+would be compliant, although this is not a part of my proposal here.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ Vat kind uf sufficiently advanced technology iz dis!?
+⢿⡄⠘⠷⠚⠋⠀                                 -- Genghis Ht'rok'din
+⠈⠳⣄⠀⠀⠀⠀

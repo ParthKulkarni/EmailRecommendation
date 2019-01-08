@@ -1,0 +1,96 @@
+To : Enlightenment developer list <enlightenment-devel@lists.sourceforge.net>
+Subject : Re: [E-devel] EFL 1.19.0-beta3 (from git) package for Debian Experimental
+From : Carsten Haitzler (The Rasterman) <raster@rasterman.com>
+Date : Thu, 23 Mar 2017 14:56:32 +0900
+Message-id : 20170323145632.5115415e2259e5440f3e6d39@rasterman.com
+In-reply-to : <CAM12Q5QJUfF+sLdL6-hipQi610jAHfqY_dNsBG7POFVteqRh5A@mail.gmail.com>
+References : <CAM12Q5SCMgk=W0C-==XKzF4bo8CFh-y3QJWfXGcTAD2tV1mJAw@mail.gmail.com>	<[🔎] 20170320201511.lbmu27zod7buhbcg@vanvanmojo.kallisti.us>	<[🔎] CAM12Q5TZqe2WiZXQniYQy_zTArGDsbUgaDujaKTaiYyYMskT9Q@mail.gmail.com>	<[🔎] 20170321235542.bz3kyjs6fvl5yyrg@stgulik>	<CAM12Q5QJUfF+sLdL6-hipQi610jAHfqY_dNsBG7POFVteqRh5A@mail.gmail.com>
+
+
+On Wed, 22 Mar 2017 04:50:38 -0700 Jose R R <jose.r.r@metztli.com> said:
+> On Tue, Mar 21, 2017 at 4:55 PM, Ross Vandegrift <ross@kallisti.us> wrote:
+> [...]
+> > Oh I see - I misunderstood your previous message and thought you were
+> > targeting sid.  You need to backport + rebuild for jessie.  IIRC, the
+> > only change I needed was to remove the auto dbgsym stuff.
+> >
+> > [snip]
+> >> FAIL: tests/evas/evas_suite
+> >> ===========================
+> >>
+> >> /mnt/caxtolli/usr/src/build/enlightenment-debian/sid-omeyi/efl-1.18.4/src/tests/evas/.libs/evas_suite:
+> >> symbol lookup
+> >> error: /mnt/caxtolli/usr/src/build/enlightenment-debian/sid-omeyi/efl-1.18.4/src/lib/efl/.libs/libefl.so.1:
+> >> undefined symbol: _eo_call_end FAIL tests/evas/evas_suite (exit status:
+> >> 127)
+> >
+> > This seems suspicious - the linker can't find a symbol in libefl.so.
+> > Are you building with some other patches?
+> Nope.
+> 
+> >
+> > [snip]
+> >> FAIL: tests/eio/eio_suite
+> >> =========================
+> >>
+> >> Running suite(s): Eio
+> > [snip]
+> >> 98%: Checks: 51, Failures: 1, Errors: 0
+> >> tests/eio/eio_test_manager.c:68:F:Eio Job:efl_io_manager_test_ls_funcs:0:
+> >> Failure '(*number_of_listed_files) != test_count' occurred
+> >
+> > I don't recall seeing this test fail before, sorry.
+> >
+> Ok, the above issues are from EFL 1.19.0 beta3 effort on a Debian Sid
+> (Unstable) on Reiser4 root fs.
+> 
+> An EFL 1.18.4 build on Debian-Reiser4 root fs Jessie (Stable), fed
+> heavily from official jessie-backports repository, does succeed in
+> building the corresponding EFL 1.18.4 DEBs -- as long as I do three
+> modifications to relevant debian packaging.
+> 
+> First I modify debian/rules, option: --enable-fb
+> -------------------------------------------------------------------------------------------------------------------------------------------------
+> [...]
+> ifeq (linux,$(DEB_HOST_ARCH_OS))
+>         arch_flags += --enable-fb    <=## Directive is overlooked. DEB
+> build fails *because* it's missing
+> [...]
+> override_dh_auto_configure:
+>         dh_auto_configure --verbose -- \
+>         [...]
+>         --enable-fb \       <=## Added explicitly here, satisfies dh_install
+>         $(arch_flags)
+> [...]
+> ------------------------------------------------------------------------------------------------------------------------------------------------
+err so --enable-fb makes an eio test work? and makes the evas test suite work
+(which doesn't use fb access at all)...  THAT i don't get...
+> Second & third, I add your code to skip two(2) failing tests :D
+> 
+> Skip: src/tests/eet/eet_suite.c
+> Skip: src/tests/eio/eio_suite.c
+if you're disabling tests... why not just not do "make check". i do not know
+why your tests fail, but they should not.
+> Generated DEBs snapshot:
+> < https://pbs.twimg.com/media/C7hRH1HU8AAG1sd.jpg:large >
+> 
+> Of course, I still need to test application of DEBs in another Jessie.
+> 
+> Please, note that otherwise, procedure is a no-go with failures in
+> relevant files attached:
+> 
+> 
+> Best Professional Regards.
+> 
+> -- 
+> Jose R R
+> http://metztli.it
+> ---------------------------------------------------------------------------------------------
+> Download Debian-Reiser4 for AMD64 https://sf.net/projects/debian-reiser4/
+> ---------------------------------------------------------------------------------------------
+> Try at no charge http://b2evolution.net for http://OpenShift.com PaaS
+> ---------------------------------------------------------------------------------------------
+> from our GitHub http://Nepohualtzintzin.com repository. Cloud the easy way!
+-- 
+------------- Codito, ergo sum - "I code, therefore I am" --------------
+The Rasterman (Carsten Haitzler)    raster@rasterman.com

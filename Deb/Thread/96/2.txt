@@ -1,0 +1,49 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Finding all "my" duplicate material on dedup.debian.net?
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Wed, 11 Jan 2017 19:53:53 +0100
+Message-id : 20170111185353.5c73yxzp2mqk2pur@alf.mars
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 1484154251.2216199.844518640.3C59CAFC@webmail.messagingengine.com>
+References : <[🔎] 1484154251.2216199.844518640.3C59CAFC@webmail.messagingengine.com>
+
+
+Hi Chris,
+On Wed, Jan 11, 2017 at 05:04:11PM +0000, Chris Lamb wrote:
+> I've just removed some duplicates in a package [0] with symlinks, but
+> I was wondering if I am missing a page or feature where I can see all
+> "my" offenses against duplicated content, preferably ordered by (for
+> example) the number of bytes duplicated?
+Great. The service is meant to show the low hanging fruit of archive
+space waste. Maintainer information is not currently extracted, which
+makes creating the per-maintainer page difficult.
+Actually presenting the data is the hard part. Significant effort has
+been spent in making the relevant computations "fast enough" and a port
+to postgresql is stalled, because I was unable to obtain decent
+performance.
+If you have concrete ideas and are interested in helping implement them,
+that'd be great, but we should probably take this off d-devel then. I
+didn't consider per-maintainer views important yet, because I tend to
+temporarily focus on individual packages and avoid becoming a long term
+maintainer.
+> Seeing the worst offenders in the Debian archive would also be
+> fascinating.
+This is partially possible already. The site exports a data file for use
+with packages.qa.d.o (a port to tracker.d.o is still outstanding
+#756765). It is available at
+https://dedup.debian.net/static/ptslist.txt.
+If you got interested and are a DD, you can simply
+    ssh delfin.debian.org sqlite3 /srv/dedup.debian.org/dedup.sqlite3
+and start playing around. If you are not a DD and have a close mirror
+around, creating that data file is a simple matter of downloading the
+mirror and should finish within 12h on a fast machine. You can find
+detailed instructions in the README. The README also has a few more
+interesting queries.
+I tried to do more interesting things with this data or find more
+interesting hash functions. ssdeep turned out to not work well. Now I
+mostly moved on and keep maintaining it as a diagnostics tool.
+In any case, hacking on the code should be relatively easy as you can
+simply import /var/cache/apt/archives as a sample population for testing
+locally. All the code is tailored to being easily runnable locally.
+Happy hacking and if you have questions just ask (irc or mail is fine)
+Helmut

@@ -1,0 +1,41 @@
+To : Juliusz Chroboczek <jch@irif.fr>
+Subject : Re: Installer: 32 vs. 64 bit
+From : Chris Knadle <Chris.Knadle@coredump.us>
+Date : Fri, 09 Nov 2018 05:31:00 +0000
+Message-id : bcebcbb5-3736-6660-6440-65b384a934d9@coredump.us
+In-reply-to : <[🔎] 877ehn2xzh.wl-jch@irif.fr>
+References : <8736ss518k.wl-jch@irif.fr> <05c776aa-c2a3-e974-3dcc-549d0dc7f0dd@coredump.us> <[🔎] 877ehn2xzh.wl-jch@irif.fr>
+
+
+Juliusz Chroboczek:
+>> When discussing virtual machines it would be helpful to mention which virtual
+>> machine hypervisor is being used, because the resulting behavior can differ
+>> depending on hypervisor.
+> 
+> It was VirtualBox under Windows.  The underlying issue was that VT-x was
+> disabled in the BIOS, and hence VirtualBox didn't offer any 64-bit
+> machines.  The student tried her best to make it work, I don't think she
+> can be blamed for failing.
+> 
+> -- Juliusz
+Okay -- thanks for taking the time to find the root cause of the issue.
+Unfortunately VT-x being disabled in the BIOS is not an abnormal situation, so
+it's not any kind of "error" per se that normally needs to be reported.  This is
+a feature specific to virtualization and many end-user machines aren't used that
+way -- and in my experience the virtualization features ship default to being
+turned off.
+A logical place to check or the lack of BIOS virtualization features and show an
+error message for this would be within the .postinst script for the virtualbox
+package in Debian.  This way when Virtualbox is installed the user installing it
+can be warned that VT-x or AMD-V isn't active and give a hint as to how to fix
+it.  Alternatively a /usr/share/doc/virtualbox/README.Debian file could contain
+a warning about this for the user to read, which assumes the user knows to look
+for that.  [I checked -- right now the virtualbox source package in Debian
+contains neither AFAICT.]
+Filing a bug on src:virtualbox with severity 'wishlist' or 'normal' for this
+issue to discuss it with the maintainer of the virtualbox package(s) seems a
+logical thing to do.
+   -- Chris
+-- 
+Chris Knadle
+Chris.Knadle@coredump.us

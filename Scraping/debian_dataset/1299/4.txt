@@ -1,0 +1,45 @@
+To : James Clarke <jrtc27@debian.org>,	Thibaut Paumard <thibaut.paumard@obspm.fr>,	debian-devel@lists.debian.org, debian-dpkg@lists.debian.org
+Subject : Re: Feedback on 3.0 source format problems
+From : Mattia Rizzolo <mattia@debian.org>
+Date : Mon, 9 Jan 2017 11:27:30 +0100
+Message-id : 20170109102728.zuktzxqp75ezsiks@mapreri.org
+Mail-followup-to : James Clarke <jrtc27@debian.org>,	Thibaut Paumard <thibaut.paumard@obspm.fr>,	debian-devel@lists.debian.org, debian-dpkg@lists.debian.org
+In-reply-to : <[🔎] 148387713749.12501.13831008108877913785@localhost>
+References : <[🔎] 148383683147.12501.5702048653172544292@localhost> <[🔎] 20170108111407.GA84878@Jamess-MacBook.home> <[🔎] 148387713749.12501.13831008108877913785@localhost>
+
+
+On Sun, Jan 08, 2017 at 01:05:37PM +0100, Johannes Schauer wrote:
+> Mattia, please see below for a pbuilder-specific question.
+Thanks for CCing me; I'm not following this thread anymore (as it
+surpassed the threshold above which I stop to dedicate my time to it),
+so please CC me if you need my input on anything.
+> I'm not very familiar with pbuilder. Looking at the man page it seems that
+> pbuilder itself exclusively accepts a source package .dsc and for building a
+> source directory one needs the pdebuild wrapper?
+Exactly.
+just calling plain `pdebuild` without any option will (roughly) call
+  1. dpkg-buildpackage -S -d -us -uc -rfakeroot $other_user_options
+  2. sudo pbuilder build $some_options $user_options ../$pkg_$ver.dsc
+> If that is the case, then it seems sensible for sbuild to do the same as
+> pdebuild if given a source directory only. Both tools should behave the same
+> way when executed in the same context, I think.
+I don't understand what you're planning to do to sbuild.
+> Are there any reasons against this plan? (targeting Buster)
+And I haven't understood what "this plan" is, either.
+FYI, James asked me whether I was fine to move from that
+`dpkg-buildpackage` invocation to call `dpkg-source` instead (with the
+--before-build and --after-build things too), and my only concerns is
+people who are relying on finding a _source.changes in '..'.
+My current workflow is basically calling `pdebuild` in a source tree
+and if the build works `debsign ../$pkg_$ver_source.changes` and then
+dput it (not that my BUILDRESULT is a directory elsewhere that I clean
+often).  I don't think what I'm doing is exotic enough to be fine
+disrupting it.
+-- 
+regards,
+                        Mattia Rizzolo
+GPG Key: 66AE 2B4A FCCF 3F52 DA18  4D18 4B04 3FCD B944 4540      .''`.
+more about me:  https://mapreri.org                             : :'  :
+Launchpad user: https://launchpad.net/~mapreri                  `. `'`
+Debian QA page: https://qa.debian.org/developer.php?login=mattia  `-
+signature.asc

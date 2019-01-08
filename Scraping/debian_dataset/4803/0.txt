@@ -1,0 +1,30 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Questions about packaging systemd unit files
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 5 Aug 2018 22:20:38 +0100
+Message-id : 20180805212033.GA20552@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180805205246.GA13347@thunk.org>
+References : <[🔎] 20180805205246.GA13347@thunk.org>
+
+
+On Sun, 05 Aug 2018 at 16:52:46 -0400, Theodore Y. Ts'o wrote:
+> 1) Am I right in understanding that after modifying or adding any
+>    systemd unit or timer files, I must run "systemctl daemon-reload"?
+Yes, but preferably via dh_installinit (if you also have a corresponding
+LSB/sysvinit script, like most daemons) or dh_installsystemd (if not,
+like e.g. systemd-cron or quake4-server) rather than directly.
+> 2) How is this supposed to be done as part of a debian package
+>    install?  Should the package maintainer scripts do this in, say,
+>    the package's postinst file?
+Yes, preferably via dh_installinit or dh_installsystemd.
+> 3) Should the maintainer scripts call "systemctl daemon-reload"
+>    directly or is there some way that changes to systemd unit files
+>    are batched so a single "systemctl daemon-reload" is called when
+>    dpkg install run is completed?
+systemctl daemon-reload is not currently batched. I'm not sure whether
+it's suitable for being batched via dpkg triggers, because other packages
+that depend on your package are entitled to assume that your service
+has been set up before their postinsts run. If it is batched via dpkg
+triggers at some point in future, dh_installinit/dh_installsystemd should
+always do the currently-recommended thing.
+    smcv

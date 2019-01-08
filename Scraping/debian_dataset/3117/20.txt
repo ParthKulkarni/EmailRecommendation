@@ -1,0 +1,65 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: Upcoming shift to Ayatana (App)Indicator(s)
+From : Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
+Date : Fri, 30 Mar 2018 18:06:58 +0000
+Message-id : 20180330180658.Horde.63k4HzapaeU6pa8JE4Z4ggr@mail.das-netzwerkteam.de
+In-reply-to : <[🔎] 20180329232901.GA1352@espresso.pseudorandom.co.uk>
+References : <[🔎] 20180329131154.Horde.0dm6UHwcZhy-QIAuhtXdI2n@mail.das-netzwerkteam.de> <[🔎] 20180329135426.GA6400@espresso.pseudorandom.co.uk> <[🔎] 20180329211935.Horde.QOiNXE02d8Cu2tshfnxaSlw@mail.das-netzwerkteam.de> <[🔎] 20180329232901.GA1352@espresso.pseudorandom.co.uk>
+
+
+Hi Simon,
+On  Fr 30 Mär 2018 01:29:01 CEST, Simon McVittie wrote:
+Yes. Correct. Supplemented by an extra-fancy-widgets library called  
+"ayatana-ido" (src:pkg) forked from Ubuntu's "ido" (indicator display  
+objects).
+GTK-3 SNI applications, yes. In Qt5, there must be something similar.  
+Natively in Qt5, I guess. I should know more about this. Maybe someone  
+with Qt5 insights can provide additional info.
+Side note: Please forget libindicate, it is about to be dead. It was  
+used to send new-message-notifications between applications and the  
+indicator-messages system indicator. Handles otherwise nowadays.
+Little porting, for renderers only. SNI applications don't directly  
+depend on lib(ayatana)-indicator.
+Porting an SNI application from libappindicator to  
+libayatana-appindicator implicitly ports it from libindicator to  
+libayatana-indicator.
+Nope. The libindicate library can be dropped completely.  
+Implementations can simply be removed from applications, the  
+libindicate code path was used to notify (ayatana-)indicator-messages  
+about new events having occurred in communication applications (new  
+email, new chat post, etc.).
+Some little source code porting is needed. My goal was to allow  
+parallel installation of lib(app)indicator and  
+libayatana-(app)indicator.
+transmission-gtk:  
+https://bugs.debian.org/cgi-bin/bugreport.cgi?att=1;bug=894410;filename=transmission_2.92-3_2.92-3%2Bayatanaindicators.debdiff;msg=5
+More complex patch: support building against libappindicator and  
+libayatana-appindicator alike (available shared libs decides what to  
+build against):
+nm-applet:  
+https://bugs.debian.org/cgi-bin/bugreport.cgi?att=1;bug=880169;filename=network-manager-applet_1.8.4-1%2Bayatanaindicator.debdiff;msg=10
+Even more complex; choose what indicator implementation to use by  
+configure option (a renderer, though):
+The nice part of AppIndicator shared lib: if no SNI provider is  
+running on a desktop, xembed gets used. (Very helpful on my favourite  
+desktop shell i3). So, as application developer, you can drop your own  
+xembed code, switch to Ayatana AppIndicator and get the xembed  
+fallback for free.
+Only disadvantage: application indicators don't have a right-click  
+menu, only a left-click or just-click menu. Also in xembed fallback  
+mode.
+Ah, ok. I see. This is painful, but alas. The xembed approach is  
+really on its verge of extinction. However, when Ubuntu dropped xembed  
+support in 12.10, I think it was, there was quite some noise going  
+through the community.
+PS: I will be nearly 100% afk over Easter, but don't hesitate to ask  
+more questions / provide ideas for the transition management. I'll get  
+back to your emails on Tuesday.
+pgpqjPjmVRF2G.pgp
+--
+DAS-NETZWERKTEAM
+mike gabriel, herweg 7, 24357 fleckeby
+mobile: +49 (1520) 1976 148
+landline: +49 (4354) 8390 139
+GnuPG Fingerprint: 9BFB AEE8 6C0A A5FF BF22  0782 9AF4 6B30 2577 1B31
+mail: mike.gabriel@das-netzwerkteam.de, http://das-netzwerkteam.de

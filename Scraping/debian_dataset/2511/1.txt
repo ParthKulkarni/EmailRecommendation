@@ -1,0 +1,90 @@
+To : Lisandro Damián Nicanor Pérez	Meyer <perezmeyer@gmail.com>, debian-devel@lists.debian.org
+Subject : Re: A message from CMake upstream: announcing dh-cmake
+From : Kyle Edwards <kyle.edwards@kitware.com>
+Date : Tue, 10 Jul 2018 14:46:25 -0400
+Message-id : 1531248385.30662.194.camel@kitware.com
+In-reply-to : <[🔎] 3107514.qPCWnCecWK@tonks>
+References : <[🔎] 1530647802.30662.24.camel@kitware.com>	 <[🔎] 1631961.4oqYP2Pffo@tonks> <[🔎] 1530892798.30662.120.camel@kitware.com>	 <[🔎] 3107514.qPCWnCecWK@tonks>
+
+
+On Tue, 2018-07-10 at 12:52 -0300, Lisandro Damián Nicanor Pérez Meyer
+wrote:
+> Well, there are cases when upstream is doing things the right way
+> with respect to Debian but... what about derivatives (distributions
+> which base themselves in Debian)? Sometimes they need something
+> different, and even if the package fits perfectly well in Debian it
+> might not be true for them. So they need to either patch CMake files
+> or re do the whole packaging using traditional tools.
+I understand what you're saying. As a concrete example, we all know
+that Debian requires *.so library symlinks to live in the -dev package.
+But let's say there's a hypothetical Debian derivative that requires
+them to live in the library binary package instead.
+If upstream has both the headers and the symlink in the "Development"
+component, then this would certainly be a problem. Perhaps the solution
+is for upstream to make this more flexible, through one of several
+options:
+1. Further divide the "Development" component into "Headers" and
+"Symlinks", allowing downstream to put the symlink in whichever package
+is required to meet the distribution's policy. Remember: dh-cmake
+allows you to specify *more than one* component per package. In this
+case, erring on the side of smaller components would give downstream
+the maximum flexibility for grouping them as needed.
+2. Make the component names configurable and intelligent through a new,
+standardized CMake module, similar to GNUInstallDirs. For example,
+there could be new cache variables such as
+CMAKE_INSTALL_LIBRARY_COMPONENT, CMAKE_INSTALL_NAMELINK_COMPONENT,
+CMAKE_INSTALL_HEADER_COMPONENT, etc. They could be set to defaults that
+make sense for the detected distribution, but also configurable to
+allow downstream to override them as needed.
+I would also add that while this component system might not be as
+valuable for smaller, single-library packages, it makes a lot of sense
+for VTK. VTK has a module system, with its own internal dependency
+graph, that builds and installs dozens of modules, each with their own
+headers and CMake files that have to be installed with their respective
+shared libraries.
+Without the component-based approach taken by dh-cmake, trying to break
+up this installation into multiple packages is very difficult. The VTK7
+package divides it up into Qt and non-Qt modules (along with docs,
+executables, bindings, etc.) To separate Qt and non-Qt modules, it has
+to install everything into the non-Qt package, and then manually remove
+the Qt modules from it.
+But if VTK's module system was updated to install each module into its
+own set of components (vtkCommonCore-Libaries, vtkCommonCore-Headers,
+etc.), then the debian/*.cpack-components files used by dh-cmake could
+simply list these module components, making it very easy to group the
+modules together as needed. (Perhaps we could even add a globbing
+mechanism so you can just say "vtkCommon*-Libraries" as a shorthand.)
+Then, we could further break the VTK package into smaller packages so
+you can install some modules without having to install everything.
+Now let's say a problem is encountered with the package later on, and
+one of the modules needs to be moved into a different package. No
+problem - just move the problem module into the correct *.cpack-
+components file, and you're done.
+If there's another approach we could take to solve this particular
+packaging issue, I would love to hear about it, but this is the best
+we've come up with so far.
+> To sum it up: I *do* think there is a *huge* potential for this
+> helper, just not for Debian proper. Of course I would *love* to see
+> it packaged in Debian because it will help projects trying to create
+> their own Debian packages, but I would expect a very clear
+> explanation that this is not a suitable way to maintain packages in
+> Debian proper.
+In fact, CPack already provides its own method for maintaining 3rd
+party Debian packages - it has its own .deb generator. But dh-cmake is
+our attempt to make something that fits better into the Debian
+workflow, so that it *can* be used to maintain packages in Debian
+proper.
+We want CMake packaging to be as easy as Python packaging, where you
+just activate dh-python. The end goal of dh-cmake is to make CMake
+packaging as easy as writing a few configuration files, and then
+declaring "dh $@ --buildsystem=cmake --with cmake --with ctest --with
+cpack".
+In our case, our goal is to maintain an official VTK package in both
+Debian proper and Ubuntu proper. VTK is a huge project which has proven
+to be difficult to package, and dh-cmake is being created to solve this
+problem. We've also made changes to both VTK and CMake itself to
+support the VTK packaging effort, and we can and will make more.
+> Except we can find smart work arounds for this cases, of course.
+I think making the component names configurable and/or standardized, as
+I described above, would help tremendously with this.
+Kyle

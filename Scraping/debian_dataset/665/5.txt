@@ -1,0 +1,24 @@
+To : debian-devel@lists.debian.org, pkg-gnupg-maint@lists.alioth.debian.org, 	keyring-maint@debian.org
+Subject : Re: Convenient access to Debian keyrings
+From : Paul Wise <pabs@debian.org>
+Date : Sun, 2 Apr 2017 11:29:22 +0800
+Message-id : CAKTje6FZsAJdejJCCKnryts6P2BF0zkDU9LEZjjJtjCxA9nZLw@mail.gmail.com
+In-reply-to : <[🔎] 20170401230629.jxhy7k3vipkhraeh@jadzia.comodo.priv.at>
+References : <[🔎] 20170401224017.nlmgdg4ulf5b5mjk@iris.silentflame.com> <[🔎] 20170401230629.jxhy7k3vipkhraeh@jadzia.comodo.priv.at>
+
+
+On Sun, Apr 2, 2017 at 7:06 AM, gregor herrmann wrote:
+> % crontab -l | grep debian-keyring
+> 30 17 * * * /usr/bin/rsync -rlptDq "keyring.debian.org::keyrings/keyrings/*.gpg" /home/gregoa/.gnupg/debian-keyring
+The rsync protocol is unencrypted, I'd suggest switching this to SSH
+(one colon instead of two). You could also use rsync over TLS on port
+1873 (uses the same cert as via http). I couldn't easily work out how
+to do it with stunnel but the following works with socat. I thought
+there was also a way to verify the keyring when it was at rest but
+can't find where I saw that.
+rsync --rsh 'sh -c "socat OPENSSL:keyring.debian.org:1873 STDIO"'
+keyring.debian.org::keyrings .
+-- 
+bye,
+pabs
+https://wiki.debian.org/PaulWise

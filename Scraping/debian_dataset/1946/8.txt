@@ -1,0 +1,55 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Help, I broke sso.debian.org for chrome
+From : Christoph Berg <myon@debian.org>
+Date : Tue, 5 Sep 2017 19:37:50 +0200
+Message-id : 20170905173750.vbuqtyev453zridv@msg.df7cb.de
+Mail-followup-to : Christoph Berg <myon@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170905163334.2mi5tzacykzjacak@enricozini.org>
+References : <[🔎] 20170905093701.xncmprl2x4so6hu4@enricozini.org> <[🔎] 20170905101647.obh325rntyph6e26@msg.df7cb.de> <[🔎] 20170905163334.2mi5tzacykzjacak@enricozini.org>
+
+
+Re: Enrico Zini 2017-09-05 <[🔎] 20170905163334.2mi5tzacykzjacak@enricozini.org>
+> I should have managed to do it, but chrome still doesn't seem to like
+> it. Can you generate a new certificate and see if you still find
+> differences?
+"openssl x509 -text -noout" doesn't show any differences anymore
+except for the obvious parts (serial, validity, modulus and sig algo).
+One bit that might or might not be relevant is that the CA certificate
+was re-issued on Aug 3rd:
+/srv/sso.debian.org/etc $ openssl x509 -text -noout < debsso.crt 
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 1 (0x1)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN = SSO CA 2015-08-21, O = Debian SSO client certificate
+        Validity
+            Not Before: Aug  3 06:08:36 2017 GMT
+            Not After : Dec 31 23:59:59 9999 GMT
+        Subject: CN = SSO CA 2015-08-21, O = Debian SSO client certificate
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:d5:25:0c:36:21:15:32:5c:9c:c0:33:e5:26:18:
+                    ...
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+            X509v3 Key Usage: critical
+                Certificate Sign, CRL Sign
+            X509v3 Subject Key Identifier: 
+                D0:E2:7E:26:81:E0:CD:AA:CB:34:5F:B6:7A:26:B2:D7:51:82:93:8E
+            X509v3 CRL Distribution Points: 
+                Full Name:
+                  URI:https://sso.debian.org/spkac/ca.crl
+    Signature Algorithm: sha256WithRSAEncryption
+         1c:4c:87:05:8d:51:79:04:7e:c5:a5:9a:4f:bf:15:1b:ee:b1:
+         ...
+This file is the one distributed to participating servers, so if
+there's something wrong, it will have "infected" the other hosts as
+well. I can't see anything wrong there either, though...
+Starting with a blank chromium config (.config/chromium + .pki/nssdb)
+and importing the client there doesn't help either.
+Christoph

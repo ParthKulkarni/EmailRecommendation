@@ -1,0 +1,148 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Extended Long Term Support for Wheezy
+From : Bastian Blank <waldi@debian.org>
+Date : Tue, 27 Feb 2018 11:51:05 +0100
+Message-id : 20180227105103.p6ewfh3jgyy2c5ga@shell.thinkmo.de
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20180227095525.GA9701@home.ouaza.com>
+References : <[🔎] 87woz5qxfb.fsf@whist.hands.com> <[🔎] 87inarxook.fsf@delenn.ganneff.de> <[🔎] 20180220214246.GA9362@pisco.westfalen.local> <[🔎] 20180222135707.GA2913@home.ouaza.com> <[🔎] 20180225180552.GB12589@pisco.westfalen.local> <[🔎] 20180225205427.GD29297@home.ouaza.com> <[🔎] 20180225231318.4xlmupexojp4yw6u@shell.thinkmo.de> <[🔎] 20180227095525.GA9701@home.ouaza.com>
+
+
+On Tue, Feb 27, 2018 at 10:55:25AM +0100, Raphael Hertzog wrote:
+> On Mon, 26 Feb 2018, Bastian Blank wrote:
+> > On Sun, Feb 25, 2018 at 09:54:27PM +0100, Raphael Hertzog wrote:
+> > > Are you suggesting that it should be possible to store our own data
+> > > in another git repository and that the tracker should be easily able to
+> > > merge the data coming from two distincts repositories ?
+> > I've got patches somewhere that do exactly this.
+> Nice! Can you try to dig them out? We could then try to merge them
+> in the official tracker and write some documentatin on how to do this.
+I attached the patch that we used to integrate information about the
+super-lts we did for a customer.
+/CVE-CUSTOMER/list would get information about ignored CVE and is merged
+into the information read from /CVE/list.
+/CVE/list was a symlink to the Debian security tracker svn.
+/CUSTOMER/list we used for information about security updates and EOL
+markers.
+Bastian
+-- 
+Ahead warp factor one, Mr. Sulu.
+commit cfc7675b9dac2034cf5fc671653792e8b48dd4db
+Author: Bastian Blank <bastian.blank@credativ.de>
+Date:   Wed Mar 23 10:51:02 2016 +0100
+    Add support for CUSTOMER bugs and CVE extends
+diff --git a/lib/python/bugs.py b/lib/python/bugs.py
+index 7258be7..d4d8a0d 100644
+--- a/lib/python/bugs.py
++++ b/lib/python/bugs.py
+@@ -299,6 +299,28 @@ class Bug(BugBase):
+             nts.append(notes[key])
+         self.notes = nts
+ 
++class BugExtend(Bug):
++    def writeDB(self, cursor):
++        """Writes the record to an SQLite3 database."""
++
++        for (typ, c) in self.comments:
++            cursor.execute("""INSERT INTO bugs_notes
++            (bug_name, typ, comment) VALUES (?, ?, ?)""",
++                           (self.name, typ, c))
++
++        for n in self.notes:
++            n.writeDB(cursor, self.name)
++
++        import apsw
++        for x in self.xref:
++            try:
++                cursor.execute("""INSERT INTO bugs_xref
++                (source, target) VALUES (?, ?)""",
++                               (self.name, x))
++            except apsw.ConstraintError:
++                raise ValueError, \
++                      "cross reference to %s appears multiple times" % x
++
+ class BugFromDB(Bug):
+     def __init__(self, cursor, name):
+         assert type(name) in types.StringTypes
+@@ -440,6 +462,9 @@ class FileBase(debian_support.PackageFile):
+         debian_support.PackageFile.__init__(self, name, fileObj)
+         self.removed_packages = {}
+ 
++    def isExtend(self, name):
++        return False
++
+     def isUniqueName(self, name):
+         """Returns True if the name is a real, unique name."""
+         return True
+@@ -723,7 +748,11 @@ class FileBase(debian_support.PackageFile):
+                         if first_bug:
+                             break
+                     record_name = temp_bug_name(first_bug, description)
+-                yield self.finishBug(Bug(self.file.name, first_lineno, date,
++                if self.isExtend(record_name):
++                    cls = BugExtend
++                else:
++                    cls = Bug
++                yield self.finishBug(cls(self.file.name, first_lineno, date,
+                                          record_name, description,
+                                          comments, notes=pkg_notes, xref=xref))
+ 
+@@ -768,6 +797,12 @@ class CVEFile(FileBase):
+         bug.mergeNotes()
+         return bug
+ 
++class CVECUSTOMERFile(CVEFile):
++    re_cve = re.compile(r'^(CVE-\d{4}-(?:\d{4,}|XXXX)|TEMP-\d+-\S+)\s+(.*?)\s*$')
++
++    def isExtend(self, name):
++        return True
++
+ class DSAFile(FileBase):
+     """A DSA file.
+ 
+@@ -809,6 +844,11 @@ class DSAFile(FileBase):
+         bug.mergeNotes()
+         return bug
+ 
++class CUSTOMERFile(DSAFile):
++    re_dsa = re.compile(r'^\[(\d\d) ([A-Z][a-z][a-z]) (\d{4})\] '
++                        + r'(CUSTOMER-\d+(?:-\d+)?)\s+'
++                        + r'(.*?)\s*$')
++
+ class DLAFile(FileBase):
+     """A DLA file.
+ 
+diff --git a/lib/python/security_db.py b/lib/python/security_db.py
+index e018fff..66032aa 100644
+--- a/lib/python/security_db.py
++++ b/lib/python/security_db.py
+@@ -908,9 +908,11 @@ class DB:
+ 
+         source_removed_packages = '/packages/removed-packages'
+         sources = ((bugs.CVEFile, '/CVE/list'),
++                   (bugs.CVECUSTOMERFile, '/CVE-CUSTOMER/list'),
+                    (bugs.DSAFile, '/DSA/list'),
+                    (bugs.DTSAFile, '/DTSA/list'),
+                    (bugs.DLAFile, '/DLA/list'),
++                   (bugs.CUSTOMERFile, '/CUSTOMER/list'),
+                    (None, source_removed_packages))
+ 
+         unchanged = True
+@@ -963,7 +965,7 @@ class DB:
+         old_source = ''
+         for source, target in list(cursor.execute(
+             """SELECT source, target FROM bugs_xref
+-            WHERE (source LIKE 'DTSA-%' OR source LIKE 'DSA-%' OR source LIKE 'DLA-%')
++            WHERE (source LIKE 'DTSA-%' OR source LIKE 'DSA-%' OR source LIKE 'DLA-%' OR source LIKE 'CUSTOMER-%')
+             AND target LIKE 'CVE-%'""")):
+             if source <> old_source:
+                 source_bug = bugs.BugFromDB(cursor, source)
+@@ -1846,7 +1848,7 @@ class DB:
+             """SELECT bugs.name, bugs.description
+             FROM bugs, package_notes as p
+             WHERE p.bug_name = bugs.name
+-            AND ( bugs.name LIKE 'DSA-%' OR bugs.name LIKE 'DLA-%')
++            AND ( bugs.name LIKE 'DSA-%' OR bugs.name LIKE 'DLA-%' OR bugs.name LIKE 'CUSTOMER-%' )
+             AND p.package = ?
+             ORDER BY bugs.release_date DESC""", (package,)):
+             yield DSAsForSourcePackage(*row)

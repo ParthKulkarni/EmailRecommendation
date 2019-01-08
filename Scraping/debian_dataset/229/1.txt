@@ -1,0 +1,79 @@
+To : debian-devel@lists.debian.org
+Subject : Re: allowed uses of non-baseline CPU extensions
+From : Adrian Bunk <bunk@debian.org>
+Date : Sun, 22 Oct 2017 12:33:02 +0300
+Message-id : 20171022093302.ph4rlxwnymmd4l4c@localhost
+In-reply-to : <[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl>
+References : <[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl>
+
+
+On Thu, Oct 05, 2017 at 03:52:56AM +0200, Adam Borowski wrote:
+>...
+> But, Adrian Bunk warned that this makes violating the baseline too easy.
+> And indeed, I just noticed an attempt to use an extension in a way I don't
+> consider to be valid: #864012.  I understand the maintainer's reasoning,
+> and don't blame him for following recommendations of that package's
+> upstream, but it's not appropriate for what I assume our _unwritten_ rules
+> mean.  And here's the problem: I can't seem to find an explicit requirement
+> that packages must follow the baseline!  So let's discuss and make a policy.
+>...
+The policy so far has been "baseline violations are RC bugs".
+And while your intentions are laudable, you are solving a small problem 
+but creating a huge problem.
+For pcsx2, an obscure emulator that only works on i386 and requires SSE2,
+I am saying meh and see how a dependency on sse2-support is actually an
+improvement.
+Note that the number of such packages is very low, usually there is
+portable code with the problematic code (build time or runtime) optional.
+The problem is that blessing baseline violations with a dependy on 
+*-support is completely screwing the baseline.
+One interesting aspect of baseline violations are upgrades
+to a new stable.
+The documented way to upgrade jessie -> stretch is:
+apt-get upgrade
+apt-get dist-upgrade
+Think of at what point newly added *-support dependencies 
+will become visible during stretch -> buster upgrades.
+And we are not only screwing our users, we are even scewing ourselves:
+What happens if a build dependency pulls in neon-support?
+None of our current armhf buildds supports NEON.
+And as you already noticed in #864012, sse4.2-support has the 
+same problem on some amd64 buildds.
+For a real-life example, let's look at #871700.
+There are three things that are worth noticing:
+First, we do have users running unstable on an original Pentium III.
+Second, the only reason why Firefox still works there is that the
+maintainer defended the baseline by not using SSE2 as upstream does.
+Third, the bug was reported against nss.
+Following upstream and adding an sse2-support dependency to libnss3
+would not only remove Firefox, it would also imply no LibreOffice 
+and no LaTeX without SSE2.
+Next we can discuss the severity of #877445.
+Is this bug RC, or will we add an sse2-support depencency in a DSA for 
+Firefox in stretch next summer - leaving people at the i386 baseline 
+with no supported browser?
+Another interesting question is which Go compiler to use on s390x:
+- golang-go builds all Go packages but does not support the baseline
+- gccgo does support the baseline but cannot build all packages
+As last example, let's look at QtWebEngine:
+Chromium is one of these few application using SSE2 on i386 without any 
+portable code version that could be used instead.
+QtWebEngine (src:qtwebengine-opensource-src) is based on Chromium
+and is starting to be heavily used by Qt code (including KDE).
+QtWebEngine is not available on all architectures, so code using it 
+already has to either reduce functionality or use the WebKit-based 
+QtWebKit (src:qtwebkit-opensource-src) on other architectures.
+There are two options availabe:
+1. RC bug that qtwebengine-opensource-src must not be built on i386
+   since it violates the baseline, all code using it has to do whatever
+   mitigation is already done for the other architectures without
+   qtwebengine-opensource-src
+2. bless the SSE2 usage with a dependency on sse2-support, making
+   KDE and several other Qt applications not available without SSE2
+cu
+Adrian
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : init system agnosticism [WAS: how to remove libsystemd0 from a live-running debian desktop system]
+From : "Enrico Weigelt, metux IT consult" <enrico.weigelt@gr13.net>
+Date : Wed, 12 Apr 2017 08:38:26 +0200
+Message-id : 55a1655c-4e3b-78bc-b36b-8a09310223ad@gr13.net
+In-reply-to : <54E37F1C.8030309@fastmail.fm>
+References : <CAPweEDz_Q8aGEawfyXv9tdU6VUS1Auk8kvBq3vJK0PhBcU5bOQ@mail.gmail.com> <CAPweEDyyYuEtkrjbUpkJ=52NDBnqHfZvw_ZLSZ5b+NHoXQMxbg@mail.gmail.com> <54E37F1C.8030309@fastmail.fm>
+
+
+On 17.02.2015 18:49, The Wanderer wrote:
+Hi folks,
+just digging out an older thread that was still laying around in my
+inbox - w/ about 2yrs distance, I hope it was enough cool down time
+so we discuss it more objectively about that.
+<snip>
+> libsystemd0 is not a startup method, or an init system. It's a shared
+> library which permits detection of whether systemd (and the
+> functionality which it provides) is present.
+>From a sw architects pov, I've got a fundamental problem w/ that
+appraoch: we'll have lots of sw that somehow has 'magically'
+additional functionality if some other sw (in that case systemd)
+happens to run.
+The official description is: "The libsystemd0 library provides
+interfaces to various systemd components." But what does that mean ?
+Well, more or less a catchall for anything that somehow wants to
+communicate w/ systemd. What this is actually for, isn't clear at all
+at that point - you'll have to read the code yourself to find out.
+And new functionality can be added anytime, and sooner or later some
+application will start using it. So, at least anybody who maintains
+and systemd-free environment (eg. platforms that dont even have it)
+needs run behind them and keep up.
+Certainly, systemd has a lot of fancy features that many people like,
+but also many people dislike (even for exactly the same reaons).
+The current approach adds a lot of extra load on the community and
+causes unnecessary conflicts.
+So, why don't we just ask, what kind of functionality do applications
+really want (and what's the actual goal behind), and then define open
+interfaces, that can be easily implemented anywhere ?
+After looking at several applications, the most interesting part seems
+to be service status reporting. Certainly an interesting issue that
+deserves some standardization (across all unixoid OS'es). There're lots
+of ways to do that under the hood - even without having to talk to some
+central daemon (eg. extending the classical pidfile approach to
+statfiles, etc). All we need yet is an init-system/service-monitor
+agnostic API, that can be easily implemented w/o extra hassle.
+A simple reference implementation probably would just write some
+statfiles and/or log to syslog, others could talk to some specific
+service monitor.
+Having such an API (in its own library), we'd already have most of
+the problems here out of the way. Each init system / service monitor
+setup comes with some implementation of that API, and applications
+just depend on the corresponding package - everything else can be
+easily handled by the existing package management infrastructure.
+No need for recompiles (perhaps even no need to opt out in all the
+individual packages).
+The same can be done for all the other features currently used from
+libsystemd, step by step.
+Maintenance of these APIs (specification and reference implementation)
+should be settled in an open community (perhaps similar to
+freedesktop.org for the DE's), not in an individual init system /
+service monitor project.
+I really wonder why people spent so much time in init system wars,
+instead of thinking clearly of the actual root problem to solve.
+--mtx

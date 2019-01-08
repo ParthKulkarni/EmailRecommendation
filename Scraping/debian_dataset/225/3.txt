@@ -1,0 +1,72 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Removal of upstart integration
+From : Tollef Fog Heen <tfheen@err.no>
+Date : Thu, 05 Oct 2017 21:43:20 +0200
+Message-id : 87r2uh5qjr.fsf@err.no
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 22998.30591.960897.163193@chiark.greenend.org.uk> (Ian Jackson's	message of "Thu, 5 Oct 2017 19:18:39 +0100")
+References : <CANBHLUh_ZhEfbkVnOp8iM-j+4xVo5rzORvknVptyUna+b6B-EA@mail.gmail.com>	<CADsTwjJpe1RmVcR2r+GpAWMzSHFXTK3jw-DaMLqnr2AiHCLuMw@mail.gmail.com>	<22969.10990.314064.367698@chiark.greenend.org.uk>	<877ewlwae3.fsf@deep-thought.43-1.org>	<7111b904-0832-4319-efa2-4f2d9e33a3fa@iwakd.de>	<[🔎] 20171005170815.xbx2vjfaugjgpdqx@riva.ucam.org>	<[🔎] fb0e278c-a9f0-11e7-9b6a-00163eeb5320@msgid.mathom.us>	<[🔎] 22998.30591.960897.163193@chiark.greenend.org.uk>
+
+
+]] Ian Jackson 
+> However, I think that such arrangements are already made.  The
+> majority of people use "sudo", which AIUI already launders the
+> environment.
+That depends.
+If you do sudo -i you get a mostly clean env:
+$ sudo -i env
+LANG=nb_NO.UTF-8
+TZ=CET
+SUDO_GID=1000
+DISPLAY=:0
+HOSTNAME=xoog.err.no
+COLORTERM=truecolor
+USERNAME=
+SUDO_COMMAND=/bin/bash -c env
+S_COLORS=auto
+USER=root
+ENV=/root/.bashrc
+PWD=/root
+HOME=/root
+SUDO_USER=tfheen
+SUDO_UID=1000
+MAIL=/var/mail/root
+SHELL=/bin/bash
+TERM=xterm-256color
+SHLVL=1
+LANGUAGE=nb_NO:nb:no_NO:no:nn_NO:nn:en
+LOGNAME=root
+XAUTHORITY=/home/tfheen/.Xauthority
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+_=/usr/bin/env
+So some bits are leaking, compare to:
+$ sudo su - -c env
+LANG=nb_NO.UTF-8
+DISPLAY=:0
+COLORTERM=truecolor
+USERNAME=
+S_COLORS=auto
+USER=root
+ENV=/root/.bashrc
+PWD=/root
+HOME=/root
+MAIL=/var/mail/root
+SHELL=/bin/bash
+TERM=xterm-256color
+SHLVL=1
+LANGUAGE=nb_NO:nb:no_NO:no:nn_NO:nn:en
+LOGNAME=root
+XAUTHORITY=/home/tfheen/.Xauthority
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+_=/usr/bin/env
+so even su leaks DISPLAY/XAUTHORITY.  sudo -i leaks TZ, HOSTNAME and
+adds some SUDO_* settings.
+However, if you just do the IMO more common sudo $command, you get a lot
+more:
+$ sudo env | wc -l
+87
+It does clean up PATH, but it does not filter out my normal settings, so
+say, LESS and LESSOPEN leak through to dpkg.
+-- 
+Tollef Fog Heen
+UNIX is user friendly, it's just picky about who its friends are

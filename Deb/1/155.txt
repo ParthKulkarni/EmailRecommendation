@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Converting to dgit
+From : Ghislain Vaillant <ghisvail@gmail.com>
+Date : Fri, 13 Jan 2017 10:04:12 +0000
+Message-id : 1484301852.2203.52.camel@gmail.com
+In-reply-to : <[🔎] 20170112204612.kzwbio7e3z44vvrh@home.ouaza.com>
+References : <[🔎] 20170112204612.kzwbio7e3z44vvrh@home.ouaza.com>
+
+
+On Thu, 2017-01-12 at 21:46 +0100, Raphael Hertzog wrote:
+> Hi,
+> 
+> On Fri, 06 Jan 2017, Ghislain Vaillant wrote:
+> > > I don't use it often enough to remember all the details either.  I don't 
+> > > recall the last time I had to do more than copy/paste a command from the man 
+> > > page (OK, git-dpm tag I can remember).
+> > 
+> > Besides, git-dpm usually tells you what command to run next, like:
+> > 
+> > git-dpm import-new-upstream -> git-dpm rebase-patched -> git-dpm update-patches
+> > 
+> > It did not take me much time to adapt to the git-dpm workflow as a
+> > result. I should say that I have been a happy git-dpm user so far.
+> 
+> And I have been a very unhappy user with python-django. If by mistake, you
+> use "gbp import-orig" instead of "git-dpm import-new-upstream" then you're
+> completely screwed because git-dpm relies on metadata it manually stores
+> in debian/.git-dpm, it does not rely on git's history to figure out the
+> appropriate data. Same if you change any patch outside with a third party
+> tool...
+Well, remember that `git-dpm import-new-upstream` only records the new
+upstream commit in the .git-dpm metadata and delays the actual import
+of the new upstream data until you have a properly rebased patch queue.
+This is to be contrasted with `gbp` where you may import the new
+upstream and leave the packaging repository in an inconsistent state
+(as far as the patch queue is concerned) until someone runs `gbp pq` or
+`quilt` to refresh.
+Then, no wonder that mixing `gbp import-orig` with git-dpm does not
+work. I admire your courage for trying to fixup the git-dpm metadata
+manually nonetheless. Same problem if you try to mix `git-dpm cherry-
+pick` with `gbp pq import` -> `git cherry-pick` -> `gbp pq export`.
+> So I have opened the manual page many times to read about the format of
+> that file and tried to fix up the inconsistent meta-data.
+> 
+> Also it's really painful to use with multiple branches as you can't really
+> merge branches together:
+> https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=801667
+This is indeed a limitation. Based on the design of the tool, git-dpm
+works on a rather flat git history. Considering the workflow you
+described for django, git-dpm is unlikely to ever become suitable.
+> It produces a very verbose git history as soon as you have a significant
+> number of patches, even if most of them do not change at all across a
+> minor upstream release.
+Is that such a bad thing though, I wonder? Given that the price for it
+is a guaranteed consistent patch queue.
+> Also it's effectively orphaned, nobody is taking care of bugs.
+> 
+> https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=801666
+> https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=801548
+> https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=795694
+So was pristine-tar for a long time and people kept using it
+nonetheless.
+I also commented in #801666, so I am aware of your issues with git-dpm. 
+I agree that integration with existing gbp configuration would be a
+plus and help support arbitrary repository layouts, such as those
+recommended in DEP-14.
+I don't necessarily disagree with you, as I keep using both gbp and
+git-dpm in a complementary way. I just wanted to contrast the perceived
+hate towards git-dpm in this thread with some positive feedback.
+Cheers,
+Ghis

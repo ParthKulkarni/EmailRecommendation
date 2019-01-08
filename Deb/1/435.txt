@@ -1,0 +1,55 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Niels Thykier <niels@thykier.net>
+Date : Mon, 16 Jan 2017 17:30:00 +0000
+Message-id : cd93fd2a-0d64-945a-1681-41334915e29e@thykier.net
+In-reply-to : <[🔎] 22652.52413.509333.801547@chiark.greenend.org.uk>
+References : <[🔎] 22649.6909.709941.18707@chiark.greenend.org.uk> <[🔎] 20170113193510.ygehzkrm7trmib2v@perpetual.pseudorandom.co.uk> <[🔎] 87a8au20ad.fsf@debian.org> <[🔎] 1854659a-b021-2382-6f3d-fd9390186e28@debian.org> <[🔎] 871sw60xdv.fsf@debian.org> <[🔎] 20170114181515.krrpaifyaqjikkst@virgil.dodds.net> <[🔎] 22652.52413.509333.801547@chiark.greenend.org.uk>
+
+
+Ian Jackson:
+> Steve Langasek writes ("Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS"):
+>> [...]
+> 
+> The question is whether marking a test non-blocking should involve the
+> release team.  I think it should not.  It should involve the package
+> maintainer (unless there is disagreement).
+> 
+> We want to incentivise people to provide tests.  If they cannot
+> control what action is taken (by automation) in response to the tests,
+> they will remove or disable (or not provide) tests.
+> 
+> Ian.
+> 
+The autopkgtests gating testing migration comes with a promise from the
+release teams side of reducing the age delay for migrations[1].  I.e.
+packages with passing tests that do not cause regressions[2] in reverse
+dependencies would be entitled to a shorter migration delay.
+Personally, I think autopkgtests gating should eventually replace the
+age delay in general.  Notably, I remember Bdale saying at DC13 that the
+age delay is basically only really useful for finding brown-paper-bag
+bugs[3] and I am inclined to agree with that.
+  Mind you, it will probably be several releases before we are at a
+stage where we are ready for completely eliminating age delays for
+autopktests-enabled packages.
+I would prefer setting it up as we decided 3-4 years ago in a
+non-enforcing mode to see how it all works out.  Once we have ironed out
+the early implementation bugs and have seen how it works in practise, we
+can look at enabling the "blocking" feature of this proposal.
+In summary:
+ * We will introduce it in a non-enforcing mode to see how it works
+   (and weed out any "early-implementation bugs")
+ * Passing tests will be grounds for reduced age requirements (once it
+   has been tested)
+ * Only regressions will be blockers; if the tests also fail in testing
+   the migration will not be stalled (but it will be subject to full
+   age delay)
+Thanks,
+~Niels
+[1] https://lists.debian.org/debian-devel-announce/2013/08/msg00006.html
+[2] The original mail says "failures" would be blockers but in practise,
+Britney has always blocked on "regressions" rather than "failured like
+it does in testing".
+[3] It is in one of the video talks from DC13 - I /think/ it was the
+release team talk/bits, where we were debating reducing the default age
+requirement from 10 to 5 days.

@@ -1,0 +1,82 @@
+To : Mathieu Malaterre <malat@debian.org>
+Subject : Re: Mandates explicit -std=c++XY for c++ projects
+From : Dimitri John Ledkov <xnox@debian.org>
+Date : Tue, 10 Oct 2017 14:14:28 +0100
+Message-id : CANBHLUhnxbQinW1_PTiYa1ELjm+Fh8MXQK_QwXKU-t4+qQLw7w@mail.gmail.com
+In-reply-to : <[🔎] CA+7wUswrdZpVKkhuxU+njE82AH8OHcT+ccAdVp84zC8NjJ67zQ@mail.gmail.com>
+References : <[🔎] CA+7wUswrdZpVKkhuxU+njE82AH8OHcT+ccAdVp84zC8NjJ67zQ@mail.gmail.com>
+
+
+On 10 October 2017 at 07:45, Mathieu Malaterre <malat@debian.org> wrote:
+> Dear all,
+>
+> Since the GCC 6 release [1], the default mode for C++ is now
+> -std=gnu++14 instead of -std=gnu++98. What this means is that upon
+> (re)compilation a library written for c++98 will be recompiled using a
+> different c++ standard (c++14 in this case), unless of course the
+> upstream package explicitly set the -std= flags with the appropriate
+> c++ version.
+>
+> The ISO committee generally describe the change in between different
+> standards [2] and in some case, one can find examples of subtle change
+> in behaviors [3] and [4].
+>
+> With this mind I'd like to make mandatory the -std=c++XY flags when
+> compiling either a c++ library or a stand-alone c++ program:
+>
+> 1. Either upstream define the explicit -std=c++XY flags by mean of its
+> build system,
+> 2. Or the package maintainers needs to explicit change the CXXFLAGS to
+> pass the appropriate version of the c++ standard. In which case this
+> should be documented in the README.Debian file.
+> 3. As a fallback, dh should initialize the CXXFLAGS with -std=gnu++98
+>
+> If there is a consensus on the following change, I'll go ahead and
+> also file a bug for lintian to scan the compilation logs in search for
+> missing -std=c++ expression when g++ command line are issued.
+I wholeheartedly object. A given debian release has a defined default
+ABI with a minimum CPU requirements per architecture. Currently, in
+sid, it is C++11 abi. The way ABI works is that it forward compatible,
+but not backwards. Therefore generally binaries compiled on older
+releases are copied forward to newer releases and work fine (as long
+as the depencies are still satisfiable, sans ocational bugs). Note
+there are ABI fixes too, such that something compiled with c++98
+standard in sid, is not guaranteed to have the same code generated nor
+work with older runtime (e.g. old-stable). It does work for simplistic
+cases however.
+If you target and older release, and need a backport of a newer
+software package it not acceptable to demand lowing std version in sid
+such that packages are instalabble in older releases. As a
+distribution, we cannot guarantee that to work.
+In general, software should be written portable, and the default
+standards version should be in use which is currently dictated by the
+default compiler and thus maintainers of the default compilers in
+Debian.
+Specifically, there are many software packages in the archive that
+compile correctly with both newer and older standards, and do
+configure/compile time checking and take advantange of the newly
+available standards features, instead of using embedded copies of code
+/ adding additional libraries. There are many packages that use c++11
+features, instead of including and linking boost libraries. Similarly
+for C, there are packages that use standards available
+alignment/padding/atomic functions, instead of using hand-crafted
+embedded (often buggy in corner cases). Overall, it leads to software
+packages reusing more shared code, as more things are available in the
+standards (or streamlined in standards).
+boost will continue to compile with the default C++ standards version,
+and thus reverse-dependencies are also expected to use the matching /
+default standards version. I have been pondering to provide stdc++98
+and stdc++11 abi builds of boost, but that is a lot of code
+duplication for effectively diminishing returns over time.
+Encoding stdc++ version in the packages, will make them
+non-binNMU-safe and thus will start to require sourcefull upload for
+boost transitions which is a lot of packages.
+If you have any examples of things failing to build due to change from
+98 to 11 in unstable, I'd rather volunteer to fix that, rather than
+hardcode the world to use old standards.
+Using lowest common denominator will results in inefficient, large,
+under-optimised binaries. One really should recompile software for
+each distribution release toolchain.
+-- 
+Regards,
+Dimitri.

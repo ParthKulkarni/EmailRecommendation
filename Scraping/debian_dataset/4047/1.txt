@@ -1,0 +1,80 @@
+To : debian-devel@lists.debian.org
+Subject : Requesting input for pjproject/asterisk packaging
+From : Bernhard Schmidt <berni@debian.org>
+Date : Mon, 19 Nov 2018 23:40:44 +0100
+Message-id : 16188cee-533a-0af0-2983-b6936245badb@debian.org
+
+
+Hello everyone,
+I'm seeking packaging guidance for a package (combination) I co-maintain
+since shortly before the Stretch release. I'm not quite sure how to deal
+with this situation in a way best for everyone involved (especially
+release managers and security team).
+Asterisk is probably known to most of you as the most widely deployed
+OpenSource PBX. The project has been around for ages. In the Asterisk 13
+release (which is in Stretch) they more or less set their old homegrown
+SIP stack (called chan_sip) to maintenance only and offered an
+additional, new channel driver called chan_pjsip as
+replacement/successor. This one does use an external SIP library called
+PJSIP. It is packaged in Debian as src:pjproject.
+PJSIP is a package maintaining nightmare. A lot of behaviour
+functionality you need to set to use it with Asterisk is by setting
+#defines in a config file at build time (see
+https://salsa.debian.org/pkg-voip-team/pjproject/blob/master/debian/config_site.h).
+Most of these settings change the ABI because they are embedded
+everywhere in structs. Library symbols come and go with new upstream
+releases because upstream does not control exports in any way. It has
+only been manageable because src:asterisk is the only rdep.
+There is also a python library built from src:pjproject, but as far as I
+can tell the one we ship is already abandoned upstream and another one
+with the exact same name but different API has taken it's place. :-(
+There is one other source package in the archive that already uses an
+embedded copy of src:pjproject, src:ring. There has been a short
+discussion with the ring maintainers just before the Stretch freeze to
+use src:pjproject (Bug#843654), but since both Asterisk and ring
+need(ed) their own set of patches and config.h settings in pjproject it
+was abandoned. Basically src:pjproject only lives in Debian for the use
+by Asterisk. I'm not aware of any other embedded code copies.
+Asterisk maintainers have first offerered, then recommended working
+around this issue by shipping a private copy (actually, a download of
+the original pjsip source during build, enhanced with a couple of
+patches mostly retrieved from pjsip SVN) of pjsip for Asterisk use. It
+wasn't mandatory though, so we built against the system-wide pjproject.
+We have heard that with the upcoming release it will actually require or
+at least strongy suggest using the bundled pjproject. It will be built
+with a different name (libasteriskpj), so it would not conflict with
+another pjproject installation.
+Oh, and as additional complexity, both asterisk and pjproject currently
+need to be repacked due to non-DFSG-free third-party stuff in the
+original tarball and occasionally have security bugs that need to be
+fixed. And src:pjproject currently has a lot of dependencies to other
+external libraries that are disabled in the Asterisk build (because
+Asterisk handles this internally, i.e. video or SRTP).
+As far as I can tell we will have the following options for Buster
+1.) Drop src:asterisk and src:pjproject from Buster.
+2.) Keep the current pjproject and Asterisk version and don't follow the
+upgrade. This will probably be harder as it sounds, as Asterisk 13 LTS
+will be EOL soon. Asterisk 16 will be/is the next LTS. Backporting the
+security fixes has already been non-trivial from 13.2x to 13.14.
+3.) Upgrade src:pjproject to 2.8 and Asterisk to the upcoming 16.1,
+somehow patching the build process to still use the system-wide
+src:pjproject libraries. This is probably doable, but not supported by
+upstream.
+4.) Try to follow the path upstream has chosen with regards to the
+embedded pjproject library for Asterisk use. Since the build process
+downloads the pjproject source code which is a no-go we need to find a
+way to inject the pjproject source code into the build. Since it is not
+DFSG-free we cannot include the tarball in debian/ as is.
+  a) Add a dfsg-repack tarball into debian/
+  b) try to somehow use the multi tarball feature from dpkg-source, but
+it is still marked experimental for git-buildpackage and I honestly
+think this would be major pitfall for maintenance
+  c) build something like pjproject-source:all from src:pjproject,
+build-dep on that from src:asterisk. This way a security issue fixed in
+src:pjproject would need a binNMU of src:asterisk
+In this case we could drop most of pjproject from Buster (either
+completely or except for the fictional pjproject-source:all), because I
+don't see any use of it outside of Asterisk.
+5.) ???
+Thanks for any input.
+Bernhard

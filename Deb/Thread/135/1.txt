@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Upcoming changes to APT architecture restriction list (wildcards) support
+From : Julian Andres Klode <jak@debian.org>
+Date : Tue, 17 Jan 2017 02:12:37 +0100
+Message-id : 20170117020117.GA14292@debian.org
+Mail-followup-to : debian-devel@lists.debian.org, deity@lists.debian.org
+
+
+Hi,
+as a lot of people are already aware, APT and dpkg have disagreed
+on architecture wildcards for quite some time, because the approach
+taken in apt was "weird".
+I have just committed a change that makes APT uses dpkg's triplet
+or tuplettables, depending on how new your dpkg is:
+https://anonscm.debian.org/cgit/apt/apt.git/commit/?id=6ede895
+I expect the change to land in unstable tomorrow.
+A wildcard like any-armel won't work anymore. This wildcard was
+understodd by apt, but not by dpkg. In dpkg, armel matches any-arm
+instead. As these wildcards have been interpreted differently
+before, it is assumed that they are not used yet in critical
+places.
+The approach taken to implement this is slightly weird, I want
+to thank James Clarke <jrtc27@jrtc27.com> for providing an
+initial patch in http://bugs.debian.org/748936.
+It does however validate against all architecture and wildcard
+combinations known by dpkg, producing no false positives and
+no false negatives.
+Having one understanding of wildcards allows us to finally use
+these wildcards properly. So for example, any-arm can now be
+used for armel and armhf building.
+There is one caveat however: Ubuntu still ships a dpkg
+1.18.10 which uses triplets, whereas Debian ships a newer
+dpkg that uses quadruplets. As an example, to match an architecture
+like armhf (arm with glibc and eabihf ABI) for all kernels:
+	gnueabihf-any-arm	on Ubuntu
+	eabihf-gnu-any-arm        on Debian
+If you want to use patterns that combine a special ABI variant with
+a libc variant, it is best to just include both variants in the
+list IMO so it works with old and current dpkg versions.
+Thanks,
+Julian
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

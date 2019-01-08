@@ -1,0 +1,48 @@
+To : Adam Borowski <kilobyte@angband.pl>
+Subject : Re: sse{2,3,4.2}, altivec, neon, ...
+From : Bastien ROUCARIES <roucaries.bastien@gmail.com>
+Date : Tue, 8 Aug 2017 19:43:06 +0200
+Message-id : CAE2SPAbBNre3F-+Vcyk9OjWn6NXaR5it+ixZLimOMNzEQT907Q@mail.gmail.com
+In-reply-to : <[🔎] 20170808024726.6tv4fz7cbmax5dj2@angband.pl>
+References : <[🔎] 20170805175302.ewj5jks7sbl6ukyl@angband.pl> <[🔎] debc4db7-4b37-eb36-b542-dddea5f6056e@debian.org> <[🔎] 20170805202836.tmrt2dzpiawkwdxe@angband.pl> <[🔎] 20170808024726.6tv4fz7cbmax5dj2@angband.pl>
+
+
+On Tue, Aug 8, 2017 at 4:47 AM, Adam Borowski <kilobyte@angband.pl> wrote:
+> On Sat, Aug 05, 2017 at 10:28:36PM +0200, Adam Borowski wrote:
+>> It's easy to quite reliably detect the presence of such instructions
+>> (probably no one JITs such code).  There's no real way to check if it's
+>> executed unconditionally, though -- a lot of software has optimized code
+>> paths that are chosen at runtime.
+>>
+>> I guess we could apply such check to the archive: for example, if any of
+>> these instructions are present in a code section: [snip]
+>> then the program may need sse2.  But there's no good way to weed out false
+>> positives automatically, so all we'd get is a list of candidates to check.
+>
+> I went through the whole archive and disassembled all binaries in unstable
+> in amd64 and i386 (not sure where to get a good list of neon instructions
+> for armhf) -- results attached, and so is the script for analyzing a
+> package[1].
+>
+> Alas, there's way too many false positives to turn this into a lintian
+> check.  There's 254 amd64 and 409 i386 sources which produce executables
+> that include those instructions (I ignored other ISA extensions for now),
+> most of them use proper runtime detection.  So unless someone can propose
+> a better check, they'd need to be tested by hand.
+I will prefer to implement it on lintian. Even if false positive. BTW
+could you print path ?
+Bastien
+>
+> And no, presence of cpuid is not enough -- for example chromium:i386 checks
+> it, yet requires sse2 (it even has proper runtime optimizations for sse4.2).
+>
+>
+> Meow!
+>
+> [1]. pkgext needs to have the path to ext edited; I didn't bother adding
+> fragile $0 logic.
+> --
+> ⢀⣴⠾⠻⢶⣦⠀
+> ⣾⠁⢰⠒⠀⣿⡁ James Damore is a hero.  Even mild criticism of bigots these days
+> ⢿⡄⠘⠷⠚⠋⠀ comes at great personal risk.
+> ⠈⠳⣄⠀⠀⠀⠀

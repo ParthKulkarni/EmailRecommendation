@@ -1,0 +1,44 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Converting to dgit
+From : Colin Watson <cjwatson@debian.org>
+Date : Wed, 4 Jan 2017 04:42:57 +0000
+Message-id : 20170104044257.GA4969@riva.ucam.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 87k2ab4htd.fsf@hope.eyrie.org>
+References : <[🔎] 20170103194117.7bal6rcnv4v2yhus@iris.silentflame.com> <[🔎] 87zij7hdek.fsf@hope.eyrie.org> <[🔎] 87a8b7bkal.fsf@vostro.rath.org> <[🔎] 87k2ab4htd.fsf@hope.eyrie.org>
+
+
+On Tue, Jan 03, 2017 at 07:36:46PM -0800, Russ Allbery wrote:
+> That said, gbp pq does something else I really like, namely it exports in
+> the source package all of the metadata that anyone else would need to pick
+> up the package without needing a copy of my Git repository (except for
+> history).
+git-dpm does too, and I agree it's nice.
+> That specifically means I want separated upstream patches in
+> debian/patches, which in turn means I may as well be using 3.0 (quilt).
+> (See my comment in the other thread about 3.0 (quilt) being an interchange
+> format between VCSs.)  If as you say above git-dpm produces a
+> patches-applied tree, I don't see how it could preserve that (very
+> important) property, although maybe I'm missing something?
+It produces a patches-applied tree *and* the separated upstream patches
+in debian/patches/.  You never actually touch the latter by hand;
+they're purely an export format.
+Briefly, when you want to edit upstream patches, you bracket your
+operations with "git-dpm checkout-patched" / "git-dpm update-patches";
+the update-patches operation constructs a merge of the (possibly
+rebased) tip of the patched branch (i.e. upstream source as patched, no
+packaging files) into master or whatever you're calling your primary
+Debian branch, and arranges for that merge commit to include an updated
+export of upstream..patched into quilt-compatible files in
+debian/patches/.
+I had a mild initial reaction to the duplicated information, but after a
+trial run decided that I liked the results easily enough to outweigh
+that.
+> I think the rebased set of patches is far, far less useful if they
+> exist only in my Git repository and not in the Debian source package,
+> but maybe git-dpm puts them there as well in some way that I don't
+> understand?
+Yes, it absolutely does.  See e.g. openssh if you want to peer at a
+medium-sized example.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

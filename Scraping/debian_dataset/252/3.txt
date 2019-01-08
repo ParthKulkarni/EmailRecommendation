@@ -1,0 +1,79 @@
+To : Toni Mueller <support@oeko.net>, 754513@bugs.debian.org,	debian-devel@lists.debian.org, openssl@packages.debian.org
+Subject : Re: Bug#754513: RFP: libressl -- SSL library, forked from OpenSSL
+From : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Date : Mon, 16 Oct 2017 22:00:50 +0200
+Message-id : 20171016200049.uikzmo2c53axmpho@breakpoint.cc
+In-reply-to : <[🔎] 20171016162908.blj5mhl5ibaa7dza@riva.ucam.org>
+References : <20140711220627.24261.14073.reportbug@spruce.wiehl.oeko.net> <[🔎] 20171016162908.blj5mhl5ibaa7dza@riva.ucam.org>
+
+
+On 2017-10-16 17:29:09 [+0100], Colin Watson wrote:
+> [I won't quote everything, but people replying to this should probably
+> read the bug log in the BTS first.]
+It was a lot to read and "they" stumbled over details.
+> While there does exist a skeletal compatibility layer linked from the
+> upstream wiki [1], the OpenSSL developers explicitly don't want to
+> maintain this properly [2], and the OpenSSH developers say that it is
+> "unversioned, incomplete, barely documented, and seems to be
+> unmaintained" [3].  Kurt Roeckx proposed a patch to add a compatibility
+> shim [4], and a number of other projects have done something similar,
+> but the OpenSSH developers have explicitly said that they do not want to
+> take that approach [5].
+It has never been explained what it is that upstream wants. I get the
+impression, that they want a compat/shim layer and things have to work
+  https://lists.mindrot.org/pipermail/openssh-unix-dev/2016-November/035456.html
+  https://lists.mindrot.org/pipermail/openssh-unix-dev/2016-November/035497.html
+I didn't even figure out if they want to alter their code or not.
+> It's not currently clear to me whether anyone has explicitly talked with
+> the OpenSSL developers about this problem from the point of view of the
+> OpenSSH developers, rather than just as users trying to get OpenSSH to
+> compile against the new version.
+Kurt is aware of the situation, he is part of upstream. It might be that
+OpenSSH is playing hard to get.
+> At the moment I can see the following somewhat realistic paths forward:
+> 
+>  * Accept an upstream bundling of LibreSSL (still hypothetical, but
+>    plausible).  I'm sure this would also not be the security team's
+>    favourite outcome, although presumably only a subset of LibreSSL CVEs
+>    would apply to OpenSSH, and it wouldn't be making it available as a
+>    general-purpose library.
+4.13. Convenience copies of code
+> I have heard suggested or thought of some other plans that I don't think
+> are viable and I will not pursue:
+> 
+>  * Switch to PKIX-SSH, an OpenSSH fork with 1.1 support.  This fork adds
+>    new features, making it a one-way transition.  With all due respect,
+>    as far as I can tell it's a one-person fork with very limited uptake
+>    compared to OpenSSH, and I don't think it would be wise to switch
+>    Debian over to it.
+I am somehow in favour of that as I expressed it in #828475. It looks
+like a one man show, yes, but it looks maintained for more than a
+decade. Maybe we could check with Fedora/Red Hat what they think about
+switching to that fork. However a larger user basis does not solve the
+problem what should be done if PKIX-SSH dies / becomes unmaintained two
+weeks after the Buster release. And this seems to be your only concern.
+>                        (If somebody wants to package it separately for
+>    the extra features, that's their affair, but it wouldn't solve the
+>    problem at hand.)
+I don't see a reason to package PKIX-SSH if OpenSSH (the root problem)
+remains.
+>  * Start a team to maintain an OpenSSL 1.1 compatibility layer myself.
+>    Ingo Schwarze persuaded me on openssl-unix-dev that this was a bad
+>    idea.  I would be happy if the OpenSSL developers carried this
+>    forward as a proper project rather than just as an unversioned
+>    tarball dump, but I'm not in a position to tell them what to do.
+this unversioned tar file provides a handful accessors. Instead of
+accessing ctx->keylength there is a function to be used. That function's
+content is the direct access to the struct. I don't know what could be
+there maintained except to add new functions now and then. You can't
+have it as a .so library and it makes no sense to update that header
+file because two helpers were added which you don't need. And I assume
+that most project will drop that header file around 2020 once 1.0.2 gets
+end of life (like a lot project dropped their 1.0.0 and earlier compat
+layer while preparing for 1.1).
+>  * Configure OpenSSH using --without-openssl, and use only its internal
+>    crypto functions.  I mention this mainly for completeness, but if you
+>    do this you only get a very limited feature set (e.g. only ED25519
+>    keys); it's a long way off being viable.
+So no RSA key authentification and probably no gssapi.
+Sebastian

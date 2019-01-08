@@ -1,0 +1,73 @@
+To : debian-devel@lists.debian.org
+Subject : New package split of util-linux
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Wed, 26 Jul 2017 10:18:46 +0200
+Message-id : 20170726081846.GA22129@fatal.se
+
+
+Hello!
+I'm looking for help with ideas about a new package split for the
+util-linux suite.
+Currently the main binary packages are:
+util-linux
+mount
+bsdutils
+(Then there are a bunch of other less important binary packages also
+built.)
+All of the three above packages have the Essential: yes control field
+set.  This basically means when ever upstream writes a new tool and we
+decide to ship it, it instantly becomes part of the essential set.
+Additionally when one of these new or existing tools grows a new
+dependency that package (library?) instantly becomes pseudo-essential.
+The current package split being problematic has already resulted in
+setpriv currently being a separate package to avoid making it essential
+and it's new dependency pseudo-essential. I'd like to merge this tool
+into another package with a set of tools and make the setpriv a
+transitional package.
+Disclaimer: I'm not interested in (further) "micro-packaging".
+I also don't see any real reason for the mount package to be separate
+from the util-linux package.
+In short, I'm considering a new package split to be needed.
+If people have ideas or suggestions about this package split I'm
+interested to hear them.
+Things I'd like your to consider when suggesting a new package split:
+- how can we easily ship additional new tools from upstream in it?
+- how does it deal with new/existing dependencies to avoid making
+  everything pseudo-essential?
+- how can we take over things currently shipped by other source pkgs?
+  eg. eject[1], su/login[2], etc.
+- how can we make sure the essential set is as small as possible?
+- how can we make sure the dependencies being made pseudo-essential
+  is kept as small as possible?
+- how do we transition to it from the current package split?
+Another possibly related issue I'd like to get feedback on is that I
+personally find it useful for these 'low-level utilities' packages
+like util-linux is to keep 'mechanism' (the tools) and 'policy'
+(how they are used, eg. init scripts, cron jobs, etc.) separate.
+The util-linux are currently pretty much mechanism only, with the
+notable exception of hwclock policy that *only* applies under sysvinit.
+I have thus considered moving this policy over to the sysvinit package
+but problems with moving conffiles between packages has made me
+spend my time elsewhere.
+There are though a number of different requests to introduce more
+policy in the util-linux package. Eg. use hwclock policy under systemd
+when rtc drivers are modules (rather than built in)[3], ship fstrim
+cron jobs[4], etc.
+As said I'd like to keep util-linux free from this kind of policy,
+so suggestions on where to put them instead or potentially how
+a new package split could deal with this is welcome.
+In case you've read this far I'll also throw in a general request for
+help with the util-linux package. All help is welcome and needed.
+If you're looking for specific issues I'll suggest looking at #869191
+which currently blocks updating to a new upstream release.
+Also please send patches to the relevant util-linux bug report (or
+directly to upstream is even better if it's an upstream issue).
+General bug triaging also welcome, because I'm sure there are open bug
+reports than can likely just be closed after investigating them and
+their current status.
+[1]: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=737658
+[2]: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=833256
+[3]: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=855203
+[4]: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=864806
+Regards,
+Andreas Henriksson

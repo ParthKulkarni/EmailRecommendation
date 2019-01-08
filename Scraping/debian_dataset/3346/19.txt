@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Tainted builds (was Re: usrmerge -- plan B?)
+From : Antonio Terceiro <terceiro@debian.org>
+Date : Wed, 28 Nov 2018 14:48:32 -0200
+Message-id : 20181128164832.GA10033@debian.org
+Mail-followup-to : Antonio Terceiro <terceiro@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20181128135752.GA21401@thunder.hadrons.org>
+References : <[🔎] 878t1esau1.fsf@hope.eyrie.org> <[🔎] 2d3113fc-e79b-babe-4981-b1bc24fadfd7@gmail.com> <[🔎] 20181128135752.GA21401@thunder.hadrons.org>
+
+
+On Wed, Nov 28, 2018 at 02:57:52PM +0100, Guillem Jover wrote:
+> Hi!
+> 
+> On Wed, 2018-11-28 at 07:52:08 +0500, Alexander E. Patrakov wrote:
+> > Well, the buildd configuration change has been reverted. What worries me now
+> > is that there is a risk not yet mitigated, coming from personal systems of
+> > Debian developers, and we should also check porter boxes.
+> > 
+> > As long as there is one Debian Developer (or any other person who has the
+> > right to upload binary packages) who has a merged /usr on his system used
+> > for building packages, there is a risk of reintroducing the bug through his
+> > package. Maybe we should somehow, in the short term, modify dpkg to add
+> > something like "Tainted-By: usr-merge" control field to all binary packages
+> > produced, if a package is built on a system with merged /usr (detected via
+> > /bin being a symlink). And a corresponding automatic check that would
+> > auto-reject binary packages with any Tainted-By control field from being
+> > uploaded to the Debian archive.
+> 
+> This is actually a great idea! I went ahead and implemented this, see
+> attached tentative patch which I'm planning on including in dpkg 1.19.3.
+Would you be willing to also implement
+	Tainted-By: not-built-in-a-chroot
+?
+(ischroot(1) is from debianutils which is Essential).
+a few nits in the manpage:
+> diff --git i/man/deb-buildinfo.man w/man/deb-buildinfo.man
+> index 5013aa047..8aa333965 100644
+> --- i/man/deb-buildinfo.man
+> +++ w/man/deb-buildinfo.man
+> @@ -149,6 +149,19 @@ via some pattern match to avoid leaking possibly sensitive information.
+>  On Debian and derivatives only build paths starting with \fI/build/\fP
+>  will emit this field.
+>  .TP
+> +.BR Build\-Tainted\-By: " \fItaint-reasons...\fP"
+> +The list of reasons in the form of string tags (alphanumeric and dash),
+> +that can taint the current build.
+Other fields explicitly mention being space-separated, you might want to do the
+same here.
+> +.RS
+> +.TP
+> +.B merged-usr-via-symlinks
+> +The system has a merged /usr via symlinks.
+> +This will confuse \fBdpkg\-query\fP as it messes with the \fBdpkg\fP
+> +understanding of the filesystem it manages.
+> +It can also produce packages with hardcoded paths that will be incompatible
+> +with non-usr-merged filesystems.
+I would say here:
+For packages that hardcode paths to specific binaries at build time, it can
+also produce packages that are incompatible with non-usr-merged systems.
+signature.asc

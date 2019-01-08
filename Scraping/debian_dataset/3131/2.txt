@@ -1,0 +1,753 @@
+To : debian-devel@lists.debian.org
+Subject : MBF proposal: python modules that fail to import
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Sun, 15 Apr 2018 20:56:34 +0200
+Message-id : 20180415185633.GA2011@alf.mars
+Mail-followup-to : debian-devel@lists.debian.org
+
+
+Hi,
+I was surprised to find a python module that failed to import thinking
+that our qa would catch this. So I wondered how many other python
+modules would fail to import and started a little yak shaving journey.
+It turns that this happens for 251 python modules. Since failure to
+import the main module of a python library indicates that the modules
+doesn't work at all, I propose to file this at severity serious.
+Actually, there is autodep8 at ci.debian.net testing this already. It
+has a whitelist
+(https://salsa.debian.org/ci-team/debian-ci-config/blob/master/cookbooks/debci/files/default/whitelist-python.txt)
+of around 800 packages opting in to import testing. Unfortunately, the
+results do not seem to be synced into tracker.d.o. The main difficulty
+is determining the name of the python module. Sometimes capitalization
+differs from the package name. Other times a completely different name
+is used. Thus I am attaching a genlist.py that tries to compute the
+module name and it succeeds in about 4300 packages.
+Thus I tried installing and importing all of these and figured that 251
+packages would fail. The process of installing and importing is rather
+simple and implemented in autodep8 already, so I'm not attaching my
+crude hacks here. Nonetheless I am attaching a draft of the proposed bug
+reports since each of them includes a specific error. I also include a
+dd-list of affected packages.
+The most common issues is missing dependencies. Very often,
+pkg_resources is missing. Also six, numpy, tkinter and distutils are
+missing several times. A fair number of strange exceptions is included
+as well. When dealing with C extensions, we are faced with two
+segmentation faults, one assertion failure and three missing symbols.
+Any objections to me filing 251 rc bugs?
+Helmut
+draft.gzAdrian Alves <aalves@gmail.com>
+   python-cluster (U)
+   python-stopit (U)
+   python3-stopit (U)
+Afif Elghraoui <afif@debian.org>
+   python-easydev (U)
+   python3-easydev (U)
+Agustin Henze <tin@debian.org>
+   python-livereload
+   python3-livereload
+Agustin Henze <tin@sluc.org.ar>
+   python-pygal (U)
+   python3-pygal (U)
+Aigars Mahinovs <aigarius@debian.org>
+   python3-gphoto2cffi
+Alastair McKinstry <mckinstry@debian.org>
+   python-gribapi
+   python3-gribapi
+Alessio Treglia <alessio@debian.org>
+   python-laditools (U)
+Ana Custura <ana@netstat.org.uk>
+   python3-yapf
+Andrea Palazzi <palazziandrea@yahoo.it>
+   python-quantities (U)
+Andreas Tille <tille@debian.org>
+   python-casmoothing (U)
+   python-matplotlib-venn (U)
+   python-visionegg (U)
+   python3-matplotlib-venn (U)
+   python3-sphinxcontrib.autoprogram (U)
+Antoine Beaupré <anarcat@debian.org>
+   python-pymediainfo (U)
+   python3-pymediainfo (U)
+Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>
+   python-msrestazure (U)
+   python3-msrestazure (U)
+Anton Gladky <gladk@debian.org>
+   python3-woo (U)
+Barry Warsaw <barry@debian.org>
+   python3-pip (U)
+Bas Couwenberg <sebastic@debian.org>
+   python3-mapbox-vector-tile (U)
+Ben Carrillo <ben@futeisha.org>
+   python3-srp
+Benjamin Drung <benjamin.drung@profitbricks.com>
+   python3-versiontools
+Bernhard Reiter <ockham@raz.or.at>
+   python-django-threadedcomments (U)
+Brian May <bam@debian.org>
+   python-django-cors-headers (U)
+   python-django-tables2 (U)
+   python-fake-factory (U)
+   python-pytest-runner (U)
+   python3-django-cors-headers (U)
+   python3-django-tables2 (U)
+   python3-pytest-runner (U)
+Carl Chenet <chaica@debian.org>
+   python3-pip (U)
+Carlo Segre <segre@debian.org>
+   python-wxmpl
+Carsten Schoenert <c.schoenert@t-online.de>
+   python-kopano (U)
+Ceph Maintainers <ceph-maintainers@lists.ceph.com>
+   ceph
+   python-cephfs
+ChangZhuo Chen (陳昌倬) <czchen@debian.org>
+   python-feather-format (U)
+   python-pgspecial (U)
+   python-pylint-flask (U)
+   python-scruffy (U)
+   python3-pgspecial (U)
+   python3-pylint-flask (U)
+   python3-scruffy (U)
+Christoph Schmidt-Hieber <christsc@gmx.de>
+   python-stfio
+Christopher Baines <mail@cbaines.net>
+   python-fake-factory (U)
+Damien Caliste <damien.caliste@cea.fr>
+   python-v-sim (U)
+Daniel Stender <stender@debian.org>
+   python-bcolz (U)
+   python3-bcolz (U)
+David Della Vecchia <ddv@canonical.com>
+   python-openstackdocstheme (U)
+   python3-openstackdocstheme (U)
+Debian Astronomy Team <debian-astro-maintainers@lists.alioth.debian.org>
+   python-aplpy
+   python-imexam
+   python3-aplpy
+   python3-imexam
+Debian Azure Packaging Team <pkg-azure-team@lists.alioth.debian.org>
+   python-msrestazure
+   python3-msrestazure
+Debian GIS Project <pkg-grass-devel@lists.alioth.debian.org>
+   python3-mapbox-vector-tile
+Debian LAVA team <pkg-linaro-lava-devel@lists.alioth.debian.org>
+   python-django-compat
+   python3-django-compat
+Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
+   python-casmoothing
+   python-easydev
+   python-matplotlib-venn
+   python-visionegg
+   python3-easydev
+   python3-matplotlib-venn
+   python3-sphinxcontrib.autoprogram
+Debian Multimedia Maintainers <debian-multimedia@lists.debian.org>
+   python3-midiutil
+Debian Multimedia Maintainers <pkg-multimedia-maintainers@lists.alioth.debian.org>
+   python-csoundac
+   python-laditools
+Debian OpenStack <openstack-devel@lists.alioth.debian.org>
+   python-django-pyscss
+   python-ldappool
+   python-openstackdocstheme
+   python-sphinxcontrib.plantuml
+   python-stringtemplate3
+   python3-django-pyscss
+   python3-editor
+   python3-ldappool
+   python3-openstackdocstheme
+   python3-sphinxcontrib.plantuml
+   python3-stringtemplate3
+Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
+   python-altgraph
+   python-avc (U)
+   python-changelog
+   python-cluster
+   python-django-app-plugins (U)
+   python-django-casclient (U)
+   python-django-celery-transactions
+   python-django-cors-headers
+   python-django-etcd-settings
+   python-django-haystack
+   python-django-polymorphic
+   python-django-tables2
+   python-django-threadedcomments
+   python-enzyme
+   python-fake-factory
+   python-fastkml (U)
+   python-feather-format
+   python-flask-limiter
+   python-guessit
+   python-iptables
+   python-isc-dhcp-leases
+   python-kajiki
+   python-mplexporter
+   python-napalm-base (U)
+   python-napalm-eos (U)
+   python-napalm-fortios (U)
+   python-napalm-ios (U)
+   python-napalm-iosxr (U)
+   python-networkmanager
+   python-pgspecial
+   python-pylint-flask
+   python-pymediainfo
+   python-pytest-runner
+   python-raven (U)
+   python-scrapy-djangoitem
+   python-scruffy
+   python-setuptools-scm
+   python-simpleparse-mxtexttools
+   python-sphinx-paramlinks
+   python-sphinxcontrib.rubydomain
+   python-stopit
+   python-subliminal
+   python-terminado
+   python-xapian-haystack
+   python3-altgraph
+   python3-asgi-ipc
+   python3-changelog
+   python3-django-casclient (U)
+   python3-django-celery-transactions
+   python3-django-cors-headers
+   python3-django-etcd-settings
+   python3-django-haystack
+   python3-django-imagekit
+   python3-django-ipware
+   python3-django-netfields
+   python3-django-polymorphic
+   python3-django-tables2
+   python3-enzyme
+   python3-fastkml (U)
+   python3-flask-autoindex
+   python3-flask-limiter
+   python3-guessit
+   python3-importmagic
+   python3-iptables
+   python3-isc-dhcp-leases
+   python3-kajiki
+   python3-mplexporter
+   python3-networkmanager
+   python3-networkx (U)
+   python3-path
+   python3-pgspecial
+   python3-pip
+   python3-pylint-flask
+   python3-pymediainfo
+   python3-pytest-cookies
+   python3-pytest-runner
+   python3-rebulk
+   python3-scrapy-djangoitem
+   python3-scruffy
+   python3-setuptools-scm
+   python3-sphinx-paramlinks
+   python3-sphinxcontrib.rubydomain
+   python3-stopit
+   python3-subliminal
+   python3-terminado
+   python3-winrm
+   python3-xapian-haystack
+Debian QA Group <packages@qa.debian.org>
+   python-cfflib
+   python-chef
+   python-gpod
+   python-libavg (U)
+   python-libtiff
+   python-tofu
+Debian Science Maintainers <debian-science-maintainers@lists.alioth.debian.org>
+   python-actionlib
+   python-bcolz
+   python-brial
+   python-camera-calibration-parsers
+   python-cv-bridge
+   python-gencpp
+   python-genlisp
+   python-image-geometry
+   python-lasagne
+   python-laser-geometry
+   python-libavg
+   python-linop
+   python-message-filters
+   python-pyorick
+   python-quantities
+   python-resource-retriever
+   python-rosclean
+   python-roscreate
+   python-rosmake
+   python-rosmaster
+   python-rosnode
+   python-rosparam
+   python-rosservice
+   python-rostest
+   python-rosunit
+   python-rviz
+   python-seaborn
+   python-tf
+   python-tf-conversions
+   python-tf2-geometry-msgs
+   python-tf2-kdl
+   python-tf2-ros
+   python-tf2-sensor-msgs
+   python-topic-tools
+   python3-bayespy
+   python3-bcolz
+   python3-keras
+   python3-lasagne
+   python3-ltfatpy
+   python3-pyorick
+   python3-seaborn
+   python3-segyio
+   python3-spyder-line-profiler
+   python3-spyder-memory-profiler
+   python3-woo
+Debian Science Team <debian-science-maintainers@lists.alioth.debian.org>
+   python-fiat
+   python-instant
+   python-nxs
+   python-sagenb
+   python-sciscipy
+   python-ufl
+   python-v-sim
+   python3-fiat
+   python3-instant
+   python3-ufl
+Debian Security Tools <team+pkg-security@tracker.debian.org>
+   python3-capstone
+Debian SELinux maintainers <selinux-devel@lists.alioth.debian.org>
+   python3-sepolicy
+   python3-setools
+   python3-setoolsgui
+Debian Tex Maintainers <debian-tex-maint@lists.debian.org>
+   python-sagetex
+Debian Tryton Maintainers <tryton-debian@lists.alioth.debian.org>
+   python-goocalendar
+Deepak Tripathi <apenguinlinux@gmail.com>
+   python-django-app-plugins
+Diane Trout <diane@ghic.org>
+   python3-importmagic (U)
+Dirk Eddelbuettel <edd@debian.org>
+   python-rpy
+Dmitry Nezhevenko <dion@dion.org.ua>
+   python-lucene
+Dmitry Shachnev <mitya57@debian.org>
+   python-changelog (U)
+   python-sphinx-paramlinks (U)
+   python3-changelog (U)
+   python3-sphinx-paramlinks (U)
+Dominic Hargreaves <dom@earth.li>
+   python3-winrm (U)
+Dominique Belhachemi <domibel@debian.org>
+   python-drmaa (U)
+Drew Parsons <dparsons@debian.org>
+   python-fiat (U)
+   python-instant (U)
+   python-ufl (U)
+   python3-fiat (U)
+   python3-instant (U)
+   python3-ufl (U)
+Enrico Zini <enrico@debian.org>
+   python-gribapi (U)
+   python3-gribapi (U)
+Etienne Millon <me@emillon.org>
+   python-enzyme (U)
+   python-guessit (U)
+   python-subliminal (U)
+   python3-enzyme (U)
+   python3-guessit (U)
+   python3-rebulk (U)
+   python3-subliminal (U)
+Fabian Wolff <fabi.wolff@arcor.de>
+   python-picklable-itertools
+   python3-picklable-itertools
+Fabrizio Pollastri <f.pollastri@inrim.it>
+   python-avc
+Federico Ceratto <federico@debian.org>
+   python3-gridfs
+   python3-pyroma
+Felipe Sateler <fsateler@debian.org>
+   python-csoundac (U)
+Florian Pelgrim <florian.pelgrim@craneworks.de>
+   python-ipcalc
+Forrest Cahoon <forrest.cahoon@gmail.com>
+   python-csoundac (U)
+Gaudenz Steinlin <gaudenz@debian.org>
+   ceph (U)
+   python-cephfs (U)
+Ghislain Antony Vaillant <ghisvail@gmail.com>
+   python-linop (U)
+   python3-bayespy (U)
+   python3-ltfatpy (U)
+   python3-spyder-line-profiler (U)
+   python3-spyder-memory-profiler (U)
+Giraffe Maintainers <pkg-giraffe-maintainers@lists.alioth.debian.org>
+   python-kopano
+Guido Günther <agx@sigxcpu.org>
+   python-kopano (U)
+Hans-Christoph Steiner <hans@eds.org>
+   python-networkmanager (U)
+   python3-networkmanager (U)
+Harlan Lieberman-Berg <hlieberman@debian.org>
+   python3-winrm (U)
+Herbert Parentes Fortes Neto <hpfn@debian.org>
+   python3-dj-static
+Hugo Lefeuvre <hle@debian.org>
+   python3-pytest-cookies (U)
+Iain R. Learmonth <irl@debian.org>
+   python-flask-rdf
+   python-msrestazure (U)
+   python3-flask-rdf
+   python3-msrestazure (U)
+IOhannes m zmölnig (Debian/GNU) <umlaeute@debian.org>
+   python-altgraph (U)
+   python-iptables (U)
+   python-isc-dhcp-leases (U)
+   python3-altgraph (U)
+   python3-iptables (U)
+   python3-isc-dhcp-leases (U)
+   python3-midiutil (U)
+   python3-pyassimp
+Ivan Udovichenko <iudovichenko@mirantis.com>
+   python-django-pyscss (U)
+   python3-django-pyscss (U)
+James Page <jamespage@debian.org>
+   ceph (U)
+   python-cephfs (U)
+James Valleroy <jvalleroy@mailbox.org>
+   python3-django-ipware (U)
+Jeff Licquia <licquia@debian.org>
+   python3-pip (U)
+Jerome Benoit <calculus@rezozer.net>
+   python-sagetex (U)
+Jochen Sprickerhof <debian@jochen.sprickerhof.de>
+   python-laser-geometry (U)
+Jochen Sprickerhof <jspricke@debian.org>
+   python-actionlib (U)
+   python-camera-calibration-parsers (U)
+   python-cv-bridge (U)
+   python-gencpp (U)
+   python-genlisp (U)
+   python-image-geometry (U)
+   python-message-filters (U)
+   python-resource-retriever (U)
+   python-rosclean (U)
+   python-roscreate (U)
+   python-rosmake (U)
+   python-rosmaster (U)
+   python-rosnode (U)
+   python-rosparam (U)
+   python-rosservice (U)
+   python-rostest (U)
+   python-rosunit (U)
+   python-rviz (U)
+   python-tf (U)
+   python-tf-conversions (U)
+   python-tf2-geometry-msgs (U)
+   python-tf2-kdl (U)
+   python-tf2-ros (U)
+   python-tf2-sensor-msgs (U)
+   python-topic-tools (U)
+Johannes Ring <johannr@simula.no>
+   python-fiat (U)
+   python-instant (U)
+   python-ufl (U)
+   python3-fiat (U)
+   python3-instant (U)
+   python3-ufl (U)
+Johannes Schauer <josch@debian.org>
+   python3-searx
+Jonas Smedegaard <dr@jones.dk>
+   python-uwsgidecorators (U)
+   python-visual
+   python3-uwsgidecorators (U)
+Jonathan Carter <jcc@debian.org>
+   python3-flask-autoindex (U)
+Jonathan Wiltshire <jmw@debian.org>
+   python-django-macaddress
+   python3-django-macaddress
+Joost van Baal-Ilić <joostvb@debian.org>
+   python-django-casclient
+   python3-django-casclient
+Julien Danjou <acid@debian.org>
+   python-nose-testconfig (U)
+   python3-fswrap
+Julien Puydt <julien.puydt@laposte.net>
+   python-brial (U)
+   python-setuptools-scm (U)
+   python-terminado (U)
+   python3-path (U)
+   python3-setuptools-scm (U)
+   python3-terminado (U)
+Jørgen Kvalsvik <jokva@statoil.com>
+   python3-segyio (U)
+Kevin Murray <spam@kdmurray.id.au>
+   python3-sphinxcontrib.autoprogram (U)
+Klee Dienes <klee@debian.org>
+   python-cigi
+   python3-cigi
+Konstantinos Margaritis <markos@debian.org>
+   python3-gbulb
+Laurent Bigonville <bigon@debian.org>
+   python3-sepolicy (U)
+   python3-setools (U)
+   python3-setoolsgui (U)
+Leopold Palomo-Avellaneda <leo@alaxarxa.net>
+   python-actionlib (U)
+   python-camera-calibration-parsers (U)
+   python-cv-bridge (U)
+   python-gencpp (U)
+   python-genlisp (U)
+   python-image-geometry (U)
+   python-laser-geometry (U)
+   python-message-filters (U)
+   python-resource-retriever (U)
+   python-rosclean (U)
+   python-roscreate (U)
+   python-rosmake (U)
+   python-rosmaster (U)
+   python-rosnode (U)
+   python-rosparam (U)
+   python-rosservice (U)
+   python-rostest (U)
+   python-rosunit (U)
+   python-rviz (U)
+   python-tf (U)
+   python-tf-conversions (U)
+   python-tf2-geometry-msgs (U)
+   python-tf2-kdl (U)
+   python-tf2-ros (U)
+   python-tf2-sensor-msgs (U)
+   python-topic-tools (U)
+Luciano Bello <luciano@debian.org>
+   python-cluster (U)
+Maintainers of GStreamer packages <pkg-gstreamer-maintainers@lists.alioth.debian.org>
+   python-gst-1.0
+   python3-gst-1.0
+Marcelo Jorge Vieira <metal@debian.org>
+   python-tornado-pyvows
+Mark Dufour <m.dufour@kopano.com>
+   python-kopano (U)
+Martin A. Brown <martin@linux-ip.net>
+   python3-tldp
+Martin Pitt <mpitt@debian.org>
+   python3-blockdev (U)
+   python3-bytesize (U)
+Mathias Behrle <mathiasb@m9s.biz>
+   python-goocalendar (U)
+Matthias Geerdsen <matthias@vorlons.info>
+   python-kopano (U)
+Mehdi Abaakouk <sileht@sileht.net>
+   python-nose-testconfig (U)
+Micah Anderson <micah@debian.org>
+   python3-srp (U)
+Michael Biebl <biebl@debian.org>
+   python3-slip-dbus
+Michael Fladischer <fladi@debian.org>
+   python-django-celery-transactions (U)
+   python-django-etcd-settings (U)
+   python-django-haystack (U)
+   python-django-polymorphic (U)
+   python-scrapy-djangoitem (U)
+   python-xapian-haystack (U)
+   python3-asgi-ipc (U)
+   python3-django-celery-transactions (U)
+   python3-django-etcd-settings (U)
+   python3-django-haystack (U)
+   python3-django-imagekit (U)
+   python3-django-netfields (U)
+   python3-django-polymorphic (U)
+   python3-scrapy-djangoitem (U)
+   python3-xapian-haystack (U)
+Michael Hanke <michael.hanke@gmail.com>
+   python-brian (U)
+   python-drmaa (U)
+   python-nipy (U)
+   python-seaborn (U)
+   python3-seaborn (U)
+Michael Hanke <mih@debian.org>
+   python-dcmstack (U)
+   python-neo (U)
+   python-quantities (U)
+   python-surfer (U)
+Neil Williams <codehelp@debian.org>
+   python-django-compat (U)
+   python3-django-compat (U)
+NeuroDebian Team <team@neuro.debian.net>
+   python-brian
+   python-dcmstack
+   python-drmaa
+   python-neo
+   python-nipy
+   python-surfer
+Nicolas Dandrimont <olasd@debian.org>
+   python-flask-limiter (U)
+   python3-flask-limiter (U)
+Ole Streicher <olebole@debian.org>
+   python-aplpy (U)
+   python-imexam (U)
+   python3-aplpy (U)
+   python3-imexam (U)
+Ondřej Surý <ondrej@debian.org>
+   python-sphinxcontrib.rubydomain (U)
+   python3-sphinxcontrib.rubydomain (U)
+Oxan van Leeuwen <oxan@oxanvanleeuwen.nl>
+   python-enzyme (U)
+   python-guessit (U)
+   python-subliminal (U)
+   python3-enzyme (U)
+   python3-guessit (U)
+   python3-subliminal (U)
+Paulo Henrique de Lima Santana (phls) <phls@softwarelivre.org>
+   python3-flask-socketio
+Pierre Chifflier <pollux@debian.org>
+   python-preludedb
+   python3-cap-ng
+   python3-preludedb
+Piotr Ożarowski <piotr@debian.org>
+   python-changelog (U)
+   python-sphinx-paramlinks (U)
+   python3-changelog (U)
+   python3-sphinx-paramlinks (U)
+PKG OpenStack <openstack-devel@lists.alioth.debian.org>
+   python-nose-testconfig
+   python-traceback2
+   python-wsme
+   python3-traceback2
+   python3-wsme
+Pranith Kumar <bobby.prani@gmail.com>
+   python3-capstone (U)
+Ray Wang <wanglei1123@gmail.com>
+   python-strongwind
+Ross Gammon <rossgammon@mail.dk>
+   python-laditools (U)
+Russell Coker <russell@coker.com.au>
+   python3-sepolicy (U)
+Sandro Tosi <morph@debian.org>
+   python-fastkml
+   python3-fastkml
+   python3-networkx
+Sascha Girrulat <sascha@girrulat.de>
+   python-pyrax
+Sebastian Dröge <slomo@debian.org>
+   python-gst-1.0 (U)
+   python3-gst-1.0 (U)
+Sebastian Humenda <shumenda@gmx.de>
+   python3-gleetex
+Sebastien Delafond <seb@debian.org>
+   python3-raccoon
+Senthil Kumaran S (stylesen) <stylesen@gmail.com>
+   python-django-compat (U)
+   python3-django-compat (U)
+Shell Xu <shell909090@gmail.com>
+   python-formalchemy
+Steffen Moeller <moeller@debian.org>
+   python-tktreectrl
+Stephen Sinclair <radarsat1@gmail.com>
+   python-lasagne (U)
+   python3-keras (U)
+   python3-lasagne (U)
+Stuart Prescott <stuart@debian.org>
+   python-pyx
+Sylvestre Ledru <sylvestre@debian.org>
+   python-sciscipy (U)
+TANIGUCHI Takaki <takaki@debian.org>
+   python-kajiki (U)
+   python3-kajiki (U)
+Thiago Franco de Moraes <tfmoraes@cti.gov.br>
+   python-casmoothing (U)
+Thibaut Paumard <thibaut@debian.org>
+   python-pyorick (U)
+   python3-pyorick (U)
+Thomas Andrejak <thomas.andrejak@gmail.com>
+   python-preludedb (U)
+   python3-preludedb (U)
+Thomas Goirand <zigo@debian.org>
+   python-django-pyscss (U)
+   python-ldappool (U)
+   python-nose-testconfig (U)
+   python-openstackdocstheme (U)
+   python-sphinxcontrib.plantuml (U)
+   python-stringtemplate3 (U)
+   python-traceback2 (U)
+   python-wsme (U)
+   python3-django-pyscss (U)
+   python3-editor (U)
+   python3-ldappool (U)
+   python3-openstackdocstheme (U)
+   python3-sphinxcontrib.plantuml (U)
+   python3-stringtemplate3 (U)
+   python3-traceback2 (U)
+   python3-wsme (U)
+Thomas Moulard <thomas.moulard@gmail.com>
+   python-actionlib (U)
+   python-camera-calibration-parsers (U)
+   python-cv-bridge (U)
+   python-gencpp (U)
+   python-genlisp (U)
+   python-image-geometry (U)
+   python-laser-geometry (U)
+   python-message-filters (U)
+   python-resource-retriever (U)
+   python-rosclean (U)
+   python-roscreate (U)
+   python-rosmake (U)
+   python-rosmaster (U)
+   python-rosnode (U)
+   python-rosparam (U)
+   python-rosservice (U)
+   python-rostest (U)
+   python-rosunit (U)
+   python-rviz (U)
+   python-tf (U)
+   python-tf-conversions (U)
+   python-tf2-geometry-msgs (U)
+   python-tf2-kdl (U)
+   python-tf2-ros (U)
+   python-tf2-sensor-msgs (U)
+   python-topic-tools (U)
+Thomi Richards <thomi.richards@canonical.com>
+   python-sphinxcontrib.youtube
+   python3-sphinxcontrib.youtube
+Thorsten Alteholz <debian@alteholz.de>
+   python-visionegg (U)
+Tiago Bortoletto Vaz <tiago@debian.org>
+   python3-midiutil (U)
+Tim Booth <tbooth@ceh.ac.uk>
+   python3-sphinxcontrib.autoprogram (U)
+Tobias Hansen <thansen@debian.org>
+   python-brial (U)
+Ulises Vitulli <dererk@debian.org>
+   python-pygal
+   python3-pygal
+Utopia Maintenance Team <pkg-utopia-maintainers@lists.alioth.debian.org>
+   python3-blockdev
+   python3-bytesize
+uWSGI packaging team <pkg-uwsgi-devel@lists.alioth.debian.org>
+   python-uwsgidecorators
+   python3-uwsgidecorators
+Vincent Bernat <bernat@debian.org>
+   python-napalm-base
+   python-napalm-eos
+   python-napalm-fortios
+   python-napalm-ios
+   python-napalm-iosxr
+   python-raven
+   python-simpleparse-mxtexttools (U)
+Václav Šmilauer <eu@doxos.eu>
+   python3-woo (U)
+W. Martin Borgert <debacle@debian.org>
+   python-mplexporter (U)
+   python3-mplexporter (U)
+Ximin Luo <infinity0@debian.org>
+   python-flask-oldsessions
+   python-sagenb (U)
+Yann Dirson <dirson@debian.org>
+   python-tau
+Yaroslav Halchenko <debian@onerussian.com>
+   python-brian (U)
+   python-drmaa (U)
+   python-neo (U)
+   python-nipy (U)
+   python-quantities (U)
+   python-seaborn (U)
+   python-stfio (U)
+   python-surfer (U)
+   python3-seaborn (U)

@@ -1,0 +1,48 @@
+To : Michael Biebl <biebl@debian.org>
+Subject : Re: "not authorised" doing various desktoppy things [and 1 more messages]
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Sun, 15 Jan 2017 14:52:38 +0000
+Message-id : 22651.36022.378758.185572@chiark.greenend.org.uk
+In-reply-to : <[🔎] 72ad4dca-d08d-dba3-3bac-c22a030d16ae@debian.org>
+References : <[🔎] 22636.1061.523880.253029@chiark.greenend.org.uk>	<[🔎] o4h6r9$9r$1@blaine.gmane.org>	<[🔎] 20170104005720.zbxi7v4fgl4uma5k@perpetual.pseudorandom.co.uk>	<[🔎] 1ca71a87-772b-f166-4b0d-38f0681f011e@debian.org>	<[🔎] 22636.22960.591912.552238@chiark.greenend.org.uk>	<[🔎] 87o9zndx2n.fsf@deep-thought.43-1.org>	<[🔎] 22636.55176.664342.141414@chiark.greenend.org.uk>	<[🔎] 9e773c11-7d37-fd3b-559c-770941a41889@debian.org>	<[🔎] 22637.18715.665086.947008@chiark.greenend.org.uk>	<[🔎] 9775dae2-0532-1437-8f8c-e3a0617cd7c8@debian.org>	<[🔎] 72ad4dca-d08d-dba3-3bac-c22a030d16ae@debian.org>
+
+
+tl;dr
+  TYVM to Michael Biebl
+  I intend QA upload of systemd-shim with Michael's wrapper
+Michael Biebl writes ("Re: "not authorised" doing various desktoppy things [and 1 more messages]"):
+> Am 05.01.2017 um 19:56 schrieb Michael Biebl:
+> > Then copy the attached wrapper script to /usr/lib/x86_64-linux-gnu/
+> > and make it executable.
+> 
+> Obviously, the wrapper script should start systemd-shim.orig.
+Well, I only previously glanced at this script.  I thought it was a
+way to collect more information.  Now that I sit down to deal with
+this problem properly, I discover that actually it fixes the problem!
+Thank you very much (and I'm sorry now that I was a bit avoidant about
+trying this, thinking that it would be part of a big and stressy
+debugging and spelunking session).
+Correct me if I'm wrong, but I think the right thing is probably to do
+is ship this comaptibility workaround in stretch.  I looked on my
+system and filesystems of type cgroup are not mounted anywhere else.
+And I'm not sure what is using /sys/fs/cgroup/systemd but it doesn't
+seem to be systemd-shim.  I guess then that this is something that
+used to be done by one bit of systemd and is now done by another bit,
+so that it now has to also be done by systemd-shim ?
+So my plan is to do a QA upload of systemd-shim which includes a
+variant of your wrapper script (perhaps with set -e added...).  I
+looked at the code in systemd-shim and implementing this code in its C
+code doesn't look very convenient.  (It's also possible that this
+should be done in an init script but I haven't considered that
+properly.)
+I haven't decided whether to put give the wrapper the name
+`/usr/lib/x86_64-linux-gnu/systemd-shim' as you did, or alternatively
+whether to give it a new name and change the reference in
+  /usr/share/dbus-1/system-services/org.freedesktop.systemd1.service
+Unless anyone has an opinion I'll do whatever is easier.
+More news later today.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

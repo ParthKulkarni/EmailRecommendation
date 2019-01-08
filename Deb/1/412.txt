@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 16 Jan 2017 09:35:25 +0000
+Message-id : 20170116093525.4co4v4bmmgcblg2g@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20170116083842.bemjvyxvv2mtjvhi@exolobe3>
+References : <[🔎] 22649.6909.709941.18707@chiark.greenend.org.uk> <[🔎] 20170113193510.ygehzkrm7trmib2v@perpetual.pseudorandom.co.uk> <[🔎] 87a8au20ad.fsf@debian.org> <[🔎] 1854659a-b021-2382-6f3d-fd9390186e28@debian.org> <[🔎] 871sw60xdv.fsf@debian.org> <[🔎] 20170114181515.krrpaifyaqjikkst@virgil.dodds.net> <[🔎] 20170115220029.gi2ox34pclozg27k@iris.silentflame.com> <[🔎] 877f5v4f4u.fsf@debian.org> <[🔎] 20170116083842.bemjvyxvv2mtjvhi@exolobe3>
+
+
+On Mon, 16 Jan 2017 at 10:38:42 +0200, Lars Wirzenius wrote:
+> A failing test means there's a bug. It might be in the test itself, or
+> in the code being tested. It might be a bug in the test environment.
+Nobody is disputing this, but we have bug severities for a reason:
+not every bug is release-critical. If we gated packages on "has no
+known bugs" we'd never release anything.
+> Personally, I'd really rather have unreliable tests fixed.
+Of course, but it isn't always feasible to drop everything and fix an
+unreliable test, or the bug that the test illustrates - the cause of an
+intermittent bug is often hard to determine. Until that can happen, I'd
+rather have the test sometimes or always fail, ideally reported as
+XFAIL or TODO or something (distinguishing it from "significant"
+failures), so I can use the information that it produces.
+For example, several of the ostree tests intermittently failed for a
+long time, which turned out to be (we think) a libsoup thread-safety
+bug. If I had disabled those tests on ci.debian.net altogether, then
+I wouldn't have been able to tell upstream "those tests have stopped
+failing since fixing libsoup, so that fix is probably all we need".
+> Apart from social exclusion, unreliable tests waste a lot of time,
+> effort, and mental energy.
+Yes, and in an ideal world they wouldn't exist. This world is demonstrably
+not ideal, and the code we release is not perfect (if it was, we wouldn't
+need tests). Would you prefer it if packages whose tests are not fully
+reliable just stopped running them altogether, or even deleted them?
+I would very much prefer that we run tests, even the imperfect ones,
+because CPU time is cheap and more information is better than less
+information.
+I've opened:
+autopkgtest: define Restrictions for tests that aren't suitable for gating CI
+http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=851556
+and sent a patch to:
+autopkgtest: should be possible to ignore test restrictions by request
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=850494
+in the hope that we can use those as a way to mark certain tests as
+"failure is non-critical".
+    S

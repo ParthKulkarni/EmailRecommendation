@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Compressed apt index files by default?
+From : Julian Andres Klode <jak@debian.org>
+Date : Sat, 9 Sep 2017 16:48:29 +0200
+Message-id : 20170909144829.ulxdkz6w2awnja7e@jak-x230
+Mail-followup-to : Julian Andres Klode <jak@debian.org>,	debian-devel@lists.debian.org
+
+
+Hi,
+I'd like us to try out using LZ4 compressed index files in
+/var/lib/apt/lists for the next APT release series, starting
+in October, after the release of Ubuntu 17.10 "artful".
+This is done by swapping the default for Acquire::gzipIndexes
+from false to true.
+On my system, this compresses /var/lib/apt/lists
+from 1.3 GB down to 241 MB, which is a lot of space.
+There are some packages broken with this, I just started
+a mass bug filing in Debian for that purpose. I don't have
+any equivalent to codesearch.d.n for Ubuntu, so I can't search
+there, but I hope there are not more packages here (especially
+since compressed indexes comes from Ubuntu in the first place).
+The Debian bugs are here:
+https://bugs.debian.org/cgi-bin/pkgreport.cgi?users=deity@lists.debian.org;tag=apt-internals
+Some packages might have performance regressions: For example,
+iterating over packages in python-apt and then accessing their
+records causes random access to package files, which needs to
+be emulated by seeking to the beginning and starting decompression
+again. I'm sure we can fix this, however.
+If we notice too many issues with that, we can turn it off again
+before the release - this does not automatically decompress all
+the files again, though, so devel users still need to manually do
+that if they have issues.
+Opinions?
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

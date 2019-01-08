@@ -1,0 +1,70 @@
+To : debian-devel@lists.debian.org
+Subject : Re: FTBFS with parallel make
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 26 Jan 2018 15:07:25 +0100
+Message-id : 20180126140725.3wrdau7etfyrprm6@angband.pl
+In-reply-to : <[🔎] 57de627a-f97e-0bc3-d6d2-7c9eab81a0d7@pmhahn.de>
+References : <[🔎] 57de627a-f97e-0bc3-d6d2-7c9eab81a0d7@pmhahn.de>
+
+
+On Fri, Jan 26, 2018 at 09:42:05AM +0100, Philipp Hahn wrote:
+> we (Univention GmbH) rebuild packages (from Debian-Jessie or newer)
+> using "-j8". Several builds failed, but work when I use "-j1":
+> IMHO with todays multi-core CPUs -jX is a must:
+> - If I rebuild the full distribution, building multiple packages each
+> with -j1 is okay.
+> - But if I need a single package not being able to use -jX is a NO-GO:
+> For Spectre I re-build gcc-4.9 and it took 13h15m with -j1, because -j8
+> failed with the above error.
+> 
+> What do you thing: If parallel build a worthy goal?
+Well, it is worthy, but let's take a look at buildd options:
+* amd64:          parallel=4
+* arm64:          parallel=6
+* armel:          parallel=4
+* armhf:          parallel=4
+* i386:           parallel=4
+* mips:           parallel=4
+* mips64el:       parallel=4
+* mipsel:         parallel=4
+* ppc64el:        parallel=4
+* s390x:          parallel=2
+* alpha:          parallel=2
+* hppa:           parallel=1
+* hurd-i386:      parallel=1
+* ia64:           parallel=2
+* kfreebsd-amd64: (buildd down)
+* kfreebsd-i386:  (buildd down)
+* m68k:           nobench nocheck
+* powerpc:        parallel=4
+* powerpcspe:     nobench nocheck
+* ppc64:          parallel=32
+* sh4:            nobench nocheck
+* sparc64:        parallel=32
+* x32:            parallel=2
+(May differ per-buildd, I listed only one per arch.)
+So this is _already_ done; at most individual packages might not use this
+option, either via an explicit opt-out, or by having old crufty packaging.
+Most of those packages are too small to bother; if you find one that fails
+despite having a lengthy build, it'd be worth reporting.
+However:
+> * perl-5.20.2-3+deb8u9
+> * systemd-215-17+deb8u7
+> * exim-4.84.2-2+deb8u4
+> * freeradius-2.2.5+dfsg-0.2+deb8u1
+> * mysql-5.5.58-0+deb8u1: Bug#857059
+> * libpaper: Bug#857058
+> * isc-dhcp: Bug#651922
+> * e2fsprogs: (attachment)
+You're not expecting wishlist bugs to be fixed in oldstable, are you?
+> if someone™ can also donate CPU time to check that -j`nproc` works.
+As others in the thread have already mentioned, -j is an old broken option
+that probably should be removed, -J is the one to use; the preferred way is
+to set DEB_BUILD_OPTIONS=parallel=auto, although I think this is already the
+default these days.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ The bill with 3 years prison for mentioning Polish concentration
+⣾⠁⢰⠒⠀⣿⡁ camps is back.  What about KL Warschau (operating until 1956)?
+⢿⡄⠘⠷⠚⠋⠀ Zgoda?  Łambinowice?  Most ex-German KLs?  If those were "soviet
+⠈⠳⣄⠀⠀⠀⠀ puppets", Bereza Kartuska?  Sikorski's camps in UK (thanks Brits!)?

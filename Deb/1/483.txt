@@ -1,0 +1,43 @@
+To : Daniel Pocock <daniel@pocock.pro>
+Subject : Re: installing kernel debug symbols on stretch?
+From : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Date : Mon, 16 Jan 2017 13:38:36 +0100
+Message-id : 20170116123835.xzlaj2w2swa5ftpn@breakpoint.cc
+In-reply-to : <[🔎] f6e9a74d-3e8c-5383-060a-d515c98bacb9@pocock.pro>
+References : <[🔎] f6e9a74d-3e8c-5383-060a-d515c98bacb9@pocock.pro>
+
+
+On 2017-01-14 11:06:51 [+0100], Daniel Pocock wrote:
+…
+> deb http://debug.mirrors.debian.org/debian-debug/ stretch-debug main
+> non-free contrib
+not that this changes anything, but I assumed that
+	deb http://deb.debian.org/debian-debug stretch-debug main
+was the way to use for stretch+. But this does not change a thing…
+> # apt-get install -t stretch-debug linux-image-amd64-dbgsym
+…
+> The following packages have unmet dependencies:
+>  linux-image-amd64-dbgsym : Depends: linux-image-4.8.0-2-amd64-dbgsym
+> but it is not installable
+> E: Unable to correct problems, you have held broken packages.
+…
+> so would the dbgsym package still be in Incoming?
+No, it is still there:
+    http://deb.debian.org/debian-debug/pool/main/l/linux/linux-image-4.8.0-2-amd64-dbgsym_4.8.15-2_amd64.deb
+it is just not listed in the Packages file where it should be.
+I *think* the archive got confused by the various kernel package. So we
+have linux-image-4.8.0-2-amd64-dbgsym which comes out of src:linux and
+binary:linux-image-4.8.0-2-amd64-unsigned. Then we have the binary
+package linux-image-4.8.0-2-amd64 which comes out of src:linux-signed
+and has no dbgsym package but the one provided by
+linux-image-4.8.0-2-amd64-unsigned is just fine. I would assume that if
+nothing changes, we will miss the dbgsym package in testing for 4.9 in
+approx 8 days. 
+There is not such a problem for mips64el where we don't have
+linux-signed and so linux-image-4.8.0-2-octeon-dbgsym is listed in
+testing.
+Could someone from ftp please confirm this?
+> Regards,
+> 
+> Daniel
+Sebastian

@@ -1,0 +1,46 @@
+To : Simon McVittie <smcv@debian.org>,    Michael Biebl <biebl@debian.org>
+Subject : Re: "not authorised" doing various desktoppy things [and 1 more messages]
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 4 Jan 2017 02:10:56 +0000
+Message-id : 22636.22960.591912.552238@chiark.greenend.org.uk
+In-reply-to : <[🔎] 1ca71a87-772b-f166-4b0d-38f0681f011e@debian.org>,	<[🔎] 20170104005720.zbxi7v4fgl4uma5k@perpetual.pseudorandom.co.uk>
+References : <[🔎] 22636.1061.523880.253029@chiark.greenend.org.uk>	<[🔎] o4h6r9$9r$1@blaine.gmane.org>	<[🔎] 20170104005720.zbxi7v4fgl4uma5k@perpetual.pseudorandom.co.uk>	<[🔎] 1ca71a87-772b-f166-4b0d-38f0681f011e@debian.org>
+
+
+Michael Biebl writes ("Re: "not authorised" doing various desktoppy things"):
+> Check if your session is marked as active and local
+> $ loginctl show-session $XDG_SESSION_ID
+I see (amongst other things):
+  Remote=no
+  Active=yes
+  State=active
+> Might be #844785
+Perhaps it is.  The symptoms seem similar.
+Obviously it's not ideal that systemd-shim is orphaned.  I would like
+to fix this rather than just working around it by putting my account
+in some appropriate config files.
+Can anyone suggest a better strategy than a git bisect on the systemd
+package source code ?  I have frankly no idea what to expect from the
+communication between systemd-shim and systemd-logind, or even where
+to look for logs.
+I found this in my .xsession-errors:
+ dbus-update-activation-environment: systemd --user not found, ignoring --systemd argument
+And this in my Xorg.0.log:
+ Xorg.0.log:[     8.993] (II) systemd-logind: logind integration requires -keeptty and -keeptty was not provided, disabling logind integration
+I'm not sure I need "logind integration" in my X server but perhaps I
+do ?
+ 
+Simon McVittie writes ("Re: "not authorised" doing various desktoppy things"):
+> [stuff]
+Thanks for the comprehensive explanation.
+> None of this works unless you have libpam-systemd installed and enabled.
+> That PAM module is somewhat mis-named: it's really for systemd-logind,
+> the user/login manager, and not the systemd init/service manager.
+In fact I didn't have libpam-systemd installed for some strange
+reason, but installing it hasn't helped.  (All the symptoms I report
+above are with it installed.)
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

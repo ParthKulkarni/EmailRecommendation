@@ -1,0 +1,62 @@
+To : debian developers <debian-devel@lists.debian.org>
+Subject : Re: fdisk becoming non-essential, dependencies needed.
+From : Bastien ROUCARIES <roucaries.bastien@gmail.com>
+Date : Fri, 18 Aug 2017 11:59:13 +0200
+Message-id : CAE2SPAa_tRS+4BzP7TDm1zHm+o+v55XnuEjFpyKRXFV535Z5eQ@mail.gmail.com
+In-reply-to : <20170810151153.m2m5ow2d3ndbykrv@mbpah.endian.se>
+References : <20170810151153.m2m5ow2d3ndbykrv@mbpah.endian.se>
+
+
+On Thu, Aug 10, 2017 at 5:11 PM, Andreas Henriksson <andreas@fatal.se> wrote:
+> Hello,
+>
+> A new version 2.29.2-3 of src:util-linux was recently uploaded to
+> experimental[1]. The plan is to ship those changes in Buster.
+>
+> In this version the fdisk, sfdisk and cfdisk utilities has been split
+> out into a separate 'fdisk' package. Any package that needs these
+> utilities should add a dependency on the fdisk package in Buster!
+> (Attempts will be made to track down and file bug reports, but
+> ultimately maintainers need to take the final responsibility for the
+> dependency being added before the Buster freeze.)
+>
+> Your new dependency declaration might look like this:
+>         fdisk | util-linux (<< 2.29.2-3~)
+> See also the util-linux NEWS entry[2].
+>
+> Currently (for Buster) the fdisk package is being made
+> 'pseudo-essential' via a dependency from the Essential util-linux
+> package, where the tools was split out from. (This is also to support
+> upgrades from Stretch to Buster.)
+> The plan is to drop this dependency (making fdisk no longer
+> pseudo-essential) for Buster+1 (Bullseye). The Priority field will
+> likely be set to important so fdisk utilities will still be part of any
+> normal installation, but will then be deinstallable.
+Why not setting in recommand ? It will be installed by default but
+could be deinstalled
+Bastien
+>
+> The reason for this split is to decrease the size of the Essential set.
+> Once fdisk is deinstallable so should libfdisk1 and libncursesw5 also
+> be. This helps keep the size of minimal chroots down, not to mention
+> people might prefer other partitioning tools like parted, etc.
+> Unfortunately the package will not be easily deinstallable for Buster,
+> but eager minds might be able to use equivs to create an empty fdisk
+> package to satisfy the transitional dependency while waiting for
+> Bullseye.
+>
+> For extra gold star please read up on fdisk/libfdisk1 enhancements like
+> supporting GPT (since Jessie), etc. Make sure to stop using any C/H/S-
+> adressing (on command line or elsewhere) since it's deprecated[4].
+>
+> Regards,
+> Andreas Henriksson
+>
+> PS. See also 'mount' package NEWS[3] for similar changes. Strict
+> dependencies should be added where needed.
+>
+> [1]: https://tracker.debian.org/news/861509
+> [2]: https://anonscm.debian.org/cgit/collab-maint/pkg-util-linux.git/commit/?id=3114bfedb044fab22b0a865f6c2fae85b1207677
+> [3]: https://anonscm.debian.org/cgit/collab-maint/pkg-util-linux.git/commit/?id=c650149427862a7b3dfcbdf2355308d042d39629
+> [4]: http://sources.debian.net/src/util-linux/2.29.2-2/Documentation/deprecated.txt/
+>

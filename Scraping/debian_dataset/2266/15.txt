@@ -1,0 +1,57 @@
+To : debian-devel@lists.debian.org
+Subject : Re: sse{2,3,4.2}, altivec, neon, ...
+From : Adrian Bunk <bunk@debian.org>
+Date : Mon, 7 Aug 2017 13:15:20 +0300
+Message-id : 20170807101520.beo5vclamowkgz5m@localhost
+In-reply-to : <[🔎] 20170805175302.ewj5jks7sbl6ukyl@angband.pl>
+References : <[🔎] 20170805175302.ewj5jks7sbl6ukyl@angband.pl>
+
+
+On Sat, Aug 05, 2017 at 07:53:02PM +0200, Adam Borowski wrote:
+>...
+> Dropping baseline support is giving up, but let's at least surrender nicely.
+> 
+> Thus, here's a proposed solution: in unstable, there's now a bunch of
+> packages that do such checking in preinst, and thus refuse (overridably) to
+> even install such software.
+> 
+> Currently this includes:
+> * sse2: i386 (inc. hurd-i386, kfreebsd-i386)
+> * sse3: i386, amd64, x32 (〃, kfreebsd-amd64)
+> * sse4.2: i386, amd64, x32 (〃)
+> * neon: armhf
+> * altivec: powerpc
+> (amd64 always has sse2, arm64 neon, ppc64el altivec)
+> Package names are $(ISA)-support, thus sse2-support if you need SSE2.
+> 
+> To use: make your package:
+> Depends: sse2-support [any-i386]
+> 
+> Lemme know if anything is amiss; in particular, adding a new extension is a
+> two-line change.
+The problem is not the technical implementation, the problem is that
+no longer considering these issues as bugs will quickly result in a 
+fractured archive.
+Packages that genuinely cannot work on the architecture baseline are
+very rare, these are a tiny part of the packages that are not binary-any.
+Quite common are possible performance gains by violating the baseline.
+Do we want to continue to push upstreams to support runtime detection,
+or do we accept that large parts of the archive might stop working on
+the architecture baseline?
+To give an example of the problem:
+We likely have multimedia libraries that are dependencies of many 
+packages, that do not have CPU autodetection, and where enabling 
+unconditional usage of AVX on amd64/i386 would bring significant 
+performance improvements.
+Would a dependency on avx-support [any-i386 any-amd64]
+be OK for such a library?
+Would a dependency on avx-512-ifma-support [any-i386 any-amd64]
+be OK for such a library?
+> Meow!
+cu
+Adrian
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

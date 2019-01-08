@@ -1,0 +1,36 @@
+To : debian-devel@lists.debian.org
+Subject : Re: how to mount /(dev|run)/shm properly? (was Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS)
+From : Simon McVittie <smcv@debian.org>
+Date : Fri, 13 Jan 2017 15:54:30 +0000
+Message-id : 20170113155430.x6xmqyc6h5ma3w74@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20170113141409.GD31005@layer-acht.org>
+References : <[🔎] 6fcffac4-ba79-86b3-8561-150a8b063c39@onenetbeyond.org> <[🔎] CAOO6c=w64j02BYmMhtm=-_=XEUXS7vZ1fBCaaPo8KiZPMdr9-g@mail.gmail.com> <[🔎] 20170113141409.GD31005@layer-acht.org>
+
+
+On Fri, 13 Jan 2017 at 14:14:09 +0000, Holger Levsen wrote:
+> how should /dev/shm be mounted? and how /run/shm?
+I believe the "API" is that /dev/shm is either a tmpfs with
+/tmp-like permissions (01777), or a symlink to such a tmpfs.
+My understanding is that /run/shm is considered to be an
+implementation detail, rather than something that software should
+hard-code anywhere.
+Reference: glibc sysdeps/unix/sysv/linux/shm-directory.c (the original
+user of /dev/shm).
+systemd mounts a tmpfs on /dev/shm (it's hard-coded in as one of
+the "API filesystems"), and Debian's systemd packaging puts a symlink
+at /run/shm in case anything is relying on it
+(/usr/lib/tmpfiles.d/debian.conf).
+If I'm reading the initscripts code correctly, sysvinit does the reverse
+by default, for some reason (/run/shm is the mount point and /dev/shm the
+symlink). I think the motivation might have been to be able to use the
+same tmpfs for /run and /run/shm, but that's a bad idea if you want to
+prevent unprivileged users from performing a DoS attack on privileged system
+components by filling up /run (which is why systemd gives each user their
+own tmpfs at /run/user/$uid by default).
+The default schroot configuration mounts a tmpfs on /dev/shm and does not
+do anything special about /run/shm.
+Generalizing from those, I think it's reasonable to say that in a
+bare-metal system, init is responsible for arranging for /dev/shm to be
+as required, and in a container or chroot, the container manager is
+responsible.
+    S

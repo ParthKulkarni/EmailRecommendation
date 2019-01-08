@@ -1,0 +1,105 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Ole Streicher <olebole@debian.org>
+Date : Sun, 15 Jan 2017 15:24:12 +0100
+Message-id : 8737gkz9ir.fsf@debian.org
+References : <[🔎] 22649.6909.709941.18707@chiark.greenend.org.uk> <[🔎] 20170113193510.ygehzkrm7trmib2v@perpetual.pseudorandom.co.uk> <[🔎] 87a8au20ad.fsf@debian.org> <[🔎] 1854659a-b021-2382-6f3d-fd9390186e28@debian.org> <[🔎] 871sw60xdv.fsf@debian.org> <[🔎] 20170114181515.krrpaifyaqjikkst@virgil.dodds.net>
+
+
+Steve Langasek <vorlon@debian.org> writes:
+> On Sat, Jan 14, 2017 at 11:05:48AM +0100, Ole Streicher wrote:
+>> > One other thing that I can envision (but maybe to early to agree on or
+>> > set in stone) is that we lower the NMU criteria for fixing (or
+>> > temporarily disabling) autopkgtest in ones reverse dependencies. In
+>> > the end, personally I don't think this is up to the "relevant
+>> > maintainers" but up to the release team. And I assume that badly
+>> > maintained autopkgtest will just be a good reason to kick a package
+>> > out of testing.
+>
+>> I already brought an example where autopkgtest ist well maintained but
+>> keeps failing.
+>
+>> And I think that it is the package maintainers who have the experience
+>> of whether a CI test failure is critical or not.
+>
+> If the failure of the test is not critical, then it should not be used as a
+> gate for CI.  Which means you, as the package maintainer who knows that this
+> test failure is not critical, should fix your autopkgtest to not fail when
+> the non-critical test case fails.
+Again: astropy (as an example) has 9000 tests, designed by a quite large
+upstream team. There is no realistic way to proactively decide which of
+these is critical and which not. At the end I would have to decide
+whether to make any of those tests fail, or none.
+> Quite to the contrary of the claims in this thread that gating on
+> autopkgtests will create a bottleneck in the release team for overriding
+> test failures, this will have the effect of holding maintainers accountable
+> for the state of their autopkgtest results.  CI tests are only useful if you
+> have a known good baseline.  If your tests are flaky, or otherwise produce
+> failures that you think don't matter, then those test results are not useful
+> than anyone but yourself.  Please help us make the autopkgtests useful for
+> the whole project.
+I use autopkgtests for the majority of my packages, and they are very
+useful.
+Just to bring my experience from the last days: I uploaded a new
+upstream version of astropy, also removed an internal version of pytest
+(2.X) that was accidentally overseen before. This caused a number of
+rdependent failures:
+1. the new astropy version ignores the "remote_data" option in its test
+infrastructure, which causes rdeps to fail if they have (optional)
+remote tests which previously were disabled by this option.
+This bug is clearly a regression of astropy. However since it does not
+affect the normal work of the package but only the test infrastructure,
+and there is a workaround for the affected packages, it is not really RC.
+2. Since now the Debian version of pytest is to be used (which is
+3.0.5), deprecation warnings appear for the packages that use the
+astropy test framework, causing the tests to fail. This is not a
+regression of astropy, but also not RC for the affected rdeps: I am even
+not sure whether one should allow-stderr here, since this would just
+hide the problem. Instead, I would prefer creating bugs upstream. Since
+in the specific case they don't expect the switch to 3.0.5, this may
+take some time. In the meantime, the packages are perfectly usable,
+until pytest upstream decided to remove the deprecated stuff.
+>From my experience, a large amount of CI test failures are not due to
+bugs in the package itself, but in the test code. Then, especially if
+one runs a large test suite, many of the tests check some corner cases
+which rarely appear in the ordinary work of the package. Sure, both
+needs to be fixed, but it is not RC: the package will work fine for most
+people -- at least, in Debian we don't have a policy that *any*
+identified bug is RC.
+I prefer to have CI tests as an indicator of *possible* problems with
+the package, so they should start to ring a bell *before* something
+serious happens. 
+> And the incentive for maintainers to keep their autopkgtests in place
+> instead of removing them altogether is that packages with succeeding
+> autopkgtests can have their testing transition time decreased from the
+> default.  (The release team agreed to this policy once upon a time, but I'm
+> not sure if this is wired up or if that will happen as part of Paul's
+> work?)
+Hmm. Often the CI tests are more or less identical with the build time
+tests, so that passing CI tests is not really a surprise. And we are
+discussion here a different case: that rdependencies need to have
+passing CIs.
+> The result of the autopkgtest should be whatever you as the maintainer think
+> is the appropriate level for gating.  Frankly, I think it's sophistry to
+> argue both that you care about seeing the results of the tests, and that you
+> don't want a failure of those tests to gate because they only apply to
+> "special cases".
+I just want to keep the possibilities as they are for other reported
+problems: reassing to the correct package, change severity, forward to
+upstream, keep the discussion etc. I just want them as ordinary bugs.
+Again: we have a powerful system that shows what is needed to do with a
+package, and this is bugs.d.o. Why re-invent the wheel and use something
+that is less powerful here? Why should we handle a CI test failure
+differently from any bug report?
+> Bear in mind that this is as much about preventing someone else's
+> package from silently breaking yours in the release, as it is about
+> your package being blocked in unstable.
+I would propose (again) that a failing CI test would just create an RC
+bug for the updated package, affecting the other. Its maintainer then
+can decide whether he needs to solve this himself, reassigns it to the
+rdep or lowers the severity. Since the other package maintainer is
+involved via "affects", this will not be done in isolation. If the
+decision is questionable, the problem may be escalated as any other
+bug.
+Best regards
+Ole

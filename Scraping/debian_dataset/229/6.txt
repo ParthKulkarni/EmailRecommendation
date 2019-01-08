@@ -1,0 +1,39 @@
+To : Adrian Bunk <bunk@debian.org>
+Subject : Re: allowed uses of non-baseline CPU extensions
+From : Aron Xu <aron@debian.org>
+Date : Sun, 22 Oct 2017 18:53:49 +0800
+Message-id : CAMr=8w4YARSL71CipiU0wbC7LGKRH=59B_uZQ=JAPRVFJs-4xA@mail.gmail.com
+In-reply-to : <[🔎] 20171022093302.ph4rlxwnymmd4l4c@localhost>
+References : <[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl> <[🔎] 20171022093302.ph4rlxwnymmd4l4c@localhost>
+
+
+On Sun, Oct 22, 2017 at 5:33 PM, Adrian Bunk <bunk@debian.org> wrote:
+>
+> There are two options availabe:
+> 1. RC bug that qtwebengine-opensource-src must not be built on i386
+>    since it violates the baseline, all code using it has to do whatever
+>    mitigation is already done for the other architectures without
+>    qtwebengine-opensource-src
+> 2. bless the SSE2 usage with a dependency on sse2-support, making
+>    KDE and several other Qt applications not available without SSE2
+>
+Option 2 is much better because explicitly supporting such old/rare
+hardware at a price of hurting general use cases significantly doesn't
+look meaningful to me, even if we fully understand that new x86
+hardware with limited instruction set support is still being produced.
+SSE2 is aged from 2001 and is very well adopted, and we are now at
+2017Q4.
+With packages like sse2-support maintainers have the option of
+creating different flavors of their packages with modern instructions
+enabled/disabled, this gives great possibility to some very common use
+cases, for instance "avx-support" on amd64, which is critical to most
+scientific software to run at appropriate performance. In this case we
+can avoid a painful tradeoff between keeping and raising the baseline
+which has zero flexibility.
+Users of really old or rare hardware should be able to handle their
+own case - by recompiling critical packages themselves, by producing
+something like raspbian, or at least by staying on an old release if
+they need something can't be supported at all (i.e. upstream removed
+compatibility in current release).
+Regards,
+Aron

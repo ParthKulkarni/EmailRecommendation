@@ -1,0 +1,61 @@
+To : Daniel Pocock <daniel@pocock.pro>, debian-devel@lists.debian.org
+Subject : Re: Bug#860368: installer: create network bridges by default?
+From : Ritesh Raj Sarraf <rrs@debian.org>
+Date : Fri, 21 Apr 2017 16:35:13 +0530
+Message-id : 1492772713.7514.1.camel@debian.org
+Reply-to : rrs@debian.org
+In-reply-to : <[🔎] 35dbb936-d2a7-f4b6-a918-af722d4a039e@pocock.pro>
+References : <[🔎] accf61de-2c85-403b-09a0-35662db6f918@pocock.pro>	 <[🔎] 20170416065123.7bzmowy6g5oabk3m@nana.phantasia.die-welt.net>	 <[🔎] 1492504146.7061.7.camel@debian.org>	 <[🔎] 35dbb936-d2a7-f4b6-a918-af722d4a039e@pocock.pro>
+
+
+On Thu, 2017-04-20 at 07:48 +0200, Daniel Pocock wrote:
+> > I used to have a similar setup but eventually migrated to a systemd
+> > based setup with systemd-networkd. With s-networkd, I have an
+> > independent bridge, which serves KVM/Libvirt, User Mode Linux and
+> > systemd-nspawn.
+> > 
+> 
+> Could you give an example of how that is configured and what you need
+> in /etc/network/interfaces?  At some point I will also document how
+> I've done this with the Open vSwitch packages on both server and
+> desktop virtualization.
+> 
+Mine is very basic. As you noticed, I had (and have) a host side bridge, to
+which I bind all my virtual machines.
+rrs@learner:~$ cat /etc/systemd/network/localBridge.network 
+[Match]
+Name=sysbr0
+[Network]
+DHCPServer=yes
+IPForward=yes
+IPMasquerade=yes
+Address=172.16.20.1
+LLMNR=yes
+MulticastDNS=yes
+DNS=172.16.20.1
+[DHCPServer]
+PoolOffset=20
+2017-04-21 / 16:30:02 ♒♒♒  ☺  
+rrs@learner:~$ cat /etc/systemd/network/localBridge.netdev 
+[NetDev]
+Name=sysbr0
+Kind=bridge
+2017-04-21 / 16:30:09 ♒♒♒  ☺  
+> 
+> > 
+> Another thing that comes to mind is network-manager:
+> 
+> - for those who think a pre-configured bridge would make life
+> difficult, far worse has been said about network-manager but it is
+> still installed by default
+> 
+> - does network-manager have a way to help people setup a bridge
+> suitable for KVM/libvirt when doing virtualization on a desktop level?
+My setup has network-manager, which remains independent of the host bridge
+managed by systemd-networkd. NM is used for the Host's networking needs to
+external interfaces, which is mostly wifi.
+I don't think I ever tried setting up a bridge through network-manager. But NM
+does show my systemd-networkd based bridge in its listing.
+-- 
+Given the large number of mailing lists I follow, I request you to CC
+me in replies for quicker responsesignature.asc

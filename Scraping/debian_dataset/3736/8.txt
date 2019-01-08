@@ -1,0 +1,60 @@
+To : Simon McVittie <smcv@debian.org>, debian-devel@lists.debian.org
+Subject : Re: build profiles and functional differences
+From : Johannes Schauer <josch@debian.org>
+Date : Tue, 09 Jan 2018 22:47:07 +0100
+Message-id : 151553442739.1442.12305375943245437854@localhost
+Mail-followup-to : Simon McVittie <smcv@debian.org>, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20180109164204.GA28839@perpetual.pseudorandom.co.uk>
+References : <[🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk> <[🔎] 20180108183711.2vrs643yrokpapuq@mail.wookware.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108200909.7o6ovj2ajzseik2m@virgil.dodds.net> <[🔎] 4de2303e-f4dd-11e7-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180109050326.hxksmt53vp32ndcu@mail.wookware.org> <[🔎] 151550682194.1442.3057583478420582272@localhost> <[🔎] 20180109154004.ps4w7dxeqnbqjhot@mail.wookware.org> <[🔎] 20180109164204.GA28839@perpetual.pseudorandom.co.uk>
+
+
+Quoting Simon McVittie (2018-01-09 17:42:04)
+> On Tue, 09 Jan 2018 at 15:40:04 +0000, Wookey wrote:
+> > On 2018-01-09 15:07 +0100, Johannes Schauer wrote:
+> > > Thus, we keep packages built with a different build profile but the same
+> > > name/version/arcitecture bit-by-bit identical to each other.
+> > However we do have 'nodoc', which can't possibly produce bit-by-bit
+> > identical packages (unless the docs are in a separate package) so I
+> > don't see how it can be right to say "packages built with a different
+> > build profile but the same name/version/arcitecture are bit-by-bit
+> > identical to each other".
+> 
+> The policy on the wiki is phrased in terms of no functional differences,
+> and ideally no differences at all. Missing some man pages is a difference,
+> but hopefully not one that matters when satisfying dependencies.
+> 
+> (One interesting example of documentation being a functional
+> difference is that it's *technically* not right to omit gtk-doc
+> documentation from a package under the nodoc build profile, because
+> other packages with Build-Depends-Indep on that documentation can use
+> it to rewrite cross-references from web links into relative local file
+> references. Luckily most libraries that are documented with gtk-doc
+> build a separate -doc package for other reasons anyway, so that
+> package can easily be marked Build-Profiles: <!nodoc>.)
+If you look at the table at [1] then you will see that there are exactly four
+profile names that allow changes. The pkg.$source.$foo namespace where any kind
+of change is allowed and the stage1, stage2 and nodoc profiles where changes
+are limited to non-functional changes. The nodoc profile is interesting here
+because when we talk about not making "functional" changes to packages, then
+this is because we don't want to break assumptions made by other packages
+depending on it. As by policy §12.3, removing (or changing) content from
+/usr/share/doc should always be fine:
+ | Packages must not require the existence of any files in /usr/share/doc/ in
+ | order to function. [6] Any files that are used or read by programs but are
+ | also useful as stand alone documentation should be installed elsewhere, such
+ | as under /usr/share/package/, and then included via symbolic links in
+ | /usr/share/doc/package.
+So by that logic gtk-doc documentation should be put into /usr/share/package
+because it is "read by programs" to rewrite cross-references from web links as
+you say.
+When we we added this exception to the nodoc profile, we thought that given
+this policy paragraph, it logically followed that we could allow non-functional
+changes here. This exception is indeed interesting and I guess it's debatable
+whether generating "cross-references" counts as something a package needs "in
+order to function" such that it falls under this "must" clause of Debian
+policy.
+But I'll leave figuring this out to somebody else. :)
+Thanks!
+cheers, josch
+[1] https://wiki.debian.org/BuildProfileSpec#Registered_profile_names
+signature.asc

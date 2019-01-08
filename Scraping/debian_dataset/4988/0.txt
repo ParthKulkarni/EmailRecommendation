@@ -1,0 +1,32 @@
+To : debian-devel@lists.debian.org
+Subject : Re: autopkgtest coupled with sbuild different from what is run on buildd?
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 3 Jan 2019 07:57:57 +0000
+Message-id : 20190103075757.GA31171@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] CAPQicOxF=r2jpHMVAcCk3BKT3mDeYZ4zuEUnJAZRpdiBZpncBQ@mail.gmail.com>
+References : <[🔎] CAPQicOxF=r2jpHMVAcCk3BKT3mDeYZ4zuEUnJAZRpdiBZpncBQ@mail.gmail.com>
+
+
+On Wed, 02 Jan 2019 at 12:53:32 -0800, Joseph Herlant wrote:
+> With one of my package (cmph), when I added debci tests, locally
+> running autopkgtests using --run-autopkgtests in gbh that uses sbuild
+sbuild --run-autopkgtests is a sbuild feature, not a debci or autopkgtest
+feature. It does not necessarily match the autopkgtest backend or
+configuration used in any other instance of autopkgtest.
+> * Is it expected to have build-essential installed on the sbuild
+> schroot but not on the deci one?
+Yes. The production instance of debci on ci.debian.net uses lxc containers
+and does not install build-essential in them unless asked to do so by
+debian/tests/control.
+(In principle it could also use qemu VMs or schroot containers, but
+there's no reason to prefer schroot over lxc when lxc has already been
+set up, and there haven't been enough resources so far to run qemu
+for tests that declare the isolation-machine restriction: these are
+currently skipped. For example, see the test results for nss-mdns or
+systemd.)
+> My use case is that the package provides some short example programs
+> on how to use the library and I'm compiling and running them to check
+> that it runs fine.
+This is a good test to have, but it should depend on either build-essential
+or the individual packages that it needs (gcc or g++, libc-dev, make).
+    smcv

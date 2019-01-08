@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Packaging of libraries with unstable ABI (D, Rust, Go, ...)
+From : Adrian Bunk <bunk@debian.org>
+Date : Wed, 31 May 2017 23:33:51 +0300
+Message-id : 20170531203351.xj2ni5gl5ze2i4yd@localhost
+In-reply-to : <[🔎] CAKNHny8LZ_XrjfWb=Mooo37wDQJbftLoZ+jOnEKgmsj7e+5ydw@mail.gmail.com>
+References : <[🔎] CAKNHny_vTGsFNWJkmJdF-ypTDfmJhF1-OWeDHVSD-xOgv5tYuA@mail.gmail.com> <[🔎] 20170518175251.c3m7jatwikcoa7xa@zephyr.silentflame.com> <[🔎] CAKNHny8LZ_XrjfWb=Mooo37wDQJbftLoZ+jOnEKgmsj7e+5ydw@mail.gmail.com>
+
+
+On Fri, May 19, 2017 at 06:43:13PM +0200, Matthias Klumpp wrote:
+> 2017-05-18 19:52 GMT+02:00 Sean Whitton <spwhitton@spwhitton.name>:
+> > Hello Matthias,
+> >
+> > On Thu, May 18, 2017 at 04:37:58PM +0200, Matthias Klumpp wrote:
+> >> Looking at what other languages with the same problem have done, there
+> >> are basically two ways to deal with the issue:
+> >>
+> >>  1) Rebuild every reverse-dependency of the languages' compiler every
+> >> time the compiler is updated. This is done by Haskell and OCaml and
+> >> resulted in permanent transition trackers for the libraries.
+> >>
+> >>  2) Ship source code instead of libraries in packages, and compile it
+> >> directly into the target binaries. That way, the maintenance overhead
+> >> of the languages' packages is greatly reduced, but code is statically
+> >> linked (boo!) and a lot of code needs to be rebuilt for every
+> >> dependency (meaning more work for the autobuilders). This is done by
+> >> Go, and apparently also the plan to do for Rust.
+> >
+> > Note that Haskell is statically linked, too.  We rebuild every
+> > reverse-dependency of every library that changes, not just the compiler.
+> >
+> > Are you saying that with D, it's only changes to the compiler that are
+> > problematic?
+> 
+> No. D can also build shared libraries even. The problem is that you
+> can only combine libraries and binaries built with the same D compiler
+> and the same D compiler version.
+> This results in problems:
+> If I have an application A that depends on (shared or static) library
+> B, and we update the D compiler that was used to build both components
+> initially, and then do an upload of application A, we will get linker
+> errors. Since A is now built with the newer compiler and B still has
+> the ABI used with the old D compiler, a mismatch happens.
+> 
+> So, if a new D compiler is made available in the archive, we would
+> need to ensure all D stuff gets rebuilt in order.
+> If source code is shipped, the code is only compiled once, so we
+> wouldn't run in that issue (but doing that is maybe no so nice?).
+You already wrote in this thread that there is hope that long-term there 
+might be a stable ABI.
+With a dozen libraries it would be easiest to just declare one compiler 
+the default D compiler for buster that has to be used when using any of 
+the D libraries shipped in buster.
+All libraries should automatically get a dependency <compiler><abi> 
+when built, and through their shlibs generate <library><compiler><abi>
+at all rdeps.
+libphobos2-ldc71 seems to be <compiler><abi> for ldc?
+Every ABI-changing version of the default compiler will then be a small 
+library transition that should be executed via the normal transition 
+process.
+IMHO this would be a better solution than any kind of "ship source code 
+instead of libraries" hacks.
+> Cheers,
+>     Matthias
+cu
+Adrian
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

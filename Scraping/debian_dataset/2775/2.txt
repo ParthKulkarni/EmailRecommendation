@@ -1,0 +1,227 @@
+To : debian-devel@lists.debian.org
+Subject : New tool for salsa
+From : Xavier <yadd@debian.org>
+Date : Sun, 28 Oct 2018 11:44:12 +0100
+Message-id : a7aac609-20fa-31b8-63cd-124f1b01f881@debian.org
+
+
+Hi all,
+I wrote a new tool in devscripts to manipulate salsa.debian.org
+repositories (https://bugs.debian.org/890594).
+It provides some features for users/teams to manage users and
+repositories. Temporary manpage is attached.
+A point must be decided: for now it is called simply "salsa". Like
+"bts", it's a bit generic but nice, short and clear; but it can be used
+to manage any GitLab instance.
+Any idea is welcome ;-)
+Cheers,
+Xavier
+Temporary repo:
+https://salsa.debian.org/yadd/devscripts/tree/devscripts-salsa-890594
+NAME
+    salsa - tool to manipulate salsa repositories
+SYNOPSIS
+      # salsa <command> <args>
+      salsa whoami
+      salsa search_user yadd
+      salsa search_group js-team
+      salsa push_repo . --group js-team --kgb --irc devscripts --tagpending
+      salsa update_repo node-mongodb --group js-team --disable-kgb --desc \
+            --desc-pattern "Package %p"
+      salsa update_repo --all --desc --desc-pattern "Debian package %p" \
+            --group js-team
+      salsa checkout node-mongodb --group js-team
+      salsa add_user developer foobar --group-id 2665
+      salsa update_user maintainer foobar --group js-team
+      salsa del_user foobar --group js-team
+DESCRIPTION
+    salsa is a designed to create and configure repositories on
+    <https://salsa.debian.org> and manage users of groups/teams.
+    A Salsa token is required and must be set in command line *(see below)*,
+    or in your configuration file *(~/.devscripts)*:
+      SALSA_TOKEN=abcdefghi
+    or
+      SALSA_TOKEN_FILE=~/.dpt.conf
+    If you choose to link another file, it must contain a line with
+    something like:
+      <anything>SALSA_PRIVATE_TOKEN=xxxx
+      <anything>SALSA_TOKEN=xxxx
+COMMANDS
+  Managing users and groups
+    add_user
+        Add a user to a group/team.
+          salsa --group js-team add_user guest foouser
+          salsa --group-id 1234 add_user guest foouser
+          salsa --team-id 1234 add_user maintainer 1245
+        First argument is the GitLab's access levels: guest, reporter,
+        developer, maintainer, owner.
+    del_user
+        Remove a user from a group/team
+          salsa --team js-team del_user foouser
+          salsa --group-id=1234 del_user foouser
+    list_group, list_team
+        List sub groups of current one if group is set, groups/teams of
+        current user else.
+    group, team
+        Show group/team members.
+          salsa --group js-team group
+          salsa --group-id 1234 group
+    search_group, search_team
+        Gives group id and other information
+          salsa search_group perl-team
+    search_user
+        Gives user id and other information
+          salsa search_user yadd
+    update_user
+        Update user role in a group/team.
+          salsa --group-id 1234 update_user guest foouser
+          salsa --team js-team update_user maintainer 1245
+        First argument is the GitLab's access levels: guest, reporter,
+        developer, maintainer, owner.
+    whoami
+        Gives information on the token owner
+          salsa whoami
+  Managing repositories
+    One of "--group", "--group-id" or "--user-id" is required to manage
+    repositories. If both are set, salsa warns and only "--user-id" is used.
+    If none is given, salsa uses current user id *(token owner)*.
+    checkout or co
+        Clone repo in current dir. If directory already exists, update local
+        repo.
+          salsa --user-id=1234 co devscripts
+          salsa --group js-team co node-mongodb
+    create_repo
+        Create public project. If "--user-id" is set, project is created in
+        user directory, else in team directory.
+          salsa --user-id 1234 create_repo test
+          salsa --group js-team --kgb --irc-channel=devscripts create_repo test
+        If create_repo is launched with a path to a git directory, it looks
+        at debian/changelog to find repo name, set remote-origin and push
+        all to salsa:
+          salsa --group js-team --kgb --irc-channel=devscripts create_repo .
+        To do this, you must set a non alphabetic character in the name:
+        salsa --team-id 123 create_repo test creates an empty project named
+        test
+        salsa --team-id 123 create_repo ./test tries to create and push
+        package found in test directory
+    del_repo
+        Delete a repository.
+    ls or list_repos
+        Shows project owned by user or team. If Second argument exists,
+        search only matching projects
+          salsa --team-id 1234 list_repos
+          salsa --user-id 1234 list_repos foo*
+    protect_branch
+        Protect/unprotect a branch.
+        Set protection
+              #                                    project      branch merge push
+              salsa --group js-team protect_branch node-mongodb master m     dm
+            "merge" and "push" can be one of:
+            m: maintainers only
+            dm: developers and maintainers
+        Unprotect
+              salsa --group js-team protect_branch node-mongodb master no
+    protected_branches
+        List protected branches
+          salsa --group js-team protected_branches node-mongodb
+    push_repo
+        Acts as create_repo only with directories. So:
+          salsa --user-id 1234 push_repo test
+        acts exactly like:
+          salsa --user-id 1234 create_repo ./test
+    update_repo
+        Configure repo using parameters given to command line. A repo name
+        has to be given unless --all is set.
+          salsa --user-id 1234 --tagpending update_repo test
+          salsa --team-id 1234 --all update_repo
+OPTIONS
+    --all
+        When set, all project of team/user are affected by command.
+    --api-url
+        GitLab API. Default: <https://salsa.debian.org/api/v4>.
+        ".devscripts" value: SALSA_API_URL
+    --cache-file
+        File to store cached values. Default to ~/.cache/salsa.json.
+        ".devscripts" value: SALSA_CACHE_FILE
+    --no-cache
+        Disable cache usage.
+    --conffile, --conf-file
+        Add or replace default configuration files ("/etc/devscripts.conf"
+        and "~/.devscripts"). This can only be used as the first option
+        given on the command-line.
+        replace:
+              salsa --conf-file test.conf <command>...
+              salsa --conf-file test.conf --conf-file test2.conf  <command>...
+        add:
+              salsa --conf-file +test.conf <command>...
+              salsa --conf-file +test.conf --conf-file +test2.conf  <command>...
+            If one --conf-file has no "+", default configuration files are
+            ignored.
+    --no-conf, --noconf
+        Don't read any configuration files. This can only be used as the
+        first option given on the command-line.
+    --desc --no-desc
+        Configure repo description using pattern given in desc-pattern
+        ".devscripts" value: SALSA_DESC
+    --desc-pattern
+        Repo description pattern. Default to "Debian package %p". "%p" is
+        replaced by repo name.
+        ".devscripts" value: SALSA_DESC_PATTERN
+    --git-server-url
+        Default to "git@salsa.debian.org:"
+        ".devscripts" value: SALSA_GIT_SERVER_URL
+    --group, --team
+        Team to use. Use "salsa search_group name" to find it.
+        ".devscripts" value: SALSA_TEAM
+    --group-id, --team-id
+        Team id to use. Use "salsa search_team name" to find it.
+        ".devscripts" value: SALSA_TEAM_ID
+    --help: displays this manpage
+    --irc-channel
+        IRC channel for KGB.
+        ".devscript" value: SALSA_IRC_CHANNEL
+    --kgb, --no-kgb
+        Add kgb webhook *(repo commands)*.
+        ".devscripts" value: SALSA_KGB
+    --disable-kgb: disable kgb webhook.
+    --kgb-server-url
+        Default to <http://kgb.debian.net:9418/webhook/?channel=>
+        ".devscripts" value: SALSA_KGB_SERVER_URL
+    --path
+        Repo path. Default to team or user path.
+        ".devscripts" value: SALSA_REPO_PATH
+    --tagpending, --no-tagpending
+        Add "tagpending" webhook.
+        ".devscripts" value: SALSA_TAGPENDING
+    --disable-tagpending: disable tagpending webhook.
+    --tagpending-server-url
+        Default to <https://webhook.salsa.debian.org/tagpending/>
+        ".devscripts" value: SALSA_TAGPENDING_SERVER_URL
+    --token
+        Token value (see above).
+    --token-file
+        File to find token (see above).
+    --user-id
+        User id to use. Use "salsa search_user name" to find one. If neither
+        --team-id or --user-id is set, salsa uses current user id
+        (corresponding to salsa private token).
+        ".devscripts" value: SALSA_USER_ID
+    --verbose: enable verbose output
+SEE ALSO
+    dpt-salsa
+AUTHOR
+    Xavier Guimard <yadd@debian.org>
+COPYRIGHT AND LICENSE
+    Copyright (C) 2018, Xavier Guimard <yadd@debian.org>
+    It contains code formely found in dpt-salsa *(pkg-perl-tools)* copyright
+    2018, gregor herrmann <gregoa@debian.org>.
+    This library is free software; you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by the
+    Free Software Foundation; either version 2, or (at your option) any
+    later version.
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+    Public License for more details.
+    You should have received a copy of the GNU General Public License along
+    with this program. If not, see <http://www.gnu.org/licenses/>.

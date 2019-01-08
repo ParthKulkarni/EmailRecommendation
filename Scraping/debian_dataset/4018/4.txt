@@ -1,0 +1,61 @@
+To : re4son@whitedome.com.au
+Subject : Re: tracking OpenGL support for specific boards
+From : bret curtis <psi29a@gmail.com>
+Date : Fri, 30 Nov 2018 09:23:29 +0100
+Message-id : CA+LhZ98=Cnf9vBZSXPF-05DLnU3uyOEfSaxu+4s2Zg7jbu8EjA@mail.gmail.com
+In-reply-to : <[🔎] 2242637c-6ce5-5799-7203-7b8285593984@whitedome.com.au>
+References : <[🔎] 2275f427-c4f2-c4e8-2196-57f968400b86@whitedome.com.au> <[🔎] 154332644903.27056.2586256628550062265@auryn.jones.dk> <[🔎] CA+LhZ98aC4Q_ciotFaDnyQS_EAYtuYrk1Z7cKoKWM3eg+qATrA@mail.gmail.com> <[🔎] 2242637c-6ce5-5799-7203-7b8285593984@whitedome.com.au>
+
+
+> > Many of those chipsets you list, as I understand, have a mesa driver
+> > for them that support opengl and gles.
+> > Such as freedreno which supports A4XX series. https://mesamatrix.net/
+> >
+> > Keep in mind, only the proprietary drivers seem to not support opengl
+> > while the hardware is perfectly capable of doing so.
+>
+> Not necessarily.
+> If the manufacturer specifies OpenGL ES support, then - on the hardware
+> level - it is a GLES renderer and may or may not support the entire
+> OpenGL specification natively. It usually requires considerable work to
+> make GLES hardware support OpenGL.
+> Eric Anhold can tell you all about the hard work he has put into
+> bastardising his VC4 mesa driver to make up for the lack of hardware
+> support:
+>
+When Eric jumped from Intel to Broadcom, I was there at the beginning
+of his VC4 work doing testing and getting OpenMW running on the RPi.
+One of our conversations revolved around why only GLES support and not
+full GL support in the binary blob and his answer was that VC4 can do
+both but only to a point, it depends entirely on what the hardware is
+capable of. VC4 is fully capable of OpenGL 2.1 but with a few more
+extensions that were GLES 2.0 specific. No bastardisation. His biggest
+hurdle (still?) is dealing with the fact that the VC4 has no memory
+space protection because there is no MMU. He has to use a CMA which is
+_very_ slow and has had to put in a ton of work to get that working.
+[1] That has nothing to do with what the GPU was capable of in terms
+of GL/GLES. You can't have GLES 2.0 without first having GLES 1.1
+which is backwards compatible with OpenGL 1.5 in hardware.
+That is why I stated that it is the driver developer that makes the
+decision as to what is exposed which is a cost/price decision of the
+company pushing the hardware. If they only have to target GLES then
+why expose GL? Less time to market and less money spent in
+development?
+Take for example the S3TC opengl extension: EXT_texture_compression_s3tc
+This is not supported in hardware which is the reason, even after the
+patent was expired, that Eric (or anyone) could not implement it.
+Broadcom simply didn't bother (cost cutting?). So if you ever have
+texture that loads in with a S3TC, all you'll see is pink (or whatever
+is used as alpha).
+There is no, if extension doesn't exist, we'll just emulate it in
+software in VC4.
+I would be seriously flabbergasted if there was a chipset out there
+that supported GLES2, that on hardware, wasn't capable of at least
+OpenGL 1.5. I'm talking about on hardware, not a proprietary binary
+blog that only exposes GLES.
+> https://github.com/anholt/mesa/wiki/VC4-OpenGL-support
+>
+I know, I've posted this several time in previous Qt related threads. :)
+Cheers,
+Bret
+[1] https://dri.freedesktop.org/docs/drm/gpu/vc4.html

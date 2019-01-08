@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: no{thing} build profiles
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Tue, 23 Oct 2018 17:10:08 +0200
+Message-id : 20181023151008.l4zognprhw23zzuo@angband.pl
+In-reply-to : <[🔎] 20181023145500.GC27827@grep.be>
+References : <[🔎] CAKTje6Hazu=FfHc9-YT7Ftyz0E9oUbJNf2NayvLiv9OOfS_zJg@mail.gmail.com> <[🔎] 8736t1axpr.fsf@marvin.43-1.org> <[🔎] 87sh10imog.fsf@web.de> <[🔎] 20181020171607.2khryydow7bnqfdc@shell.thinkmo.de> <[🔎] 87lg6s8nxb.fsf_-_@violet.siamics.net> <[🔎] 87va5vg13z.fsf@err.no> <[🔎] 154011468574.1793.17134216390366195697@auryn.jones.dk> <[🔎] pqhir3$558$1@blaine.gmane.org> <[🔎] 20181021161327.2fqaapm4yrp4564s@basil.wdw> <[🔎] 20181023145500.GC27827@grep.be>
+
+
+On Tue, Oct 23, 2018 at 04:55:00PM +0200, Wouter Verhelst wrote:
+> On Sun, Oct 21, 2018 at 12:13:27PM -0400, Marvin Renich wrote:
+> > * Sune Vuorela <nospam@vuorela.dk> [181021 06:05]:
+> > > On 2018-10-21, Jonas Smedegaard <jonas@jones.dk> wrote:
+> > > > I disagree that libgpgme11 should depend/recommend/suggest gnupg at all: 
+> > > > As a library it cannot possibly declare how tight a relationship to 
+> > > > declare - instead, all _consumers_ of the library must declare whether 
+> > > > they depend/recommend/suggest gnupg.
+> > > 
+> > > libgpgme is completely useless without gnupg. I think it is perfectly
+> > > fine for these kind of relations, unless we really are in corner-case
+> > > territory. See for example fam.
+> > 
+> > I strongly agree with Jonas.  Upstream links to libgpgme as a .so to
+> > provide optional behavior.  This requires libgpgme to be installed in
+> > order to even run neomutt, whether the user wants the feature or not.
+> > It is perfectly reasonable to want to install neomutt but want to _not_
+> > install gnupg.
+> 
+> Not in Debian.
+> 
+> The Debian philosophy in this has always been to link against all
+> libraries where possible, and to detect at runtime whether something can
+> be used. This introduces a much larger dependency tree, but ends up
+> being easier to use for most users.
+Link against the _libraries_.  That's indeed much more reliable, requires
+less effort, and has a minimal cost (the libraries themselves take little
+space).  And the library itself is content not having gnupg installed as
+long as its functions don't get used.
+> The alternative is something like Gentoo, where you *can* decide what
+> you compile in and what you don't. The trouble with Gentoo, however, is
+> that you spend seven hours installing it, and then your mouse doesn't
+> work because you set one USE flag incorrectly and now you have to
+> recompile the universe (I exaggerate, but you get the point).
+That's why libgpgme is compiled into our mutts.  That's nice; the Depends
+from mutt to libgpgme11 is not in question here -- what I'm complaining
+about is the Depends from libgpgme11 on gnupg and Recommends on the rest of
+gpg programs.
+It's trivial to install gnupg if you need it; it does nothing good without
+some manual configuration anyway.
+> > The proper fix is to convince upstream to dynamically link at runtime
+> > and disable some features if libgpgme is not available.
+> 
+> That's a great way to introduce a large set of bugs of the "oops, tried
+> to use libX when dlopen failed for some reason" type. It's better to
+> avoid that issue by just having a hard dependency on the library in
+> question.
+Yeah, most languages don't handle missing libs gracefully; we can cut the
+chain in a place where it's easier to make it optional.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ 10 people enter a bar: 1 who understands binary,
+⢿⡄⠘⠷⠚⠋⠀ 1 who doesn't, D who prefer to write it as hex,
+⠈⠳⣄⠀⠀⠀⠀ and 1 who narrowly avoided an off-by-one error.

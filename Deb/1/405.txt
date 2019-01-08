@@ -1,0 +1,77 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Ole Streicher <olebole@debian.org>
+Date : Sat, 14 Jan 2017 14:45:38 +0100
+Message-id : 87k29xzrel.fsf@debian.org
+References : <[🔎] 22649.6909.709941.18707@chiark.greenend.org.uk> <[🔎] 20170113193510.ygehzkrm7trmib2v@perpetual.pseudorandom.co.uk> <[🔎] 87a8au20ad.fsf@debian.org> <[🔎] 1854659a-b021-2382-6f3d-fd9390186e28@debian.org> <[🔎] 871sw60xdv.fsf@debian.org> <[🔎] 22650.9079.413319.446283@chiark.greenend.org.uk>
+
+
+Ian Jackson <ijackson@chiark.greenend.org.uk> writes:
+> Ole Streicher writes ("Re: Auto reject if autopkgtest of reverse
+> dependencies fail or cause FTBFS"):
+>> I don't see the need to keep things in sync: If a new failure is
+>> detected, it creates an RC bug against the migration candidate, with an
+>> "affects" to the package that failed the test.
+>
+> I prefer my other suggestion, that humans should write bugs if
+> necessary to unblock migration.  Because:
+>
+>  * It eliminates a timing problem, where the testing migration
+>    infrastructure[1] needs to somehow decide whether the test have
+                   ^^^ reference/footnote not found
+>    been run.  (This is needed because in the future we may want to
+>    accelerate migration, perhaps dramatically when there are lots of
+>    tests; and then, the testing queue may be longer than the minimum
+>    migration delay.)
+I would not see this a big problem: the bug can also be filed against a
+migrated package. As with any other bug. Also humans sometimes fail to
+write bug reports during the sid quarantine, resulting in
+autoremovals. I see no difference here.
+>  * See my other mail about the problems I anticipate with
+>    automatically opened bug reports.
+Just copying from your other mail:
+> The difficulty with automated bug reports is this: how do you tell
+> whether something is the same bug or not ?
+>
+> If you're not careful, a test which fails 50% of the time will result
+> in an endless stream of new bugs from the CI system which then get
+> auto-closed...
+Just allow only one bug report per version pair, report only changes,
+and don't report is another bug for the package pair is still
+open. Either have a local database with the required information, of
+store this as metadata in the bug reports. and query the BTS before
+sending.
+Basically the same procedure as one would do manually.
+> (If there are bugs, we want them to auto-close because no matter how
+> hard we try, test failures due to "weather" will always occur some of
+> the time.  Closing such bugs by hand would be annoying.)
+I just had a lengthy (and unresolved) discussion with Santiago Vila
+about weather dependent built time failures https://bugs.debian.org/848859
+While I disagree that those are RC, IMO occasional failures are useful
+to report to the maintainer, without autoclosing.
+>> > Than maybe change the wording: not-blocking, for-info, too-sensitive,
+>> > ignore or ....
+>> 
+>> The problem is that a test suite is not that homogenious, and often one
+>> doesn't knows that ahead. For example, the summary of one of my packages
+>> (python-astropy) has almost 9000 individual tests. Some of them are
+>> critical and influence the behaviour of the whole package, but others
+>> are for a small subsystem an/or a very special case. I have no
+>> documentation of the importance of each individual test; this I decide
+>> on when I see a failure (in cooperation with upstream). But more: these
+>> 9000 tests are combined into *one* autopkgtest result. What should I put
+>> there?
+>
+> You should help enhance autopkgtest so that a single test script can
+> report results of multiple test.  This will involve some new protocol
+> for those test scripts.
+Sorry, but I can't evaluate all 9000 tests and categorize them which are
+RC and which are not -- this will not work. It is also not realistic to
+force upstream to do so. The only thing I can do is reactively tag a
+certain failure being RC or not.
+Often the test infrastructure even doesn't have a way to mark a test as
+xfail (like cmake), and upstream even can't definitely say which tests
+are xfailing, so that I already have enough to do to keep the tests in a
+good shape.
+Best regards
+Ole

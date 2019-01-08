@@ -1,0 +1,69 @@
+To : Ben Hutchings <ben@decadent.org.uk>, Debian Science List <debian-science@lists.debian.org>, debian-devel@lists.debian.org, Mo Zhou <lumin@debian.org>
+Subject : Re: RFC: Naming convention for ILP64 variant of BLAS/LAPACK
+From : James Clarke <jrtc27@debian.org>
+Date : Mon, 22 Oct 2018 18:28:34 +0100
+Message-id : 4238BDA4-39EF-4AB2-BA6A-BD3F4ADE6AF3@debian.org
+In-reply-to : <[🔎] d950b9a242315288cba488847b279a8191132eb7.camel@decadent.org.uk>
+References : <[🔎] 20181021095114.GA24382@Asuna> <[🔎] 20181021151615.6ipnkpz3bmlncoh7@shell.thinkmo.de> <[🔎] 20181021175116.frpge6rogmut4fm4@mail.wookware.org> <[🔎] 20181022150709.GB18121@Asuna> <[🔎] d950b9a242315288cba488847b279a8191132eb7.camel@decadent.org.uk>
+
+
+On 22 Oct 2018, at 18:17, Ben Hutchings <ben@decadent.org.uk> wrote:
+> On Mon, 2018-10-22 at 15:07 +0000, Mo Zhou wrote:
+>> Hi Wookey and Bastian,
+>> 
+>> On Sun, Oct 21, 2018 at 06:51:16PM +0100, Wookey wrote:
+>>> On 2018-10-21 17:16 +0200, Bastian Blank wrote:
+>>>> Hi
+>>>> 
+>>>> On Sun, Oct 21, 2018 at 09:51:15AM +0000, Mo Zhou wrote:
+>>>>> about naming convention of SONAME and package name.
+>>>>> 
+>>>>> As discussed in [1][2][3], Debian will need a set of ILP64[4] interface
+>>>>> to BLAS/LAPACK in the future.
+>>>> 
+>>>> Could you please describe what you mean?  All 64-bit Debian
+>>>> architectures are LP64.  So building a single binary using ILP64 will
+>>>> even break the ABI for glibc and it will most likely not run very far.
+>>>> (A file descriptor is defined as "int", so even the most basic file
+>>>> calls will be incompatible.)
+>> 
+>> I missed some points in the original post. The proposal meant to add
+>> a new set of BLAS/LAPACK packages that are compiled in ILP64, and the
+>> existing BLAS/LAPACK API/ABI won't be changed and nothing will break.
+>> 
+>> Here is a detailed example for demonstration
+>> 
+>>  src:openblas
+>>    bin:libopenblas-base (LP64, won't be changed at all)
+>>      provides libblas.so.3
+>> 	bin:libopenblas-dev (LP64, won't be changed at all)
+>> 	  provides libblas.so
+>> 	bin:libopenblas-ilp64 (ILP64, newly-added)
+>> 	  provides libblas-ilp64.so.3
+>> 	bin:libopenblas-ilp64-dev (ILP64, newly-added)
+>> 	  provides libblas-ilp64.so
+>> 
+>> So there is no "ABI bump" but just "adding a new set of ABI". At the
+>> same time, it won't result in any transition or breakage.
+> 
+> The way we manage different basic ABIs in Debian is to define separate
+> Debian architectures.  E.g. on x86-64 we have the amd64 (LP64) and x32
+> (ILP32) architectures.
+> 
+> How you can use an ILP64 library without also building applications for
+> ILP64?  And then, don't you also need libc6 built for ILP64?
+So there seems to be a lot of confusion about what this is, and as an observer
+I went to read [1] as referenced by lumin. It's rather badly written but if you
+scroll down to the table under "Coding for ILP64" it becomes clear that they
+are not defining a new system ABI; C's int remains 32-bit. Of course, that
+makes total sense, as otherwise how can you have 8-bit, 16-bit and 32-bit
+integral types in POSIX C with only char and short, not to mention all the
+incompatibilities everywhere? So, like many others here I'm sure, I don't think
+this should be called "ILP64" at all; it's still LP64, just everything that was
+an int in the BLAS API is now a 64-bit type. I would suggest referring to it as
+something like BLAS64/LAPACK64, or, if people really insist on this
+awfully-confusing ILP64 terminology, at least try and disambiguate by calling
+it BLAS-ILP64.
+TL;DR: This is not ILP64. This is an all-64-bit variant of the BLAS/LAPACK API.
+James
+[1] https://software.intel.com/en-us/mkl-linux-developer-guide-using-the-ilp64-interface-vs-lp64-interface

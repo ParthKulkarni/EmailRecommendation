@@ -1,0 +1,64 @@
+To : Graham Inggs <ginggs@debian.org>, Ian Jackson <ijackson@chiark.greenend.org.uk>, Bastian Blank <bblank@thinkmo.de>, ftpmaster@ftp-master.debian.org
+Subject : Re: julia_1.0.0-1_amd64.changes REJECTED
+From : Emilio Pozuelo Monfort <pochu@debian.org>
+Date : Wed, 21 Nov 2018 16:11:36 +0100
+Message-id : ba08a358-1e12-1a5f-46e3-8ce3fb5c68b0@debian.org
+In-reply-to : <[🔎] 0b5007f1-3d37-7097-08f1-e7e6586b558d@debian.org>
+References : <E1fpdc2-000J9X-7u@fasolo.debian.org> <20180815094855.GA10179@Asuna> <20180816195510.wf2bzmhq3bwol2fc@shell.thinkmo.de> <20180823074909.GB2641@Asuna> <20180925144043.GA9441@Asuna> <23467.28117.229615.852023@chiark.greenend.org.uk> <23505.39387.547604.882199@chiark.greenend.org.uk> <[🔎] 0b5007f1-3d37-7097-08f1-e7e6586b558d@debian.org>
+
+
+Hi,
+On 21/11/2018 14:56, Graham Inggs wrote:
+> Hi Bastian
+> 
+> My apologies in advance for doing this, but another month has passed.
+> Another ping from me.
+> 
+> On 2018/10/25 12:24, Ian Jackson wrote:
+>> Ian Jackson writes ("Re: julia_1.0.0-1_amd64.changes REJECTED"):
+>>> Lumin writes ("Re: julia_1.0.0-1_amd64.changes REJECTED"):
+>>>> 1. Isn't "incomplete backtrace" a sensible reason to keep debug symbols?
+>>>>     Policy said "should" but not "must". Please tell me what I can do in
+>>>>     order to help improve the src:julia package to satisfy the requirements?
+>>>
+>>> My main concern here is this: AFAICT this package has been REJECTed
+>>> solely for this reason.  Why is this bug[1] a reason for a REJECT ?
+>>> ISTM that it should be filed in the BTS and handled like a normal bug.
+>>
+>> Ping, ftpmaster ?
+>>
+>> Ian.
+>>
+>>> [1] Assuming it is a bug.  The discussion here suggests to me that it
+>>> is, but it is really unhelpful to be having it on debian-devel in the
+>>> context of an ftpmaster REJECTion.
+>>
+> 
+> From the original REJECTion email from mid-August [1], there were two issues,
+> but I believe both have been explained in the follow-up emails and subsequent
+> uploads.
+Since you are cc'ing d-devel@, I'll chime in.
+I'm not sure I understand the first concern. The package name is libjulia1,
+which would indeed normally point to a libjulia.so.1 library. You ship this:
+-rw-r--r-- root/root  36143904 2018-08-16 07:48
+./usr/lib/x86_64-linux-gnu/libjulia.so.1.0
+lrwxrwxrwx root/root         0 2018-10-13 06:16
+./usr/lib/x86_64-linux-gnu/libjulia.so.1 -> libjulia.so.1.0
+That would be standard for a libjulia.so.1 SONAME (though one would need to look
+at the SONAME header in the ELF file to know for sure). Also I don't see a
+lintian warning for 1.0.0-1 (or your latest upload), so it seems alright to me.
+Maybe I'm missing something, or perhaps this was rejected and reuploaded and
+that's why I don't see why that comment was made.
+(I'm not sure why you need all those other symlinks in
+./usr/lib/x86_64-linux-gnu/julia/ to files that are not shipped anywhere. That
+smells like a bug, but I haven't investigated)
+As for the other issue. It is very unusual to ship a non-stripped library. In
+your lintian override, you point to [2], which mentions that it's ok to ship the
+debug info in a separate file (the stripped symbol files found in -dbg or
+-dbgsym packages) as long as the original files have a .gnu_debuglink section
+pointing to that separate file. That is what dh_strip will do for you, as you
+can see in its manpage and by inspecting the binary with readelf.
+So why are you not stripping those couple of files?
+Cheers,
+Emilio
+[2] https://github.com/JuliaLang/julia/issues/23115#issuecomment-320715030

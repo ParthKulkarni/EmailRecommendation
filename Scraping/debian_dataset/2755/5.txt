@@ -1,0 +1,52 @@
+To : debian-devel@lists.debian.org,	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Subject : Re: Re-evaluating architecture inclusion in unstable/experimental
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 29 Sep 2018 12:02:12 +0200
+Message-id : 20180929100212.4morf4vtbmydsviq@angband.pl
+In-reply-to : <[🔎] 07e86824de65c43a9b5171fd64a6afcf1f0b1ec2.camel@decadent.org.uk>
+References : <[🔎] 71349e8f-e17f-2d7a-aa21-da6cd10dc365@physik.fu-berlin.de> <[🔎] 07e86824de65c43a9b5171fd64a6afcf1f0b1ec2.camel@decadent.org.uk>
+
+
+[trimmed cross-post]
+On Sat, Sep 29, 2018 at 07:48:09AM +0100, Ben Hutchings wrote:
+> On Fri, 2018-09-28 at 14:16 +0200, John Paul Adrian Glaubitz wrote:
+> >  * x32: maintained by the people who maintain the x86 port of the kernel
+> 
+> H. Peter Anvin did the original port in 2012, but so far as I can see
+> none of the x86 maintainers have done any development on it since then.
+> And yes, development work has been needed:
+> 
+> - x32 has 64-bit time_t and that never worked quite right.  This may
+>   have finally been fixed this year by Arnd Bergmann's work, but I'm
+>   not sure.
+> - syscall restart was broken until 2015 when someone actually tested
+>   it.
+> - There have been several regressions specific to x32, some of which
+>   stuck around for a year or so before someone and fixed them.
+As a (lapsed) porter for x32 here in Debian, I don't think it's worth
+keeping.  Despite all the touted benefits, no one uses the arch.  There's a
+big difference between popcon 8 for an arch requiring obscure hardware or
+a FPGA, vs popcon that low for hardware everyone of us owns.  Unlike
+kfreebsd-[x86] you can even conveniently run x32 in a chroot or lxc, yet no
+one does.
+The advertised benefits of the port are:
+* memory savings
+* a few percent speed gain over amd64
+With primary use cases being hosting of multiple containers, and/or running
+a large number-crunching cluster.  Sacrificing lots of human hassle for a 7%
+speed boost makes you a "Gentoo ricer"[1] on a desktop/laptop, but could be
+a nice thing on a $1M cluster.
+But, recently someone approached me with exactly that use case.  He also
+required jessie, which happens to be the only release I have a consistent
+set of packages for.  The evaluation result was: nope.
+A short while ago Linus pondered dropping x32, as it complicates kernel
+syscall code.  The only proof he was told that "it's still in use" was my
+https://debian-x32.org -- yet that site hasn't been updated since jessie.
+Thus: I propose to drop x32, and reallocate your tuits to other archs.
+Meow!
+[1]. No offense for real Gentoo users, I mean the stereotype.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ 10 people enter a bar: 1 who understands binary,
+⢿⡄⠘⠷⠚⠋⠀ 1 who doesn't, D who prefer to write it as hex,
+⠈⠳⣄⠀⠀⠀⠀ and 1 who narrowly avoided an off-by-one error.

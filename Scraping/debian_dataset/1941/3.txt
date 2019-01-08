@@ -1,0 +1,25 @@
+To : Alex Mestiashvili <mailatgoogl@gmail.com>
+Subject : Re: Help needed for #871234 FTBFS with GCC-7: error: type/value mismatch
+From : Jeff Epler <jepler@unpythonic.net>
+Date : Tue, 5 Sep 2017 13:44:56 -0500
+Message-id : 20170905184455.fxqbgpoku7l4g4bl@unpythonic.net
+In-reply-to : <[🔎] 95c6db1e-baa1-a44a-7aad-1feea65b50c7@gmail.com>
+References : <[🔎] 95c6db1e-baa1-a44a-7aad-1feea65b50c7@gmail.com>
+
+
+On Tue, Sep 05, 2017 at 01:55:58PM +0200, Alex Mestiashvili wrote:
+> GHash.hh:91:44: error: type/value mismatch at argument 1 in template
+> parameter list for 'template<class _Tp> struct std::hash'
+>      while (pos<fCapacity && hash[pos].hash<0) pos++;
+Nothing in this line is intended to be a template parameter list, but it
+looks like gcc has decided something is; maybe it's "hash", which the
+compiler treats as std::hash due to e.g., an earlier "using" statement.
+If so, consider trying
+       while (pos<fCapacity && (hash[pos].hash)<0) pos++;
+                               ^ parenthesize ^
+so that the "<" can't introduce a template parameter list.
+My mental model of the C++ grammar doesn't explain to me why the
+compiler thinks this "<" can introduce a template parameter list, but
+that sure seems to be what the compiler states it is doing.  Usually
+when g++ and I disagree about C++ grammar, g++ is right...
+Jeff

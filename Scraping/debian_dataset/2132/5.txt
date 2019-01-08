@@ -1,0 +1,73 @@
+To : debian-devel@lists.debian.org
+Subject : Mitigating the problem of limited security support
+From : Adrian Bunk <bunk@debian.org>
+Date : Sun, 21 May 2017 16:43:36 +0300
+Message-id : 20170521134336.v62dww4cnmyflrbb@localhost
+Reply-to : debian-devel@lists.debian.org
+
+
+Both the jessie release notes [1] and the draft stretch release notes [2]
+contain the following text:
+  5.2.1. Security status of web browsers
+  Debian 9 includes several browser engines which are affected by a steady 
+  stream of security vulnerabilities. The high rate of vulnerabilities and 
+  partial lack of upstream support in the form of long term branches make 
+  it very difficult to support these browsers with backported security 
+  fixes. Additionally, library interdependencies make it impossible to 
+  update to newer upstream releases. Therefore, browsers built upon the 
+  webkit, qtwebkit and khtml engines are included in Stretch, but not 
+  covered by security support. These browsers should not be used against 
+  untrusted websites.
+  For general web browser use we recommend Firefox or Chromium.
+  Chromium - while built upon the Webkit codebase - is a leaf package, 
+  which will be kept up-to-date by rebuilding the current Chromium 
+  releases for stable. Firefox and Thunderbird will also be kept 
+  up-to-date by rebuilding the current ESR releases for stable.
+Note how from the headline to the sugested mitigation everything
+talks about web *browsers*.
+Web browsers other than Firefox or Chromium are rarely used and the 
+recommendation to use only one of these two is not a big issue in
+practice.
+Other uses of browser engines are the real problem, for example:
+  1. Which email client is part of the default Debian desktop?
+  2. Which browser engine does this email client use to render HTML emails?
+  3. How many CVEs are known to affect the version of this browser
+     engine in jessie?
+As far as I know, the answers are:
+  1. Evolution
+  2. WebKitGTK+
+  3. around 100
+For making the limits of security support less hidden,
+I would suggest the following:
+1. Handle packages without security support better in buster
+It is too late for stretch, but for buster the situation should be improved.
+Installing Debian should avoid installing any software without security support.
+Does it make sense to ship software without security support in stable
+releases or would it be better to remove such software?
+2. Fix the release notes
+The release notes should stop hiding the problem by not mentioning the 
+worst parts of the problem
+I am not good at marketing-speech to make contents like
+  After installing Debian, it is strongly recommended to
+  remove all software that is not security-supported.
+not sound like a complete embarrassment, someone who is better at that 
+should suggest a wording.
+3. Use Breaks in debian-security-support
+It is already recommended in the release notes to install the
+debian-security-support package, but that does not make it
+very visible when you are about to install packages without
+security support.
+If debian-security-support has Breaks on all packages without full
+security support, then package managers like apt will automatically
+give information like "installing debian-security-support would
+remove the following packages:" or "installing this package will
+remove debian-security-support".
+cu
+Adrian
+[1] http://www.debian.org/releases/stable/amd64/release-notes/ch-information.en.html#browser-security
+[2] https://www.debian.org/releases/stretch/amd64/release-notes/ch-information.en.html#browser-security
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

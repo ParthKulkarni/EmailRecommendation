@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Help, I broke sso.debian.org for chrome - Found reason
+From : Bjørn Mork <bjorn@mork.no>
+Date : Wed, 06 Sep 2017 13:59:51 +0200
+Message-id : 87y3psrqa0.fsf@miraculix.mork.no
+In-reply-to : <[🔎] 20170906113655.loeu4356gzwe7kwq@enricozini.org> (Enrico Zini's	message of "Wed, 6 Sep 2017 13:36:55 +0200")
+References : <[🔎] 20170905093701.xncmprl2x4so6hu4@enricozini.org>	<[🔎] 20170906113655.loeu4356gzwe7kwq@enricozini.org>
+
+
+Enrico Zini <enrico@enricozini.org> writes:
+> On Tue, Sep 05, 2017 at 11:37:01AM +0200, Enrico Zini wrote:
+>
+>> I refactored the certificate generation code for sso.debian.org, and the
+>> certificates it generates now still work in Firefox but not in Chrome.
+>
+> I found the reason: python-cryptography writes the certificate issuer
+> as UTF8 String while the CA certificate has it as Printable String.
+> Because of that, the subject names don't match bit-by-bit.
+>
+> For openssl, encoding does not matter for comparison, while for libnss3
+> it does.
+>
+> I do not know if this is:
+>
+>  - a bug in openssl, which should be stricter in matching
+>  - a bug in libnss3, which should deal with encodings
+>  - a bug in python3-cryptography, which should do a bit-for-bit copy
+>    when copying attributes over:
+>    https://anonscm.debian.org/cgit/debian-sso/debian-sso.git/tree/ca/ca.py#n429
+Disclaimer:  I don't know the first thing about this...
+But reading
+ https://tools.ietf.org/html/rfc5280#section-4.1.2.4
+ https://tools.ietf.org/html/rfc5280#section-7.1
+and
+ https://tools.ietf.org/html/rfc4518#section-2
+which the first refers to, I believe this must be a libnss3 bug.
+PrintableString and UTF8String are both allowed encodings, and RFC5280
+is pretty clear about name comparisons:
+   Conforming implementations MUST use the LDAP StringPrep profile
+   (including insignificant space handling), as specified in [RFC4518],
+   as the basis for comparison of distinguished name attributes encoded
+   in either PrintableString or UTF8String.  Conforming implementations
+   MUST support name comparisons using caseIgnoreMatch.  Support for
+   attribute types that use other equality matching rules is optional.
+Bjørn

@@ -1,0 +1,38 @@
+To : dod@debian.org,    pkg-rakudo-devel@lists.alioth.debian.org,    debian-devel@lists.debian.org
+Subject : Re: Permanent transition tracker for Perl6 ? (was: Re: Packaging of libraries with unstable ABI (D, Rust, Go, ...))
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 14 Jun 2017 21:34:42 +0100
+Message-id : 22849.40418.97340.169717@chiark.greenend.org.uk
+In-reply-to : <[🔎] 22849.39475.710835.538096@chiark.greenend.org.uk>
+References : <CAKNHny_vTGsFNWJkmJdF-ypTDfmJhF1-OWeDHVSD-xOgv5tYuA@mail.gmail.com>	<106844657.7BZ1KGSoZz@ylum>	<22829.40920.716074.682972@chiark.greenend.org.uk>	<[🔎] 8970288.GHR5Ecyddt@ylum>	<[🔎] 22849.39475.710835.538096@chiark.greenend.org.uk>
+
+
+Ian Jackson writes ("Re: Permanent transition tracker for Perl6 ? (was: Re: Packaging of libraries with unstable ABI (D, Rust, Go, ...))"):
+> But actually I think the whole scheme should be done the way Python
+> does it.  If the compiled filename needs to be decorated with a raduko
+> version (or even a raduko hash) then that is probably fine, but it
+> should be in the same place as the source file (or at least, a
+> filename derived from the source filename so that the source filename
+> can be recovered from the compiledd filename).  This has worked fairly
+> well with Elisp and Python and we have fairly good strategies for
+> dealing with it.
+I feel I should explain that this is not just a good idea because it
+makes Debian's packaging work easier.
+In general, deriving the bytecode filename from the source filename
+(perhaps with some kind of prefix substitution, perhaps by decorating
+the filename) means that it is possible for compiled files to share
+the access control status of the source files they relate to, and it
+makes it much easier for them to share the source files' lifetime too.
+The meaningful scope of such a compiled file is not really related to
+the user who creates it.  I think the only reason Perl6 is currently
+using something in ~ is that this is somewhere that can be written to
+without obvious bad security properties.
+Another bad thing with ~ that I forgot to mention is that it might be
+on NFS or even on SMB or something.  Ie it might be subject to
+concurrent access from other hosts, in which case using ~ is
+effectively using the network file system as the basis for an
+inter-host communication protocol.  Long experience with all kinds of
+network-filesystem-indudced lossage suggests that this is a bad idea.
+Also it can be quite slow - sometimes very much slower than the local
+storage used for the source of the program being run.
+Ian.

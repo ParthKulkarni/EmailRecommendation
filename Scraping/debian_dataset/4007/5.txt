@@ -1,0 +1,149 @@
+To : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Subject : Re: Uncoordinated upload of the rustified librsvg
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Wed, 7 Nov 2018 11:07:09 -0800
+Message-id : 20181107190709.GA27653@localhost
+In-reply-to : <[🔎] d849ec2d-bb3c-3d01-7c80-c9c104e891c2@physik.fu-berlin.de>
+References : <[🔎] d849ec2d-bb3c-3d01-7c80-c9c104e891c2@physik.fu-berlin.de>
+
+
+On Wed, Nov 07, 2018 at 11:53:06AM +0100, John Paul Adrian Glaubitz wrote:
+> Hello!
+> 
+> > librsvg has rewritten substantial fractions of its code upstream in
+> > Rust. It won't be the last such library or package to do so.
+> 
+> Well, I wouldn't bet on that. I know that a lot of people have the
+> feeling that rewriting everything in Rust will solve all problems
+> in software we have nowadays but that's not the case. Rewriting large
+> projects is associated with a high cost and not many companies are
+> willing to pay for that. Also, there have already been several
+> vulnerabilities in Rust and Cargo as well, so the safety is not
+> really an argument.
+I really don't feel the need to recreate extensive language arguments
+here. I think it safe to say that Rust's small handful of documented
+issues in the standard library pales in comparison to the history of
+whole classes of bugs in C programs. But the point of this thread is not
+advocacy, it's simple observation.
+I'm not suggesting the world will get rewritten in Rust overnight. It
+seems a rather safe bet, however, that a non-zero number of additional
+Rust libraries and binaries will show up in the core ecosystem.
+> > Running old versions of a library is not a viable long-term strategy.
+> > Attempting to find alternatives written in C is not a viable long-term
+> > strategy either; that's running in the wrong direction. Ultimately, the
+> > new version will need uploading to Debian, and an architecture that
+> > wants to run a full desktop, or for that matter a server or embedded
+> > environment, will need to have LLVM support and Rust support.
+> 
+> I know that. That's why I also criticized the upstream developer,
+> of librsvg, who happens to be a colleague of mine at SUSE, who was responsible
+> for that change.
+For attempting to improve beyond C? Hardly a criticism.
+> Will be interesting to see what will happen in the future
+> when the rustified version of librsvg will try move into the enterprise
+> distributions.
+Seems far less likely to encounter issues, given that enterprise
+distributions target mainstream architectures only.
+> > I think it's reasonable for the *first* such library being uploaded to
+> > wait a little while to coordinate, which it did.
+> 
+> It didn't even wait for Rust to stabilize on the architectures it was
+> recently bootstrapped for. There was no guarantee the Rust compiler will
+> work on arm32 or mips32 in the foreseeable future.
+Define "stabilize". And in particular, how were people to know this from
+https://lists.debian.org/debian-devel-announce/2018/11/msg00000.html ?
+> Given the fact that Rust upstream is always introducing a significant number
+> of changes with each release, there is quite a chance of regressions of
+> the compiler on these architectures.
+This does not relate. The language has active development, like any
+package that isn't dead upstream. What makes it any *more* likely to
+have regressions?
+What makes it likely to have regressions is a lack of direct support
+for such architectures upstream. As a random example: where are the bots
+that run testsuites on other architectures for PRs?
+> > I don't, however, think it's reasonable to wait indefinitely.
+> 
+> No one was saying that. But I think it's more reasonable to wait for
+> the Rust compiler to stabilize
+Rust is stable. Thank you for your contributions helping it work on more
+architectures, but "does not have first-tier support for every
+architecture ever" is not a component of "stabilize".
+> There is still no Rust-stable branch in sight which is
+> most certainly a requirement for Rust to be part of enterprise distributions.
+This has certainly been discussed upstream, but in general, it's not
+obvious what this would gain over simply taking any stable release of
+Rust and packaging it.
+> I know the QA processes associated for SLES to update packages in a release
+> version and I could imagine that it's not anything less involved for
+> RHEL or other enterprise distributions. It seems that Rust upstream has
+> not had any of the enterprise and long-term support distributions in
+> mind yet. They seem to assume that distributions can just always use the
+> latest upstream versions.
+No, we assume that distributions can package Rust alongside Rust
+software and that the packaged software will work with the packaged
+Rust. There's no need to use "the latest upstream version"; you only
+need to update to a new upstream version of Rust if you update to a new
+upstream version of software written in Rust.
+> > If even more coordination had taken place than what already did,
+> > what would have been the expected outcome?
+> 
+> A Rust compiler that doesn't regress every six weeks, maybe?
+It's not reasonable to block the introduction of software written in
+Rust on some developer (not yet identified) taking the time to
+contribute the necessary infrastructure upstream to continually test
+multiple additional uncommon architectures. And that's what would be
+necessary.
+> > precisely because if non-release architectures need to
+> > keep an outdated version while working on porting efforts, they'll
+> > automatically do so, and that shouldn't impede those architectures too
+> > much as long as other packages don't start depending specifically on
+> > functionality from the new librsvg. (And if packages do start having
+> > such dependencies, they'll get held back too.)
+> 
+> Debian Ports doesn't support the cruft mechanism that DAK supports. We're
+> lucky that the librsvg-common package is of arch any, otherwise librsvg
+> would already been uninstallable in Debian Ports. So, this is just
+> pure luck. Please don't make such statements when you're not aware of
+> the differences between Debian's release and ports architectures.
+Good to know, and sorry to hear that. Another reason why it doesn't seem
+particularly unreasonable to focus on release architectures, and treat
+others as "best effort".
+> > Approaching the problem from a different angle: what help is needed
+> > getting a viable LLVM and Rust development environment for more
+> > architectures?
+> 
+> There are open reviews for LLVM, for example:
+> 
+> > https://reviews.llvm.org/D50784
+> > https://reviews.llvm.org/D50856
+> > https://reviews.llvm.org/D50858
+> 
+> And a bug in Rust:
+> 
+> > https://github.com/rust-lang/rust/issues/49773
+Thanks for calling attention to these.
+Hopefully appropriate folks with both port and LLVM expertise will be
+able to look at them.
+> > Speaking with an upstream Rust hat on in addition to a
+> > Debian hat: what could Rust do to make life easier for porters?
+> 
+> Please provide an actual stable version of the Rust compiler that
+> is supported in the long term and can be shipped by enterprise
+> distributions.
+There's a stable version of the compiler every six weeks. Pick one and
+ship it.
+If, instead of "stable", you mean "supported on other architectures",
+that's going to require upstream infrastructure to *test* those
+architectures on a regular basis.
+> > And what could Debian's *considerable* expertise in porting do to make that more
+> > sustainable upstream? (As an example, it might help if upstream Rust
+> > folks had access to machines for more architectures, though that's a
+> > side issue for having an LLVM port in the first place.)
+> 
+> Debian Ports has worked closely with QEMU upstream to help make significant
+> improvements to that emulator. So, in most cases, Rust developers can just
+> use QEMU for the first porting efforts. But there are also porterboxes available
+> from gcc to which we from Debian Ports also have provided hardware, for example:
+I'm more suggesting that if people want to see an architecture better
+supported, it needs to end up in at least tier 2 on
+https://forge.rust-lang.org/platform-support.html .

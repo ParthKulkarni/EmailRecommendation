@@ -1,0 +1,56 @@
+To : Debian Developers <debian-devel@lists.debian.org>
+Subject : Re: Mandates explicit -std=c++XY for c++ projects
+From : Mathieu Malaterre <malat@debian.org>
+Date : Tue, 10 Oct 2017 09:43:31 +0200
+Message-id : CA+7wUsw34uSUKjJb2iWoQhoQjLcQs4SCcBTU82F2RJq+W8S18w@mail.gmail.com
+In-reply-to : <[🔎] CA+7wUsx1whGqQCAFqq8eoac2WyMkqHV+1JG7hkE1gh9FFw34eQ@mail.gmail.com>
+References : <[🔎] CA+7wUswrdZpVKkhuxU+njE82AH8OHcT+ccAdVp84zC8NjJ67zQ@mail.gmail.com> <[🔎] 87y3ojjx3c.fsf@deep-thought.43-1.org> <[🔎] CA+7wUsx1whGqQCAFqq8eoac2WyMkqHV+1JG7hkE1gh9FFw34eQ@mail.gmail.com>
+
+
+Ansgar,
+On Tue, Oct 10, 2017 at 9:17 AM, Mathieu Malaterre <malat@debian.org> wrote:
+> Ansgar,
+>
+> On Tue, Oct 10, 2017 at 9:11 AM, Ansgar Burchardt <ansgar@debian.org> wrote:
+>> Mathieu Malaterre writes:
+>>> With this mind I'd like to make mandatory the -std=c++XY flags when
+>>> compiling either a c++ library or a stand-alone c++ program:
+>>>
+>>> 1. Either upstream define the explicit -std=c++XY flags by mean of its
+>>> build system,
+>>> 2. Or the package maintainers needs to explicit change the CXXFLAGS to
+>>> pass the appropriate version of the c++ standard. In which case this
+>>> should be documented in the README.Debian file.
+>>> 3. As a fallback, dh should initialize the CXXFLAGS with -std=gnu++98
+>>
+>> So if the upstream build system adds '-std=c++14' and CXXFLAGS is set to
+>> '-std=gnu++98', one gets '-std=c++14 -std=gnu++98' and building the
+>> package no longer works?  That doesn't sound good to me.
+>
+> My bad, I assumed this would be the opposite, just like the -O3 vs
+> -O2, so the latest flags would be considered. Let me double check with
+> a cmake package.
+So I verified with a CMake package where:
+$ cat CMakeLists.txt
+[...]
+set(CMAKE_CXX_STANDARD 98)
+I have then set:
+$ cat debian/rules
+[...]
+export DEB_CXXFLAGS_MAINT_APPEND = -std=c++14
+This leads:
+cd /tmp/gdcm-2.8.2/obj-x86_64-linux-gnu/Source/Common && /usr/bin/c++
+ -DgdcmCommon_EXPORTS
+-I/tmp/gdcm-2.8.2/obj-x86_64-linux-gnu/Source/Common
+-I/tmp/gdcm-2.8.2/Source/Common
+-I/tmp/gdcm-2.8.2/Source/DataStructureAndEncodingDefinition
+-I/tmp/gdcm-2.8.2/obj-x86_64-linux-gnu/Testing/Source/Data
+-I/tmp/gdcm-2.8.2/Testing/Source/Data -I/tmp/gdcm-2.8.2/Utilities  -g
+-O2 -fdebug-prefix-map=/tmp/gdcm-2.8.2=. -fstack-protector-strong
+-Wformat -Werror=format-security -std=c++14 -Wdate-time
+-D_FORTIFY_SOURCE=2 -fPIC   -std=gnu++98 -o
+CMakeFiles/gdcmCommon.dir/gdcmBoxRegion.cxx.o -c
+/tmp/gdcm-2.8.2/Source/Common/gdcmBoxRegion.cxx
+So the upstream flag -std=gnu++98 (since it comes last) is properly considered.
+Was this the setup you had in mind ?
+Thanks for your comments,

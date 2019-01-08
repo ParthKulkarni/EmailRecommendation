@@ -1,0 +1,39 @@
+To : debian-devel@lists.debian.org
+Subject : Re: autopkgtest coupled with sbuild different from what is run on buildd?
+From : Joseph Herlant <aerostitch@debian.org>
+Date : Wed, 2 Jan 2019 21:43:35 -0800
+Message-id : CAPQicOynuqs4zSNoxGdZ+8k6uVfP8+VS5U9SFEUv7Ro=WrKwgg@mail.gmail.com
+In-reply-to : <[🔎] 20190102221105.oya2nbndjr5f7qyx@navis>
+References : <[🔎] CAPQicOxF=r2jpHMVAcCk3BKT3mDeYZ4zuEUnJAZRpdiBZpncBQ@mail.gmail.com> <[🔎] 20190102221105.oya2nbndjr5f7qyx@navis>
+
+
+Hi Nicholas,
+On Wed, Jan 2, 2019 at 2:11 PM Nicholas D Steeves <nsteeves@gmail.com> wrote:
+> Have you tried an LXC autopkgtest instance?  I've noticed that
+> sometimes packages whose tests pass 100% of the time with a schroot
+> (buildd profile) will fail on debci, and the only way I've been able
+> to reproduce the failure is with an LXC autopkgtest.
+>
+> I will confess to not knowing why this is the case...but I've had
+> success with resolving failing tests in debci by debugging
+> LXC+autopkgtest failures.
+It indeed solved my issue. Thanks a lot!
+I added a note in the sbuild documentation so that other people can
+avoid loosing too much time it:
+https://wiki.debian.org/sbuild?action=diff&rev2=159&rev1=158 . Feel
+free to update it if you have more information.
+In sbuild it makes sense that build-essential and fakeroot are always
+present (explicitly added in
+https://salsa.debian.org/debian/sbuild/blob/master/bin/sbuild-createchroot#L249)
+as they are at the core of sbuild's primary usage and would have to be
+reinstalled 99.9% of the time I'm guessing if we did omit them.
+I didn't realize that debci was not relying on sbuild like buildd
+does. I can see in the logs now that it's using lxc and if I think
+about it, it's primary usage is to run tests, not to build packages so
+it makes sense that it can do that without build-essential and
+fakeroot always installed.
+I just thought for some weird reason that debci was running along with
+buildd which is not the case! :)
+Anyway, thanks again for pointing me to the right direction! :)
+Cheers,
+Joseph

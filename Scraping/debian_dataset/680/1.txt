@@ -1,0 +1,73 @@
+To : "Matteo F. Vescovi" <mfv@debian.org>
+Subject : Re: Bug#857394: libgegl-dev: contains duplicate copy of openCL library files
+From : <ian_bruce@mail.ru>
+Date : Thu, 13 Apr 2017 01:25:29 -0700
+Message-id : 20170413012514.661a48ee.ian_bruce@mail.ru
+In-reply-to : <87tw5tmh14.fsf@gmail.com>
+References : <148917296784.13898.2720322219116742496.reportbug@quadlie>	<87tw5tmh14.fsf@gmail.com>
+
+
+On Wed, 12 Apr 2017 23:51:03 +0200
+"Matteo F. Vescovi" <mfv@debian.org> wrote:
+>> /usr/include/gegl-0.3/opencl/gegl-cl-color.h
+>> /usr/include/gegl-0.3/opencl/gegl-cl.h
+>> /usr/include/gegl-0.3/opencl/gegl-cl-init.h
+>> /usr/include/gegl-0.3/opencl/gegl-cl-random.h
+>> /usr/include/gegl-0.3/opencl/gegl-cl-types.h  
+> 
+> What about these?
+What about them?
+I just pasted in the output of the "dpkg -L libgegl-dev" command. I
+didn't claim that ALL the header files in that directory were duplicates
+of those in the <opencl-c-headers> package. Those are the only ones that
+aren't.
+ 
+> They're not provided by the Debian package and I'm not going to try a
+> 'merge-on-the-fly' on headers to save a bunch of kilobytes. Sorry.
+Saving a bunch of kilobytes is really not the issue, as I suggested when
+I said "isn't that a Policy violation?". Here's a relevant quote:
+    * No inclusion of third party code *
+    Please do not include other code (like libraries) or data that are
+    also shipped separately inside your source archive, or if you do,
+    please make sure they can be reliably ignored. Instead of shipping
+    third party libraries you should rather make sure your program will
+    be link nicely against recent versions of these libraries. If a
+    security issue is found in one of the bundled packages, it is far
+    easier for the package maintainers or the Security Team to patch and
+    rebuild one package than to scan the entire archive for all copies
+    of this code and patch them individually (this happened for zlib,
+    for example). It's also preferable for the end users to receive an
+    update for just one package (e.g. OpenSSL) rather than a large
+    number of applications.
+https://wiki.debian.org/UpstreamGuide#No_inclusion_of_third_party_code
+>> The included version of openCL seems to be many years out of date:
+>>
+>>
+>> $ diff -u /usr/include/{gegl-0.3/opencl,CL}/opencl.h
+>> --- /usr/include/gegl-0.3/opencl/opencl.h	2016-06-26 05:02:45.000000000 -0700
+>> +++ /usr/include/CL/opencl.h	2016-06-14 08:44:21.000000000 -0700
+>> @@ -1,5 +1,5 @@
+>>  /*******************************************************************************
+>> - * Copyright (c) 2008-2010 The Khronos Group Inc.
+>> + * Copyright (c) 2008-2015 The Khronos Group Inc.  
+> 
+> Impressed. ;)
+Here's another relevant quote:
+    If your software depends on other libraries, then Debian also needs
+    to make sure that your software compiles and works with the version
+    of these libraries available in Debian. Debian may compile your
+    software against a different version of some library than you do.
+    Therefore it's not of any help for Debian if you include convenience
+    copies of these dependencies in your source tarball.
+https://wiki.debian.org/UpstreamGuide#Source_only_tarball
+>> It appears that there may also be another independent library, under
+>> the /usr/include/gegl-0.3/npd/ directory.
+> 
+> I asked upstream about this and I got no consistent reply. So it'll
+> keep its position.
+This seems to be a sub-project of GEGL:
+https://github.com/GNOME/gegl/tree/master/libs/npd
+If it's not packaged independently, then the considerations above may
+not apply.
+However, they most certainly do apply to openCL.
+-- Ian Bruce

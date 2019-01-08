@@ -1,0 +1,58 @@
+To : mitya57@debian.org, andy@koipond.org.uk, marcin@juszkiewicz.com.pl, 	debian-arm@lists.debian.org, debian-devel@lists.debian.org, 	pkg-kde-talk@alioth-lists.debian.net
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : psi29a@gmail.com
+Date : Fri, 23 Nov 2018 06:14:34 -0800
+Message-id : CA+LhZ9-_gaknAx90E8eLv=1kaiSeH=potCxNdh0ext9KsrYO8A@mail.gmail.com
+In-reply-to : <[🔎] 20181123122329.GB4334@mitya57.me>
+References : <[🔎] cad60846-28a3-12c8-5891-ead67f8c2943@juszkiewicz.com.pl> <[🔎] 20181123122329.GB4334@mitya57.me>
+
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+Just chiming in here as package maintainer of an effected package, OpenMW
+and also an upstream developer of said software, along with contributor to
+OpenSceneGraph.
+Here are some related open bugs involving Qt and GLESv2 and arm*:
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=850021
+^-- RM: openmw [armhf] -- RoQA; needs OSG built against libGL
+The editor of OpenMW uses osgQt, which is provided by OSG. OSG has to pick,
+Desktop GL or GLESv2 it can't be both and because GLESv2 was forced on
+armhf and armel for Qt, then OSG had to do the same because of one of their
+plugins (now deprecated in OSG-3.6) links against Qt. The result is that
+OpenMW can't be built/shipped on armhf/armel on Debian because it only
+supports OpenGL 2.0 fixed function pipeline.
+If you say that arm64 has to be GLESv2 as well, then that is yet another
+arch that OpenMW can't be built for.  Before the GLESv2 switch, OpenMW
+worked just fine on arm* hardware, including the Raspberry Pi/Raspbian with
+the VC4 mesa driver that has OpenGL 2.0 support.
+Another related bug:
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=852423
+^--  revert all arm* changes to OSG and drop osgQt support in order to
+compile against libGL (Desktop GL). A radical solution, but it would allow
+for applications like OpenMW to run (but not the editor).
+My merge-request on Salsa was already merged in for OSG-3.6 that does this,
+since osgQt is no longer shipped with OSG, we no longer needed Qt nor the
+GLESv1/2 support.
+https://salsa.debian.org/openscenegraph-team/openscenegraph-3.6/merge_requests/1
+I beg you, please either reverse the GLES decision in Qt or provide two
+separate packages for GL or GLES support.
+Cheers,
+Bret
+-----BEGIN PGP SIGNATURE-----
+Version: FlowCrypt 6.3.2 Gmail Encryption
+Comment: Seamlessly send and receive encrypted email
+wsFcBAEBCAAQBQJb+AtICRDCN3t9WEy5MAAAaK8QAIKCkxpHlsI2uVB+K9HE
+g1RFUShdMJWUtjgIZ6ngNshB1vqzbzQd6zOAxkJGo8ydO5yFYiIOtlc9pODx
+rUZOLob9M+XLkB5ISrYuNtOF22CpRreKhvFV8dDxiUkRLd6AI6G39KubpB/w
+WVYNFldg5u0CweGabUIBxKvkdS9NKSMMPbtSDsZP/jpNrRIxqX8rU3WfZfPu
+x7LPJGG7lNRzAAIAcZTphhbW+mlFfaxVXw5Qt0WLuhDDr8WLoM65SNHL5Zox
+mHTxVfoGDQoQv0OnL1ytqBpSLEksq7lZC3D+5XpjvxM8rPAVCk0Sa6FZ6mUy
+g6ktvP0BmWb/M+CfyzPYocfyD5VJMAXtVhc2KqC0AmlWgggGph8YxWkHK3yW
+dYxf9P65FBPtx4y5oX5OqVbvRPaLcOk9q8AgciAPZi1RgWqfou02wKCQqICk
+N2Un/8RUhJUfHBHxTusbLLqLLFtIw6VVwqoIed3jIFCjUP0QJCh/Nwk4UpxK
+714mxFVuJoaYFHQvLJOak8WbsDU6eGfs04sHM5AAfwJdO9pDRcKTMCP/Q4SC
+9Nvc/dYQpoXn+AAFvEHqPZKHYkngwQD2vijrwduD6Iu2eehVMnM4ck5FDDwg
++QNiZCukrkg2iayn/xrwguEtPmI8acK2ttCEElij38kOzIVsPyO6n3Je55Ax
+ZRKC
+=7v54
+-----END PGP SIGNATURE-----

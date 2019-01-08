@@ -1,0 +1,73 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Re: Forward porting a package
+From : "Boylan, Ross" <Ross.Boylan@ucsf.edu>
+Date : Tue, 9 May 2017 22:48:23 +0000
+Message-id : CY1PR05MB2666A8DCEE91BBCF6BEDD7A687EF0@CY1PR05MB2666.namprd05.prod.outlook.com
+In-reply-to : <[🔎] CY1PR05MB2666D8D74AA8A4C746497FDE87EF0@CY1PR05MB2666.namprd05.prod.outlook.com>
+References : <[🔎] CY1PR05MB2666D8D74AA8A4C746497FDE87EF0@CY1PR05MB2666.namprd05.prod.outlook.com>
+
+
+Thanks Ben and Chris for your suggestions.  I tried auto(re)conf and have worked through quite a few issues, though it seems many remain.  Maybe time for another approach, like running the old cyrus in a chroot.
+1. The macros in the project aclocal directory were not being included because a) missing AC_INCLUDE directive; b) they had extensions .ac instead of .m4; c) aclocal (the command) needs to be told about the directory explicitly even if it's in configure.ac (!?)--the manual says  to put a macro in the automake file, but since this project doesn't have one, I invoked aclocal from the command line with -I.
+With all those changes aclocal (command) kind of works, though I get warnings about underquoted macros and things like
+warning: AC_CACHE_VAL(lt_prog_compiler_pic_works, ...): suspicious cache-id, must contain _cv_ to be cached
+and
+warning: AC_LANG_CONFTEST: no AC_LANG_SOURCE call detected in body
+2. autoconf also runs, producing (at a quick glance) the same warnings.
+3. config fails at an earlier point than before with
+checking if /usr/lib/jvm/java-gcj/bin/javac works... yes
+checking for uudecode... no
+configure: WARNING: I have to compile Test.class from scratch
+checking if /usr/lib/jvm/java-gcj/bin/java works... yes
+checking for /usr/lib/jvm/java-gcj/bin/javac... no
+configure: error: cannot find JDK; try setting $JAVAC or $JAVA_HOME
+debian/rules:64: recipe for target 'build' failed
+make: *** [build] Error 1
+So /usr/lib/jvm/java-gcj/bin/javac works (first line above), but then fails at the end of the test.  The actual file is /usr/lib/jvm/java-1.5.0-gcj-4.9-amd64/bin/javac while the rules file has
+JAVA_BIN = /usr/lib/jvm/java-gcj/bin
+So this is starting to look llke a long trip.
+Other options that occur to me:
+1) Try using the build system from the current db5.3, but with the old 4.2 code.
+2) Try limiting the build to what I need, db4.2-util and presumably the libraries it needs
+3) Try build from upstream source.
+4) Revive old system enough to use the 4.2 libraries to either do their part of the upgrade or to convert the databases to a non-bdb format. I'm a little nervous about doing a chroot when the host system and the one in the chroot are from so many generations apart.   I can use some unionfs (aufs?) and mount the old stuff read-only for safety.
+Option 4 currently seems like the best bet.  Like all the others, it probably won't be as easy to do as to contemplate :)
+Ross
+________________________________________
+From: Boylan, Ross
+Sent: Tuesday, May 9, 2017 12:41:53 PM
+To: debian-devel@lists.debian.org
+Subject: Forward porting a package
+I am trying to build db4.2 in jessie, although the package is from wheezy.  I only need db4.2-util.  I got the source and modified changed tcl8.4 to tcl8.6 in rules and control.  But the build (invoked with dpkg-buildpackage) fails while running configure with
+checking size of char *... 0
+checking for off_t... no
+configure: error: No off_t type.
+debian/rules:64: recipe for target 'build' failed
+make: *** [build] Error 1
+There are also earlier warnings about some headers that are present but can not be compiled, as well as an apparent failure to find any of the standard types
+checking for inttypes.h... (cached) yes
+checking for char... no
+checking size of char... 0
+checking for unsigned char... no
+checking size of unsigned char... 0
+checking for short... no
+checking size of short... 0
+checking for unsigned short... no
+checking size of unsigned short... 0
+checking for int... no
+checking size of int... 0
+checking for unsigned int... no
+checking size of unsigned int... 0
+checking for long... no
+checking size of long... 0
+checking for unsigned long... no
+checking size of unsigned long... 0
+checking for size_t... no
+checking size of size_t... 0
+checking for char *... no
+checking size of char *... 0
+Any suggestions?  Would rerunning autoconf be likely to help?
+The help for "present but could not be compiled" indicates the relevant macros should be invoked with additional arguments, though I'm not sure what the missing files are.
+Context: I'm trying to migrate an old installation of cyrus and the upgrade process needs to use tools that match the bdb version it uses.
+Thanks for any assistance.  cc's appreciated.
+Ross Boylan

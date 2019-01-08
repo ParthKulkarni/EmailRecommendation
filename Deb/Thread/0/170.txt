@@ -1,0 +1,39 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Migration despite an RC bug?
+From : Don Armstrong <don@debian.org>
+Date : Tue, 3 Jan 2017 09:46:29 -0600
+Message-id : 20170103154629.GA12023@geta
+In-reply-to : <[🔎] 22635.45523.288493.760480@chiark.greenend.org.uk>
+References : <87r34q4sb8.fsf@debian.org> <b1e6c543-f8df-776d-f5c8-2c62b6b425db@debian.org> <1483050577@msgid.manchmal.in-ulm.de> <20161230234212.7xmev4ypocwbcuwg@qor.donarmstrong.com> <22631.5956.713311.881259@chiark.greenend.org.uk> <20161231210150.5lna7qx65hyrcpdf@qor.donarmstrong.com> <[🔎] 22635.45523.288493.760480@chiark.greenend.org.uk>
+
+
+On Tue, 03 Jan 2017, Ian Jackson wrote:
+> The result is that you ignore nonzero exit status from your
+> decompression program. My theory for the incident we are discussing is
+> that your decompressor got a SIGTERM, and your script got EOF on the
+> pipe.
+Yeah, this is likely it. Thanks for catching that; I'll fix this
+codepath shortly.
+> Also, have you checked whether your DB library properly throws errors
+> on writes to a tied hash ?
+I don't know whether it does or not; I went looking to see whether you
+could trap errors on untie(), and untie doesn't return anything useful
+that you can check.
+> Also, I'm not sure why it would be "incredibly slow". In a
+> singlethreaded cpubound task (the worst case) I wouldn't expect worse
+> than a 50% slowdown.
+I wouldn't have expected that either, but it appeared to be 4-5 times
+slower than the equivalent code with fork a decompressor, which is why I
+swapped it out. [I didn't bother to benchmark them, because the
+differences between them was so stark.]
+> Finally, examples/debian/versions/update-mldbm starts with
+>   #! /bin/sh -e
+> I would normally use `set -e' instead, because foolish people
+> sometimes run scripts by saying `bash /path/to/script' or `sh
+> /path/to/script'.  (This doesn't seem to be a problem in debbugs.)
+Yeah, the -e was inherited, but it has both as you note.
+-- 
+Don Armstrong                      https://www.donarmstrong.com
+"The trouble with you, Ibid" he said, "is that you think you're the
+biggest bloody authority on everything"
+ -- Terry Pratchet _Pyramids_ p146

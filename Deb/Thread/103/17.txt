@@ -1,0 +1,72 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Paul Gevers <elbrus@debian.org>
+Date : Fri, 13 Jan 2017 23:08:11 +0100
+Message-id : 1854659a-b021-2382-6f3d-fd9390186e28@debian.org
+In-reply-to : <[🔎] 87a8au20ad.fsf@debian.org>
+References : <[🔎] 22649.6909.709941.18707@chiark.greenend.org.uk> <[🔎] 20170113193510.ygehzkrm7trmib2v@perpetual.pseudorandom.co.uk> <[🔎] 87a8au20ad.fsf@debian.org>
+
+
+Hi Ole,
+On 01/13/17 21:05, Ole Streicher wrote:
+> Simon McVittie <smcv@debian.org> writes:
+>> On Fri, 13 Jan 2017 at 18:22:53 +0000, Ian Jackson wrote:
+>>> Maybe an intermediate position would be to respond to a CI failure by:
+>>>  * Increasing the migration delay for the affecting package
+I like this and will suggest it to the release team. Especially for the
+start up time.
+>>>  * Notifying the affected package maintainers
+>>
+>> I think this makes sense: it gives the maintainer and other interested
+>> developers some time to assess whether the failure is a showstopper
+>> (=> upload a fix/revert/workaround, or at worst file a RC bug) or not.
+>>
+>> Or, conversely, blocking migrations but letting the relevant maintainers
+>> remove that block might work.
+One can always file bug reports against the release.debian.org pseudo
+package to ask for britney to ignore the autopkgtest result. One other
+thing that I can envision (but maybe to early to agree on or set in
+stone) is that we lower the NMU criteria for fixing (or temporarily
+disabling) autopkgtest in ones reverse dependencies. In the end,
+personally I don't think this is up to the "relevant maintainers" but up
+to the release team. And I assume that badly maintained autopkgtest will
+just be a good reason to kick a package out of testing.
+On the item of notifications, I would expect that as soon as we have
+this mechanism in place we would implement the notification on all the
+actively maintained notification places, such as tracker.debian.org and
+udd. This isn't much different than other migration criteria or
+auto-removals in that respect.
+> What is the reason not to use automated bug reports here? This would
+> allow to use all the tools the bug system has: severities, reassigning
+> closing etc.
+The largest reason is that it didn't cross my mind yet and nobody else
+except you has raised the idea so far. One cravat that I see though is
+which system should hold the logic. The current idea is that it is
+britney that determines which combinations need to be tested and thus
+can use the result straight away for the migration decision. As Martin
+Pitt described in the thread I referenced in my first reply, Ubuntu
+already experimented with this and they came to the conclusion that it
+didn't really work if two entities have to try and keep the logic in sync.
+>> Possible autopkgtest extension: "Restrictions: unreliable"?
+> 
+> This is not specific enough. Often you have some tests that are
+> unreliable, and others that are important. Since one usually takes the
+> upstream test suite (which may be huge), one has to look manually first
+> to decide about the further processing.
+Than maybe change the wording: not-blocking, for-info, too-sensitive,
+ignore or .... If you know your test suite needs investigation, you can
+have it not automatically block. But depending on the outcome of the
+investigation, you can still file (RC) bugs.
+Why I am so motivated on doing this is because I really believe this is
+going to improve the quality of the release and the release process. I
+really hope that more packages will be creating autopkgtests, as one now
+has an incentive: it helps guaranteeing that you package will not
+suddenly be kicked out of the release due to a change in your
+dependencies. Personally, one of my autopkgtest has triggered a change
+in MySQL (upstream even) to not suddenly drop some command line option,
+but implement a deprecation period. Software was relying on the behavior
+and in this case there wasn't a grace period. I am not sure that without
+this "stick" it would have happened (and definitely not in time for the
+specific Ubuntu release).
+Paul
+signature.asc
