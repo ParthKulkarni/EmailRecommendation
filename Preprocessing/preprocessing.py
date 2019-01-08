@@ -1,5 +1,5 @@
 import glob
-from flanker import mime
+# from flanker import mime
 import re
 import spacy
 
@@ -113,32 +113,32 @@ class preprocess:
 				article = ''
 		return skl_texts
 
-	def extract_mail_body(self, msg):
-		rt = ''
-		msg = mime.from_string(msg)
-		if msg.content_type.is_singlepart():
-			temp = str(msg.body)
-			temp = temp.splitlines()
-			for _ in temp:
-				if _.startswith('>'):
-					continue
-				elif _.startswith('On'):
-					continue
-				else:
-					rt+=_+"\n"
-		else :
-			for part in msg.parts :
-				if "(text/plain)" in str(part) :
-					temp = str(part.body)
-					temp = temp.splitlines()
-					for _ in temp :
-						if _.startswith('>') :
-						  continue
-						if _.startswith('On'):
-						  continue
-						else :
-						  rt+=_+"\n"
-		return rt
+	# def extract_mail_body(self, msg):
+	# 	rt = ''
+	# 	msg = mime.from_string(msg)
+	# 	if msg.content_type.is_singlepart():
+	# 		temp = str(msg.body)
+	# 		temp = temp.splitlines()
+	# 		for _ in temp:
+	# 			if _.startswith('>'):
+	# 				continue
+	# 			elif _.startswith('On'):
+	# 				continue
+	# 			else:
+	# 				rt+=_+"\n"
+	# 	else :
+	# 		for part in msg.parts :
+	# 			if "(text/plain)" in str(part) :
+	# 				temp = str(part.body)
+	# 				temp = temp.splitlines()
+	# 				for _ in temp :
+	# 					if _.startswith('>') :
+	# 					  continue
+	# 					if _.startswith('On'):
+	# 					  continue
+	# 					else :
+	# 					  rt+=_+"\n"
+	# 	return rt
 
 
 if __name__ == '__main__':
