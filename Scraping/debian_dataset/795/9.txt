@@ -1,0 +1,47 @@
+To : debian-devel@lists.debian.org
+Subject : Re: ISO download difficult
+From : Michael Stone <mstone@debian.org>
+Date : Tue, 5 Dec 2017 06:41:11 -0500
+Message-id : 7672072e-d9b0-11e7-9b6a-00163eeb5320@msgid.mathom.us
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 5a63f92e-f5f6-8200-54a8-a42399f9f972@freesources.org>
+References : <[🔎] CAKTje6HYXv+vXS2WuvD0jQ9-4gjbBB5G6Pmif20JpB0TSMjQyg@mail.gmail.com> <[🔎] 20171201143912.Horde.LXKuzjkWahyF5ff1oAdnINm@webmail.in-berlin.de> <[🔎] 20171201180527.il7zjljdai3wd6bb@gwolf.org> <[🔎] 20171202104932.dbesze6efeivda2i@layer-acht.org> <[🔎] 20171202113229.GP21645@gpm.stappers.nl> <[🔎] CABrpZ2az6Omjm7d_wx8_xR9uJ8XSbv1OLRGuhFbCLBmq+Y6mqg@mail.gmail.com> <[🔎] E1eLWKa-0002z7-Op@swivel.zugschlus.de> <[🔎] 20171204163447.GA13326@chew> <[🔎] CAKTje6Eay1w3y=r8JaLzKszhXe23=Z8PLuDcFg0ydy3tiF5R9A@mail.gmail.com> <[🔎] 5a63f92e-f5f6-8200-54a8-a42399f9f972@freesources.org>
+
+
+On Tue, Dec 05, 2017 at 08:04:47AM +0100, Jonas Meurer wrote:
+Leaving aside whether the mechanism works at all, take a look at the 
+rest of the documentation and ponder what a new user should make of it.  
+(For example, if he follows the directions, is he getting "loose 
+firmware files" or a "firmware package"? Will his system get updated?  
+How does he figure out the difference? And what the heck is a kernel?) 
+Anyway, try to read the following with your "new naive user" hat on:
+debian-installer only prompts for firmware needed by kernel modules 
+loaded during the installation. Not all drivers are included in 
+debian-installer, in particular radeon is not, so this implies that the 
+capabilities of some devices may be no different at the end of the 
+installation from what they were at the beginning. Consequently, some of 
+your hardware may not be being used to its full potential. If you 
+suspect this is the case, or are just curious, it is not a bad idea to 
+check the output of the dmesg command on the newly booted system and 
+search for “firmware”. 
+...
+Any firmware loaded during the installation will be copied 
+automatically to the installed system. In most cases this will ensure 
+that the device that requires the firmware will also work correctly 
+after the system is rebooted into the installed system. However, if the 
+installed system runs a different kernel version from the installer 
+there is a slight chance that the firmware cannot be loaded due to 
+version skew.
+If the firmware was loaded from a firmware package, debian-installer 
+will also install this package for the installed system and will 
+automatically add the non-free section of the package archive in APT's 
+sources.list. This has the advantage that the firmware should be updated 
+automatically if a new version becomes available.
+If loading the firmware was skipped during the installation, the 
+relevant device will probably not work with the installed system until 
+the firmware (package) is installed manually.
+If the firmware was loaded from loose firmware files, the firmware 
+copied to the installed system will not be automatically updated unless 
+the corresponding firmware package (if available) is installed after the 
+installation is completed. 
+Note

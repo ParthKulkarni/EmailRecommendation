@@ -1,0 +1,43 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#862698: ITP: minecraft -- blocks to build anything you can imagine
+From : Russ Allbery <rra@debian.org>
+Date : Tue, 16 May 2017 09:58:11 -0700
+Message-id : 87tw4kbuxo.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20170516061847.dovcm3egwtzspapi@perpetual.pseudorandom.co.uk>	(Simon McVittie's message of "Tue, 16 May 2017 07:19:10 +0100")
+References : <[🔎] 149488443434.9640.13876102601062920746.reportbug@riseup.net>	<[🔎] 20170516061847.dovcm3egwtzspapi@perpetual.pseudorandom.co.uk>
+
+
+Simon McVittie <smcv@debian.org> writes:
+> If this package downloads proprietary files automatically, here are some
+> issues that should be considered:
+> * minimizing amount of code run as root (downloading the Minecraft
+>   launcher per-user is probably better - the launcher will download
+>   Minecraft itself once per user anyway, so sharing files between users
+>   to reduce disk space usage is not straightforward)
+> * not executing code that was not obtained in a way that can be trusted:
+>   downloading via https with correct certificate validation, or checking
+>   the launcher against known-good cryptographic hashes like
+>   game-data-packager does, or similar
+> * not preventing offline apt updates in which packages are downloaded
+>   while online, then installed at a later time without Internet access
+> game-data-packager/doc/why.mdwn might be interesting reading.
+Another thing that would be a really neat addition to a wrapper around
+Minecraft would be to run it inside a restrictive namespace by default.
+Minecraft has a pretty well-understood file access pattern, and there's
+really no reason to allow it to read, say, your Firefox cookie database,
+or something else that's in your home directory.  You could probably also
+cut off quite a lot of syscalls with seccomp without changing the
+functionality.
+I played around with configurations for a server and can confirm that the
+following systemd jailing configuration works for the server, but I'm
+quite sure that one could get more restrictive than this with some work
+(for example, I didn't even start on syscall filtering).
+PrivateUsers=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+NoNewPrivileges=true
+ProtectKernelModules=true
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

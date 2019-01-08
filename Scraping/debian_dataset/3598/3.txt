@@ -1,0 +1,43 @@
+To : debian-devel@lists.debian.org
+Subject : The value of unmodified conffiles left on disk of removed, but not purged, packages
+From : Dimitri John Ledkov <xnox@debian.org>
+Date : Sun, 25 Feb 2018 22:20:16 +0000
+Message-id : CANBHLUiAMN3Hqqog5PDuDLxRu2_W7=y+NrXUOFymxtc0fADLLg@mail.gmail.com
+
+
+Recently, in Ubuntu we have discovered the following upgrade fallout.
+On xenial -> bionic upgrades, upstart binary package was removed but
+not purged. As it's no longer needed for the installation, and upstart
+binary package is no longer shipped in bionic.
+However, the conffiles are left on disk, despite said conffiles being
+un-modified by the user. Purging, and reinstalling the package would
+bring back the identical conffiles.
+A couple of conffiles were /etc/X11/Xsession.d/00upstart and
+/etc/X11/Xsession.d/99upstart which assumed that upstart would be
+alwasy be available, and in bionic after the above described update
+started to error out, and prevent gdm3 from completing a login.
+I believe it has been discussed before what to do with conffiles, of
+packages that are gone from the archive, have been removed on the
+system and are in rc state, and still ship left over conffiles, that
+have become harmful.
+For the above case, I'm adding .maintsript stanzas into an unrelated
+package (xorg) to forcefully clean up upstart's conffiles, even if
+upstart in rc state.
+But this makes the question the value of keeping conffiles, on disk,
+of the removed packages, especially for the case where these conffiles
+are not modified / are identical to what was shipped in the deb.
+Surely, there is no value in keeping them on disk, and unmodified
+conffiles should be removed, upon package removal.
+Thoughts?
+Maybe, this idea can be pushed further, and maybe modified conffiles
+should be renamed, upon package removal, or like stashed somewhere in
+/var/lib/dpkg/info/removed-packages-conffiles-stashed-tree/
+Alternatively, should a package be able to declare a ConflictPurged:
+stanza, such that one conflicts with listed packages even if they are
+in 'rc' state, and thus request for a list of packages to be purged.
+For the above case, I would state that in Ubuntu systemd package
+should ConflictPurged: upstart, to insure that upstart is purged upon
+upgrades.
+-- 
+Regards,
+Dimitri.

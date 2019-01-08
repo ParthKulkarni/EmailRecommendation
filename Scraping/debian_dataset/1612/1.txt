@@ -1,0 +1,54 @@
+To : Afif Elghraoui <afif@debian.org>
+Subject : Re: question about build profile nocheck
+From : Wookey <wookey@wookware.org>
+Date : Thu, 2 Nov 2017 03:19:08 +0000
+Message-id : 20171102031907.hs7tnllu32773e22@mail.wookware.org
+Mail-followup-to : Afif Elghraoui <afif@debian.org>,	Debian Developers <debian-devel@lists.debian.org>
+In-reply-to : <[🔎] bc1b7362-5e9c-1ceb-ac0a-6ee1b4259c83@debian.org>
+References : <[🔎] bc1b7362-5e9c-1ceb-ac0a-6ee1b4259c83@debian.org>
+
+
+On 2017-11-01 21:46 -0400, Afif Elghraoui wrote:
+> Hello,
+> 
+> The BuildProfileSpec on the wiki [1] defines the `nocheck` profile as:
+> 
+> 
+> > No test suite should be run, and build dependencies used only for that
+> purpose should be ignored. Builds that set this profile must also add
+> `nocheck` to `DEB_BUILD_OPTIONS`
+> ```
+> 
+> I understand this as saying that the debhelper step for dh_auto_test or
+> override_dh_auto_test would be automatically skipped if this profile is
+> defined. Am I mistaken? 
+Yes. Somewhat discussed in https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=568897
+and marked willnotfix.
+Debhelper doesn't automagically do anything due to profiles SFAIK.
+Hmm. actually it recently learned how to do nodoc automatically:
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=865869
+so having started down that slippery slope maybe it's time to ponder
+568897 again as its under new management :-) 
+> I'm asking because I've seen the following
+> pattern in a couple of packages already:
+> 
+> ```
+> ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
+> override_dh_auto_test:
+> 	commands...
+>         commands...
+> else
+> override_dh_auto_test:
+> endif
+> ```
+Right, I generally expect the packaging to have to deal with
+DEB_BUILD_OPTIONS, which deals with actions. DEB_BUILD_PROFILES deals
+with dependencies (so dpkg and apt do some things automagically for
+you).
+Helmut and Josch have a lot more to with this recently than me and
+will no doubt be along soon with chapter and verse.
+Wookey
+-- 
+Principal hats:  Linaro, Debian, Wookware, ARM
+http://wookware.org/
+signature.asc

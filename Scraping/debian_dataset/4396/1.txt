@@ -1,0 +1,42 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Package not compatible with old systemd
+From : Michael Biebl <biebl@debian.org>
+Date : Tue, 18 Sep 2018 12:00:31 +0200
+Message-id : d40a474c-67f2-a134-49ba-bba488dd5cf0@debian.org
+In-reply-to : <[🔎] CAOO6c=zLXskYaLh92668mB9Z1KwH545YjehPiVrnqSYBT00N3w@mail.gmail.com>
+References : <[🔎] CAOO6c=zLXskYaLh92668mB9Z1KwH545YjehPiVrnqSYBT00N3w@mail.gmail.com>
+
+
+Am 18.09.18 um 09:21 schrieb Ondrej Novy:
+> Hi,
+> 
+> my package src:swift is not compatible with old systemd, because I'm
+> using CacheDirectory in unit file. CacheDirectory is supported from
+> systemd 235.
+> 
+> I think correct solution is to add to binary package this relation:
+> Breaks: systemd (<< 235~)
+> 
+> Thomas Goirand (zigo) said it's wrong and correct solution is:
+> Depends: systemd (>= 235~) | sysv-init | openrc
+> 
+> I don't currently depend on systemd, or any other init system.
+> 
+> I think my solution is correct, because Swift works with any init system
+> and I want to only say "it doesn't work with older systemd". I don't
+> think it's correct to list all possible init systems in Depends.
+> 
+I assume you (re)start your service in postinst? In this case you need a
+running systemd >= 235 at that point.
+We do re-exec systemd in postinst, but a versioned Breaks or Conflicts
+does not give you the guarantee that systemd.postinst has run before
+your postinst.
+This is not an issue for distros which do offline updates, but for
+online updates this is problematic.
+My advice would be, to only use features that systemd from stable provides.
+Regards,
+Michael
+-- 
+Why is it that all of the instruments seeking intelligent life in the
+universe are pointed away from Earth?
+signature.asc

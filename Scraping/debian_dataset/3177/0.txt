@@ -1,0 +1,95 @@
+To : Adrian Bunk <bunk@debian.org>, 895246@bugs.debian.org
+Subject : Re: Bug#895246: gconf: Intent to Adopt
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 9 Apr 2018 16:12:47 +0100
+Message-id : 20180409151247.GA11246@espresso.pseudorandom.co.uk
+In-reply-to : <152321518327.18496.7314297692525791091.reportbug@localhost>
+References : <152321518327.18496.7314297692525791091.reportbug@localhost>
+
+
+(I don't speak for the GNOME team, or for Josselin, who is officially
+this package's maintainer; please don't assume I do.)
+On Sun, 08 Apr 2018 at 22:19:43 +0300, Adrian Bunk wrote:
+> I hereby declare my intent to adopt gconf.
+Thank you for offering to take over this package. Do you also intend
+to adopt these related packages?
+- src:gconf-editor (which depends on gconf and is useless without it;
+  currently maintained by the GNOME team)
+- src:orbit2 (orphaned library needed by gconf)
+- src:libidl (orphaned library needed by orbit2)
+- various language bindings for gconf
+All are equally dead upstream (or more so in some cases) as far as I
+can tell.
+Do you use software that relies on gconf yourself/are you able to test it?
+I recently converted gconf's svn repository to git,
+<https://salsa.debian.org/gnome-team/gconf>, along with a batch of other
+svn repositories where the first round of imports via reposurgeon had
+failed. Anything else that is currently maintained by the GNOME team
+(notably gconf-editor) should be in git too, and that's almost certainly
+a better starting point than the svn repositories currently listed in
+their Vcs-* fields. I don't think orbit2 and libidl were ever maintained
+by pkg-gnome, and they probably did't have a VCS before they were orphaned.
+A gnome-team Owner or a salsa sysadmin might be able to move gconf into
+another namespace on salsa while leaving redirects behind, if that's
+something you'd find useful.
+> This is about keeping software that is long dead upstream but
+> has reverse dependencies longer on life support.
+My concern about keeping packages like gconf in Debian, rather than
+removing them, is that keeping significant amounts of unmaintained
+software in Debian is an ongoing time- and attention-sink for contributors
+doing archive-wide QA, and a distraction for users looking for software
+of interest.
+For contributors: every time a package that hasn't had upstream
+development for a few years fails to build during a transition, or
+needs fixes for a new architecture, or has RC bugs that someone looks
+at during a BSP, it takes a little bit more of several contributors'
+time and attention (even if the only attention it gets is to look at the
+package, realise it hasn't changed significantly in a decade, and decide
+to prioritize something different). Software that depends on gconf isn't
+*directly* an indication of something terribly bad, but it's reasonably
+well correlated with the dependent software also being unmaintained or
+undermaintained upstream. Each individual package blocking a transition,
+and each individual RC bug, doesn't necessarily take much time and
+attention, but it adds up over time, and I'm concerned that the long
+tail of GNOME-2-based packages might be collectively and cumulatively
+taking more time and attention than it deserves. In the case of gconf,
+it's had about 8 years of deprecation. If you keep gconf and its rdeps on
+life support until buster, how much do you expect the dependent packages
+to have changed by the time we get to the bullseye freeze? If you keep
+them going until bullseye, is the situation going to have improved for
+bullseye+1? And so on. If the upstream maintainer of some software has
+abandoned it, we can keep it alive for a while, but I don't think it's
+healthy for Debian to take over for multiple of our release cycles[1].
+For users: having a "long tail" of undermaintained software is both
+a strength and a weakness. It's a strength because we get to say we
+provide a vast amount of software, some of it very specialized. It's
+a weakness because it drags down the average level of quality of the
+results of a search for packages: if we have (say) two well-maintained
+implementations of a particular class of package, we'd probably prefer
+users to find only those two in a search, and not find them listed among
+multiple poorly-maintained implementations. This requires some
+value-judgement/curation, which Debian has historically not been great at.
+One way this could perhaps be mitigated is by improving how we mark
+deprecated and obsolescent packages, and as a small starting point for
+that I've just opened a ftp-master bug to get gconf and gconfmm moved to
+oldlibs (I hadn't realised they were still in libs). Better Description
+fields might also help, but the sort of libraries that we don't want
+new code using are exactly the sort of libraries where rewriting the
+Description isn't high on anyone's priorities. Ideally this would have
+happened back in 2010 when gconf was deprecated, of course, but
+hindsight is always clearer.
+If we had bikesheds, PPAs or an equivalent of Ubuntu universe, I'd
+suggest moving unmaintained/undermaintained packages to one of those
+to indicate that users shouldn't have the same quality expectations,
+but we don't currently have that facility.
+If, bearing all that in mind, you still think Debian is better with
+gconf than without it, then I'm not going to try to prevent you from
+maintaining it. (Again, I don't speak for the GNOME team.)
+    smcv
+[1] The situation is rather different if someone (possibly the Debian
+    maintainer) *becomes* the new upstream developer: at least that
+    way any other distributions that still ship that package have a
+    natural place to coordinate and share improvements. This seems
+    to have happened for sysvinit recently, after a long period where
+    each distro that booted with sysvinit effectively had its own fork,
+    and I think that's a good thing to have happened.

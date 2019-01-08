@@ -1,0 +1,61 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian Stretch new user report (vs Linux Mint)
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Thu, 7 Dec 2017 04:39:56 +0100
+Message-id : 20171207033956.f3cb7lblfw5a7niq@angband.pl
+In-reply-to : <[🔎] CAKTje6EGaW=_M9KyoFmc5qhti8v+_gON9F3+bMwJ8JiLovnDbw@mail.gmail.com>
+References : <[🔎] CAKTje6HYXv+vXS2WuvD0jQ9-4gjbBB5G6Pmif20JpB0TSMjQyg@mail.gmail.com> <[🔎] 20171204180314.23tjibyvko7plcos@layer-acht.org> <[🔎] 648f703a-6b9e-067f-1258-f715105c50ee@philkern.de> <[🔎] 2066265.X7fRo6Q3d4@odyx.org> <[🔎] CAKTje6EGaW=_M9KyoFmc5qhti8v+_gON9F3+bMwJ8JiLovnDbw@mail.gmail.com>
+
+
+On Wed, Dec 06, 2017 at 10:05:51AM +0800, Paul Wise wrote:
+> On Wed, Dec 6, 2017 at 1:46 AM, Didier 'OdyX' Raboud wrote:
+> 
+> > * splitting non-free in subsets;
+> > * adding a non-free-firmware area;
+> 
+> I think we don't want either of these, instead we should *add*
+> additional Packages files for each of the classes of non-free things
+> that people want to be able to isolate from the rest of non-free,
+> "firmware" being the first one and probably the only one.
+> 
+> After talking with the apt maintainers on IRC and some
+> experimentation, I think this is doable and it definitely does not
+> require the GR process.
+> 
+> The parts that need to be patched seem to be:
+> 
+> Each firmware package to use 3-part Section fields like
+> non-free/firmware/sound. Initially dak could override all of the
+> packages we want in that subcomponent.
+It might be less disruptive to add a new field like Subsection; that'd avoid
+the need to change any of archive tools -- including ones not used on the
+official archive, like reprepro.
+> dak for dealing with 3-part Section fields, adding the new
+> non-free/firmware component, generating the new Packages files and
+> adding them to Release files.
+Turns out you don't need to mess with dak; it's an one-liner to produce such
+a Packages file:
+grep-dctrl -FDescription firmware /var/lib/apt/lists/apt.angband.pl:3142_debian_dists_unstable_non-free_binary-amd64_Packages
+(Obviously, this should be ｢-FSubsection firmware｣ or [-FTag use::firmware｣
+or whatever way you want to mark subsets.)
+Then you generate Release and sign it.
+Obviously encapsulating such a feature as an option of dak would be
+reasonable, but it's in no way dak exclusive.
+> d-i for adding the non-free/firmware component instead of non-free.
+> 
+> Possibly aptitude/packages.d.o/lintian for dealing with 3-part Section fields.
+Apt (and aptitude) should work flawlessly: there's security.debian.org
+jessie/updates, and we had non-free/non-us in the past.
+> Policy for describing 3-part Section fields and listing allowed ones.
+> 
+> Alternatively, we could end the conflation between the Section and
+> Components but that would require more changes.
+Because Section: implies an unique section, while we want the same package
+to be present in both non-free and non-free/firmware, I'd suggest
+Subsection: or abusing debtags instead.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 14:13 < icenowy[m]> are they hot enough? ;-)
+⣾⠁⢰⠒⠀⣿⡁ 14:17 < icenowy[m]> I think now in Europe it should be winter? Let
+⢿⡄⠘⠷⠚⠋⠀                     the BPi warm you ;-)
+⠈⠳⣄⠀⠀⠀⠀ 14:17 <@KotCzarny> yeah, i have a pc to warm me ;)

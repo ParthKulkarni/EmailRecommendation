@@ -1,0 +1,64 @@
+To : Sébastien Villemot <sebastien@debian.org>
+Subject : Re: RFC: Naming convention for ILP64 variant of BLAS/LAPACK
+From : Mo Zhou <lumin@debian.org>
+Date : Tue, 23 Oct 2018 14:17:50 +0000
+Message-id : 20181023141749.GC10165@Asuna
+In-reply-to : <[🔎] 1540230910.2345.2.camel@debian.org>
+References : <[🔎] 20181021095114.GA24382@Asuna> <[🔎] 20181021151615.6ipnkpz3bmlncoh7@shell.thinkmo.de> <[🔎] 20181021175116.frpge6rogmut4fm4@mail.wookware.org> <[🔎] 20181022150709.GB18121@Asuna> <[🔎] d950b9a242315288cba488847b279a8191132eb7.camel@decadent.org.uk> <[🔎] 20181022173823.GA13554@espresso.pseudorandom.co.uk> <[🔎] 1540230910.2345.2.camel@debian.org>
+
+
+Hi Sebastien,
+Two in the audience are object to the "-ilp64" naming convention.
+Then how about this?
+src:openblas
+ bin:libblas-base   (...)
+ bin:libblas-dev    (...)
+ bin:libblas64-base (filename=libblas64.so.3, SONAME=libblas64.so.3,
+                     provides=libblas64.so.3-x86_64-linux-gnu)
+ bin:libblas64-dev  (...)
+* Unlike Fedora or Julia upstream, we don't mangle symbol names.
+On Mon, Oct 22, 2018 at 07:55:10PM +0200, Sébastien Villemot wrote:
+> Le lundi 22 octobre 2018 à 18:38 +0100, Simon McVittie a écrit :
+> > On Mon, 22 Oct 2018 at 18:17:32 +0100, Ben Hutchings wrote:
+> > > On Mon, 2018-10-22 at 15:07 +0000, Mo Zhou wrote:
+> > > > Here are some references:
+> > > > 
+> > > > 1. https://software.intel.com/en-us/mkl-linux-developer-guide-using-the-ilp64-interface-vs-lp64-interface
+> > > > 
+> > > >    The Intel MKL ILP64 libraries use the 64-bit integer type (necessary
+> > > >    for indexing large arrays, with more than 231-1 elements), whereas
+> > > >    the LP64 libraries index arrays with the 32-bit integer type.
+> > > 
+> > > [...]
+> > > 
+> > > The correct C types for indexing arrays are ptrdiff_t and size_t. 
+> > > These are already 64-bit in LP64 ABIs.  So this seems like a workaround
+> > > for code using the wrong types.
+> > 
+> > Do BLAS/LAPACK really mean ILP64, or do they really mean "ABI with large
+> > array indexes"?
+> 
+> The latter. This is why I think that "ILP64" is a misnomer, and should
+> not be used for labeling the newly introduced libraries.
+> 
+> The ambiguity arises from the fact that some BLAS/LAPACK
+> implementations are written in Fortran, and use the default integer
+> type for array indexes. Hence the solution is to compile them with
+> -fdefault-integer-8. But this does not mean that this code is really
+> ILP64, because it's not C and hence it does not uses the C ABI. Only
+> integers exposed through the BLAS/LAPACK ABI are affected (most of them
+> are array indices, the remaining others are return codes).
+> 
+> For BLAS/LAPACK implementations implemented in C, like OpenBLAS, they
+> will be compiled using LP64, and not ILP64. Only integers exposed
+> through the interface will be affected, through the use of appropriate
+> types.
+> 
+> 
+> Best,
+> 
+> -- 
+> ⢀⣴⠾⠻⢶⣦⠀  Sébastien Villemot
+> ⣾⠁⢠⠒⠀⣿⡁  Debian Developer
+> ⢿⡄⠘⠷⠚⠋⠀  http://sebastien.villemot.name
+> ⠈⠳⣄⠀⠀⠀⠀  http://www.debian.org

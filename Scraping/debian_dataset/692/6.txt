@@ -1,0 +1,84 @@
+To : debian-devel@lists.debian.org
+Subject : Re: init system agnosticism [WAS: how to remove libsystemd0 from a live-running debian desktop system]
+From : "Enrico Weigelt, metux IT consult" <enrico.weigelt@gr13.net>
+Date : Fri, 14 Apr 2017 19:05:33 +0200
+Message-id : e617d1a4-402d-4939-d625-fc05d2dd64e7@gr13.net
+In-reply-to : <[🔎] 7ba9b4d2-4360-a5ec-4099-5ecb13b1e9a7@free.fr>
+References : <CAPweEDz_Q8aGEawfyXv9tdU6VUS1Auk8kvBq3vJK0PhBcU5bOQ@mail.gmail.com> <CAPweEDyyYuEtkrjbUpkJ=52NDBnqHfZvw_ZLSZ5b+NHoXQMxbg@mail.gmail.com> <54E37F1C.8030309@fastmail.fm> <[🔎] 55a1655c-4e3b-78bc-b36b-8a09310223ad@gr13.net> <[🔎] 87d1ch5flr.fsf@hope.eyrie.org> <[🔎] 7ba9b4d2-4360-a5ec-4099-5ecb13b1e9a7@free.fr>
+
+
+On 13.04.2017 11:27, Vincent Danjean wrote:
+>   For me, the first argument explain in the first mail is not this one.
+> systemd is not portable on lots of system (hurd, kFreeBSD, ...), 
+This is just one of many arguments for not making applications
+depending on it. (and they shouldn't depend on any other init system
+either).
+Regarding service status reporting, systemd folks indeed make a good
+point. There is some demand for that, and they solved the problem for
+their audience (unfortunately only for *their* audience), and moved
+one to the next topic. For a prototype that's really fine, but not
+for long term maintenance over dozens of different platforms.
+Now stating, everybody should just implement their interfaces is just
+like asking everybody to implement it in the windows way (NT came up
+with it's entirely own service management system, which works quite
+well, as long as you're confined within the windows world)
+> systemd is not interested in making its code portable, nor to stabilize
+> its interfaces so that other system init can easily implement them,
+Well, that's their choice, and I respect that. It's just not mine.
+I don't wanna be forced into their ways (as I wouldn't ever try to
+force them into mine). So, I'm looking for a *generic solution* for the
+actual problem, which that functions ins libsystemd aimed to solve,
+so applications can just use them, w/o ever having to care which init
+system might be installed (or if there even is one at all)
+> lots of applications are now using libsystemd to get 'classical' information
+> (status, ...) because they do not want to have to deal with several init
+> system 
+Exactly. They're just looking for some API for that stuff, not caring
+what it actually does under the hood. And systemd just happens to
+provide one. From the application developer's pov systemd is filling
+some gap, and they dont even wanna care about the consequences.
+So, it's up to us, to provide a better solution - just telling how bad
+systemd is, isn't just enought (from their perspective).
+> and porters of platforms not supported by systemd have a really hard
+> work to follow systemd developments and patch all things.
+Exactly. For some arbitrary application developer (who usually doesn't
+even know much about packaging, etc), it's hard to understand the
+underlying problem - they just want something they can set their code
+ontop (that's also the reason why all these strange proprietary
+platforms can even exist). So, it's up to us, who know better, to give
+them something they can work with, and that doesn't cause all the
+trouble that Lennartware does.
+>   From your mail, you seems to deny this issue ("everybody can be pleased
+> with systemd" and/or "this is not a general problem, just a problem
+> from people that dislike systemd"). For what I see, it seems a problem
+> also for people that like systemd but cannot use it on their plate-form
+> (Hurd, ...)
+Right, it's basicly the same old "shut up and go away" attitude.
+Actually, many people already went away, and more will follow.
+If it goes on that way, we'll end up w/ an own OS called systemd, which
+is as far away from GNU/Linux as Android. Do you folks really want that
+or did you just ran out of better ideas ?
+>   I'm persuaded that ignoring this issue will lead to an unmaintanable
+> Debian distribution on platforms that do not support systemd in the
+> middle/long term. But, perhaps, it is what the project wants.
+That, in turn, would lead to Debian step by step defeating its own
+original goals. I'm pretty sure that it won't take long for lots of
+other things (beginning w/ other kernels) are dropped, just because
+nobody is willing to keep it compatible w/ systemd.
+>   Enrico is proposing something else. I'm not sure if his proposal is
+> good and doable (ie with enough support from various parties and
+> manpower).
+If we get out of the ideologic war (including the upstreams, too),
+it wouldn't be such a big deal. A minimal implementation the proposed
+library is quite simple and small. We'd just have to touch a bunch of
+applications and rewrite a few lines there - and once it works and
+included in a major distro, we have good chances for convincing
+upstreams to take our patches in. And I'm sure, Devuan folks, which
+had been driven out of Debian, will help here, too.
+Yes, somebody needs to maintain the systemd-version/branch - but as the
+library interface will be stable (it's scope is quite limited, so there
+wont be much desire to add anything new). So, we at least have the
+overhead of keeping up w/ systemd minimized and centralized in one
+small lib. Maybe even someday systemd folks have some moment of insight
+and take that part into their hands.
+--mtx

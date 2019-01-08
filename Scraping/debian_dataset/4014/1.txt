@@ -1,0 +1,109 @@
+To : debian-devel@lists.debian.org
+Subject : Re: wicd-daemon-run_1.0_amd64.changes REJECTED
+From : Dmitry Bogatov <KAction@debian.org>
+Date : Wed, 28 Nov 2018 18:48:05 +0000
+Message-id : E1gS4sZ-0006Cf-Ve@eggs.gnu.org
+In-reply-to : <E1gRiaf-00054N-Ul@fasolo.debian.org>
+References : <E1gRiaf-00054N-Ul@fasolo.debian.org>
+
+
+[ Added runit maining list in thread ]
+[2018-11-27 19:00] Bastian Blank <ftpmaster@ftp-master.debian.org>
+> All those *-run packages
+> - are tiny (under 100 bytes of content),
+> - generated (so why different source packages?) and
+> - there sole purpose is providing support for another init system.
+> 
+> Please let's reach consensus on debian-devel on how to manage support for
+> runit.  We also don't provide extra binary packages for systemd services or
+> traditional init scripts.
+Hello, debian-devel@. Above is REJECT from ftp-master, suggesting to
+discuss issue here, so...
+==== Background ===
+I maintain runit init and supervision system [^1] in Debian [^2]. Runit
+init system is compatible to some extend with SysVInit, and able to use
+traditional init.d scripts.
+But to use supervision possiblities, service should be defined with
+format, native to runit. Here is how it typical runscript
+looks like:
+	$ tree /etc/sv/wicd-daemon
+	/etc/sv/wicd-daemon/
+	├── log
+	│   ├── run
+	│   └── supervise -> /var/lib/runit/log/supervise/wicd-daemon
+	├── run
+	└── supervise -> /var/lib/runit/supervise/wicd-daemon
+which is provided by `-run' package:
+	$ dpkg -L wicd-daemon-run
+	[...]
+	/etc/sv/wicd-daemon/log
+	/etc/sv/wicd-daemon/log/run
+	/etc/sv/wicd-daemon/run
+	/var/log/runit/wicd-daemon
+Essential part is `run' script -- program that will do its work in
+foreground. In this particular case it looks like following:
+	#!/bin/sh -eu
+	exec /usr/sbin/wicd --keep-connection --no-stdout --no-stderr --no-daemon
+Note `--no-daemon' option. Logging is expected to go on stdout, which is
+piped to script in `/etc/sv/wicd-daemon/log/run', looking, usually like
+this:
+	#!/bin/sh
+	chown -R '_log-wicd-daemon' '/var/log/runit/wicd-daemon'
+	exec chpst -u '_log-wicd-daemon' svlogd -tt '/var/log/runit/wicd-daemon'
+svlogd(8) is logging utility with built-in timestamping and log
+rotating. Note that it runs under dedicated user.
+All boring work (creating dedicated user and correct symlinks) is
+handled automaticall by `dh-runit' debhelper.
+=== The problem ===
+Question is what is the best way to package runscript. There is around
+1300 daemons, so question is how to manage 1300 runscripts.
+I believed (and still believe, despite of REJECT), that best way is
+0. One source package, providing single binary package per runscript.
+   src:{foo}-run -> bin:{foo}-run -> /etc/sv/{foo}
+I considered another approaches, and all of them I find inferior:
+1. Provide runscript by {foo}.
+  It is infeasible due two reasons:
+  1.1 Technical. Most -run packages provide dedicated system user to run
+                 logging process. It would introduce cruft on systems
+                 of users, that install {foo}, but do not use Runit.
+                 It is possible to run all logging processes as 'daemon'
+                 or 'nobody', but it reduces process isolation and does
+                 not solve...
+  1.2 Social. Maintainer of {foo} can rightfully refuse to maintain
+              support for `runit', not mandated by Policy
+2. Add bin:{foo}-run into {foo}.
+   It is infeasible due same social consideration.
+3. Make single src:runscripts, providing many bin:{foo}-run
+   I expect at least following problems:
+   3.1 Scalability.
+     We have little experience with source packages, providing dozens of
+     binary packages, this one will produce hundreds.
+   3.2 Changelogs.
+     Changelogs for single {foo}-run will contain entries for all other
+     {bar}-run packages. That will make them huge and signal/noise ratio will
+     fall drastically.
+   3.3 Updates.
+     Every update of single line of single script will rebuild whole
+     package. It is cruel to `sid' users.
+   3.4 Epoch inflation
+     If for some reason, maintainer of {foo} decides to provide
+     {foo}-run package himself, and after that drop it, we get epoch
+     bump for src:runscripts. If then maintainer {bar} will decide to
+     provide {bar}-run himself, he will have to bump epoch too.
+     This way we will eventually get many packages with epoch number
+     as big, as 10. But it is only aesthetics.
+4. Make single bin:runscripts
+   It will be havoc and madness.
+     * Hundreds of runscripts, most of which are useless and confusing
+       for user.
+     * Hundreds extra system users {it will push the limits, since we
+       have ~800 slots for them}.
+     * Slowed boot for no good reason {at least three extra `stat' for
+       every unused runscript and one shell invocation}
+     * Updates problem (see above)
+     * Changelog problem (see above)
+I propose to discuss what is the best way to package runscripts, how to
+deal with problems I expect with approaches 1-4, what problems with
+approach 0 I miss, and, maybe, there is even exist perfect approach 5?
+[^1] http://smarden.org/runit
+[^2] https://tracker.debian.org/runit

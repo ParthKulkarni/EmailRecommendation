@@ -1,0 +1,53 @@
+To : Simon McVittie <smcv@debian.org>, debian-devel@lists.debian.org, debian-mentors@lists.debian.org
+Subject : Re: Systemd user instance equivalent of dh_systemd_enable?
+From : Daniele Nicolodi <daniele@grinta.net>
+Date : Sun, 8 Apr 2018 08:26:13 -0600
+Message-id : ea9bdec5-b3f9-c9f9-9a9d-e466650cd229@grinta.net
+In-reply-to : <[🔎] 20180408112802.GA27186@espresso.pseudorandom.co.uk>
+References : <[🔎] 11a6698c-4947-e4be-03b9-27abfae00110@grinta.net> <[🔎] 20180408112802.GA27186@espresso.pseudorandom.co.uk>
+
+
+On 08/04/2018 05:28, Simon McVittie wrote:
+> On Sat, 07 Apr 2018 at 18:18:11 -0600, Daniele Nicolodi wrote:
+>> I'm working on a package that installs a systemd user instance unit file
+>> that needs to be enabled with
+>>
+>> # systemctl --global enable foo.service
+> 
+> I believe the only way to do this is currently to make
+> it be statically enabled for all users (ship a symlink in
+> /usr/lib/systemd/user/${something}.wants).
+> 
+> What is the package?
+> 
+> Is it something that all users are going to want?>
+> Is it something that makes sense to run every time any user logs in in
+> any way (ssh, console login, graphical login) or only on entry to a
+> graphical session?
+> 
+> Would it make sense to arrange for it to be socket-activated (like
+> dbus-user-session, gpg-agent, pulseaudio) or D-Bus-activated (like
+> gnome-terminal-server) or autostarted on login to a graphical session (via
+> /etc/xdg/autostart), rather than being started eagerly on every login?
+> 
+> (The way packages like dbus-user-session, gpg-agent and pulseaudio set
+> themselves up for socket activation is to have their *.socket unit be
+> statically enabled in sockets.target, but not their *.service unit in
+> default.target.)
+Hi Simon,
+the package is dbus-broker, a replacement for dbus-deamon. You may have
+heard of it: there has been a short exchange about its packaging for
+Debian with its developers with the Debian dbus maintainers in Cc.
+dbus-broker ships an user instance unit file with this Install section:
+[Install]
+Alias=dbus.service
+with
+# systemctl --global enable foo.service
+a /etc/systemd/user/dbus.service symlink is created that overrides the
+unit installed by dbus-daemon obtaining that dbus-broker "takes over"
+the bus activation units installed by dbus-daemon. A similar thing is
+done for the system bus, but that is taken care of by dh_systemd_enable
+just fine.
+I can create the link manually.
+Cheers,
+Dan

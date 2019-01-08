@@ -1,0 +1,84 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Upcoming shift to Ayatana (App)Indicator(s)
+From : Simon McVittie <smcv@debian.org>
+Date : Fri, 30 Mar 2018 00:29:01 +0100
+Message-id : 20180329232901.GA1352@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180329211935.Horde.QOiNXE02d8Cu2tshfnxaSlw@mail.das-netzwerkteam.de>
+References : <[🔎] 20180329131154.Horde.0dm6UHwcZhy-QIAuhtXdI2n@mail.das-netzwerkteam.de> <[🔎] 20180329135426.GA6400@espresso.pseudorandom.co.uk> <[🔎] 20180329211935.Horde.QOiNXE02d8Cu2tshfnxaSlw@mail.das-netzwerkteam.de>
+
+
+On Thu, 29 Mar 2018 at 21:19:35 +0000, Mike Gabriel wrote:
+> On  Do 29 Mär 2018 15:54:26 CEST, Simon McVittie wrote:
+> > Which concrete libraries and packages does this refer to? As a
+> > Debian/GNOME contributor who has not been involved in Ubuntu or Ayatana,
+> > I've been confused in the past about what the difference is between
+> > libindicate, libindicator, libappindicator and possibly others.
+> 
+> The maintained src:packages in Debian currently are:
+Rephrasing to check whether I understand, is this a correct summary of
+libraries to which an indicator client might be linked, from a Debian
+perspective?
+src:libayatana-indicator (libayatana-indicator(3-)?7):
+maintained fork of libindicator, recommended for indicator renderers
+(the indicator equivalent of the freedesktop.org/X11 notification area) and
+maybe StatusNotifierItem client apps (apps with the indicator equivalent
+of a GtkStatusIcon)
+src:libayatana-appindicator (libayatana-appindicator(3-)?1):
+maintained fork of libappindicator, recommended for SNI client apps
+src:libdbusmenu:
+dependency of lib(ayatana-)?appindicator and libindicate
+src:libindicator (libindicator(3-)?7):
+deprecated library for both indicator renderers and SNI client apps;
+replace with libayatana-indicator (requires little or no porting?); orphaned
+src:libappindicator (libappindicator(3-)?1):
+deprecated library for SNI client apps; replace with libayatana-appindicator
+(requires little or no porting?); orphaned
+src:libindicate (libindicate5, libindicate-gtk*):
+deprecated^2 library for SNI client apps; replace with
+libayatana-appindicator (requires non-trivial porting); orphaned, should
+be removed
+... and many of those have both GTK+ 2 and GTK+ 3 flavours, and sometimes
+a separate GUI-agnostic shared library for D-Bus protocols.
+I hope you can see why I was confused by all the
+lib(ayatana-)?(app)?indicat(e|or)((-gtk)?3)? libraries involved in this!
+If libayatana-appindicator and libayatana-indicator require no
+source-level porting from their non-Ayatana counterparts (same symbols,
+different SONAME), perhaps we could have transitional packages containing
+appropriate symlinks, rather than carrying around the orphaned libraries
+from which they were forked?
+(I'm more interested in SNI client apps here, and less interested in
+indicator renderers, because a random Debian developer is more likely
+to maintain a SNI client app than to maintain a renderer, so that seems
+like the side where it's particularly important to have a clear picture
+of what you should and shouldn't be depending on.)
+> > Am I right in thinking that Ubuntu's
+> > https://github.com/Ubuntu/gnome-shell-extension-appindicator is the
+> > recommended implementation of this for GNOME 3?
+> 
+> Yes and no. While it brings application indicators back to GNOMEv3 (what we
+> do for GTK-3 applications with libayatana-appindicator), it does not show
+> system indicators icons' at all. This is non-problematic for GNOME because
+> the model for user interaction with the system controls has been re-done in
+> GNOMEv3 with a different concept.
+Again, what I'm mostly interested in here is the sort of random apps
+that used to use the freedesktop.org/X11 status notifier protocol
+to have a "tray icon", like Steam or Pidgin, because those are
+the ones that need more cross-distribution coordination. Is your
+intended future that they would have an application indicator that
+serves more or less the same purpose, GNOME 3 would display those via
+gnome-shell-extension-appindicator, and non-GNOME environments would
+display those icons alongside the environment's system-level indicators
+like networking or Bluetooth or similar?
+> > I currently maintain gnome-shell-extension-top-icons-plus, and would be
+> > happy to hand it over to someone else or deprecate it in favour of a
+> > different "tray icon" mechanism (or even make it a transitional package
+> > if some new extension can be made to act as a drop-in replacement).
+> 
+> Oh, please keep that maintained. While AppIndicator is already widely
+> spread, there are still many applications or even widget tool kits out
+> there, that only have xembed support (e.g. wxWidgets afaik). Dropping xembed
+> support from GNOMEv3 would be painful to users of these applications.
+I'll try, but it's no longer maintained upstream, and very dependent
+on GNOME Shell not dropping XEmbed support completely. I don't have the
+necessary knowledge or bandwidth to become its upstream maintainer.
+    smcv

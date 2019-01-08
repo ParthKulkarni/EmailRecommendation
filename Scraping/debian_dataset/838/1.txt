@@ -1,0 +1,51 @@
+To : Ryan Kavanagh <rak@debian.org>, debian-devel@lists.debian.org
+Subject : Re: Different versions for binary packages from same source
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Tue, 26 Dec 2017 17:20:05 +0000
+Message-id : 1514308805.2714.54.camel@decadent.org.uk
+In-reply-to : <[🔎] 20171226160732.xg624uzgsuilhlap@zeta.ryanak.ca>
+References : <[🔎] 20171226160732.xg624uzgsuilhlap@zeta.ryanak.ca>
+
+
+On Tue, 2017-12-26 at 11:07 -0500, Ryan Kavanagh wrote:
+> Hi,
+> 
+> Is there a good reason not to have a source package build binary packages with
+> different versions in the following circumstance?
+> 
+> The prerex source package (sources obtained from CTAN) provides a LaTeX package
+> for drawing charts. It also contains two tarballs: one with the sources for the
+> prerex utility (a readline interface for creating these charts) and one with the
+> sources for the vprerex (a Qt utility for doing the same). There are three
+> different versions at play (the outer LaTeX package's, prerex's, and vprerex's)
+> and vprerex/prerex are not released simultaneously/at the same time.
+> 
+> Until now, both the prerex and vprerex binary packages have used the source
+> package's version. I would like to make each use the versions of their
+> respective tarballs so as to better track upstream development.
+[...]
+You can certainly do that, but you need to be careful to ensure that
+all the binary versions increase with each upload.
+All the binary versions certainly need to include the Debian revision.
+But also, if you start with:
+                  upstream  Debian binary
+prerex (Latex)     1         1-1
+prerex (utility)  11        11-1
+vprerex           21        21-1
+and then prerex (Latex) is bumped to 2 but prerex (utility) and vprerex
+are not, you mustn't upload with these versions:
+                  upstream  Debian binary
+prerex (Latex)     2         2-1
+prerex (utility)  11        11-1
+vprerex           21        21-1
+In src:linux we have a somewhat similar situation where usbip was
+folded into it upstream, and usbip was previously packaged separately
+in Debian so I wanted to preserve its own version numbers.  What I did
+there is to set the binary versions to
+<upstream-version>+<linux-upstream-version>-<debian-revision>, e.g.
+2.0+4.14.7-1 for the latest upload.
+Ben.
+-- 
+Ben Hutchings
+The world is coming to an end.	Please log off.
+signature.asc

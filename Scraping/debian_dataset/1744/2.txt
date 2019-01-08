@@ -1,0 +1,109 @@
+To : Philip Hands <phil@hands.com>
+Subject : Re: Non-free RFCs in stretch
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 7 Mar 2017 14:48:59 +0000
+Message-id : 22718.51291.992323.4180@chiark.greenend.org.uk
+In-reply-to : <[🔎] 87innmibqd.fsf@whist.hands.com>
+References : <[🔎] 20170306013211.uucsipsnpygubuxq@x>	<[🔎] 87innmibqd.fsf@whist.hands.com>
+
+
+Philip Hands writes ("Re: Non-free RFCs in stretch"):
+> I presume this issue arises because people (myself included) dislike the
+> fact that in order to install some RFCs and/or GNU documentation one has
+> to flick a switch that also opens the door to some thoroughly
+> proprietary software.
+This is indeed a bad problem.  I would like to be able to install
+firmware for my wifi card, and GNU manuals, and the Common Lisp
+hyperspec installer, and so on.  This is despite agreeing with the
+classification of these things as non-free (or indeed contrib).
+> I suppose it might be possible that we (as a project) could agree to
+> some of these subsets being easier and/or harder to enable, and thus
+> allow the FSF to feel more cheerful about the way we look at the world.
+I have a suggestion for how this could be done.
+We give each reason-why-a-package-might-be-nonfree-or-contrib
+a name in the package namespace.  I'm going to call these packages
+antimetapackages.
+Each package in non-free or contrib must Recommend all the
+antimetapackages which apply.
+Sometimes a wrongness is a special case of another kind of wrongness.
+In that case the more specific antimetapackage Recommends the less
+specific one, and real packages can Recommend only the more specific.
+We use Recommends because these are all policy decisions which the
+user may wish to override on an individual basis.
+All of these metapackages should live in contrib, because they
+themselves contain nothing nonfree.  Installer packages in contrib
+should be classified according to the thing they download, not the
+content of the package itself.
+With pattern match pinning, or other tooling, it then becomes possible
+for a user to be specific about which compromises they which to make.
+For example:
+   Package: make-doc
+   Recommends: nonfree-gfdl-invariant
+   Section: non-free/doc
+   Package: nonfree-gfdl-invariant
+   Recommends: nonfree-documentation
+   Section: contrib/antimetapackages
+   Description: Problems with the GNU Free Documentation Licence
+    This antimetapackage is a dependency for documentation,
+    under the GNU Free Documentation Licence, containing
+    invariant sections and/or front/back cover texts.
+    .
+    Debian considers such documentation non-free because it
+    cannot be freely modified.  (See the General Resolution in
+    [etc. etc]
+   Package: doc-rfc-std
+   Recommends: nonfree-nonmodifiable-standards
+   Section: non-free/doc
+   Package: nonfree-nonmodifiable-standards
+   Recommends: nonfree-documentation
+   Section: contrib/antimetapackages
+   Description: Problems with modifiability of standards docs
+    This antimetapackage is a dependency for standards
+    documents which are freely redistributable, but which
+    do not freely permit modification outside the context
+    of the standards-setting process.
+    .
+    Debian consisders such standards documents non-free, because end
+    users are not free to make and document unofficial modified
+    versions of these standards and protocols.
+   Package: hyperspec
+   Section: contrib/doc
+   Recommends: nonfree-documentation
+   Description: The Common Lisp ANSI-standard Hyperspec
+    This is a installer package [...]
+   Package: nonfree-documentation
+    This antimetapackage is a dependency for documentation
+    which is not considered Free by Debian, for a variety
+    of reasons.
+   Package: nonfree-misc-nonfree
+    This antimetapackage is a dependency for non-free software
+    in Debian whose lack of freedom has not been classified, or
+    which is not covered by any more specific antimetapackage.
+Politics: the set of antimetapackages, and which of them must be
+Recommended when, is ultimately in case of dispute the responsibility
+of ftpmaster, and enforced by appropriate (auto)REJECTs.  But normally
+decisions will be made by the maintainers (of the antimetapackage
+source package, and of individual non-free and contrib packages), with
+the existing approach of audit and review from appropriately zealous
+contributors.
+Transition plan:
+ 1. Create the new metapackage, containing at least initially
+    nonfree-misc-nonfree and nonfree-misc-contrib.
+ 2. Change policy to require the new Recommends
+ 3. File RC bugs against:
+     - any package in non-free with no antimetapackage Recommends
+     - any package in contrib with noo antimetapackage Recommends
+       and older Standards-Version
+ 4. Anyone who wants, as a user, to make a compromise, which is not
+    yet given a separate name, may propose this as a new
+    antimetapackage.  The antimetapackage maintainers will accede to
+    this request, and accept the appropriate patches, if the scope of
+    the proposed new antimetapackage seems clear.  Maintainers of the
+    affected packages should then expect patches to switch their
+    (applicable) antimetapackage Recommends to the new one.  The
+    antimetapackage source maintainers should probably help with
+    providing an MBF template for this.
+(Packages in contrib which Depend on (or Recommend) things in non-free
+do not need their own Recommends; we use Standards-Version to tell if
+they're updated.)
+Ian.

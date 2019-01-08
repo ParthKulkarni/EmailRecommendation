@@ -1,0 +1,55 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian part of a version number when epoch is bumped
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 15 Feb 2018 10:41:23 +0000
+Message-id : 20180215104123.GA12929@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180215100908.GC3203@grep.be>
+References : <[🔎] 1518617345.25962.6.camel@liw.fi> <[🔎] m3a7wbo3vy.fsf@luffy.cx> <[🔎] 1518635464.22059.1.camel@liw.fi> <[🔎] m3vaezl4lq.fsf@luffy.cx> <[🔎] 8aea61ec-11c3-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] m3r2pnl3q3.fsf@luffy.cx> <[🔎] 6d2296dc-11c5-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 87k1vfthqq.fsf@hope.eyrie.org> <[🔎] 37eb50f6-11cc-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 20180215100908.GC3203@grep.be>
+
+
+On Thu, 15 Feb 2018 at 11:09:08 +0100, Wouter Verhelst wrote:
+> I was thinking it might be better to go to a "wildcard" epoch:
+> 
+> Depends: X (>= *:1.8)
+> 
+> would mean
+> 
+> "For this comparison, ignore the epoch, and make sure that the version
+> is at least 1.8 or above".
+This would work for the "oops, that was meant to go to experimental"
+case where +really also gets used, but would do the wrong thing for the
+original purpose of epochs, which is dealing with upstream version
+numbering that doesn't match dpkg semantics.
+For instance, if your upstream uses a date-based version number (20180215
+or 18.01 or something) but later decides that they don't like that
+version scheme and switches to 1.0, 1.1, ..., adding an epoch is the
+only way to make such versions sort correctly (if you have predicted
+this situation ahead of time, you can use versions like 0~20180215, but
+epochs are precisely for the situation where you weren't able to predict
+how upstream's version numbering would change). Helpful upstreams don't
+do this, but not all upstreams are helpful, so general-purpose packaging
+systems like dpkg and rpm need an "escape hatch" to cope.
+We don't have to look far to find a weird versioning scheme that can't
+be represented without epochs: our largest competitor in the field of
+general-purpose operating systems has such a versioning scheme. Imagine
+we had a package that followed the same versioning scheme as Windows (I
+could imagine a parallel universe in which Wine used the version number
+of the version of Windows that it claims to emulate). If we packaged
+that, using the "marketing version" wherever it's numeric or making up
+something reasonable wherever it isn't, we might have had a versioning
+scheme like this:
+3.1
+3.11
+95
+98
+2000
+1:5.1+XP         # or 2001+XP or something
+1:5.2+Vista      # or 2006+Vista or something
+1:7
+1:8
+1:8.1
+1:10
+Ignoring the epoch would be actively harmful here: if you have a versioned
+dependency on Windows >= 8, it would be incorrect for Windows 95 to
+satisfy that dependency.
+    smcv

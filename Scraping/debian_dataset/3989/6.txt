@@ -1,0 +1,77 @@
+To : Inaki Malerba <inaki@malerba.space>, debian-devel@lists.debian.org
+Subject : Re: Debian CI pipeline for Developers
+From : Leopold Palomo-Avellaneda <leo@alaxarxa.net>
+Date : Thu, 15 Nov 2018 20:00:22 +0100
+Message-id : c551dd97-ab41-889a-3f42-c899cd485cbf@alaxarxa.net
+In-reply-to : <[🔎] 9c434b31-b68d-3570-ffff-b04da5294a19@malerba.space>
+References : <[🔎] e8eafac7-ed5a-ac2f-c13a-e26d24d27dae@debian.org> <[🔎] a271c0ff-8870-81e5-2ebb-b6ecfb8b80cc@alaxarxa.net> <[🔎] 9c434b31-b68d-3570-ffff-b04da5294a19@malerba.space>
+
+
+Hi Inaki,
+El 15/11/18 a les 18:04, Inaki Malerba ha escrit:
+[...]
+>> - I can only make CI with the master branch (or I don't know how to do it in
+>> other branches). How can I activate it in other branches differents than master?
+> How did you define the yaml? If you use the one on the example, it
+> should run on every pipeline. Maybe you should rebase the branches?
+>> - Can I set a CI yaml file different by branch? one for unstable, one for
+>> stable, etc?
+> We decided that the provided example is the easiest way to run. On the
+> branches for other releases, ej. backports, you should modify the
+> `expand` key to build for a different debian release.
+> 
+> Another possibility is to create more than one build job on the yaml
+> file and use the `only`[1] keyword to filter the branches and have
+> different pipelines depending on the branch name. It would look
+> something like this:
+> 
+> ```
+> [..]
+> build unstable:
+>     extends: .build-unstable
+>     except:
+>         - /^stretch-.*$/
+> 
+> build stretch:
+>     extends: .build-stretch
+>     only:
+>         - /^stretch-.*$/
+> ```
+> 
+> This example is only illustrative. Using that, `build unstable` would
+> run on all the branches except those whose name starts with `stretch-`,
+> where `build stretch` will be triggered.
+> 
+Sorry if I made stupid questions, but should I have yaml file in all the
+branches?
+I suppose that my problem is that I don't understand completely the
+process. Let me summarize the process and maybe you can help me (and
+others I hope ...)
+Imagine that I have a package foo maintained in salsa. This package has
+master, upstream, pristine-tar, experimental, stretch. And I would like
+to test with CI.
+From the README I understand that I create the yaml file and I put it in
+the debian directory. If I put it the root directory the package doesn't
+build because the builder found differences between the git and the orig.
+I configure the project in the settings menu -> CI /CD -> General
+pipelines pointing to this file. I cannot set the branch.
+After what? If I go CI/CD I can only access to an screen with Help?.
+Please, could check all the steps in a new project and explain a recipe?
+The only way that I have found to by pass this option is to create again
+a .gitlab-ci.yaml file, then a pipeline is created and after change the
+yaml file. But only the build is done in the master branch not in all
+branches.
+I'm sorry if I insist because from my point of view is not an obvious
+procedure and it could be very useful.
+Cheers,
+Leopold
+-- 
+--
+Linux User 152692     GPG: 05F4A7A949A2D9AA
+Catalonia
+-------------------------------------
+A: Because it messes up the order in which people normally read text.
+Q: Why is top-posting such a bad thing?
+A: Top-posting.
+Q: What is the most annoying thing in e-mail?
+signature.asc

@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: User-installable Debian packages?
+From : chrysn <chrysn@fsfe.org>
+Date : Sat, 5 Aug 2017 06:46:42 +0200
+Message-id : 20170805044642.os4rcqyfr6x7dktv@hephaistos.amsuess.com
+In-reply-to : <874lu0u91w.fsf@mid.deneb.enyo.de>
+References : <b6683708-9b2b-289d-6686-82fcf7bbbeff@gmx.de> <20170722120006.hmu2uiwnld4onk75@perpetual.pseudorandom.co.uk> <874lu0u91w.fsf@mid.deneb.enyo.de>
+
+
+On Tue, Jul 25, 2017 at 12:04:27PM +0200, Florian Weimer wrote:
+> But it's not clear if the HPC community wants to run
+> containers/namespaces at all.
+Exploring the container-less approaches for different but related
+purposes[1], I just did what turned out to be a practice test of
+installation location independence: Installing openttd as a user with an
+out-of-root apt and dpkg location.
+Steps I needed to take were roughly:
+* Creating appropriate sources.list, apt.conf and debconfrc files
+* Creating some of the basic directory structure / empty files
+* (repeatedly, through the next steps) run `apt install openttd`
+* Adapt some postinst scripts
+  * Bend paths to log files to the user-root location and similar
+  * Drop python bytecode precompilation and ldconfig updates
+* The only thing I needed to do as root: Move away /var/lib/ucf and
+  /etc/apt/apt.conf.d/* files as I didn't find a way to override them
+  (as they're in preinst and probably hardcoded, respectively)
+* Run openttd with appropriate PATH, LD_LIBRARY_PATH and (as the game
+  itself is not installation location dependent) working directory
+I think that if we can, if we want to, largely support location
+independent installations for the next release. That would help both
+user-installable packages and simplify creation of any of the container
+packages (if I understand them correctly).
+It seems most of the work on infrastructure and library packages could
+be done in generic places like postinst snipplets, some (but well
+testable) would be needed in particular packages like ucf, and then
+applications could be user-installable (or otherwise usable for
+position-independent installations) as soon as they become
+position-independent by themselves.
+Best regards
+chrysn
+[1]: I'd like to use sid versions of games on stable boxes w/o always
+needing to go through a changeroot
+-- 
+I shouldn't have written all those tank programs.
+  -- Kevin Flynn
+signature.asc

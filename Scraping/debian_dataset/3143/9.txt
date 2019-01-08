@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian Policy 4.1.4.0 released
+From : Stuart Prescott <stuart@debian.org>
+Date : Sat, 07 Apr 2018 17:07:43 +1000
+Message-id : pa9qjv$k3$1@blaine.gmane.org
+References : <877epl639k.fsf@iris.silentflame.com> <[🔎] 85lgdzx39l.fsf@benfinney.id.au> <[🔎] 20180407060211.4vk65ujtucaqhm55@an3as.eu>
+
+
+Hi Andreas
+>> > 4.9
+>> >     The ``get-orig-source`` rules target has been removed.  Packages
+>> >     should use ``debian/watch`` and uscan instead.
+>> 
+>> Especially for this, my ‘debian/rules’ files thank you.
+> 
+> While I really like to have this consistent approach but it seems I've
+> missed how uscan can spot new versions in for instance untagged VCS or
+> download files with changing content but no version number.  Is there
+> some way to do this with something else than a manually craftet script?
+yes, d/watch can use the qa.debian.org fakeupstream service to create a fake new release for every 
+commit. I use this on projects that have very occasional (bugfix-only) commits and don't seem to be 
+interested in actually making releases any more:
+https://sources.debian.org/src/svn-all-fast-export/1.0.10+git20160822-3/debian/watch/
+opts="uversionmangle=s/.*date=(\d{4})-(\d\d)-(\d\d)T.*/1.0.10+git$1$2$3/, \
+    filenamemangle=s/.*date=(\d{4})-(\d\d)-(\d\d)T.*/1.0.10+git$1$2$3.tar.gz/" \
+    https://qa.debian.org/cgi-bin/fakeupstream.cgi?upstream=github_commits_package_json/svn-all-fast-export/svn2git \
+    .*/archive/(.*\.tar\.gz?.*)
+A version 1.0.10+git20180406 would therefore appear from a commit made yesterday and if I were to package 
+and upload that version, that would also be the upstream part of the version string I'd use. With uscan 
+integration, tools like the UDD Maintainer Dashboard also show when new commits are made.
+(Thanks to Paul Wise for creating this a couple of years ago when I was musing on how to track this sort 
+of upstream)
+cheers
+Stuart
+-- 
+Stuart Prescott    http://www.nanonanonano.net/   stuart@nanonanonano.net
+Debian Developer   http://www.debian.org/         stuart@debian.org
+GPG fingerprint    90E2 D2C1 AD14 6A1B 7EBB 891D BBC1 7EBB 1396 F2F7

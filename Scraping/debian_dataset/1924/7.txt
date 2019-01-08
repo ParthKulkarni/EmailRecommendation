@@ -1,0 +1,45 @@
+To : plugwash@p10link.net
+Subject : Re: Summary of the 2038 BoF at DC17
+From : Steve McIntyre <steve@einval.com>
+Date : Mon, 18 Sep 2017 15:19:29 +0100
+Message-id : E1dtwtV-0007o5-O1@mail.einval.com
+In-reply-to : <[🔎] 10e4fa4a-433c-a43b-1136-984293497c50@p10link.net>
+References : <[🔎] 20170901235854.ds4hffumd2ktggau@tack.einval.com> <[🔎] 20170901235854.ds4hffumd2ktggau@tack.einval.com>
+
+
+In article <[🔎] 10e4fa4a-433c-a43b-1136-984293497c50@p10link.net> you write:
+>> Firstly: developers trying to be *too* clever are likely to only make
+>> things worse - don't do it! Whatever you do in your code, don't bodge
+>> around the 32-bit time_t problem. *Don't* store time values in weird
+>> formats, and don't assume things about it to "avoid" porting
+>> problems. These are all going to cause pain in the future as we try to
+>> fix problems.
+>>
+>> For the time being in your code, *use* time_t and expect an ABI break
+>> down the road. This is the best plan *for now*.
+>
+>I find this argument unconvincing.
+>
+>If a library is new or is going to have an ABI break anyway then by
+>moving to 64-bit time in it's interfaces now it can avoid another ABI
+>break down the road.
+It depends on how/where/why you're embedding 64-bit time,
+basically. If you're embedding a time_t (or a struct including a
+time_t) in your ABI and want to keep to something similar, it's worth
+waiting to see what's going to be standardised then using that. If you
+don't care and want to go your own way, then fine - but you might end
+up having to do conversions to/from the new standard stuff. But
+(please $deity!) avoid the temptation to do something "clever" like
+using a double or similar to store large values where precision
+matters.
+>Similarly if someone is introducing a new version of a file format
+>anyway moving to 64-bit time at the same time as making other changes
+>avoids breaking things twice.
+Now in this case, *definitely* it's worth doing it right now - as
+suggested in the session. On-disk formats are always going to be
+specific and you can invent your own solution however you like.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+< sladen> I actually stayed in a hotel and arrived to find a post-it
+          note stuck to the mini-bar saying "Paul: This fridge and
+          fittings are the correct way around and do not need altering"

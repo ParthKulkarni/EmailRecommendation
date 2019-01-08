@@ -1,0 +1,109 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Tainted builds (was Re: usrmerge -- plan B?)
+From : Guillem Jover <guillem@debian.org>
+Date : Tue, 4 Dec 2018 01:07:42 +0100
+Message-id : 20181204000742.GA13132@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 479b3332-f744-11e8-9b6a-00163eeb5320@msgid.mathom.us>
+References : <878t1esau1.fsf@hope.eyrie.org> <2d3113fc-e79b-babe-4981-b1bc24fadfd7@gmail.com> <20181128135752.GA21401@thunder.hadrons.org> <20181128164832.GA10033@debian.org> <[🔎] 20181202212535.GC11687@gaara.hadrons.org> <[🔎] 87k1krbght.fsf@hope.eyrie.org> <[🔎] 479b3332-f744-11e8-9b6a-00163eeb5320@msgid.mathom.us>
+
+
+On Mon, 2018-12-03 at 16:45:15 -0500, Michael Stone wrote:
+> On Sun, Dec 02, 2018 at 04:28:46PM -0800, Russ Allbery wrote:
+> > Guillem Jover <guillem@debian.org> writes:
+> > > Whether a package is being built within a chroot or not, has nothing
+> > > to do with how that installation is being managed IMO. It feels a bit
+> > > like recording what's the form factor of the machine being run on? :)
+> > 
+> > I think what people are trying to get at here is "was the package built on
+> > a system with packages other than build dependencies plus build-essential
+> > plus essential/required packages installed."
+I guess, although the request was very specific, so was replying to
+that. :) Thanks for extracting what might be the essence of the
+request though. But as I mentioned in my earlier reply and as Michael
+repeats below, there are way more problematic scenarios; and I don't
+think this is the biggest concern when we talk about tainted builds…
+> > I do think this would be very useful to track, but it's a bit complicated
+> > to work out, and there are probably a few other exceptions that would need
+> > to be in place.
+… and then I'm not entirely sure a non-minimal environment should be
+qualified as tainted? For example contrast using a minimal but outdated
+installation to a non-minimal, but clean and up-to-date one.
+I think I'm still of the opinion that a user should be able to build on
+a normal (clean and up-to-date) system and get a proper result. I guess
+the problem might be how to define "clean". :)
+But even then, it might indeed be nice to check for this condition,
+and record it somehow.
+> And you'd still have cases like "someone installed something in
+> /usr/local/bin" and such. Might be easier to just track whether it was built
+> in a dsa-maintained autobuilder, so a human can identify potential local
+> build environment issues as a possible explanation for unexpected behavior
+> because that's really the objective. Might also not be worth trying to do
+> that vs existing ways to find out where the package was built.
+Hah, I just implemented this earlier today! (Attached, although I'm not
+happy with the missing early exit, but the alternatives all leave to
+be desired.) Also had clarified that the list of emitted tags is
+non-exhaustive.
+Thanks,
+Guillem
+From aa5b14369b693e3db3c92bbbbf63bf84fb234364 Mon Sep 17 00:00:00 2001
+From: Guillem Jover <guillem@debian.org>
+Date: Mon, 3 Dec 2018 08:57:14 +0100
+Subject: [PATCH] Dpkg::Vendor::Debian: Add support for usr-local-has-* tainted
+ tags
+These will detect problematic files under /usr/local which can taint
+the current build.
+---
+ man/deb-buildinfo.man         | 12 ++++++++++++
+ scripts/Dpkg/Vendor/Debian.pm | 14 ++++++++++++++
+ 2 files changed, 26 insertions(+)
+diff --git a/man/deb-buildinfo.man b/man/deb-buildinfo.man
+index 2248916d6..ba91baac7 100644
+--- a/man/deb-buildinfo.man
++++ b/man/deb-buildinfo.man
+@@ -166,6 +166,18 @@ of the filesystem that \fBdpkg\fP has recorded in its database.
+ For build systems that hardcode pathnames to specific binaries or libraries
+ on the resulting artifacts, it can also produce packages that will be
+ incompatible with non-/usr-merged filesystems.
++.TP
++.B usr\-local\-has\-configs
++The system has configuration files under \fI/usr/local/etc\fP.
++.TP
++.B usr\-local\-has\-includes
++The system has header files under \fI/usr/local/include\fP.
++.TP
++.B usr\-local\-has\-programs
++The system has programs under \fI/usr/local/bin\fP or \fI/usr/local/sbin\fP.
++.TP
++.B usr\-local\-has\-libraries
++The system has libraries, either static or shared under \fI/usr/local/lib\fP.
+ .RE
+ .TP
+ .BR Installed\-Build\-Depends: " (required)"
+diff --git a/scripts/Dpkg/Vendor/Debian.pm b/scripts/Dpkg/Vendor/Debian.pm
+index 6948bdc16..a352bbdde 100644
+--- a/scripts/Dpkg/Vendor/Debian.pm
++++ b/scripts/Dpkg/Vendor/Debian.pm
+@@ -455,6 +455,20 @@ sub _build_tainted_by {
+         }
+     }
+ 
++    require File::Find;
++    my %usr_local_types = (
++        configs => [ qw(etc) ],
++        includes => [ qw(include) ],
++        programs => [ qw(bin sbin) ],
++        libraries => [ qw(lib) ],
++    );
++    foreach my $type (keys %usr_local_types) {
++        File::Find::find({
++            wanted => sub { $tainted{"usr-local-has-$type"} = 1 if -f },
++            no_chdir => 1,
++        }, map { "/usr/local/$_" } @{$usr_local_types{$type}});
++    }
++
+     my @tainted = sort keys %tainted;
+     return @tainted;
+ }
+-- 
+2.20.0.rc2.403.gdbc3b29805

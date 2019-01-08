@@ -1,0 +1,105 @@
+To : Dominique Dumont <dod@debian.org>
+Subject : Re: Permanent transition tracker for Perl6 ?
+From : Daniel Dehennin <daniel.dehennin@baby-gnu.org>
+Date : Wed, 14 Jun 2017 21:29:49 +0200
+Message-id : 8737b2id02.fsf@hati.baby-gnu.org
+Mail-followup-to : Dominique Dumont <dod@debian.org>,	pkg-rakudo-devel@lists.alioth.debian.org,	debian-devel@lists.debian.org, Ian Jackson	<ijackson@chiark.greenend.org.uk>
+In-reply-to : <[🔎] 8970288.GHR5Ecyddt@ylum> (Dominique Dumont's message of "Wed, 14	Jun 2017 18:56:11 +0200")
+References : <CAKNHny_vTGsFNWJkmJdF-ypTDfmJhF1-OWeDHVSD-xOgv5tYuA@mail.gmail.com>	<106844657.7BZ1KGSoZz@ylum>	<22829.40920.716074.682972@chiark.greenend.org.uk>	<[🔎] 8970288.GHR5Ecyddt@ylum>
+
+
+Dominique Dumont <dod@debian.org> writes:
+> Hello
+Hello,
+> On Tuesday, 30 May 2017 17:37:44 CEST Ian Jackson wrote:
+>> ~/.perl6 is a particularly annoying place to put this.  It defeats
+>> the usual efforts to move this kind of thing to non-backed up storage,
+>> or whatever.
+>
+> Good point.
+I agree too and it add some maintenance burden to the user.
+>> > Unfortunately, these pre-compiled files are obsolete when a new Perl6
+>> > (rakudo) compiler is released.
+>> 
+>> And does it automatically delete them, ever ?  If not then surely that
+>> is a bug.
+>
+> I tend to agree. As far as I understand, this feature also takes care of Perl6 
+> developers: pre-compiled files can co-exist for several versions of Perl6. This 
+> may be good for development, but is a pain to manage in Debian
+Not necessarily a pain. I read a little the source code of the rakudo
+precompilation stuffs since documentation lacks for now and as far as I
+understand:
+- precompiled files are stored under precomp/<COMPILER ID>/
+- we can ask the PrecompilationStore::File to rip precompiled files of a
+  module[1]
+- we can ask the PrecompilationStore::File to rip all precompiled files
+  for a specific compiler ID[2]
+>> > is letting daemon write its own pre-compiled file a security risk ?
+>> 
+>> Possibly, but the cache area should be by uid not by USER.
+>
+> uh, I fail to see the distinction... AFAIK, there's a 1-to-1 relation between 
+> user and uid. What did I miss ?
+>
+>> > - pre-compile all module are installation time (like python or emacs). The
+>> > main issues are: all modules must be re-compiled in the correct order when
+>> > rakudo is upgraded and how to clean up obsolete pre-compiled files. This
+>> > requires complex post-install scripts
+For the same reasons I explained above, I don't think it must be
+complex, I'm asking questions to #perl6 and I'll make a proposal soon.
+>> Does Perl6 function correctly if these compiled files do not exist,
+>> and cannot be written ? 
+>
+> I think so. May be Daniel can confirm.
+I need to make some tests, and for a user without a home directory too.
+>> If so you can do the compilation
+>> opportunistically.  Python seems to take this approach.
+>
+> You mean at run time when a python script is run ? 
+>
+> If so, how can a script invoked by a user can write a .pyc file owned
+> by root ?
+In python the pyc is not written if it can't be.
+With rakudo, the precompiled file will be stored under
+~/.perl6/precomp/<COMPILER ID>.
+>> > The latter is probably the best solution from my point of view.
+>> > 
+>> > But a permanent tracker has an impact in the buildd: is this solution
+>> > acceptable ?
+>> 
+>> It seems rather poor.
+>
+> ok. I'll find another solution.
+>
+>> Can you patch Perl6 to put the precompiled files alongside the
+>> original source files, the way Python does it ?
+>
+> I don't think so. A pre-compiled file name is a hash sum made of the file 
+> content, the rakudo version and maybe some other data that I forgot. Relating 
+> a perl6 source to the precompiled file is not easy.
+The idea of having precompiled files stored under another directory tree
+does not bother me:
+- user never need to open them or look for them
+- storing them under /usr/share/perl6/precomp/<COMPILER ID>/ ease the
+  process to remove everything on upgrade
+But I think we can provide a new PrecompilationStore:: module to put things like
+we want, that's the all purpose of the whole infrastructure.
+>> Then you can reuse
+>> the techniques used by the Python people, maybe.
+>
+> I'm thinking about pre-compiling at installation time, keep track of the 
+> written files and remove them at de-installation time. The trick is to take 
+> care of upgrade, both module upgrade and rakudo upgrade...
+Again, I think the PrecompilationStore::File has the infrastructure to
+handle this is a not so complex way.
+I'm waiting for answers, make some tests and provide a proposal.
+Regards.
+Footnotes: 
+[1]  https://github.com/rakudo/rakudo/blob/nom/src/core/CompUnit/PrecompilationStore/File.pm#L238
+[2]  https://github.com/rakudo/rakudo/blob/nom/src/core/CompUnit/PrecompilationStore/File.pm#L246
+-- 
+Daniel Dehennin
+Récupérer ma clef GPG: gpg --recv-keys 0xCC1E9E5B7A6FE2DF
+Fingerprint: 3E69 014E 5C23 50E8 9ED6  2AAD CC1E 9E5B 7A6F E2DF
+signature.asc

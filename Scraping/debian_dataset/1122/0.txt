@@ -1,0 +1,30 @@
+To : debian-devel@lists.debian.org
+Subject : Re: lintian: shlib-read-write-env
+From : Vincent Danjean <vdanjean.ml@free.fr>
+Date : Wed, 1 Feb 2017 11:02:08 +0100
+Message-id : 07394e75-e48f-c416-f26f-bb8390445694@free.fr
+In-reply-to : <40588b05-b40f-1913-8b64-eaa3a4c9155d@iwakd.de>
+References : <CA+7wUsynDa8BAKsY-5g5cDqDHKujUZ0JhKBtsZRTPVvr4T6mgw@mail.gmail.com> <b942385e-47e5-5fc5-4372-a7edf478571a@iwakd.de> <1485877780.2900.21.camel@decadent.org.uk> <40588b05-b40f-1913-8b64-eaa3a4c9155d@iwakd.de>
+
+
+Le 31/01/2017 à 16:56, Christian Seiler a écrit :
+> (Any program that calls setenv() will call getenv() as well at
+> some point, otherwise you could simply drop the setenv() completely;
+Not necessarily. Instead of calling getenv, it can call fork+exec
+(that will run an other program, MT or not, in the new environment).
+The most classical example is the shell that can set lots of
+environment variables from its startup files without necessarily
+reading them.
+> so any program that does that in an MT context is broken anyway,
+> regardless of whether it uses a library that does an additional
+> getenv().)
+In an MT context, such a program should probably use setenv between
+the fork and the exec (ie not in MT context) or, probably better,
+use exec variants allowing to specify the new environment.
+  Regards,
+    Vincent
+-- 
+Vincent Danjean       GPG key ID 0xD17897FA         vdanjean@debian.org
+GPG key fingerprint: 621E 3509 654D D77C 43F5  CA4A F6AE F2AF D178 97FA
+Unofficial pkgs: http://moais.imag.fr/membres/vincent.danjean/deb.html
+APT repo:  deb http://people.debian.org/~vdanjean/debian unstable main

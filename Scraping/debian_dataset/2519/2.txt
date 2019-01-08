@@ -1,0 +1,39 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#904019: ITP: libxcrypt -- Extended crypt library for DES, MD5, Blowfish and others
+From : Guillem Jover <guillem@debian.org>
+Date : Fri, 20 Jul 2018 13:03:01 +0200
+Message-id : 20180720110301.GB6647@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org, 904019@bugs.debian.org
+In-reply-to : <[🔎] 20180720001851.GA10044@bongo.bofh.it>
+References : <[🔎] 20180718113542.GA14230@bongo.bofh.it> <[🔎] 20180720001851.GA10044@bongo.bofh.it>
+
+
+On Fri, 2018-07-20 at 02:18:51 +0200, Marco d'Itri wrote:
+> On Jul 18, Marco d'Itri <md@linux.it> wrote:
+> > Some day it may replace crypt(3), currently provided by glibc:
+> > https://fedoraproject.org/wiki/Changes/Replace_glibc_libcrypt_with_libxcrypt
+> I tried creating a package which would divert libc's libcrypt, but it 
+> appears to be much harder than I thought.
+> 
+> Installing it would looke like:
+> 
+> 1) libcrypt1.preinst diverts glibc's libcrypt.so.1
+> 2) dpkg does things
+> 3) dpkg installs libxcrypt's libcrypt.so.1
+> 4) dpkg does more things
+> 5) libcrypt1.postinst runs/triggers ldconfig
+> 
+> And this means that perl (a libcrypt dependency) would be broken between 
+> 1 and 5 (or maybe 1 and 3): is this ever going to work?
+Given that this new package is going to replace a part of glibc, it
+will need to behave as if it was part of the pseudo-Essential package
+set. When it comes to the diversion that means it needs to be added
+*without* the rename, so that we always have the libcrypt.so.1 present.
+But otherwise why would it be broken?
+> But even if this worked correctly, glibc installs a libcrypt-N.NN.so, 
+> whose exact name I expect changes among different releases.
+This one is tied to the major.minor glibc version, so I think you
+should just ignore it. I'd expect at most glibc itself to perhaps rely
+on it, anything else using it would not be very sane IMO.
+Thanks,
+Guillem

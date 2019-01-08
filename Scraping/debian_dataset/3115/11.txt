@@ -1,0 +1,33 @@
+To : Bill Allombert <ballombe@debian.org>, debian-devel@lists.debian.org
+Subject : Re: alioth deprecation - next steps
+From : Alexander Wirt <formorer@debian.org>
+Date : Wed, 18 Apr 2018 10:36:59 +0200
+Message-id : 20180418083659.GL20292@smithers.snow-crash.org
+Mail-followup-to : Bill Allombert <ballombe@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20180417220437.GK20292@smithers.snow-crash.org>
+References : <20180417110056.GB20292@smithers.snow-crash.org> <[🔎] 20180417205341.GC25420@yellowpig> <[🔎] 20180417211056.GI20292@smithers.snow-crash.org> <[🔎] 20180417213158.GA7993@Jamess-MacBook.local> <[🔎] 20180417213740.GF25420@yellowpig> <[🔎] 20180417220437.GK20292@smithers.snow-crash.org>
+
+
+On Wed, 18 Apr 2018, Alexander Wirt wrote:
+> On Tue, 17 Apr 2018, Bill Allombert wrote:
+> 
+> > On Tue, Apr 17, 2018 at 10:31:58PM +0100, James Clarke wrote:
+> > > Even the wiki page you linked there states that GitLab "allows extra
+> > > files to be attached to the tag".
+> > 
+> > But it does not say how.
+> > Research shows that while gitlab has plan to implement the feature, it is
+> > not actually implemented yet.
+> https://salsa.debian.org/formorer/testrepo/tags/0.1
+> you can btw. just add a release not and attach files to that release note. 
+If bored you can even automate that:
+# curl --header "PRIVATE-TOKEN: $TOKEN" -q -X POST --form "file=@/tmp/stupidfile2" 'https://salsa.debian.org/api/v4/projects/formorer%2Ftestrepo/uploads' 2>/dev/null | jq '.'                                                                   
+{
+  "alt": "stupidfile2",
+  "url": "/uploads/eed5461d41fbce6b2b865eaf5a201290/stupidfile2",
+  "markdown": "[stupidfile2](/uploads/eed5461d41fbce6b2b865eaf5a201290/stupidfile2)"
+}
+# curl --header "PRIVATE-TOKEN: $TOKEN" -q -X POST -F "tag_name=2.0" -F 'description=* [stupidfile2](/uploads/eed5461d41fbce6b2b865eaf5a201290/stupidfile2)' 'https://salsa.debian.org/api/v4/projects/formorer%2Ftestrepo/repository/tags/2.0/release'
+ {"tag_name":"2.0","description":"* [stupidfile2](/uploads/eed5461d41fbce6b2b865eaf5a201290/stupidfile2)"}%
+which results in: 
+https://salsa.debian.org/formorer/testrepo/tags

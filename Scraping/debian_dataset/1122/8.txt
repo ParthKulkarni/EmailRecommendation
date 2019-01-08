@@ -1,0 +1,42 @@
+To : debian-devel@lists.debian.org
+Subject : Re: lintian: shlib-read-write-env
+From : Christian Seiler <christian@iwakd.de>
+Date : Tue, 31 Jan 2017 16:56:04 +0100
+Message-id : 40588b05-b40f-1913-8b64-eaa3a4c9155d@iwakd.de
+In-reply-to : <[🔎] 1485877780.2900.21.camel@decadent.org.uk>
+References : <[🔎] CA+7wUsynDa8BAKsY-5g5cDqDHKujUZ0JhKBtsZRTPVvr4T6mgw@mail.gmail.com> <[🔎] b942385e-47e5-5fc5-4372-a7edf478571a@iwakd.de> <[🔎] 1485877780.2900.21.camel@decadent.org.uk>
+
+
+On 01/31/2017 04:49 PM, Ben Hutchings wrote:
+> On Tue, 2017-01-31 at 14:23 +0100, Christian Seiler wrote:
+>> On 01/31/2017 11:15 AM, Mathieu Malaterre wrote:
+>>> I'd like to discuss addition of a new lintian checks for
+>>> getenv/setenv/putenv used in shared libraries.
+>>
+>> Why getenv() though? It just reads the environment.
+>>> From what you link yourself:
+>>> The getenv and secure_getenv functions can be safely used in
+>>> multi-threaded programs.
+> [...]
+> 
+> But it returns a pointer to the value, which might be freed by another
+> thread before it is used.  If there were a reader function that copied
+> the value to a caller-provided buffer, it could be properly thread-
+> safe.
+But that's only a problem if you call setenv() or similar in a
+different thread, which you shouldn't do.
+getenv() is only unsafe if the environment is modified, a library
+using getenv() in a program that follows libc's guidelines to not
+call setenv() in an MT-context is perfectly fine.
+(Any program that calls setenv() will call getenv() as well at
+some point, otherwise you could simply drop the setenv() completely;
+so any program that does that in an MT context is broken anyway,
+regardless of whether it uses a library that does an additional
+getenv().)
+So regardless of whether a check for setenv() etc. in libraries
+is introduced into lintian: getenv() shouldn't be checked for
+IMHO.
+That said: I do agree that the way the entire API around
+environment variables is defined is quite horrible.
+Regards,
+Christian

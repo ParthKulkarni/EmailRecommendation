@@ -1,0 +1,51 @@
+To : dod@debian.org
+Subject : Permanent transition tracker for Perl6 ? (was: Re: Packaging of libraries with unstable ABI (D, Rust, Go, ...))
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 30 May 2017 17:37:44 +0100
+Message-id : 22829.40920.716074.682972@chiark.greenend.org.uk
+In-reply-to : <[🔎] 106844657.7BZ1KGSoZz@ylum>
+References : <[🔎] CAKNHny_vTGsFNWJkmJdF-ypTDfmJhF1-OWeDHVSD-xOgv5tYuA@mail.gmail.com>	<[🔎] 106844657.7BZ1KGSoZz@ylum>
+
+
+Dominique Dumont writes ("Permanent transition tracker for Perl6 ? (was: Re: Packaging of libraries with unstable ABI (D, Rust, Go, ...))"):
+> On Thursday, 18 May 2017 16:37:58 CEST Matthias Klumpp wrote:
+> > Unfortunately though, the D language ABI isn't stable, so any future
+> > compiler update might break the software in weird ways unless all D
+> > software is recompiled when a new compiler is released.
+> 
+> Perl6 has a similar issue: currently all modules (aka library) are pre-
+> compiled ar run-time. The pre-compilation result is stored in user's home 
+> directory ( ~/.perl6 ) to speed up the start-up time when a program is 
+> launched.
+~/.perl6 is a particularly annoying place to put this.  It defeats
+the usual efforts to move this kind of thing to non-backed up storage,
+or whatever.
+> Unfortunately, these pre-compiled files are obsolete when a new Perl6 (rakudo) 
+> compiler is released.
+And does it automatically delete them, ever ?  If not then surely that
+is a bug.
+> All in all, I have three choices:
+> 
+> - ship only source in module and let rakudo install pre-compiled files. This 
+> may require user to clean-up ~/.perl6 from time to time. This may cause 
+> problems for daemon written in Perl6 (we're not there yet): e.g. how to clean 
+> up ?
+Quite.
+> is letting daemon write its own pre-compiled file a security risk ?
+Possibly, but the cache area should be by uid not by USER.
+> - pre-compile all module are installation time (like python or emacs). The 
+> main issues are: all modules must be re-compiled in the correct order when 
+> rakudo is upgraded and how to clean up obsolete pre-compiled files. This 
+> requires complex post-install scripts
+Does Perl6 function correctly if these compiled files do not exist,
+and cannot be written ?  If so you can do the compilation
+opportunistically.  Python seems to take this approach.
+> The latter is probably the best solution from my point of view. 
+> 
+> But a permanent tracker has an impact in the buildd: is this solution 
+> acceptable ?
+It seems rather poor.
+Can you patch Perl6 to put the precompiled files alongside the
+original source files, the way Python does it ?  Then you can reuse
+the techniques used by the Python people, maybe.
+Ian.

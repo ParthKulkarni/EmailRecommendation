@@ -1,0 +1,202 @@
+To : debian-arm@lists.debian.org
+Subject : Summary of the Arm ports BoF at DC17
+From : Steve McIntyre <steve@einval.com>
+Date : Thu, 14 Sep 2017 03:40:01 +0100
+Message-id : 20170914024001.kitowt4moob5hyso@tack.einval.com
+Reply-to : debian-arm@lists.debian.org
+
+
+[ Please note the cross-post and Reply-To ]
+Hi folks,
+As promised, here's a quick summary of what was discussed at the Arm
+ports BoF session in Montréal. Apologies for the delay in posting...
+Thanks to the awesome efforts of our video team, the session is
+already online [1]. I've taken a copy of the Gobby notes too,
+alongside my small set of slides for the session. [2]
+We spoke about the past/present/future state of Arm ports in Debian.
+arm64
+=====
+Most recent Arm port, first released with Jessie. We're starting to
+see more devices becoming available that will run Debian arm64
+well. We're also starting to get real server hardware turning
+up. arm64 hardware often follows better standards than some of the
+older generations of Arm hardware, meaning that most of the machines
+coming (assuming kernel support!) should work well out of the box
+using device tree or ACPI. Please use ACPI if you can - the two are
+mostly equivalent in terms of what they describe, but ACPI is a better
+choice for the future where possible, with better standards.
+armhf
+=====
+Much as in previous BoFs in terms of support and future!
+Current port, first released with Wheezy. Due to cross-distro effort,
+this setup (ARMv7 EABI using VFPv3D16) is the default supported 32-bit
+Arm architecture in all distros now. This means that there's even a
+fair chance of binaries built for one distro running on others!
+We've got a couple of multi-platform kernel variants (armmp and
+armmp-lpae for large-memory systems) that will support just about any
+new devices shipping, given updated drivers and device tree support.
+UEFI is now a thing for some ARMv7 platforms. Some people are looking
+into using UEFI by default, plus there's also the ongoing work by
+Alexander Graf on the UEFI shim layer in modern U-Boot. This allows
+for easier, consistent boot support (e.g. booting off USB
+automatically for installation).
+armel
+=====
+armel is the longest-running of the three current Arm ports in Debian,
+starting in 2007 with Lenny.
+We've been debating the future of armel for some time in Debian
+now. It's typically still supported by most upstreams (Linux kernel,
+gcc, etc.), but we're more frequently finding issues with support for
+it in newer tools and languages and applications further up the
+stack. It's difficult (in some cases almost impossible) to run many
+larger applications like browsers on ARMv4t, as the upstream
+developers just don't support it any more.
+Based on this, I described a plan to drop armel from testing and *not*
+release it with Buster. This is *not* a done deal, and there's still
+scope for interested developers to step up and make sure that armel is
+supported in future. We'd been asking for that for the last couple of
+years and it had not happened.
+We'd been talking in the past few years about options for armel,
+including a partial armel port, dropping support for some packages
+that are difficult to port or not considered useful. While that might
+sound attractive as a possible way to go, nobody appears to have done
+any of the work needed to make it possible.
+************************************************************************
+  In the background, almost in parallel there has been some discussion
+  on the mailing list about this topic and it seems we now *do* have
+  some developers wanting to keep armel alive. See the thread starting
+  at [3] for more information, or if you'd like to help. I still have
+  personal concerns about the viability of armel in the future, but I
+  wish any other volunteers luck in keeping it alive.
+************************************************************************
+Whether we continue with armel or not, it's probably worthwhile for
+users to think about migrating to newer hardware if they care about it
+in the longer term.
+Buildds and hardware
+====================
+The existing build machines for armel and armhf are all still ARMv7
+based, using donated Marvell Armada XP machines. They're working very
+well as build machines - they're quite fast and take a reasonable
+amount of memory. Scaleway [4] use similar hardware for Arm-based
+hosting. We also still have an older Freescale imx53 porter box for
+people on armhf who might need to debug NEON issues, as the Armada XP
+machines don't include it.
+arm64 gives us more options for sensible build machines: AMD Seattle,
+APM Mustang, Arm Junos. We're still looking at more and better
+hardware in the future, including potential offers from arm64 server
+hardware developers.
+We're wanting to move on to more and more arm64 hardware in the future
+for build machines, including for building armhf. Using real server
+hardware will help us, as the machines will then fit in a rack, with
+remote management options too. Unfortunately, you can't rely on these
+for building for armel. There are old deprecated instructions (mainly
+barriers and atomics) that are no longer supported in the ARMv8
+hardware. There is optional kernel support to trap the exceptions here
+and emulate the instructions, but it's really not recommended for
+serious use (e.g. on a build machine!).
+Using nice big arm64 boxes also makes it feasible to run build
+machines and porter boxes in VMs, which is very attractive for
+separation, security etc.
+Vagrant reported that he's seen some issues even building (and
+running) armhf code on ARMv8 hardware. This was the old barrier code
+from ARMv4 days; many software projects seem to be using *really* old
+embedded libraries (e.g. libgc) that desperately need updating to fix
+this kind of problem. Please file bugs if you find any other similar
+issues, these need to be fixed.
+Further discussion
+==================
+If we *did* drop armel as a release architecture, we'd be the first
+port in Debian to voluntarily do so. Do we need a new term for that?
+("Vancouver" is already in use; "Montréal" maybe? *grin*).
+We always need more porters - join us on the mailing list or in IRC!
+Brief discussion about Arm being bought last year by Softbank - very
+few major changes for Arm folks and things are all looking
+positive. More work ongoing for future IoT developments.
+packet.net have offered us VM time in their ARM-based cloud. We're not
+too happy about running official build machines in such a setup - we
+much prefer to control the base hardware for such machines. However,
+use of these for porter boxes or reproducible builds sounds like a
+great option. packet.net are using Cavium ThunderX machines, 48 cores
+per socket and bigger with lots of memory. They're great for parallel
+workloads, but they're *loud* and there's a bigger wrinkle for some
+folks - they don't support A32 (the 32-bit Arm ISA) natively.
+Clarification of ARM naming for CPUs and instruction sets, to help
+explain this limitation and what it means. We would not be able to
+run/build armhf (A32) code on the packet.net machines, but we could do
+arm64 happily. Definitely we will need to think about security and
+trust with respect to our buildds in future as we start doing Secure
+Boot and maybe further secure code signing.
+So, what machines would be recommended for users to buy today for
+arm64 development? 48-core ThunderX machines are all well and good,
+but a little pricey for hobbyist developers at home! What's available
+with 4 or 8 cores, 4-8 GiB RAM, etc.? Lots of options around, but
+there's a gap in the market. There are a fair number of cheap dev
+boards with 1-2 GiB RAM (based on mobile CPUs), but bigger stuff is
+typically much more expensive - "demo boards for server hardware",
+which are much more expensive than comparable x86-based machines.
+To do serious development on a *computer* rather than an embedded
+device, we want something more than what's available on the cheap
+mobile dev boards. Mention (again) of Softbank machines, Mustangs,
+Gigabyte motherboards etc. but there are problems getting hold of
+these. It's still difficult to buy these from normal reselllers.
+Which bootloader is the better choice for these computers? That's a
+common subject for discussion...! I personally would really push
+towards UEFI, while others prefer U-Boot. IMHO U-Boot is fine for
+mobile devices and dev boards etc., but there's so much arbitrary
+variation in different vendor-provided versions of U-Boot that it's
+quite common to find missing support for filesystems or network
+devices (or whatever). It's possible to replace the installed U-Boot
+on many boards, but that depends on hardware support being properly
+upstreamed; lack of that upstreaming work is another common bugbear in
+vendor U-Boot binaries. If you want to use your arm64 machine as a
+*computer*, my recommended route is UEFI; this is why all the server
+vendors have gone that route.
+My current affordable arm64 machine of choice is the Marvell
+8040-based Macchiatobin [5]. It's designed for networking / NAS
+devices, and mostly works well. Work is ongoing to upstream things
+fully, but there are issues in the first cut of the board that means
+the onboard PCI is broken. :-( It comes with U-Boot out of the box,
+but a UEFI port is in development. It's 4-core Cortex-A72 and supports
+up to 16G of RAM. It has sufficient onboard devices to be a useful box
+for many things (USB, SATA, network) if the lack of PCI is not a
+problem. It *will* want a kernel newer than what's in Stretch to make
+things work well.
+There's a smaller/simpler Marvell-based Espressobin which may work for
+people.
+The Pine64 [6] is another alternative, based on a mobile CPU. It's
+therefore got limited RAM and I/O. Upstreaming has taken a while, but
+is getting there in current kernel releases. U-Boot head will work on
+the board, including the UEFI implementation mentioned earlier.
+There's the related PineBook project [7] too - a small laptop-style
+machine based around the Pine64 board.
+Vagrant mentioned other options:
+ * Nvidia Jetson TX-1 (pretty good, but needs some non-mainline patches yet)
+ * Odroid C2 (hed early troubles, but working on it)
+Answering this question ("I want something that just works, what
+should I buy?") is always much harder than it should be... :-(
+Hector asked about the current state of the less well-known Arm ports:
+big-endian versions and arm64ilp32. Lots of different BE ports have
+happened over the years, for various reasons. arm64ilp32 [8] is the
+arm64 equivalent of x32 on x64-64; IMHO there is no need for it in
+Debian as a mainstream port. Wookey is working on it in Linaro at the
+moment. There is a BE version too. While x32 *might* have some
+performance wins over i386 (depending on code), it's not clear that
+arm64ilp32 is likely to be any better than armhf (A32) in most cases.
+Last question: what should people do to keep armel? Main things:
+ * deal with armel-specific bug reports
+ * get involved in toolchains and make sure they continue to work
+ * *mail the debian-arm list and commit to working on stuff*
+[1] http://meetings-archive.debian.net/pub/debian-meetings/2017/debconf17/debian-arm-bof.vp8.webm
+[2] http2://www.einval.com/~steve/talks/Debconf17-arm-BoF/
+[3] https://lists.debian.org/debian-arm/2017/08/msg00015.html
+[4] https://www.scaleway.com/
+[5] https://www.solid-run.com/product/armada-8040-networking-community-board/
+[6] https://www.pine64.org/
+[7] https://www.pine64.org/?page_id=3707
+[8] https://wiki.debian.org/Arm64ilp32Port
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"Managing a volunteer open source project is a lot like herding
+ kittens, except the kittens randomly appear and disappear because they
+ have day jobs." -- Matt Mackall
+signature.asc

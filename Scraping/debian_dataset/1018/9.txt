@@ -1,0 +1,61 @@
+To : debian-devel@lists.debian.org,Alec Leamas <leamas.alec@gmail.com>
+Subject : Re: lircd daemon as regular user => device access problems
+From : Bastien Roucaries <roucaries.bastien@gmail.com>
+Date : Sat, 11 Feb 2017 09:29:39 +0000
+Message-id : 16A3243B-312A-43E0-8E09-929AB5E19ECA@gmail.com
+In-reply-to : <[🔎] bba0c0c5-04da-e9e5-a8e5-3262517620b5@gmail.com>
+References : <[🔎] bba0c0c5-04da-e9e5-a8e5-3262517620b5@gmail.com>
+
+
+Le 10 février 2017 16:13:15 GMT+01:00, Alec Leamas <leamas.alec@gmail.com> a écrit :
+>Dear list,
+>
+>After some work it seems that an updated LIRC package has landed in 
+>stretch without any major problems. This resolves the urgent need to 
+>update it to something recent enough to be supported by upstream.
+>
+>One remaining problem is that lircd, the main LIRC daemon, runs as
+>root. 
+>This is code from the 90's, heavily user-configured. Running this as 
+>root is just not sane, and other distros has moved to running it as a 
+>regular user since long. I want to make this change for sid/buster.
+>
+>However, running lircd as non-root raises permissions problems related 
+>to /dev/... devices. Since lircd is configured in all sorts of ways, 
+>many kinds of devices are potentially used. The paranoid configuration 
+>is to block all devices for lircd, leaving it to user to enable them as
+>
+>required. This is a breaking update for almost all users.
+>
+>The alternative is to use the Fedora strategy, outlined below. This 
+>means changing overall permissions for several /dev/... devices. Is
+>this 
+>OK, should  it be discussed on this ML, or somewhere else?
+>
+>Proposed /dev/ permissions after installing lirc:
+>
+>- The /dev/lirc? devices are set user:group  lirc:lirc and mode 660 
+>(udev rule).
+>- The lirc user is added to the input group, to access /dev/input
+>devices.
+>- The lirc user is added to the dialout group to access /dev/ttyS
+>devices.
+>- The /var/lock dir is root:root 755 in my stretch box but this is 
+>seemingly #813703; assuming this will be fixed to 1777.
+>- lirc user gets read access to all USB character devices using a udev 
+>rule invoking facl(1).
+>
+>I know that getting permission is harder than to be forgiven, but 
+>perhaps it makes sense to have a discussion first?
+>
+>The possibly controversial issue is the USB devices. However, without 
+>this rule a large part of lirc users will be forced to painful udev 
+>rules configuration
+Can we list USB device needed (whitelist) ?
+Bastien
+>
+>Thoughts?
+>
+>--alec
+-- 
+Envoyé de mon appareil Android avec K-9 Mail. Veuillez excuser ma brièveté.

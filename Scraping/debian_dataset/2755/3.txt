@@ -1,0 +1,66 @@
+To : Philipp Kern <pkern@debian.org>, "Adam D. Barratt" <adam@adam-barratt.org.uk>, Luke W Faraone <lfaraone@debian.org>
+Subject : Re: Re-evaluating architecture inclusion in unstable/experimental
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Wed, 3 Oct 2018 18:01:48 +0200
+Message-id : e37c0e42-4f48-c204-de9b-80cff3b9ddfc@physik.fu-berlin.de
+In-reply-to : <[🔎] 0fcb5caa-a635-85f5-ba7d-33f8bdb29416@debian.org>
+References : <71349e8f-e17f-2d7a-aa21-da6cd10dc365@physik.fu-berlin.de> <1538170000.25061.12.camel@adam-barratt.org.uk> <0af31952-c244-0f52-47c1-1a9ac94024e6@physik.fu-berlin.de> <[🔎] 0fcb5caa-a635-85f5-ba7d-33f8bdb29416@debian.org>
+
+
+Hi Philipp!
+On 10/3/18 4:29 PM, Philipp Kern wrote:
+> Please excuse my ignorance, but which architecture do we still have with
+> 2 GiB address space? The main point of removing s390 was that this was
+> unsustainable.
+The 32-bit MIPS architectures have this limitation which causes various
+build issues up to the point that maintainers have to reduce optimization
+levels for the C/C++ compiler to be able to build a package. Another issue
+is that the Rust compiler, despite being fully supported on 32-bit MIPS,
+cannot be built natively there because the build process runs out of
+memory at some point.
+>> I have seen IBM people on multiple occasions in various upstream
+>> projects trying to remove code for older POWER targets because
+>> they insisted anything below POWER8 is not supported anymore. In
+>> some cases like Golang with success [1].
+> 
+> Yeah, IBM behavior has been incredibly frustrating here on the System z
+> side, too. Essentially they end up actively removing support for
+> anything they don't support anymore.
+Somewhat relieves me to hear that I'm not the only one running into
+this problem. I find it frustrating though since it leaves a bad
+impression on what attitude IBM has towards open source and the
+community.
+> To some degree I understand this behavior: It's a real relieve to not
+> need to support something old and crufty when you're the engineer on the
+> other side having to do that. Even when such support is contributed,
+> someone needs to keep it working and they won't keep old hardware around
+> for that.
+Sure, I understand that. But in the case of Golang, the necessary extra
+code paths are really manageable. In fact, have my own tree of Golang
+where I reverted the changes which dropped POWER5 support and I keep
+rebasing this tree from time to time and it still works fine.
+It does work without problems on the x86 side with the kernel and the
+toolchain still supporting rather old hardware. POWER5 isn't that old.
+> But it has very awkward implications on the people that still have that
+> hardware for one reason or another and don't actually rely on a support
+> contract.
+My main argument is that if there are still a reasonable amount of users
+and there are still enough people to help maintain a port, it should
+not removed just because it's old. In the end, software is written to be
+useful to users and not for the sake of the people writing it.
+> For s390x I can say that the port was driven without any commercial
+> interest on both Aurelien's and my side
+The question is though: Is there quantifiable amount of users that is
+running Debian on such big iron instead of one of the Linux enterprise
+distributions on the market? If the argument is about maintenance burden,
+then does it justify to support Debian on s390x when the number of users
+is small? And, if yes, why does that not apply to ppc64, for example?
+(I would mention sparc64 here as well, but there is actually a valid
+ blocker which is the lack of supply of new hardware for DSA).
+Thanks for the insight!
+Adrian
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

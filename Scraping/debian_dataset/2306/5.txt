@@ -1,0 +1,89 @@
+To : debian-devel@lists.debian.org
+Subject : Single Sign On  for Debian
+From : Geert Stappers <stappers@stappers.nl>
+Date : Sun, 20 Aug 2017 18:16:07 +0200
+Message-id : 20170820161607.GP21385@gpm.stappers.nl
+
+
+Previous on mailinglist alioth-staff-replacement@lists.alioth.debian.org
+IMHO is debian-devel@lists.debian.org a better place for this.
+----- Forwarded message from Enrico Zini <enrico@debian.org> -----
+Date: Sun, 20 Aug 2017 18:03:26 +0200
+From: Enrico Zini <enrico@debian.org>
+To: alioth-staff-replacement@lists.alioth.debian.org
+Cc: Geert Stappers <stappers@stappers.nl>
+Subject: Re: [Alioth-staff-replacement] Fwd: Re:  Alioth needs your help
+User-Agent: NeoMutt/20170113 (1.7.2)
+> >> SSO doesn't have own backends.
+> > Isn't  db.debian.org the backend that knowns about all DD?
+> 
+> SSO, as it is right now, is NOT a user managing thing. SSO is ONLY
+> taking existing users from one or more (two right now, db.d.o/alioth)
+> backends, and allows them to have a single sign on on connected debian
+> services, nm.debian.org being the biggest of it, DebConf pages the next
+> one (that i know of).
+> 
+> If someone is willing to invest the time and work to make SSO fly up and
+> be THE one point other things can connect to, meaning that it eats DD
+> data from db.d.o but does its own user management for non-DDs, and also
+> willing to maintain that over time - and then also add stuff like being
+> an ouath provider, SAML something, whatever those things are called by
+> now, so that applications/services can easily be connected to it - then
+> setups like gitlab/gitea/whatever can go and use it as a provider, and
+> not the other way round.
+> 
+> I am pretty sure the current maintainers of sso would love to get help,
+> possibly to the point of being happy to entirely give it to someone who
+> really wants to invest the time and work, also i cant speak for them, so
+> talk to them for more.
+Hi there. I'm not on this list, keep me Cc-ed or add me to the list as
+you wish.
+I am currently the only maintainer of sso.d.o and I confirm what Ganneff
+said.
+Currently not only sso.d.o doesn't do any user database, but it also
+never sees the users' web password or alioth passwords. Authentication
+is delegated to apache's mod_ldap, and I just see what's in REMOTE_USER.
+A bug in my code, with the current setup, won't leak users' passwords no
+matter what.
+I'm happy to give up maintenance of sso.d.o entirely and I don't mind if
+it gets replaced with whatever makes sense. The current setup is the
+simplest and most secure setup I can think of that can be maintained by
+one person, relies on widespread and well tested code (except for the
+custom certificate generation interface) and can federate trivially.
+Note that it's security-sensitive code for which I don't even get code
+review of my commits, with the exception of some recent post-debconf
+review and feedback by paultag. 
+However, if anyone takes sso.d.o over, and then at some point
+disappears, I will be the most affected, as a broken sso.debian.org
+means a broken nm.debian.org and contributors.debian.org and I am the
+person taking care for those, too. In fact, I got stuck with maintaining
+sso.debian.org because the other people involved pulled out and I needed
+to keep nm.debian.org running, so that scenario has happened before.
+If it happens again, depending on what sso.debian.org will have become,
+I might choose to take down nm.debian.org until someone else fixes
+sso.debian.org, instead of taking ownership of something I can't
+maintain.
+I understand that gitlab has its own user database / registration /
+password change infrastructure; if you want to use that, we can see how
+to make sso.debian.org authenticate to it.
+If instead you prefer to have sso.debian.org handle non-DD registration,
+it is doable: python3-django-registration exists and can be used, and
+gitlab can probably then consume the client certificates.
+Between the two options, I would imagine that the gitlab registration
+code is far more polished and well tested than
+python3-django-registration, so I would suggest to have people register
+on gitlab and then interface sso.debian.org with that.
+Enrico
+-- 
+GPG key: 4096R/634F4BD1E7AD5568 2009-05-08 Enrico Zini <enrico@enricozini.org>
+_______________________________________________
+Alioth-staff-replacement mailing list
+Alioth-staff-replacement@lists.alioth.debian.org
+https://lists.alioth.debian.org/mailman/listinfo/alioth-staff-replacement
+----- End forwarded message -----
+-- 
+Groeten
+Geert Stappers
+-- 
+Leven en laten leven
+signature.asc

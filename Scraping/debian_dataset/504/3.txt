@@ -1,0 +1,91 @@
+To : deity@lists.debian.org, debian-devel@lists.debian.org
+Subject : Re: Replacing apt's http method (dropping curl)
+From : Tim Rühsen <tim.ruehsen@gmx.de>
+Date : Wed, 28 Jun 2017 14:56:50 +0200
+Message-id : 339632eb-88fe-0479-9bdd-8c7230f85829@gmx.de
+In-reply-to : <[🔎] 20170627194055.GA8639@debian.org>
+References : <[🔎] 20170627194055.GA8639@debian.org>
+
+
+On 06/27/2017 08:00 PM, Julian Andres Klode wrote:
+> Hi everyone,
+> 
+> as we discussed before in IRC, we plan to eventually replace
+> our existing curl-based https method with our http method,
+> by adding TLS support to it. This will move HTTPS support
+> into apt proper, removing the apt-transport-https package.
+> 
+> I'm not sure how long this will take, I hope we get something
+> useful next month.
+> 
+> Rationale
+> =========
+> * The https method is split out of apt because curl has a lot
+>   of dependencies (29 vs 7 on my test setup, 15.9 vs 4 MB of
+>   disk space)
+> * We want https to be a default these days, even if it provides
+>   only minor security improvements.
+> * Our http method is actually tested a lot because it is the
+>   default and supports advanced features, the https method just
+>   does curl easy stuff sequentially.
+> 
+> Transition plan
+> ===============
+> I plan to do this in two stages, both of which I expect to
+> happen in unstable if all features have been implemented
+> quickly. There might be feature-incomplete alphas in
+> experimental.
+> 
+> In the first stage, the "https" method is renamed to
+> "https+curl", and a https->http symlink is added in apt.
+> 
+> If no significant regressions are reported (we might drop
+> some options or increase some checks), and the package has
+> been in testing for some time, the apt-transport-https
+> package is removed.
+> 
+> This ensures that (a) we get proper testing and (b) users
+> have a workaround if something fails in that testing period.
+> 
+> Implementation
+> ==============
+> I so far implemented basic https support using GnuTLS, including
+> SNI and certificate validation, and one (!) local CA file (as our
+> tests need that). The code is incredibly hacky right now. And
+> https->http redirects don't work yet.
+> 
+> Alternatives would be to use libnss or openssl. In the latter
+> case, we'd have to build a separate helper binary that does not
+> link to the GPLed code, and just unwraps a TLS connection into
+> a pipe (similar to stunnel) - we could also use a helper generally,
+> it would allow us to run the TLS stack as nobody (!!!) [OK,
+> we have to open the socket in the parent process and pass it
+> down to the TLS stack, so _apt opens the connection for firewalls].
+> 
+> The existing shitty proof of concept is available on GitHub:
+> 
+> https://github.com/Debian/apt/compare/master...julian-klode:feature/http-https?expand=1
+> 
+> But as I said it's ugly. It also does not yet link the http
+> binary to the https binary.
+Hi,
+I just want to mention that libwget[1] already has all the code you need
+plus lot's of other fancy TLS stuff (session resumption, false start,
+tcp fast open, OCSP). It is part of GNU Wget2, which is not released
+yet, mainly because we want to wait for our GSOC student's work. But we
+can do an alpha release if that helps.
+The dependencies are quite low, most stuff is build-configurable (e.g.
+IDN, PSL, HTTP/2, HTTP compression support which is gzip+deflat e via
+libz, lzma/xz, bzip2, brotli).
+I see no problem if you like to cut stuff out (it is GPLed), that has of
+course pros and cons. I am also open to split out the needed code/API
+into a separate library.
+We are not planning to support anything but GnuTLS for TLS (it perfectly
+fit our needs and we are in close contact to the maintainer).
+We already have a good test suite, pretty good code coverage and also
+started fuzzing code, locally and via OSS-Fuzz.
+There is much more to say... but have a look yourself, think about it
+and feel free to contact me for questions and/or help.
+With Best Regards, Tim
+[1] https://gitlab.com/gnuwget/wget2
+signature.asc

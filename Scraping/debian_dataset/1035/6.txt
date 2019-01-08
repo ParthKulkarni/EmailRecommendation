@@ -1,0 +1,67 @@
+To : Debian Developers <debian-devel@lists.debian.org>
+Subject : IPv6 problem for one debian mirror
+From : Vincent Danjean <vdanjean.ml@free.fr>
+Date : Wed, 8 Feb 2017 01:05:51 +0100
+Message-id : 5eda9e1b-ea96-0461-42c6-0062bc9ab952@free.fr
+
+
+Hi,
+  I'm writing to this list to know where to report the following
+problem.
+  I'm using ftp.fr.debian.org as a mirror on several of my machines.
+This is a CNAME to a machine of a French ISP:
+$ dig -t any ftp.fr.debian.org
+[...]
+ftp.fr.debian.org.	1894	IN	CNAME	debian.proxad.net.
+[...]
+This machine itself has two IPs: one IPv4 and one IPv6:
+$ dig -t any debian.proxad.net.
+[...]
+;; ANSWER SECTION:
+debian.proxad.net.	52429	IN	A	212.27.32.66
+debian.proxad.net.	52701	IN	AAAA	2a01:e0c:1:1598::2
+[...]
+However, the machine answers to IPv4 connections but not to IPv6
+$ time wget -4 ftp.fr.debian.org
+--2017-02-08 00:53:54--  http://ftp.fr.debian.org/
+Résolution de ftp.fr.debian.org (ftp.fr.debian.org)… 212.27.32.66
+Connexion à ftp.fr.debian.org (ftp.fr.debian.org)|212.27.32.66|:80… connecté.
+requête HTTP transmise, en attente de la réponse… 200 OK
+Taille : 1915 (1,9K) [text/html]
+[...]
+real	0m0,108s
+user	0m0,000s
+sys	0m0,000s
+$ time wget -6 ftp.fr.debian.org
+--2017-02-08 00:53:58--  http://ftp.fr.debian.org/
+Résolution de ftp.fr.debian.org (ftp.fr.debian.org)… 2a01:e0c:1:1598::2
+Connexion à ftp.fr.debian.org (ftp.fr.debian.org)|2a01:e0c:1:1598::2|:80… ^C
+real	1m52,272s
+user	0m0,000s
+sys	0m0,000s
+[I did a C-c in the shell to interrupt]
+My IPv6 connection is ok for other sites, for example:
+$ time wget -6 www.debian.org
+URL transformed to HTTPS due to an HSTS policy
+--2017-02-08 00:57:00--  https://www.debian.org/
+Résolution de www.debian.org (www.debian.org)… 2001:610:1908:b000::148:14, 2001:41c8:1000:21::21:4
+Connexion à www.debian.org (www.debian.org)|2001:610:1908:b000::148:14|:443… connecté.
+requête HTTP transmise, en attente de la réponse… 200 OK
+Taille : 14926 (15K) [text/html]
+[...]
+real	0m1,079s
+user	0m0,012s
+sys	0m0,000s
+  So, who should be contacted to fix this problem (ie either remove
+the IPv6 for debian.proxad.net. or makes this machine to answer again
+to IPv6 or change the ftp.fr.debian.org alias or ...) ?
+  As a side note, it is really sad that APT imposes a 1min timeout
+for such problem. I proposed a patch in #668948 but never got any
+feedback :-(
+  Regards,
+    Vincent
+-- 
+Vincent Danjean       GPG key ID 0xD17897FA         vdanjean@debian.org
+GPG key fingerprint: 621E 3509 654D D77C 43F5  CA4A F6AE F2AF D178 97FA
+Unofficial pkgs: http://moais.imag.fr/membres/vincent.danjean/deb.html
+APT repo:  deb http://people.debian.org/~vdanjean/debian unstable main

@@ -1,0 +1,55 @@
+To : Jeremy Bicha <jbicha@debian.org>
+Subject : Derivative specific build profiles (was: Re: Bug#886238: Please introduce official nosystemd build profile)
+From : Johannes Schauer <josch@debian.org>
+Date : Tue, 09 Jan 2018 23:22:03 +0100
+Message-id : 151553652380.1442.14816198615195092481@localhost
+In-reply-to : <[🔎] CAAajCMZkn-Am60Y06W4AtxW5DQj_Zh77LLEtoa6jxChnNnzEcQ@mail.gmail.com>
+References : <[🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk> <[🔎] 20180108183711.2vrs643yrokpapuq@mail.wookware.org> <[🔎] 20180108200909.7o6ovj2ajzseik2m@virgil.dodds.net> <[🔎] 4de2303e-f4dd-11e7-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180109050326.hxksmt53vp32ndcu@mail.wookware.org> <[🔎] 151550682194.1442.3057583478420582272@localhost> <[🔎] CAAajCMZkn-Am60Y06W4AtxW5DQj_Zh77LLEtoa6jxChnNnzEcQ@mail.gmail.com>
+
+
+Quoting Jeremy Bicha (2018-01-09 17:35:30)
+> On Tue, Jan 9, 2018 at 9:07 AM, Johannes Schauer <josch@debian.org> wrote:
+> > So we
+> > could talk about whether we should allow more build profiles that change binary
+> > package contents but so far I don't see the use case for them and thus the
+> > discussion would be a bit academic.
+> 
+> Ok, let me try to provide a more practical use case for you then.
+> 
+> At times, Ubuntu needs to avoid certain build-dependencies because
+> they would add an unwanted "universe" binary dependency to a "main"
+> package. In some cases, that is the *only* change Ubuntu makes to the
+> package. I believe it benefits Debian for Ubuntu and Debian packaging
+> to be as shared as much as possible.
+> 
+> https://launchpad.net/bugs/1734339
+That bug references [1] which lists reason for why derivative specific build
+profiles are a bad idea. Even though I wrote most of the page it is of course
+not up to me whether Debian at large thinks that derivative specific build
+profiles are a good or bad idea. But if you want to discuss this topic, then
+here are the downsides I see:
+ - They are not self-explanatory. Building with nofoo active makes it clear
+   that the source package is built without foo. What does it mean to build
+   with the profile for ubuntu active, the profile for mint deactivated but at
+   the same time the profile for kali active? Remember that more than one build
+   profile can be enabled at a time. The same bug even admits that the src:git
+   example could be solved with a nopcre2 build profile instead of a
+   distribution specific profile.
+ - What is more maintainable? This:
+      ifeq (,$(filter ubuntu kali raspian steamos elementaryos, $(DEB_BUILD_PROFILES)))
+   or this:
+      ifeq (,$(filter nofoo, $(DEB_BUILD_PROFILES)))
+   Who maintains the list of downstreams that we support? Who cleans up the
+   archive once one of our downstreams is not maintained anymore? Who decides
+   which downstreams are eligible to be included in every package that wants
+   them? How do we prevent bitrot if we list all derivatives specifically?
+ - Learning from others: Gentoo has a similar concept with USE flags and they
+   also have downstreams but they do did not introduce derivative specific USE
+   flags.
+I thus believe that the superior solution is to name build profiles after the
+feature that they modify. Then each downstream can pick and choose which set of
+build profiles they activate when they build packages.
+Thanks!
+cheers, josch
+[1] https://wiki.debian.org/BuildProfileSpec#Derivative_specific_profiles
+signature.asc

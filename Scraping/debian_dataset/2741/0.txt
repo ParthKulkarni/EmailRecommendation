@@ -1,0 +1,75 @@
+To : debian-devel@lists.debian.org, debian-science@lists.debian.org
+Subject : Re: RFC: Naming convention for ILP64 variant of BLAS/LAPACK
+From : Mo Zhou <lumin@debian.org>
+Date : Mon, 22 Oct 2018 15:07:10 +0000
+Message-id : 20181022150709.GB18121@Asuna
+In-reply-to : <[🔎] 20181021175116.frpge6rogmut4fm4@mail.wookware.org>
+References : <[🔎] 20181021095114.GA24382@Asuna> <[🔎] 20181021151615.6ipnkpz3bmlncoh7@shell.thinkmo.de> <[🔎] 20181021175116.frpge6rogmut4fm4@mail.wookware.org>
+
+
+Hi Wookey and Bastian,
+On Sun, Oct 21, 2018 at 06:51:16PM +0100, Wookey wrote:
+> On 2018-10-21 17:16 +0200, Bastian Blank wrote:
+> > Hi
+> > 
+> > On Sun, Oct 21, 2018 at 09:51:15AM +0000, Mo Zhou wrote:
+> > > about naming convention of SONAME and package name.
+> > > 
+> > > As discussed in [1][2][3], Debian will need a set of ILP64[4] interface
+> > > to BLAS/LAPACK in the future.
+> > 
+> > Could you please describe what you mean?  All 64-bit Debian
+> > architectures are LP64.  So building a single binary using ILP64 will
+> > even break the ABI for glibc and it will most likely not run very far.
+> > (A file descriptor is defined as "int", so even the most basic file
+> > calls will be incompatible.)
+ 
+I missed some points in the original post. The proposal meant to add
+a new set of BLAS/LAPACK packages that are compiled in ILP64, and the
+existing BLAS/LAPACK API/ABI won't be changed and nothing will break.
+Here is a detailed example for demonstration
+  src:openblas
+    bin:libopenblas-base (LP64, won't be changed at all)
+      provides libblas.so.3
+	bin:libopenblas-dev (LP64, won't be changed at all)
+	  provides libblas.so
+	bin:libopenblas-ilp64 (ILP64, newly-added)
+	  provides libblas-ilp64.so.3
+	bin:libopenblas-ilp64-dev (ILP64, newly-added)
+	  provides libblas-ilp64.so
+So there is no "ABI bump" but just "adding a new set of ABI". At the
+same time, it won't result in any transition or breakage.
+> I wondered about this. The mail said that the BLAS/LAPACK ABIs do not
+> change, so I presumed that this was about internal data layouts for
+> the data being passed which. But reading the bugreps it does sound
+> like just a new ABI using ILP64. That would be properly done using
+> multiarch or multilib paths, and needs some thought about how best to
+> lay things out and what else would be needed to make it work.
+The simplest solution is just to create a separate ABI with different
+name and different package name. And it introduces the least overhead.
+> Are any
+> other packages likely to start wanting to use ILP64 ABIs? I guess it's
+> very much an 'HPC' sort of thing at the moment.
+> 
+> So yeah, some clarification in order I think, and an explanation of use-cases.
+HPC is indeed a related use case. I don't know any other package that
+would need such an ILP64 BLAS/LAPACK interface except for Julia.
+Actually by default Julia uses ILP64 version of openblas instead of
+LP64, see [julia-ilp64-default].
+Here are some references:
+1. https://software.intel.com/en-us/mkl-linux-developer-guide-using-the-ilp64-interface-vs-lp64-interface
+   The Intel MKL ILP64 libraries use the 64-bit integer type (necessary
+   for indexing large arrays, with more than 231-1 elements), whereas
+   the LP64 libraries index arrays with the 32-bit integer type.
+2.  https://bugzilla.redhat.com/show_bug.cgi?id=1287541
+   Julia upstream and fedora chose a different solution... they mangled
+   the BLAS/LAPACK symbol names by adding an "64_" suffix. However,
+   Julia is the only upstream that use this mangling rule in practice,
+   and maybe some other ILP64-capable BLAS/LAPACK providers doesn't
+   allow easy name mangling. That means if we still want to take
+   advantage from the update-alternatives mechanism, we should not
+   mangle the symbol names.
+   src:intel-mkl is currently the only ILP64-ready BLAS/LAPACK provider
+   in the archive, and it doesn't mangle symbol names.
+   
+[julia-ilp64-default] https://salsa.debian.org/julia-team/julia/blob/master/DISTRIBUTING.md#L126-130

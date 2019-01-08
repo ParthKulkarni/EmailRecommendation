@@ -1,0 +1,116 @@
+To : debian-devel@lists.debian.org
+Subject : Planning the removal of c_rehash | mass bug filling
+From : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Date : Fri, 6 Apr 2018 00:22:12 +0200
+Message-id : 20180405222211.bmqpdbso3q5k7av5@breakpoint.cc
+
+
+Hi,
+the openssl package provides the c_rehash script which creates the links
+from XXXXXXXX.Y to the actual certificate in /etc/ssl/certs/. During the
+transition from 0.9.8 to 1.0.0 the hash (for the X part) changed from
+md5 to sha1. Since that transition in Debian the c_rehash script
+provides both symlinks: the old hash (md5) and the new (sha1) one. 
+The c_rehash script is considered by upstream as a fallback script and
+will disappear at some point. The recommended way is to use the "openssl
+rehash" command instead which appeared in 1.1.0.  This command creates
+half that many symlinks (one per certificate instead of two) because it
+uses only the sha1 hash. There is also the -compat option which creates
+both symlinks (and behaves like c_rehash currently does) but as
+explained above it should not be required to use it.
+I am planning to fill bugs against 23 packages which use "c_rehash" to
+use "openssl rehash" instead. Here is the dd-list of packages I
+identified:
+Alessio Di Mauro <alessio@yubico.com>
+   yubico-piv-tool (U)
+Antonio Terceiro <terceiro@debian.org>
+   ruby-openssl (U)
+Christian Perrier <bubulle@debian.org>
+   ca-certificates (U)
+Cyril Brulebois <kibi@debian.org>
+   debian-installer (U)
+Cédric Boutillier <boutil@debian.org>
+   ruby-httparty (U)
+Dain Nilsson <dain@yubico.com>
+   yubico-piv-tool (U)
+David Bremner <bremner@debian.org>
+   racket
+Debian AppArmor Team <pkg-apparmor-team@lists.alioth.debian.org>
+   apparmor
+Debian Authentication Maintainers <pkg-auth-maintainers@lists.alioth.debian.org>
+   yubico-piv-tool
+Debian Chromium Maintainers <pkg-chromium-maint@lists.alioth.debian.org>
+   chromium-browser
+Debian FreeRADIUS Packaging Team <pkg-freeradius-maintainers@lists.alioth.debian.org>
+   freeradius
+Debian Install System Team <debian-boot@lists.debian.org>
+   debian-installer
+Debian OpenLDAP Maintainers <pkg-openldap-devel@lists.alioth.debian.org>
+   openldap
+Debian QA Group <packages@qa.debian.org>
+   sendmail
+Debian Ruby Extras Maintainers <pkg-ruby-extras-maintainers@lists.alioth.debian.org>
+   ruby-httparty
+   ruby-openssl
+Felix Lechner <felix.lechner@lease-up.com>
+   wolfssl
+Iain R. Learmonth <irl@debian.org>
+   scapy (U)
+   scapy3k (U)
+Internet Measurement Packaging Team <pkg-netmeasure-discuss@lists.alioth.debian.org>
+   scapy
+   scapy3k
+intrigeri <intrigeri@debian.org>
+   apparmor (U)
+Josip Rodin <joy-packages@debian.org>
+   freeradius (U)
+Klas Lindfors <klas@yubico.com>
+   yubico-piv-tool (U)
+LaMont Jones <lamont@debian.org>
+   postfix
+Laszlo Boszormenyi (GCS) <gcs@debian.org>
+   sx
+Mark Brown <broonie@debian.org>
+   xemacs21-packages
+Mark Hymers <mhy@debian.org>
+   freeradius (U)
+Markus Wanner <markus@bluegap.ch>
+   courier
+Matthijs Möhlmann <matthijs@cacholong.nl>
+   openldap (U)
+Michael Gilbert <mgilbert@debian.org>
+   chromium-browser (U)
+Michael Shuler <michael@pbandjelly.org>
+   ca-certificates
+Michael Stapelberg <stapelberg@debian.org>
+   freeradius (U)
+Raphael Geissert <geissert@debian.org>
+   ca-certificates (U)
+Riku Voipio <riku.voipio@linaro.org>
+   chromium-browser (U)
+Roger A. Light <roger@atchoo.org>
+   mosquitto
+Ryan Tandy <ryan@nardis.ca>
+   openldap (U)
+Sam Hartman <hartmans@debian.org>
+   freeradius (U)
+Scott Kitterman <scott@kitterman.com>
+   postfix (U)
+Sebastian Reichel <sre@debian.org>
+   python-paho-mqtt
+Sebastien Delafond <seb@debian.org>
+   mitmproxy
+Simon Josefsson <simon@josefsson.org>
+   yubico-piv-tool (U)
+Stephen Gran <sgran@debian.org>
+   freeradius (U)
+Steve Langasek <vorlon@debian.org>
+   openldap (U)
+Tatsuya Kinoshita <tats@debian.org>
+   wl
+   wl-beta
+Thijs Kinkhorst <thijs@debian.org>
+   ca-certificates (U)
+Torsten Landschoff <torsten@debian.org>
+   openldap (U)
+Sebastian

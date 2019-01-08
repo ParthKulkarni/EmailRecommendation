@@ -1,0 +1,31 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Systemd dependencies
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 26 Feb 2018 10:00:00 +0000
+Message-id : 20180226100000.GA19357@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180226084622.GA23153@feivel>
+References : <[🔎] 20180226084622.GA23153@feivel>
+
+
+On Mon, 26 Feb 2018 at 09:46:22 +0100, Michael Meskes wrote:
+> do we have something like virtual entities for systemd service files? In SysV
+> we could require that mail-transport-agent was started before starting a
+> service. But how is this supposed to be handled with systemd?
+systemd targets provide similar functionality. network-online.target is
+probably the most visible example.
+I don't think anyone has defined a target for "the MTA has been started",
+and in general the more-recommended pattern for systemd is for required
+services to be started automatically when they are needed (for example
+via socket or D-Bus activation), or for the depending service to monitor
+the system state or use patterns that will always work, instead of
+relying on being started with complex preconditions met (for example
+network daemons that watch for new interfaces via netlink, like ntpd does,
+or bind listening sockets with IP_FREEBIND so that they can be started
+before the relevant interface is up, like mariadb does).
+Which service are you interested in, and why does its start need to be
+deferred until after the MTA? I thought the recommended entry point into
+our MTAs was /usr/sbin/sendmail, which is expected to write messages
+into a spool for later processing by the MTA daemon if necessary, so it
+doesn't actually matter whether a depending service is started before
+or after the MTA?
+    smcv

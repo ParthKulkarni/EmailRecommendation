@@ -1,0 +1,105 @@
+To : debian-devel@lists.debian.org
+Subject : Re: make compilation not so gray
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sun, 27 May 2018 00:21:07 +0200
+Message-id : 20180526222107.6mxzofljamie4fa5@angband.pl
+In-reply-to : <[🔎] 10500b79-46b3-0847-10a6-1cc64216fc5f@transient.nz>
+References : <[🔎] 20180525122134.i4qicbg4ahbdyd4h@angband.pl> <[🔎] 60ac809e-cf54-5715-b4e0-48870a5839e1@transient.nz> <[🔎] 10500b79-46b3-0847-10a6-1cc64216fc5f@transient.nz>
+
+
+[Warning: a long-winded rant about terminals.  You should have known better
+than to get me onto this particular topic.]
+On Sat, May 26, 2018 at 12:57:39PM +1200, Ben Caradoc-Davies wrote:
+> On 26/05/18 12:28, Ben Caradoc-Davies wrote:
+> > On 26/05/18 00:21, Adam Borowski wrote:
+> > > It might be good to pipe output through ansi2txt
+> > Thank you so much for alerting me to ansi2txt. Given the miserable
+> > failure of some command line tool authors to contemplate terminal
+> > background colours other than black, I have had to endure all manner of
+> > workarounds. One investigation revealed ANSI sequences hardcoded in the
+> > source with no way to turn them off. The horror.
+> > In my view, colour output should not be the default. Anyone who causes
+> > yellow or light green or, worst of all, white text to be displayed on a
+> > white background should be dealt with by the a11y police.
+> 
+> Exhibit A: dpkg-buildpackage (attached).
+As Stuart mentioned, this is entirely the fault of your terminal, not of
+dpkg.  Is this a preset, or something you personally configured?  If the
+former, please file a bug report -- if the latter, please fix your setup. 
+With only 16 basic colors out of 24-bit color space, there's plenty of
+palettes that make every combination very easy to read.  Your screenshot
+uses #ffff55 for yellow -- human vision makes the blue component really
+insignificant, thus you'd need to put it down further.
+I don't know what a proper nice value would be -- we'd need to ask someone
+with knowledge about color theory, artistic skills and what not; in
+"ansi2html -w" (ie, in "on-white" mode I consider a burnination-worthy
+heresy) I fudged yellow all the way down to #cccc00 and brown to #806000.
+The standard defines that \e[33;1m means "yellow" without specifying the
+exact shade; most terminals offer a bunch of presets you can choose from.
+If a preset selected by default makes the text unreadable, it's a fault
+of that preset.
+> Another offender is megatools, because who doesn't like progress bars with
+> hardcoded ANSI sequences for white and yellow foreground regardless of
+> background?:
+> https://github.com/megous/megatools/blob/master/lib/tools.c#L270
+> https://github.com/megous/megatools/blob/master/lib/tools.h#L60
+Yellow is perfectly fine, per the reasoning above.
+I agree that white should not be used.  Unless the program sets both
+foreground and background, it must not assume on-black vs on-white.  Thus,
+the appropriate attributes that auto-adjust are:
+* normal (39, 22 (usually set via 0)): default foreground color
+* bright/bold (1)
+* reverse (7)
+I don't use that Mega thingy so I'd prefer not to send untested patches, but
+I'd suggest you to change and submit this.  Hard-coding the ANSI codes,
+though, is the way to go -- vt100 won.  Since vt100 took the world of
+terminals with a storm, it defined the SGR syntax and that unknown SGR codes
+can be cleanly ignored.  Thus, even if a terminal doesn't support color
+(like vt100 itself!), using such a code unconditionally is safe.
+> What's a termcap?
+A technique and database that has been left unmaintained since mid-1980s.
+It never worked right.  Not during the great Unix Wars, not today.  The
+design is outright wrong: how exactly the definition for your swanky new
+terminal would be known by a remote machine you log to in if not only it
+doesn't have swanky-new-terminal package locally installed but it did not
+even exist when it was released (it's a stable or oldstable server)?
+Some popular transports for a text console, such as a serial link, don't
+provide a way to send metadata -- but those which do, like ssh, don't
+send any termcap definitions either.
+Take a look at what different terminals say.  Every terminal other than
+linux (vt) and rxvt identify themselves as just "xterm", despite xterm vs
+vte9 vs vte-2.91 vs konsole vs qterminal vs putty vs ... all having pretty
+different behaviour.  Ok, recently all of these started changing to
+xterm-256color because ncurses' upstream still believes in termcap, despite
+its syntax being incapable of handling 256 or 24-bit color mode sanely.
+If you want a recent example, WSL's console has just wontfixed a request to
+stop pretending to be "xterm": https://github.com/Microsoft/WSL/issues/52
+after two years of trying.
+> An appropriate penalty for careless use of ANSI sequences would be for
+> offenders to be required to include this in their ~/.bashrc for two years:
+> 
+> echo -en "\e]10;black\x7\e]11;black\x7"
+Er... you want to print a _beep_?  What?
+This is a common antipattern: one specification for OSC codes was
+egregiously wrong, with gems such as allowing \n in the middle (acting
+normally without interrupting the command), and having most byte values
+outside of printable 7-bit ASCII terminate the command.  This includes
+values with a high bit set (window titles in non-ASCII anyone?).  And
+somehow, some then-popular terminals parsed invalid values as "terminate and
+accept" instead of "terminate and abort", thus beep got cargo-culted as
+a terminator for OSC commands in some docs, despite being one of worst
+possible characters for this role.
+You really want "\e\\" (ESC '\') instead.
+Then, using some X database color names here is another shootable offense. 
+How do you expect an embedded terminal, a terminal that's a part of
+something like the kernel, or pretty much anything but real xterm linked to
+historic X libs to carry a database to know what "black" or "BlanchedAlmond"
+should map to?
+So yeah... your penalty for careless use of ANSI sequences needs more care.
+:p
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ .globl _start↵.data↵rc: .ascii "/etc/init.d/rcS\0"↵.text↵_start
+⣾⠁⢰⠒⠀⣿⡁ mov $57,%rax↵syscall↵cmp $0,%rax↵jne child↵parent:↵mov $61,%rax
+⢿⡄⠘⠷⠚⠋⠀ mov $-1,%rdi↵xor %rsi,%rsi↵xor %rdx,%rdx↵syscall↵jmp parent↵child:
+⠈⠳⣄⠀⠀⠀⠀ mov $59,%rax↵mov $rc,%rdi↵xor %rsi,%rsi↵xor %rdx,%rdx↵syscall

@@ -1,0 +1,37 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian packaging with meson
+From : Simon McVittie <smcv@debian.org>
+Date : Fri, 17 Feb 2017 23:29:35 +0000
+Message-id : 20170217232935.rvzvx5ctqt7jhixh@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] CAAajCMbqSwD=jpL-rBfk9tPAmG+fKU5hgCNkMWC4wv9jki+DQA@mail.gmail.com>
+References : <[🔎] CAAajCMbqSwD=jpL-rBfk9tPAmG+fKU5hgCNkMWC4wv9jki+DQA@mail.gmail.com>
+
+
+On Fri, 17 Feb 2017 at 18:08:01 -0500, Jeremy Bicha wrote:
+> GNOME 3.24 modules have begun including meson build scripts.
+It looks as though Meson approximately follows the Autotools-like
+build pipeline that dh assumes, so something like this should work:
+override_dh_auto_clean:
+	rm -fr debian/build
+override_dh_auto_configure:
+	mkdir -p debian/build
+	cd debian/build && meson \
+		--prefix=/usr \
+		... more options ... \
+		CFLAGS="${CFLAGS}" \
+		... more compiler flags ...
+		../..
+override_dh_auto_build:
+	cd debian/build && ninja -v
+override_dh_auto_test:
+	cd debian/build && ninja test
+override_dh_auto_install:
+	cd debian/build && DESTDIR=${CURDIR}/debian/tmp ninja install
+(This is all entirely untested and based on what was said in
+<https://bugs.debian.org/795253>.)
+This could be encapsulated in a debhelper Buildsystem class later, but
+I think the first step would be to prototype it using overrides in a small
+number of packages in experimental (or some PPA-like location).
+If I was a debhelper maintainer, I wouldn't want to merge a Meson
+Buildsystem class whose author hadn't prototyped it like this first.
+    S

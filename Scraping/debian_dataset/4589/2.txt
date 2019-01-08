@@ -1,0 +1,49 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Re: Explaining Debian's approach to QA
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 22 May 2018 11:35:28 +0100
+Message-id : 20180522103528.GA31557@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] BY1PR19MB0008771A9B293EBD3734C1D0C1960@BY1PR19MB0008.namprd19.prod.outlook.com>
+References : <[🔎] BY1PR19MB0008771A9B293EBD3734C1D0C1960@BY1PR19MB0008.namprd19.prod.outlook.com>
+
+
+On Sun, 20 May 2018 at 19:26:22 +0000, Jose Miguel Parrella Romero wrote:
+> Of course, for folks that live in a CI/CD environment where the build
+> log and the stop light are the vehicles of accountability, the concept
+> of a piuparts run happening after you've uploaded and getting a bug
+> report that you then go address and "start over" is almost foreign to them.
+I think Paul Gevers' point about the primary QA gate being between
+unstable and testing is a key insight here.
+Another factor is that the most complete possible set of QA checks is
+too slow to be something that we can expect maintainers to run before
+uploading to unstable. If you build for amd64 and i386 (for multiarch
+co-installability), do a separate architecture-independent build
+(because that's what the production buildds do), run build-time tests,
+run autopkgtests, and run piuparts, then preparing, installing and
+smoke-testing an upload can take hours of processing (and if it fails,
+you get to start again).
+I do that for dbus, but it's far too slow to be something I would be
+comfortable with requiring all maintainers to do, and simultaneously
+not as thorough as it could be. In principle there are more checks that
+I ought to be doing, like running autopkgtest in LXC as well as in qemu
+(because maybe the tests will fail in that more restrictive environment)
+or running dependent packages' autopkgtests (which could take multiple
+days for a heavily-used package like dbus, systemd or python) - but I have
+to balance "test the new release thoroughly" against "get a release out
+in a finite time". The longer it takes me to do a complete release, the
+fewer occasions there are when I have enough uninterrupted time to do one.
+If we had more machines running CI/CD tests against VCS repositories,
+then maybe I could commit a release candidate to salsa.debian.org,
+let the tests run, and come back hours or days later to tag a release -
+but that isn't going to work if what I'm releasing is an embargoed
+security fix that needs to be kept confidential until release time.
+(We also don't currently have enough Gitlab CI runners for everyone
+to run tests on them, and not every package's tests can be run in the
+Docker containers used on salsa.debian.org or the LXC containers used
+on ci.debian.net: anything that plays with namespaces, containers and
+mount points, like bubblewrap, flatpak and debootstrap, is going to run
+into limitations around nested containers, which don't work because they
+are difficult or impossible to provide securely. We'd have better test
+coverage if packages could rely on being able to run tests in a qemu
+virtual machine.)
+    smcv

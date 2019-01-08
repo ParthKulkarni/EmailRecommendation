@@ -1,0 +1,122 @@
+To : Ben Finney <bignose@debian.org>
+Subject : Re: infinite number of Debian workflows (Re: Moving away from (unsupportable) FusionForge on Alioth?)
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 24 May 2017 16:22:57 +0100
+Message-id : 22821.42321.687531.3882@chiark.greenend.org.uk
+In-reply-to : <[🔎] 8560gr2t35.fsf@benfinney.id.au>
+References : <[🔎] 20170515082530.GB25041@chew.redmars.org>	<[🔎] 149485223657.12228.1562828497455621076@localhost>	<[🔎] 20170517201924.GF30781@an3as.eu>	<[🔎] 20170519113558.xvn35oywbcumm3sf@bogon.m.sigxcpu.org>	<[🔎] 20170519115617.GA5019@an3as.eu>	<[🔎] 20170522075234.GA30264@kos.to>	<[🔎] 20170522090752.GA11790@layer-acht.org>	<[🔎] 22818.61614.463281.227751@chiark.greenend.org.uk>	<[🔎] CAAajCMa8=wDUz=Ze=hk8aZJdUsmz30Zv2D=ncAQbJHSuC0t4Sg@mail.gmail.com>	<[🔎] 20170522202200.kpk7esh6ha4uti6v@zephyr.silentflame.com>	<[🔎] 20170523091419.446ne4qxbhfo3quh@zephyr.silentflame.com>	<[🔎] 22820.6752.755743.979095@chiark.greenend.org.uk>	<[🔎] 8560gr2t35.fsf@benfinney.id.au>
+
+
+Ben Finney writes ("Re: infinite number of Debian workflows (Re: Moving away from (unsupportable) FusionForge on Alioth?)"):
+> Ian Jackson <ijackson@chiark.greenend.org.uk> writes:
+> > I want every maintainer who is using git to be able to use dgit.
+> 
+> Use it to do what, though? The package description is currently:
+Use it to publish your git history, by doing your uploads with
+dgit push.
+The root goal is this: Debian should publish the source for all our
+packages, as git branches, in a format that is directly useable by
+ordinary people.
+A user should not have to be an expert on Debian source formats to
+clone the source to a program on your computer, git-cherry-pick a
+patch from upstream (or develop their own patch to the upstream code),
+and rebuild and install it.  Debian should provide a sensible git
+branch, for every package, that a user can use this way.
+>     git interoperability with the Debian archive
+>      dgit (with the associated infrastructure) makes it possible to
+>      treat the Debian archive as a git repository.
+>      .
+>      dgit push constructs uploads from git commits
+>      .
+>      dgit clone and dgit fetch construct git commits from uploads.
+> 
+> That sounds to me like it isn't a tool for maintainers, but rather a
+> tool for “interoperability with the Debian archive” which AFAICT is
+> already provided by the tools I am using.
+You have only one-way interoperability, and only from a nonstandard
+git layout.
+> If the package does something that should be of interest to package
+> maintainers in general, I'd expect the description to be a lot clearer
+> what that is and why it's of interest.
+I would be very happy to hear suggestions for improving the
+descriptions.  Ideally without making them longer.
+It's awkward, because dgit is different things to different people.
+1. For a user or a downstream, dgit is a way to get Debian source code
+   as directly useable git branches in a standard format.
+2. For a maintainer, dgit is a way to publish and share your actual
+   git branch with users, downstreams and other contributors.  It
+   can also be a way to handle an NMU without needing to ever deal
+   with a source package.
+3. For sponsors/sponsees, etc., it is a way to replace the
+   soruce-package-based sponsorship workflow with one based on git
+   branches.  The sponsee publishes their git branch, and the sponsor
+   (when satisfied) invokes dgit to upload it.
+4. In the abstract, much of the functionality is a bidirectional
+   converter between git trees and source packages [4]; but it's also
+   a client (read and write) for a standardised git publication
+   infrastructure.
+We have other tools that do these things.  So let me address the
+competition:
+1. Obtaining Debian package source code as a git branch.  The
+   principal competition here is the Vcs-Git dsc header.  One big
+   problem with Vcs-Git is that the git tree you find there is largely
+   unstandardised:
+      - The git tree might be patches-unapplied.  Usually it is.  Such
+        trees are useable only by people who are already Debian
+        experts, and have many weird properties.
+      - The git tree might not have the upstream code at all.
+      - There might be other arbitrary weirdnesses; perhaps
+        some script needs to be run to make it buildable, for
+        example.
+   (It can also sometimes be a problem to find the git commit
+   corresponding to a particular Debian package.  Luckily we have
+   DEP-14 tags which are largely used now; even git-dpm, whose author
+   rejects the DEP-14 tag encoding, creates similar enough tags out of
+   most versions.)
+   There are other potential problems: the git branch you find might
+   not be fast-forwarding; or there might not be a suitable DEP-14
+   tag; or the last upload might have been done `out of maintainer
+   workflow' for some reason and not be reflected in the git
+   repository.  This means that the Vcs-Git repository might lack
+   important security patches.  The repository might have moved.
+   And of course it may not exist at all.  A user wants a single tool,
+   not to be told to flail about trying various options.   
+2. For working within Debian maintainer teams, our existing git
+   workflows mostly work.  However, they have the problem that they do
+   not, generally, produce externally-useable git branches.  See (1).
+   Some workflows (eg git-dpm) do produce extenally-useable git
+   branches; but before dgit there was no way to publish your git
+   branch along with a promise that it was directly useable.  And
+   there was no fallback for packages that didn't have a useable git
+   branch.
+   In a sense I am hoping that maintainers, who do not suffer from the
+   lack of a solution to (1), are willing to do a bit of work to make
+   everyone else's lives easier.
+   There are some advantages for the maintainer of course: if a
+   maintainer and an NMUer both use dgit, then the maintainer has a
+   much easier task to integrate the change.
+3. As far as I'm aware, there is little gitish sponsorship workflow.
+   If the sponsor understands and wants to use the sponsee's git
+   arrangements, the sponsor could use the sponsee's maintainer
+   workflow of course.  But this is not a requirement we want to
+   impose.
+4. As for source code conversion and manipulation: we have an
+   extensive toolbox, but no coherent approach.  Indeed dgit tries not
+   to reimplement functionality.  Some of the heavy lifting required
+   for `3.0 (quilt)' is done by git-buildpackage, for example.
+   What dgit gets you is a coherent scheme for automatically using the
+   existing toolbox to translate what maintainers have into what
+   everyone else wants; for establishing what the right version is;
+   and for falling back to .dsc import when there is no suitable git
+   branch.
+I'm being a bit tendentious of course.  I say `what everyone wants';
+what I really mean is `the dgit interchange tree and branch format'.
+But I have thought carefully about this.  I have also listened to
+developers who don't have a Debian background.  The Debian source
+format, particularly the in-tree patches, is very confusing.
+> My apologies for publicly pointing to a package description for
+> criticism, but it seems relevant to the claim that the package is
+> for “every maintainer who uses git” that the description should
+> explain why that is.
+Yes.
+Ian.

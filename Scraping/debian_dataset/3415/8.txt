@@ -1,0 +1,76 @@
+To : debian-devel@lists.debian.org
+Subject : possible conflict over the /usr/bin/ia namespace
+From : Antoine Beaupré <anarcat@debian.org>
+Date : Tue, 25 Sep 2018 00:35:45 -0400
+Message-id : 87sh1yqjmm.fsf@curie.anarc.at
+
+
+Hi,
+TL;DR: new package from archive.org conflicts with existing `ia`
+binary from python-duckduckgo2. Policy §10.1 consensus sought.
+I'm in the process of packaging the Internet Archive (archive.org)
+Python commandline client and that installs a client that is
+conveniently called "ia" in /usr/bin. It's a simple wrapper around a
+more elaborate Python library, but it allows a fairly complete set of
+operations of the archive like searching, downloading, uploading and
+deleting data.
+Unfortunately, apt-file (is there a better way?) tells me that
+python-duckduckgo2 already claimed that command namespace, along with
+the ddg command, naturally.
+I tried to figure out what the other package does: there's no
+documentation in the Debian package, and neither command supports has
+inline help or manpages. From what I can tell, the `ddg` command output
+structured data from a DDG (DuckDuckGo.com) search and `ia` command does
+a "feel lucky" type of request to output only one answer. This seems to
+be somewhat related "Instant Answers" API (hence the `ia` acronym)
+as defined here:
+https://duckduckgo.com/api
+So the situation falls directly under section 10.1 of the Policy:
+https://www.debian.org/doc/debian-policy/ch-files.html#s-binaries
+> Two different packages must not install programs with different
+> functionality but with the same filenames.
+The solution proposed by the policy is to rename one or both of the
+packages, after a discussion here:
+> [...] try to find a consensus about which program will have to be
+> renamed. If a consensus cannot be reached, both programs must be
+> renamed.
+Obviously, DDG has the upper hand right now: it's already passed new and
+is in the archive. My "internetarchive" package is only at the ITP stage
+(in CC) but it's fairly complete and would be ready for upload. Right
+now it Conflicts with the DDG package, but that's not the best solution
+- I would need to rename the commandline binary to respect policy, if I
+understand it correctly. But before doing that, I want to give the
+Internet Archive a chance.
+As an argument for the archive, I would say its acronym is more commonly
+known and used than DDG's, which I found out for the first time here and
+never heard about before. Wikipedia agrees; in this disambiguiation
+page, DDG is not listed at the time of writing, while the Archive is:
+https://en.wikipedia.org/wiki/IA
+The "snap" package `ia` also points to the archive's software:
+https://snapcraft.io/ia
+Same for FreeBSD and, as far as I can tell, Arch Linux.
+I would therefore propose for the python-duckduckgo2 ia binary to be
+renamed to ddg-ia, as its "ia" use is only secondary in the package's
+purpose.
+The alternative course of action would be to rename the ia binary in the
+internetarchive package to "internetarchive" but that's rather long and
+unusual: all upstream documentation refers to the `ia` binary and this
+could confuse our users needlessly, especially since other platforms
+also use the `ia` acronym to refer to the archive as well.
+The source of the package is available here:
+https://salsa.debian.org/python-team/modules/python-internetarchive
+Progress in the packaging can be followed in the CC'd bug report.
+With good faith and spirit, sorry for the long email and thanks for any
+feedback!
+A,
+PS: there is, incidentally, also the question of how to name this
+(source and binary!) package: python3-internetarchive, internetarchive
+and ia would all be interesting names for various reasons. I would
+prefer the latter, but it would obviously require the DDG side to rename
+first to make any sense. The Debian Python policy on this is, as far as
+I know, rather undecided right now, especially for packages like
+internetarchive that mix libraries and commandline tools.
+-- 
+I'm no longer accepting the things I cannot change.
+I'm changing the things I cannot accept.
+                        - Angela Davis

@@ -1,0 +1,84 @@
+To : debian-devel@lists.debian.org
+Subject : Re: no{thing} build profiles
+From : Ivan Shmakov <ivan@siamics.net>
+Date : Tue, 23 Oct 2018 16:40:34 +0000
+Message-id : 875zxs62gt.fsf@violet.siamics.net
+In-reply-to : <[🔎] 20181023150104.GD27827@grep.be> (Wouter Verhelst's message of	"Tue, 23 Oct 2018 17:01:04 +0200")
+References : <[🔎] 87lg6s8nxb.fsf_-_@violet.siamics.net> <[🔎] 87va5vg13z.fsf@err.no>	<[🔎] 154011468574.1793.17134216390366195697@auryn.jones.dk>	<[🔎] pqhir3$558$1@blaine.gmane.org>	<[🔎] 20181021161327.2fqaapm4yrp4564s@basil.wdw>	<[🔎] CAKNHny-uiVrPH=-emDJcGJk9sNPpmVXOS_k3j8h8CHcJ9C+Zng@mail.gmail.com>	<[🔎] 20181022153221.kb2iamlkbozg5cch@basil.wdw>	<[🔎] 20181022173241.5bwew4nbfz3fmkhg@angband.pl>	<[🔎] 87woq9ohor.fsf@hope.eyrie.org>	<[🔎] 20181022211257.c2ttgidjruyn44mi@angband.pl>	<[🔎] 20181023150104.GD27827@grep.be>
+
+
+>>>>> Wouter Verhelst <wouter@debian.org> writes:
+>>>>> On Mon, Oct 22, 2018 at 11:12:57PM +0200, Adam Borowski wrote:
+>>>>> On Mon, Oct 22, 2018 at 01:22:12PM -0700, Russ Allbery wrote:
+[…]
+ >>> I think the prerequisite for making a change like this would be for
+ >>> the library to be able to surface this transitive requirement in
+ >>> metadata so that debhelper could support automatically adding it
+ >>> to the dependencies of all linked programs (and I’m not sure that
+ >>> sort of collapse of our dependency structure is a good idea).
+ >> That would be a bad idea – we don’t want gratuitous dependencies
+ >> all around.  Just because I use xfce doesn’t mean I want a daemon
+ >> for some old kinds of iApple iJunk
+ > Why not?  What does it cost you, other than a few bits on your hard
+ > disk, to have those things installed?
+ > It is an actual cost for users who do not (want to) understand the
+ > technical background in why their iSomething doesn’t communicate with
+ > Debian properly, and it costs *us* time in support questions if we
+ > have to explain to them that they just need to install this one
+ > little thing here that takes a few MB (if that; haven’t checked).
+	It works both ways, actually.  I’ve recently seen a problem
+	with a newly installed system ending up with /two/ configured
+	IPv4 addresses (where one was expected.)  The cause of this
+	surprise?  Recommends:¹.
+	More specifically, the admin there installed isc-dhcp-client and
+	configured interfaces(5) accordingly.  He also installed lxqt,
+	which Recommends: cmst, which in turn Depends: connman (entirely
+	appropriately, I guess, as the former is a GUI for the latter),
+	which /also/ configures network interfaces.
+      ¹ Not entirely, obviously.  But the claim that ‘more is better,’
+	and leads to ‘lack of surprise’ and a ‘more straightforward user
+	experience’ isn’t without a flaw when it comes to practice.
+ > My laptop, which has a 240G SSD, is mostly full.  That is, however,
+ > *not* because of the amount of software that’s installed; 90% of that
+ > storage is in my /home.
+ > I suspect that the same is true for most users, and therefore that we
+ > just shouldn’t care about it.
+	The disk usage is indeed a concern, even if likely minor for an
+	average user.  Consider, for instance, that you run a dozens of
+	VMs and want Mutt installed on every single one.  Unless you use
+	LXC on Btrfs with transparent deduplication there, the gnupg and
+	its own dependencies may accumulate into a non-trivial disk usage.
+	Alternatively, if you perform incremental block-level backups of
+	the root filesystem (and I do), every update to the gnupg package
+	(within the archive retention time) – as well as each of its
+	unique dependencies – will add the respective Installed-Size: to
+	the archive size.
+	Another issue is that GnuPG, being called from Mutt automatically
+	by default, /does/ increase the attack surface.  Of course, you
+	can (remember to) turn it off in the configuration, but the more
+	/straightforward/ way to avoid that is /not to install/ the package
+	in the first place.  In general, the software that you do /not/
+	have installed, is most certainly /not/ going to break.
+	Then, there’s the issue of surprise.  The software which hooks
+	into other software that you use /can/ surprise you.  For example,
+	the bash-completion package makes Bash completion function
+	unusable to me; so I usually do not install it at all, and where
+	it is installed, I make sure to disable it with ‘complete -r’ in
+	my personal configuration.
+	To summarize, I’d expect for a non-trivial fraction of experienced
+	users to actually put effort into minimizing the amount of
+	/code/ installed – precisely to /ensure/ straightforward and
+	unsurprising behavior.
+	As for GnuPG, well, as Mario points out, – it’s useless unless
+	configured by the user, /and/ is prone to result in ‘cryptic’
+	error messages even if correctly installed.  In turn, to configure
+	GnuPG, the user will presumably have to invoke it directly, or
+	perhaps from some UI wrapper, at which point he either will notice
+	the absence of the command, /or/ the absence of said wrapper –
+	for which it /would/ be entirely reasonable to depend on gnupg.
+	So the particular point that Mutt is going to misbehave without
+	GnuPG installed is moot: the cause for its misbehavior wouldn’t
+	be the lack of GnuPG, but rather the lack of user’s knowledge of
+	it – or motivation to use.
+-- 
+FSF associate member #7257  http://am-1.org/~ivan/

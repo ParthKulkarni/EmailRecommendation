@@ -1,0 +1,124 @@
+To : Bastian Blank <bblank@thinkmo.de>, ftpmaster@ftp-master.debian.org,	Debian Julia Team <pkg-julia-devel@lists.alioth.debian.org>,	ginggs@debian.org
+Subject : Re: julia_1.0.0-1_amd64.changes REJECTED
+From : Lumin <cdluminate@gmail.com>
+Date : Tue, 25 Sep 2018 14:40:43 +0000
+Message-id : 20180925144043.GA9441@Asuna
+In-reply-to : <20180823074909.GB2641@Asuna>
+References : <E1fpdc2-000J9X-7u@fasolo.debian.org> <20180815094855.GA10179@Asuna> <20180816195510.wf2bzmhq3bwol2fc@shell.thinkmo.de> <20180823074909.GB2641@Asuna>
+
+
+hi ftp-master,
+Sorry for the noise, but I really care about the package src:julia. And
+I started to suspect that ftp-master failed to recieve my last feedback
+on the rejection. So I'm re-sending the feedback again, and CCing
+-devel to make sure the mail won't get lost.
+As of 1.0.0-3 (NEW), this package is nearly ready for the buster release,
+and the remaining transition blockers are not in src:julia itself.
+So I want to ask ftp-master:
+1. Isn't "incomplete backtrace" a sensible reason to keep debug symbols?
+   Policy said "should" but not "must". Please tell me what I can do in
+   order to help improve the src:julia package to satisfy the requirements?
+2. julia/0.4.7-7+b3 mips64el has been waiting for removal for nearly
+   a season. In my fuzzy memory julia 0.4.x is also the last blocker
+   for llvm-3.8 removal. Is there any reason that they should stay
+   in the archive for longer time?
+3. Does ftp-master team extremely lack people such that there isn't
+   even enough manpower to recruit new members? My ftp-trainee
+   application mail was not responded for quite a long time again.
+I don't really understand what's happending behind the ftp-master
+curtain because ftp-master's work is not visible to me. Appologies
+if I got something wrong.
+Thanks.
+On Thu, Aug 23, 2018 at 07:49:09AM +0000, Lumin wrote:
+> On Thu, Aug 16, 2018 at 09:55:11PM +0200, Bastian Blank wrote:
+> > On Wed, Aug 15, 2018 at 09:48:55AM +0000, Lumin wrote:
+> > > > -rw-r--r-- root/root   2093360 2018-08-14 12:28 ./usr/lib/x86_64-linux-gnu/libjulia.so.1.0
+> > > This is what I expected and is NOT a mistake.
+> > >      libjulia.so.1 (symlink) -> libjulia.so.1.1 (ELF shared object)
+> > 
+> > Whoops, I missed the symlink.  Usually someone uses the complete
+> > version, aka 1.0.0 for the filename.
+> 
+> So there is no problem with the SONAME/SOVERSION or package name.
+>  
+> > > > Please describe directly why you need debug infos.
+> > > Justification: Unable to pass unit test without debugging info.
+> > > Conclusion:
+> > >   1. keeping debugging info makes sense.
+> > 
+> > No.  You confuse reason with effect.  Some program error is the reason,
+> > the failing tests the effect.
+> 
+> At the bottom part of this mail you can find a julia code snippet,
+> extracted from Julia's unit test.
+> 
+> What I'm emphasizing here is, the debug info in those shared objects
+> are intensionally kept to preserve a good user experience and
+> avoid increasing maintainance burden.
+> 
+> This is the expected backtrace from the code snippet:
+> 
+> > ERROR: could not open file /tmp/y/____nonexistent_file
+> > Stacktrace:
+> >  [1] include at ./boot.jl:317 [inlined]
+> >  [2] include_relative(::Module, ::String) at ./loading.jl:1038
+> >  [3] include(::Module, ::String) at ./sysimg.jl:29
+> >  [4] include(::String) at ./client.jl:388
+> >  [5] top-level scope at none:0
+> 
+> This is the actual backtrace after stripping the shared objects:
+> 
+> > ERROR: could not open file /tmp/y/____nonexistent_file
+> > Stacktrace:
+> >  [1] include(::String) at ./client.jl:388
+> >  [2] top-level scope at none:0
+> 
+> Stripping the shared object is bad to both us Julia maintainers and
+> Julia upstream, because the users is always getting a problematic
+> backtrace and the bug reports will always possibly be problematic.
+> 
+> Especially when there is a problem in Julia's internal, such
+> incomplete backtrace is really not what we want to see.
+> 
+> Most importantly, policy chapter 10.1 says
+> 
+> > Note that by default all installed binaries should be stripped,
+> > either by using the -s flag to install, or by calling strip on the
+> > binaries after they have been copied into debian/tmp but before
+> > the tree is made into a package.
+> 
+> It is "SHOULD" instead of "MUST".
+> 
+> Is this answer acceptable now?
+> 
+> ----------------------------------------------------------------------------
+> 
+> using Test
+> import Libdl
+> 
+> # helper function for returning stderr and stdout
+> # from running a command (ignoring failure status)
+> function readchomperrors(exename::Cmd)
+>     out = Base.PipeEndpoint()
+>     err = Base.PipeEndpoint()
+>     p = run(exename, devnull, out, err, wait=false)
+>     o = @async(readchomp(out))
+>     e = @async(readchomp(err))
+>     return (success(p), fetch(o), fetch(e))
+> end
+> 
+> # backtrace contains type and line number info (esp. on windows #17179)
+> for precomp in ("yes", "no")
+>     succ, out, bt = readchomperrors(`$(Base.julia_cmd()) --startup-file=no --sysimage-native-code=$precomp -E 'include("____nonexistent_file")'`)
+>     @test !succ
+>     @test out == ""
+> 	println("DEBUG")
+> 	println(bt)
+> 	println("DEBUG")
+> 
+>     @test occursin("include_relative(::Module, ::String) at $(joinpath(".", "loading.jl"))", bt)
+>     lno = match(r"at \.[\/\\]loading\.jl:(\d+)", bt)
+>     @test length(lno.captures) == 1
+>     @test parse(Int, lno.captures[1]) > 0
+> end
+>

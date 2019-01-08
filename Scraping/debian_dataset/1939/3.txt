@@ -1,0 +1,30 @@
+To : debian-devel@lists.debian.org
+Subject : Re: thoughts about freeradius package (especially dhcp)
+From : Russ Allbery <rra@debian.org>
+Date : Sun, 03 Sep 2017 13:43:42 -0700
+Message-id : 87lglvsebl.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 87k21f1sti.fsf@alfa.kjonca> ("Kamil Jońca"'s message of "Sun, 03	Sep 2017 21:32:41 +0200")
+References : <[🔎] 87k21f1sti.fsf@alfa.kjonca>
+
+
+kjonca@poczta.onet.pl (Kamil Jońca) writes:
+> Some time ago I migrated my home dhcp server from isc to freeradius.
+> Almost everything worked like a charm.
+> The only thing were problems with arp table [1].
+> Then I ended with configuration:
+> radius binary have set cap bits[2]
+> radius is run from systemd as freerad user
+Consider instead having systemd set the capabilties in the unit file using
+AmbientCapabilities.  It ends up being roughly equivalent for the service,
+but it means that processes that run the binary outside of the context of
+systemd won't get the capabilities, which slightly decreases the chances
+of some local privilege escalation attacks.
+> (it is important that "User=freerad" should be in unit file, not only
+> radius config)
+> the only thing is '/var/run/freeradius/' directory creation.
+> Is it bad idea to make freeradius run as freerad user with capabilities
+> enabled?
+I think this sort of change is an excellent idea, and would love to see
+more of this type of hardening in Debian as default behavior.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

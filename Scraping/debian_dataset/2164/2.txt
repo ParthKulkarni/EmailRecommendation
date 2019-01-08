@@ -1,0 +1,37 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#862698: ITP: minecraft -- blocks to build anything you can imagine
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 16 May 2017 19:00:10 +0100
+Message-id : 20170516180010.v2zmmnniul7r3qtx@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 87tw4kbuxo.fsf@hope.eyrie.org>
+References : <[🔎] 149488443434.9640.13876102601062920746.reportbug@riseup.net> <[🔎] 20170516061847.dovcm3egwtzspapi@perpetual.pseudorandom.co.uk> <[🔎] 87tw4kbuxo.fsf@hope.eyrie.org>
+
+
+On Tue, 16 May 2017 at 09:58:11 -0700, Russ Allbery wrote:
+> Another thing that would be a really neat addition to a wrapper around
+> Minecraft would be to run it inside a restrictive namespace by default.
+Yes, that's why I suggested Flatpak. It would also be possible to use
+a long bwrap command-line - that's what Flatpak does internally.
+One day I should try making game-data-packager's games (mostly the quake
+family) use bwrap like that. This would be easier if we had and could
+rely on "the /usr merge" - Flatpak runtimes always use merged-/usr
+for that reason.
+However, as long as Minecraft and other proprietary software requires
+X11[1], it's going to be hard to put it in a sandbox that actually
+protects you very much - and that's equally true with or without
+Flatpak. Using a separate games-playing uid, together
+with the support for "fast user switching" (Ctrl+Alt+Fx with a nice
+GUI) in desktop environments like GNOME[2], and systemd-logind's
+ability to grant and revoke hardware access as this switching occurs,
+seems a lot safer for the medium term.
+This is of course a trade-off: banishing all untrusted software to
+separate hardware would be safer (resistant to kernel vulnerabilities
+and permissions misconfiguration) but less convenient, whereas assuming
+X11 isn't being abused is more convenient but less safe. Choose your
+preferred safety/convenience balance.
+    S
+[1] Also, as long as it requires networking and X11 uses abstract Unix
+    sockets, since abstract Unix sockets are mediated by network
+    namespaces, not filesystem namespaces
+[2] I'm sure other desktop environments also do this, I just don't use
+    them frequently enough to know how

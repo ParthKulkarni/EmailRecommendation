@@ -1,0 +1,44 @@
+To : debian-devel@lists.debian.org
+Subject : Re: no-strong-digests-in-dsc MBF
+From : Stuart Prescott <stuart@debian.org>
+Date : Wed, 18 Jan 2017 10:14:46 +1100
+Message-id : o5m8h1$ott$1@blaine.gmane.org
+References : <[🔎] 20170117215316.lqbnnqw7a6zrovcp@localhost>
+
+
+Hi Adrian,
+> I want to do a MBF for all packages without a SHA256 checksum field
+> in the .dsc [1] - only SHA1 as hash would not be good in stretch.
+I missed two details here:
+* why is this worth going at all
+* why is this important enough for the bugs to be release-critical (which 
+means, after all: either drop the package or delay the release).
+The hashes inside the .dsc file are not used in Debian once the package has 
+been accepted by dak. 
+* The trustable way of getting the source package is with apt-get source, 
+when apt verifies the Release signature → hashes → Sources → hashes for each 
+part of the source package: dsc, orig.tar.gz, diff.gz/diff.tar.xz
+* The not-really-trustable way of getting the source package is with "dget 
+http://.../package.dsc";. Using the dsc directly, dget will check the 
+signature on the dsc and check the hashes. However, the signature can be 
+from a weak key, an expired key, a key you've never heard of (sponsored 
+upload) or a key from a ex-DD that is no longer in the keyring. Basically, 
+there are so many ways that signature verification on the dsc can go wrong 
+that it's not useful except for packages that have only just been uploaded. 
+If you can't trust the .dsc because you can't check its signature, then 
+there's little point in worrying about weak vs strong hashes inside the 
+.dsc.
+Given the hashes aren't used within Debian and can't be used reliably by 
+external parties either, it doesn't feel like a good use of anyone's time.
+(I agree with you that this test is potentially a good way of finding MIA 
+maintainers and undermaintained packages -- just reuploading packages to get 
+stronger hashes and doing nothing to actually improve the package actually 
+works against this goal. It will remove the package from this list and makie 
+it look like the the package has been uploaded with some maintenance, while 
+changing nothing.)
+cheers
+Stuart
+-- 
+Stuart Prescott    http://www.nanonanonano.net/   stuart@nanonanonano.net
+Debian Developer   http://www.debian.org/         stuart@debian.org
+GPG fingerprint    90E2 D2C1 AD14 6A1B 7EBB 891D BBC1 7EBB 1396 F2F7

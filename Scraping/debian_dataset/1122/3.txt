@@ -1,0 +1,77 @@
+To : debian-devel@lists.debian.org
+Subject : Re: lintian: shlib-read-write-env
+From : Mathieu Malaterre <malat@debian.org>
+Date : Tue, 31 Jan 2017 12:15:22 +0100
+Message-id : CA+7wUsxu-Wpid+_xiSGxm-0fZVJpjMkra=M5DkW4sBZW=wLxcQ@mail.gmail.com
+In-reply-to : <[🔎] 20170131102657.trldhahfaaebdztq@belkar.wrar.name>
+References : <[🔎] CA+7wUsynDa8BAKsY-5g5cDqDHKujUZ0JhKBtsZRTPVvr4T6mgw@mail.gmail.com> <[🔎] 20170131102657.trldhahfaaebdztq@belkar.wrar.name>
+
+
+On Tue, Jan 31, 2017 at 11:26 AM, Andrey Rahmatullin <wrar@debian.org> wrote:
+> On Tue, Jan 31, 2017 at 11:15:32AM +0100, Mathieu Malaterre wrote:
+>> I'd like to discuss addition of a new lintian checks for
+>> getenv/setenv/putenv used in shared libraries.
+> Do you know any packages that would fail that?
+> Did you mean *jpeg* ones would?
+I've used the demo program mixed with djpeg.c (see demo.c attached),
+and got a segfault running (run for ~30s)[*]:
+$ gcc -o demo demo.c -lpthread -ljpeg && ./demo
+So yes, I am trying to raise severity on bugs I reported before 778909
+& 778910. I suspect other libs may use getenv, hence asking for an
+automated lintian check, but you are right maybe there are no others
+out there since I did not check.
+[*] You'll get a killed job since this quick & dirty demo does not
+deallocate memory.
+#include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <jpeglib.h>
+ 
+static void* worker(void* arg) {
+  for (;;) {
+    int i;
+    char var[256], *p = var;
+ 
+    for (i = 0; i < 8; ++i) {
+      *p++ = 65 + (random() % 26);
+    }
+ 
+    *p++ = '\0';
+ 
+    setenv(var, "test", 1);
+  }
+ 
+  return NULL;
+}
+ 
+int
+main (int argc, char **argv)
+{
+  struct jpeg_decompress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+#ifdef PROGRESS_REPORT
+  struct cdjpeg_progress_mgr progress;
+#endif
+  int file_index;
+  FILE *input_file;
+  FILE *output_file;
+  unsigned char *inbuffer = NULL;
+  unsigned long insize = 0;
+  JDIMENSION num_scanlines;
+  pthread_t t;
+  /* On Mac, fetch a command line. */
+#ifdef USE_CCOMMAND
+  argc = ccommand(&argv);
+#endif
+  char * progname = argv[0];
+  if (progname == NULL || progname[0] == 0)
+    progname = "djpeg";         /* in case C library doesn't provide it */
+  /* Initialize the JPEG decompression object with default error handling. */
+  cinfo.err = jpeg_std_error(&jerr);
+  setenv("JPEGMEM", "1", 0);
+  pthread_create(&t, NULL, worker, 0);
+ 
+  for (;;) 
+  jpeg_create_decompress(&cinfo);
+  return 0;
+}

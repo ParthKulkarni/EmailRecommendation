@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Nix and non-standard-toplevel-dir
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 02 Jan 2019 11:28:08 -0800
+Message-id : 87ftua97w7.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 8736qbylq9.fsf@x230.kaiha.invalid> (Kai Harries's message of	"Wed, 02 Jan 2019 19:10:06 +0100")
+References : <[🔎] 8736qbylq9.fsf@x230.kaiha.invalid>
+
+
+Kai Harries <kai.harries@gmail.com> writes:
+> I have filled an ITP for the Nix package-manager [1]. During packaging
+> lintian pointed out [2] that Nix relies on a non-standard-toplevel-dir.
+> The Nix package-manager keeps by default all packages in the path
+> `/nix/store`. In principal this path can be changed, but it would make
+> it impossible to use pre-build binaries from the standard Nixpkgs
+> channels [3].
+> The problem are retained dependencies. A package keeps references to
+> a package it depends on. And this references contain the absolute
+> path (including `/nix/store`).
+> Section 5.5.3 and 6.1 of the PHD thesis "The Purely Functional
+> Software Deployment Model" [4] on which Nix is based gives some more
+> insight.
+> I would like your advise on how to proceed.
+I think this is a case where we should waive FHS for this package, due to
+the unique nature of this package.
+The top-level purpose of FHS is consistency on the system, partly for
+other packages but primarily for the local systems administrator.  All
+namespaces that aren't covered in FHS are implicitly reserved for the
+local administrator, and they know that the distribution will use the FHS
+directories for specific purposes and can set disk allocations, remote
+mounts, and so forth accordingly.
+Nix is effectively a completely different model and concept for how to lay
+out software packages.  It's therefore not surprising that it doesn't
+comply with the FHS, since it's not even trying to be the same sort of
+system that the FHS anticipates.  It's an experiment with something new.
+I think including the package manager in Debian, if possible, is a great
+way to let Debian users experiment with some interesting concepts, and is
+very much in line with our goals to be a universal operating system and to
+provide a common basis for people to experiment and do interesting things.
+Thank you for working on this!
+I also don't think that anyone who installs and then uses the Nix package
+manager is going to be surprised that it doesn't follow the FHS.  This is
+pretty experimental stuff, and I doubt anyone is going to use it without
+expecting it to be a bit weird.  If anything, they probably already know
+how Nix works and are expecting it to use those paths.  There doesn't seem
+to be much drawback in this carefully-chosen lack of compliance with the
+FHS.
+I don't think it's worth writing an explicit Policy exception for this,
+since it's a single edge case.  Instead, I think it's a good use of a
+Lintian override documenting what's going on.  Obviously, if Nix becomes
+really popular in the long run, we can then go back and write this into
+Policy.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

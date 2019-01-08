@@ -1,0 +1,44 @@
+To : debian-devel@lists.debian.org
+Subject : Repackaging upstream source with file modifications?
+From : Colin Watson <cjwatson@debian.org>
+Date : Mon, 12 Feb 2018 10:28:33 +0000
+Message-id : 20180212102833.avzibyusa25xl5o2@riva.ucam.org
+Mail-followup-to : debian-devel@lists.debian.org
+
+
+The developer's reference says [1]:
+  A repackaged .orig.tar.{gz,bz2,xz} [...] *should not* contain any file
+  that does not come from the upstream author(s), or whose contents has
+  been changed by you.
+My recent attempt to upload grub2 2.02-3 was rejected due to
+https://bugs.debian.org/745409, which I admit I've been putting off
+dealing with for a while; but the relevant tag
+(license-problem-non-free-RFC) was added to the ftpmaster auto-reject
+list a while back.  I considered overriding it temporarily, but I don't
+think I have a very good reason for doing so.  I also cannot simply
+remove the relevant file in this case (a CRC implementation), as doing
+that would break too many existing parts of GRUB.
+Fortunately, libgcrypt upstream implemented unencumbered replacement CRC
+code a while back, and over the weekend I worked on backporting this to
+the version of libgcrypt imported into GRUB [2].  I'm not sure when I
+should expect this to be actually reviewed upstream and committed to
+master, as review has been pretty slow of late, but I think it's a safe
+and reasonable patch given that it's a pretty clean backport.
+I considered just applying this as a patch in debian/patches/, but of
+course that's still distributing the encumbered file in the
+.orig.tar.xz, and Lintian just issues license-problem-non-free-RFC about
+the patch file instead.  (Again, I could override this, but it seemed
+questionable to do so.)  So my proposal is to commit this patch to my
+"upstream" git branch, prepare grub2_2.02+dfsg1.orig.tar.xz from that
+branch, and document this in debian/copyright and debian/README.source.
+However, I know it's a bit unconventional to change files in a +dfsg
+tarball rather than merely deleting them, and I can't meet the
+recommendation of the developer's reference above.
+Does this seem like a reasonable way forward, or should I instead just
+apply the backport as an ordinary patch and override
+license-problem-non-free-RFC for the patch file?
+[1] https://www.debian.org/doc/manuals/developers-reference/ch06.en.html#repackagedorigtargz
+[2] https://lists.gnu.org/archive/html/grub-devel/2018-02/msg00033.html
+Thanks,
+-- 
+Colin Watson                                       [cjwatson@debian.org]

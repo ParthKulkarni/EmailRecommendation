@@ -1,0 +1,53 @@
+To : debian-devel@lists.debian.org
+Subject : Re: wicd-daemon-run_1.0_amd64.changes REJECTED
+From : Tollef Fog Heen <tfheen@err.no>
+Date : Wed, 28 Nov 2018 21:32:18 +0100
+Message-id : 87lg5dq6y5.fsf@err.no
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] E1gS4sZ-0006Cf-Ve@eggs.gnu.org> (Dmitry Bogatov's message of	"Wed, 28 Nov 2018 18:48:05 +0000")
+References : <E1gRiaf-00054N-Ul@fasolo.debian.org>	<[🔎] E1gS4sZ-0006Cf-Ve@eggs.gnu.org>
+
+
+]] Dmitry Bogatov 
+> which is provided by `-run' package:
+> 
+> 	$ dpkg -L wicd-daemon-run
+> 	[...]
+> 	/etc/sv/wicd-daemon/log
+> 	/etc/sv/wicd-daemon/log/run
+> 	/etc/sv/wicd-daemon/run
+> 	/var/log/runit/wicd-daemon
+Does it also provide an init script?  Else, it's RC buggy according to
+9.11 in Policy.
+> 	#!/bin/sh -eu
+> 	exec /usr/sbin/wicd --keep-connection --no-stdout --no-stderr --no-daemon
+> 
+> Note `--no-daemon' option. Logging is expected to go on stdout, which is
+> piped to script in `/etc/sv/wicd-daemon/log/run', looking, usually like
+> this:
+How do you ensure that those settings are kept in sync with any command
+line flag changes the maintainer makes in their package?
+> 1. Provide runscript by {foo}.
+> 
+>   It is infeasible due two reasons:
+> 
+>   1.1 Technical. Most -run packages provide dedicated system user to run
+>                  logging process. It would introduce cruft on systems
+>                  of users, that install {foo}, but do not use Runit.
+I don't think a small number of log users would be a particularly high
+cost to bear.  You could also create those using triggers when runit is
+installed.
+[...]
+>   1.2 Social. Maintainer of {foo} can rightfully refuse to maintain
+>               support for `runit', not mandated by Policy
+I think
+https://lists.debian.org/debian-devel-announce/2014/08/msg00001.html
+should be sufficient here:
+   For the record, the TC expects maintainers to continue to support the
+   multiple available init systems in Debian.  That includes merging
+   reasonable contributions, and not reverting existing support without
+   a compelling reason.
+Cheers,
+-- 
+Tollef Fog Heen
+UNIX is user friendly, it's just picky about who its friends are

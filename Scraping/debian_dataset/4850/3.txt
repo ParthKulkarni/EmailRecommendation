@@ -1,0 +1,56 @@
+To : debian-devel@lists.debian.org,	Nicolas Jeannerod <nicolas.jeannerod@irif.fr>
+Subject : Re: intended MBF: wrong redirections in maintainer scripts
+From : Wouter Verhelst <wouter@debian.org>
+Date : Thu, 9 Aug 2018 23:03:22 +0200
+Message-id : 20180809210322.GB23941@grep.be
+In-reply-to : <[🔎] 20180809194822.GA2936@seneca.home.org>
+References : <[🔎] 20180804051557.GA1335@mobrt> <[🔎] 20180807103832.GB18245@grep.be> <[🔎] 20180809194822.GA2936@seneca.home.org>
+
+
+On Thu, Aug 09, 2018 at 09:48:22PM +0200, Ralf Treinen wrote:
+> Hello Wouter,
+> 
+> On Tue, Aug 07, 2018 at 12:38:32PM +0200, Wouter Verhelst wrote:
+> > On Sat, Aug 04, 2018 at 01:15:57PM +0800, Ralf Treinen wrote:
+> > > Hi,
+> > > 
+> > > as announced in our talk at debconf'18 [1] we intend a MBF about wrong
+> > > redirections in maintainer scripts. In general these are of the form
+> > > 
+> > >   foo 2>&1 1> /dev/null
+> > > 
+> > > Here it was probably intended to send both stderr and stdout to /dev/null.
+> > 
+> > What makes you say that? ;-)
+> > 
+> > It may be that the maintainer did indeed want stdout to be discarded,
+> > but stderr not; for instance because they wanted to parse the stderr
+> > output.
+> > 
+> > (not saying this is the most likely case, but you might want to
+> > double-check that before filing the bugs)
+> 
+> We were assuming that the author of the script wanted to send both 1 and 2
+> to /dev/null and was victim to the common mistake of getting the order of
+> redirections wrong.
+Right. In general, I do agree that this is the more likely of
+possibilities. The required ordering of redirections is just confusing,
+tbh.
+> You are absolutely right that our assumption about the authors intention
+> may be wrong, and that they really intended the redirection the way they
+> wrote it. This means that we should be more careful, and ignore cases in
+> which the above pattern occurs in a context which has itself a redirection.
+> As a consequence, we wouldn't detect a bug in a case like this one:
+> 
+>  (foo 2>&1 1> /dev/null) | /some/processing
+> 
+> This should be enough to eliminate false positives, right?
+Yes, I think so; or more generally, where the stderr output is caught
+futher on. E.g., something like this wouldn't be a bug either:
+ERRORS=$(foo 2>&1 1>/dev/null)
+But again, I do agree that in general, the assumption that the ordering
+of redirections was mistaken is probably the right one.
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

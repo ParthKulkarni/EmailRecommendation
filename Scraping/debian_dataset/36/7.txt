@@ -1,0 +1,60 @@
+To : Jonathan Dowland <jmtd@debian.org>
+Subject : Re: building a debian kernel package(s) for a foreign architecture
+From : Karsten Merker <merker@debian.org>
+Date : Wed, 5 Jul 2017 19:53:40 +0200
+Message-id : 20170705175339.hwncq2te74pfvzfo@excalibur.cnev.de
+In-reply-to : <[🔎] 20170705143525.hmo2efeayr5otppb@chew.redmars.org>
+References : <[🔎] 20170705143525.hmo2efeayr5otppb@chew.redmars.org>
+
+
+On Wed, Jul 05, 2017 at 03:35:25PM +0100, Jonathan Dowland wrote:
+> Hi folks,
+> 
+> I've never done much in the way of cross-compiling before.  I
+> understand it was once very hard, is now much easier, and is
+> considerably easier for "simple" packages (including the kernel)
+> than others.
+> 
+> That said, I'm lost/stuck trying to cross-compile the Debian
+> Linux kernel package for ARM64 (target is a Raspberry Pi 3) from
+> an amd64 builder.  I believe I do not need to use multiarch for
+> my builder, yet dpkg-buildpackage (if I supply -a aarch64,
+> interestingly ARM64 doesn't work) complains of unmet build
+> dependencies, which I have resolved for amd64.  But perhaps -a to
+> dpkg-buildpackage is the wrong approach.
+Hello,
+from a technical point of view you effectively need multiarch to
+crosscompile Debian packages, but you don't have to set it up
+yourself ;-).
+The easiest way to crossbuild a Debian package is probably to use
+sbuild or pbuilder, which both have crossbuild-support since a
+while.  When called with the appropriate options, they
+automatically setup multiarch in their chroot and install the
+necessary crosscompilers as well as the package cross-dependencies. 
+I can only talk about sbuild from personal experience, but
+according to the docs, pbuilder should work similarly.
+Not all packages can be crossbuilt, and for those that can be
+crossbuilt in principle, it is sometimes necessary to set
+appropriate build-profiles which e.g. cause the testsuite not to
+be run during the package build, as often the testsuite tries to
+run host-architecture binaries created during the build which
+cannot be executed on the build-architecture system (with "build"
+and "host" used in GNU terminology, i.e. "build-architecture" =
+"architecture on which the compiler runs" and "host-architecture" =
+"architeture on which the created binaries run").
+IIRC both pbuilder and sbuild automatically set the "nocheck"
+profile when crossbuilding. For crossbuilding the kernel IIRC
+one needs to set a number of additional build-profiles:
+- cross
+- pkg.linux.notools
+- nopython
+So the following sbuild command should in theory (sorry, cannot
+actually test that right now) crossbuild the kernel package for
+arm64:
+  sbuild -d unstable --host=arm64 --profiles=cross,pkg.linux.notools,nopython <kernelpackage>.dsc
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

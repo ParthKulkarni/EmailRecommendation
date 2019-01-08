@@ -1,0 +1,32 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Migration despite an RC bug?
+From : Russ Allbery <rra@debian.org>
+Date : Tue, 03 Jan 2017 09:50:16 -0800
+Message-id : 87wpechw2v.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20170103154629.GA12023@geta> (Don Armstrong's message of "Tue, 3	Jan 2017 09:46:29 -0600")
+References : <87r34q4sb8.fsf@debian.org>	<b1e6c543-f8df-776d-f5c8-2c62b6b425db@debian.org>	<1483050577@msgid.manchmal.in-ulm.de>	<20161230234212.7xmev4ypocwbcuwg@qor.donarmstrong.com>	<22631.5956.713311.881259@chiark.greenend.org.uk>	<20161231210150.5lna7qx65hyrcpdf@qor.donarmstrong.com>	<[🔎] 22635.45523.288493.760480@chiark.greenend.org.uk>	<[🔎] 20170103154629.GA12023@geta>
+
+
+Don Armstrong <don@debian.org> writes:
+> On Tue, 03 Jan 2017, Ian Jackson wrote:
+>> Also, have you checked whether your DB library properly throws errors
+>> on writes to a tied hash ?
+> I don't know whether it does or not; I went looking to see whether you
+> could trap errors on untie(), and untie doesn't return anything useful
+> that you can check.
+If you're using DB_File, I think you have to use the explicit put() and
+get() API instead of the tied magical hash in order to get error
+reporting.
+>> Also, I'm not sure why it would be "incredibly slow". In a
+>> singlethreaded cpubound task (the worst case) I wouldn't expect worse
+>> than a 50% slowdown.
+> I wouldn't have expected that either, but it appeared to be 4-5 times
+> slower than the equivalent code with fork a decompressor, which is why I
+> swapped it out. [I didn't bother to benchmark them, because the
+> differences between them was so stark.]
+I've done extensive benchmarking of this in Perl for a different project
+and yes, fork and exec of an external compresser is *way* faster than
+using a library.  I suspect the Perl compress libraries are making
+extraneous data copies or doing something else suboptimal.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>
