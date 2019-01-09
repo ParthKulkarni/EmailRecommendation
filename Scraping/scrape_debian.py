@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import urllib
  
 url = 'https://lists.debian.org/debian-devel/'
-year = 2019
+year = 2018
 month = 0
 url1 = 'threads.html'
 
@@ -22,8 +22,8 @@ def getLinks(url, url1):
 		for link in links1 :
 			if link.startswith('msg') :
 				links.append(url + link)
-		print(len(links)
-	except urllib.error.HTTPError as err:
+        print(len(links)
+    except urllib.error.HTTPError as err:
 		if err.code == 404 :
 			print()
 		else :
@@ -72,6 +72,8 @@ for l in links:
         file.write(n + ' : '+m+'\n')
 
     pre = soup1.find_all('pre')
+    element = soup.select('div.gmail_quote')
+    movie = element[0].get_text()
     tt  = soup1.find_all('tt')
     if len(pre)>0:
         print(len(pre))
@@ -83,7 +85,7 @@ for l in links:
     body = re.sub('\n+', '\n',body)
     body = body.lstrip()
     body = body.rstrip()
-    # print(body)
+    print(movie)
     file.write(body)
     file.close()
     

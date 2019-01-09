@@ -175,6 +175,8 @@ def dashboard():
 
         threads = cur.fetchall()
 
+        session['statement'] = 'These are recommended mail threads for you!'
+
         if result > 0 :
             return render_template('dashboard.html', threads=threads)
         else :
@@ -194,7 +196,7 @@ def dashboard():
     # # result = cur.execute("SELECT * FROM threads WHERE author = %s", [session['username']])
 
     threads1 = cur.fetchall()
-
+    session['statement'] = 'These are all the email threads currently received!'
     if result1 > 0:  
         return render_template('dashboard.html', threads=threads1)
     else:
