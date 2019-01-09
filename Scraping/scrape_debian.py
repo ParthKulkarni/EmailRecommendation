@@ -1,29 +1,26 @@
 from bs4 import BeautifulSoup
 import requests
-from pprint import pprint
 import re
+import urllib.request
+from urllib.request import urlopen 
 
-import requests
-from bs4 import BeautifulSoup
-import urllib
- 
 url = 'https://lists.debian.org/debian-devel/'
-year = 2018
+year = 2017
 month = 0
 url1 = 'threads.html'
 
 links = []
 def getLinks(url, url1):
 	try :
-		html_page = urllib.request.urlopen(url + url1)
+		html_page = urlopen(url + url1)
 		soup = BeautifulSoup(html_page, "lxml")
 		links1 = [a.get('href') for a in soup.find_all('a', href=True)]
 		# links = []
 		for link in links1 :
 			if link.startswith('msg') :
 				links.append(url + link)
-        print(len(links)
-    except urllib.error.HTTPError as err:
+		#print(len(links)
+	except urllib.request.HTTPError as err:
 		if err.code == 404 :
 			print()
 		else :
@@ -51,6 +48,7 @@ x = 0
 # file = open('debian.txt','w')
 
 for l in links:
+    print('parsing link : ' + l)
     page1 = requests.get(l)
     soup1 = BeautifulSoup(page1.text, 'html.parser')
     fname = str(x) + '.txt'
@@ -61,7 +59,7 @@ for l in links:
     dict = {}
     for i in range(len(li)):
         st = li[i].text
-        s  = str(st).split(': ', 2)
+        s  = str(st).split(': ', 1)
         if s[0] == 'Cc':
             continue
         dict[s[0]] = s[1]
@@ -70,24 +68,29 @@ for l in links:
     dict['Message-id']=dict['Message-id'][5:-1]
     for n,m in dict.items():
         file.write(n + ' : '+m+'\n')
-
+    file.write('\n\n')
     pre = soup1.find_all('pre')
-    element = soup.select('div.gmail_quote')
-    movie = element[0].get_text()
+    element = soup1.select('div.gmail_quote')
+    movie = ''
+    if len(element) > 0 :
+    	movie = element[0].get_text()
+    	#print(movie)
+    	#print()
     tt  = soup1.find_all('tt')
     if len(pre)>0:
-        print(len(pre))
+        #print(len(pre))
         body = pre[0].text
     for t in tt:
         body += t.text
     if len(pre) > 1:
         body += pre[-1].text
     body = re.sub('\n+', '\n',body)
-    body = body.lstrip()
-    body = body.rstrip()
-    print(movie)
+    body += movie
+    body = body.strip()
+    print()
     file.write(body)
     file.close()
     
     
     
+
