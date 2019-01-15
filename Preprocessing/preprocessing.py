@@ -96,6 +96,7 @@ class preprocess:
 		message = re.sub(r'\d+', "" ,message)
 		message = re.sub(' +', ' ', message)
 		message = re.sub("(,|;|\+|\-|\$|=|<|>|[|]|\*|`|\"|:|/)+", "", message)
+		message = re.sub("⠁|⠋|⠒|⠘|⠚|⠷⠻|⠾|⡁|⡄|⢀|⢠|⢶|⢿|⣦|⣴|⣾|⣿|⠷|⠻|🐁|🐈", "", message)
 
 		return message
 
