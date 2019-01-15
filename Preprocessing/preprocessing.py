@@ -9,28 +9,6 @@ from nltk.tag.stanford import StanfordNERTagger
 
 class preprocess:
 
-	def remove_person_and_adj(text):
-		st = StanfordNERTagger('./english.all.3class.distsim.crf.ser.gz', './stanford-ner.jar')
-		noname = ""
-
-		for sent in nltk.sent_tokenize(text):
-			tokens = nltk.tokenize.word_tokenize(sent)
-			
-			
-			tags = st.tag(tokens)
-			temp = ""
-			nltk_tags = nltk.pos_tag(tokens)
-	
-			for token in tokens:
-				for tag, nltk_tag in zip(tags, nltk_tags):
-					print(nltk_tag)
-					if (token == tag[0] and tag[1]=="PERSON") or (token == nltk_tag[0] and nltk_tag[1]=="JJ"):
-						break
-				else:
-					temp += " " + token
-			noname += temp
-		return noname		
-
 	def remove_content_in_braces(self, msg):
 		msg1 = ''
 		cnt = 0
@@ -110,14 +88,14 @@ class preprocess:
 	def replace_tokens(self, message):
 		message = re.sub(r"\w*.doc$|\w*.pdf$|\w*.txt$|\w*.xls$|\w*.ppt$", "", message) 
 		message = re.sub(r"\swhy$|\swhere$|\swho$|\swhat$|\swhen$","", message)  
-		message = re.sub(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+ | www.(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", "", message)
-		message = re.sub(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", "", message) 
-		message = re.sub(",|;|:|", "", message)
+		message = re.sub(r"(http|https|ftp)://.*|www.*", "", message)
+		message = re.sub(r"\S+@\S+", "", message) 
 		message = re.sub(r"\smonday|\smon|\stuesday|\stue|\swednesday|\swed|\sthursday|\sthu|\sfriday|\sfri|\ssaturday|\ssat|\ssunday|\ssun", "", message)
 		message = re.sub(r"\sme$|\sher$|\shim$|\sus$|\sthem$", "", message)
 		message = re.sub(r"\sI$|\swe$|\syou$|\she$|\sshe$|\sthey$", "", message)
 		message = re.sub(r'\d+', "" ,message)
-		
+		message = re.sub(' +', ' ', message)
+		message = re.sub("(,|;|\+|\-|\$|=|<|>|[|]|\*|`|\"|:|/)+", "", message)
 
 		return message
 
