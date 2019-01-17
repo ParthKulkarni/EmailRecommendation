@@ -1,0 +1,48 @@
+To : Marga Manterola <marga@google.com>
+Subject : Bug#860833: 50mounted-tests hangs at dmsetup when using biosgrub partition on a left over fat32 partition
+From : Ivo De Decker <ivodd@debian.org>
+Date : Sun, 23 Apr 2017 15:08:43 +0200
+Message-id : 20170423130841.GA21464@ugent.be
+Reply-to : Ivo De Decker <ivodd@debian.org>, 860833@bugs.debian.org
+In-reply-to : <[🔎] CAM+PWT3WHvwzGQ8ydjEpOy5wrrTvgo4XEWLdkPzz=nE2YVWs-Q@mail.gmail.com>
+References : <[🔎] CAM+PWT15XiHnC=WtK-bm=3bTQTykjJV9RB_y8Fw3iV0kTvZLZA@mail.gmail.com> <[🔎] 355e544f-d00c-6857-05c8-4642c81ef356@debian.org> <[🔎] CAM+PWT3WHvwzGQ8ydjEpOy5wrrTvgo4XEWLdkPzz=nE2YVWs-Q@mail.gmail.com>
+
+
+Hi Marga,
+On Fri, Apr 21, 2017 at 09:44:42AM +0000, Marga Manterola wrote:
+> I have a machine where I can reproduce this every time (since the partition
+> never gets written to), so let me know if you want me to gather any additional
+> information.
+Thanks for investigating this in detail.
+The changes introduced in os-prober 1.72 (just before the freeze) are meant to
+provide a fix for #701814, which has been around for quite some time. The
+dmsetup patch was tested on a regular installation. There probably wasn't that
+much testing in d-i, which explains why your investigation shows it probably
+don't work at all. The issue doesn't show up that often, because the code path
+isn't used in most cases (see below).
+The code path causing the issues in #701814 is used when grub-mount doesn't
+work. At the time, grub-mount was only available on some architectures. See
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=701814#72
+Now, grub-mount exists on all release architectures and is a dependency of
+os-prober (via grub-common) and os-prober-udeb, so it will always be
+available.
+Looking at 50mounted-tests line 66:
+https://sources.debian.net/src/os-prober/1.74/os-probes/common/50mounted-tests/#L66
+The dmsetup code will only be used when grub-mount doesn't work on the device.
+This means the dmsetup code path is only used when there is a partition that
+can't be mounted by grub-mount (that was the case in #853277). Your tests show
+something similar: there is a partition that cannot be mounted by grub-mount,
+which means the dmsetup path is used. And that seems to be broken (at least in
+d-i).
+Given that grub-mount should be able to handle almost all common cases and
+that the dmsetup path probably doesn't work at all in d-i, my proposal would
+be to remove (or disable) the dmsetup code path and only rely on grub-mount.
+This will still fix the original issue in #701814, and it will fix the issues
+with the dmsetup code path (there is also #853927 and #853163). The 'cost' of
+this change would be that devices which contain a partition that can't be
+mounted by grub-mount, but can be mounted by the kernel, will no longer be
+probed for other operating systems. I don't know if there are common examples
+like that. Another option is to revert to the original code path without
+dmsetup, but that would reintroduce #701814.
+Cheers,
+Ivo

@@ -1,0 +1,42 @@
+To : Raphaël Halimi <raphael.halimi@gmail.com>, 	911750@bugs.debian.org
+Subject : Bug#911750: Race condition in d-i leading to kernel from security.debian.org to be kept back
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Wed, 24 Oct 2018 13:15:54 +0100
+Message-id : 682cc4d3c01556d412d17c4d1323160c0b350cf9.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 911750@bugs.debian.org
+In-reply-to : <[🔎] b2692df8-aef3-4990-c66b-b4efd521083f@gmail.com>
+References : <[🔎] b2692df8-aef3-4990-c66b-b4efd521083f@gmail.com> <[🔎] b2692df8-aef3-4990-c66b-b4efd521083f@gmail.com>
+
+
+On Wed, 2018-10-24 at 12:05 +0200, Raphaël Halimi wrote:
+> Package: debian-installer
+> Version: 20170615+deb9u4
+> 
+> Hi,
+> 
+> I just noticed a race condition in d-i, which may lead to a mild
+> security risk.
+> 
+> When the kernel metapackage (linux-image-<arch>) is initially installed,
+> APT doesn't install recommended packages, and security.debian.org
+> repository is not configured yet, so the installer naturally fetches the
+> latest kernel from the core suite. After APT configuration, and other
+> repositories and suites are available, debian-installer runs an upgrade;
+> but if a newer version of linux-image-<arch> is found in one of those
+> newly available repositories (security.debian.org in this case), it's
+> not installed because APT refuses to install the recommended packages
+> (firware-linux-free, irqbalance) to satisfy dependencies, so the kernel
+> metapackage is kept back.
+I'm fairly sure it's the ABI bump in the kernel that prevents
+upgrading, not the recommended packages.  This is tracked as #908711.
+Ben.
+> It won't be installed until the admin runs an upgrade manually, once the
+> system is booted. This may put it at risk during a certain period of
+> time between the first boot, and the first upgrade (and reboot).
+> 
+> Regards,
+> 
+-- 
+Ben Hutchings
+Never put off till tomorrow what you can avoid all together.
+signature.asc

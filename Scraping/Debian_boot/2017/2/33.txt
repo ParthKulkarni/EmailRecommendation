@@ -1,0 +1,62 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#853921: fonts-android-udeb: broken rendering for Korean glyphs in debian-installer
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 02 Feb 2017 05:16:56 +0100
+Message-id : 20170202041656.27002.96103.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 853921@bugs.debian.org
+
+
+Package: fonts-android-udeb
+Version: 1:6.0.0r26-1
+Severity: serious
+Tags: d-i
+Justification: breaks d-i for Korean
+(Please keep both debian-boot@lists.debian.org and myself in copy when
+replying.)
+Hi,
+I've reported this regression for Korean support against debian-installer
+a few minutes ago: “debian-installer: missing glyphs for Korean / broken
+rendering” → https://bugs.debian.org/853917
+As documented there, checking Alpha releases led me to a regression
+between Alpha 5 and Alpha 6. Since pkg-lists had no changes related to
+fonts-* packages in between, I looked at fonts-android as a prime suspect,
+and that wasn't too bad a try. :)
+I've built d-i images systematically for all versions between the one in
+Alpha 5 and the one in stretch right now, and all versions including and
+after 1:6.0.0r26-1 have the same issue, while 1:4.4.4r2-7 does the job
+properly:
+| ./mini+1:4.4.4r2-7.iso : OK
+| ./mini+1:6.0.0r26-1.iso: KO
+| ./mini+1:6.0.1r3-1.iso:  KO
+| ./mini+1:6.0.1r3-2.iso:  KO
+| ./mini+1:6.0.1r16-1.iso: KO
+debdiff on the udeb shows:
+| $ debdiff fonts-android-udeb_4.4.4r2-7_all.udeb fonts-android-udeb_6.0.0r26-1_all.udeb
+| […]
+| Files in second .deb but not in first
+| -------------------------------------
+| -rw-r--r--  root/root   /usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf
+| 
+| Files in first .deb but not in second
+| -------------------------------------
+| -rw-r--r--  root/root   /usr/share/fonts/truetype/droid/DroidSansFallback.ttf
+which matches the packaging changes documented in changelog:
+| +fonts-android (1:6.0.0r26-1) unstable; urgency=medium
+| +
+| +  * Imported Upstream version 6.0.0r26
+| +    + Upstream no longer ships Droid fonts except, DroidSansFallback,
+| +      DroidSansFallbackFull and DroidSansMono.
+| […]
+| +  * Install DroidSansFallbackFull as part of fonts-android-udeb.
+I've just checked, for the avoidance of doubt, that adding a symlink from
+the old filename to the new filename doesn't change anything.
+We'll need to have a fix for stretch, otherwise that means no Korean
+support in d-i, which doesn't seem reasonable.
+I might try and check whether the needed codepoints are present in the new
+version (through fontforge) but I'm no expert at all… Maybe that's just
+some fontconfig stuff that needs adjusting.
+I can easily test any patches against fonts-android, since building d-i
+against local packages only takes a minute here; so feel free to use me as
+a puppet to experiment fixes. ;-)
+Thanks for your time, and sorry for not detecting this sooner.
+KiBi.

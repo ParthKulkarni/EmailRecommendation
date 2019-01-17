@@ -1,0 +1,43 @@
+To : debian-boot@lists.debian.org
+Subject : Re: Bug#877855: debootstrap does not carry --components across --foreign/--second-stage
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sat, 24 Mar 2018 21:32:47 +0900
+Message-id : 20180324213247.ba1c14f15bc9a90a6a458f3e@iijmio-mail.jp
+In-reply-to : <[🔎] 20180321185827.da15819ae3c9ce088ffa29d1@iijmio-mail.jp>
+
+
+Hi,
+> . "$SCRIPT"
+> 
+> if [ "$SECOND_STAGE_ONLY" = "true" ]; then
+>         MIRRORS=null:
+> else
+>         MIRRORS="$DEF_MIRROR"
+>         if [ "$USER_MIRROR" != "" ]; then
+>                 MIRRORS="$USER_MIRROR"
+>                 MIRRORS="${MIRRORS%/}"
+>         fi
+> fi
+> 
+> export MIRRORS
+ Just a question: Why we should clear $MIRRORS when we specify it
+ as --second-stage?
+> setup_etc () {
+(snip)
+>         if [ "$DLDEST" = apt_dest ] && [ ! -e "$TARGET/etc/apt/sources.list" ]; then
+>                 setup_apt_sources "http://debootstrap.invalid/";
+>         fi
+> }
+ And why we should specify "http://debootstrap.invalid/"; for
+ /etc/apt/sources.list? If we would change as below, it works as
+ expected
+-                setup_apt_sources "http://debootstrap.invalid/";
++                setup_apt_sources "$MIRRORS"
+>$ sudo debootstrap --foreign --components="main,contrib,non-free" sid sid http://deb.debian.org/debian
+(snip)
+>$ cat ./sid/etc/apt/sources.list
+>deb http://deb.debian.org/debian sid main contrib non-free
+ I guess there are some reason to do so, but I cannot find it.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp

@@ -1,0 +1,51 @@
+To : Stefan Fritsch <sf@sfritsch.de>
+Subject : Bug#912277: apache2: does not start any more: AH01903: Failed to configure CA certificate chain!
+From : Thorsten Glaser <t.glaser@tarent.de>
+Date : Sun, 4 Nov 2018 18:36:19 +0100 (CET)
+Message-id : alpine.DEB.2.21.1811041831270.1676@tglase-nb.lan.tarent.de
+Reply-to : Thorsten Glaser <t.glaser@tarent.de>, 912277@bugs.debian.org
+In-reply-to : <[🔎] alpine.DEB.2.21.1811041823280.1676@tglase-nb.lan.tarent.de>
+References : <154084151482.17731.9199863947452256966.reportbug@tglase.lan.tarent.de> <[🔎] 1668613.YYWUJRu66y@k> <[🔎] alpine.DEB.2.21.1811041803550.1676@tglase-nb.lan.tarent.de> <[🔎] alpine.DEB.2.21.1811041823280.1676@tglase-nb.lan.tarent.de> <154084151482.17731.9199863947452256966.reportbug@tglase.lan.tarent.de>
+
+
+retitle 912277 apache2: SSLCertificateChainFile silently ignored, causing AH01903 startup failure
+thanks
+> 2.4.33-3+b1 is the oldest version I can downgrade to, and it
+> also exhibits the problem. WTF.
+This is a real WTF. I found https://serverfault.com/a/892300/189656
+and thought “hey, Apache 2 still documents SSLCertificateChainFile,
+plus it’s the proper way to specify the chain given it’s normally
+separate from the certificates, and there’s no warning message about
+that directive, but let’s give it a shot”.
+So I did:
+# cat /etc/ssl/W_lan_tarent_de.cer /etc/ssl/W_lan_tarent_de.ca >/etc/ssl/combined-cer-chain.pem
+Then I edited /etc/apache2/sites-enabled/default-ssl.conf, commenting
+out SSLCertificateFile and SSLCertificateChainFile, and adding
+	SSLCertificateFile /etc/ssl/combined-cer-chain.pem
+tglase@tglase:~ $ sudo cleanenv / /etc/init.d/apache2 stop
+Stopping Apache httpd web server: apache2.
+Server was not running ... (warning).
+tglase@tglase:~ $ sudo cleanenv / /etc/init.d/apache2 start
+Starting Apache httpd web server: apache2 ..
+.oO(wait, what?)
+tglase@tglase:~ $ curl --head https://$(hostname -f)/ 
+HTTP/1.1 200 OK
+Date: Sun, 04 Nov 2018 17:34:29 GMT
+Server: Apache/2.4.35 (Debian)
+Content-Type: text/html;charset=UTF-8
+.oO(what now?)
+So it turns out that, ever since some upgrade, the directive
+SSLCertificateChainFile is *silently* ignored, but this only
+becomes apparent when you stop+start instead of restart (so
+they are *still* not equivalent ☹).
+I don’t think this acceptable. Ideally, the option would be
+still supported; it does no harm and has worked for decades.
+If that’s not desired, it MUST yield a warning.
+bye,
+//mirabilos
+-- 
+tarent solutions GmbH
+Rochusstraße 2-4, D-53123 Bonn • http://www.tarent.de/
+Tel: +49 228 54881-393 • Fax: +49 228 54881-235
+HRB 5168 (AG Bonn) • USt-ID (VAT): DE122264941
+Geschäftsführer: Dr. Stefan Barth, Kai Ebenrett, Boris Esser, Alexander Steeg

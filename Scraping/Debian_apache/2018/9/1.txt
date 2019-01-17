@@ -1,0 +1,21 @@
+To : 880195@bugs.debian.org
+Subject : Bug#880195: Not a bug, a feature (was: apache2: Trying to use ws:// in proxy...)
+From : Vincent Caron <vcaron@bearstech.com>
+Date : Tue, 11 Sep 2018 13:33:13 +0200
+Message-id : e8d726a2-9344-7330-94d5-7841c40ef20b@bearstech.com
+Reply-to : Vincent Caron <vcaron@bearstech.com>, 880195@bugs.debian.org
+References : <150937142504.7069.6972127767786094160.reportbug@libor-nb.bcom.local>
+
+
+The error message is misleading. It happens if a client try to contact
+the proxy entrypoint with the HTTP protocol without requesting an
+upgrade to Websocket : only websocket requests can be tunneled to a
+websockend endpoint, thus the proxy complains.
+Your web application should have a subset of paths which use Websockets
+and all other paths with plain HTTP(S). The correct config often boils
+down to :
+    Proxy /ws  ws://host:port/
+    Proxy /    http://host:port/
+And DON'T try to test by requesting the /ws URL with curl or your
+browser, it will try plain HTTP(S) without asking for websocket upgrade
+and Apache will complain with the message this bugreport mentions.

@@ -1,0 +1,897 @@
+To : "Adam D. Barratt" <adam@adam-barratt.org.uk>
+Subject : Re: Bug#867814: stretch-pu: package ncurses/6.0+20161126-1+deb9u1
+From : Sven Joachim <svenjoac@gmx.de>
+Date : Wed, 06 Sep 2017 18:52:36 +0200
+Message-id : 87r2vjhiqz.fsf@turtle.gmx.de
+In-reply-to : <87o9sgnut3.fsf@turtle.gmx.de> (Sven Joachim's message of "Wed,	19 Jul 2017 20:30:32 +0200")
+References : <87eftpcyb4.fsf@turtle.gmx.de>	<1500113059.5317.185.camel@adam-barratt.org.uk>	<874luegejd.fsf@turtle.gmx.de> <87o9sgnut3.fsf@turtle.gmx.de>
+
+
+On 2017-07-19 20:30 +0200, Sven Joachim wrote:
+> Control: tags -1 - moreinfo
+>
+> On 2017-07-15 12:50 +0200, Sven Joachim wrote:
+>
+>> Control: tags -1 - confirmed
+>> Control: tags -1 + moreinfo
+>>
+>> On 2017-07-15 11:04 +0100, Adam D. Barratt wrote:
+>>
+>>> Control: tags -1 + confirmed d-i
+>>>
+>>> On Sun, 2017-07-09 at 19:30 +0200, Sven Joachim wrote:
+>>>> Recently a few flaws in the tic program and the tic library have been
+>>>> detected: null pointer dereference, buffer overflow, stack smashing, you
+>>>> name it.  Six bugs have been reported in the Red Hat bugtracker and four
+>>>> CVEs assigned.  Fortunately there are rather few users who would run
+>>>> affected programs at all, so it was decided that no DSA would be
+>>>> necessary.
+>>
+>> Unfortunately the fixes have caused a regression in infocmp, see
+>> #868266.  I expect an upstream fix this night, but to properly test it
+>> and prepare new packages taking a bit more time seems advisable.  So I
+>> guess we'll have to defer that for 9.2.
+>
+> The changes from the 20170715 patchlevel were a bit larger than I would
+> have liked, but applied with minimal tweaking to the stretch version.
+> Running "infocmp -C" on all the terminfo files in ncurses-{base,term}
+> showed no difference compared to the infocmp version currently in
+> stretch.
+Meanwhile seven new CVEs in the tic library and programs have been
+reported, and I would like to fix those as well, see the attached new
+debdiff.  It contains all the library changes from the 20170826 upstream
+patchlevel and the program fixes of the 20170902 patchlevel.  I have
+also attached the test cases for the 13 bugs reported in the Red Hat
+bugtracker.
+>>> I'd be okay with this, but it will need a kibi-ack due to the udeb.
+>>
+>> The changes do not touch the tinfo library which is all that shipped in
+>> the udeb.
+>
+> To elaborate on that, ncurses/tinfo/{alloc,parse}_entry.c are compiled
+> into the tic library while progs/dump_entry.c is for the infocmp and tic
+> programs.  Building 6.0+20161126-1 and 6.0+20161126-1+deb9u1 in a
+> stretch chroot produced identical libtinfo.so.5.9 files.
+This is unfortunately no longer the case, since strings.c and
+trim_sgr0.c are compiled into the tinfo library.  However, the changes
+to these files are small.
+Cheers,
+       Sven
+tic-tests.tar.xzdiff -Nru ncurses-6.0+20161126/debian/changelog ncurses-6.0+20161126/debian/changelog
+--- ncurses-6.0+20161126/debian/changelog	2016-11-29 21:19:08.000000000 +0100
++++ ncurses-6.0+20161126/debian/changelog	2017-09-04 22:04:15.000000000 +0200
+@@ -1,3 +1,18 @@
++ncurses (6.0+20161126-1+deb9u1) stretch; urgency=medium
++
++  * Cherry-pick upstream fixes from the 20170701 and 20170708 patchlevels
++    for various crash bugs in the tic library and the tic binary
++    (CVE-2017-10684, CVE-2017-10685, CVE-2017-11112, CVE-2017-11113).
++  * Backport termcap-format fix from the 20170715 patchlevel, repairing a
++    regression from the above security fixes (see #868266).
++  * Cherry-pick upstream fixes from the 20170826 patchlevel for more
++    crash bugs in the tic library (CVE-2017-13728, CVE-2017-13729,
++    CVE-2017-13730, CVE-2017-13731, CVE-2017-13732, CVE-2017-13734).
++  * Cerry-pick upstream fixes from the 20170902 patchlevel to fix
++    another crash bug in the tic program (CVE-2017-13733).
++
++ -- Sven Joachim <svenjoac@gmx.de>  Mon, 04 Sep 2017 22:04:15 +0200
++
+ ncurses (6.0+20161126-1) unstable; urgency=low
+ 
+   * New upstream patchlevel.
+diff -Nru ncurses-6.0+20161126/debian/patches/cve-2017-13733.diff ncurses-6.0+20161126/debian/patches/cve-2017-13733.diff
+--- ncurses-6.0+20161126/debian/patches/cve-2017-13733.diff	1970-01-01 01:00:00.000000000 +0100
++++ ncurses-6.0+20161126/debian/patches/cve-2017-13733.diff	2017-09-04 22:04:15.000000000 +0200
+@@ -0,0 +1,91 @@
++Author: Sven Joachim <svenjoac@gmx.de>
++Description: Fix for CVE-2017-13733 in the tic program
++ Fix for CVE-2017-13733 cherry-picked from upstream patchlevel
++ 20170902.
++Bug-Debian: https://bugs.debian.org/873746
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1484290
++Forwarded: not-needed
++Last-Update: 2017-09-04
++
++---
++ progs/dump_entry.c |   19 ++++++++++---------
++ progs/tput.c       |    2 +-
++ 2 files changed, 11 insertions(+), 10 deletions(-)
++
++--- a/progs/dump_entry.c
+++++ b/progs/dump_entry.c
++@@ -957,12 +957,12 @@ fmt_entry(TERMTYPE *tterm,
++ #undef CUR
++ #define CUR tterm->
++     if (outform == F_TERMCAP) {
++-	if (termcap_reset != ABSENT_STRING) {
++-	    if (init_3string != ABSENT_STRING
+++	if (VALID_STRING(termcap_reset)) {
+++	    if (VALID_STRING(init_3string)
++ 		&& !strcmp(init_3string, termcap_reset))
++ 		DISCARD(init_3string);
++ 
++-	    if (reset_2string != ABSENT_STRING
+++	    if (VALID_STRING(reset_2string)
++ 		&& !strcmp(reset_2string, termcap_reset))
++ 		DISCARD(reset_2string);
++ 	}
++@@ -1038,7 +1038,7 @@ fmt_entry(TERMTYPE *tterm,
++ 	buffer[0] = '\0';
++ 
++ 	if (predval != FAIL) {
++-	    if (capability != ABSENT_STRING
+++	    if (VALID_STRING(capability)
++ 		&& i + 1 > num_strings)
++ 		num_strings = i + 1;
++ 
++@@ -1118,8 +1118,7 @@ fmt_entry(TERMTYPE *tterm,
++ 	    }
++ 	}
++ 	/* e.g., trimmed_sgr0 */
++-	if (capability != ABSENT_STRING &&
++-	    capability != CANCELLED_STRING &&
+++	if (VALID_STRING(capability) &&
++ 	    capability != tterm->Strings[i])
++ 	    free(capability);
++     }
++@@ -1290,7 +1289,8 @@ kill_labels(TERMTYPE *tterm, int target)
++ 
++     for (n = 0; n <= 10; ++n) {
++ 	_nc_SPRINTF(name, _nc_SLIMIT(sizeof(name)) "lf%d", n);
++-	if ((cap = find_string(tterm, name)) != ABSENT_STRING
+++	cap = find_string(tterm, name);
+++	if (VALID_STRING(cap)
++ 	    && kill_string(tterm, cap)) {
++ 	    target -= (int) (strlen(cap) + 5);
++ 	    ++result;
++@@ -1315,7 +1315,8 @@ kill_fkeys(TERMTYPE *tterm, int target)
++ 
++     for (n = 60; n >= 0; --n) {
++ 	_nc_SPRINTF(name, _nc_SLIMIT(sizeof(name)) "kf%d", n);
++-	if ((cap = find_string(tterm, name)) != ABSENT_STRING
+++	cap = find_string(tterm, name);
+++	if (VALID_STRING(cap)
++ 	    && kill_string(tterm, cap)) {
++ 	    target -= (int) (strlen(cap) + 5);
++ 	    ++result;
++@@ -1337,7 +1338,7 @@ one_one_mapping(const char *mapping)
++ {
++     bool result = TRUE;
++ 
++-    if (mapping != ABSENT_STRING) {
+++    if (VALID_STRING(mapping)) {
++ 	int n = 0;
++ 	while (mapping[n] != '\0') {
++ 	    if (isLine(mapping[n]) &&
++--- a/progs/tput.c
+++++ b/progs/tput.c
++@@ -196,7 +196,7 @@ tput_cmd(int argc, char *argv[])
++ 	}
++ #endif
++ 	quit(4, "unknown terminfo capability '%s'", name);
++-    } else if (s != ABSENT_STRING) {
+++    } else if (VALID_STRING(s)) {
++ 	if (argc > 1) {
++ 	    int k;
++ 	    int ignored;
+diff -Nru ncurses-6.0+20161126/debian/patches/cve-fixes.diff ncurses-6.0+20161126/debian/patches/cve-fixes.diff
+--- ncurses-6.0+20161126/debian/patches/cve-fixes.diff	1970-01-01 01:00:00.000000000 +0100
++++ ncurses-6.0+20161126/debian/patches/cve-fixes.diff	2017-09-04 22:04:15.000000000 +0200
+@@ -0,0 +1,185 @@
++Author: Sven Joachim <svenjoac@gmx.de>
++Description: Fixes for four CVEs
++ Fixes for CVE 2017-10684, CVE-2017-10685, CVE-2017-11112,
++ CVE-2017-11113 cherry-picked from upstream patchlevels 20170701 and
++ 20170708.
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1464684
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1464685
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1464686
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1464687
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1464691
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1464692
++Forwarded: not-needed
++Last-Update: 2017-07-09
++
++---
++ ncurses/tinfo/alloc_entry.c |    6 +++++-
++ ncurses/tinfo/parse_entry.c |   22 ++++++++++++----------
++ progs/dump_entry.c          |   34 +++++++++++++++++++++-------------
++ 3 files changed, 38 insertions(+), 24 deletions(-)
++
++--- a/ncurses/tinfo/alloc_entry.c
+++++ b/ncurses/tinfo/alloc_entry.c
++@@ -96,7 +96,11 @@ _nc_save_str(const char *const string)
++ {
++     char *result = 0;
++     size_t old_next_free = next_free;
++-    size_t len = strlen(string) + 1;
+++    size_t len;
+++
+++    if (string == 0)
+++	return _nc_save_str("");
+++    len = strlen(string) + 1;
++ 
++     if (len == 1 && next_free != 0) {
++ 	/*
++--- a/ncurses/tinfo/parse_entry.c
+++++ b/ncurses/tinfo/parse_entry.c
++@@ -236,13 +236,14 @@ _nc_parse_entry(struct entry *entryp, in
++      * implemented it.  Note that the resulting terminal type was never the
++      * 2-character name, but was instead the first alias after that.
++      */
+++#define ok_TC2(s) (isgraph(UChar(s)) && (s) != '|')
++     ptr = _nc_curr_token.tk_name;
++     if (_nc_syntax == SYN_TERMCAP
++ #if NCURSES_XNAMES
++ 	&& !_nc_user_definable
++ #endif
++ 	) {
++-	if (ptr[2] == '|') {
+++	if (ok_TC2(ptr[0]) && ok_TC2(ptr[1]) && (ptr[2] == '|')) {
++ 	    ptr += 3;
++ 	    _nc_curr_token.tk_name[2] = '\0';
++ 	}
++@@ -284,9 +285,11 @@ _nc_parse_entry(struct entry *entryp, in
++ 	if (is_use || is_tc) {
++ 	    entryp->uses[entryp->nuses].name = _nc_save_str(_nc_curr_token.tk_valstring);
++ 	    entryp->uses[entryp->nuses].line = _nc_curr_line;
++-	    entryp->nuses++;
++-	    if (entryp->nuses > 1 && is_tc) {
++-		BAD_TC_USAGE
+++	    if (VALID_STRING(entryp->uses[entryp->nuses].name)) {
+++		entryp->nuses++;
+++		if (entryp->nuses > 1 && is_tc) {
+++		    BAD_TC_USAGE
+++		}
++ 	    }
++ 	} else {
++ 	    /* normal token lookup */
++@@ -572,7 +575,7 @@ append_acs0(string_desc * dst, int code,
++ static void
++ append_acs(string_desc * dst, int code, char *src)
++ {
++-    if (src != 0 && strlen(src) == 1) {
+++    if (VALID_STRING(src) && strlen(src) == 1) {
++ 	append_acs0(dst, code, *src);
++     }
++ }
++@@ -833,15 +836,14 @@ postprocess_termcap(TERMTYPE *tp, bool h
++ 	    }
++ 
++ 	    if (tp->Strings[to_ptr->nte_index]) {
+++		const char *s = tp->Strings[from_ptr->nte_index];
+++		const char *t = tp->Strings[to_ptr->nte_index];
++ 		/* There's no point in warning about it if it's the same
++ 		 * string; that's just an inefficiency.
++ 		 */
++-		if (strcmp(
++-			      tp->Strings[from_ptr->nte_index],
++-			      tp->Strings[to_ptr->nte_index]) != 0)
+++		if (VALID_STRING(s) && VALID_STRING(t) && strcmp(s, t) != 0)
++ 		    _nc_warning("%s (%s) already has an explicit value %s, ignoring ko",
++-				ap->to, ap->from,
++-				_nc_visbuf(tp->Strings[to_ptr->nte_index]));
+++				ap->to, ap->from, t);
++ 		continue;
++ 	    }
++ 
++--- a/progs/dump_entry.c
+++++ b/progs/dump_entry.c
++@@ -817,9 +817,10 @@ fmt_entry(TERMTYPE *tterm,
++     PredIdx num_strings = 0;
++     bool outcount = 0;
++ 
++-#define WRAP_CONCAT	\
++-	wrap_concat(buffer); \
++-	outcount = TRUE
+++#define WRAP_CONCAT1(s)		wrap_concat(s); outcount = TRUE
+++#define WRAP_CONCAT2(a,b)	wrap_concat(a); WRAP_CONCAT1(b)
+++#define WRAP_CONCAT3(a,b,c)	wrap_concat(a); WRAP_CONCAT2(b,c)
+++#define WRAP_CONCAT		WRAP_CONCAT1(buffer)
++ 
++     len = 12;			/* terminfo file-header */
++ 
++@@ -978,9 +979,9 @@ fmt_entry(TERMTYPE *tterm,
++ 		    set_attributes = save_sgr;
++ 
++ 		    trimmed_sgr0 = _nc_trim_sgr0(tterm);
++-		    if (strcmp(capability, trimmed_sgr0))
+++		    if (strcmp(capability, trimmed_sgr0)) {
++ 			capability = trimmed_sgr0;
++-		    else {
+++		    } else {
++ 			if (trimmed_sgr0 != exit_attribute_mode)
++ 			    free(trimmed_sgr0);
++ 		    }
++@@ -1017,13 +1018,21 @@ fmt_entry(TERMTYPE *tterm,
++ 			_nc_SPRINTF(buffer, _nc_SLIMIT(sizeof(buffer))
++ 				    "%s=!!! %s WILL NOT CONVERT !!!",
++ 				    name, srccap);
+++			WRAP_CONCAT;
++ 		    } else if (suppress_untranslatable) {
++ 			continue;
++ 		    } else {
++ 			char *s = srccap, *d = buffer;
++-			_nc_SPRINTF(d, _nc_SLIMIT(sizeof(buffer)) "..%s=", name);
++-			d += strlen(d);
+++			WRAP_CONCAT3("..", name, "=");
++ 			while ((*d = *s++) != 0) {
+++			    if ((d - buffer + 1) >= (int) sizeof(buffer)) {
+++				fprintf(stderr,
+++					"%s: value for %s is too long\n",
+++					_nc_progname,
+++					name);
+++				*d = '\0';
+++				break;
+++			    }
++ 			    if (*d == ':') {
++ 				*d++ = '\\';
++ 				*d = ':';
++@@ -1032,13 +1041,12 @@ fmt_entry(TERMTYPE *tterm,
++ 			    }
++ 			    d++;
++ 			}
+++			WRAP_CONCAT;
++ 		    }
++ 		} else {
++-		    _nc_SPRINTF(buffer, _nc_SLIMIT(sizeof(buffer))
++-				"%s=%s", name, cv);
+++		    WRAP_CONCAT3(name, "=", cv);
++ 		}
++ 		len += (int) strlen(capability) + 1;
++-		WRAP_CONCAT;
++ 	    } else {
++ 		char *src = _nc_tic_expand(capability,
++ 					   outform == F_TERMINFO, numbers);
++@@ -1054,8 +1062,7 @@ fmt_entry(TERMTYPE *tterm,
++ 		    strcpy_DYN(&tmpbuf, src);
++ 		}
++ 		len += (int) strlen(capability) + 1;
++-		wrap_concat(tmpbuf.text);
++-		outcount = TRUE;
+++		WRAP_CONCAT1(tmpbuf.text);
++ 	    }
++ 	}
++ 	/* e.g., trimmed_sgr0 */
++@@ -1491,7 +1498,8 @@ dump_entry(TERMTYPE *tterm,
++ 		}
++ 		if (len > critlen) {
++ 		    (void) fprintf(stderr,
++-				   "warning: %s entry is %d bytes long\n",
+++				   "%s: %s entry is %d bytes long\n",
+++				   _nc_progname,
++ 				   _nc_first_name(tterm->term_names),
++ 				   len);
++ 		    SHOW_WHY("# WARNING: this entry, %d bytes long, may core-dump %s libraries!\n",
+diff -Nru ncurses-6.0+20161126/debian/patches/more-cve-fixes.diff ncurses-6.0+20161126/debian/patches/more-cve-fixes.diff
+--- ncurses-6.0+20161126/debian/patches/more-cve-fixes.diff	1970-01-01 01:00:00.000000000 +0100
++++ ncurses-6.0+20161126/debian/patches/more-cve-fixes.diff	2017-09-04 22:04:15.000000000 +0200
+@@ -0,0 +1,285 @@
++Author: Sven Joachim <svenjoac@gmx.de>
++Description: Fixes for six CVEs in the tic library
++ Fixes for CVE-2017-13728, CVE-2017-13729, CVE-2017-13730,
++ CVE-2017-13731, CVE-2017-13732 and CVE-2017-13734 cherry-picked from
++ upstream patchlevel 20170826.
++Bug-Debian: https://bugs.debian.org/873723
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1484274
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1484276
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1484284
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1484285
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1484287
++Bug-RedHat: https://bugzilla.redhat.com/show_bug.cgi?id=1484291
++Forwarded: not-needed
++Last-Update: 2017-09-04
++
++---
++ ncurses/tinfo/alloc_entry.c |    2 
++ ncurses/tinfo/comp_parse.c  |    8 +--
++ ncurses/tinfo/comp_scan.c   |    4 +
++ ncurses/tinfo/parse_entry.c |   89 +++++++++++++++++++++++++++++---------------
++ ncurses/tinfo/strings.c     |    5 +-
++ ncurses/tinfo/trim_sgr0.c   |    2 
++ 6 files changed, 71 insertions(+), 39 deletions(-)
++
++--- a/ncurses/tinfo/alloc_entry.c
+++++ b/ncurses/tinfo/alloc_entry.c
++@@ -98,7 +98,7 @@ _nc_save_str(const char *const string)
++     size_t old_next_free = next_free;
++     size_t len;
++ 
++-    if (string == 0)
+++    if (!VALID_STRING(string))
++ 	return _nc_save_str("");
++     len = strlen(string) + 1;
++ 
++--- a/ncurses/tinfo/comp_parse.c
+++++ b/ncurses/tinfo/comp_parse.c
++@@ -522,9 +522,9 @@ static void
++ fixup_acsc(TERMTYPE *tp, int literal)
++ {
++     if (!literal) {
++-	if (acs_chars == 0
++-	    && enter_alt_charset_mode != 0
++-	    && exit_alt_charset_mode != 0)
+++	if (acs_chars == ABSENT_STRING
+++	    && PRESENT(enter_alt_charset_mode)
+++	    && PRESENT(exit_alt_charset_mode))
++ 	    acs_chars = strdup(VT_ACSC);
++     }
++ }
++@@ -580,9 +580,7 @@ sanity_check2(TERMTYPE *tp, bool literal
++     PAIRED(enter_xon_mode, exit_xon_mode);
++     PAIRED(enter_am_mode, exit_am_mode);
++     ANDMISSING(label_off, label_on);
++-#ifdef remove_clock
++     PAIRED(display_clock, remove_clock);
++-#endif
++     ANDMISSING(set_color_pair, initialize_pair);
++ }
++ 
++--- a/ncurses/tinfo/comp_scan.c
+++++ b/ncurses/tinfo/comp_scan.c
++@@ -168,6 +168,8 @@ next_char(void)
++ 	if (result != 0) {
++ 	    FreeAndNull(result);
++ 	    FreeAndNull(pushname);
+++	    bufptr = 0;
+++	    bufstart = 0;
++ 	    allocated = 0;
++ 	}
++ 	/*
++@@ -222,6 +224,8 @@ next_char(void)
++ 		}
++ 		if ((bufptr = bufstart) != 0) {
++ 		    used = strlen(bufptr);
+++		    if (used == 0)
+++			return (EOF);
++ 		    while (iswhite(*bufptr)) {
++ 			if (*bufptr == '\t') {
++ 			    _nc_curr_col = (_nc_curr_col | 7) + 1;
++--- a/ncurses/tinfo/parse_entry.c
+++++ b/ncurses/tinfo/parse_entry.c
++@@ -180,6 +180,20 @@ _nc_extend_names(ENTRY * entryp, char *n
++ }
++ #endif /* NCURSES_XNAMES */
++ 
+++static bool
+++valid_entryname(const char *name)
+++{
+++    bool result = TRUE;
+++    int ch;
+++    while ((ch = UChar(*name++)) != '\0') {
+++	if (ch <= ' ' || ch > '~' || ch == '/') {
+++	    result = FALSE;
+++	    break;
+++	}
+++    }
+++    return result;
+++}
+++
++ /*
++  *	int
++  *	_nc_parse_entry(entry, literal, silent)
++@@ -211,6 +225,7 @@ _nc_parse_entry(struct entry *entryp, in
++     int token_type;
++     struct name_table_entry const *entry_ptr;
++     char *ptr, *base;
+++    const char *name;
++     bool bad_tc_usage = FALSE;
++ 
++     token_type = _nc_get_token(silent);
++@@ -261,7 +276,12 @@ _nc_parse_entry(struct entry *entryp, in
++      * results in the terminal type getting prematurely set to correspond
++      * to that of the next entry.
++      */
++-    _nc_set_type(_nc_first_name(entryp->tterm.term_names));
+++    name = _nc_first_name(entryp->tterm.term_names);
+++    if (!valid_entryname(name)) {
+++	_nc_warning("invalid entry name \"%s\"", name);
+++	name = "invalid";
+++    }
+++    _nc_set_type(name);
++ 
++     /* check for overly-long names and aliases */
++     for (base = entryp->tterm.term_names; (ptr = strchr(base, '|')) != 0;
++@@ -283,13 +303,24 @@ _nc_parse_entry(struct entry *entryp, in
++ 	bool is_use = (strcmp(_nc_curr_token.tk_name, "use") == 0);
++ 	bool is_tc = !is_use && (strcmp(_nc_curr_token.tk_name, "tc") == 0);
++ 	if (is_use || is_tc) {
+++	    if (!VALID_STRING(_nc_curr_token.tk_valstring)
+++		|| _nc_curr_token.tk_valstring[0] == '\0') {
+++		_nc_warning("missing name for use-clause");
+++		continue;
+++	    } else if (!valid_entryname(_nc_curr_token.tk_valstring)) {
+++		_nc_warning("invalid name for use-clause \"%s\"",
+++			    _nc_curr_token.tk_valstring);
+++		continue;
+++	    } else if (entryp->nuses >= MAX_USES) {
+++		_nc_warning("too many use-clauses, ignored \"%s\"",
+++			    _nc_curr_token.tk_valstring);
+++		continue;
+++	    }
++ 	    entryp->uses[entryp->nuses].name = _nc_save_str(_nc_curr_token.tk_valstring);
++ 	    entryp->uses[entryp->nuses].line = _nc_curr_line;
++-	    if (VALID_STRING(entryp->uses[entryp->nuses].name)) {
++-		entryp->nuses++;
++-		if (entryp->nuses > 1 && is_tc) {
++-		    BAD_TC_USAGE
++-		}
+++	    entryp->nuses++;
+++	    if (entryp->nuses > 1 && is_tc) {
+++		BAD_TC_USAGE
++ 	    }
++ 	} else {
++ 	    /* normal token lookup */
++@@ -625,13 +656,6 @@ static const char C_BS[] = "\b";
++ static const char C_HT[] = "\t";
++ 
++ /*
++- * Note that WANTED and PRESENT are not simple inverses!  If a capability
++- * has been explicitly cancelled, it's not considered WANTED.
++- */
++-#define WANTED(s)	((s) == ABSENT_STRING)
++-#define PRESENT(s)	(((s) != ABSENT_STRING) && ((s) != CANCELLED_STRING))
++-
++-/*
++  * This bit of legerdemain turns all the terminfo variable names into
++  * references to locations in the arrays Booleans, Numbers, and Strings ---
++  * precisely what's needed.
++@@ -656,10 +680,10 @@ postprocess_termcap(TERMTYPE *tp, bool h
++ 
++     /* if there was a tc entry, assume we picked up defaults via that */
++     if (!has_base) {
++-	if (WANTED(init_3string) && termcap_init2)
+++	if (WANTED(init_3string) && PRESENT(termcap_init2))
++ 	    init_3string = _nc_save_str(termcap_init2);
++ 
++-	if (WANTED(reset_2string) && termcap_reset)
+++	if (WANTED(reset_2string) && PRESENT(termcap_reset))
++ 	    reset_2string = _nc_save_str(termcap_reset);
++ 
++ 	if (WANTED(carriage_return)) {
++@@ -774,7 +798,7 @@ postprocess_termcap(TERMTYPE *tp, bool h
++ 	if (init_tabs != 8 && init_tabs != ABSENT_NUMERIC)
++ 	    _nc_warning("hardware tabs with a width other than 8: %d", init_tabs);
++ 	else {
++-	    if (tab && _nc_capcmp(tab, C_HT))
+++	    if (PRESENT(tab) && _nc_capcmp(tab, C_HT))
++ 		_nc_warning("hardware tabs with a non-^I tab string %s",
++ 			    _nc_visbuf(tab));
++ 	    else {
++@@ -851,17 +875,22 @@ postprocess_termcap(TERMTYPE *tp, bool h
++ 	     * The magic moment -- copy the mapped key string over,
++ 	     * stripping out padding.
++ 	     */
++-	    for (dp = buf2, bp = tp->Strings[from_ptr->nte_index]; *bp; bp++) {
++-		if (bp[0] == '$' && bp[1] == '<') {
++-		    while (*bp && *bp != '>') {
++-			++bp;
++-		    }
++-		} else
++-		    *dp++ = *bp;
++-	    }
++-	    *dp = '\0';
+++	    bp = tp->Strings[from_ptr->nte_index];
+++	    if (VALID_STRING(bp)) {
+++		for (dp = buf2; *bp; bp++) {
+++		    if (bp[0] == '$' && bp[1] == '<') {
+++			while (*bp && *bp != '>') {
+++			    ++bp;
+++			}
+++		    } else
+++			*dp++ = *bp;
+++		}
+++		*dp = '\0';
++ 
++-	    tp->Strings[to_ptr->nte_index] = _nc_save_str(buf2);
+++		tp->Strings[to_ptr->nte_index] = _nc_save_str(buf2);
+++	    } else {
+++		tp->Strings[to_ptr->nte_index] = bp;
+++	    }
++ 	}
++ 
++ 	/*
++@@ -870,7 +899,7 @@ postprocess_termcap(TERMTYPE *tp, bool h
++ 	 * got mapped to kich1 and im to kIC to avoid a collision.
++ 	 * If the description has im but not ic, hack kIC back to kich1.
++ 	 */
++-	if (foundim && WANTED(key_ic) && key_sic) {
+++	if (foundim && WANTED(key_ic) && PRESENT(key_sic)) {
++ 	    key_ic = key_sic;
++ 	    key_sic = ABSENT_STRING;
++ 	}
++@@ -922,9 +951,9 @@ postprocess_termcap(TERMTYPE *tp, bool h
++ 	    acs_chars = _nc_save_str(buf2);
++ 	    _nc_warning("acsc string synthesized from XENIX capabilities");
++ 	}
++-    } else if (acs_chars == 0
++-	       && enter_alt_charset_mode != 0
++-	       && exit_alt_charset_mode != 0) {
+++    } else if (acs_chars == ABSENT_STRING
+++	       && PRESENT(enter_alt_charset_mode)
+++	       && PRESENT(exit_alt_charset_mode)) {
++ 	acs_chars = _nc_save_str(VT_ACSC);
++     }
++ }
++--- a/ncurses/tinfo/strings.c
+++++ b/ncurses/tinfo/strings.c
++@@ -35,6 +35,7 @@
++ **/
++ 
++ #include <curses.priv.h>
+++#include <tic.h>
++ 
++ MODULE_ID("$Id: strings.c,v 1.8 2012/02/22 22:34:31 tom Exp $")
++ 
++@@ -105,7 +106,7 @@ _nc_str_copy(string_desc * dst, string_d
++ NCURSES_EXPORT(bool)
++ _nc_safe_strcat(string_desc * dst, const char *src)
++ {
++-    if (src != 0) {
+++    if (PRESENT(src)) {
++ 	size_t len = strlen(src);
++ 
++ 	if (len < dst->s_size) {
++@@ -126,7 +127,7 @@ _nc_safe_strcat(string_desc * dst, const
++ NCURSES_EXPORT(bool)
++ _nc_safe_strcpy(string_desc * dst, const char *src)
++ {
++-    if (src != 0) {
+++    if (PRESENT(src)) {
++ 	size_t len = strlen(src);
++ 
++ 	if (len < dst->s_size) {
++--- a/ncurses/tinfo/trim_sgr0.c
+++++ b/ncurses/tinfo/trim_sgr0.c
++@@ -263,7 +263,7 @@ _nc_trim_sgr0(TERMTYPE *tp)
++ 	    /*
++ 	     * If rmacs is a substring of sgr(0), remove that chunk.
++ 	     */
++-	    if (exit_alt_charset_mode != 0) {
+++	    if (PRESENT(exit_alt_charset_mode)) {
++ 		TR(TRACE_DATABASE, ("scan for rmacs %s", _nc_visbuf(exit_alt_charset_mode)));
++ 		j = strlen(off);
++ 		k = strlen(exit_alt_charset_mode);
+diff -Nru ncurses-6.0+20161126/debian/patches/series ncurses-6.0+20161126/debian/patches/series
+--- ncurses-6.0+20161126/debian/patches/series	2016-11-28 18:50:38.000000000 +0100
++++ ncurses-6.0+20161126/debian/patches/series	2017-09-04 22:04:15.000000000 +0200
+@@ -1,3 +1,7 @@
+ 01-debian-no-ada-doc.diff
+ 02-debian-backspace.diff
+ 03-debian-ncursesconfig-omit-L.diff
++cve-fixes.diff
++termcap-fix.diff
++more-cve-fixes.diff
++cve-2017-13733.diff
+diff -Nru ncurses-6.0+20161126/debian/patches/termcap-fix.diff ncurses-6.0+20161126/debian/patches/termcap-fix.diff
+--- ncurses-6.0+20161126/debian/patches/termcap-fix.diff	1970-01-01 01:00:00.000000000 +0100
++++ ncurses-6.0+20161126/debian/patches/termcap-fix.diff	2017-09-04 22:04:15.000000000 +0200
+@@ -0,0 +1,228 @@
++Author: Sven Joachim <svenjoac@gmx.de>
++Description: Backport termcap-format fix from the 20170715 patchlevel
++Bug-Debian: https://bugs.debian.org/868266
++Forwarded: not-needed
++Last-Update: 2017-07-17
++
++---
++ progs/dump_entry.c |  104 +++++++++++++++++++++++++++++++++++++++--------------
++ 1 file changed, 78 insertions(+), 26 deletions(-)
++
++--- a/progs/dump_entry.c
+++++ b/progs/dump_entry.c
++@@ -553,22 +553,34 @@ fill_spaces(const char *src)
++     return result;
++ }
++ 
+++typedef enum {
+++    wOFF = 0
+++    ,w1ST = 1
+++    ,w2ND = 2
+++    ,wEND = 4
+++    ,wERR = 8
+++} WRAPMODE;
+++
+++#define wrap_1ST(mode) ((mode)&w1ST)
+++#define wrap_END(mode) ((mode)&wEND)
+++#define wrap_ERR(mode) ((mode)&wERR)
+++
++ static void
++-wrap_concat(const char *src)
+++wrap_concat(const char *src, int need, unsigned mode)
++ {
++-    int need = (int) strlen(src);
++     int gaps = (int) strlen(separator);
++     int want = gaps + need;
++ 
++     did_wrap = (width <= 0);
++-    if (column > indent
+++    if (wrap_1ST(mode)
+++	&& column > indent
++ 	&& column + want > width) {
++ 	force_wrap();
++     }
++-    if (wrapped &&
+++    if ((wrap_END(mode) && !wrap_ERR(mode)) &&
+++	wrapped &&
++ 	(width >= 0) &&
++-	(column + want) > width &&
++-	(!TcOutput() || strncmp(src, "..", 2))) {
+++	(column + want) > width) {
++ 	int step = 0;
++ 	int used = width > WRAPPED ? width : WRAPPED;
++ 	int size = used;
++@@ -583,18 +595,29 @@ wrap_concat(const char *src)
++ 	if (TcOutput())
++ 	    trailer = "\\\n\t ";
++ 
++-	if ((p = strchr(fill, '=')) != 0) {
+++	if (!TcOutput() && (p = strchr(fill, '=')) != 0) {
++ 	    base = (int) (p + 1 - fill);
++ 	    if (base > 8)
++ 		base = 8;
++ 	    _nc_SPRINTF(align, _nc_SLIMIT(align) "%*s", base, " ");
+++	} else if (column > 8) {
+++	    base = column - 8;
+++	    if (base > 8)
+++		base = 8;
+++	    _nc_SPRINTF(align, _nc_SLIMIT(align) "%*s", base, " ");
++ 	} else {
++ 	    align[base] = '\0';
++ 	}
++ 	/* "pretty" overrides wrapping if it already split the line */
++ 	if (!pretty || strchr(fill, '\n') == 0) {
+++	    int tag = 0;
+++
+++	    if (TcOutput() && outbuf.used && !wrap_1ST(mode)) {
+++		tag = 3;
+++	    }
+++
++ 	    while ((column + (need + gaps)) > used) {
++-		size = used;
+++		size = used - tag;
++ 		if (step) {
++ 		    strcpy_DYN(&outbuf, align);
++ 		    size -= base;
++@@ -609,6 +632,7 @@ wrap_concat(const char *src)
++ 		if (need > 0) {
++ 		    force_wrap();
++ 		    did_wrap = TRUE;
+++		    tag = 0;
++ 		}
++ 	    }
++ 	}
++@@ -617,18 +641,39 @@ wrap_concat(const char *src)
++ 		strcpy_DYN(&outbuf, align);
++ 	    strcpy_DYN(&outbuf, fill + step);
++ 	}
++-	strcpy_DYN(&outbuf, separator);
+++	if (wrap_END(mode))
+++	    strcpy_DYN(&outbuf, separator);
++ 	trailer = my_t;
++ 	force_wrap();
++ 
++ 	free(fill);
++     } else {
++ 	strcpy_DYN(&outbuf, src);
++-	strcpy_DYN(&outbuf, separator);
++-	column += need;
+++	if (wrap_END(mode))
+++	    strcpy_DYN(&outbuf, separator);
+++	column += (int) strlen(src);
++     }
++ }
++ 
+++static void
+++wrap_concat1(const char *src)
+++{
+++    int need = (int) strlen(src);
+++    wrap_concat(src, need, w1ST | wEND);
+++}
+++
+++static void
+++wrap_concat3(const char *name, const char *eqls, const char *value)
+++{
+++    int nlen = (int) strlen(name);
+++    int elen = (int) strlen(eqls);
+++    int vlen = (int) strlen(value);
+++
+++    wrap_concat(name, nlen + elen + vlen, w1ST);
+++    wrap_concat(eqls, elen + vlen, w2ND);
+++    wrap_concat(value, vlen, wEND);
+++}
+++
++ #define IGNORE_SEP_TRAIL(first,last,sep_trail) \
++ 	if ((size_t)(last - first) > sizeof(sep_trail)-1 \
++ 	 && !strncmp(first, sep_trail, sizeof(sep_trail)-1)) \
++@@ -817,9 +862,7 @@ fmt_entry(TERMTYPE *tterm,
++     PredIdx num_strings = 0;
++     bool outcount = 0;
++ 
++-#define WRAP_CONCAT1(s)		wrap_concat(s); outcount = TRUE
++-#define WRAP_CONCAT2(a,b)	wrap_concat(a); WRAP_CONCAT1(b)
++-#define WRAP_CONCAT3(a,b,c)	wrap_concat(a); WRAP_CONCAT2(b,c)
+++#define WRAP_CONCAT1(s)		wrap_concat1(s); outcount = TRUE
++ #define WRAP_CONCAT		WRAP_CONCAT1(buffer)
++ 
++     len = 12;			/* terminfo file-header */
++@@ -1023,7 +1066,7 @@ fmt_entry(TERMTYPE *tterm,
++ 			continue;
++ 		    } else {
++ 			char *s = srccap, *d = buffer;
++-			WRAP_CONCAT3("..", name, "=");
+++			int need = 3 + (int) strlen(name);
++ 			while ((*d = *s++) != 0) {
++ 			    if ((d - buffer + 1) >= (int) sizeof(buffer)) {
++ 				fprintf(stderr,
++@@ -1040,11 +1083,20 @@ fmt_entry(TERMTYPE *tterm,
++ 				*++d = *s++;
++ 			    }
++ 			    d++;
+++			    *d = '\0';
++ 			}
++-			WRAP_CONCAT;
+++			need += (int) (d - buffer);
+++			wrap_concat("..", need, w1ST | wERR);
+++			need -= 2;
+++			wrap_concat(name, need, wOFF | wERR);
+++			need -= (int) strlen(name);
+++			wrap_concat("=", need, w2ND | wERR);
+++			need -= 1;
+++			wrap_concat(buffer, need, wEND | wERR);
+++			outcount = TRUE;
++ 		    }
++ 		} else {
++-		    WRAP_CONCAT3(name, "=", cv);
+++		    wrap_concat3(name, "=", cv);
++ 		}
++ 		len += (int) strlen(capability) + 1;
++ 	    } else {
++@@ -1377,31 +1429,31 @@ dump_entry(TERMTYPE *tterm,
++ 	    char numbuf[80];
++ 	    if (quickdump & 1) {
++ 		if (outbuf.used)
++-		    wrap_concat("\n");
++-		wrap_concat("hex:");
+++		    wrap_concat1("\n");
+++		wrap_concat1("hex:");
++ 		for (n = 0; n < offset; ++n) {
++ 		    _nc_SPRINTF(numbuf, _nc_SLIMIT(sizeof(numbuf))
++ 				"%02X", UChar(bigbuf[n]));
++-		    wrap_concat(numbuf);
+++		    wrap_concat1(numbuf);
++ 		}
++ 	    }
++ 	    if (quickdump & 2) {
++ 		int value = 0;
++ 		if (outbuf.used)
++-		    wrap_concat("\n");
++-		wrap_concat("b64:");
+++		    wrap_concat1("\n");
+++		wrap_concat1("b64:");
++ 		for (n = 0; n < offset; ++n) {
++ 		    encode_b64(numbuf, bigbuf, n, &value);
++-		    wrap_concat(numbuf);
+++		    wrap_concat1(numbuf);
++ 		}
++ 		switch (n % 3) {
++ 		case 0:
++ 		    break;
++ 		case 1:
++-		    wrap_concat("===");
+++		    wrap_concat1("===");
++ 		    break;
++ 		case 2:
++-		    wrap_concat("==");
+++		    wrap_concat1("==");
++ 		    break;
++ 		}
++ 	    }
++@@ -1529,7 +1581,7 @@ dump_uses(const char *name, bool infodum
++ 	trim_trailing();
++     _nc_SPRINTF(buffer, _nc_SLIMIT(sizeof(buffer))
++ 		"%s%s", infodump ? "use=" : "tc=", name);
++-    wrap_concat(buffer);
+++    wrap_concat1(buffer);
++ }
++ 
++ int

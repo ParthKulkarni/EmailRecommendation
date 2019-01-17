@@ -1,0 +1,95 @@
+To : submit@bugs.debian.org
+Subject : Bug#872577: debootstrap: Handle existing /dev
+From : Dan Nicholson <nicholson@endlessm.com>
+Date : Fri, 18 Aug 2017 13:57:15 -0500
+Message-id : CAJAOzpAkVcO1aXdBKA=SSF_jDOCe_98FXRi0gNj_JVnMmd7dOA@mail.gmail.com
+Reply-to : Dan Nicholson <nicholson@endlessm.com>, 872577@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.89
+Severity: normal
+Tags: patch
+When devices.tar.gz was being used, the devices would be written into
+place with tar. This has the effect that the devices would be merged
+into an existing /dev in the target. setup_devices_simple() does not
+handle this case and fails when /dev already exists.
+Normally, the target would be empty and this wouldn't be an issue.
+However, some tools that use debootstrap to initialize a target depended
+on the old behavior. In particular, the obs-build package used for OBS
+sets up a minimal /dev in the generic prep code before using debootstrap
+to install packages needed for building debian packages.
+The attached patch fixes this by using tar to emulate the old
+behavior. It would be really helpful if this could be applied.
+Thanks!
+--
+Dan Nicholson  |  +1.206.437.0833  |  Endless
+From d5b723f800c027e0d377627946bc1d697a5be322 Mon Sep 17 00:00:00 2001
+From: Dan Nicholson <nicholson@endlessm.com>
+Date: Fri, 18 Aug 2017 13:36:27 -0500
+Subject: [PATCH] Merge devices to /dev with tar
+When devices.tar.gz was being used, the devices would be written into
+place with tar. This has the effect that the devices would be merged
+into an existing /dev in the target. setup_devices_simple() does not
+handle this case and fails when /dev already exists.
+Normally, the target would be empty and this wouldn't be an issue.
+However, some tools that use debootstrap to initialize a target depended
+on the old behavior. In particular, the obs-build package used for OBS
+sets up a minimal /dev in the generic prep code before using debootstrap
+to install packages needed for building debian packages.
+Emulate the old behavior by creating the devices in a temporary
+debootstrap/dev and then use tar to write them into place.
+---
+ functions | 34 ++++++++++++++++++++--------------
+ 1 file changed, 20 insertions(+), 14 deletions(-)
+diff --git a/functions b/functions
+index 3cfa0d4..0d99a95 100644
+--- a/functions
++++ b/functions
+@@ -1163,24 +1163,30 @@ setup_dynamic_devices () {
+ 
+ setup_devices_simple () {
+ 	# The list of devices that can be created in a container comes from
+-	# src/core/cgroup.c in the systemd source tree.
+-	mknod -m 666 $TARGET/dev/null	c 1 3
+-	mknod -m 666 $TARGET/dev/zero	c 1 5
+-	mknod -m 666 $TARGET/dev/full	c 1 7
+-	mknod -m 666 $TARGET/dev/random	c 1 8
+-	mknod -m 666 $TARGET/dev/urandom	c 1 9
+-	mknod -m 666 $TARGET/dev/tty	c 5 0
+-	mkdir $TARGET/dev/pts/ $TARGET/dev/shm/
++	# src/core/cgroup.c in the systemd source tree. The devices are first
++	# created in a temporary /dev and written into place using tar like
++	# the old devices tarball.
++	mkdir $TARGET/debootstrap/dev
++	mknod -m 666 $TARGET/debootstrap/dev/null	c 1 3
++	mknod -m 666 $TARGET/debootstrap/dev/zero	c 1 5
++	mknod -m 666 $TARGET/debootstrap/dev/full	c 1 7
++	mknod -m 666 $TARGET/debootstrap/dev/random	c 1 8
++	mknod -m 666 $TARGET/debootstrap/dev/urandom	c 1 9
++	mknod -m 666 $TARGET/debootstrap/dev/tty	c 5 0
++	mkdir $TARGET/debootstrap/dev/pts/ $TARGET/debootstrap/dev/shm/
+ 	# Inside a container, we might not be allowed to create /dev/ptmx.
+ 	# If not, do the next best thing.
+-	if ! mknod -m 666 $TARGET/dev/ptmx c 5 2; then
++	if ! mknod -m 666 $TARGET/debootstrap/dev/ptmx c 5 2; then
+ 		warning MKNOD "Could not create /dev/ptmx, falling back to symlink. This chroot will require /dev/pts mounted with ptmxmode=666"
+-		ln -s pts/ptmx $TARGET/dev/ptmx
++		ln -s pts/ptmx $TARGET/debootstrap/dev/ptmx
+ 	fi
+-	ln -s /proc/self/fd   $TARGET/dev/fd
+-	ln -s /proc/self/fd/0 $TARGET/dev/stdin
+-	ln -s /proc/self/fd/1 $TARGET/dev/stdout
+-	ln -s /proc/self/fd/2 $TARGET/dev/stderr
++	ln -s /proc/self/fd   $TARGET/debootstrap/dev/fd
++	ln -s /proc/self/fd/0 $TARGET/debootstrap/dev/stdin
++	ln -s /proc/self/fd/1 $TARGET/debootstrap/dev/stdout
++	ln -s /proc/self/fd/2 $TARGET/debootstrap/dev/stderr
++
++	# Tar the temporary /dev into place to merge with an existing /dev
++	(cd $TARGET/debootstrap; tar -cf - dev) | (cd $TARGET; tar -xf -)
+ }
+ 
+ setup_devices_fakechroot () {
+-- 
+2.11.0

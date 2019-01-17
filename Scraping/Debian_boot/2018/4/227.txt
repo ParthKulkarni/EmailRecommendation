@@ -1,0 +1,44 @@
+To : Ben Hutchings <ben@decadent.org.uk>, 896071@bugs.debian.org
+Subject : Bug#896071: debootstrap fails to retrive Release file over https
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 20 Apr 2018 21:16:53 +0200
+Message-id : 20180420191653.3nmserajfvmiocuk@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 896071@bugs.debian.org
+In-reply-to : <[🔎] cece07ae4b077c79195c6b74e8071efa0276182b.camel@decadent.org.uk>
+References : <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <[🔎] cece07ae4b077c79195c6b74e8071efa0276182b.camel@decadent.org.uk> <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org>
+
+
+Hi,
+Ben Hutchings <ben@decadent.org.uk> (2018-04-19):
+> On Thu, 2018-04-19 at 09:56 +0200, Alf Gaida wrote:
+> > Package: debootstrap
+> > Version: 1.0.97
+> > Severity: grave
+> > 
+> > Dear Maintainer,
+> > 
+> > there was a change in behaviour with the latest upload:
+> > 
+> > 1 agaida@newdev ~ % sudo debootstrap --arch=amd64  --no-check-gpg --include=apt-utils,bzip2,gnupg2,dirmngr,xz-utils,perl --variant=minbase sid ./fuck https://debian.siduction.org        :(
+> > I: Target architecture can be executed
+> > I: Retrieving InRelease
+> > I: Retrieving Release
+> > E: Failed getting release file https://debian.siduction.org/dists/sid/Release
+> [...]
+> 
+> I had a similar failure, which was actually the fault of wget (bug
+> #895872).  Check whether the kernel log shows a segfault in wget.
+This is the end of an strace of debootstrap, focused on the wget part,
+in a sid chroot on a stretch host:
+| 28357 write(6, "# HSTS 1.0 Known Hosts database for GNU Wget.\n# Edit at your own risk.\n# <hostname>\t<port>\t<incl. subdomains>\t<created>\t<max-age>\ndebian.siduction.org\t0\t1\t1524251390\t31072000\n", 175) = 175
+| 28357 close(6)                          = 0
+| 28357 close(3)                          = 0
+| 28357 exit_group(1)                     = ?
+| 28357 +++ exited with 1 +++
+| 28289 <... wait4 resumed> [{WIFEXITED(s) && WEXITSTATUS(s) == 1}], 0, NULL) = 28357
+No segfaults in kernel logs though.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

@@ -1,0 +1,478 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#885069: stretch-pu: package open-iscsi/2.0.874-3~deb9u1
+From : Christian Seiler <christian@iwakd.de>
+Date : Sat, 23 Dec 2017 13:40:43 +0100
+Message-id : 51523ab8-ef70-3199-95f8-cf6f64637b62@iwakd.de
+Reply-to : Christian Seiler <christian@iwakd.de>, 885069@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+Tags: stretch
+User: release.debian.org@packages.debian.org
+Usertags: pu
+X-Debbugs-Cc: debian-boot@lists.debian.org, kibi@debian.org
+Dear release team,
+I'd like to ask for a stable update for open-iscsi in Stretch to fix
+#885021, which was marked no-DSA by the security team. I've CC'd
+debian-boot@ and KiBi as the package builds udebs (though the change
+itself does not affect udebs, as 'iscsiuio' is not included in d-i).
+I've fixed the bug in unstable in 2.0.874-5.
+debdiff against stretch is attached.
+I've built and tested the package in Stretch itself. Note, however,
+that the affected program, iscsiuio, is there to enable support for
+special hardware that neither I nor Ritesh have access to. The patches
+themselves come directly from upstream, and a review appears to
+indicate they are sane, but - in the interest of full transparency - I
+cannot guarantee 100% that they don't introduce a regression. If you'd
+like to wait and see if sid/testing users report regressions before
+accepting this p-u I'd understand, though I would like to note that
+open-iscsi is one of those packages where next to no users actually use
+it outside of stable itself, so most reports we get are actually from
+users of stable, and not testing/sid.
+The 'jessie' package doesn't build iscsiuio though it contains the
+source for it, and even if people built iscsiuio from Jessie's source
+directly, that was broken in a lot of other ways (which is why it was
+disabled again before the release of Jessie and only properly enabled
+in Stretch), so I don't think it makes sense to update Jessie.
+Regards,
+Christian
+-- System Information:
+Debian Release: 9.3
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable-debug'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-4-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+diff -Nru open-iscsi-2.0.874/debian/changelog open-iscsi-2.0.874/debian/changelog
+--- open-iscsi-2.0.874/debian/changelog	2017-06-18 23:06:16.000000000 +0200
++++ open-iscsi-2.0.874/debian/changelog	2017-12-23 13:09:13.000000000 +0100
+@@ -1,3 +1,10 @@
++open-iscsi (2.0.874-3~deb9u2) stretch; urgency=high
++
++  * [4b930f8] Fix multiple security issues in iscsiuio. (CVE-2017-17840)
++    (Closes: #885021)
++
++ -- Christian Seiler <christian@iwakd.de>  Sat, 23 Dec 2017 13:09:13 +0100
++
+ open-iscsi (2.0.874-3~deb9u1) stretch; urgency=medium
+ 
+   * [8de3092] udeb: don't update initramfs when iSCSI is not used.
+diff -Nru open-iscsi-2.0.874/debian/patches/security/Check-for-root-peer-user-for-iscsiuio-IPC.patch open-iscsi-2.0.874/debian/patches/security/Check-for-root-peer-user-for-iscsiuio-IPC.patch
+--- open-iscsi-2.0.874/debian/patches/security/Check-for-root-peer-user-for-iscsiuio-IPC.patch	1970-01-01 01:00:00.000000000 +0100
++++ open-iscsi-2.0.874/debian/patches/security/Check-for-root-peer-user-for-iscsiuio-IPC.patch	2017-12-23 13:09:13.000000000 +0100
+@@ -0,0 +1,122 @@
++From e313bd648a4c8a9526421e270eb597a5de1e0c7f Mon Sep 17 00:00:00 2001
++From: Lee Duncan <lduncan@suse.com>
++Date: Fri, 15 Dec 2017 10:36:11 -0800
++Subject: [PATCH 1/8] Check for root peer user for iscsiuio IPC
++
++This fixes a possible vulnerability where a non-root
++process could connect with iscsiuio. Fouund by Qualsys.
++---
++ iscsiuio/src/unix/Makefile.am  |  3 ++-
++ iscsiuio/src/unix/iscsid_ipc.c | 47 ++++++++++++++++++++++++++++++++++++++++++
++ 2 files changed, 49 insertions(+), 1 deletion(-)
++
++--- a/iscsiuio/src/unix/Makefile.am
+++++ b/iscsiuio/src/unix/Makefile.am
++@@ -20,7 +20,8 @@ iscsiuio_SOURCES =	build_date.c		\
++ 			nic_utils.c		\
++ 			packet.c		\
++ 			iscsid_ipc.c		\
++-			ping.c
+++			ping.c			\
+++			${top_srcdir}/../utils/sysdeps/sysdeps.c
++ 
++ iscsiuio_CFLAGS = 	$(AM_CFLAGS)		\
++ 			$(LIBNL_CFLAGS)		\
++--- a/iscsiuio/src/unix/iscsid_ipc.c
+++++ b/iscsiuio/src/unix/iscsid_ipc.c
++@@ -37,6 +37,8 @@
++  *
++  */
++ 
+++#define _GNU_SOURCE
+++
++ #include <errno.h>
++ #include <pthread.h>
++ #include <signal.h>
++@@ -47,6 +49,8 @@
++ #include <sys/socket.h>
++ #include <sys/time.h>
++ #include <sys/un.h>
+++#include <sys/types.h>
+++#include <pwd.h>
++ 
++ #define PFX "iscsi_ipc "
++ 
++@@ -61,6 +65,7 @@
++ #include "iscsid_ipc.h"
++ #include "uip.h"
++ #include "uip_mgmt_ipc.h"
+++#include "sysdeps.h"
++ 
++ #include "logger.h"
++ #include "uip.h"
++@@ -102,6 +107,7 @@ struct iface_rec_decode {
++ 	uint16_t		mtu;
++ };
++ 
+++#define PEERUSER_MAX	64
++ 
++ /******************************************************************************
++  *  iscsid_ipc Constants
++@@ -1029,6 +1035,40 @@ static void iscsid_loop_close(void *arg)
++ 	LOG_INFO(PFX "iSCSI daemon socket closed");
++ }
++ 
+++/*
+++ * check that the peer user is privilidged
+++ *
+++ * return 1 if peer is ok else 0
+++ *
+++ * XXX: this function is copied from iscsid_ipc.c and should be
+++ * moved into a common library
+++ */
+++static int
+++mgmt_peeruser(int sock, char *user)
+++{
+++	struct ucred peercred;
+++	socklen_t so_len = sizeof(peercred);
+++	struct passwd *pass;
+++
+++	errno = 0;
+++	if (getsockopt(sock, SOL_SOCKET, SO_PEERCRED, &peercred,
+++		&so_len) != 0 || so_len != sizeof(peercred)) {
+++		/* We didn't get a valid credentials struct. */
+++		LOG_ERR(PFX "peeruser_unux: error receiving credentials: %m");
+++		return 0;
+++	}
+++
+++	pass = getpwuid(peercred.uid);
+++	if (pass == NULL) {
+++		LOG_ERR(PFX "peeruser_unix: unknown local user with uid %d",
+++				(int) peercred.uid);
+++		return 0;
+++	}
+++
+++	strlcpy(user, pass->pw_name, PEERUSER_MAX);
+++	return 1;
+++}
+++
++ /**
++  *  iscsid_loop() - This is the function which will process the broadcast
++  *                  messages from iscsid
++@@ -1038,6 +1078,7 @@ static void *iscsid_loop(void *arg)
++ {
++ 	int rc;
++ 	sigset_t set;
+++	char user[PEERUSER_MAX];
++ 
++ 	pthread_cleanup_push(iscsid_loop_close, arg);
++ 
++@@ -1077,6 +1118,12 @@ static void *iscsid_loop(void *arg)
++ 			continue;
++ 		}
++ 
+++		if (!mgmt_peeruser(iscsid_opts.fd, user) || strncmp(user, "root", PEERUSER_MAX)) {
+++			close(s2);
+++			LOG_ERR(PFX "Access error: non-administrative connection rejected");
+++			break;
+++		}
+++
++ 		process_iscsid_broadcast(s2);
++ 		close(s2);
++ 	}
+diff -Nru open-iscsi-2.0.874/debian/patches/security/Check-iscsiuio-ping-data-length-for-validity.patch open-iscsi-2.0.874/debian/patches/security/Check-iscsiuio-ping-data-length-for-validity.patch
+--- open-iscsi-2.0.874/debian/patches/security/Check-iscsiuio-ping-data-length-for-validity.patch	1970-01-01 01:00:00.000000000 +0100
++++ open-iscsi-2.0.874/debian/patches/security/Check-iscsiuio-ping-data-length-for-validity.patch	2017-12-23 13:09:13.000000000 +0100
+@@ -0,0 +1,49 @@
++From 59ede2cf4eee8729a4221000a5d1ecdd312a31ac Mon Sep 17 00:00:00 2001
++From: Lee Duncan <lduncan@suse.com>
++Date: Fri, 15 Dec 2017 11:21:15 -0800
++Subject: [PATCH 7/8] Check iscsiuio ping data length for validity
++
++We do not trust that the received ping packet data length
++is correct, so sanity check it. Found by Qualsys.
++---
++ iscsiuio/src/unix/iscsid_ipc.c | 5 +++++
++ iscsiuio/src/unix/packet.c     | 2 +-
++ iscsiuio/src/unix/packet.h     | 2 ++
++ 3 files changed, 8 insertions(+), 1 deletion(-)
++
++--- a/iscsiuio/src/unix/iscsid_ipc.c
+++++ b/iscsiuio/src/unix/iscsid_ipc.c
++@@ -333,6 +333,11 @@ static void *perform_ping(void *arg)
++ 
++ 	data = (iscsid_uip_broadcast_t *)png_c->data;
++ 	datalen = data->u.ping_rec.datalen;
+++	if ((datalen > STD_MTU_SIZE) || (datalen < 0)) {
+++		LOG_ERR(PFX "Ping datalen invalid: %d", datalen);
+++		rc = -EINVAL;
+++		goto ping_done;
+++	}
++ 
++ 	memset(dst_addr, 0, sizeof(uip_ip6addr_t));
++ 	if (nic_iface->protocol == AF_INET) {
++--- a/iscsiuio/src/unix/packet.c
+++++ b/iscsiuio/src/unix/packet.c
++@@ -112,7 +112,7 @@ int alloc_free_queue(nic_t *nic, size_t
++ 	for (i = 0; i < num_of_packets; i++) {
++ 		packet_t *pkt;
++ 
++-		pkt = alloc_packet(1500, 1500);
+++		pkt = alloc_packet(STD_MTU_SIZE, STD_MTU_SIZE);
++ 		if (pkt == NULL) {
++ 			goto done;
++ 		}
++--- a/iscsiuio/src/unix/packet.h
+++++ b/iscsiuio/src/unix/packet.h
++@@ -43,6 +43,8 @@
++ 
++ #include "nic.h"
++ 
+++#define	STD_MTU_SIZE	1500
+++
++ struct nic;
++ struct nic_interface;
++ 
+diff -Nru open-iscsi-2.0.874/debian/patches/security/Do-not-double-close-IPC-file-stream-to-iscsid.patch open-iscsi-2.0.874/debian/patches/security/Do-not-double-close-IPC-file-stream-to-iscsid.patch
+--- open-iscsi-2.0.874/debian/patches/security/Do-not-double-close-IPC-file-stream-to-iscsid.patch	1970-01-01 01:00:00.000000000 +0100
++++ open-iscsi-2.0.874/debian/patches/security/Do-not-double-close-IPC-file-stream-to-iscsid.patch	2017-12-23 13:09:13.000000000 +0100
+@@ -0,0 +1,51 @@
++From 5504053cc08df38d8d85032fa1691e363dfcfb92 Mon Sep 17 00:00:00 2001
++From: Lee Duncan <lduncan@suse.com>
++Date: Fri, 15 Dec 2017 11:13:29 -0800
++Subject: [PATCH 4/8] Do not double-close IPC file stream to iscsid
++
++A double-close of a file descriptor and its associated FILE stream
++can be an issue in multi-threaded cases. Found by Qualsys.
++---
++ iscsiuio/src/unix/iscsid_ipc.c | 9 +++++++--
++ 1 file changed, 7 insertions(+), 2 deletions(-)
++
++--- a/iscsiuio/src/unix/iscsid_ipc.c
+++++ b/iscsiuio/src/unix/iscsid_ipc.c
++@@ -913,6 +913,9 @@ early_exit:
++ /**
++  *  process_iscsid_broadcast() - This function is used to process the
++  *                               broadcast messages from iscsid
+++ *
+++ *                               s2 is an open file descriptor, which
+++ *                               must not be left open upon return
++  */
++ int process_iscsid_broadcast(int s2)
++ {
++@@ -928,6 +931,7 @@ int process_iscsid_broadcast(int s2)
++ 	if (fd == NULL) {
++ 		LOG_ERR(PFX "Couldn't open file descriptor: %d(%s)",
++ 			errno, strerror(errno));
+++		close(s2);
++ 		return -EIO;
++ 	}
++ 
++@@ -1030,7 +1034,8 @@ int process_iscsid_broadcast(int s2)
++ 	}
++ 
++ error:
++-	free(data);
+++	if (data)
+++		free(data);
++ 	fclose(fd);
++ 
++ 	return rc;
++@@ -1132,8 +1137,8 @@ static void *iscsid_loop(void *arg)
++ 			break;
++ 		}
++ 
+++		/* this closes the file descriptor s2 */
++ 		process_iscsid_broadcast(s2);
++-		close(s2);
++ 	}
++ 
++ 	pthread_cleanup_pop(0);
+diff -Nru open-iscsi-2.0.874/debian/patches/security/Ensure-all-fields-in-iscsiuio-IPC-response-are-set.patch open-iscsi-2.0.874/debian/patches/security/Ensure-all-fields-in-iscsiuio-IPC-response-are-set.patch
+--- open-iscsi-2.0.874/debian/patches/security/Ensure-all-fields-in-iscsiuio-IPC-response-are-set.patch	1970-01-01 01:00:00.000000000 +0100
++++ open-iscsi-2.0.874/debian/patches/security/Ensure-all-fields-in-iscsiuio-IPC-response-are-set.patch	2017-12-23 13:09:13.000000000 +0100
+@@ -0,0 +1,23 @@
++From be58eed849f5457bb49b79e94aa6a26971ba6deb Mon Sep 17 00:00:00 2001
++From: Lee Duncan <lduncan@suse.com>
++Date: Fri, 15 Dec 2017 11:11:17 -0800
++Subject: [PATCH 3/8] Ensure all fields in iscsiuio IPC response are set
++
++Make sure all fields in the response strcuture are set,
++or info from the stack can be leaked to our caller.
++Found by Qualsys.
++---
++ iscsiuio/src/unix/iscsid_ipc.c | 2 ++
++ 1 file changed, 2 insertions(+)
++
++--- a/iscsiuio/src/unix/iscsid_ipc.c
+++++ b/iscsiuio/src/unix/iscsid_ipc.c
++@@ -960,6 +960,8 @@ int process_iscsid_broadcast(int s2)
++ 	LOG_DEBUG(PFX "recv iscsid request: cmd: %d, payload_len: %d",
++ 		  cmd, payload_len);
++ 
+++	memset(&rsp, 0, sizeof(rsp));
+++
++ 	switch (cmd) {
++ 	case ISCSID_UIP_IPC_GET_IFACE:
++ 		size = fread(&data->u.iface_rec, payload_len, 1, fd);
+diff -Nru open-iscsi-2.0.874/debian/patches/security/Ensure-strings-from-peer-are-copied-correctly.patch open-iscsi-2.0.874/debian/patches/security/Ensure-strings-from-peer-are-copied-correctly.patch
+--- open-iscsi-2.0.874/debian/patches/security/Ensure-strings-from-peer-are-copied-correctly.patch	1970-01-01 01:00:00.000000000 +0100
++++ open-iscsi-2.0.874/debian/patches/security/Ensure-strings-from-peer-are-copied-correctly.patch	2017-12-23 13:09:13.000000000 +0100
+@@ -0,0 +1,67 @@
++From 85f647c4300a888bb6cbc27f33138549cab617e3 Mon Sep 17 00:00:00 2001
++From: Lee Duncan <lduncan@suse.com>
++Date: Fri, 15 Dec 2017 11:15:26 -0800
++Subject: [PATCH 5/8] Ensure strings from peer are copied correctly.
++
++The method of using strlen() and strcpy()/strncpy() has
++a couple of holes. Do not try to measure the length of
++strings supplied from peer, and ensure copied strings are
++NULL-terminated. Use the new strlcpy() instead.
++Found by Qualsys.
++---
++ iscsiuio/src/unix/iscsid_ipc.c | 24 ++++++------------------
++ 1 file changed, 6 insertions(+), 18 deletions(-)
++
++--- a/iscsiuio/src/unix/iscsid_ipc.c
+++++ b/iscsiuio/src/unix/iscsid_ipc.c
++@@ -152,10 +152,7 @@ static int decode_cidr(char *in_ipaddr_s
++ 	struct in_addr ia;
++ 	struct in6_addr ia6;
++ 
++-	if (strlen(in_ipaddr_str) > NI_MAXHOST)
++-		strncpy(ipaddr_str, in_ipaddr_str, NI_MAXHOST);
++-	else
++-		strcpy(ipaddr_str, in_ipaddr_str);
+++	strlcpy(ipaddr_str, in_ipaddr_str, NI_MAXHOST);
++ 
++ 	/* Find the CIDR if any */
++ 	tmp = strchr(ipaddr_str, '/');
++@@ -287,22 +284,16 @@ static int decode_iface(struct iface_rec
++ 
++ 			/* For LL on, ignore the IPv6 addr in the iface */
++ 			if (ird->linklocal_autocfg == IPV6_LL_AUTOCFG_OFF) {
++-				if (strlen(rec->ipv6_linklocal) > NI_MAXHOST)
++-					strncpy(ipaddr_str, rec->ipv6_linklocal,
++-						NI_MAXHOST);
++-				else
++-					strcpy(ipaddr_str, rec->ipv6_linklocal);
+++				strlcpy(ipaddr_str, rec->ipv6_linklocal,
+++					NI_MAXHOST);
++ 				inet_pton(AF_INET6, ipaddr_str,
++ 					  &ird->ipv6_linklocal);
++ 			}
++ 
++ 			/* For RTR on, ignore the IPv6 addr in the iface */
++ 			if (ird->router_autocfg == IPV6_RTR_AUTOCFG_OFF) {
++-				if (strlen(rec->ipv6_router) > NI_MAXHOST)
++-					strncpy(ipaddr_str, rec->ipv6_router,
++-						NI_MAXHOST);
++-				else
++-					strcpy(ipaddr_str, rec->ipv6_router);
+++				strlcpy(ipaddr_str, rec->ipv6_router,
+++					NI_MAXHOST);
++ 				inet_pton(AF_INET6, ipaddr_str,
++ 					  &ird->ipv6_router);
++ 			}
++@@ -316,10 +307,7 @@ static int decode_iface(struct iface_rec
++ 					calculate_default_netmask(
++ 							ird->ipv4_addr.s_addr);
++ 
++-			if (strlen(rec->gateway) > NI_MAXHOST)
++-				strncpy(ipaddr_str, rec->gateway, NI_MAXHOST);
++-			else
++-				strcpy(ipaddr_str, rec->gateway);
+++			strlcpy(ipaddr_str, rec->gateway, NI_MAXHOST);
++ 			inet_pton(AF_INET, ipaddr_str, &ird->ipv4_gateway);
++ 		}
++ 	} else {
+diff -Nru open-iscsi-2.0.874/debian/patches/security/iscsiuio-should-ignore-bogus-iscsid-broadcast-packet.patch open-iscsi-2.0.874/debian/patches/security/iscsiuio-should-ignore-bogus-iscsid-broadcast-packet.patch
+--- open-iscsi-2.0.874/debian/patches/security/iscsiuio-should-ignore-bogus-iscsid-broadcast-packet.patch	1970-01-01 01:00:00.000000000 +0100
++++ open-iscsi-2.0.874/debian/patches/security/iscsiuio-should-ignore-bogus-iscsid-broadcast-packet.patch	2017-12-23 13:09:13.000000000 +0100
+@@ -0,0 +1,28 @@
++From b9c33683bdc0aed28ffe31c3f3d50bf5cdf519ea Mon Sep 17 00:00:00 2001
++From: Lee Duncan <lduncan@suse.com>
++Date: Fri, 15 Dec 2017 10:37:56 -0800
++Subject: [PATCH 2/8] iscsiuio should ignore bogus iscsid broadcast packets
++
++When iscsiuio is receiving broadcast packets from iscsid,
++if the 'payload_len', carried in the packet, is too
++large then ignore the packet and print a message.
++Found by Qualsys.
++---
++ iscsiuio/src/unix/iscsid_ipc.c | 6 ++++++
++ 1 file changed, 6 insertions(+)
++
++--- a/iscsiuio/src/unix/iscsid_ipc.c
+++++ b/iscsiuio/src/unix/iscsid_ipc.c
++@@ -950,6 +950,12 @@ int process_iscsid_broadcast(int s2)
++ 
++ 	cmd = data->header.command;
++ 	payload_len = data->header.payload_len;
+++	if (payload_len > sizeof(data->u)) {
+++		LOG_ERR(PFX "Data payload length too large (%d). Corrupt payload?",
+++				payload_len);
+++		rc = -EINVAL;
+++		goto error;
+++	}
++ 
++ 	LOG_DEBUG(PFX "recv iscsid request: cmd: %d, payload_len: %d",
++ 		  cmd, payload_len);
+diff -Nru open-iscsi-2.0.874/debian/patches/security/Skip-useless-strcopy-and-validate-CIDR-length.patch open-iscsi-2.0.874/debian/patches/security/Skip-useless-strcopy-and-validate-CIDR-length.patch
+--- open-iscsi-2.0.874/debian/patches/security/Skip-useless-strcopy-and-validate-CIDR-length.patch	1970-01-01 01:00:00.000000000 +0100
++++ open-iscsi-2.0.874/debian/patches/security/Skip-useless-strcopy-and-validate-CIDR-length.patch	2017-12-23 13:09:13.000000000 +0100
+@@ -0,0 +1,33 @@
++From a7a96131bd2ea342f6def0e46be514baf8037ae8 Mon Sep 17 00:00:00 2001
++From: Lee Duncan <lduncan@suse.com>
++Date: Fri, 15 Dec 2017 11:18:35 -0800
++Subject: [PATCH 6/8] Skip useless strcopy, and validate CIDR length
++
++Remove a useless strcpy() that copies a string onto itself,
++and ensure the CIDR length "keepbits" is not negative.
++Found by Qualsys.
++---
++ iscsiuio/src/unix/iscsid_ipc.c | 5 ++---
++ 1 file changed, 2 insertions(+), 3 deletions(-)
++
++--- a/iscsiuio/src/unix/iscsid_ipc.c
+++++ b/iscsiuio/src/unix/iscsid_ipc.c
++@@ -148,7 +148,7 @@ static int decode_cidr(char *in_ipaddr_s
++ 	char *tmp, *tok;
++ 	char ipaddr_str[NI_MAXHOST];
++ 	char str[INET6_ADDRSTRLEN];
++-	int keepbits = 0;
+++	unsigned long keepbits = 0;
++ 	struct in_addr ia;
++ 	struct in6_addr ia6;
++ 
++@@ -161,8 +161,7 @@ static int decode_cidr(char *in_ipaddr_s
++ 		tmp = ipaddr_str;
++ 		tok = strsep(&tmp, "/");
++ 		LOG_INFO(PFX "in cidr: bitmask '%s' ip '%s'", tmp, tok);
++-		keepbits = atoi(tmp);
++-		strcpy(ipaddr_str, tok);
+++		keepbits = strtoull(tmp, NULL, 10);
++ 	}
++ 
++ 	/*  Determine if the IP address passed from the iface file is
+diff -Nru open-iscsi-2.0.874/debian/patches/series open-iscsi-2.0.874/debian/patches/series
+--- open-iscsi-2.0.874/debian/patches/series	2017-06-18 23:06:16.000000000 +0200
++++ open-iscsi-2.0.874/debian/patches/series	2017-12-23 13:09:13.000000000 +0100
+@@ -5,3 +5,10 @@
+ bugfixes/need_iscsiuio_for_hardware_offload.patch
+ bugfixes/move_offload_discovery_to_fw_get_targets.patch
+ bugfixes/fix_iscsiuio_long_options.patch
++security/Check-for-root-peer-user-for-iscsiuio-IPC.patch
++security/iscsiuio-should-ignore-bogus-iscsid-broadcast-packet.patch
++security/Ensure-all-fields-in-iscsiuio-IPC-response-are-set.patch
++security/Do-not-double-close-IPC-file-stream-to-iscsid.patch
++security/Ensure-strings-from-peer-are-copied-correctly.patch
++security/Skip-useless-strcopy-and-validate-CIDR-length.patch
++security/Check-iscsiuio-ping-data-length-for-validity.patch

@@ -1,0 +1,83 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#864973: stretch-pu: package win32-loader/0.8.3+deb9u1
+From : Didier 'OdyX' Raboud <odyx@debian.org>
+Date : Sun, 18 Jun 2017 10:27:15 +0200
+Message-id : 149777443526.25731.4708971028510651273.reportbug@gyllingar
+Reply-to : Didier 'OdyX' Raboud <odyx@debian.org>, 864973@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+Tags: stretch
+User: release.debian.org@packages.debian.org
+Usertags: pu
+As discussed on debian-boot starting from
+https://lists.debian.org/4374235.3xK2uo9yXB@odyx.org , win32-loader
+(in stretch) still doesn't use the deb.debian.org agreed-upon mirror.
+Also, as it's standalone version embeds multiple other packages (as
+listed on
+https://deb.debian.org/debian/tools/win32-loader/stable/win32-loader.txt
+), the 0.8.3 version as released with Stretch still contains jessie's
+debian-archive-keyring.
+Specifically, we held this upload back then because we were waiting on
+gnupg's 2.1.18-8 (which pu request is tracked in #863734)
+It would be good to have an updated win32-loader in Stretch; the
+possible debdiff would be attached.
+Cheers,
+OdyX
+diff -Nru win32-loader-0.8.3/branch.nsi win32-loader-0.8.3+deb9u1/branch.nsi
+--- win32-loader-0.8.3/branch.nsi	2017-01-01 11:40:06.000000000 +0100
++++ win32-loader-0.8.3+deb9u1/branch.nsi	2017-06-18 10:21:47.000000000 +0200
+@@ -63,7 +63,7 @@
+       StrCpy $base_path_images  "netboot/debian-installer/hurd-$arch"
+     ${EndIf}
+   ${Else}
+-    StrCpy $base_url         "http://httpredir.debian.org/debian/dists/stable/";
++    StrCpy $base_url         "http://deb.debian.org/debian/dists/stable/";
+     ${If} $kernel == "linux"
+       ; Only Debian GNU/Linux will have a stable branch for the stretch cycle
+       StrCpy $base_path_hashes    "main/installer-$arch/current/images/"
+diff -Nru win32-loader-0.8.3/debian/changelog win32-loader-0.8.3+deb9u1/debian/changelog
+--- win32-loader-0.8.3/debian/changelog	2017-04-19 18:03:11.000000000 +0200
++++ win32-loader-0.8.3+deb9u1/debian/changelog	2017-06-18 10:25:41.000000000 +0200
+@@ -1,3 +1,10 @@
++win32-loader (0.8.3+deb9u1) stretch; urgency=medium
++
++  * Drop bz2 compression for source
++  * Replace all mirror urls with deb.debian.org
++
++ -- Didier Raboud <odyx@debian.org>  Sun, 18 Jun 2017 10:25:41 +0200
++
+ win32-loader (0.8.3) unstable; urgency=low
+ 
+   * The « Pippita » release
+diff -Nru win32-loader-0.8.3/debian/rules win32-loader-0.8.3+deb9u1/debian/rules
+--- win32-loader-0.8.3/debian/rules	2017-04-19 18:03:11.000000000 +0200
++++ win32-loader-0.8.3+deb9u1/debian/rules	2017-06-18 10:21:47.000000000 +0200
+@@ -13,7 +13,7 @@
+ PACKAGES_LIST := $(shell set -e; \
+ 	for p in ${B_D_PACKAGES}; \
+ 	do \
+-		dpkg-query --showformat='$${source:Package;-25} $${source:Version;-25} http://ftp.debian.org/debian/pool/main/$${source:Package;1}/$${source:Package}\\n' --show $$p; \
++		dpkg-query --showformat='$${source:Package;-25} $${source:Version;-25} http://deb.debian.org/debian/pool/main/$${source:Package;1}/$${source:Package}\\n' --show $$p; \
+ 	done)
+ 
+ BUILT_USING_LIST := $(shell set -e; \
+diff -Nru win32-loader-0.8.3/debian/source/options win32-loader-0.8.3+deb9u1/debian/source/options
+--- win32-loader-0.8.3/debian/source/options	2014-08-28 20:34:04.000000000 +0200
++++ win32-loader-0.8.3+deb9u1/debian/source/options	1970-01-01 01:00:00.000000000 +0100
+@@ -1,2 +0,0 @@
+-# Compress source using bz2
+-compression = bzip2
+diff -Nru win32-loader-0.8.3/Makefile win32-loader-0.8.3+deb9u1/Makefile
+--- win32-loader-0.8.3/Makefile	2017-03-20 20:56:38.000000000 +0100
++++ win32-loader-0.8.3+deb9u1/Makefile	2017-06-18 10:21:47.000000000 +0200
+@@ -181,7 +181,7 @@
+   $(NULL)
+ 	genisoimage -r -J -o $@ netboot/daily
+ 
+-BASE_URL=http://ftp.nl.debian.org/debian/dists/stable/main
++BASE_URL=http://deb.debian.org/debian/dists/stable/main
+ netboot/download-stable-stamp:
+ 	mkdir -p netboot/stable/install.{386,amd}/gtk
+ 	wget $(BASE_URL)/installer-i386/current/images/netboot/debian-installer/i386/linux \

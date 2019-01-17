@@ -1,0 +1,130 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: Bug#893988: wide-dhcpv6-client-udeb: not installable: depends on non-udeb libfl2
+From : Roger Shimizu <rogershimizu@gmail.com>
+Date : Sun, 25 Mar 2018 23:15:38 +0900
+Message-id : CAEQ9gEnsKJri3WLf965b73ppbR2LavMeZjwbAWkzttKxUPgjhA@mail.gmail.com
+In-reply-to : <[🔎] 20180325081932.3vpha6oefsieccsf@mraw.org>
+References : <[🔎] 152193814262.30512.10854065852408427546.reportbug@armor.home> <[🔎] CAEQ9gEnD51LVguckLC0t7xOAJt5zsPOM-Xpds1Jji=pT5aOe8w@mail.gmail.com> <[🔎] 20180325081932.3vpha6oefsieccsf@mraw.org>
+
+
+Dear KiBi,
+On Sun, Mar 25, 2018 at 5:19 PM, Cyril Brulebois <kibi@debian.org> wrote:
+> Control: tag -1 patch
+>
+> Hi Roger,
+>
+> Roger Shimizu <rogershimizu@gmail.com> (2018-03-25):
+>> Do you have any suggestion, except adding udeb support to package flex?
+>
+> It looks acceptable to me to use the static library in the udeb, so I've
+> tried building it against libfl.a, and that seems to do the job since
+> the libfl2 dependency goes away. I'm not sure it's reasonable to do that
+> for both the deb and the udeb, though; so I've looked into making it
+> conditional, and only building the udeb against the static library.
+Thanks for your suggestion and patches!
+I agree with you that static linking for udeb only.
+> Unfortunately, it looks like the build system doesn't support out of
+> tree builds, so I've had to copy all files under build-{deb,udeb},
+> instead of just running ../configure, make, make install from there.
+> I've picked rsync to do this, but feel free to use anything else.
+Yes, the build system is quite old, it's a software wrote 10 years ago.
+Really thanks for your patches that overcome the issue.
+I just don't like the name "build-deb", which is too close to "build-udeb".
+So I change it to "build", with some other cleanups.
+My patch is enclosed, and it's based on yours.
+> I've also chosen to clean things up using an override_dh_auto_clean
+> target, so that most modifications are seen at once in debian/rules, but
+> you may want to use debian/clean instead.
+Just a nitpicking.
+The build cannot be triggered again by "dpkg-buildpackage -uc -us"
+after one build.
+It was OK in previous version.
+However, this is small issue, so I already uploaded.
+Cheers,
+-- 
+Roger Shimizu, GMT +9 Tokyo
+PGP/GPG: 4096R/6C6ACD6417B3ACB1
+From 42d2b0dd8694a92e5176c993b56f8ec3c54376ed Mon Sep 17 00:00:00 2001
+From: Roger Shimizu <rogershimizu@gmail.com>
+Date: Sun, 25 Mar 2018 22:40:50 +0900
+Subject: [PATCH] d/rules: Cleanup
+Now build two versions under the directories below:
+ - build: nornal version. The same as previous one.
+ - build-udeb: udeb version, which staticly linked with libfl2 (flex
+   library)
+---
+ debian/changelog |  3 ++-
+ debian/rules     | 36 ++++++++++++++++--------------------
+ 2 files changed, 18 insertions(+), 21 deletions(-)
+diff --git a/debian/changelog b/debian/changelog
+index 200cc24..fb4b5ed 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -2,7 +2,8 @@ wide-dhcpv6 (20080615-21) UNRELEASED; urgency=medium
+ 
+   * debian/rules:
+     - Introduce separate deb/udeb builds, copying source files under
+-      build-{deb,udeb} since support for out-of-tree build seems broken.
++      {build,build-udeb} since support for out-of-tree build seems
++      broken.
+     - Don't try to build only the dhcp6c binary in the udeb tree, as the
+       install target tries to install everything anyway.
+     - Patch Makefile.in to build the dhcp6c binary against static flex
+diff --git a/debian/rules b/debian/rules
+index 1f021df..724bb1e 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -9,28 +9,26 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+ %:
+ 	dh $@
+ 
+-build-deb/.stamp:
+-	rsync --exclude debian/ --exclude .pc/ -a * build-deb && touch $@
+-
+-build-udeb/.stamp:
+-	rsync --exclude debian/ --exclude .pc/ -a * build-udeb && touch $@
+-	# Build against the static flex library to avoid picking an extra dependency on libfl2 (#893988):
+-	sed "s,^CLIENTLIBS=.*,CLIENTLIBS=$$(find /usr/lib/$$(dpkg-architecture -qDEB_BUILD_MULTIARCH) -name libfl.a)," -i build-udeb/Makefile.in
+-
+-override_dh_auto_configure: build-deb/.stamp build-udeb/.stamp
+-	cd build-deb && \
+-	./configure --prefix=/usr --mandir=\$${prefix}/share/man \
+-		--with-localdbdir=/var/lib/dhcpv6 --sysconfdir=/etc/wide-dhcpv6
+-	cd build-udeb && \
+-	./configure --prefix=/usr --mandir=\$${prefix}/share/man \
+-		--with-localdbdir=/var/lib/dhcpv6 --sysconfdir=/etc/wide-dhcpv6
++override_dh_auto_configure:
++	# sed command below is to build against the static flex library
++	# to avoid picking an extra dependency on libfl2 (#893988)
++	for dir in build build-udeb; do \
++		rsync -a --exclude debian/ --exclude .pc/ --exclude .git/ . $$dir; \
++		[ $$dir = "build-udeb" ] && \
++		sed "s,^CLIENTLIBS=.*,CLIENTLIBS=$$(find /usr/lib/$$(dpkg-architecture -qDEB_BUILD_MULTIARCH) -name libfl.a)," \
++			-i $$dir/Makefile.in; \
++		cd $$dir && \
++		./configure --prefix=/usr --mandir=\$${prefix}/share/man \
++			--with-localdbdir=/var/lib/dhcpv6 --sysconfdir=/etc/wide-dhcpv6 && \
++		cd -; \
++	done
+ 
+ override_dh_auto_build:
+-	$(MAKE) -C build-deb
++	$(MAKE) -C build
+ 	$(MAKE) -C build-udeb
+ 
+ override_dh_auto_install:
+-	$(MAKE) -C build-deb prefix=$(CURDIR)/debian/tmp/usr install
++	$(MAKE) -C build prefix=$(CURDIR)/debian/tmp/usr install
+ 	$(MAKE) -C build-udeb prefix=$(CURDIR)/debian/tmp-udeb/usr install
+ 
+ override_dh_installinit:
+@@ -42,6 +40,4 @@ override_dh_fixperms:
+ 
+ override_dh_auto_clean:
+ 	dh_auto_clean
+-	rm -rf build-deb
+-	rm -rf build-udeb
+-	rm -rf debian/tmp-udeb
++	rm -rf build build-udeb debian/tmp-udeb
+-- 
+2.11.0

@@ -1,0 +1,51 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#878961: debootstrap fails to resolve dependencies on virtual packages
+From : Daniel Drake <drake@endlessm.com>
+Date : Wed, 18 Oct 2017 12:15:13 +0800
+Message-id : 150830011350.30371.7703534100435946379.reportbug@limbo
+Reply-to : Daniel Drake <drake@endlessm.com>, 878961@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.81ubuntu3.2
+Severity: normal
+debootstrap is unable to operate if the packages being included have a
+virtual dependency which is not otherwise resolved.
+Easy reproducer:
+  # debootstrap --include=libnet-ssleay-perl stretch stretch
+  [...]
+  W: Failure while configuring base packages.  This will be re-attempted up to five times.
+  W: See debootstrap.log for details (possibly the package libnet-ssleay-perl is at fault)
+The log shows error:
+  dpkg: dependency problems prevent configuration of libnet-ssleay-perl:
+   libnet-ssleay-perl depends on perl-openssl-abi-1.1; however:
+    Package perl-openssl-abi-1.1 is not installed.
+libnet-ssleay-perl depends on perl-openssl-abi-1.1, which is a virtual package
+provided by perl-openssl-defaults.
+debootstrap's pkgdetails_perl dependency resolution mechanism does not
+consider virtual packages, so the dependency on perl-openssl-abi-1.1 is
+basically ignored.
+The expected outcome is for it to be resolved to perl-openssl-defaults,
+which would then be installed along with the other packages and result in a
+usable bootstrap.
+I've reproduced this on v1.0.81ubuntu3.2 but from code inspection I can see
+the same problem exists in current git - nothing examines Provides here.
+Also reported at
+https://bugs.launchpad.net/ubuntu/+source/debootstrap/+bug/86536
+-- System Information:
+Debian Release: stretch/sid
+  APT prefers zesty-updates
+  APT policy: (500, 'zesty-updates'), (500, 'zesty-security'), (500, 'zesty'), (100, 'zesty-backports')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.10.0-26-generic (SMP w/4 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages debootstrap depends on:
+ii  wget  1.18-2ubuntu1
+Versions of packages debootstrap recommends:
+ii  gnupg           2.1.15-1ubuntu7
+ii  ubuntu-keyring  2016.10.27
+debootstrap suggests no packages.
+-- no debconf information

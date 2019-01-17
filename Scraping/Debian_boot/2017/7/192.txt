@@ -1,0 +1,73 @@
+To : debian-kernel@lists.debian.org
+Subject : Re: Bug#865645: Missing USB3503.ko for Arndale development board
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 13 Jul 2017 18:01:35 +0200
+Message-id : 20170713160135.GF31714@mraw.org
+In-reply-to : <20170623194856.GR17297@mraw.org>
+References : <149822365506.7237.7022814595973681314.reportbug@zion.uk.xensource.com> <20170623194856.GR17297@mraw.org>
+
+
+Hi,
+Cyril Brulebois <kibi@debian.org> (2017-06-23):
+> Since it seems to be an “USB 2.0 hub controller driver”, I suppose this
+> should be in usb-modules and not specifically in nic-usb-modules. Since
+> the drivers/usb/misc might have various unneeded things, I've chosen not
+> to add this directory to usb-modules, but to include the usb3503 module
+> specifically on the two arm{hf,64} archs that ship it.
+Refreshed patch against current sid branch attached (context change in
+debian/changelog, nothing else).
+> Kernel team: Please note that there's a similar driver, usb4604, but
+> that one isn't even enabled as a module in the current (sid) kernel
+> configuration.
+That's still the case.
+> A backport of this addition to stretch would be welcome.
+I guess this won't be before 9.2 now, adjusted my task list accordingly
+to make sure I don't lose track.
+KiBi.
+signature.ascFrom 2767c30050ac65eaa54980cd202573c3bcefd5c0 Mon Sep 17 00:00:00 2001
+From: Cyril Brulebois <kibi@debian.org>
+Date: Fri, 23 Jun 2017 21:36:16 +0200
+Subject: [PATCH] [arm64,armhf] udeb: Ship usb3503 module in usb-modules
+ (Closes: #865645)
+This module is needed for e.g. Arndale development boards, thanks to Wei
+Liu.
+---
+ debian/changelog                                       | 4 ++++
+ debian/installer/arm64/modules/arm64/usb-modules       | 1 +
+ debian/installer/armhf/modules/armhf-armmp/usb-modules | 1 +
+ 3 files changed, 6 insertions(+)
+diff --git a/debian/changelog b/debian/changelog
+index 6834557..87f9ff3 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -237,6 +237,10 @@ linux (4.11.9-1) UNRELEASED; urgency=medium
+   * Bump ABI to 2
+   * [rt] Update to 4.11.8-rt5
+ 
++  [ Cyril Brulebois ]
++  * [arm64,armhf] udeb: Ship usb3503 module in usb-modules, needed for
++    e.g. Arndale development boards, thanks to Wei Liu (Closes: #865645).
++
+  -- Ben Hutchings <ben@decadent.org.uk>  Tue, 20 Jun 2017 19:18:44 +0100
+ 
+ linux (4.11.6-1) unstable; urgency=medium
+diff --git a/debian/installer/arm64/modules/arm64/usb-modules b/debian/installer/arm64/modules/arm64/usb-modules
+index 7614f23..0d2a759 100644
+--- a/debian/installer/arm64/modules/arm64/usb-modules
++++ b/debian/installer/arm64/modules/arm64/usb-modules
+@@ -1,3 +1,4 @@
+ #include <usb-modules>
+ dwc2
+ dwc3
++usb3503
+diff --git a/debian/installer/armhf/modules/armhf-armmp/usb-modules b/debian/installer/armhf/modules/armhf-armmp/usb-modules
+index 7e20ccb..5917b7f 100644
+--- a/debian/installer/armhf/modules/armhf-armmp/usb-modules
++++ b/debian/installer/armhf/modules/armhf-armmp/usb-modules
+@@ -1,3 +1,4 @@
+ #include <usb-modules>
+ omap-ocp2scp
+ extcon-usb-gpio
++usb3503
+-- 
+2.1.4

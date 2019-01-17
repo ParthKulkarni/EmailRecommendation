@@ -1,0 +1,89 @@
+To : debian-boot@lists.debian.org
+Subject : Re: Busybox 1.27 breaks kernel cmdline preseeding
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 25 Nov 2017 16:24:38 +0000
+Message-id : 20171125162420.73hge3kcf5srguuq@mraw.org
+In-reply-to : <[🔎] 20171124144311.6ggfztgea5rmr3gt@mraw.org>
+References : <[🔎] CACfMzvqcj_Hfwoe0YizaV4NzsA153R0r24MDFNriocSDiw+Jfw@mail.gmail.com> <[🔎] 20171124114027.x4bx4nfgrpaau6gp@mraw.org> <[🔎] 20171124143309.bkjumhm75j3bjcru@home.ouaza.com> <[🔎] 20171124144311.6ggfztgea5rmr3gt@mraw.org>
+
+
+Hi,
+Cyril Brulebois <kibi@debian.org> (2017-11-24):
+> Raphael Hertzog <hertzog@debian.org> (2017-11-24):
+> > It looks like it has been partially reverted upstream:
+> > https://bugs.busybox.net/show_bug.cgi?id=10231
+> > https://git.busybox.net/busybox/commit/?id=9c143ce52da11ec3d21a3491c3749841d3dc10f0
+> > 
+> > However this doesn't work for us either because the changes to "showvars"
+> > also affect the output of "set" which we are using to retrieve the
+> > environment variables in env2debconf.
+> 
+> I think “set” is somewhat broken by this commit. Excerpt of its output:
+> | initrd='initrd.gz'
+> | rescue
+> | vga='788'
+> 
+> This seems very wrong.
+The upstream commit leading to the behavioural change is this one:
+| commit b6838b520afa8346751577cd7ccbe0b906cd3a52 (HEAD)
+| Author: Denys Vlasenko <vda.linux@googlemail.com>
+| Date:   Fri Sep 30 11:33:47 2016 +0200
+| 
+|     ash: [VAR] Sanitise environment variable names on entry
+(full patch attached)
+Busybox maintainers: are you OK with a revert until we figure out what
+to do? (Meaning we can possibly release Buster Alpha 2 without thinking
++ rewriting things…)
+KiBi.
+signature.ascFrom b6838b520afa8346751577cd7ccbe0b906cd3a52 Mon Sep 17 00:00:00 2001
+From: Denys Vlasenko <vda.linux@googlemail.com>
+Date: Fri, 30 Sep 2016 11:33:47 +0200
+Subject: [PATCH] ash: [VAR] Sanitise environment variable names on entry
+Upstream commit:
+    Date: Sat, 25 Feb 2012 15:35:18 +0800
+    [VAR] Sanitise environment variable names on entry
+    On Tue, Feb 14, 2012 at 10:48:48AM +0000, harald@redhat.com wrote:
+    > "export -p" prints all environment variables, without checking if the
+    > environment variable is a valid dash variable name.
+    >
+    > IMHO, the only valid usecase for "export -p" is to eval the output.
+    >
+    > $ eval $(export -p); echo OK
+    > OK
+    >
+    > Without this patch the following test does error out with:
+    >
+    > test.py:
+    > import os
+    > os.environ["test-test"]="test"
+    > os.environ["test_test"]="test"
+    > os.execv("./dash", [ './dash', '-c', 'eval $(export -p); echo OK' ])
+    >
+    > $ python test.py
+    > ./dash: 1: export: test-test: bad variable name
+    >
+    > Of course the results can be more evil, if the environment variable
+    > name is crafted, that it injects valid shell code.
+    This patch fixes the issue by sanitising all environment variable names
+    upon entry into the shell.
+    Signed-off-by: Herbert Xu <herbert@gondor.apana.org.au>
+Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
+---
+ shell/ash.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+diff --git a/shell/ash.c b/shell/ash.c
+index db943f6c7..59905aa7b 100644
+--- a/shell/ash.c
++++ b/shell/ash.c
+@@ -13119,7 +13119,8 @@ init(void)
+ 
+ 		initvar();
+ 		for (envp = environ; envp && *envp; envp++) {
+-			if (strchr(*envp, '=')) {
++			p = endofname(*envp);
++			if (p != *envp && *p == '=') {
+ 				setvareq(*envp, VEXPORT|VTEXTFIXED);
+ 			}
+ 		}
+-- 
+2.14.0

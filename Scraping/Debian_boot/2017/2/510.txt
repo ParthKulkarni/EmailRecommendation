@@ -1,0 +1,38 @@
+To : 856210@bugs.debian.org
+Subject : Bug#856210: libdebian-installer: please parse SHA256 field and add it to di_* structs
+From : Steven Chamberlain <steven@pyro.eu.org>
+Date : Sun, 26 Feb 2017 20:42:39 +0000
+Message-id : 20170226204238.GA74461@pyro.eu.org
+Reply-to : Steven Chamberlain <steven@pyro.eu.org>, 856210@bugs.debian.org
+In-reply-to : <[🔎] 20170226183030.GG86601@pyro.eu.org>
+References : <[🔎] 20170226162506.GB86601@pyro.eu.org> <[🔎] 20170226183030.GG86601@pyro.eu.org>
+
+
+With that patch, reverse-deps anna and cdebootstrap shall FTBFS with:
+| gcc -Wdate-time -D_FORTIFY_SOURCE=2 -D_GNU_SOURCE -g -O2 -fdebug-prefix-map=/home/steven/git/anna=. -specs=/usr/share/dpkg/pie-compile.specs -fstack-protector-strong -Wformat -Werror=format-security -Wall -W -ggdb -Wdate-time -D_FORTIFY_SOURCE=2 -D_GNU_SOURCE  -c -o anna.o anna.c
+| anna.c: In function ‘install_modules’:
+| anna.c:321:25: error: ‘di_package {aka struct di_package}’ has no member named ‘md5sum’
+|      if (! md5sum(package->md5sum, dest_file)) {
+|                          ^~
+| gcc -DHAVE_CONFIG_H -I. -I../../src -I..  -I../../include -Wdate-time -D_FORTIFY_SOURCE=2  -g -O2 -fdebug-prefix-map=/home/steven/git/cdebootstrap-0.7.6=. -specs=/usr/share/dpkg/pie-compile.specs -fstack-protector-strong -Wformat -Werror=format-security -std=gnu99 -c -o gpg.o ../../src/gpg.c
+| ../../src/check.c: In function ‘check_deb’:
+| ../../src/check.c:61:40: error: ‘di_package {aka struct di_package}’ has no member named ‘md5sum’
+|    return check_sum (target, "md5sum", p->md5sum, message);
+|                                         ^~
+| ../../src/check.c: In function ‘check_packages’:
+| ../../src/check.c:75:35: error: ‘di_release {aka struct di_release}’ has no member named ‘md5sum’
+|    item = di_hash_table_lookup (rel->md5sum, &key);
+|                                    ^~
+so it should be quite clear that they must implement a new hashing
+algorithm;  and this makes absolutely sure they are not still using MD5
+unintentionally (which was the case in #856215).
+If my libdebian-installer patch is okay, I will submit the patches for
+anna and cdebootstrap (bugs are already filed against them).  Hopefully
+no other reverse-dependencies would be affected (because they do not use
+the md5sums field, and the struct size is not changing);  though if they
+do use, I'd prefer they FTBFS so that we find out.
+Regards,
+-- 
+Steven Chamberlain
+steven@pyro.eu.org
+signature.asc

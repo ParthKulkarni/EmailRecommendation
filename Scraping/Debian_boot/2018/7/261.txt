@@ -1,0 +1,54 @@
+To : Christoph Anton Mitterer <calestyo@scientia.net>, 889668@bugs.debian.org
+Subject : Re: Bug#889668: Please install fstrim.timer (but disabled!)
+From : Philipp Kern <pkern@debian.org>
+Date : Tue, 31 Jul 2018 09:24:39 +0200
+Message-id : 0c35a929-f132-c705-2af9-9c2444d5181d@debian.org
+In-reply-to : <1521169092.4352.29.camel@scientia.net>
+References : <20180205143649.GA26228@bongo.bofh.it> <1521169092.4352.29.camel@scientia.net>
+
+
+On 16.03.2018 03:58, Christoph Anton Mitterer wrote:
+> As cruncher already noted, TRIM/discard may have an influence on the
+> security of encrypted devices.
+> But... per default, dm-crypt (respectively cryptsetup) sets the devices
+> to ignore any trim commands and not pass it down to lower layers (
+> --allow-discards option).
+debian-installer will now default to enable discard on crypto block
+devices upon creation.
+> However, even apart from that I think this should never be enabled by
+> default:
+> - If a fs properly supports discard, it will anyway has its own mount
+> options for controlling it an there should be no need to call fstrim
+As we know running with continuous TRIM enabled is very bad for some
+SSDs and so a very poor default. fstrim has the advantage that it
+batches all TRIM requests into large areas and issues them at once.
+There are still enough SSDs that stall I/O if you insert TRIM requests
+into the write request path. Hence it's almost never enabled by default
+within a file system and you need an external helper such as fstrim to
+be enabled.
+> - Calling trim typically means the data is gone (or at least not easily
+> accessible anymore)... while this is intended of of course, it may have
+> disadvantages e.g. in case of fs corruption, non-discarded areas could
+> still be recovered (even if it may be some tough work).
+> Also, calling fstrim for *any* filesystem per default is IMO a bad
+> thing. Users may have e.g. external HDDs connected (which shouldn't be
+> trimmed, maybe because they're very large) or filesystems mounted for
+> which recovery or forensic analysis is to be done.
+I buy the argument for attached removable file systems. It looks like
+today fstrim iterates over /proc/self/mountinfo and trims all
+non-pseudo/non-netfs. On the other hand enough guides on the internet
+say that to have a working system with an SSD, you want to have TRIM. By
+not applying the proper defaults, many users will still enable
+fstrim.timer and then not think about it when the recovery/forensic case
+comes along. So this is surprising nonetheless.
+It feels like fstrim should have a mode that looks at volumes referenced
+by /etc/fstab (just like mount -a, that it wanted to mimic according to
+the code) instead of the currently mounted filesystems. And then we
+actually should enable that by default.
+I think the appropriate protection against a weekly(!) cronjob that
+TRIMs your disk are a) backups and b) a filesystem that supports
+snapshots and can recover from corruption. Keeping blocks around also
+just makes forensics easier. (It's a double-edged sword.)
+Kind regards
+Philipp Kern
+signature.asc

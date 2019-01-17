@@ -1,0 +1,177 @@
+To : Geert Stappers <stappers@stappers.nl>
+Subject : Bug#858308: flash-kernel: documentation for upgrading Odroid-U2/U3 to flash-kernel
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Tue, 21 Mar 2017 08:45:38 +0100
+Message-id : 20170321074538.cbqvafvh6bbhpmni@angband.pl
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 858308@bugs.debian.org
+In-reply-to : <[🔎] 20170321054530.GU1384@gpm.stappers.nl>
+References : <[🔎] 149005270604.8629.12852431674542300009.reportbug@localhost> <[🔎] 20170321054530.GU1384@gpm.stappers.nl>
+
+
+On Tue, Mar 21, 2017 at 06:45:30AM +0100, Geert Stappers wrote:
+> On Tue, Mar 21, 2017 at 12:31:46AM +0100, Adam Borowski wrote:
+> > If you're booting from a SD card, skip until running sd-fusing.sh
+> > Edit sd_fusing.sh, change sector numbers to those listed in
+>  s/sd_fusing.sh/sd-fusing.sh/
+> > ./sd-fusing.sh /dev/mmcblk0boot0
+>  s/sd-fusing.sh/sd_fusing.sh/
+> 
+> Hyphen or underscore
+D'oh!
+> > what doesn't work
+> > -----------------
+> > 
+> > * rebooting: the machine gets stuck and needs to be physically power-cycled
+BTW, Vagrant reports that rebooting _usually_ works on his U3, it rebooted
+correctly only once on my U2.  Never had such a problem with the vendor
+kernel before.
+> > * audio
+> > 
+> > * the kernel whines about broken HDMI, video capture -- I can't even test
+> >   those but I don't care
+> 
+> Please add   'Whoever can test HDMI, please report your milage'
+Okay.
+> > * the machine gets very hot; with 3.8 it never was even noticeably warm
+> 
+> What does mean: Kernel 3.8 is good  or bad?  Please remove ambigous mean
+I dropped this entire line: that "very hot" is up to 77⁰ (at 70⁰ right now
+in the middle of a libreoffice build) and never tripped, thus I have nothing
+but subjective feelings from touching it by hand.  It's not unlikely the
+difference comes from me having moved the machine, it was AFAIR resting on a
+big whole-metal router before which could have drained heat well.
+The fun thing is that all those years before I bought a fan for this box,
+but because of delusions of replacing my main machine with this non-noisy
+thing never actually mounted it.  Could do it now and play with overclocking
+to 2GHz as Samsung used to advertise the U2 can do...
+New version attached.
+Also, I'm not married to being the sole editor of this file, please feel
+free to make any edits you want...
+-- 
+⢀⣴⠾⠻⢶⣦⠀ Meow!
+⣾⠁⢠⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ Collisions shmolisions, let's see them find a collision or second
+⠈⠳⣄⠀⠀⠀⠀ preimage for double rot13!
+How to upgrade an Odroid-U2/U3 to the modern kernel.
+====================================================
+requirements
+------------
+While strictly speaking, with perfect luck you don't need any extra bits,
+in reality you need at least:
+* an eMMC reader (if you bought your eMMC from Hardkernel, the included
+  adapter works well in _some_ SD readers)
+* a serial console (UART).  If you don't have one yet, with shipping it
+  costs its weight in gold -- but fortunately it's not too heavy.
+u-boot and other pre-kernel gubbins
+-----------------------------------
+apt install u-boot-exynos
+wget http://odroid.in/guides/ubuntu-lfs/boot.tar.gz
+Replace u-boot.bin from that tarball (2013 Samsung-private build) with
+/usr/lib/u-boot/odroid/u-boot.bin (2016 vanilla), the other pieces are ok.
+If you're booting from a SD card, skip until running sd_fusing.sh
+On eMMC:
+Edit sd_fusing.sh, change sector numbers to those listed in
+/usr/share/doc/u-boot-exynos/README.odroid.gz :
+.----
+signed_bl1_position=0
+bl2_position=30
+uboot_position=62
+tzsw_position=2110
+`----
+You may notice that these positions look wrong: on your eMMC (as originally
+shipped) you have all those pieces in "SD" positions.  Tʜᴏꜱᴇ ᴀʀᴇ ᴅᴇᴄᴏʏꜱ ᴍᴀᴅᴇ
+ᴛᴏ ᴡᴀꜱᴛᴇ ʏᴏᴜʀ ᴛɪᴍᴇ!  Replacing them does exactly nothing, the real bits are
+on hidden parts of the eMMC.
+There are rumours that it is possible to access them from a SD reader by a
+"partition switch", but despite hours of searching I found no information
+how to do that.  The only way seems to be using the U2 itself.  Which is a
+dangerous thing as if anything goes wrong you won't be able to boot. 
+Fortunately, recovery is possible with a micro-USB cable and a SD card with
+a special image: http://forum.odroid.com/viewtopic.php?f=53&t=969 -- I did
+not have the need to test that, though.
+On the U2, you need to unlock the secret partition first:
+https://www.kernel.org/doc/Documentation/mmc/mmc-dev-parts.txt
+.----
+echo 0 > /sys/block/mmcblk0boot0/force_ro
+`----
+The device name does vary: it's /dev/mmcblk0 on some kernels (vendor and
+Debian's 4.10-trunk-armmp), /dev/mmcblk1 on others (Debian 4.9 and vanilla
+4.11-rc2).  Only boot0 has anything, boot1 and rpmb are full of zeroes.
+Run:
+.----
+./sd_fusing.sh /dev/mmcblk0boot0
+`----
+Watch the output -- it has no error detection at all and will lie that all
+went ok even if it didn't!
+Now pray and reboot.
+u-boot console
+--------------
+Fortunately, unlike some other SoCs, modern u-boot _can_ boot both vendor
+and mainline kernels.  Be prepared to do some manual loading, though.  For
+convenience, here are relevant bits of old /boot/boot.scr:
+.----
+setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; bootm 0x40008000 0x42000000"
+setenv bootargs "console=tty1 console=ttySAC1,115200n8 root=UUID=e139ce78-9841-40fe-8823-96a304a09859 rootwait ro  mem=2047M"
+`----
+If boot fails, type the commands inside bootcmd manually, perhaps replacing
+"fatload" with "ext4load" (also helpful "ext4ls mmc 0:1" and so on).  The
+"bootm" command is wrong: you need to replace it with "bootz".
+fat -> ext4
+-----------
+Debian's kernel installation is heavily married to POSIX features that are
+unavailable on fat.  And the Odroid image uses fat for /boot (and so does
+every single SoC image I've seen).  Changing ln to cp and so on is not
+enough, I've gave up and reformatted.  Tar your /boot up, unmount, mkfs.ext4
+/dev/mmcblk0p1, untar, recheck that the files are in /boot rather than
+/boot/boot :þ then edit /etc/fstab (survivable with sysvinit, you're screwed
+with systemd -- you can recover by editing the card via a reader).  Reboot,
+do the manual u-boot ritual.
+Obviously, don't delete that tarball yet.
+kernel
+------
+As kernel hooks fail if flash-kernel is unhappy, you need to unpack the
+kernel image first.  Grabbing linux-image-armmp from the Debian archive lets
+you boot but nothing more: I didn't manage to get even ethernet to work, and
+without network getting other images is unpleasant.  The in-archive 4.9 also
+sucks speed-wise compared to both vendor 3.8 and to linus/master.  Thus,
+let's take a kernel from that Linus guy.  4.11-rc2 works fine for me:
+CPU test: gcc -O2  for(int i=0;i<1048576*256;i++) rand();
+I/O test: dd if=/dev/mmcblk0 of=/dev/null bs=1048576 count=20000
+                     CPU     I/O
+vendor 3.8           15s     51MB/s
+Debian 4.9           18.8s   71MB/s
+vanilla 4.11-rc2     15s     84MB/s
+git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+make exynos_defconfig
+make menuconfig  # edit to taste
+make -j4 bindeb-pkg
+dpkg -i just the image
+flash-kernel
+------------
+apt install flash-kernel
+When asked by debconf about kernel cmdline, copy the bootargs:
+.----
+console=tty1 console=ttySAC1,115200n8 root=UUID=e139ce78-9841-40fe-8823-96a304a09859 rootwait ro  mem=2047M
+`----
+(with whatever extras you want).
+Autodetection will fail, you need to:
+.----
+echo "Hardkernel ODROID-U3 board based on Exynos4412" >/etc/flash-kernel/machine
+`----
+(Both U2 and U3 use the same DT ("device tree" -- a machine description).)
+flash-kernel, reboot.  If it fails and you can't get it up via u-boot
+console, use the SD/eMMC reader on your big box to restore boot.scr, zImage
+and uInitrd from the /boot tarball you saved.
+networking
+----------
+I didn't manage to get the network driver, smsc95xx over usbnet, to work on
+Debian-shipped kernels.  It works on vanilla 4.11-rc2.
+Also it seems you need to change "allow-hotplug eth0" to "auto eth0" in
+/etc/network/interfaces.
+what doesn't work
+-----------------
+* rebooting: the machine gets stuck and needs to be physically power-cycled
+* audio
+* the kernel whines about broken HDMI, video capture -- I can't test those
+  (none of my monitors talk to Mali400 with any kernels), if someone can
+  test, please report

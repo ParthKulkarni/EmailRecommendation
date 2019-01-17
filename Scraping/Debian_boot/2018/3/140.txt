@@ -1,0 +1,83 @@
+To : 892935@bugs.debian.org
+Subject : Bug#892935: libdebian-installer: Please add support for "nodoc" build options and profile
+From : "Manuel A. Fernandez Montecelo" <manuel.montezelo@gmail.com>
+Date : Wed, 14 Mar 2018 18:38:42 +0100
+Message-id : 20180314173839.GA9619@reva.itsari.org
+Reply-to : "Manuel A. Fernandez Montecelo" <manuel.montezelo@gmail.com>, 892935@bugs.debian.org
+In-reply-to : <[🔎] 152104856434.3085.11447004437348178217.reportbug@reva.itsari.org>
+References : <[🔎] 152104856434.3085.11447004437348178217.reportbug@reva.itsari.org> <[🔎] 152104856434.3085.11447004437348178217.reportbug@reva.itsari.org>
+
+
+2018-03-14 18:29 Manuel A. Fernandez Montecelo:
+>From 7cc3872838a212335c4b8d23d976a385c1f4af01 Mon Sep 17 00:00:00 2001
+From: "Manuel A. Fernandez Montecelo" <manuel.montezelo@gmail.com>
+Date: Wed, 14 Mar 2018 16:32:58 +0100
+Subject: [PATCH] Support "nodoc" in DEB_BUILD_PROFILES and DEB_BUILD_OPTIONS
+---
+ debian/changelog                        | 8 ++++++++
+ debian/control                          | 2 +-
+ debian/libdebian-installer4-dev.install | 1 -
+ debian/rules                            | 5 +++++
+ 4 files changed, 14 insertions(+), 2 deletions(-)
+diff --git a/debian/changelog b/debian/changelog
+index 36c1486..3ea1568 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,11 @@
++libdebian-installer (0.114+nmu1) unstable; urgency=medium
++
++  * Non-maintainer upload.
++  * Support "nodoc" in DEB_BUILD_PROFILES and DEB_BUILD_OPTIONS
++    (Closes: #892935)
++
++ -- Manuel A. Fernandez Montecelo <mafm@debian.org>  Wed, 14 Mar 2018 16:32:43 +0100
++
+ libdebian-installer (0.114) unstable; urgency=medium
+ 
+   [ John Paul Adrian Glaubitz ]
+diff --git a/debian/control b/debian/control
+index a7e33d9..19f1739 100644
+--- a/debian/control
++++ b/debian/control
+@@ -3,7 +3,7 @@ Section: libs
+ Priority: optional
+ Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+ Uploaders: Bastian Blank <waldi@debian.org>, Colin Watson <cjwatson@debian.org>, Christian Perrier <bubulle@debian.org>, Steve McIntyre <93sam@debian.org>
+-Build-Depends: dpkg-dev (>= 1.13.5), debhelper (>= 9), dh-autoreconf, doxygen, pkg-config, check <!nocheck>
++Build-Depends: dpkg-dev (>= 1.13.5), debhelper (>= 9), dh-autoreconf, doxygen <!nodoc>, pkg-config, check <!nocheck>
+ Standards-Version: 3.9.6
+ Vcs-Browser: https://anonscm.debian.org/cgit/d-i/libdebian-installer.git
+ Vcs-Git: https://anonscm.debian.org/git/d-i/libdebian-installer.git
+diff --git a/debian/libdebian-installer4-dev.install b/debian/libdebian-installer4-dev.install
+index 0bea7ad..7272386 100644
+--- a/debian/libdebian-installer4-dev.install
++++ b/debian/libdebian-installer4-dev.install
+@@ -2,4 +2,3 @@ usr/include
+ usr/lib/*/*.a
+ usr/lib/*/*.so
+ usr/lib/*/pkgconfig
+-usr/share/doc/libdebian-installer4-dev/*
+diff --git a/debian/rules b/debian/rules
+index 0960a5c..05bdffd 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -23,12 +23,17 @@ endif
+ 
+ override_dh_auto_build:
+ 	dh_auto_build
++ifeq ($(filter nodoc,$(DEB_BUILD_OPTIONS))$(filter nodoc,$(DEB_BUILD_PROFILES)),)
+ 	$(MAKE) -C build/doc doc
++endif
+ 
+ override_dh_install:
+ 	install $(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libdebian-installer.so.4 $(CURDIR)/debian/libdebian-installer4-udeb/lib
+ 	install $(CURDIR)/debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/libdebian-installer-extra.so.4 $(CURDIR)/debian/libdebian-installer-extra4-udeb/lib
+ 	dh_install --sourcedir=debian/tmp
++ifeq ($(filter nodoc,$(DEB_BUILD_OPTIONS))$(filter nodoc,$(DEB_BUILD_PROFILES)),)
++	dh_install -plibdebian-installer4-dev --sourcedir=debian/tmp usr/share/doc/libdebian-installer4-dev
++endif
+ 
+ override_dh_makeshlibs:
+ 	dh_makeshlibs -plibdebian-installer4 -V \
+-- 
+2.16.2

@@ -1,0 +1,41 @@
+To : submit@bugs.debian.org
+Subject : Bug#885866: libdebian-installer : support of multiple versions in 'Packages' files
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Sat, 30 Dec 2017 17:13:44 +0100
+Message-id : 20171230161344.GA2962@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 885866@bugs.debian.org
+
+
+Package: libdebian-installer4-udeb
+Version: 0.110
+Control: affects -1 = anna
+Dear Maintainer,
+libdebian-installer currently fails when parsing 'Packages' files with
+multiple versions of some packages. It results in anna trying to
+configure these packages several times and a fatal error.
+This error doesn't show up with the patch below applied.
+As far as I understand, libdebian-installer parses the stanzas of a 'Packages'
+file and store the properties of each package in the fields of a 'package' 
+structure. The fields are overwritten when a new stanza describes the 
+same package (say, another version) - the last one wins.
+libdebian-installer collects references to these 'package' structures in 
+two places : a hash table and a slist. 
+There is only one element of the hash table for each package. But a new stanza
+in the 'Packages' file causes a new pointer to be appended to the slist - even
+if the package was already seen.
+The patch below avoids appending a seen package to the slist.
+Regards,
+JH Chatenet
+diff -Naur a/src/packages_parser.c b/src/packages_parser.c
+--- a/src/packages_parser.c
++++ b/src/packages_parser.c
+@@ -240,7 +240,9 @@
+   di_package *p;
+   p = di_packages_get_package_new (parser_data->packages, parser_data->allocator, value->string, value->size);
+   p->type = di_package_type_real_package;
+-  di_slist_append_chunk (&parser_data->packages->list, p, parser_data->allocator->slist_node_mem_chunk);
++  /* Do not append a new version of a seen package */
++  if (!p->version)
++    di_slist_append_chunk (&parser_data->packages->list, p, parser_data->allocator->slist_node_mem_chunk);
+   *data = p;
+ }

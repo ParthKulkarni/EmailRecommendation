@@ -1,0 +1,28 @@
+To : Cyril Brulebois <kibi@debian.org>, Julian Andres Klode <jak@debian.org>, 851774@bugs.debian.org, Marga Manterola <marga@google.com>, deity@bugs.debian.org
+Subject : Bug#851774: [pkg-gnupg-maint] Bug#851774: Stop using apt-key add to add keys in generators/60local
+From : Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Date : Sat, 04 Feb 2017 19:46:05 -0500
+Message-id : 87h949pir6.fsf@alice.fifthhorseman.net
+Reply-to : Daniel Kahn Gillmor <dkg@fifthhorseman.net>, 851774@bugs.debian.org
+In-reply-to : <[🔎] 87k295pj81.fsf@alice.fifthhorseman.net>
+References : <CAM+PWT0Yx4YK63J=84zA2dvhXwjGROxC72AhEE=7uGnOs+mbcg@mail.gmail.com> <91472e5c-7c1b-b017-536d-541b563716cb@philkern.de> <20170121183343.GA31901@debian.org> <[🔎] 20170204232552.GA22682@mraw.org> <[🔎] 87k295pj81.fsf@alice.fifthhorseman.net>
+
+
+On Sat 2017-02-04 19:35:58 -0500, Daniel Kahn Gillmor wrote:
+> Over in #831409, i mentioned this simple pipeline to perform the actual
+> transformation:
+>
+>      awk '/^$/{ x = 1; } /^[^=-]/{ if (x) { print $0; } ; }' | base64 -d
+>
+> Unfortunately, it looks to me like busybox doesn't offer a base64 applet
+> at the moment, which would otherwise allow d-i to do the de-armoring
+> entirely with busybox.  I could probably knock that applet together if
+> people want it -- it looks like busybox already has b64 subroutines in
+> it.
+ah, no need for a base64 applet, since busybox has a uudecode applet.
+using only busybox, the following pipeline should be fine for
+de-armoring:
+    awk 'BEGIN{ print "begin-base64 644 -" } /^$/{ x = 1; } /^[^=-]/{ if (x) { print $0; } ; } END{ print "====" }' | uudecode
+hth,
+        --dkg
+signature.asc

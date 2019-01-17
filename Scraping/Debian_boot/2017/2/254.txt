@@ -1,0 +1,64 @@
+To : Cyril Brulebois <kibi@debian.org>, Paul Schlüter <nemo.paoso@web.de>, 854801@bugs.debian.org, 740998@bugs.debian.org
+Subject : Re: Bug#854801: No network after netinst Stretch RC2
+From : Bernhard Schmidt <berni@birkenwald.de>
+Date : Mon, 13 Feb 2017 10:31:10 +0100
+Message-id : 3ebf5248-2f9c-f036-1ef5-1da92b80deae@birkenwald.de
+In-reply-to : <[🔎] 20170210161731.GK17507@mraw.org>
+References : <[🔎] 1486738488.2520.3.camel@uliaga> <[🔎] 20170210161731.GK17507@mraw.org>
+
+
+Hi,
+> 
+> I've cc'd quite a number of folks/lists to make sure the netcfg part is
+> tackled sooner than later (plus a few others for information).
+> 
+> Paul Schlüter <nemo.paoso@web.de> (2017-02-10):
+>> * Packages network-manager-gnome (recommended by task-xfce-desktop) and
+>>   net-tools were not installed;
+>>   the installed package rdnssd is in conflict to network-manager.
+>>   (=> To setup a network connection I had to edit /etc/network/interfaces)
+> 
+> This seems due to the Conflicts added in rdnssd indeed, because of:
+>   https://bugs.debian.org/740998
+> 
+> Unfortunately it doesn't seem like debian-boot@ people were available at
+> the time to give some feedback…
+> 
+> I think we need to be a bit more careful in this particular section of
+> src:netcfg's netcfg/autoconfig.c:
+> |         /* And now we cleanup from rdnssd */
+> |         if (ipv6) {
+> |                 read_rdnssd_nameservers(interface);
+> |                 if (nameserver_count(interface) > 0) {
+> |                         di_exec_shell_log("apt-install rdnssd");
+> |                 }
+> |         }
+> 
+> since that interferes with n-m's getting installed. Something we could do
+> in netcfg would be:
+> 
+>  1. Stop installing rdnssd forcefully at this point, and only set a flag
+>     for later use.
+>  2. In finish-install.d/55netcfg-copy-config, where the /e/n/i and other
+>     settings copy is performed, we could check that flag and n-m's
+>     status; if the flag is set and n-m wasn't installed, install rdnssd.
+>     This should let n-m get installed even if netcfg detected that
+>     rdnssd /could/ be needed, and should let rdnssd get installed when
+>     n-m wasn't.
+> 
+> Comments/better ideas?
+I think that is a good idea, but reading the code I'm not quite sure
+where the reported problem comes from.
+netcfg installs rdnssd when an IPv6 router advertisement with RDNSS
+(recursive DNS nameservers) is found during installation. Tasks
+generally only recommend network-manager(-gnome) as far as I can tell,
+so the conflict will keep rdnssd installed and network-manager uninstalled.
+However the code in finish-install.d/55netcfg-copy-config only mangles
+/e/n/i if network-manager is really there, so in this particular case
+Paul should have ended up with a traditional /e/n/i and ifupdown.
+@Paul: Can you share the installer log (/var/log/installer/syslog) and
+the content of your /etc/network/interfaces after installation? I'll try
+to get that information myself tonight, I don't have RDNSS here in the
+office network unfortunately.
+Bernhard
+signature.asc

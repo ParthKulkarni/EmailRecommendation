@@ -1,0 +1,103 @@
+To : Debian Bug Tracking System <859458@bugs.debian.org>
+Subject : Bug#859458: console-setup: Suggested initramfs hook
+From : Sam Morris <sam@robots.org.uk>
+Date : Wed, 18 Oct 2017 19:00:13 +0100
+Message-id : 150834961385.2943.16163091452964616649.reportbug@wintermute.local
+Reply-to : Sam Morris <sam@robots.org.uk>, 859458@bugs.debian.org
+References : <20170403191221.om3p3jh2iw7knzod@alea.gnuu.de>
+
+
+Package: console-setup
+Version: 1.164
+Tags: + patch
+Followup-For: Bug #859458
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+Here's the initramfs hook script I'm using. It just copies
+/etc/console-setup and /bin/setupcon into the initramfs wholesale, and
+relies on udev to trigger the setting of the font via the usual
+initramfs rules.
+One weirdness I've yet to solve is that something resets the font to the
+default tiny one, after the cryptsetup passphrase prompt. The real root
+filesystem's udev proceeds to set the font, correctly, in the normal way
+once control has been handed over to systemd.
+It would be nice if there was a --save-font command for the hook to use,
+that is analogous to --save-keyboard. Alternatively, it would be nice if
+- --setup-dir configured the font as well as the keymap.
+It seems a bit weird that the keymap initramfs hook and script aren't
+provided by console-setup. It would be nice if console-setup adopted
+them and for them to be enhanced to handle both the keymap and font,
+rather than initramfs-tools having to concern itself with the details.
+- -- System Information:
+Debian Release: 9.2
+  APT prefers stable-updates
+  APT policy: (550, 'stable-updates'), (550, 'stable-debug'), (550, 'stable'), (530, 'testing'), (520, 'unstable-debug'), (520, 'unstable'), (510, 'experimental-debug'), (510, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: arm64
+Kernel: Linux 4.9.0-4-amd64 (SMP w/2 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8), LANGUAGE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages console-setup depends on:
+ii  console-setup-linux     1.164
+ii  debconf                 1.5.61
+ii  keyboard-configuration  1.164
+ii  xkb-data                2.19-1+deb9u1
+console-setup recommends no packages.
+Versions of packages console-setup suggests:
+ii  locales   2.24-11+deb9u1
+ii  lsb-base  9.20161125
+Versions of packages keyboard-configuration depends on:
+ii  debconf                 1.5.61
+ii  liblocale-gettext-perl  1.07-3+b1
+Versions of packages console-setup-linux depends on:
+ii  init-system-helpers     1.48
+ii  kbd                     2.0.3-2+b1
+ii  keyboard-configuration  1.164
+console-setup-linux suggests no packages.
+Versions of packages console-setup is related to:
+pn  console-common        <none>
+pn  console-data          <none>
+pn  console-tools         <none>
+ii  gnome-control-center  1:3.22.2-3
+ii  kbd                   2.0.3-2+b1
+ii  systemd               232-25+deb9u1
+- -- debconf information excluded
+-----BEGIN PGP SIGNATURE-----
+iQJGBAEBCAAwFiEEyqqqGsppqDqJKxhV0gtCAlzaJ7kFAlnnlqkSHHNhbUByb2Jv
+dHMub3JnLnVrAAoJENILQgJc2ie5jJUQAKdP0hkEwBLVyPeDHtlE7cz41GP8K5A9
+BAqMpEkLkHpDj0J5id+jCTUpSZ7R4LVDSHZ07I4bv3DhNsXPkJX+RCmjajIfHaap
+wD5C8tcnE2KT9GengTHHfWZ7HOoKEu4GQCCcPoWAR49s3d2GZ29MCKvWtlEMjmAn
+r30NKpPan/OVIgJXT5Dn7BMsyK0Oz8mtiUwIxZ2k/UzYd5lOlB0N2Snv47Zz/+yM
+4yEe30dmUJajhqlhlAogwxkr2NxhF51m6cnzl3puHlNxRjfa9eawHSe9MwgTDPWy
+YzADsr87y2jnTuu9FTPfKbE1UYnBU0Lwu/hENyTZ+Zxdb91cHJKFFnqrviGtDld7
+MWJXQEjCWhfo52/GAov38OG5Ot8Q0A4+ze3hvn77TnL9GBB9E84VoHTuyx2uAavh
+hJAzEJLF8merPulDjreBFhFXpDTjWDzWLuR+58wQY771k3WCKKR4Vn5AOsf9xmAz
+bpWjUUPARDLYN0dIruTXcQ2MW2cMUq0iGhsw1Cwa/1ZI8+x0XmtShYlRIjM1bnYw
+gUxvLWfVWTVRBG0RfPIKMLAu86Idb1mqDChP81v4xqHvdT3v4muh/mPK59DTEpRt
+umhRKrdSv2XdP6nN60qWDS+s8kCXFCfiyxkdjfddor2DQzObaqfEGOH2DCzdjySX
+FpztKrUv6F+W
+=NVMV
+-----END PGP SIGNATURE-----
+#!/bin/bash
+set -eu
+PREREQ=""
+prereqs()
+{
+	echo "$PREREQ"
+}
+case "${1:-}" in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+. /usr/share/initramfs-tools/hook-functions
+# This should cause udev to invoke cached_setup_font.sh
+cp --parents -a /lib/udev/rules.d/90-console-setup.rules "$DESTDIR"
+# This copies cached_setup_font.sh, the font we want, and a bunch of harmless
+# extra stuff to the initramfs
+cp --parents -a /etc/console-setup "$DESTDIR"
+# This is the program that actaully loads the font, invoked by
+# cached_setup_font.sh.
+copy_exec /bin/setfont /bin

@@ -1,0 +1,53 @@
+To : Cyril Brulebois <kibi@debian.org>, 864260@bugs.debian.org
+Subject : Bug#864260: Missing kernel in debian-installer sd-card images for armhf (stretch)
+From : Karsten Merker <merker@debian.org>
+Date : Wed, 7 Jun 2017 22:34:27 +0200
+Message-id : 20170607203427.GB1974@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 864260@bugs.debian.org
+In-reply-to : <[🔎] 20170607012904.GB8889@mraw.org>
+References : <[🔎] 20170605215159.d06d9afb2f75a763fa82760a@tiscali.it> <[🔎] 20170606002441.GE24136@mraw.org> <[🔎] 20170606204755.GA6789@excalibur.cnev.de> <[🔎] 20170606214851.GB6789@excalibur.cnev.de> <[🔎] 20170607012904.GB8889@mraw.org>
+
+
+control: tags 864260 +pending
+On Wed, Jun 07, 2017 at 03:29:04AM +0200, Cyril Brulebois wrote:
+> Karsten Merker <merker@debian.org> (2017-06-06):
+> > I guess I have found the problem: the images have a fixed size
+> > (~40MB uncompressed) and the netboot build has grown a few kBytes
+> > larger than that while the hd-media build still fits (although
+> > tightly). Increasing the image size should solve the problem.
+[...]
+> And I've also checked that bumping from 40k to 50k is sufficient to have
+> a successful build of src:debian-installer (in release build mode: with
+> unstable in debian/changelog, so building against udebs from testing).
+> 
+> I'll leave you or vagrant push an updated value once you agree on
+> something.
+Vagrant Cascadian wrote (in another mail):
+> I'd like to gently push for making it even larger, say 100MB. when
+> debugging different kernel versions, it's often helpful to be able to
+> append all modules to the initrd.gz, which can result in ~30MB+ initrd
+> images, which usually means an extra step to copy all the files onto
+> another partition, rather than copying them in-place...
+>
+> There are very few (micro)SD cards or USB sticks that can't handle that
+> size, though I guess it would needlessly increase write times for the
+> images to write the extra empty space...
+I have done test builds with both 50MB and 100MB raw image size. 
+The difference in the resulting compressed binary size is less
+than 60kBytes, so that shouldn't pose a problem even for people
+on very-low-bandwidth internet connections.  I suppose the
+additional write time to the target medium also isn't much of a
+problem either.  On modern SD cards, linear write rates are nearly
+always larger than 5MB per second (even cheap SD cards nowadays
+commonly reach nearly 10MB/s on linear writes), so setting the
+image size to 100MB costs at most 10 seconds of extra write time. 
+That shouldn't be a problem even for CI systems that do lots of
+image writes.
+If the size increase eases debugging, I think it is worth that
+cost, so I'll commit a change to ~100MB to d-i git.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

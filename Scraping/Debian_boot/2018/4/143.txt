@@ -1,0 +1,81 @@
+To : 871835@bugs.debian.org
+Subject : Bug#871835: Call for help: review patches for debootstrap
+From : Antonio Terceiro <terceiro@debian.org>
+Date : Sat, 21 Apr 2018 20:30:47 -0300
+Message-id : 20180421233047.GA16960@debian.org
+Reply-to : Antonio Terceiro <terceiro@debian.org>, 871835@bugs.debian.org
+In-reply-to : <[🔎] 20180417104243.235c9187a8e0f789fc4ba9ab@iijmio-mail.jp>
+References : <20180406110151.632e00a77a08bbe17783d1d0@iijmio-mail.jp> <22926.34636.587046.22180@kueppers.informatik.uni-Koeln.de> <[🔎] 44c734c9-5124-b99a-e2a3-2054d1062357@nodens.org> <[🔎] 20180417104243.235c9187a8e0f789fc4ba9ab@iijmio-mail.jp> <22926.34636.587046.22180@kueppers.informatik.uni-Koeln.de>
+
+
+On Tue, 17 Apr 2018 10:42:43 +0900 Hideki Yamane <henrich@iijmio-mail.jp> wrote:
+> Hi,
+> 
+> On Wed, 11 Apr 2018 13:06:22 +0200
+> Clément Hermann <nodens@nodens.org> wrote:
+> > I had a look today. It looks good to me, at first glance I had concerns
+> > (like using hash keys in boolean context without the exists function),
+> > but everytime I checked further, it looked fine in context. That for the
+> > perl part.
+> > 
+> > Other than that, if I may give my opinion, the commit messages make the
+> > patches pretty self explanatory, and the portability concerns are
+> > adressed (you still need grep -E but busybox can provide it, if your
+> > grep doesn't implement it). The changes make perfect sense and the
+> > performance boost is impresssive.
+> > 
+> > Barring any concern from someone more knowledgeable, I would definitely
+> > apply this :)
+> 
+>  Thanks for your check! :)
+>  And yes, performance improvement is so attractive for us.
+> 
+>  First review seems to be good status. And of course, more people
+>  are also welcome.
+I have also looked at these patches, and they look good to me, and also
+work great here. Using a local APT proxy, these patches make debootstrap
+complete in ~ 2/3 of the time that debootstrap from unstable takes.
+The one thing I found is that trying to use debootstrap with these
+patches with mkosi makes mkosi crash like this:
+‣ Installing Debian complete.
+‣ Assigning hostname...
+‣ Assigning hostname complete.
+‣ Unmounting Package Cache...
+‣ Unmounting Package Cache complete.
+‣ Resetting machine ID...
+Traceback (most recent call last):
+  File "/usr/bin/mkosi", line 2904, in <module>
+    main()
+  File "/usr/bin/mkosi", line 2900, in main
+    build_stuff(args)
+  File "/usr/bin/mkosi", line 2852, in build_stuff
+    raw, tar, root_hash = build_image(args, workspace, run_build_script=False)
+  File "/usr/bin/mkosi", line 2711, in build_image
+    reset_machine_id(args, workspace.name, run_build_script, for_cache)
+  File "/usr/bin/mkosi", line 1186, in reset_machine_id
+    os.unlink(machine_id)
+OSError: [Errno 16] Device or resource busy: '/home/terceiro/tmp/test-systemd-containers/.mkosi-agbwha1l/root/etc/machine-id'
+Traceback (most recent call last):
+  File "/usr/lib/python3.6/weakref.py", line 624, in _exitfunc
+    f()
+  File "/usr/lib/python3.6/weakref.py", line 548, in __call__
+    return info.func(*info.args, **(info.kwargs or {}))
+  File "/usr/lib/python3.6/tempfile.py", line 936, in _cleanup
+    _rmtree(name)
+  File "/usr/lib/python3.6/shutil.py", line 480, in rmtree
+    _rmtree_safe_fd(fd, path, onerror)
+  File "/usr/lib/python3.6/shutil.py", line 418, in _rmtree_safe_fd
+    _rmtree_safe_fd(dirfd, fullname, onerror)
+  File "/usr/lib/python3.6/shutil.py", line 418, in _rmtree_safe_fd
+    _rmtree_safe_fd(dirfd, fullname, onerror)
+  File "/usr/lib/python3.6/shutil.py", line 438, in _rmtree_safe_fd
+    onerror(os.unlink, fullname, sys.exc_info())
+  File "/usr/lib/python3.6/shutil.py", line 436, in _rmtree_safe_fd
+    os.unlink(name, dir_fd=topfd)
+OSError: [Errno 16] Device or resource busy: 'machine-id'
+I can't reproduce this with current debootstrap from unstable, but 1)
+none of these patches seem to do anything related, and 2) the error
+happens after debootstrap is already done, so I suspect this might be an
+issue with mkosi that is surfaced by debootstrap running faster, and not
+an issue with debootstrap itself.
+signature.asc

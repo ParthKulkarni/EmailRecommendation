@@ -1,0 +1,35 @@
+To : submit@bugs.debian.org
+Subject : Bug#901718: debootstrap: Version 1.0.102 breaks use of file mirrors
+From : Christopher Obbard <chris@64studio.com>
+Date : Sun, 17 Jun 2018 11:54:11 +0100
+Message-id : CAP03XercVNrHq+_o_HfnBzq7aeV_U45ZF5zocq7MW73VFmFZ0A@mail.gmail.com
+Reply-to : Christopher Obbard <chris@64studio.com>, 901718@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.102
+Severity: important
+This is a new bug introduced in 1.0.101
+We use debootstrap with a custom file:// mirror to strap cross-arch
+images for SBCs, with a second call to debootstrap --second-stage.
+in this format:
+debootstrap --foreign --arch="armhf" "buster" "test" "file://$PWD/repo"
+cp /usr/bin/qemu-arm-static test/usr/bin/
+chroot test/ /debootstrap/debootstrap --second-stage
+Normally, debootstrap is used with http and https mirrors so this bug
+will not be an issue for most users.
+In git commit #48d77abf3a4209f7cff72aec20f618e086169aa7 the following
+change breaks debootstrap for my use:
+if there is no http or https mirror defined, revert MIRRORS back to
+DEF_MIRROR. This is dangerous because now --second-stage will always
+revert to DEF_MIRROR.
+we should write the file mirror URI to sources.list
+When trying to setup packages using setup_available, debootstrap exits
+and the log complains it cannot find the cached Packages file from
+DEF_MIRROR.
+I think debootstrap in --second-stage mode should read the mirror URI
+from sources.list or read the mirror URI from a new file called
+/debootstrap/mirror.
+What do you think?
+Cheers!
+Christopher Obbard

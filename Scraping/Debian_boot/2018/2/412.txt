@@ -1,0 +1,74 @@
+To : debian-boot@lists.debian.org
+Subject : Re: Boot Order
+From : Dan Norton <dnorton@mindspring.com>
+Date : Wed, 28 Feb 2018 14:02:11 -0500
+Message-id : 20180228140211.3b8aaaaa@deb9.BR914.org
+In-reply-to : <[🔎] 20180228164130.4vevjolbuqkwacsm@csclub.uwaterloo.ca>
+References : <[🔎] 20180223221800.78f94eb6@deb9.BR914.org>	<[🔎] 20180226154019.xpafhxdniyi3lylf@csclub.uwaterloo.ca>	<[🔎] 20180227210118.486b8a96@deb9.BR914.org>	<[🔎] 20180228164130.4vevjolbuqkwacsm@csclub.uwaterloo.ca>
+
+
+On Wed, 28 Feb 2018 11:41:30 -0500
+lsorense@csclub.uwaterloo.ca (Lennart Sorensen) wrote:
+> On Tue, Feb 27, 2018 at 09:01:18PM -0500, Dan Norton wrote:
+> > Why insert itself anywhere in the first place? The machine booted
+> > before the installation. To start installing, the installation
+> > medium is placed in a CD drive or USB port and the machine is
+> > rebooted. During installation, other OSs are detected by the
+> > installer. The installer forms the grub menu with the latest
+> > install first and the other OSs following. Installer finishes by
+> > reminding the admin to remove the installation medium and it
+> > reboots the machine. The latest install boots unless the admin
+> > intervenes. Where in this process is a requirement to tinker with
+> > the UEFI menu?  
+> 
+> How are you supposed to get grub to run at all if you don't add a boot
+> entry for it?  The grub is installed by this installer after.
+> 
+> There is nothing that makes the latest install boot unless you add it
+> to the boot order.  On legacy bios it was different because there you
+> just put what you wanted into the MBR boot sector and the BIOS was
+> typically configured to boot from the harddisk.  UEFI does not work
+> that way.  UEFI uses an explicit entry specifying which filename to
+> boot from which harddisk.  So an entry is created specifying to boot
+> the grub_x64.efi file from the FAT partition containing the
+> bootloaders.
+> 
+> Now there are some default filenames that UEFI will look for if not
+> explicitly told, but they are not always supported and most installers
+> don't use those filenames because it isn't reliable, and the explicit
+> entry is the official way to do it.
+> 
+> The installer has no way to tell what else was on your system already
+> and how it booted.
+> 
+OK, I think I see. Installer is not replacing something with grub, it
+is adding grub to the ESP, leaving anything else that might be there
+alone. Therefore it must make the UEFI menu point to grub. If there is
+something from windows, etc. there it is ignored(?). In contrast, with
+the primary/logical partitioning scheme it could just rewrite the mbr
+and let the user pick alternative systems, if any, from the grub menu.
+That leaves the issue of boot order, but with all the possible
+configurations and names for entries in the UEFI menu, putting the
+latest first instead of trying to parse all that stuff makes sense.
+Taking a look at what efibootmgr reports...
+# efibootmgr
+BootCurrent: 0000
+Timeout: 9 seconds
+BootOrder: 0003,0001,0002,0000,0004,0005,0006
+Boot0000* debian
+Boot0001* USB Floppy/CD
+Boot0002* USB Hard Drive
+Boot0003* ATAPI CD-ROM Drive
+Boot0004* Unknown Device
+Boot0005* USB Floppy/CD
+Boot0006* Hard Drive
+...but, if you go into the setup menu on my PC (POST -> Esc) you
+see some 'UEFI Boot Sources' and some 'Legacy Boot Sources' with common
+items. However, 'debian' is exclusively in the UEFI list and 'Hard
+Drive' is exclusively in the Legacy list. One cannot be moved to the
+other. If 6 were put first in the boot order or made current, it might
+try to legacy boot windows, but windows is long gone. This disk was
+cleaned off and several debian distros installed with the GPT and LVM
+schemes. 
+Thanks very much everybody.
+ - Dan

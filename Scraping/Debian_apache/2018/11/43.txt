@@ -1,0 +1,77 @@
+To : 840580@bugs.debian.org, 840580-submitter@bugs.debian.org
+Subject : Bug#840580: apache2-bin: crashes when issuing a restart while mod_cgid is enabled
+From : Bernhard Übelacker <bernhardu@mailbox.org>
+Date : Sun, 25 Nov 2018 19:07:56 +0100
+Message-id : d5256152-a656-dd18-c308-8df38c9e4125@mailbox.org
+Reply-to : Bernhard Übelacker <bernhardu@mailbox.org>, 840580@bugs.debian.org
+In-reply-to : <2338308.yrQ26ktX1c@k>
+References : <20161012222745.29789.67180.reportbug@web4.artsopolis.com> <2338308.yrQ26ktX1c@k> <2338308.yrQ26ktX1c@k> <20161012222745.29789.67180.reportbug@web4.artsopolis.com>
+
+
+Dear Maintainer,
+tried to find out the actual location that the backtrace points to.
+Unfortunately I could not make any clue out of the line
+containing /usr/sbin/apache2(+0x29e450).
+But at least, I think, the line containing mod_mpm_prefork.so(+0x4c08)
+translates to function prefork_run in server/mpm/prefork/prefork.c.
+As this is a rather big function, and looks like it is never left while
+the server runs, and there are no local arrays accessed, the stack
+canary may be overwritten by some function called from there.
+But the stack canary is just checked when prefork_run exits.
+Kind regards,
+Bernhard
+*** stack smashing detected ***: /usr/sbin/apache2 terminated
+======= Backtrace: =========
+/lib/x86_64-linux-gnu/libc.so.6(+0x731af)[0x7f6d8e1c11af]            | 0x7f6d8e1c11af | 
+/lib/x86_64-linux-gnu/libc.so.6(__fortify_fail+0x37)[0x7f6d8e246aa7] | 0x7f6d8e246aa7 | 
+/lib/x86_64-linux-gnu/libc.so.6(__fortify_fail+0x0)[0x7f6d8e246a70]  | 0x7f6d8e246a70 | 
+/usr/lib/apache2/modules/mod_mpm_prefork.so(+0x4c08)[0x7f6d8b462c08] | 0x7f6d8b462c08 | 0x00007f6193a75c08: 0x00007f6193a75c03 <prefork_run+3747>:       callq  0x7f6193a73400 <__stack_chk_fail@plt>
+/usr/sbin/apache2(+0x29e450)[0x7f6d8f2a3450]                         | 0x7f6d8f2a3450 | 
+======= Memory map: ========
+7f6d8f005000-7f6d8f09d000 r-xp 00000000 fe:00 3882                       /usr/sbin/apache2
+7f6d8b45e000-7f6d8b465000 r-xp 00000000 fe:00 127839                     /usr/lib/apache2/modules/mod_mpm_prefork.so
+apt install dpkg-dev devscripts mc gdb binutils apache2-bin apache2-dbg
+# http://snapshot.debian.org/package/apache2/2.4.10-10%2Bdeb8u7/
+wget http://snapshot.debian.org/archive/debian/20160916T101556Z/pool/main/a/apache2/apache2-bin_2.4.10-10%2Bdeb8u7_amd64.deb
+wget http://snapshot.debian.org/archive/debian/20160916T101556Z/pool/main/a/apache2/apache2-dbg_2.4.10-10%2Bdeb8u7_amd64.deb
+dpkg -i --force-depends apache2-bin_2.4.10-10+deb8u7_amd64.deb apache2-dbg_2.4.10-10+deb8u7_amd64.deb
+mkdir apache2/orig -p
+cd    apache2/orig
+dget http://snapshot.debian.org/archive/debian/20160916T101556Z/pool/main/a/apache2/apache2_2.4.10-10%2Bdeb8u7.dsc
+dpkg-source -x apache2_2.4.10-10%2Bdeb8u7.dsc
+cd ../..
+a2dismod mpm_event
+a2enmod mpm_prefork
+systemctl stop apache2
+systemctl start apache2
+root@debian:~# gdb -q --pid 16415
+...
+(gdb) set width 0
+(gdb) set pagination off
+(gdb) directory /home/benutzer/apache2/orig/apache2-2.4.10/server
+Source directories searched: /home/benutzer/apache2/orig/apache2-2.4.10/server:$cdir:$cwd
+(gdb) b main
+Breakpoint 1 at 0x556c539ec940: file main.c, line 439.
+(gdb) disassemble prefork_run,prefork_run+3830
+Dump of assembler code from 0x7f6193a74d60 to 0x7f6193a75c56:
+   0x00007f6193a74d60 <prefork_run+0>:  push   %r15
+...
+   0x00007f6193a74d81 <prefork_run+33>: mov    %fs:0x28,%rax                                 ; Value loaded into $rax
+   0x00007f6193a74d8a <prefork_run+42>: mov    %rax,0xe8(%rsp)                               ; Value stored in canary
+...
+   0x00007f6193a75288 <prefork_run+1320>:       mov    0xe8(%rsp),%rbx                       ; Canary loaded into $rbx
+   0x00007f6193a75290 <prefork_run+1328>:       xor    %fs:0x28,%rbx                         ; Canary compared to the original value
+   0x00007f6193a75299 <prefork_run+1337>:       mov    %r13d,%eax
+   0x00007f6193a7529c <prefork_run+1340>:       jne    0x7f6193a75c03 <prefork_run+3747>
+...
+   0x00007f6193a75c03 <prefork_run+3747>:       callq  0x7f6193a73400 <__stack_chk_fail@plt>
+   0x00007f6193a75c08 <prefork_run+3752>:       callq  0x7f6193a73300 <__errno_location@plt>
+...
+   0x00007f6193a75c4b <prefork_run+3819>:       jmpq   0x7f6193a75b9c <prefork_run+3644>
+   0x00007f6193a75c50 <set_server_limit+0>:     push   %rbp
+End of assembler dump.
+set width 0
+set pagination off
+directory /home/benutzer/apache2/orig/apache2-2.4.10/server
+b main
+run

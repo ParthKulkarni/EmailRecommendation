@@ -1,0 +1,125 @@
+To : submit@bugs.debian.org
+Subject : Bug#879130: empty mirror list on non released architectures
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Thu, 19 Oct 2017 21:33:37 +0200
+Message-id : 20171019193337.GA2869@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 879130@bugs.debian.org
+
+
+Package: choose-mirror
+Version: 2.82
+Severity: whishlist
+Tags: patch
+X-Debbugs-CC: "Helge Deller" <deller@gmx.de>, "John Paul Adrian Glaubitz" <glaubitz@physik.fu-berlin.de>, "James Clarke" <jrtc27@debian.org>
+Dear Maintainer,
+The following is a reformulation of a previous bug
+report by Helge Deller [1].
+The mirror list for non released architectures is empty -
+"manual selection" is the only choice available.
+The patch below make use of the 'Ports-architecture' fields
+in the mirror masterlist to create a non empty mirror list.
+A file 'port_architecture' is created on non released architectures
+for the use of other packages.
+Regards,
+JH Chatenet
+[1] : http://lists.debian.org/debian-boot/2017/05/msg00029.html
+--- a/Makefile
++++ b/Makefile
+@@ -79,6 +79,7 @@
+ 
+ debian/httplist-countries: $(MASTERLIST) debian/iso_3166.tab
+ 	./mirrorlist httplist $^
++	# As a side effect, a file 'port_architecture' is created on non released architectures
+ 
+ debian/httpslist-countries: $(MASTERLIST) debian/iso_3166.tab
+ 	./mirrorlist httpslist $^
+--- a/debian/clean
++++ b/debian/clean
+@@ -1 +1,2 @@
+ debian/choose-mirror-bin.templates
++port_architecture
+--- a/debian/rules
++++ b/debian/rules
+@@ -26,3 +26,10 @@
+ 	./sort-templates
+ 	# Make sure templates are not obviously broken (#834383):
+ 	[ ! -d debian/choose-mirror-bin/DEBIAN ] || grep -qs '^Template:' debian/choose-mirror-bin/DEBIAN/templates
++
++override_dh_auto_install:
++	dh_auto_install
++	# Expose the file 'port_architecture' for the use of other packages
++ifneq (,$(filter choose-mirror-bin, $(shell dh_listpackages)))
++	if test -e port_architecture; then install -D -m 0644 port_architecture debian/choose-mirror-bin/usr/lib/choose-mirror/port_architecture; fi
++endif
+--- a/mirrorlist
++++ b/mirrorlist
+@@ -104,12 +104,35 @@
+ 	$data[$id]->{rating}=$rating;
+ }
+ 
++# Defaults for released architectures
++my $archive_archlist = 'archive-architecture';
++my $archive_type = "archive-$type";
++
++# Is $hostarch a port architecture ? 
++# Such architectures appear in a Ports-architecture: field
++# As an exception, deb.debian.org carries port architectures but has no Ports-architecture: field
++foreach my $id (0..$#data) {
++	if (exists $data[$id]->{'ports-architecture'} &&
++	    $data[$id]->{'ports-architecture'} ne "any") {
++		my @arches = split ' ', $data[$id]->{'ports-architecture'};
++		my %arches = map { $_ => 1 } @arches;
++		if (exists $arches{$hostarch} or exists $arches{'!'.$hostarch}) {
++			$archive_archlist = 'ports-architecture';
++			$archive_type = "ports-$type";
++			open(PORTARCHITECTURE,"> port_architecture") || die "Unable to write port_architecture\n";
++			print PORTARCHITECTURE "1";
++			close PORTARCHITECTURE;
++			last;
++		}
++	}	
++}
++
+ # Filter out mirrors that don't carry the target architecture.
+ my @newdata;
+ foreach my $id (0..$#data) {
+-	if (exists $data[$id]->{'archive-architecture'} &&
+-	    $data[$id]->{'archive-architecture'} ne "any") {
+-		my @arches = split ' ', $data[$id]->{'archive-architecture'};
++	if (exists $data[$id]->{$archive_archlist} &&
++	    $data[$id]->{$archive_archlist} ne "any") {
++		my @arches = split ' ', $data[$id]->{$archive_archlist};
+ 		if (grep /^!/, @arches) {
+ 			my %notarches = map { substr($_, 1) => 1 } grep /^!/, @arches;
+ 			next if exists $notarches{$hostarch};
+@@ -124,9 +147,11 @@
+ 
+ if ($type =~ /(.*)list/) {
+ 	my $type=$1;
++	$archive_type =~ s/list$//;
++
+  	open (LIST, ">debian/${type}list-countries") or die "debian/${type}list-countries: $!";
+ 	foreach my $id (0..$#data) {
+-		next unless exists $data[$id]->{"archive-$type"} and
++		next unless exists $data[$id]->{$archive_type} and
+ 		                    exists $data[$id]->{country};
+ 		my $cc = $data[$id]->{country};
+ 		die "Error: country code '$cc' does not occur in iso-3166 table"
+@@ -154,13 +179,13 @@
+ 		else {
+ 			$cc=$q.$data[$id]->{country}.$q;
+ 		}
+-		next unless exists $data[$id]->{"archive-$type"} and defined $cc;
+-		if (! exists $data[$id]->{'archive-architecture'}) {
+-			print STDERR "warning: missing archive-architecture for mirror ".$data[$id]->{site}."; assuming it contains all architectures.\n";
++		next unless exists $data[$id]->{$archive_type} and defined $cc;
++		if (! exists $data[$id]->{$archive_archlist}) {
++			print STDERR "warning: missing (archive|ports)-architecture for mirror ".$data[$id]->{site}."; assuming it contains all architectures.\n";
+ 		}
+ 		print OUT "\t{",
+ 			  join(", ", $q.$data[$id]->{site}.$q, $cc,
+-				$q.$data[$id]->{"archive-$type"}.$q),
++				$q.$data[$id]->{$archive_type}.$q),
+ 			  "},\n";
+ 	}
+ 	print OUT "\t{NULL, NULL, NULL}\n";

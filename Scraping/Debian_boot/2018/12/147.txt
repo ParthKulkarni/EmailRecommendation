@@ -1,0 +1,84 @@
+To : 906016@bugs.debian.org, Cyril Brulebois <kibi@debian.org>
+Subject : Re: Bug#906016: transition: gjs built with mozjs60
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 17 Dec 2018 14:56:26 +0000
+Message-id : 20181217145626.GA25669@espresso.pseudorandom.co.uk
+In-reply-to : <47589711-93b6-bb4a-651a-44b983beb31b@debian.org>
+References : <20180813093858.GA2476@espresso.pseudorandom.co.uk> <20181103204738.GA31030@espresso.pseudorandom.co.uk> <20180813093858.GA2476@espresso.pseudorandom.co.uk> <20181212185550.GA3301@espresso.pseudorandom.co.uk> <e35abfd3-d490-f571-6de8-2de509b7ae16@debian.org> <519c2468-3afc-8dc1-3ee8-8b6bebc0f69f@debian.org> <47589711-93b6-bb4a-651a-44b983beb31b@debian.org>
+
+
+On Thu, 13 Dec 2018 at 17:00:21 +0100, Emilio Pozuelo Monfort wrote:
+> On 13/12/2018 16:58, Emilio Pozuelo Monfort wrote:
+> > task-pkgs-are-installable-faux depends on task-gnome-desktop, which depends on
+> > gnome, which is removed from s390x. I'm not comfortable breaking that, you'd
+> > need an ack from Cyril for that. The alternative would be to keep building
+> > gnome from src:meta-gnome3 on s390x but removing the deps that are not available,
+> > or to apply the proposed mozjs patches from upstream to restore support on s390x
+> > if those are enough.
+> 
+> Another option is to restrict the task-gnome-desktop check to !s390x. But again
+> I'd like an ack from Cyril before doing that in case d-i needs to be updated to
+> not offer that on s390x.
+For context for those newly Cc'd:
+We have this dependency chain:
+task-gnome-desktop -> gnome-core -> gnome-shell -> gjs -> mozjs{52,60}
+gjs recently switched from mozjs52 to mozjs60, and mozjs60 doesn't work
+on s390x (#909536; about 80% of its tests fail, which means I have no
+confidence that the resulting binaries would be useful or usable if
+we ignored the test failures). As far as I know, the best patches we
+have for that are the ones Julien Cristau tested, which might be part
+of a solution but are not sufficient on their own to make a reasonable
+proportion of the tests pass. (Julien, please correct me if I'm wrong?)
+The GNOME team and the release team both seem to be willing to declare
+that the "full-fat" GNOME desktop will not be available on s390x
+machines, which are very conspicuously not available in a desktop or
+laptop form factor :-) I'm fairly sure that GNOME and Mozilla upstream
+have no interest in supporting s390x mainframes either. As a result we
+have arranged for all the JavaScript-based GNOME packages (most notably
+gnome-shell), and the gnome-core and gnome metapackages, to not be built
+on s390x. However, this leaves us with an important task package that
+isn't installable on a release architecture, causing migration to fail.
+I suspect gnome-shell may have never worked acceptably on s390x in any
+case, since mainframes are not noted for their 3D graphics hardware,
+and s390x is not currently whitelisted to build the llvmpipe software
+renderer in mesa's debian/rules (I believe the Mesa maintainers are
+willing to enable llvmpipe on new architectures after a porter has tested
+it and told them it works, so a s390x porter could usefully try that out).
+The options I can see are:
+* Accept that task-gnome-desktop is not going to be installable on s390x.
+  Change the testing migration scripts to skip installability testing for
+  that package on s390x, or ignore the fact that it fails. Optionally
+  change tasksel to make task-gnome-desktop Architecture: any, and give it
+  some Build-Depends-Arch that are not satisfiable on s390x so that it will
+  not be built there.
+  - s390x d-i users will not be able to install a GNOME desktop. Hopefully
+    the menu item would not appear, and task-desktop would pick up the
+    second-preference desktop instead, which currently seems to be XFCE?
+  - Risk: is it possible to ignore uninstallability of task-gnome-desktop
+    without ignoring uninstallability of other task packages?
+* Require task-gnome-desktop to be installable on s390x, but modify
+  meta-gnome3 so that on s390x, gnome-core installs something that is not
+  the full GNOME 3 desktop used on other architectures, for example
+  the GNOME-2-derived gnome-session-flashback instead of gnome-session and
+  gnome-shell, and lightdm instead of gdm3.
+  - s390x users will not get the same GNOME desktop everyone else does.
+  - Risk: if GNOME Flashback becomes unsupportable in some future release
+    (it's a GNOME 2 derivative a bit like MATE, although without using
+    forks of the apps, and most upstream and downstream GNOME maintainers
+    don't use or maintain it), we're back where we started.
+* Require task-gnome-desktop to be installable on s390x, but modify
+  meta-gnome3 so that on s390x, gnome-core doesn't install a whole desktop
+  enviroment at all, just the GNOME applications.
+  - s390x users will not get a GNOME desktop at all.
+  - Risk: this is not what the user asked for or expected.
+* Require task-gnome-desktop to be installable on s390x, but modify
+  either tasksel or meta-gnome3 so that on s390x, task-gnome-desktop
+  installs some GNOME-derived but non-GNOME desktop environment like MATE.
+  - s390x users will not get the same desktop environment everyone
+    else does.
+  - Risk: this is not what the user asked for or expected.
+I don't think waiting for someone who understands s390x to fix gjs-on-s390x
+is an option, although s390x porters are very welcome to prove me wrong!
+How should we proceed?
+Thanks,
+    smcv

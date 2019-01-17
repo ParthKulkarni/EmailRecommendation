@@ -1,0 +1,86 @@
+To : Anton Zinoviev <anton@lml.bas.bg>
+Subject : Bug#818065: live-config / console-setup issue
+From : Jörn Heissler <debbugs2017@wulf.eu.org>
+Date : Fri, 17 Mar 2017 08:17:42 +0100
+Message-id : 20170317071742.73bdg2bhhjbknnai@joerntop.localnet
+Reply-to : Jörn Heissler <debbugs2017@wulf.eu.org>, 818065@bugs.debian.org
+In-reply-to : <[🔎] 20170316170304.GA8713@logic>
+References : <[🔎] 20170316151035.s3od6npxgafufzml@joerntop.localnet> <[🔎] 20170316170304.GA8713@logic>
+
+
+On Thu, Mar 16, 2017 at 07:03:04PM +0200, Anton Zinoviev wrote:
+> ls --full-time /etc/console-setup/cached* /etc/default/console-setup /etc/default/keyboard
+This is from a configuration where I hard coded the two files in
+/etc/default/ and did not set the keyboard parameters elsewhere.
+Files in /etc/default/ aren't overwritten in the booted system (i.e.
+looks same in booted system):
+-rw-r--r-- root/root  4024 2017-03-17 06:50 squashfs-root/etc/console-setup/cached_UTF-8_del.kmap.gz
+-rw-r--r-- root/root  4147 2017-03-17 06:50 squashfs-root/etc/console-setup/cached_Uni2-Fixed16.psf.gz
+-rwxr-xr-x root/root   471 2017-03-17 06:50 squashfs-root/etc/console-setup/cached_setup_font.sh
+-rwxr-xr-x root/root   174 2017-03-17 06:50 squashfs-root/etc/console-setup/cached_setup_keyboard.sh
+-rwxr-xr-x root/root    73 2017-03-17 06:50 squashfs-root/etc/console-setup/cached_setup_terminal.sh
+-rw-rw-r-- root/root   136 2017-03-14 09:47 squashfs-root/etc/default/console-setup
+-rw-rw-r-- root/root   172 2017-03-12 17:39 squashfs-root/etc/default/keyboard
+Same image, but this time I set on kernel command line:
+locales=de_DE.UTF-8 keyboard-layouts=de keyboard-variants=nodeadkeys
+The file date is newer, still keyboard layout not set.
+-rw-rw-r-- 1 root root  136 2017-03-14 09:47:49.000000000 +0100 console-setup
+-rw-rw-r-- 1 root root  172 2017-03-17 07:12:20.128082454 +0100 keyboard
+-rwxr-xr-x 1 root root  471 2017-03-17 06:50:38.000000000 +0100 /etc/console-setup/cached_setup_font.sh
+-rwxr-xr-x 1 root root  174 2017-03-17 06:50:38.000000000 +0100 /etc/console-setup/cached_setup_keyboard.sh
+-rwxr-xr-x 1 root root   73 2017-03-17 06:50:38.000000000 +0100 /etc/console-setup/cached_setup_terminal.sh
+-rw-r--r-- 1 root root 4147 2017-03-17 06:50:38.000000000 +0100 /etc/console-setup/cached_Uni2-Fixed16.psf.gz
+-rw-r--r-- 1 root root 4024 2017-03-17 06:50:38.000000000 +0100 /etc/console-setup/cached_UTF-8_del.kmap.gz
+I made a new image, without the hard coded keyboard + console-setup files.
+Contents in squashfs:
+"keyboard" has XKBLAYOUT="us", so not what I want.
+-rwxr-xr-x 1 root root  471 2017-03-17 07:11:05.000000000 +0100 squashfs-root/etc/console-setup/cached_setup_font.sh
+-rwxr-xr-x 1 root root  174 2017-03-17 07:11:05.000000000 +0100 squashfs-root/etc/console-setup/cached_setup_keyboard.sh
+-rwxr-xr-x 1 root root   73 2017-03-17 07:11:05.000000000 +0100 squashfs-root/etc/console-setup/cached_setup_terminal.sh
+-rw-r--r-- 1 root root 4147 2017-03-17 07:11:04.000000000 +0100 squashfs-root/etc/console-setup/cached_Uni2-Fixed16.psf.gz
+-rw-r--r-- 1 root root 4024 2017-03-17 07:11:04.000000000 +0100 squashfs-root/etc/console-setup/cached_UTF-8_del.kmap.gz
+-rw-r--r-- 1 root root  285 2017-03-17 07:11:04.000000000 +0100 squashfs-root/etc/default/console-setup
+-rw-r--r-- 1 root root  150 2017-03-17 07:10:59.000000000 +0100 squashfs-root/etc/default/keyboard
+After I boot (still same kernel command line parameters):
+-rwxr-xr-x 1 root root  471 2017-03-17 07:11:05.000000000 +0100 /etc/console-setup/cached_setup_font.sh
+-rwxr-xr-x 1 root root  174 2017-03-17 07:11:05.000000000 +0100 /etc/console-setup/cached_setup_keyboard.sh
+-rwxr-xr-x 1 root root   73 2017-03-17 07:11:05.000000000 +0100 /etc/console-setup/cached_setup_terminal.sh
+-rw-r--r-- 1 root root 4147 2017-03-17 07:11:04.000000000 +0100 /etc/console-setup/cached_Uni2-Fixed16.psf.gz
+-rw-r--r-- 1 root root 4024 2017-03-17 07:11:04.000000000 +0100 /etc/console-setup/cached_UTF-8_del.kmap.gz
+-rw-r--r-- 1 root root  285 2017-03-17 07:11:04.000000000 +0100 /etc/default/console-setup
+-rw-r--r-- 1 root root  160 2017-03-17 07:18:22.112087333 +0100 /etc/default/keyboard
+Here is an excerpt from /var/log/syslog:
+Mar 17 07:18:24 localhost systemd[1]: Reached target Local File Systems.
+Mar 17 07:18:24 localhost systemd[1]: Starting live-config contains the components that configure a live system during the boot process (late userspace)....
+Mar 17 07:18:24 localhost systemd[1]: Starting Create Volatile Files and Directories...
+Mar 17 07:18:24 localhost systemd[1]: Starting Raise network interfaces...
+Mar 17 07:18:24 localhost systemd[1]: Starting Set console font and keymap...
+Mar 17 07:18:24 localhost systemd[1]: Started Create Volatile Files and Directories.
+Mar 17 07:18:24 localhost systemd[1]: Starting Update UTMP about System Boot/Shutdown...
+Mar 17 07:18:24 localhost systemd[1]: Starting Network Time Synchronization...
+Mar 17 07:18:24 localhost systemd[1]: Started Set console font and keymap.
+Mar 17 07:18:24 localhost systemd[1]: Started Update UTMP about System Boot/Shutdown.
+Mar 17 07:18:24 localhost systemd[1]: Started Network Time Synchronization.
+Mar 17 07:18:24 localhost systemd[1]: Reached target System Time Synchronized.
+Mar 17 07:18:24 localhost live-config[393]: live-config: debconf hostnameDevice "eth0" does not exist.
+Mar 17 07:18:24 localhost live-config[393]: Device "eth0" does not exist.
+Mar 17 07:18:24 localhost live-config[393]: Device "eth0" does not exist.
+Mar 17 07:18:24 localhost systemd[1]: Reloading.
+Mar 17 07:18:24 localhost systemd[1]: Reloading.
+Mar 17 07:18:24 localhost systemd[1]: Started Raise network interfaces.
+Mar 17 07:18:24 localhost systemd[1]: Reached target Network.
+Mar 17 07:18:24 localhost live-config[393]:  user-setup sudo locales tzdata
+Mar 17 07:18:24 localhost live-config[393]: Current default time zone: 'Europe/Berlin'
+Mar 17 07:18:24 localhost live-config[393]: Local time is now:      Fri Mar 17 07:18:22 CET 2017.
+Mar 17 07:18:24 localhost live-config[393]: Universal Time is now:  Fri Mar 17 06:18:22 UTC 2017.
+Mar 17 07:18:24 localhost live-config[393]:  keyboard-configuration util-linux login openssh-server hooksls: cannot access '/lib/live/config-hooks/*': No such file or directory
+Mar 17 07:18:24 localhost live-config[393]: .
+Mar 17 07:18:24 localhost systemd[1]: Started live-config contains the components that configure a live system during the boot process (late userspace)..
+It appears to me that "Set console font and keymap" is done before
+live-config regenerates the files.
+Funny thing is, I also tried to run "dpkg-reconfigure -f noninteractive
+console-setup" from scripts (config hook or from an auto-login-script).
+Didn't work either.
+Cheers
+Jörn
+signature.asc

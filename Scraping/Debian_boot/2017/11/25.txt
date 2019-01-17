@@ -1,0 +1,64 @@
+To : 880210@bugs.debian.org
+Subject : Bug#880210: installation-guide: validity errors when building the manual
+From : Holger Wansing <linux@wansing-online.de>
+Date : Thu, 2 Nov 2017 21:58:31 +0100
+Message-id : 20171102215831.8f4f5b6d7117aa08bd400529@wansing-online.de
+Reply-to : Holger Wansing <linux@wansing-online.de>, 880210@bugs.debian.org
+In-reply-to : <[🔎] 20171102212130.9c107465460e2b03896b74eb@wansing-online.de>
+References : <150937905991.14550.3080831846943683314.reportbug@armor.home> <150937905991.14550.3080831846943683314.reportbug@armor.home> <20171031203719.hisdmikyfakhwxby@var.youpi.perso.aquilenet.fr> <150937905991.14550.3080831846943683314.reportbug@armor.home> <[🔎] 20171102193527.0f6505910dc3769f0d5d9fa6@wansing-online.de> <[🔎] 20171102194620.5hud3sbtvcx5tkuv@excalibur.cnev.de> <150937905991.14550.3080831846943683314.reportbug@armor.home> <[🔎] 20171102212130.9c107465460e2b03896b74eb@wansing-online.de> <150937905991.14550.3080831846943683314.reportbug@armor.home>
+
+
+Hi,
+Holger Wansing <linux@wansing-online.de> wrote:
+> Karsten Merker <merker@debian.org> wrote:
+> > On Thu, Nov 02, 2017 at 07:35:27PM +0100, Holger Wansing wrote:
+> > > I am working on a fix for that, making the ids unique like
+> > > 
+> > > - ./preparing/bios-setup/i386.xml:  <sect2 arch="any-x86" id="boot-dev-select"><title>Boot Device Selection</title>
+> > > - ./preparing/bios-setup/arm.xml:  <sect2 arch="arm64" id="boot-dev-select"><title>Boot Device Selection</title>
+> > > + ./preparing/bios-setup/i386.xml:  <sect2 arch="any-x86" id="boot-dev-select-x86"><title>Boot Device Selection</title>
+> > > + ./preparing/bios-setup/arm.xml:  <sect2 arch="arm64" id="boot-dev-select-arm64"><title>Boot Device Selection</title>
+> > > 
+> > > Performing that on all relevant fixes all those warnings.
+> > > The fix needs to unfuzzy translations as well, so please be patient :-)
+> > 
+> > Hello,
+> > 
+> > wouldn't this approach cause problems on the other end of the link relation
+> > when an id gets referred to in platform-agnostic parts of the manual?
+> 
+> You are partly right. There are two link ends, which no longer work as expected
+> now.
+> That's because I overlooked one occurence of "boot-tftp" to convert:
+> 
+> - en/boot-installer/arm.xml:  <sect2 arch="arm" id="boot-tftp"><title>Booting by TFTP</title>
+> + en/boot-installer/arm.xml:  <sect2 arch="arm" id="boot-tftp-arm"><title>Booting by TFTP</title>
+> 
+> And because of that I didn't notice those two link ends.
+> 
+> But luckily those link ends are not arch-agnostic, but arch-specific:
+> 
+> =======================================================================================
+> 
+> </para><para arch="any-x86">
+> 
+> Some BIOSes can boot USB storage directly, and some cannot. You may need to
+> configure your BIOS to boot from a <quote>removable drive</quote> or even a
+> <quote>USB-ZIP</quote> to get it to boot from the USB device. For helpful
+> hints and details, see <xref linkend="usb-boot" />.
+> 
+> </para><para arch="powerpc">
+> 
+> Booting Macintosh systems from USB storage devices involves manual use
+> of Open Firmware. For directions, see <xref linkend="usb-boot" />.
+> 
+> </para>
+> 
+> =======================================================================================
+> 
+> Thus this can be fixed.
+Hrr, maybe it's already to late for me today:
+I overlooked one more occurrence of "boot-dev-select", which is indeed arch-agnostic. 
+So the approach to fix this issue this way does not work in that case.
+I will look into that tomorrow ...
+Holger

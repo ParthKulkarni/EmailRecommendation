@@ -1,0 +1,142 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#873390: [PATCH] flash-kernel: Provide hook to start EFI application
+From : Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date : Sun, 27 Aug 2017 13:52:43 +0200
+Message-id : 20170827115243.12326-1-xypron.glpk@gmx.de
+Reply-to : Heinrich Schuchardt <xypron.glpk@gmx.de>, 873390@bugs.debian.org
+
+
+Package: flash-kernel
+Version: 3.84
+Severity: wishlist
+Instead of starting the Linux kernel from U-Boot we may want to
+start an EFI application like grub or iPXE. Let us use a new
+hook @@UBOOT_PREBOOT_EXTRA@@ in the boot.scr generation for this
+purpose. The related hook files are to be placed in
+/etc/flash-kernel/preboot.d or /usr/share/flash-kernel/preboot.d.
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ README                                 | 19 +++++++++++--------
+ bootscript/all/bootscr.uboot-generic   |  2 ++
+ bootscript/arm64/bootscr.uboot-generic |  2 ++
+ debian/dirs                            |  2 ++
+ functions                              | 19 +++++++++++++++++++
+ 5 files changed, 36 insertions(+), 8 deletions(-)
+diff --git a/README b/README
+index 555adaf..1348ccf 100644
+--- a/README
++++ b/README
+@@ -200,9 +200,9 @@ Configuration files currently supported:
+ * /etc/flash-kernels/bootscript (directory). The files referenced via
+   the Boot-Script-Name field are installed here.
+ 
+-* /etc/flash-kernel/ubootenv.d can be used to add or override u-boot
+-  script snippets. See "Adding U-Boot Commands for Pre-Boot Execution"
+-  below for more details.
++* /etc/flash-kernel/ubootenv.d and /etc/flash-kernel/preboot.d can be used to
++  add or override u-boot script snippets. See "Adding U-Boot Commands for
++  Pre-Boot Execution" below for more details.
+ 
+ * /etc/default/flash-kernel currently contains the following variables:
+     - LINUX_KERNEL_CMDLINE, which should be used by bootscripts to set kernel
+@@ -229,10 +229,13 @@ Adding U-Boot Commands for Pre-Boot Execution
+ 
+ Packages can drop in files containing U-Boot commands to be executed by a
+ platform's bootscript before starting the OS. These files should be
+-dropped in /usr/share/flash-kernel/ubootenv.d. Users can add additional
++dropped in /usr/share/flash-kernel/ubootenv.d and
++/usr/share/flash-kernel/preboot.d. Users can add additional
+ stubs, or override stubs provided by packages, by adding files to
+-/etc/flash-kernel/ubootenv.d. Files in the /etc path that have the same
+-name as files in the /usr path will override the /usr counterparts.
++/etc/flash-kernel/ubootenv.d and /etc/flash-kernel/preboot.d. Files in the
++/etc path that have the same name as files in the /usr path will override the
++/usr counterparts.
+ 
+-Platform bootscripts must contain the @@UBOOT_ENV_EXTRA@@ macro for the
+-contents of these stubs to be incorporated.
++Platform bootscripts must contain the @@UBOOT_ENV_EXTRA@@ and
++@@UBOOT_PREBOOT_EXTRA@@ macros for the contents of these stubs to be
++incorporated.
+diff --git a/bootscript/all/bootscr.uboot-generic b/bootscript/all/bootscr.uboot-generic
+index db4066a..abbeeb8 100644
+--- a/bootscript/all/bootscr.uboot-generic
++++ b/bootscript/all/bootscr.uboot-generic
+@@ -48,6 +48,8 @@ else
+   setenv partition ${distro_bootpart}
+ fi
+ 
++@@UBOOT_PREBOOT_EXTRA@@
++
+ load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${prefix}vmlinuz-${fk_kvers} \
+ && load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${prefix}${fdtpath} \
+ && load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${prefix}initrd.img-${fk_kvers} \
+diff --git a/bootscript/arm64/bootscr.uboot-generic b/bootscript/arm64/bootscr.uboot-generic
+index 568b3b5..33f90d2 100644
+--- a/bootscript/arm64/bootscr.uboot-generic
++++ b/bootscript/arm64/bootscr.uboot-generic
+@@ -41,6 +41,8 @@ else
+   setenv partition ${distro_bootpart}
+ fi
+ 
++@@UBOOT_PREBOOT_EXTRA@@
++
+ load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${prefix}vmlinuz-${fk_kvers} \
+ && load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${prefix}${fdtpath} \
+ && load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${prefix}initrd.img-${fk_kvers} \
+diff --git a/debian/dirs b/debian/dirs
+index 2788a14..6293c8f 100644
+--- a/debian/dirs
++++ b/debian/dirs
+@@ -1,3 +1,5 @@
+ usr/sbin
++etc/flash-kernel/preboot.d
++usr/share/flash-kernel/preboot.d
+ etc/flash-kernel/ubootenv.d
+ usr/share/flash-kernel/ubootenv.d
+diff --git a/functions b/functions
+index b2ae5be..f1e17a6 100644
+--- a/functions
++++ b/functions
+@@ -304,6 +304,19 @@ gen_kernel() {
+ 	} >"$output"
+ }
+ 
++gen_preboot() {
++	PRESTUBDIRS="/etc/flash-kernel/preboot.d /usr/share/flash-kernel/preboot.d"
++	PRESTUBS="$(find $PRESTUBDIRS -type f -regex '.*/[0-9a-zA-Z_-]+' -printf '%f\n' | LC_ALL=C sort -u)"
++	for file in $PRESTUBS; do
++		for dir in $PRESTUBDIRS; do
++			if [ -f $dir/$file ]; then
++				cat $dir/$file
++				break
++			fi
++		done
++	done
++}
++
+ gen_ubootenv() {
+ 	ENVSTUBDIRS="/etc/flash-kernel/ubootenv.d /usr/share/flash-kernel/ubootenv.d"
+ 	ENVSTUBS="$(find $ENVSTUBDIRS -type f -regex '.*/[0-9a-zA-Z_-]+' -printf '%f\n' | LC_ALL=C sort -u)"
+@@ -460,6 +473,8 @@ mkimage_script() {
+ 
+ 	local ubootenv="$(mktemp --tmpdir=$tmpdir)"
+ 	gen_ubootenv > $ubootenv
++	local preboot="$(mktemp --tmpdir=$tmpdir)"
++	gen_preboot > $preboot
+ 
+ 	printf "Generating boot script u-boot image... " >&2
+ 	sed -e "s/@@KERNEL_VERSION@@/$kvers/g" \
+@@ -468,6 +483,10 @@ mkimage_script() {
+             -e "/@@UBOOT_ENV_EXTRA@@/{
+                   s/@@UBOOT_ENV_EXTRA@@//g
+                   r $ubootenv
++                }" < $sdata > $tdata \
++            -e "/@@UBOOT_PREBOOT_EXTRA@@/{
++                  s/@@UBOOT_PREBOOT_EXTRA@@//g
++                  r $preboot
+                 }" < $sdata > $tdata
+ 	mkimage -A "$mkarch" -O linux -T script -C none -a "$saddr" -e "$saddr" \
+ 		-n "$sdesc" -d "$tdata" "$script" >&2 1>/dev/null
+-- 
+2.14.1

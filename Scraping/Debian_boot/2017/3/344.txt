@@ -1,0 +1,244 @@
+To : Bastian Blank <waldi@debian.org>, 858478@bugs.debian.org, debian-boot@lists.debian.org, Cyril Brulebois <kibi@debian.org>
+Subject : Re: Bug#858478: unblock: lvm2/2.02.168-2
+From : Emilio Pozuelo Monfort <pochu@debian.org>
+Date : Wed, 22 Mar 2017 23:49:37 +0100
+Message-id : 6db8672b-7d5d-dd41-39b3-2c3fe08897aa@debian.org
+In-reply-to : <149021133172.8027.4214510598440740221.reportbug@rockhammer.waldi.eu.org>
+References : <149021133172.8027.4214510598440740221.reportbug@rockhammer.waldi.eu.org>
+
+
+On 22/03/17 20:35, Bastian Blank wrote:
+> Package: release.debian.org
+> Severity: normal
+> User: release.debian.org@packages.debian.org
+> Usertags: unblock
+> 
+> Please unblock package lvm2/2.02.168-2.  It fixes a bunch of RC bugs.
+Ack. Needs a kibi-ack.
+Cheers,
+Emilio
+> 
+> diff --git a/debian/changelog b/debian/changelog
+> index dd72cf181..0af409a67 100644
+> --- a/debian/changelog
+> +++ b/debian/changelog
+> @@ -1,3 +1,11 @@
+> +lvm2 (2.02.168-2) unstable; urgency=medium
+> +
+> +  * Don't try to disable cluster locking on clvm purge. (closes: #856696)
+> +  * Drop symlinks for private libs. (closes: #857954)
+> +  * Deny writemostly/writebehind during raid1 resync. (closes: #855895)
+> +
+> + -- Bastian Blank <waldi@debian.org>  Fri, 17 Mar 2017 17:29:47 +0100
+> +
+>  lvm2 (2.02.168-1) unstable; urgency=medium
+>  
+>    * New upstream release.
+> diff --git a/debian/clvm.prerm b/debian/clvm.prerm
+> deleted file mode 100644
+> index fc683cc7c..000000000
+> --- a/debian/clvm.prerm
+> +++ /dev/null
+> @@ -1,13 +0,0 @@
+> -#!/bin/sh
+> -
+> -set -e
+> -
+> -case "$1" in
+> -    remove)
+> -        lvmconf --disable-cluster
+> -    ;;
+> -esac
+> -
+> -#DEBHELPER#
+> -
+> -exit 0
+> diff --git a/debian/libdevmapper-dev.install b/debian/libdevmapper-dev.install
+> index b02ef0b55..3cf999c4d 100644
+> --- a/debian/libdevmapper-dev.install
+> +++ b/debian/libdevmapper-dev.install
+> @@ -1,3 +1,5 @@
+>  usr/include/libdevmapper*
+> -usr/lib/*/libdevmapper*.so
+> -usr/lib/*/pkgconfig/devmapper*
+> +usr/lib/*/libdevmapper.so
+> +usr/lib/*/libdevmapper-event.so
+> +usr/lib/*/pkgconfig/devmapper.pc
+> +usr/lib/*/pkgconfig/devmapper-event.pc
+> diff --git a/debian/patches/0012-lvchange-reject-writemostly-writebehind-on-raid1-dur.patch b/debian/patches/0012-lvchange-reject-writemostly-writebehind-on-raid1-dur.patch
+> new file mode 100644
+> index 000000000..89b6801b4
+> --- /dev/null
+> +++ b/debian/patches/0012-lvchange-reject-writemostly-writebehind-on-raid1-dur.patch
+> @@ -0,0 +1,146 @@
+> +From 27e1059ec6e67a4ac0faaf0f53cd086ac4ed0e35 Mon Sep 17 00:00:00 2001
+> +From: Heinz Mauelshagen <heinzm@redhat.com>
+> +Date: Thu, 23 Feb 2017 15:09:29 +0100
+> +Subject: lvchange: reject writemostly/writebehind on raid1 during resync
+> +
+> +The MD kernel raid1 personality does no use any writemostly leg as the primary.
+> +
+> +In case a previous linear LV holding data gets upconverted to
+> +raid1 it becomes the primary leg of the new raid1 LV and a full
+> +resynchronization is started to update the new legs.
+> +
+> +No writemostly and/or writebehind setting may be allowed during
+> +this initial, full synchronization period of this new raid1 LV
+> +(using the lvchange(8) command), because that would change the
+> +primary (i.e the previous linear LV) thus causing data loss.
+> +
+> +lvchange has a bug not preventing this scenario.
+> +
+> +Fix rejects setting writemostly and/or writebehind on resychronizing raid1 LVs.
+> +
+> +Once we have status in the lvm2 metadata about the linear -> raid upconversion,
+> +we may relax this constraint for other types of resynchronization
+> +(e.g. for user requested "lvchange --resync ").
+> +
+> +New lvchange-raid1-writemostly.sh test is added to the test suite.
+> +
+> +Resolves: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=855895
+> +---
+> + lib/metadata/metadata-exported.h         |  1 +
+> + lib/metadata/raid_manip.c                |  8 ++++++-
+> + test/shell/lvchange-raid1-writemostly.sh | 41 ++++++++++++++++++++++++++++++++
+> + tools/lvchange.c                         | 15 ++++++++++++
+> + 4 files changed, 64 insertions(+), 1 deletion(-)
+> + create mode 100644 test/shell/lvchange-raid1-writemostly.sh
+> +
+> +diff --git a/lib/metadata/metadata-exported.h b/lib/metadata/metadata-exported.h
+> +index cdd4984c1..080073925 100644
+> +--- a/lib/metadata/metadata-exported.h
+> ++++ b/lib/metadata/metadata-exported.h
+> +@@ -1212,6 +1212,7 @@ int lv_raid_replace(struct logical_volume *lv, int force,
+> + 		    struct dm_list *remove_pvs, struct dm_list *allocate_pvs);
+> + int lv_raid_remove_missing(struct logical_volume *lv);
+> + int partial_raid_lv_supports_degraded_activation(const struct logical_volume *lv);
+> ++int lv_raid_in_sync(const struct logical_volume *lv);
+> + /* --  metadata/raid_manip.c */
+> + 
+> + /* ++  metadata/cache_manip.c */
+> +diff --git a/lib/metadata/raid_manip.c b/lib/metadata/raid_manip.c
+> +index 7e591e988..00e5551a3 100644
+> +--- a/lib/metadata/raid_manip.c
+> ++++ b/lib/metadata/raid_manip.c
+> +@@ -268,7 +268,7 @@ static int _deactivate_and_remove_lvs(struct volume_group *vg, struct dm_list *r
+> +  * Returns: 1 if in-sync, 0 otherwise.
+> +  */
+> + #define _RAID_IN_SYNC_RETRIES  6
+> +-static int _raid_in_sync(struct logical_volume *lv)
+> ++static int _raid_in_sync(const struct logical_volume *lv)
+> + {
+> + 	int retries = _RAID_IN_SYNC_RETRIES;
+> + 	dm_percent_t sync_percent;
+> +@@ -299,6 +299,12 @@ static int _raid_in_sync(struct logical_volume *lv)
+> + 	return (sync_percent == DM_PERCENT_100) ? 1 : 0;
+> + }
+> + 
+> ++/* External interface to raid in-sync check */
+> ++int lv_raid_in_sync(const struct logical_volume *lv)
+> ++{
+> ++	return _raid_in_sync(lv);
+> ++}
+> ++
+> + /* Check if RaidLV @lv is synced or any raid legs of @lv are not synced */
+> + static int _raid_devs_sync_healthy(struct logical_volume *lv)
+> + {
+> +diff --git a/test/shell/lvchange-raid1-writemostly.sh b/test/shell/lvchange-raid1-writemostly.sh
+> +new file mode 100644
+> +index 000000000..edf11bd4e
+> +--- /dev/null
+> ++++ b/test/shell/lvchange-raid1-writemostly.sh
+> +@@ -0,0 +1,41 @@
+> ++#!/bin/sh
+> ++# Copyright (C) 2017 Red Hat, Inc. All rights reserved.
+> ++#
+> ++# This copyrighted material is made available to anyone wishing to use,
+> ++# modify, copy, or redistribute it subject to the terms and conditions
+> ++# of the GNU General Public License v.2.
+> ++#
+> ++# You should have received a copy of the GNU General Public License
+> ++# along with this program; if not, write to the Free Software Foundation,
+> ++# Inc., 51 Franklin Street, Fifth Floor, Boston, MA2110-1301 USA
+> ++
+> ++SKIP_WITH_LVMLOCKD=1
+> ++SKIP_WITH_LVMPOLLD=1
+> ++
+> ++. lib/inittest
+> ++
+> ++which mkfs.ext4 || skip
+> ++aux have_raid 1 3 5 || skip
+> ++
+> ++aux prepare_vg 4
+> ++
+> ++for d in $dev1 $dev2 $dev3 $dev4
+> ++do
+> ++	aux delay_dev $d 1
+> ++done
+> ++
+> ++#
+> ++# Test writemostly prohibited on resyncrhonizing raid1
+> ++#
+> ++
+> ++# Create 4-way striped LV
+> ++lvcreate -aey --ty raid1 -m 3 -L 32M -n $lv1 $vg
+> ++not lvchange -y --writemostly $dev1 $vg/$lv1
+> ++check lv_field $vg/$lv1 segtype "raid1"
+> ++check lv_field $vg/$lv1 stripes 4
+> ++check lv_attr_bit health $vg/${lv1}_rimage_0 "-"
+> ++aux wait_for_sync $vg $lv1
+> ++lvchange -y --writemostly $dev1 $vg/$lv1
+> ++check lv_attr_bit health $vg/${lv1}_rimage_0 "w"
+> ++
+> ++vgremove -ff $vg
+> +diff --git a/tools/lvchange.c b/tools/lvchange.c
+> +index 250d7209b..964eb5179 100644
+> +--- a/tools/lvchange.c
+> ++++ b/tools/lvchange.c
+> +@@ -821,6 +821,21 @@ static int _lvchange_writemostly(struct logical_volume *lv)
+> + 		return 0;
+> + 	}
+> + 
+> ++	/*
+> ++	 * Prohibit writebehind and writebehind during synchronization.
+> ++	 *
+> ++	 * FIXME: we can do better once we can distingush between
+> ++	 *        an initial sync after a linear -> raid1 upconversion
+> ++	 *        and any later additions of legs, requested resyncs
+> ++	 *        via lvchange or leg repairs/replacements.
+> ++	 */
+> ++	if (!lv_raid_in_sync(lv)) {
+> ++		log_error("Unable to change write%s on %s while it is not in-sync.",
+> ++			  arg_is_set(cmd, writemostly_ARG) ? "mostly" : "behind",
+> ++			  display_lvname(lv));
+> ++		return 0;
+> ++	}
+> ++
+> + 	if (arg_is_set(cmd, writebehind_ARG))
+> + 		raid_seg->writebehind = arg_uint_value(cmd, writebehind_ARG, 0);
+> + 
+> diff --git a/debian/patches/series b/debian/patches/series
+> index 6248d67ed..0d7b35c4e 100644
+> --- a/debian/patches/series
+> +++ b/debian/patches/series
+> @@ -9,3 +9,4 @@
+>  0009-clvmd-openais-format.patch
+>  udev-md.patch
+>  systemd-pvscan-background.patch
+> +0012-lvchange-reject-writemostly-writebehind-on-raid1-dur.patch
+> 
+> unblock lvm2/2.02.168-2
+> 
+> -- System Information:
+> Debian Release: 9.0
+>   APT prefers unstable
+>   APT policy: (500, 'unstable'), (500, 'testing'), (1, 'experimental')
+> Architecture: amd64 (x86_64)
+> Foreign Architectures: i386
+> 
+> Kernel: Linux 4.9.0-2-amd64 (SMP w/4 CPU cores)
+> Locale: LANG=de_DE.UTF-8, LC_CTYPE=de_DE.UTF-8 (charmap=UTF-8)
+> Shell: /bin/sh linked to /bin/dash
+> Init: systemd (via /run/systemd/system)
+> 
+>

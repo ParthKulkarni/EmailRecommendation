@@ -1,0 +1,103 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#890108: apr-util: FTBFS with debhelper/11.1 due to empty build target
+From : Niels Thykier <niels@thykier.net>
+Date : Sun, 11 Feb 2018 11:18:19 +0100
+Message-id : 151834429905.13598.13262266988183677001.reportbug@mangetsu.thykier.net
+Reply-to : Niels Thykier <niels@thykier.net>, 890108@bugs.debian.org
+
+
+Source: apr-util
+Version: 1.6.1-1
+Severity: serious
+Tags: patch
+Hi,
+The apr-util package FTBFS with debhelper/11.1 as it has an empty
+build target.  This is caused by debhelper had a bug in its handling
+of "explicitly defined rules targets" that has now been fixed.
+Previously, this happened to work because dpkg-buildpackage would
+invoke "debian/rules build" (which would be a no-op) followed by
+"fakeroot debian/rules binary".  During the binary target, dh's
+suboptimal handling would run the build commands.
+The solution is trivial but less pretty; explicitly define "build"
+with the same content as the "%:" target (or rename the "build" folder
+and drop the ".PHONY" target).  I have attached a patch for this.
+I have also added two optional patches (0002 + 0003) to remove some
+redundancy by reducing the number of options passed to dh.  When
+apr-util in unstable was rebuilt, they produced bit-for-bit identical
+output compared to apr-util in sid (with 0001; I could not built it
+without 0001, which is why I am filing the bug).
+  Both patches bumps the minimum debhelper version requriement for
+building apr-util.  Most likely, it will be a non-issue for you as the
+minimum requirements are satisfied in stable and oldstable-backports.
+Unfortunately, even after fixing this bug, apr-util FTBFS due to a
+test failure[1].  I verified that this test failure also occurs when
+building with debhelper/11 and is therefore unrelated to this issue.
+However, it meant that all of my builds had to be done with
+DEB_BUILD_OPTIONS=nocheck.  I also noted a warning that is probably
+unrelated to this test failure but may cause issues as well[2].
+More details can be found in:
+ * #886901 comment #35
+ * #887688 comment #37
+ * #880840
+Apologies for the inconvenience.
+Thanks,
+~Niels
+[1] testdbm             : -Line 155: expected <0>, but saw <20014>
+FAILED 1 of 3
+[2]:
+<BUILDDIR>/dbd/apr_dbd_mysql.c: In function 'dbd_mysql_init':
+<BUILDDIR>/dbd/apr_dbd_mysql.c:1265:5: warning: implicit declaration of function 'my_init'; did you mean 'mysql_init'? [-Wimplicit-func]
+     my_init();
+     ^~~~~~~
+     mysql_init
+>From 1517378c668a2153ba9ab8f6389175eba3990d8c Mon Sep 17 00:00:00 2001
+From: Niels Thykier <niels@thykier.net>
+Date: Sun, 11 Feb 2018 10:09:30 +0000
+Subject: [PATCH 3/3] Bump debhelper compat to 10
+This enables us to ditch the --parallel option for dh as it is now the
+default.
+Signed-off-by: Niels Thykier <niels@thykier.net>
+---
+ debian/compat  | 2 +-
+ debian/control | 2 +-
+ debian/rules   | 4 ++--
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+diff --git a/debian/compat b/debian/compat
+index ec63514..f599e28 100644
+--- a/debian/compat
++++ b/debian/compat
+@@ -1 +1 @@
+-9
++10
+diff --git a/debian/control b/debian/control
+index 523f365..ba4e470 100644
+--- a/debian/control
++++ b/debian/control
+@@ -3,7 +3,7 @@ Section: libs
+ Priority: optional
+ Maintainer: Debian Apache Maintainers <debian-apache@lists.debian.org>
+ Uploaders: Stefan Fritsch <sf@debian.org>
+-Build-Depends: debhelper (>> 9~), autoconf, mawk, libldap2-dev, libexpat1-dev, libdb-dev, libgdbm-dev, libpcre3-dev, libapr1-dev (>> 1.4.8-2~), libsqlite3-dev, libpq-dev, python:any, default-libmysqlclient-dev, unixodbc-dev, doxygen, libssl-dev
++Build-Depends: debhelper (>> 10~), autoconf, mawk, libldap2-dev, libexpat1-dev, libdb-dev, libgdbm-dev, libpcre3-dev, libapr1-dev (>> 1.4.8-2~), libsqlite3-dev, libpq-dev, python:any, default-libmysqlclient-dev, unixodbc-dev, doxygen, libssl-dev
+ Standards-Version: 4.0.1
+ Vcs-Browser: https://anonscm.debian.org/cgit/pkg-apache/apr-util.git
+ Vcs-Git: git://anonscm.debian.org/pkg-apache/apr-util.git
+diff --git a/debian/rules b/debian/rules
+index 59690ae..49e870c 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -25,10 +25,10 @@ DB_VERSION = $(shell dpkg-query -W -f '$${Version}' libdb-dev | \
+ # The build target must not be empty.  Sadly because of how make
+ # works, we have do duplicate the target in this case.
+ build:
+-	dh $@ -B$(BUILDDIR) --parallel
++	dh $@ -B$(BUILDDIR)
+ 
+ %:
+-	dh $@ -B$(BUILDDIR) --parallel
++	dh $@ -B$(BUILDDIR)
+ 
+ #
+ # configure
+-- 
+2.15.1

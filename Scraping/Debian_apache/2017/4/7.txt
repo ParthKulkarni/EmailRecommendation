@@ -1,0 +1,143 @@
+To : "L.P.H. van Belle" <belle@bazuin.nl>
+Subject : Bug#860024: apache2-bin: jessie-backports available
+From : Luca Capello <luca.capello@infomaniak.com>
+Date : Thu, 13 Apr 2017 14:54:16 +0200
+Message-id : 20170413125416.GA8104@chobin.infomaniak.ch
+Reply-to : Luca Capello <luca.capello@infomaniak.com>, 860024@bugs.debian.org
+In-reply-to : <[🔎] vmime.58eca8d0.9d5.36b7bdb059066dd0@ms249-lin-003.rotterdam.bazuin.nl>
+References : <vmime.58eb812f.38fe.1a952e493811ba9f@ms249-lin-003.rotterdam.bazuin.nl> <[🔎] vmime.58eca8d0.9d5.36b7bdb059066dd0@ms249-lin-003.rotterdam.bazuin.nl>
+
+
+Hi there,
+On Tue, 11 Apr 2017 11:58:40 +0200, L.P.H. van Belle wrote:
+> > Thank you for the notice, that is because the debian/control is wrong,
+> > it does not declare such dependency:
+> > 
+> >   <https://anonscm.debian.org/git/pkg-
+> > apache/apache2.git/tree/debian/control?h=debian/2.4.25-
+> > 3&id=4f79d48a8a5458eb0186a5a992c73a0699924900#n8>
+> > 
+> >   Build-Depends: debhelper (>= 9.20131213~), lsb-release, dpkg-dev (>=
+> > 1.16.1~),
+> >    libaprutil1-dev (>= 1.5.0), libapr1-dev (>= 1.5.0), libpcre3-dev,
+> > zlib1g-dev,
+> >    libnghttp2-dev, libssl1.0-dev | libssl-dev (<< 1.1), perl,
+> >    liblua5.2-dev, libxml2-dev, autotools-dev, gawk | awk,
+> >    dh-systemd
+>
+> Hmm, strange yes the stretch package it does. 
+> https://packages.debian.org/stretch/apache2-bin 
+> dep: libssl1.0.2 (>= 1.0.2d)
+First of all, this is because stretch has libssl1.0-dev, thus the
+  Build-Depends: libssl1.0-dev | libssl-dev
+is satisfied by the first option and the Depends: (i.e. those for the
+compiled .deb binary package) is automatically filled in by
+dpkg-buildpackage according to the debpkg installed during the build.
+OTOH, jessie[-backports] has libssl-dev only, so the Build-Depends:
+would be satisfied by the second option.  However, sbuild does not honor
+alternative dependencies, thus AFAIK the only way to compile apache2.4
+with sbuild on jessie[-backports] is to remove the first option.
+After some digging, it seems that the problem is not linked to ALPN, but
+to the support of the mod_ssl's SSLOpenSSLConfCmd option itself, which
+according to upstream needs at least OpenSSL version 1.0.2:
+  <https://httpd.apache.org/docs/2.4/mod/mod_ssl.html#sslopensslconfcmd>
+Thus, the Build-Depends: should be split in two:
+  libssl1.0-dev (>= 1.0.2) | libssl-dev (>= 1.0.2)
+  libssl1.0-dev (>= 1.0.2) | libssl-dev (<< 1.1)
+Funny enough, there is no notice in the ./configure output:
+--8<---------------cut here---------------start------------->8---
+checking whether to enable mod_ssl... checking dependencies
+checking for OpenSSL... checking for user-provided OpenSSL base directory... none
+  setting MOD_CFLAGS to ""
+  setting ab_CFLAGS to ""
+  setting MOD_LDFLAGS to ""
+  setting MOD_LDFLAGS to ""
+checking for OpenSSL version >= 0.9.8a... OK
+  setting MOD_LDFLAGS to "-lssl -lcrypto   "
+  setting LIBS to "-lssl -lcrypto   "
+  forcing ab_LDFLAGS to "-lssl -lcrypto   "
+checking openssl/engine.h usability... yes
+checking openssl/engine.h presence... yes
+checking for openssl/engine.h... yes
+checking for SSLeay_version... yes
+checking for SSL_CTX_new... yes
+checking for ENGINE_init... yes
+checking for ENGINE_load_builtin_engines... yes
+checking for RAND_egd... yes
+yes
+  setting MOD_CFLAGS to ""
+  setting MOD_SSL_LDADD to "-export-symbols-regex ssl_module"
+checking whether to enable mod_ssl... shared (all)
+  adding "-I$(top_srcdir)/modules/ssl" to INCLUDES
+[...]
+checking whether to enable mod_http2... checking dependencies
+checking for OpenSSL... (cached) yes
+  setting MOD_LDFLAGS to "-lssl -lcrypto   "
+  setting MOD_CFLAGS to ""
+  setting MOD_CPPFLAGS to "-DH2_OPENSSL"
+checking for nghttp2... checking for user-provided nghttp2 base directory... none
+checking for pkg-config along ...   setting MOD_CFLAGS to ""
+checking for nghttp2 version >= 1.2.1... OK
+  adding "-lnghttp2" to MOD_LDFLAGS
+  setting LIBS to "-lnghttp2   "
+checking nghttp2/nghttp2.h usability... yes
+checking nghttp2/nghttp2.h presence... yes
+checking for nghttp2/nghttp2.h... yes
+checking for nghttp2_session_server_new2... yes
+checking for nghttp2_stream_get_weight... yes
+checking for nghttp2_session_change_stream_priority... yes
+  adding "-DH2_NG2_CHANGE_PRIO" to MOD_CPPFLAGS
+checking for nghttp2_session_callbacks_set_on_invalid_header_callback... yes
+  adding "-DH2_NG2_INVALID_HEADER_CB" to MOD_CPPFLAGS
+yes
+  setting MOD_HTTP2_LDADD to "-export-symbols-regex http2_module"
+checking whether to enable mod_http2... shared (all)
+checking whether to enable mod_proxy_http2... checking dependencies
+checking for nghttp2... (cached) yes
+  setting MOD_PROXY_HTTP2_LDADD to "-export-symbols-regex proxy_http2_module"
+checking whether to enable mod_proxy_http2... shared
+--8<---------------cut here---------------end--------------->8---
+To go back to ALPN, from what I could find out, it was at first required
+by Chrome to support HTTP/2, at least until it was decided to still
+support NPN (thus HTTP/2 is feasible with OpenSSL <= 1.0.2f):
+  <https://bugzilla.redhat.com/show_bug.cgi?id=1276310>
+  <http://blog.chromium.org/2016/02/transitioning-from-spdy-to-http2.html>
+  <https://bugs.chromium.org/p/chromium/issues/detail?id=557197>
+And I could not find why ALPN would require OpenSSL >= 1.0.2f (despite a
+lot of search results stating that), since ALPN is officially supported
+by OpenSSL 1.0.2:
+  <https://www.openssl.org/news/openssl-1.0.2-notes.html>
+Nevertheless, jessie-backports has OpenSSL 1.0.2k, thus simply
+installing openssl from jessie-backports should be enough to add
+mod_ssl's SSLOpenSSLConfCmd (and "full" ALPN) support:
+=====
+~# dpkg-query -W apache2
+apache2 2.4.25-3~bpo8+1
+~# dpkg-query -W apache2-bin
+apache2-bin     2.4.25-3~bpo8+1
+~# dpkg-query -W libssl1.0.0
+libssl1.0.0:amd64       1.0.1t-1+deb8u6
+~# apt-get install -t jessie-backports -s openssl
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following extra packages will be installed:
+  libssl1.0.0
+The following packages will be upgraded:
+  libssl1.0.0 openssl
+2 upgraded, 0 newly installed, 0 to remove and 74 not upgraded.
+Inst libssl1.0.0 [1.0.1t-1+deb8u6] (1.0.2k-1~bpo8+1 Debian Backports:jessie-backports [amd64])
+Inst openssl [1.0.1t-1+deb8u6] (1.0.2k-1~bpo8+1 Debian Backports:jessie-backports [amd64])
+Conf libssl1.0.0 (1.0.2k-1~bpo8+1 Debian Backports:jessie-backports [amd64])
+Conf openssl (1.0.2k-1~bpo8+1 Debian Backports:jessie-backports [amd64])
+~#
+=====
+Unfortunately, we do not have a test bed for HTTP/2 right now, could
+someone please confirm this?
+Thx, bye,
+Gismo / Luca
+-- 
+Luca Capello
+Administrateur GNU/Linux
+Infomaniak Network SA
+signature.asc

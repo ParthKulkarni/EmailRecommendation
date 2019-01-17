@@ -1,0 +1,50 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#894849: debian-installer: support dove cubox
+From : Josua Mayer <josua.mayer97@gmail.com>
+Date : Wed, 04 Apr 2018 20:32:09 +0000
+Message-id : 152287392939.387.10411440967727096968.reportbug@dove.lan
+Reply-to : Josua Mayer <josua.mayer97@gmail.com>, 894849@bugs.debian.org
+
+
+Package: debian-installer
+Severity: wishlist
+Tags: d-i
+Dear Maintainer,
+Lets figure out how install media can be created that works with the original Dove Cubox.
+Bug#876773 has added support for this device to flash-kernel;
+Bug#876774 is about adding support to linux-image-armmp.
+The goal of this bug is generating a debian-installer image for use with block storage such as 
+sata, usb or microsd that will actually boot by itself.
+Ideally with at least some packages for doing an offline installation.
+So this is the boot process we are working with:
+preinstalled U-boot on SPI Flash looks for boot.scr on usb -> mmc -> sata, first in /boot, then /.
+This U-Boot is very old and needs u-boot wrapped uImage with appended DTB, and uInitrd.
+For reference, this is the boot-script in flash-kernel:
+https://anonscm.debian.org/git/d-i/flash-kernel.git/commit/?id=7d9106b7a89df0b697d048e03a3f94f167e2e0d0
+It is usable for booting d-i as is, however I am a little unsure about the substitutions
+@@LINUX_KERNEL_CMDLINE_DEFAULTS@@
+@@LINUX_KERNEL_CMDLINE@@
+@@UBOOT_ENV_EXTRA@@
+So we need:
+boot.scr
+uImage
+uInitrd
+These can manually be created by issueing
+cat vmlinuz dtbs/dove-cubox.dtb > vmlinuz-dtb
+mkimage -A arm -O linux -T kernel -C none -a 0x00008000 -e 0x00008000 -d vmlinuz-dtb uImage
+mkimage -A arm -O linux -T ramdisk -C none -a 0 -e 0 -d initrd.gz uInitrd
+I did manage to build debian-installer from source, using the patched kernel package;
+and I can say that it boots and has internet access. Installation gets as far as searchign for kernel module packages on the Debian servers. However I have no idea what is required to load drivers for usb, sdhc and sata from the install drive.
+Please let me know what can be done to ultimately achieve readily usable installer images, say of the next debian release.
+Yours sincerely
+Josua Mayer
+*** End of the template - remove these template lines ***
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: armhf (armv7l)
+Kernel: Linux 4.16.0-rc6-armmp (SMP w/1 CPU core)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

@@ -1,0 +1,26 @@
+To : 902658@bugs.debian.org
+Subject : Bug#902658: #902658,graceful/restart results in segfault if libcap-ng0 is loaded
+From : Filidor Wiese <fili@fili.nl>
+Date : Tue, 28 Aug 2018 11:35:14 +0200
+Message-id : f627bef6-826d-ca9c-bd0e-b75c28780fa8@fili.nl
+Reply-to : Filidor Wiese <fili@fili.nl>, 902658@bugs.debian.org
+References : <153026133281.6373.14208472717127920044.reportbug@sunnyserver.hellgate.at>
+
+
+This is happening on our Buster machines as well, apparently mpm-itk
+(which we can't do without) is pulling in libcap-ng0:
+$ cat /proc/5209/maps | awk '{print $6}' | sort -u |grep /|grep -v
+"/dev"|while read line; do readelf -d $line |grep libcap && echo $line; done
+ 0x0000000000000001 (NEEDED)             Shared library: [libcap-ng.so.0]
+/lib/x86_64-linux-gnu/libaudit.so.1.0.0
+ 0x000000000000000e (SONAME)             Library soname: [libcap-ng.so.0]
+/lib/x86_64-linux-gnu/libcap-ng.so.0.0.0
+ 0x000000000000000e (SONAME)             Library soname: [libcap.so.2]
+/lib/x86_64-linux-gnu/libcap.so.2.25
+ 0x0000000000000001 (NEEDED)             Shared library: [libcap.so.2]
+/usr/lib/apache2/modules/mpm_itk.so
+Is there a fix for libcap-ng0? For now, I'll try and rewrite our scripts
+to avoid gracefully restarting apache.
+Regards,
+Filidor Wiese
+signature.asc

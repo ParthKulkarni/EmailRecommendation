@@ -1,0 +1,102 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#852215: FTBFS on non-release architectures
+From : James Clarke <jrtc27@debian.org>
+Date : Sun, 22 Jan 2017 16:03:20 +0000
+Message-id : 20170122160320.lcvgnusuprvtyhys@debian
+Reply-to : James Clarke <jrtc27@debian.org>, 852215@bugs.debian.org
+
+
+Package: debian-installer
+Version: 20170112
+Severity: wishlist
+Tags: patch
+X-Debbugs-Cc: debian-ports-devel@lists.alioth.debian.org
+Hi,
+As you know, debian-installer does not build on non-release
+architectures, since it tries to build for stretch. Some architectures
+also have some of the needed udebs in the unreleased suite, such as
+sparc-utils on sparc64. The attached patch lets me build on sparc64 even
+after a `dch --release`, and I would assume on other ports architectures
+too. Is this something you would consider applying?
+Regards,
+James
+-- System Information:
+Debian Release: 9.0
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'unstable'), (1, 'experimental-debug'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-1-amd64 (SMP w/2 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+>From 2f613cea42be62b9a6ca0921fe19de70068b9448 Mon Sep 17 00:00:00 2001
+From: James Clarke <jrtc27@debian.org>
+Date: Sun, 22 Jan 2017 15:45:55 +0000
+Subject: [PATCH] Use unstable and unreleased for udebs on non-release
+ architectures
+---
+ build/Makefile |  6 ++++++
+ debian/rules   | 12 ++++++++++++
+ 2 files changed, 18 insertions(+)
+diff --git a/build/Makefile b/build/Makefile
+index ff1b82bcf..0a5f3654b 100644
+--- a/build/Makefile
++++ b/build/Makefile
+@@ -643,8 +643,14 @@ sources.list.udeb:
+ 	echo "deb [trusted=yes] copy:$(shell pwd)/ $(LOCALUDEBDIR)/"; \
+ 	if [ "$(MIRROR)x" != "x" ]; then \
+ 		echo "deb $(MIRROR) $(USE_UDEBS_FROM) $(UDEB_COMPONENTS)"; \
++		if [ "$(USE_UNRELEASED)" = 1 ]; then \
++			echo "deb $(MIRROR) unreleased $(UDEB_COMPONENTS)"; \
++		fi \
+ 	else \
+ 		gen-sources.list.udeb "$(SYSTEM_SOURCES_LIST)" $(USE_UDEBS_FROM) $(UDEB_COMPONENTS) $(USE_PROPOSED_UPDATES); \
++		if [ "$(USE_UNRELEASED)" = 1 ]; then \
++			gen-sources.list.udeb "$(SYSTEM_SOURCES_LIST)" unreleased $(UDEB_COMPONENTS); \
++		fi \
+ 	fi) > $@
+ 	@if [ -e $@.local ]; then \
+ 		echo "Using $@.local:"; \
+diff --git a/debian/rules b/debian/rules
+index b3c59e991..3267b4240 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -1,5 +1,7 @@
+ #! /usr/bin/make -f
+ 
++RELEASE_ARCHES=amd64 arm64 armel armhf i386 mips mips64el mipsel ppc64el s390x
++
+ ARCH=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
+ VERSION=$(shell LC_ALL=C dpkg-parsechangelog | grep ^Version: | cut -d ' ' -f 2)
+ DATE=$(shell echo $(VERSION) | cut -d '.' -f 1)
+@@ -10,11 +12,20 @@ USE_UDEBS_FROM=unstable
+ TRANSSTATUS=
+ BOOTMENU_BEEP=n
+ else
++ifneq (,$(filter $(ARCH), $(RELEASE_ARCHES)))
+ USE_UDEBS_FROM=stretch
++else
++USE_UDEBS_FROM=unstable
++endif
+ USE_PROPOSED_UPDATES=0
+ TRANSSTATUS=translation-status
+ BOOTMENU_BEEP=y
+ endif
++ifneq (,$(filter $(ARCH), $(RELEASE_ARCHES)))
++USE_UNRELEASED=0
++else
++USE_UNRELEASED=1
++endif
+ 
+ ARCHIVEDIR=debian/tmp/installer-$(ARCH)
+ DESTDIR=$(ARCHIVEDIR)/$(DATE)
+@@ -36,6 +47,7 @@ build-images:
+ 	$(MAKE) -C build all_build stats release \
+ 		USE_UDEBS_FROM=$(USE_UDEBS_FROM) BUILD_DATE=$(DATE) \
+ 		USE_PROPOSED_UPDATES=$(USE_PROPOSED_UPDATES) \
++		USE_UNRELEASED=$(USE_UNRELEASED) \
+ 		TRANSSTATUS=$(TRANSSTATUS) BOOTMENU_BEEP=$(BOOTMENU_BEEP)
+ 
+ build: build-arch build-indep
+-- 
+2.11.0

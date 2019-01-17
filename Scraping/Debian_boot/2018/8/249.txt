@@ -1,0 +1,107 @@
+To : Héctor Orón Martínez <hector.oron@gmail.com>
+Subject : Bug#906696: flash-kernel: Please add an entry for the Rock64
+From : Josua Mayer <josua.mayer97@gmail.com>
+Date : Mon, 27 Aug 2018 16:05:04 +0200
+Message-id : 9d59132e-c58c-d2c4-414b-2063a38c493d@gmail.com
+Reply-to : Josua Mayer <josua.mayer97@gmail.com>, 906696@bugs.debian.org
+In-reply-to : <[🔎] CAODfWeE3FFZwiQrkFs7UnJ9-ueBR+DDv6n07Mq7AdNxUcO3WMA@mail.gmail.com>
+References : <[🔎] 153470858740.3942.698563893227398031.reportbug@rock64.home.jm0.eu> <[🔎] CAODfWeE3FFZwiQrkFs7UnJ9-ueBR+DDv6n07Mq7AdNxUcO3WMA@mail.gmail.com> <[🔎] 153470858740.3942.698563893227398031.reportbug@rock64.home.jm0.eu>
+
+
+Hi,
+Am 24.08.2018 um 14:55 schrieb Héctor Orón Martínez:
+> Hello,
+>
+> Missatge de Josua Mayer <josua.mayer97@gmail.com> del dia dg., 19
+> d’ag. 2018 a les 22:00:
+>> There is a vendor u-boot available based on 2017.09. It fully supports distro boot and
+>> loading EFI applications.
+> Do you happen to know what's missing in the Debian u-boot package to
+> be usable in that board?
+Everything.
+Because there is no support for the rock64 in upstream u-boot.
+And then it is a little evil in that the last time I checked blobs were
+required to construct a signed image with ATF.
+>
+>> Therefore the rock64 can be booted with grub-arm-efi.
+> Great!
+>
+>> Only one important thing has to be dealt with: Getting the DTB loaded by U-Boot!
+>> U-Boot searches for rockchip/rk3328-rock64.dtb in /, /dtb/, /dtb/current on the EFI partition.
+>>
+>> The attached db entry takes care ot this particular path by storing it at /boot/efi/dtb/rockchip/rk3328-rock64.dtb.
+> This is with vendor u-boot instead Debian u-boot, right?
+Right.
+More precsisely:
+U-Boot (upstream) has efi_dtb_prefixes=/ /dtb/ /dtb/current/.
+It searches for $fdtfile in those places before loading and efi application.
+This is shared by the vendor u-boot.
+The only trouble is that fdtfile is set to "rockchip/rk3328-rock64.dtb"
+rather than plain "rk3328-rock64.dtb" like other rockchip boards
+supported in upstream do.
+^^
+I think this is the pain point.
+>
+>> Other rockchip boards supported by mainline u-boot omit the rockchip subdirectory and just search for the dtb name.
+>> However there is no support for the rock64 in mainline u-boot so I think carrying this weird prefix is acceptable.
+> Not sure I agree on that. Is someone working on mainline u-boot to
+> support rock64?
+I have been watching the u-boot mailinglist and there was nothing.
+There only seems to be this single person Kamil Trzciński doing serious
+work in this direction.
+E.g. see his mainline branch on github:
+https://github.com/ayufan-rock64/linux-u-boot/commits/mainline-master
+It looks like he might want to push these up stream at one point.
+It was his decision to go with the rockchip subfolder:
+https://github.com/ayufan-rock64/linux-u-boot/commit/9c204e7343577e8b922556bf9349a457c139976e
+I guess we could ask him to accept a patch allowing the dtb to reside at
+the root level? That way it would behave like upstream rockchip boards.
+>
+>> Currently most used and best documented source for rock64 U-Boot:
+>> https://github.com/ayufan-rock64/linux-u-boot/releases
+>>
+>> u-boot-erase-spi-rock64.img.xz can be used to flash u-boot to SPI flash once;
+>> from then on everything is standard:
+>> - debootstrap
+>> - linux-image-arm64
+>> - grub-arm-efi
+>> - grub-install --target=arm-efi --removable
+>>
+>> Yours sincerely
+>> Josua Mayer
+>>
+>> -- System Information:
+>> Debian Release: buster/sid
+>>   APT prefers testing
+>>   APT policy: (500, 'testing')
+>> Architecture: arm64 (aarch64)
+>>
+>> Kernel: Linux 4.17.0-1-arm64 (SMP w/4 CPU cores)
+>> Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8), LANGUAGE=en_GB.UTF-8 (charmap=UTF-8)
+>> Shell: /bin/sh linked to /bin/dash
+>> Init: systemd (via /run/systemd/system)
+>> LSM: AppArmor: enabled
+>>
+>> Versions of packages flash-kernel depends on:
+>> ii  debconf [debconf-2.0]  1.5.69
+>> ii  devio                  1.2-1.2+b1
+>> ii  initramfs-tools        0.132
+>> ii  linux-base             4.5
+>> ii  mtd-utils              1:2.0.1-1
+>> ii  ucf                    3.0038
+>>
+>> Versions of packages flash-kernel recommends:
+>> ii  u-boot-tools  2018.05+dfsg-1
+>>
+>> flash-kernel suggests no packages.
+>>
+>> -- Configuration Files:
+>> /etc/flash-kernel/db changed:
+>> Machine: Pine64 Rock64
+>> Boot-DTB-Path: /boot/efi/rockchip/rk3328-rock64.dtb
+>> DTB-Id: rockchip/rk3328-rock64.dtb
+>>
+>>
+>> -- debconf information excluded
+>
+>

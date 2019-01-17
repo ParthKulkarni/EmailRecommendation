@@ -1,0 +1,61 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#853277: os-prober: triggers hang on default install with unencrypted LVM
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 31 Jan 2017 05:20:04 +0100
+Message-id : 20170131042004.1056.96882.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 853277@bugs.debian.org
+
+
+Package: os-prober
+Version: 1.72
+Severity: grave
+Justification: renders package unusable; delays Stretch RC2
+[ X-D-Cc: Ivo, Colin, Steve ]
+Hi,
+Unfortunately my d-i tests didn't catch this issue before uploading d-i
+and asking Steve to start builds for installation images.
+When picking plain LVM (not encrypted), os-prober 1.73 hangs right after
+having printed this to syslog, with slight variations:
+| 50mount-tests: debug: creating device mapper device /dev/mapper/osprober-linux-sda3 [Steve]
+| 50mount-tests: debug: creating device mapper device /dev/mapper/osprober-linux-vda5 [Cyril]
+The issue seems to be the dmsetup create call (with -r and the partition
+name) getting stuck in the kernel on the dm_ctl_ioctl call, possibly
+because we're trying to play with something that's mounted already?
+Looking at commits touching dmsetup stuff, I went back to the first one
+between 1.71 and 1.72:
+| commit 8a8f565b43fd126e97b2c390bd81868c6653cf2c
+| Author: Ivo De Decker <ivo.dedecker@ugent.be>
+| Date:   Sat Jul 13 21:15:41 2013 +0200
+| 
+|     using read-only device mapper entry
+and using a version built from it is sufficient to reproduce the hang.
+Going back one commit:
+| commit 1f329ff80e5c473414d7c314777d0f667b4004c4
+| Author: Ivo De Decker <ivo.dedecker@ugent.be>
+| Date:   Sun Jul 14 13:26:43 2013 +0200
+| 
+|     log result from mount command
+is sufficient to get back to a working installer; that is:
+| Jan 31 04:52:43 os-prober: debug: running /usr/lib/os-probes/50mounted-tests on /dev/vda5
+| Jan 31 04:52:43 50mounted-tests: debug: partition /dev/vda5 set to read-only
+| Jan 31 04:52:43 50mounted-tests: debug: mounting /dev/vda5 as LVM2_member failed: mount: type de système de fichiers « LVM2_member » inconnu
+| (unknown FS type: LVM2_member)
+| Jan 31 04:52:43 50mounted-tests: debug: partition /dev/vda5 set to read-write
+| …
+| Jan 31 03:52:44 os-prober: debug: os detected by /usr/lib/os-probes/50mounted-tests
+| Jan 31 03:52:44 os-prober: debug: running /usr/lib/os-probes/50mounted-tests on /dev/vda5
+| Jan 31 03:52:44 50mounted-tests: debug: creating device mapper device /dev/mapper/osprober-linux-vda5
+| Jan 31 03:52:44 50mounted-tests: debug: mounting /dev/mapper/osprober-linux-vda5 (/dev/vda5) as LVM2_member failed: mount: mounting /dev/mapper/osprober-linux-vda5 on /var/lib/os-prober/mount failed: No such device
+| Jan 31 03:52:44 50mounted-tests: debug: remove device mapper device /dev/mapper/osprober-linux-vda5
+If you want to test stuff, you can fetch images from:
+  http://cdimage.debian.org/cdimage/.stretch_di_rc2/debian-cd/
+(at least for the time being.)
+I've used amd64 netinst, with a 3 GB disc under KVM, initially blank,
+installing only standard tools.
+To test locally built packages, I've transfered them when the grub
+prompt pops up, chrooting to /target and installing them there before
+resuming the installation.
+I can (rather) easily test patches if runtime tests are a burden for you
+folks. A timely fix or at least workaround would be appreciated as udebs
+are frozen at the moment, and the freeze is only a few days away.
+KiBi.

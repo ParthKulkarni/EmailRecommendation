@@ -1,0 +1,81 @@
+To : "Paschedag, Robert" <paschedag.netlution@swr.de>
+Subject : Bug#867898: debian-installer-netboot-images: debian-installer-9-netboot-amd64 scsi modules missing. Netboot image unusable
+From : "Marc N" <debug@rasqual.e4ward.com>
+Date : Wed, 02 Aug 2017 18:01:51 +0200
+Message-id : jbm.20170802180151.888082a7@DECADORE
+Reply-to : "Marc N" <debug@rasqual.e4ward.com>, 867898@bugs.debian.org
+In-reply-to : <[🔎] VI1PR08MB08632A24712AD1BB171D436399B00@VI1PR08MB0863.eurprd08.prod.outlook.com>
+References : <[🔎] VI1PR08MB08632A24712AD1BB171D436399B00@VI1PR08MB0863.eurprd08.prod.outlook.com>
+
+
+Hi Robert,
+After digging a bit, I think my issue lies with the APT source I used.
+At work (ESXi host), netboot works because it points to a proper apt-
+mirror.
+On the other hand, at home I frankenbuilt mine using the DVD iso and 
+specifying debian-installer/allow_unauthenticated=true. I retried after 
+pointing the APT mirror to, say, deb.debian.org, and everything went back 
+to normal.
+So my advice is, can you check if your source http://spacewalk-
+test.swr.ard/ks/dist/org/1/Debian_Stretch/ was done properly?
+For reference, here were results for booting from borrowed initrd from DVD.
+In those tests, /dev/sda is successfully listed.
+in dmesg, after bsg has loaded:
+- lsilogic: 
+Fusion MPT base driver 3.04.20
+Fusion MPT SPI Host driver 3.04.20
+- lsisas1068:
+Fusion MPT base driver 3.04.20
+Fusion MPT SAS Host driver 3.04.20
+- pvscsi:
+VMware PVSCSI driver - version 1.0.7.0-k
+/proc/modules yields a few ata modules, and depending on scsi controller in 
+vmx:
+- lsilogic: mptspi, scsi_transport_spi, mptscsih, mptbase, scsi_mod
+- lsisas1068: mptsas, scsi_transport_sas, mptscsih, mptbase, scsi_mod
+- pvscsi: vmw_pcscsi, scsi_mod
+- ide0 vmdk attachment (removed SCSI controller): scsi_mod
+Mit freundlichen gruessen,
+Marc
+On Wed, Aug 2, 2017 at 1:42 PM, Paschedag, Robert 
+<paschedag.netlution@swr.de> wrote:
+> Hi Marc,
+>
+> which driver module has been used within your tests? In my version of 
+netboot.tar.gz (initrd), the modules for LSI controllers (mptspi) were 
+missing.
+>
+> So even on a simple VMware VM, no disks have been detected.
+>
+> Regards,
+> Robert
+>
+> -----Ursprüngliche Nachricht-----
+> Von: Marc N [mailto:debug@rasqual.e4ward.com]
+> Gesendet: Mittwoch, 2. August 2017 13:38
+> An: Steve McIntyre <steve@einval.com>; Cyril Brulebois <kibi@debian.org>; 
+867898@bugs.debian.org
+> Cc: Paschedag, Robert <paschedag.netlution@swr.de>; debian-
+kernel@lists.debian.org; debian-cd@lists.debian.org
+> Betreff: Re: Bug#867898: debian-installer-netboot-images: debian-
+installer-9-netboot-amd64 scsi modules missing. Netboot image unusable
+>
+> Hello all,
+>
+> Steve, what is the suggested resolution then?
+> For testing, I booted the initrd's and kernels extracted from standard 
+DVD and netboot iso's via PXE. While they cannot progress further for 
+obvious reasons, by switching to tty2, /dev/sda does appear in the listing. 
+Those do ship with the correct modules.
+>
+> 1/ What would be the negative aspect of removing the scsi modules from 
+the
+> exclude-udeb-* lists, following the package mergers mentioned before?
+>
+> 2/ Also, I'm not too familiar with how the netboot is constructed, is 
+there another way to have these drivers bundled in the netboot tar.gz 
+(CONF.sh?)?
+>
+> Best regards,
+> Marc
+>

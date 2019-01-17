@@ -1,0 +1,42 @@
+To : Ben Hildred <42656e@gmail.com>, 872577@bugs.debian.org, Ansgar Burchardt <ansgar@debian.org>
+Subject : Bug#872577: debootstrap: Handle existing /dev
+From : Philip Hands <phil@hands.com>
+Date : Sun, 20 Aug 2017 23:57:52 +0200
+Message-id : 87y3qdj40v.fsf@whist.hands.com
+Reply-to : Philip Hands <phil@hands.com>, 872577@bugs.debian.org
+In-reply-to : <[🔎] CAKcyEGqzrNv+XxVL4kqauhuEhvs-0=1u4=JT4P5BczygxiWjmg@mail.gmail.com>
+References : <[🔎] 20170818194803.clso7iv6eldeku5n@khazad-dum.debian.net> <[🔎] CAJAOzpAkVcO1aXdBKA=SSF_jDOCe_98FXRi0gNj_JVnMmd7dOA@mail.gmail.com> <CAJAOzpDchGOTubvN8BRNX6EDL7ST6Uxc3pSM+xoxtzwRbqVi_g__18216.9968764812$1503087324$gmane$org@mail.gmail.com> <[🔎] 87ziaubngi.fsf@deep-thought.43-1.org> <[🔎] CAJAOzpAkVcO1aXdBKA=SSF_jDOCe_98FXRi0gNj_JVnMmd7dOA@mail.gmail.com> <[🔎] CAKcyEGqzrNv+XxVL4kqauhuEhvs-0=1u4=JT4P5BczygxiWjmg@mail.gmail.com> <[🔎] CAJAOzpAkVcO1aXdBKA=SSF_jDOCe_98FXRi0gNj_JVnMmd7dOA@mail.gmail.com>
+
+
+Ben Hildred <42656e@gmail.com> writes:
+> On Sun, Aug 20, 2017 at 3:25 AM, Ansgar Burchardt <ansgar@debian.org> wrote:
+>
+>> Dan Nicholson writes:
+>> > On Fri, Aug 18, 2017 at 2:48 PM, Henrique de Moraes Holschuh
+>> > <hmh@debian.org> wrote:
+>> >> Wouldn't it be more straigthforward to "test -e || mknod" ?
+>> >
+>> > I definitely considered that, but it seemed more noisy to the code to
+>> > add a conditional for every call. But I'd be fine reworking to that
+>> > approach if that's more acceptable, though.
+>>
+>> You can always introduce a `mknod_if_not_exists` function or so.  Though
+>> I'm not sure this is worth here (the name is so long the `test -e` is
+>> almost shorter).
+>>
+>> Ansgar
+>>
+>>
+> function mknod-e () {
+>     [ -e "$1" ] || mknod "$@"
+> }
+$1 for mknod in this case is liable to be '-m'
+The attached patch might satisfy the quest for neatness.
+One could instead call the function something like
+ensure-exists-in-target and leave the /dev/'s on all the filenames, if
+that were considered clearer.
+Cheers, Phil.
+signature.asc-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY

@@ -1,0 +1,60 @@
+To : submit@bugs.debian.org
+Subject : Bug#875909: user-setup: Please drop set_special_users hack added for "the convenience of heavy testers"
+From : Chris Lamb <lamby@debian.org>
+Date : Fri, 15 Sep 2017 21:28:13 +0100
+Message-id : 1505507293.855179.1107668440.18296ECB@webmail.messagingengine.com
+Reply-to : Chris Lamb <lamby@debian.org>, 875909@bugs.debian.org
+
+
+Source: user-setup
+Version: 1.69
+Severity: normal
+Tags: patch
+Hey!
+Please drop the set_special_users hack added for "the convenience
+of heavy testers".
+Patch attached.
+Regards,
+-- 
+      ,''`.
+     : :'  :     Chris Lamb
+     `. `'`      lamby@debian.org / chris-lamb.co.uk
+       `-
+diff --git a/user-setup-ask b/user-setup-ask
+index 6176930..3609723 100755
+--- a/user-setup-ask
++++ b/user-setup-ask
+@@ -13,20 +13,6 @@ export ROOT
+ 
+ . /usr/lib/user-setup/functions.sh
+ 
+-# For the convenience of heavy testers
+-set_special_users() {
+-	local realname
+-	case "$fullname" in
+-	    bubulle)	realname="Christian PERRIER" ;;
+-	    tbm)	realname="Martin Michlmayr" ;;
+-	    *)		return 1 ;;
+-	esac
+-	db_set passwd/user-fullname "$realname"
+-	userdefault=$fullname
+-	db_fset passwd/username seen true
+-	return 0
+-}
+-
+ # Main loop starts here. Use a state machine to allow jumping back to
+ # previous questions.
+ STATE=0
+@@ -116,10 +102,8 @@ while :; do
+ 			if [ -z "$RET" ]; then
+ 				db_get passwd/user-fullname
+ 				fullname=$RET
+-				if ! set_special_users; then
+-					userdefault=$(echo "$fullname" | \
+-						sed 's/ .*//' | LC_ALL=C tr A-Z a-z)
+-				fi
++				userdefault=$(echo "$fullname" | \
++					sed 's/ .*//' | LC_ALL=C tr A-Z a-z)
+ 				if test -n "$userdefault" && \
+ 					LC_ALL=C expr "$userdefault" : '[a-z][-a-z0-9]*$' >/dev/null; then
+ 					db_set passwd/username "$userdefault"

@@ -1,0 +1,108 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#878499: user-setup: allow to preseed SSH public keys using dedicated variables
+From : Pierre-Louis Bonicoli <pierre-louis.bonicoli@libregerbil.fr>
+Date : Sat, 14 Oct 2017 04:40:41 +0200
+Message-id : 150794884183.21368.12184346670177171308.reportbug@seau.ir5.eu
+Reply-to : Pierre-Louis Bonicoli <pierre-louis.bonicoli@libregerbil.fr>, 878499@bugs.debian.org
+
+
+Package: user-setup
+Version: 1.71
+Severity: wishlist
+Tags: d-i patch
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+Dear Maintainer,
+It would be simpler to allow preseeding SSH public keys with variables,
+instead of using 'preseed/run' or 'preseed/late_command' (for example:  https://gitlab.com/misc/ansible-role-guest_virt_install/blob/8899507f73ebd059b602afa09d4a836ce3ab8765/templates/preseed/preseed.cfg#L86).
+- -- System Information:
+Debian Release: buster/sid
+  APT prefers unstable
+  APT policy: (700, 'unstable'), (500, 'unstable-debug'), (500, 'stable'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.11.0-2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=fr_FR.utf8, LC_CTYPE=fr_FR.utf8 (charmap=UTF-8), LANGUAGE=en_US:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages user-setup depends on:
+ii  adduser  3.116
+ii  debconf  1.5.63
+ii  passwd   1:4.4-4.1
+user-setup recommends no packages.
+user-setup suggests no packages.
+-----BEGIN PGP SIGNATURE-----
+iQHZBAEBCgBDFiEE2hN58Wu+NwqKa33GWZvjcrowp4wFAlnheSglHHBpZXJyZS1s
+b3Vpcy5ib25pY29saUBsaWJyZWdlcmJpbC5mcgAKCRBZm+NyujCnjIouC/9+9tgY
+XnhIVnD5Kzd/vmH6RWgPD2hSNV+CTb+0/9MSoj61hAXFz6Ce1K0FStouCSvkZ6MC
+hdlH1zOGLQnoprulToCE8+sCzcna47fqiqwAaAFt+E5BGdbsPfT/1sQl3ogMZ81Z
+J6I6c5iif1VUVc6rtOp5Y4iVxLi5lGwz+rWTUyUs38V/LTavaRlA7nrvpT3fkf+X
+XCR4BUWpcPhx710yS96FerMP4hzcm2himW19Zsm8XO8L2A/+1jDkn1qva94Tnj6f
+GI2XuC+jZfm1r97Vr6DuE9E2InIsuGKxK7F0qwuVAF8fYourv0fjlwA3nQMfjVeM
+lZqRhnRS3NF0R6oyhmt8X8376mIRAneVAYaLxBi2Sd/Cb2e5TYWQMgmGuLUuAn4/
+DVc2fW4UGoI0JOXkeuBnQR/nYexKU7szXhFVqVB23BRM2eY9wT/30s9KXpAS9vJS
+AD/rinrcn4J3Wx9JBPccc+qEqU0UyNY8Sta9vwvEttsjPEA7tlm/RcYYJKE=
+=aOZl
+-----END PGP SIGNATURE-----
+>From 12af91088c6d4e5e62a87e2ca5768a3a7fb9608c Mon Sep 17 00:00:00 2001
+From: Pierre-Louis Bonicoli <pierre-louis.bonicoli@libregerbil.fr>
+Date: Sat, 14 Oct 2017 03:29:39 +0200
+Subject: [PATCH] Allow preseeding SSH public keys
+---
+ debian/user-setup-udeb.templates | 10 ++++++++++
+ user-setup-apply                 | 13 +++++++++++++
+ 2 files changed, 23 insertions(+)
+diff --git a/debian/user-setup-udeb.templates b/debian/user-setup-udeb.templates
+index 45e16b4..570d76f 100644
+--- a/debian/user-setup-udeb.templates
++++ b/debian/user-setup-udeb.templates
+@@ -22,6 +22,16 @@ Type: string
+ Default: audio cdrom dip floppy video plugdev netdev scanner bluetooth debian-tor lpadmin
+ Description: for internal use only
+ 
++# Allow preseeding one SSH public key to root
++Template: passwd/root-ssh-public-key
++Type: string
++Description: for internal use only
++
++# Allow preseeding one SSH public key to the first created user
++Template: passwd/user-ssh-public-key
++Type: string
++Description: for internal use only
++
+ Template: passwd/root-login
+ Type: boolean
+ Default: true
+diff --git a/user-setup-apply b/user-setup-apply
+index f24ece2..806ef39 100755
+--- a/user-setup-apply
++++ b/user-setup-apply
+@@ -88,6 +88,12 @@ else
+ 	db_set passwd/root-password-again ''
+ fi
+ 
++if db_get passwd/root-ssh-public-key && [ "$RET" ]; then
++	$log $chroot $ROOT mkdir -p "/root/.ssh" >/dev/null || true
++	$log --pass-stdout echo "$RET" >> "$ROOT/root/.ssh/authorized_keys" || true
++	$log $chroot $ROOT chmod u=rwX,go= -R "/root/.ssh" >/dev/null || true
++fi
++
+ db_get passwd/make-user
+ if [ "$RET" = true ] && ! is_system_user; then
+ 	if db_get passwd/user-password-crypted && [ "$RET" ]; then
+@@ -145,6 +151,13 @@ if [ "$RET" = true ] && ! is_system_user; then
+ 		for group in $RET; do
+ 			$log $chroot $ROOT adduser "$USER" $group >/dev/null 2>&1 || true
+ 		done
++
++		if db_get passwd/user-ssh-public-key && [ "$RET" ]; then
++			$log $chroot $ROOT mkdir -p "/home/$USER/.ssh" >/dev/null || true
++			$log --pass-stdout echo "$RET" >> "$ROOT/home/$USER/.ssh/authorized_keys" || true
++			$log $chroot $ROOT chown -R "$USER:$USER" "/home/$USER/.ssh" >/dev/null || true
++			$log $chroot $ROOT chmod u=rwX,go= -R "/home/$USER/.ssh" >/dev/null || true
++		fi
+ 	fi
+ 
+ 	db_get passwd/root-login
+-- 
+2.14.1

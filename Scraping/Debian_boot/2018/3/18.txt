@@ -1,0 +1,29 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#891857: busybox: Special case for /32 subnets not working as expected
+From : Yuval Freund <yuval.freund@profitbricks.com>
+Date : Thu, 01 Mar 2018 17:55:52 +0100
+Message-id : 151992335209.18002.15117847152277743759.reportbug@ls00011
+Reply-to : Yuval Freund <yuval.freund@profitbricks.com>, 891857@bugs.debian.org
+
+
+Package: busybox
+Severity: normal
+Dear Maintainer,
+Many of our customers would like to use the debian installer in order to set up their own VMs. Our DHCP servers currently offer addresses with /32 subnets, and we've come to realize that the debian installer does not properly configure the default route.
+A fix for /32 has already been implemented in an earlier version of busybox, but it doesn't seem to work as expected, because the interface isn't defined while adding the relevant route.
+Here's a suggested fix, which would probably also clear up what I mean:
+##################################################################
+--- tree/debian/tree/busybox-udeb/etc/udhcpc/default.script     2018-03-01 15:45:33.000000000 +0100
++++ tree/debian/tree/busybox-udeb/etc/udhcpc/default.script_proposed    2018-03-01 15:47:37.259206527 +0100
+@@ -68,7 +68,7 @@
+                # special case for /32 subnets, use onlink when adding routes
+                [ ".$subnet" = .255.255.255.255 ] \
+-                        && onlink=onlink || onlink=
++                        && onlink="dev $interface onlink" || onlink=
+                for r in "$router"; do
+                        ip -4 route add default via "$r" $onlink
+                done
+##################################################################
+We would appreciate it if you could patch all current/relevant versions to use this fix.
+Thank you!
+Yuval Freund, ProfitBricks GmbH

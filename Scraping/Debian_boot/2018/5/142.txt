@@ -1,0 +1,47 @@
+To : Philipp Kern <pkern@debian.org>
+Subject : Re: debootstrap: [idea] force review before commit to master
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sun, 20 May 2018 09:19:00 +0900
+Message-id : 20180520091900.bd4452af5a430e3aef9084b0@iijmio-mail.jp
+In-reply-to : <[🔎] ca0f1ba3-ef5f-5d6e-126c-81f64f5de7d8@debian.org>
+References : <[🔎] 20180516165547.f7681d67fc442f8e40c15b60@iijmio-mail.jp>	<[🔎] f60d3c4a6e21c2e8f96cce9da65b9885@debian.org>	<[🔎] 20180517083615.GI18516@home.ouaza.com>	<[🔎] ca0f1ba3-ef5f-5d6e-126c-81f64f5de7d8@debian.org>
+
+
+On Fri, 18 May 2018 21:15:35 +0200
+Philipp Kern <pkern@debian.org> wrote:
+> I suppose the test harness is autopkgtest? Is there prior art on how to
+> set that up on Salsa? (Picking the backend and making sure that it
+> works, for instance.)
+ Usually I just put debian/.gitlab-ci.yml as below, build package and
+ kick autopkgtest automatically.
+---------------------------------------------------------------------
+image: debian:sid
+variables:
+# adjust to your source package
+  PKG: screenfetch
+stages:
+   - build
+   - autopkgtest
+package_build:
+  stage: build
+  script:
+    - echo "deb-src http://deb.debian.org/debian sid main" >> /etc/apt/sources.list && apt update -qq && apt build-dep ./ -y -qq
+    - apt install -y -qq dpkg-dev && dpkg-buildpackage -us -uc -b && mkdir build; cd ../; ls -al && mv ./${PKG}_*.deb ./${PKG}_*.changes ${PKG}/build/
+  artifacts:
+    paths:
+      - build/*.deb
+      - build/*.changes
+#piuparts:
+#  stage: piuparts
+#  script:
+#    - apt update -qq && apt install -y -qq piuparts
+#    - piuparts --mirror=http://deb.debian.org/debian --logfile=../piuparts.log --fail-on-broken-symlinks build/*.changes
+#  dependencies:
+#    - package_build
+autopkgtest:
+  stage: autopkgtest
+  script:
+    - apt update -qq && apt install -y -qq autopkgtest
+    - autopkgtest build/*.changes -- null
+  dependencies:
+    - package_build

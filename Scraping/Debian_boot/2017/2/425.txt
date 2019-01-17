@@ -1,0 +1,38 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#855399: debian-installer: EXTRAFILES copies all parent directories and does not copy directories
+From : Tshepang Lekhonkhobe <tshepang@gmail.com>
+Date : Fri, 17 Feb 2017 15:38:51 +0200
+Message-id : CAA77j2CFZGq=sOtf+V32Gknwu-Ep0PrveR4M=xA1SQoPyvUhpg@mail.gmail.com
+Reply-to : Tshepang Lekhonkhobe <tshepang@gmail.com>, 855399@bugs.debian.org
+
+
+Package: debian-installer
+Version: 20170127
+Severity: normal
+Adding 'EXTRAFILES = ~/foo/bar/baz' to config/local resulted in
+/home/tshepang/foo/bar directory initrd.
+Also, if 'baz' is a directory, it did not get copied.
+-- System Information:
+Debian Release: 9.0
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-1-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_ZA.UTF-8, LC_CTYPE=en_ZA.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+-- no debconf information
+diff --git a/build/Makefile b/build/Makefile
+index 88ccad9fd..8f87b1559 100644
+--- a/build/Makefile
++++ b/build/Makefile
+@@ -400,8 +400,8 @@ ifdef EXTRAFILES
+ 	# Copy in any extra files.
+ 	set -e; \
+ 	for file in $(EXTRAFILES); do \
+-		mkdir --parents $(TREE); \
+-		cp --archive --recursive $$file $(TREE); \
++		mkdir -p $(TREE)/`dirname $$file`; \
++		cp -a $$file $(TREE)/$$file; \
+ 	done
+ endif

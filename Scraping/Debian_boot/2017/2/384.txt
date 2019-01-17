@@ -1,0 +1,75 @@
+To : Ben Hutchings <ben@decadent.org.uk>, 817236@bugs.debian.org
+Subject : Bug#817236: schroot: no access to pseudo-terminals in new chroots
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 15 Feb 2017 11:13:39 +0000
+Message-id : 20170215105556.e6bewv3afshgn3es@perpetual.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 817236@bugs.debian.org
+In-reply-to : <1480156058.16599.52.camel@decadent.org.uk>
+References : <145751413473.6331.1324267589463806688.reportbug@deep-thought.43-1.org> <1478529616.1727.13.camel@decadent.org.uk> <20161120070325.GL21968@mraw.org> <20161125175431.df7uxctimmdfuw6p@bongo.bofh.it> <1480156058.16599.52.camel@decadent.org.uk>
+
+
+On Sat, 26 Nov 2016 at 10:27:38 +0000, Ben Hutchings wrote:
+> On Fri, 2016-11-25 at 18:54 +0100, Marco d'Itri wrote:
+> > setup_devices_simple() could be easily modified to create /dev/ptmx with 
+> > mknod instead of the current symlink.
+That's presumably:
+-       ln -s pts/ptmx $TARGET/dev/ptmx
++       mknod -m 666 $TARGET/dev/ptmx c 5 2
+That matches what cdebootstrap does, for what it's worth. (Was
+cdebootstrap meant to be used in d-i like cdebconf is, or is it just
+a trap for the unwary?)
+> > While this would solve this problem, it would also break again 
+> > debootstrap in containers (which was discussed in different bugs), so 
+> > I am not sure if it is a good idea.
+Am I correct in thinking that the issue you're talking about here is that
+the obvious solution (above) would break this scenario?
+* Obtain a rootfs for a container somehow (debootstrap or otherwise)
+* Launch a container with that rootfs, using some containerization
+  technology (which one?) that applies the same device-cgroup policy that
+  systemd's src/core/cgroup.c does:
+  - may read and write null, zero, full, random, urandom, tty, ptmx
+  - may mknod null, zero, full, random, urandom, tty but *not* ptmx
+* Inside that container, run debootstrap
+* Good result: debootstrap succeeds
+* Bad result: debootstrap fails to mknod $TARGET/dev/ptmx
+Or if it's something different, please could you describe it in similar
+terms?
+If debootstrap inside a container is meant to work, then this would seem
+like a job for an autopkgtest. I'll try to write one if someone can tell me
+which containerization technologies (systemd-nspawn? lxc? both? others?)
+are the ones of interest here.
+However, it seems to me that being able to create a chroot that can be
+chrooted into with currently-critical bits of Debian infrastructure
+(schroot, sbuild) *at all* is probably a higher priority for stretch
+than being able to create a conditionally-usable chroot from inside a
+container. (By "conditionally usable" I mean schroot/pbuilder can't use
+the resulting chroot but maybe systemd-nspawn can.)
+Regardless of whether people think sbuild+schroot is the best thing for
+the future, it's how current Debian buildds work, and how the next Debian
+stable's buildds will work unless sbuild changes extensively during the
+freeze, so anything that prevents it from working is de facto release
+critical for all releases <= buster.
+> The temporary workaround with /dev/ptmx could be made optional.  It's
+> not OK to break the previously working configurations.
+If I'm understanding the situation correctly then the next best thing would
+seem to be:
+-       ln -s pts/ptmx $TARGET/dev/ptmx
++       # Inside a container, we might not be allowed to create /dev/ptmx.
++       # If not, do the next best thing (but see #817236).
++       mknod -m 666 $TARGET/dev/ptmx c 5 2 || ln -s pts/ptmx $TARGET/dev/ptmx
+which would result in debootstrap inside a container continuing to create
+a /dev that current schroot etc. cannot successfully use (but that's maybe
+better than it failing completely?), whereas debootstrap outside a container
+would create a /dev that works fine?
+Is there a reason why mounting /dev/pts results in 000 permissions
+on /dev/pts/ptmx? That seems odd. If it didn't, then what debootstrap
+does would work.
+I notice that systemd creates a symlink when making a new namespace, but
+systemd also mounts /dev/pts with newinstance,ptmxmode=0666 when making a
+new namespace, and existing tools like schroot and pbuilder presumably
+don't do that. Should they? Or would that break the ability for an
+interactive shell inside the chroot to have its stdin/stdout/stderr
+point to the pty created by an xterm, screen or equivalent outside the
+chroot?
+Regards,
+    S

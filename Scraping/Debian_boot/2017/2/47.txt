@@ -1,0 +1,108 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#853927: debian-installer: Hang in os-prober in "dmsetup create -r osprober-linux-sda1"
+From : Bernhard Schmidt <berni@debian.org>
+Date : Fri, 10 Feb 2017 08:21:55 +0100
+Message-id : 97178096-6fe9-42fb-f3e2-3e5e91c5e3a4@debian.org
+Reply-to : Bernhard Schmidt <berni@debian.org>, 853927@bugs.debian.org
+In-reply-to : <[🔎] 20170210071137.GG17507@mraw.org>
+References : <[🔎] 148598352830.29157.16885692808004372139.reportbug@paver.krastavac> <[🔎] 20170202120414.GB9976@einval.com> <[🔎] 20170202160010.GF14512@mraw.org> <[🔎] 20170203111010.c4ia6ai7b7cwat5j@mail.sl.id.au> <[🔎] 20170203124216.GA24574@mraw.org> <[🔎] 20170204012303.ocafqxvppw2kyhbx@mail.sl.id.au> <[🔎] 20170204013240.GA23551@mraw.org> <[🔎] 20170207123440.GA10326@fliwatuet.svr02.mucip.net> <[🔎] 20170210071137.GG17507@mraw.org>
+
+
+Am 10.02.2017 um 08:11 schrieb Cyril Brulebois:
+Hi Cyril,
+> Bernhard Schmidt <berni@debian.org> (2017-02-07):
+>> On Sat, Feb 04, 2017 at 02:32:40AM +0100, Cyril Brulebois wrote:
+>> I'm having the same problem with Stretch *RC2* and without Crypto
+>>
+>> ~ # blkid
+>> /dev/mapper/sysvg-root:    UUID="62e90454-25b4-4803-b9c3-8ea1337b919a"    TYPE="ext4"
+>> /dev/sda1:                 UUID="arFRxm-N1ki-U3JC-S3dB-hHSI-mEux-xtnoos"  TYPE="LVM2_member"  PARTUUID="3629c5e6-01"
+>> /dev/mapper/sysvg-swap_1:  UUID="c4b8fc97-102c-4d59-b4e8-3d2600bd7eca"    TYPE="swap"
+>> /dev/dm-3:                 UUID="arFRxm-N1ki-U3JC-S3dB-hHSI-mEux-xtnoos"  TYPE="LVM2_member"
+>>
+>> Extract from the process list
+>>
+>>  1097 root      6416 S    udpkg --configure --force-configure grub-installer
+>>  1098 root      4512 S    {grub-installer.} /bin/sh -e /var/lib/dpkg/info/grub-installer.postinst configure
+>>  1107 root      4512 S    {grub-installer} /bin/sh /usr/bin/grub-installer /target
+>>  2279 root      4512 S    {in-target} /bin/sh /bin/in-target update-grub
+>>  2325 root      6276 S    log-output -t in-target chroot /target update-grub
+>>  2326 root      4288 S    {grub-mkconfig} /bin/sh /usr/sbin/grub-mkconfig -o /boot/grub/grub.cfg
+>>  2693 root      4288 S    {30_os-prober} /bin/sh /etc/grub.d/30_os-prober
+>>  2697 root      4288 S    {30_os-prober} /bin/sh /etc/grub.d/30_os-prober
+>>  2698 root      4288 S    {os-prober} /bin/sh /usr/bin/os-prober
+>>  2699 root      5864 S    tr   ^
+>>  2700 root      5844 S    paste -s -d  
+>>  2767 root      4288 S    {50mounted-tests} /bin/sh /usr/lib/os-probes/50mounted-tests /dev/sda1
+>> -tests /dev/sda14288 S    {50mounted-tests} /bin/sh /usr/lib/os-probes/50mounted--More-- 
+>>  2778 root     22592 S    dmsetup create -r osprober-linux-sda1
+>>  2780 root         0 SW<  [kdmflush]
+>>  2782 root         0 SW<  [bioset]
+> 
+> Can you please double check the os-prober version you've installed? You
+> can use this from another VT during the installation process:
+>   chroot /target dpkg -l os-prober
+> 
+> I'm rather surprised by your issue given we've tried to fix exactly this
+> one, and tests seemed OK, but maybe you're using a mirror which might be
+> lagging behind? (os-prober might be on your installation image though,
+> but you haven't told us what you used.)
+> 
+> Expected fixed version is 1.74; affected versions are 1.72 and 1.73.
+The installation log from the box says 1.74
+syslog:Feb  7 12:18:36 anna[2942]: DEBUG: retrieving os-prober-udeb 1.74
+syslog:Feb  7 12:18:36 anna[2942]: 2017-02-07 12:18:36
+URL:http://debian.mirror.lrz.de/debian/pool/main/o/os-prober/os-prober-udeb_1.74_amd64.udeb
+[14548/14548] ->
+"/var/cache/anna/_fetch-url_os-prober-udeb_1.74_amd64.udeb.4490" [1]
+syslog:Feb  7 12:27:16 in-target:   gettext-base libfreetype6 libfuse2
+libpng16-16 os-prober
+syslog:Feb  7 12:27:16 in-target:   gettext-base grub-common
+libfreetype6 libfuse2 libpng16-16 os-prober
+syslog:Feb  7 12:27:16 in-target: Get:6
+http://debian.mirror.lrz.de/debian stretch/main amd64 os-prober amd64
+1.74 [30.1 kB]
+syslog:Feb  7 12:27:20 in-target: Selecting previously unselected
+package os-prober.^M
+syslog:Feb  7 12:27:20 in-target: Preparing to unpack
+.../5-os-prober_1.74_amd64.deb ...^M
+syslog:Feb  7 12:27:20 in-target: Unpacking os-prober (1.74) ...^M
+etc
+Here are the relevant lines
+Feb  7 12:27:44 grub-installer: info: grub-install ran successfully
+Feb  7 12:27:45 in-target: Reading package lists...
+Feb  7 12:27:45 in-target:
+Feb  7 12:27:45 in-target: Building dependency tree...
+Feb  7 12:27:46 in-target:
+Feb  7 12:27:46 in-target: Reading state information...
+Feb  7 12:27:46 in-target:
+Feb  7 12:27:48 in-target: grub-common is already the newest version
+(2.02~beta3-4).
+Feb  7 12:27:48 in-target: 0 upgraded, 0 newly installed, 0 to remove
+and 0 not upgraded.
+Feb  7 12:27:52 kernel: [  608.318133] QNX4 filesystem 0.2.3 registered.
+Feb  7 13:27:52 os-prober: debug: running
+/usr/lib/os-probes/50mounted-tests on /dev/sda1
+Feb  7 13:27:52 50mounted-tests: debug: creating device mapper device
+/dev/mapper/osprober-linux-sda1
+Feb  7 13:37:57 os-prober: debug: running
+/usr/lib/os-probes/50mounted-tests on /dev/mapper/sysvg-remove
+Feb  7 13:37:57 50mounted-tests: debug: /dev/mapper/sysvg-remove type
+not recognised; skipping
+Feb  7 13:37:57 os-prober: debug: os detected by
+/usr/lib/os-probes/50mounted-tests
+Feb  7 13:37:57 os-prober: debug: /dev/mapper/sysvg-swap_1: is active swap
+Feb  7 13:37:59 os-prober: debug: running
+/usr/lib/os-probes/50mounted-tests on /dev/sda1
+Feb  7 13:37:59 50mounted-tests: debug: creating device mapper device
+/dev/mapper/osprober-linux-sda1
+Feb  7 13:37:59 os-prober: debug: running
+/usr/lib/os-probes/50mounted-tests on /dev/mapper/sysvg-remove
+Feb  7 13:37:59 50mounted-tests: debug: /dev/mapper/sysvg-remove type
+not recognised; skipping
+Feb  7 13:37:59 os-prober: debug: os detected by
+/usr/lib/os-probes/50mounted-tests
+Feb  7 13:37:59 os-prober: debug: /dev/mapper/sysvg-swap_1: is active swap
+The ~10 minute wait was not a timeout, I simply killed the process then.
+I'm using RC2 netboot via PXE.
+Bernhard

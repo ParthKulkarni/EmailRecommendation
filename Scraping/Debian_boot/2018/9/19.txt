@@ -1,0 +1,28 @@
+To : "debian-boot@lists.debian.org" <debian-boot@lists.debian.org>
+Subject : partman crypto changed passphrase of previously encrypted volume
+From : crotamine <crotamine@protonmail.com>
+Date : Mon, 03 Sep 2018 10:35:51 +0000
+Message-id : id5nxx1LXQbwdCf9u9slOihBuuqSnDvGWy6R4bSzrgKlkMptB-KNttxWBLyMQNzQXumxKzzKglYVQyXpcEzOY53q62ORDHmDiA7YlO-Phz8=@protonmail.com
+Reply-to : crotamine <crotamine@protonmail.com>
+
+
+Dear all,
+short version of the issue: in partman the passphrase of a previously encrypted volume was changed (or added) by mistake. The data on this volume was not flagged for removal. Installation was cancelled. Later after manually 'decrypting' this volume it was found that the ‘new’ password could decrypt the volume, but data could not be read. What was the command issued by partman to do this? And how to revert to the old password?
+More detailed description of the steps that led to this problem:
+I have made a silly mistake involving one of my encrypted volumes. I was reinstalling Debian and through the debian-installer partition manager and disk setup utility I wanted
+(1) to mount my already encrypted volume (a RAID1 volume, that was perfectly recognized and configured by mdadm in the installer) with its original key, and use it as /home;
+and (2) format my ssd, encrypt it with a new key, and mount it as root /
+So what I did:
+(1.1) I selected /dev/md0 and flagged it as ‘physical drive for encryption’; I set no to ‘Erase data’ and kept all the other settings at their defaults (dm-crypt, aes, 256, xts-plain64, passphrase);
+(1.2) I configured the other drive for encryption, all options at their defaults.
+(2) then I entered the ‘Configure encrypted volumes’ utility, and I selected /dev/md0 (crypto); and /dev/sda5; and finished.
+(3) and then, I made the mistake to misread during the next step, and I entered the wrong password (!) for my already encrypted volume /dev/md0.
+At the next prompt, asking me for the passphrase of the ssd /dev/sda5, I realized what just had happened, and that I entered the wrong password for my already encrypted volume, and that this password got accepted!
+I got spooked and I decided to cancel this particular installation, reinstall everything without touching /dev/md0, and mount that volume after the system has finished installing and is running...
+Done, in the running system I found mdadm was doing her job and both disks were running in RAID1. However, upon mounting the (previously) encrypted volume /dev/md0, I found that my original password was no longer working. Indeed, the new passphrase (i.e., the one I mistakenly entered during the failed/cancelled installation) could decrypt the volume! The volume could not successfully be mounted because there was no filesystem recognized.
+Now, I have the following questions to the debian-installer list:
+(1) during installation: with what command does the partition manager insert a password for an encrypted volume of which the data is NOT to be erased?
+and (2) what should be my course of action to retrieve my precious /home data from that volume (if possible at all??!)? E.g. change the password to original? Doubly decrypt?? All help is greatly appreciated.
+Thank you in advance,
+And of course thanks for providing an otherwise robust and lovely installer,
+crotamine

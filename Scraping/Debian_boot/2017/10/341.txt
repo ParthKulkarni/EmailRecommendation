@@ -1,0 +1,81 @@
+To : Raphael Hertzog <hertzog@debian.org>, 868900@bugs.debian.org
+Subject : Bug#868900: iso-scan: should be able to copy the ISO into RAM before mount
+From : Colin Watson <cjwatson@debian.org>
+Date : Sun, 29 Oct 2017 16:07:35 +0000
+Message-id : 20171029160734.f546blvknulcihka@riva.ucam.org
+Reply-to : Colin Watson <cjwatson@debian.org>, 868900@bugs.debian.org
+In-reply-to : <20170719151921.rggjusncu3fkny4i@home.ouaza.com>
+References : <20170719151921.rggjusncu3fkny4i@home.ouaza.com> <20170719151921.rggjusncu3fkny4i@home.ouaza.com>
+
+
+On Wed, Jul 19, 2017 at 05:19:21PM +0200, Raphael Hertzog wrote:
+> When you use an ISO image stored on a disk, it makes it impossible to
+> re-use that disk in the installation process (e.g. for automatic
+> partitioning).
+> 
+> In order to avoid this limitation, I would like iso-scan to be able
+> to copy the ISO image into RAM and to mount it from there. The attached
+> patch implements precisely when the debconf question "iso-scan/copy_iso_to_ram"
+> returns true.
+> 
+> It would be nice to see this merged (the patch applies cleanly on top
+> of the one in #868859, but you can also merge it separately if you drop
+> the changelog entry).
+> 
+> Let me know if there's anything to improve before it's ready to be merged
+> (notably on the debconf template, etc.).
+This generally seems like a nice feature to have.  A couple of general
+UX comments:
+ * Would it be worth doing an explicit check of how much free memory is
+   available and either warning the user or just refusing outright to do
+   the copy-to-RAM operation if they don't have enough (size of image
+   plus fudge factor)?  As it is, the user really doesn't have much
+   information to go on when answering this question; they'd have to
+   switch to a shell just to find out how much free memory they have.
+   Normally this sort of test would be very unreliable, but in the
+   context of d-i I think it could be made somewhat reasonable.
+ * We should warn the user that, if they opt to copy the image into RAM,
+   then they mustn't reboot between partitioning and the end of the
+   installation as their installation media may be made unusable.
+   (Wordsmithing this into something comprehensible is left as an
+   exercise for the reader.)
+diff --git a/debian/iso-scan.postinst b/debian/iso-scan.postinst
+index e34f329..1109ba5 100755
+--- a/debian/iso-scan.postinst
++++ b/debian/iso-scan.postinst
+@@ -203,9 +203,26 @@ use_this_iso () {
+        local iso_device=$2
+        local RET
++       db_input low iso-scan/copy_iso_to_ram || true
++       db_go
++       db_get iso-scan/copy_iso_to_ram
++
+        mount -t auto -o ro $iso_device /hd-media 2>/dev/null
+        cd /hd-media
+-       mount -t iso9660 -o loop,ro,exec $iso_to_try /cdrom 2>/dev/null
++
++       if [ "$RET" = false ]; then
++               # Direct mount
++               log "Mounting /hd-media/$iso_to_try on /cdrom"
++               mount -t iso9660 -o loop,ro,exec $iso_to_try /cdrom 2>/dev/null
++       else
++               # We copy the ISO to RAM before mounting it
++               log "Copying /hd-media/$iso_to_try to /installer.iso"
++               cp $iso_to_try /installer.iso
++               log "Mounting /installer.iso on /cdrom"
++               mount -t iso9660 -o loop,ro,exec /installer.iso /cdrom
++2>/dev/null
++               cd /
++               umount /hd-media
++       fi
+        analyze_cd
+The directory-changing here is messy, and left me wondering whether
+analyze_cd might depend on the current directory, which is now different
+depending on which option you select.  I don't think it does, but I had
+to read that function to make sure.  I'd suggest simplifying this
+section of code by mounting or copying by absolute path, i.e.
+"/hd-media/$iso_to_try", rather than relying on it being in the current
+directory; you then won't need either "cd /hd-media" or "cd /" in this
+function.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

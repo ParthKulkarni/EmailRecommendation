@@ -1,0 +1,55 @@
+To : Dimitri John Ledkov <xnox@debian.org>, 886968@bugs.debian.org
+Subject : Re: Bug#886968: btrfs-progs-udeb: depends on non-udeb: libzstd1
+From : Nicholas D Steeves <nsteeves@gmail.com>
+Date : Thu, 22 Feb 2018 18:56:31 -0500
+Message-id : 20180222235627.ujclgzbwp63rj4le@navis
+In-reply-to : <CANBHLUiZ3wV4m8LjQ01_1==O34dg7EQu7AVRgeiCKL3drGEg6A@mail.gmail.com>
+References : <151571322653.16403.9246774229958587686.reportbug@armor.home> <20180115002702.eiwbeol2whkh74da@mraw.org> <151571322653.16403.9246774229958587686.reportbug@armor.home> <CANBHLUiZ3wV4m8LjQ01_1==O34dg7EQu7AVRgeiCKL3drGEg6A@mail.gmail.com>
+
+
+On Mon, Jan 15, 2018 at 02:20:28PM +0000, Dimitri John Ledkov wrote:
+> On 15 January 2018 at 00:27, Cyril Brulebois <kibi@debian.org> wrote:
+> > Hi,
+> >
+> > Cyril Brulebois <kibi@debian.org> (2018-01-12):
+> >> Your package is no longer installable (along with its rev-dep
+> >> partman-btrfs) because it now depends on libzstd1, which isn't
+> >> a udeb.
+> >
+> > It seems zstd is only an option for btrfs-progs, and I've just confirmed
+> > that setting --disable-zstd on the dh_auto_configure line lets btrfs-progs
+> > build just fine, without the libzstd1 dependency. As far as I can tell,
+> > there's no absolute need for this feature in d-i, and we could consider
+> > building the udeb without zstd support, instead of requesting the addition
+> > of a libzstd1-udeb. What do you think?
+> >
+> 
+> That's an oversight on my part. From the recovery point of view, it
+> would be desired to have zstd compression support built-into
+> btrfs-progs-udeb such that one can use d-i recovery mode to
+> backup/restore btrfs filesystems with zstd compression.
+> 
+> -- 
+> Regards,
+> 
+> Dimitri.
+Hi Cyril! 
+I agree that it's not essential for d-i; although, it's worth
+mentioning that zstd seems like it will more likely satisfy users who
+are coming from zfs' "lz4 compression is usually beneficial" school of
+thought than lzo will.
+Dmitri, does btrfs send/receive actually require userspace libzstd?
+Or is it needed for defrag? (rewrites files, and also optionally
+applies, removes, or changes compression type) I'm guessing that
+btrfs-check requires it. (check --repair is, broadly speaking,
+equivalent to 'fsck.ext4 -p')
+The worst-case d-i bloat for an official arch seems to be 193.4kB for
+i386, before compression.  Would you please 'reassign -1 libzstd' if
+you agree that Debian's rescue mode should support cloning/restoring
+subvolumes with compressed files, and/or being able to repair the
+(unmounted) rootfs?  It seems strange that buster's initramfs has this
+functionality and that rescue mode doesn't.  Alternatively, the btrfs
+binary in the udeb could be statically linked...
+Thanks,
+Nicholas
+signature.asc

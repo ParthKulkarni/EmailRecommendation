@@ -1,0 +1,41 @@
+To : Tshepang Lekhonkhobe <tshepang@gmail.com>, 855399@bugs.debian.org
+Subject : Bug#855399: debian-installer: EXTRAFILES copies all parent directories and does not copy directories
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 19 Feb 2017 00:26:31 +0100
+Message-id : 20170218232631.GB30768@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 855399@bugs.debian.org
+In-reply-to : <[🔎] CAA77j2CFZGq=sOtf+V32Gknwu-Ep0PrveR4M=xA1SQoPyvUhpg@mail.gmail.com>
+References : <[🔎] CAA77j2CFZGq=sOtf+V32Gknwu-Ep0PrveR4M=xA1SQoPyvUhpg@mail.gmail.com>
+
+
+Hi,
+Tshepang Lekhonkhobe <tshepang@gmail.com> (2017-02-17):
+> Adding 'EXTRAFILES = ~/foo/bar/baz' to config/local resulted in
+> /home/tshepang/foo/bar directory initrd.
+> Also, if 'baz' is a directory, it did not get copied.
+Please note it's called EXTRA*FILES* so I'm not really surprised that it
+works on files instead of on directories… Anyway, you could just put the
+files you need in the build/ directory, that works well with:
+    EXTRA_FILES = foo/bar/baz/*
+If you have several levels, you can use this instead:
+    EXTRAFILES = `find foo -type f`
+If anything, I think we should improve (as in: write) documentations in
+build/README instead of changing a long standing behaviour which might
+be relied on.
+By the way, this patch seems to be reversed:
+> diff --git a/build/Makefile b/build/Makefile
+> index 88ccad9fd..8f87b1559 100644
+> --- a/build/Makefile
+> +++ b/build/Makefile
+> @@ -400,8 +400,8 @@ ifdef EXTRAFILES
+>  	# Copy in any extra files.
+>  	set -e; \
+>  	for file in $(EXTRAFILES); do \
+> -		mkdir --parents $(TREE); \
+> -		cp --archive --recursive $$file $(TREE); \
+> +		mkdir -p $(TREE)/`dirname $$file`; \
+> +		cp -a $$file $(TREE)/$$file; \
+>  	done
+>  endif
+KiBi.
+signature.asc

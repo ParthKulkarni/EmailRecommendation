@@ -1,0 +1,63 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#862369: debian-installer: Manual installation with root on lvm/raid 1  does not boot
+From : Alfred Grimstad <agrimstad@gmail.com>
+Date : Mon, 15 May 2017 14:54:27 -0400
+Message-id : 1494874467.20394.23.camel@gmail.com
+Reply-to : Alfred Grimstad <agrimstad@gmail.com>, 862369@bugs.debian.org
+In-reply-to : <[🔎] 20170515183811.GC20460@mraw.org>
+References : 	<[🔎] 149453420501.4467.7389718269535465541.reportbug@hack.hollis.local>	 <[🔎] 20170515162141.GB20460@mraw.org> <[🔎] 1494871121.20394.12.camel@gmail.com>	 <[🔎] 20170515183811.GC20460@mraw.org>
+
+
+On Mon, 2017-05-15 at 20:38 +0200, Cyril Brulebois wrote:
+> Control: tag -1 - moreinfo
+> 
+> Alfred Grimstad <agrimstad@gmail.com> (2017-05-15):
+> > Writing to both /dev/sda and /dev/sdb both seemed to work in the normal
+> > fashion during the main install process, which I've done with the Debian
+> > installer many times. There was no error indication.
+> 
+> Thanks for your syslog. This feels strange, looking at grub-installer lines:
+> | May 11 16:47:24 grub-installer: info: Installing grub on ''
+> | May 11 16:48:33 grub-installer: info: Installing grub on '/dev/sdb'
+> 
+> Did you pick manual selection, and entered "/dev/sda /dev/sdb" as a
+> destination? There's no indication grub-install was called with /dev/sda
+> as a parameter, which would likely explain why your installation didn't
+> boot if your BIOS/EFI is looking at the MBR on sda/the first disk only.
+When I get to the end of the installation process and it's time to
+configure grub, I only select one disk, i.e., /dev/sda. To get grub
+installed on the second disk I always go through that final part of the
+installation again--before it's time to boot the new installation for
+the first time--to select the other drive, i.e., /dev/sdb. I can't quite
+remember, but I believe the way one selects is to choose one from a menu
+(/dev/sda, /dev/sdb, /dev/md0), not enter the path in a text field
+--which would permit listing both or any other stupid path or paths,
+opening up the opportunity to introduce an error.
+> > I ran this option twice, once for /dev/sda and again for /dev/sdb.
+> > Based on what was written on the screen, this was equivalent to
+> > running:
+> > 
+> > grub-install /dev/sd{a|b}. After that, stretch booted.
+> 
+> It should be, yeah.
+> 
+> > OK. I found /var/log/installer/syslog. I gzipped it and have attached
+> > to this message. I guess you're asking that I add it to the bug
+> > report, which I'll also try to do.
+> 
+> Perfect, thanks.
+> 
+> > > I haven't tried LVM-on-RAID1 without separate /boot yet, so I'm not
+> > > sure it's expected to work directly; but I know for sure that
+> > > LVM-on-RAID1 with separate /boot should work just fine.
+> > 
+> > Since it was so easy for me to fix, I want to think that it wouldn't
+> > take much to tweak the installer to handle this case correctly too. I
+> > hope so, anyway. -- al
+> 
+> I'll wait for an answer to my question above before, but I'd tend to
+> think there's something fishy; so let's try and figure what and how to
+> fix/improve.
+> 
+> 
+> KiBi.

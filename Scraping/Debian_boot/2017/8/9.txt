@@ -1,0 +1,59 @@
+To : noone never <mr.somebody@gmx.ch>, 870430@bugs.debian.org
+Subject : Re: Bug#870430: linux-image-4.9.0-3-marvell: Couldn't find DTB  in /usr/lib/linux-image-4.9.0-3-marvell or /etc/flash-kernel/dtbs
+From : Ian Campbell <ijc@debian.org>
+Date : Wed, 02 Aug 2017 09:03:01 +0100
+Message-id : 1501660981.29118.24.camel@debian.org
+In-reply-to : <trinity-9e6a25e4-2e0c-4c19-af3b-40b2fadb736c-1501623562455@3capp-gmx-bs64>
+References : 	<trinity-9e6a25e4-2e0c-4c19-af3b-40b2fadb736c-1501623562455@3capp-gmx-bs64>
+
+
+Control: reassign -1 src:flash-kernel 3.79
+On Tue, 2017-08-01 at 23:39 +0200, noone never wrote:
+> Package: src:linux
+> Version: 4.9.30-2+deb9u2
+> Severity: important
+> Dear Maintainer,
+> 
+> When I dist-upgrade my Sheevaplug from jessie to stretch, I get this error:
+> Couldn't find DTB  in /usr/lib/linux-image-4.9.0-3-marvell or /etc/flash-kernel/dtbs
+> The file /usr/lib/linux-image-4.9.0-3-marvell does exist in the filesystem.
+> [...]
+> /usr/share/flash-kernel/functions: line 155: warning: command substitution: ignored null byte in input
+> I: The initramfs will attempt to resume from /dev/sda3
+> I: (UUID=6fcd0aea-6301-4c47-a3fd-9f5eb2c1f8b5)
+> I: Set the RESUME variable to override this.
+> W: mdadm: /etc/mdadm/mdadm.conf defines no arrays.
+> /usr/share/flash-kernel/functions: line 155: warning: command substitution: ignored null byte in input
+> Using DTB: kirkwood-sheevaplug.dtb
+> Couldn't find DTB  in /usr/lib/linux-image-4.9.0-3-marvell or /etc/flash-kernel/dtbs
+These errors are from the flash-kernel hook rather than the kernel
+package. You seem to be running stable so I have tagged it as being in
+the stable version (3.79) and reassigned. Please let me know if this is
+an incorrect assumption.
+It says it is looking for "kirkwood-sheevaplug.dtb" and from [0] the
+file /usr/lib/linux-image-4.9.0-3-marvell/kirkwood-sheevaplug.dtb is
+present in the package -- I suppose it is also present on your
+filesystem?
+The message:
+    Couldn't find DTB  in /usr/lib/linux-image-4.9.0-3-marvell or /etc/flash-kernel/dtbs
+is interesting since the double space in "DTB  in" is supposed to
+contain $dtb_name, i.e. the path to look for, but it doesn't not.
+Please could you attach the full output of running `sh -x
+/usr/sbin/flash-kernel`, maybe that will include a clue as to where
+things have gone astray.
+There is also the warning from line 155 of `functions` is
+`machine="$(get_dt_model)"` where:
+    PROC_DTMODEL="${FK_PROC_DRMODEL:-/proc/device-tree/model}"
+    [...]
+    get_dt_model() {
+            cat "$PROC_DTMODEL"
+    }
+Assuming you haven't had cause to override FK_PROC_DRMODEL (note typo
+in there), does /proc/device-tree/model exist on your system, and if so
+what does it contain? The output of `cat -vet /proc/device-tree/model`
+might be informative since it will escape any special characters and
+make them visible. I suspect this is a harmless trailing nul and it
+seems like it is correctly deciding to use kirkwood-sheevaplug.dtb so
+this "ignored null byte" message may just be a benign warning.
+Ian.
+[0] https://packages.debian.org/stretch/armel/linux-image-4.9.0-3-marvell/filelist

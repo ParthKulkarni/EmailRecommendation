@@ -1,0 +1,35 @@
+To : debian-boot@lists.debian.org, Christian PERRIER <bubulle@debian.org>
+Subject : Speeding up l10n/calc-release-status
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 25 Jun 2017 03:29:39 +0200
+Message-id : 20170625012939.GA5198@mraw.org
+
+
+Hi,
+It's been an annoyance during all releases: this script processes all
+packages in turn, and that takes quite a while. I've tried to make it
+run in parallel by defining a function and calling parallel on it, but
+it would need a few other functions and variables to be exported as
+well, so I've taken an easier route and split the interesting part into
+a calc-release-status-helper script, to be called for each and every
+package.
+Now, calc-release-status will treat packages in a parallel manner, using
+as many cores as available, and it now finishes in under 3 minutes on my
+d-i development machine, which makes me quite happy. :)
+Other consequence: output will no longer be sorted by package name due
+to parallelism.
+Current errors are:
+E: error getting madison info for partman-newworld for 'testing'
+E: error getting madison info for partman-zfs for 'testing'
+E: error getting madison info for prep-installer for 'testing'
+E: error getting madison info for quik-installer for 'testing'
+E: error getting madison info for yaboot-installer for 'testing'
+partman-zfs is kfreebsd-* only; others are powerpc-specific, which is no
+longer a release architecture. Christian, which update would be the best
+one to reflect those changes? Add a minus sign after those packages in
+packages_list? Or remove them from there entirely?
+Note: It's still on my todo list to make it run on dillon regularly,
+instead of waiting until release day to possibly notice missing git
+pushes (see bug report #762055).
+KiBi.
+signature.asc

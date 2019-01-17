@@ -1,0 +1,83 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#892323: busybox: Broken DHCP setup with multiple gateways
+From : Philipp Hahn <hahn@univention.de>
+Date : Thu, 08 Mar 2018 11:50:39 +0100
+Message-id : 152050623900.6513.13085851192268588810.reportbug@ivar.knut.univention.de
+Reply-to : Philipp Hahn <hahn@univention.de>, 892323@bugs.debian.org
+
+
+Package: busybox
+Version: 1:1.22.0-19+b3
+Severity: normal
+Dear Maintainer,
+   * What led up to the situation?
+Trying a installation in our local network.
+   * What exactly did you do (or not do) that was effective (or
+     ineffective)?
+DHCP is configured to server *two* IPv4 gateways.
+   * What was the outcome of this action?
+Debian-Installer fails to setup IPv4 networking.
+Claims that "no routers" were configured.
+   * What outcome did you expect instead?
+A working network configuration.
+See attached patch.
+-- System Information:
+Debian Release: 9.3
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-5-amd64 (SMP w/4 CPU cores)
+Locale: LANG=de_DE.UTF-8, LC_CTYPE=de_DE.UTF-8 (charmap=UTF-8), LANGUAGE=de:en_US (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages busybox depends on:
+ii  libc6  2.24-11+deb9u1
+busybox recommends no packages.
+busybox suggests no packages.
+-- no debconf information
+>From ac604eb2e37cb67a1133cc9bf78287c755fc70a4 Mon Sep 17 00:00:00 2001
+Message-Id: <ac604eb2e37cb67a1133cc9bf78287c755fc70a4.1520505761.git.hahn@univention.de>
+From: Philipp Hahn <hahn@univention.de>
+Date: Thu, 8 Mar 2018 11:27:59 +0100
+Subject: [PATCH] Allow multiple routers
+Organization: Univention GmbH, Bremen, Germany
+According to <https://udhcp.busybox.net/README.udhcpc> "$router" is "A
+*list* of routers", so do not quote it to allow IFS splitting.
+Running the following command by hand shows the error:
+  udhcpc -i ens3 -V d-i -T 1 -t 59 -O router -f
+...
+  ip: an inet address is expected rather than "192.168.10.13 192.168.10.14"
+Fixes: 574355f4380bd7ede11e5110fffefb51f1294b0b
+Cc: Otavio Salvador <otavio@debian.org>
+---
+ debian/tree/busybox-udeb/etc/udhcpc/default.script | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+diff --git a/debian/tree/busybox-udeb/etc/udhcpc/default.script b/debian/tree/busybox-udeb/etc/udhcpc/default.script
+index a47bdae7e..3c33effd3 100755
+--- a/debian/tree/busybox-udeb/etc/udhcpc/default.script
++++ b/debian/tree/busybox-udeb/etc/udhcpc/default.script
+@@ -59,7 +59,7 @@ case "$1" in
+ 
+ 	bound|renew)
+ 		do_hostname
+-		
++
+ 		ip -4 addr add "$ip/$subnet" dev "$interface"
+ 
+ 		if [ -n "$mtu" ]; then
+@@ -69,8 +69,10 @@ case "$1" in
+ 		# special case for /32 subnets, use onlink when adding routes
+ 		[ ".$subnet" = .255.255.255.255 ] \
+ 			 && onlink=onlink || onlink=
+-		for r in "$router"; do
+-			ip -4 route add default via "$r" $onlink
++		metric=0
++		for r in $router; do
++			ip -4 route add default via "$r" $onlink metric $metric
++			metric=$((1+$metric))
+ 		done
+ 
+ 		do_resolv_conf
+-- 
+2.11.0

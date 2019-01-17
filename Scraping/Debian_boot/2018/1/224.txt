@@ -1,0 +1,92 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#887358: debdiff: doesn't autocomplete on udeb files
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 15 Jan 2018 12:58:27 +0000
+Message-id : 151602110778.17186.12916645588874083347.reportbug@wodi
+Reply-to : Cyril Brulebois <kibi@debian.org>, 887358@bugs.debian.org
+
+
+Package: devscripts
+Version: 2.17.12
+Severity: normal
+Tags: d-i patch
+Hi,
+debdiff doesn't want to autocomplete on udeb files, which is slightly
+annoying. The attached patch seems to do the job, even if there are
+probably smarter ways to implement this (grouping *.deb and *.udeb
+together); but I'm no bash expert.
+Thanks for considering.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+>From f48f44d26435fbd6cba67a6341f47d6ef42c71f1 Mon Sep 17 00:00:00 2001
+From: Cyril Brulebois <kibi@debian.org>
+Date: Mon, 15 Jan 2018 11:59:17 +0000
+Subject: [PATCH] debdiff: Make bash completion consider *.udeb files the same
+ way as *.deb files.
+---
+ debian/changelog                |  4 ++++
+ scripts/debdiff.bash_completion | 10 ++++++++--
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+diff --git a/debian/changelog b/debian/changelog
+index 16b7a528..f74b8263 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -25,6 +25,10 @@ devscripts (2.18.1) UNRELEASED; urgency=medium
+   * debrepro:
+     + Add a --help option and include options description in the usage output.
+ 
++  [ Cyril Brulebois ]
++  * debdiff:
++    + Make bash completion consider *.udeb files the same way as *.deb files.
++
+  -- Mattia Rizzolo <mattia@debian.org>  Wed, 03 Jan 2018 14:31:54 +0100
+ 
+ devscripts (2.17.12) unstable; urgency=medium
+diff --git a/scripts/debdiff.bash_completion b/scripts/debdiff.bash_completion
+index 12405684..4a34c118 100644
+--- a/scripts/debdiff.bash_completion
++++ b/scripts/debdiff.bash_completion
+@@ -75,17 +75,23 @@ _debdiff () {
+             file_list_mode=from
+         elif [[ $file_list_mode == normal && ${words[i]} == *.deb ]]; then
+             file_list_mode=deb
++        elif [[ $file_list_mode == normal && ${words[i]} == *.udeb ]]; then
++            file_list_mode=deb
+         elif [[ $file_list_mode == normal && ${words[i]} == *.dsc ]]; then
+             file_list_mode=dsc
+         elif [[ $file_list_mode == normal && ${words[i]} == *.changes ]]; then
+             file_list_mode=changes
+         elif [[ $file_list_mode == from && ${words[i]} == *.deb ]]; then
+             (( ++move_from ))
++        elif [[ $file_list_mode == from && ${words[i]} == *.udeb ]]; then
++            (( ++move_from ))
+         elif [[ $file_list_mode == from && ${words[i]} == --to ]]; then
+             move_to=0
+             file_list_mode=to
+         elif [[ $file_list_mode = to && ${words[i]} == *.deb ]]; then
+             (( ++move_to ))
++        elif [[ $file_list_mode = to && ${words[i]} == *.udeb ]]; then
++            (( ++move_to ))
+         fi
+     done
+ 
+@@ -97,13 +103,13 @@ _debdiff () {
+             elif [[ $cur == -* ]]; then
+                 COMPREPLY=( $( compgen -W "${options[*]}" -- "$cur" ) )
+             else
+-                COMPREPLY=( $( compgen -G "${cur}*.@(deb|dsc|changes)" ) )
++                COMPREPLY=( $( compgen -G "${cur}*.@(deb|udeb|dsc|changes)" ) )
+                 compopt -o filenames
+                 compopt -o plusdirs
+             fi
+             ;;
+         deb|from|to)
+-            COMPREPLY=( $( compgen -G "${cur}*.deb" ) )
++            COMPREPLY=( $( compgen -G "${cur}*.deb" "${cur}*.udeb" ) )
+             if (( $move_from > 0 && $move_to < 0 )) ; then
+                 COMPREPLY+=( $( compgen -W "--to" -- "$cur" ) )
+             fi
+-- 
+2.15.1

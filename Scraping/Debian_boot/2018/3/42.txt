@@ -1,0 +1,97 @@
+To : "Trent W. Buck" <trentbuck@gmail.com>, 694068@bugs.debian.org
+Subject : Bug#694068: netcfg: Wireless connectivity present during an install but absent afterwards
+From : Brian Potkin <claremont102@gmail.com>
+Date : Wed, 7 Mar 2018 18:48:43 +0000
+Message-id : 07032018182115.b6bf20510ef7@desktop.copernicus.org.uk
+Reply-to : Brian Potkin <claremont102@gmail.com>, 694068@bugs.debian.org
+In-reply-to : <[🔎] 20180306000757.GA2483@frey>
+References : <20121123143120.GA14732@desktop> <20121123143120.GA14732@desktop> <[🔎] 05032018104721.bfae72353091@desktop.copernicus.org.uk> <20121123143120.GA14732@desktop> <[🔎] 20180306000757.GA2483@frey> <20121123143120.GA14732@desktop>
+
+
+On Tue 06 Mar 2018 at 11:07:59 +1100, Trent W. Buck wrote:
+> Brian Potkin wrote:
+> > The number of users affected by this issue over the years is not
+> > insignificant. Not a single one has written in support of the
+> > situation.
+> 
+> This issue has bitten me at least twice so far.
+> 
+> This issue's history seems to be bogged down on whether interfaces(5)
+> can be mode 0600 (to hide the cleartext passphrase).
+> This is not necessary; the passphrase can go in a separate file.
+Mode 0600 wasn't intially given as a reason:
+https://lists.debian.org/debian-boot/2012/09/msg00282.html
+ > I realise a default is only a default and the selection can be changed,
+ > but I'm puzzled by the third option. Why treat a wireless install
+ > differently from a wired install? It would expected that a user who has
+ > chosen not to use a wired connection would still want connectivity after
+ > booting into into the new system,
+   The main reason for this is that as far as I know writing configs
+   related to a wireless network to /e/n/i enforce using only that
+   particular network later (of course if you don't modify the file) and
+   also that the interface is unmanageable for other tools. The idea was
+   to leave the network unconfigured, so that it can be managed later
+   (perhaps via something else than NM).
+Later in the thread:
+https://lists.debian.org/debian-boot/2012/09/msg00313.html
+ > On the other hand, we have users who chose not to install a desktop
+ > environment but want their machine to migrate between networks when it's
+ > moved. These users are going to need to do some form of sysadmin work
+ > post-install, whether it's installing a desktop environment and wicd, or
+ > editing /etc/network/interfaces on each fresh network, or bringing up
+ > wifi connections by hand. So I can't see locking a default into
+ > /etc/network/interfaces causing them much bother.
+   IIRC we decided on this default before we added the code to change the
+   access mode of /e/n/i if it contains a password. The main reason for
+   defaulting to no configuration in this case was to avoid having
+   passwords in there. If people think it should default to ifupdown in
+   this case this can be changed.
+The default (loopback only for wireless) was added without considering
+mode 0600. At this stage in the history there appears to be a willingness
+to use ifupdown and not loopback.
+> Here is a minimal config, assuming WPA2 PSK (not Enterprise) and DHCP (not static) for all SSIDs:
+> 
+>     cat >/etc/network/interfaces <<EOF
+>     allow-auto lo $iface
+>     iface lo inet loopback
+>     iface default inet dhcp
+>     iface $iface inet manual
+>       wpa-roam /etc/wpa_supplicant/wpa_supplicant-$iface.conf
+>     EOF
+> 
+>     wpa_passphrase "$ssid" "$passphrase" >"/etc/wpa_supplicant/wpa_supplicant-$iface.conf"
+>     chmod 0600 "/etc/wpa_supplicant/wpa_supplicant-$iface.conf"
+> 
+> If you don't want to udebify wpa_passphrase, you can do it by hand:
+> 
+>     cat >"/etc/wpa_supplicant/wpa_supplicant-$iface.conf" <<EOF
+>     network={
+>       ssid="$ssid"
+>       psk="$passphrase"
+>     }
+>     EOF
+> 
+> If you really hate ifupdown, you can use systemd instead (not fully tested):
+> 
+>     cat >/etc/systemd/network/$iface.network <<EOF
+>     [Match]
+>     iface=$iface
+>     [Network]
+>     DHCP=yes
+>     EOF
+> 
+>     systemctl enable wpa_supplicant@$iface.service
+> 
+>     wpa_passphrase "$ssid" "$passphrase" >"/etc/wpa_supplicant/wpa_supplicant-$iface.conf"
+>     chmod 0600 "/etc/wpa_supplicant/wpa_supplicant-$iface.conf"
+> 
+> If even these things are too much, can you AT LEAST install
+> wpasupplicant?  Writing config files is much easier than ferrying
+> .debs between computers by USB key.
+> 
+> If this bug is going to be kept ANOTHER Debian release, can you at
+> least warn people about it in the buster Installation Guide?
+Or dispense with loopback for an installation over wireless (an easy
+enough change) and warn about 0600 in the Release Notes.
+-- 
+Brian.

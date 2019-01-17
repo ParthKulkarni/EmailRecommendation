@@ -1,0 +1,53 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#896908: busybox cpio: fails to extract absolute symlinks
+From : Tzafrir Cohen <tzafrir@debian.org>
+Date : Wed, 25 Apr 2018 20:25:06 +0300
+Message-id : 152467710665.2153.16816599012286421292.reportbug@pungenday.in.cohens.org.il
+Reply-to : Tzafrir Cohen <tzafrir@debian.org>, 896908@bugs.debian.org
+
+
+Package: busybox-static
+Version: 1:1.27.2-2
+Severity: normal
+I tried building debirf on a current Sid system (chroot, rather). The
+generated initramfs failed to properly boot. I noticed that the
+second-stage rootfs in it, is OK but when extracted misses /sbin/init
+and a number of other symlinks from /sbin and thus the system fails to
+boot due to a missing init.
+cpio on Stretch and on Sid as well as busybox cpio on Stretch
+(1:1.22.0-19+b3) extract the absolute symlinks OK, but busybox cpio on
+Sid does not extract absolute symlinks.
+A test for the problem:
+#!/bin/sh
+#cpio="cpio"
+cpio="/bin/busybox cpio"
+mkdir -p test_dir
+cd test_dir
+rm -rf src_dir
+mkdir src_dir
+cd src_dir
+ln -s /bin/true absolute_link
+touch a_file
+ln -s a_file relative_link
+# Create with the regular cpio:
+ls absolute_link a_file relative_link | cpio -H newc -o >../test.cpio
+cd ..
+rm -rf dst_dir
+mkdir dst_dir
+cd dst_dir
+# Extract with the tested cpio:
+$cpio -H newc -i <../test.cpio
+count=`ls | wc -l`
+if [ "$count" = 2 ]; then
+	echo "absolute links were not extracted"
+fi
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Foreign Architectures: armhf
+Kernel: Linux 4.9.0-6-amd64 (SMP w/4 CPU cores)
+Locale: LANG=he_IL.UTF-8, LC_CTYPE=he_IL.UTF-8 (charmap=UTF-8), LANGUAGE=he_IL.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

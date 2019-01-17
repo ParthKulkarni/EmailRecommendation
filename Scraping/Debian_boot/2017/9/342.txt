@@ -1,0 +1,30 @@
+To : debian-sparc <debian-sparc@lists.debian.org>
+Subject : Fixing the missing serial console after installation issue
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Sat, 30 Sep 2017 10:54:42 +0200
+Message-id : 81d62440-b275-7183-81ec-003408cbe800@physik.fu-berlin.de
+
+
+Hi!
+Some users of Linux on sparc64 have noticed that the serial console is not working
+directly after installation. This is because systemd does not enable the serial
+console by default.
+To address this issue, all that is needed is to enable the serial console in the
+"finishinstall" step of debian-installer. In fact, there is already script code
+which enables the serial console after installation on both sysvinit and upstart
+systems, but it's missing for systemd systems.
+I haven't come up with a clever solution yet, but what we need is something in
+the form of:
+	chroot /target systemctl --no-reload --quiet enable console-getty
+But it's not incorporating the values for "ttyterm" and "ttyspeed", so it's
+not enough as is. I'm also not sure how to detect the presence of systemd
+in this context.
+Does anyone have a suggestion for a patch? I'd be happy to push it :).
+CC'ing debian-boot@l.d.o as this affects all d-i targets.
+Adrian
+> [1] https://anonscm.debian.org/cgit/d-i/finish-install.git/tree/finish-install.d/90console#n63
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

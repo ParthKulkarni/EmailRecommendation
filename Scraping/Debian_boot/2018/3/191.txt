@@ -1,0 +1,232 @@
+To : 861343@bugs.debian.org
+Subject : Bug#861343: debootstrap: hardcodes mawk as awk provider
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Mon, 19 Mar 2018 22:06:15 +0900
+Message-id : 20180319220615.ea8ada36bedbe30f1cee9959@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 861343@bugs.debian.org
+In-reply-to : <87zif1aecq.fsf@turtle.gmx.de>
+References : <87zif1aecq.fsf@turtle.gmx.de>
+
+
+control: tags -1 +patch
+On Thu, 27 Apr 2017 20:35:01 +0200 Sven Joachim <svenjoac@gmx.de> wrote:
+> It might be useful for Debian or derivatives to change the default awk
+> provider, which currently is mawk - a package that has de facto been
+> unmaintained in Debian for several years.  The original-awk package is
+> in my experience considerably less buggy and similarly small.
+> 
+> However, all the scripts/* files in debootstrap currently hardcode mawk,
+> making it impossible to swap the priorities of mawk and original-awk
+> without instantly breaking debootstrap. :-(
+ mawk package is "required" but other awk packages are "optional".
+ Perhaps it is the reason for mawk to be choosed. 
+ However, in scripts/*, there's unnecessary mawk hardcode line and
+ we can remove it safely as attached patch.
+diff --git a/scripts/aequorea b/scripts/aequorea
+index 1ae17d8..fb70941 100644
+--- a/scripts/aequorea
++++ b/scripts/aequorea
+@@ -107,7 +107,7 @@ second_stage_install () {
+ 	info INSTCORE "Installing core packages..."
+ 
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-	ln -sf mawk "$TARGET/usr/bin/awk"
++	ln -sf awk "$TARGET/usr/bin/awk"
+ 	x_core_install base-passwd
+ 	x_core_install base-files
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+diff --git a/scripts/breezy b/scripts/breezy
+index f15967a..132d7ea 100644
+--- a/scripts/breezy
++++ b/scripts/breezy
+@@ -90,7 +90,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+     x_core_install dpkg
+diff --git a/scripts/dapper b/scripts/dapper
+index b1e44d0..4ea3cfa 100644
+--- a/scripts/dapper
++++ b/scripts/dapper
+@@ -95,7 +95,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+     x_core_install dpkg
+diff --git a/scripts/debian-common b/scripts/debian-common
+index 36989a2..a8591bd 100644
+--- a/scripts/debian-common
++++ b/scripts/debian-common
+@@ -105,7 +105,7 @@ Status: install ok installed" >> "$TARGET/var/lib/dpkg/status"
+ 	info INSTCORE "Installing core packages..."
+ 
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-	ln -sf mawk "$TARGET/usr/bin/awk"
++	ln -sf awk "$TARGET/usr/bin/awk"
+ 	x_core_install base-passwd
+ 	x_core_install base-files
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+diff --git a/scripts/edgy b/scripts/edgy
+index 719a258..eb4ec56 100644
+--- a/scripts/edgy
++++ b/scripts/edgy
+@@ -105,7 +105,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+     x_core_install dpkg
+diff --git a/scripts/feisty b/scripts/feisty
+index e38f799..671ff86 100644
+--- a/scripts/feisty
++++ b/scripts/feisty
+@@ -104,7 +104,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+     x_core_install dpkg
+diff --git a/scripts/gutsy b/scripts/gutsy
+index 65a748f..b4066c1 100644
+--- a/scripts/gutsy
++++ b/scripts/gutsy
+@@ -136,7 +136,7 @@ Status: install ok installed" >> "$TARGET/var/lib/dpkg/status"
+ 	info INSTCORE "Installing core packages..."
+ 
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-	ln -sf mawk "$TARGET/usr/bin/awk"
++	ln -sf awk "$TARGET/usr/bin/awk"
+ 	x_core_install base-passwd
+ 	x_core_install base-files
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+diff --git a/scripts/hoary b/scripts/hoary
+index e5fe9fc..7821e2b 100644
+--- a/scripts/hoary
++++ b/scripts/hoary
+@@ -109,7 +109,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+     x_core_install dpkg
+diff --git a/scripts/hoary.buildd b/scripts/hoary.buildd
+index 8d10d80..e625d79 100644
+--- a/scripts/hoary.buildd
++++ b/scripts/hoary.buildd
+@@ -102,7 +102,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+     x_core_install dpkg
+diff --git a/scripts/sarge b/scripts/sarge
+index 051e5a4..e015fbb 100644
+--- a/scripts/sarge
++++ b/scripts/sarge
+@@ -152,7 +152,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTBASE "Installing base system" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTBASE "Installing base system" #3
+     x_core_install dpkg
+diff --git a/scripts/sarge.buildd b/scripts/sarge.buildd
+index c674672..a8bd761 100644
+--- a/scripts/sarge.buildd
++++ b/scripts/sarge.buildd
+@@ -110,7 +110,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTBASE "Installing base system" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTBASE "Installing base system" #3
+     x_core_install dpkg
+diff --git a/scripts/sarge.fakechroot b/scripts/sarge.fakechroot
+index df3ae1b..05d14e6 100644
+--- a/scripts/sarge.fakechroot
++++ b/scripts/sarge.fakechroot
+@@ -113,7 +113,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTBASE "Installing base system" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTBASE "Installing base system" #3
+     x_core_install dpkg
+diff --git a/scripts/warty b/scripts/warty
+index e21a6d8..912e5b7 100644
+--- a/scripts/warty
++++ b/scripts/warty
+@@ -96,7 +96,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+     x_core_install dpkg
+diff --git a/scripts/warty.buildd b/scripts/warty.buildd
+index 09c5467..529adad 100644
+--- a/scripts/warty.buildd
++++ b/scripts/warty.buildd
+@@ -102,7 +102,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+     x_core_install dpkg
+diff --git a/scripts/woody b/scripts/woody
+index a72f290..cbbab9a 100644
+--- a/scripts/woody
++++ b/scripts/woody
+@@ -137,7 +137,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTBASE "Installing base system" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTBASE "Installing base system" #3
+     x_core_install dpkg
+diff --git a/scripts/woody.buildd b/scripts/woody.buildd
+index 9d61384..757706c 100644
+--- a/scripts/woody.buildd
++++ b/scripts/woody.buildd
+@@ -112,7 +112,7 @@ second_stage_install () {
+     info INSTCORE "Installing core packages..."
+ 
+     p; progress $baseprog $bases INSTBASE "Installing base system" #2
+-    ln -sf mawk "$TARGET/usr/bin/awk"
++    ln -sf awk "$TARGET/usr/bin/awk"
+     x_core_install base-files base-passwd
+     p; progress $baseprog $bases INSTBASE "Installing base system" #3
+     x_core_install dpkg

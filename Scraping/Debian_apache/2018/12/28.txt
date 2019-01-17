@@ -1,0 +1,29 @@
+To : Adrian Bunk <bunk@debian.org>
+Subject : Bug#914297: apache2: getrandom call blocks on first startup, systemd kills with timeout
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Fri, 14 Dec 2018 20:27:57 +0100
+Message-id : 2264283.dQFTR6ArQS@k
+Reply-to : Stefan Fritsch <sf@sfritsch.de>, 914297@bugs.debian.org
+In-reply-to : <[🔎] 20181214114329.GA24034@localhost>
+References : <154282304539.12589.819122470921469572.reportbug@li835-87.members.linode.com> <[🔎] 20181214114329.GA24034@localhost> <154282304539.12589.819122470921469572.reportbug@li835-87.members.linode.com>
+
+
+On Friday, 14 December 2018 12:43:29 CET Adrian Bunk wrote:
+> On Sun, Nov 25, 2018 at 11:35:37PM +0100, Stefan Fritsch wrote:
+> >...
+> >
+> > I don't see why it should take so
+> > long for the random number generator to initialize.
+> >
+> >...
+> 
+> On embedded systems without hwrng "10 minutes" or "2 hours" are
+> real-life observations for the time it takes.
+> 
+> Note that this became more problematic due to the CVE-2018-1108[1]
+> fix (reverted in stretch, but in buster/unstable).
+Is systemd-random-seed.service broken there? The rng should be initialized 
+after the seed is loaded from disk. Adrian, please send the output of
+journalctl -b UNIT=apache2.service + UNIT=systemd-random-seed.service + 
+_TRANSPORT=kernel|grep -i -e apache -e random
+if apache2 fails to start.

@@ -1,0 +1,41 @@
+To : debian-boot@lists.debian.org
+Subject : dailies seem to be broken
+From : Philipp Kern <pkern@debian.org>
+Date : Mon, 16 Jul 2018 14:46:27 +0200
+Message-id : 6445fbe7-ae21-1d0c-7038-e2ea864183c5@debian.org
+
+
+Hi!
+pkern@dillon /srv/d-i.debian.org/www/daily-images/amd64
+ % ls -al
+total 4
+drwxr-xr-x  3 d-i d-i   40 Jul 15 00:40 .
+drwxr-xr-x 16 d-i d-i 4096 Jun 17 01:00 ..
+drwxr-xr-x  5 d-i d-i  107 Jun 15 00:22 .20180615-00:22
+lrwxrwxrwx  1 d-i d-i   14 Jun 14 00:25 daily -> 20180614-00:24
+That doesn't look foor. Apparently all older dailies were pruned and the
+current one did not properly rsync either. Looking at other directories
+I don't see any dailies either (except powerpc, which apparently is not
+pruned).
+barriere says this in its di/logs build log:
+INFO: starting rsync
+rsync: connection unexpectedly closed (0 bytes received so far) [sender]
+rsync error: error in rsync protocol data stream (code 12) at io.c(235)
+[sender=3.1.2]
+INFO: cleanup schroot ...
+INFO: cleanup installer build directory ...
+INFO: Exiting now ...
+From /srv/d-i.debian.org/home/logs/buildd-forced-command.log we see this:
+EXEC: unhide 20180716-00:25
+UNKNOWN: rsync --server -logDtpre.iLsfxC . 20180716-00:43
+UNKNOWN: rsync --server -logDtpre.iLsfxC . 20180716-00:53
+UNKNOWN: rsync --server -logDtpre.iLsfxC . 20180716-01:10
+UNKNOWN: rsync --server -logDtpre.iLsfxC . 20180716-02:05
+So I suppose the options have changed. Oh well. The C at the end is new.
+ -C, --cvs-exclude           auto-ignore files in the same way CVS does
+I fudged that locally on dillon adding a "(C)?" to the wrapper script.
+I'll also start another daily on barriere to see if it works now. I'll
+try to commit the fix to the repo, too.
+Kind regards
+Philipp Kern
+signature.asc

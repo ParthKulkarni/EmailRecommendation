@@ -1,0 +1,66 @@
+To : Stefan Fritsch <sf@debian.org>
+Subject : Bug#858373: help needed to complete regression fix for apache2 Bug#858373
+From : Antoine Beaupré <anarcat@orangeseeds.org>
+Date : Wed, 19 Jul 2017 15:46:30 -0400
+Message-id : 87shhsus4p.fsf@curie.anarc.at
+Reply-to : Antoine Beaupré <anarcat@orangeseeds.org>, 858373@bugs.debian.org
+In-reply-to : <[🔎] 20170719194520.uahfl74guvh4ixka@curie.anarc.at>
+References : <20170411023810.GC13258@sin.redhat.com> <20170321165507.6943.66558.reportbug@mrsnorris.cae.wisc.edu> <[🔎] 20170719181601.x24orqjghe7gzvn5@curie.anarc.at> <[🔎] 20170719194520.uahfl74guvh4ixka@curie.anarc.at>
+
+
+And then, obviously, I forget the patch.
+Sorry for the noise.
+-- 
+The secret of life is to have no fear; it's the only way to function.
+                        - Stokely Carmichael
+diff -Nru apache2-2.2.22/debian/changelog apache2-2.2.22/debian/changelog
+--- apache2-2.2.22/debian/changelog	2017-07-17 03:50:16.000000000 -0400
++++ apache2-2.2.22/debian/changelog	2017-07-19 14:12:44.000000000 -0400
+@@ -1,3 +1,12 @@
++apache2 (2.2.22-13+deb7u11) UNRELEASED; urgency=high
++
++  * Non-maintainer upload by the LTS Security Team.
++  * fix regression introduced in 2.2.22-13+deb7u8 that re-introduced
++    something like CVE-2015-0253 when fixing CVE-2016-8743 (Closes:
++    #858373)
++
++ -- Antoine Beaupré <anarcat@debian.org>  Wed, 19 Jul 2017 14:12:44 -0400
++
+ apache2 (2.2.22-13+deb7u10) wheezy-security; urgency=high
+ 
+   * CVE-2017-9788: The value placeholder in [Proxy-]Authorization headers of
+diff -Nru apache2-2.2.22/debian/patches/CVE-2016-8743-regression.patch apache2-2.2.22/debian/patches/CVE-2016-8743-regression.patch
+--- apache2-2.2.22/debian/patches/CVE-2016-8743-regression.patch	1969-12-31 19:00:00.000000000 -0500
++++ apache2-2.2.22/debian/patches/CVE-2016-8743-regression.patch	2017-07-19 14:12:44.000000000 -0400
+@@ -0,0 +1,23 @@
++Description: fix regression introduced in CVE-2016-8743
++ The messy CVE-2016-8743 patchset introduced an error in protocol
++ initialization in some error cases. This makes sure that invalid
++ requests doesn't segfault apache.
++ .
++ This is similar, but not directly related to CVE-2015-0253.
++Origin: https://svn.apache.org/viewvc/httpd/httpd/branches/2.4.x/server/protocol.c?r1=1642403&r2=1668879&pathrev=1668879&view=patch
++Bug-Debian: 858373
++Forwarded: not-needed
++Author: Antoine Beaupré
++Last-update: 2017-07-19
++
++--- a/server/protocol.c
+++++ b/server/protocol.c
++@@ -637,6 +637,8 @@ static int read_request_line(request_rec
++             else if (APR_STATUS_IS_EINVAL(rv)) {
++                 r->status = HTTP_BAD_REQUEST;
++             }
+++            r->proto_num = HTTP_VERSION(1,0);
+++            r->protocol  = apr_pstrdup(r->pool, "HTTP/1.0");
++             return 0;
++         }
++     } while ((len <= 0) && (++num_blank_lines < max_blank_lines));
+diff -Nru apache2-2.2.22/debian/patches/series apache2-2.2.22/debian/patches/series
+--- apache2-2.2.22/debian/patches/series	2017-07-17 03:50:33.000000000 -0400
++++ apache2-2.2.22/debian/patches/series	2017-07-19 14:12:44.000000000 -0400
+@@ -61,3 +61,4 @@
+ CVE-2017-7668.patch
+ CVE-2017-7669.patch
+ CVE-2017-9788.patch
++CVE-2016-8743-regression.patch

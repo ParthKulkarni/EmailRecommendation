@@ -1,0 +1,41 @@
+To : Olliver Schinagl <oliver+debian@schinagl.nl>
+Subject : Bug#801850: busybox: readlink gets shadowed by busybox causing debconf to possibly fail
+From : Christoph Biedl <debian.axhn@manchmal.in-ulm.de>
+Date : Tue, 3 Oct 2017 21:42:09 +0200
+Message-id : 1507059440@msgid.manchmal.in-ulm.de
+Reply-to : Christoph Biedl <debian.axhn@manchmal.in-ulm.de>, 801850@bugs.debian.org
+In-reply-to : <20151015094517.7002.26201.reportbug@um-mba-140.ultimaker.com>
+References : <20151015094517.7002.26201.reportbug@um-mba-140.ultimaker.com> <20151015094517.7002.26201.reportbug@um-mba-140.ultimaker.com>
+
+
+tags 801850 +moreinfo +patch
+thanks
+> With both coreutils and busybox installed however, the
+> busybox variant gets used before the coreutils variant causing package
+> failures.
+Does such a breakage happen or is this rather a theoretical scenario?
+Or: Is this an issue to be fixed in (old)stable as well?
+> A quick fix/workaround:
+> if [ -f /bin/readlink ]; then
+>         unlink /usr/bin/readlink
+> fi
+Things are not that easy unfortunately. It's saner to fix the
+underlying problem which took a while to understand: busybox --install
+places the readlink link in /usr/bin/, a directory that has precedence
+in $PATH over /bin/  where coreutils version resides. And things go
+downhill from there.
+The patch attached changes busybox' install path for readlink to /bin/
+as well - since busybox never replaces existing files, everything
+should be fine.
+Please give it a try and report whether this helps in your situation.
+    Christoph
+signature.asc--- a/coreutils/readlink.c
++++ b/coreutils/readlink.c
+@@ -20,7 +20,7 @@
+ //config:	help
+ //config:	  Enable the readlink option (-f).
+ 
+-//applet:IF_READLINK(APPLET(readlink, BB_DIR_USR_BIN, BB_SUID_DROP))
++//applet:IF_READLINK(APPLET(readlink, BB_DIR_BIN, BB_SUID_DROP))
+ 
+ //kbuild:lib-$(CONFIG_READLINK) += readlink.o

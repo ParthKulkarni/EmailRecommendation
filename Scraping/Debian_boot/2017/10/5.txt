@@ -1,0 +1,69 @@
+To : Frank Scheiner <frank.scheiner@web.de>, debian-sparc <debian-sparc@lists.debian.org>, debian-boot@lists.debian.org
+Subject : Re: Fixing the missing serial console after installation issue
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Sun, 1 Oct 2017 13:09:02 +0200
+Message-id : 764682cc-f7e5-7fb4-a59d-4d723fc86018@physik.fu-berlin.de
+In-reply-to : <[🔎] 20171001105412.snc6moccreiimbic@var.youpi.perso.aquilenet.fr>
+References : <81d62440-b275-7183-81ec-003408cbe800@physik.fu-berlin.de> <726d91f6-c6bb-0e06-d85d-e85ec7fee030@web.de> <57d1e036-add0-bf58-6392-2c049381d921@physik.fu-berlin.de> <[🔎] 20171001103325.gog7looljyrpz6o6@var.youpi.perso.aquilenet.fr> <[🔎] 35ce823c-5d6c-1041-5536-8a3aa26a6d74@physik.fu-berlin.de> <[🔎] 20171001105412.snc6moccreiimbic@var.youpi.perso.aquilenet.fr>
+
+
+On 10/01/2017 12:54 PM, Samuel Thibault wrote:
+>> But is that information available in finish-installation.d/90console?
+> 
+> The point is: it doesn't need to be.  We need 90console for non-systemd
+> systems because sysvinit etc. are not able to automatically get the
+> console configuration from the kernel commande line.  Systemd, however,
+> is, and thus doesn't need anything in 90console.
+Hmm. But do we always have "console=$device" explicitly specified on
+the command line on all targets when installing a new system? It's
+not the case on sparc64, for example. But /var/run/console-device
+contains /dev/ttyS0.
+>>> Well, your solution is somehow a "quick hack": enabling serial console
+>>> automatically already works "for all archs", there is just something
+>>> which doesn't happen to work in your case, and AIUI it's writing on the
+>>> installed system the kernel parameters which were passed to boot d-i.
+>>
+>> Are you sure that's the case?
+> 
+> Yes.
+Hmm, ok. I need to test that on other targets than sparc64.
+>> It's there for upstart and sysvinit but not for systemd. By default,
+>> systemd does not start a serial getty unless you pass console=ttyS0 on
+>> the kernel command line or enable the service explicitly.
+> 
+> Yes, that's on purpose: it has to be there on the command line for
+> kernel messages to get printed on ttyS0 anyway.
+On sparc64, the kernel messages are printed on the serial console
+after a fresh installation. But systemd does not start a getty
+on the serial console. So users are unable to login.
+>> Are you getting a serial console enabled by default on a fresh systemd
+>> installation?
+> 
+> What do you mean by "serial console enabled by default"?  Perhaps that's
+> where there is misunderstanding.
+A serial console with a getty which allows to login.
+>>> Or is there really no way on your system for d-i to be able to write
+>>> down the parameters to be passed to the kernel for the installed system?
+>>
+>> Well, I have just adopted this particular script for systemd and effectively
+>> used the same mechanism as for sysvinit and upstart. Would you have preferred
+>> a completely different mechanism?
+> 
+> I don't "prefer" something, I'm just saying how things are currently
+> supposed to work: somehow the kernel for d-i has console=ttyS0 on its
+> command line so that d-i gets its output on ttyS0, and d-i normally
+> copies what is passed to its kernel command line into the installed
+> system, so that the installed system behaves just like d-i behaved,
+> which is normally what the user expects.
+Do you mean that d-i is always booting with "console=ttyS0"?
+>> There is nothing special about sparc64 in this regard.
+> 
+> Perhaps that "enabled by default" thing.
+The difference would be that d-i is not booting with console=ttyS0
+but it's still using the serial console on sparc64.
+Adrian
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

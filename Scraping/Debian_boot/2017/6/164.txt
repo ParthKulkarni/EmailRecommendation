@@ -1,0 +1,70 @@
+To : jean-louis.mounier@ovh.fr, 864562@bugs.debian.org
+Subject : Bug#864562: Installation on Olimex A20-Olinuxino Micro
+From : Karsten Merker <merker@debian.org>
+Date : Sat, 10 Jun 2017 20:46:57 +0200
+Message-id : 20170610184657.GA7626@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 864562@bugs.debian.org
+In-reply-to : <[🔎] c263cdca-812a-292e-2b0e-f2622c9e49ad@laposte.net>
+References : <[🔎] c263cdca-812a-292e-2b0e-f2622c9e49ad@laposte.net>
+
+
+On Sat, Jun 10, 2017 at 07:39:12PM +0200, Jean-Louis MOUNIER wrote:
+> I'm the new owner of my second Olimex A20-Olinuxino Micro (Rev J) board.
+> 
+> I tested the board with a pre-installed Micro-SD card
+> (A20-OLinuXino-MICRO Debian Jessie with kernel 3.4.103+ release 14) and
+> it runs fine .
+> 
+> My challenge is to install Debian on this board and, better if possible,
+> to run it from the attached hard disk (without Micro SD card).
+> 
+> I choosed to run the installer from a micro-sd card image, made with
+> zcat (with Jessie and Stretch releases, same result).
+> 
+> The installer boots fine even if I saw that it is not as complete as a
+> X86/X64 Debian installer. Not a problem.
+> 
+> I use a serial port to manage the installation.
+> 
+> As it is a network installation, first I plugged the system on my
+> domestic network then directly on my ISP Box.
+> 
+> After investigation with my son (who is also qualified on the subject),
+> I think that the problem is about the network interface of the board.
+> Maybe a faulty initialisation or bad handshake with the network port. 
+> both NI led blink and the switch port too.
+> 
+> Here are the facts : the installer can neither configure itself from
+> DHCP neither communicate with Internet when the network configuration is
+> manualy entered. I did explore the logs from my DHCP server and I didn't
+> find any log about the DHCP request from the installer (I saw some when
+> testing with the pre-installed card).
+> 
+> Did you meet this issue before ?
+Hello,
+could you perhaps provide the output of dmesg and the syslog? The
+easiest way will probably be enabling logging to a file in your
+serial terminal, switching to a shell inside the installer
+(CTRL-A 2) and running the following commands:
+  dmesg
+  cat /var/log/syslog
+Your description sounds like a problem with the ethernet
+autonegotiation.  Are you using a gigabit ethernet switch? If
+yes, could you try a 100MBit switch instead?  There was a
+hardware bug in a specific revision of a Realtek Ethernet PHY
+that was used on some Olinuxino models, which only showed up on
+gigabit links and not on all switches.  Uboot contains a
+workaround for that bug, so that shouldn't be a problem anymore,
+but testing a 100MBit switch might be useful nonetheless.
+Due to the problems with that specific Realtek PHY, Olimex has
+AFAIK changed some of the Olinuxino models to PHY chips from
+another manufacturer.  If your board is one of those, we might
+perhaps have a driver problem.
+Without the logs it is unfortunately nearly impossible to debug
+this further.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

@@ -1,0 +1,134 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#917090: flash-kernel: Please avoid leading or trailing spaces in bootargs
+From : Benjamin Drung <bdrung@debian.org>
+Date : Sat, 22 Dec 2018 14:16:11 +0100
+Message-id : 154548457194.6976.6643020740724592752.reportbug@deep-thought
+Reply-to : Benjamin Drung <bdrung@debian.org>, 917090@bugs.debian.org
+
+
+Package: flash-kernel
+Version: 3.96
+Severity: normal
+Tags: patch
+Dear Maintainer,
+Leading or trailing spaces in bootargs and therefore /proc/cmdline are
+inconvenient. Avoid them by only adding spaces between parameters that are not
+empty. A patch for that is attached.
+I have successfully tested it on Hardkernel's Odroid HC1.
+-- 
+Benjamin Drung
+Debian & Ubuntu Developer
+>From 38bb9da092897928666175042ac0cc34f0777075 Mon Sep 17 00:00:00 2001
+From: Benjamin Drung <bdrung@debian.org>
+Date: Sat, 22 Dec 2018 13:47:58 +0100
+Subject: [PATCH] Avoid leading or trailing spaces in bootargs
+Leading or trailing spaces in bootargs and therefore /proc/cmdline are
+inconvenient. Avoid them by only adding spaces between parameters that are not
+empty.
+Tested on Hardkernel's Odroid HC1.
+---
+ bootscript/all/bootscr.uboot-generic   |  8 ++++++--
+ bootscript/arm64/bootscr.uboot-generic |  8 ++++++--
+ bootscript/armhf/bootscr.sunxi         |  8 ++++++--
+ functions                              | 15 +++++++++++++--
+ 4 files changed, 31 insertions(+), 8 deletions(-)
+diff --git a/bootscript/all/bootscr.uboot-generic b/bootscript/all/bootscr.uboot-generic
+index 989f14c..631955f 100644
+--- a/bootscript/all/bootscr.uboot-generic
++++ b/bootscript/all/bootscr.uboot-generic
+@@ -22,10 +22,14 @@ if test "${console}" = "ttymxc0" && test -n "${baudrate}"; then
+ fi
+ 
+ if test -n "${console}"; then
+-  setenv bootargs "${bootargs} console=${console}"
++  if test -n "${bootargs}"; then
++    setenv bootargs "${bootargs} console=${console}"
++  else
++    setenv bootargs "console=${console}"
++  fi
+ fi
+ 
+-setenv bootargs "@@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} @@LINUX_KERNEL_CMDLINE@@"
++setenv bootargs "@@LINUX_KERNEL_CMDLINE_DEFAULTS@@@@LINUX_KERNEL_CMDLINE_DEFAULTS_DELIM@@${bootargs}@@LINUX_KERNEL_CMDLINE_DELIM@@@@LINUX_KERNEL_CMDLINE@@"
+ @@UBOOT_ENV_EXTRA@@
+ 
+ if test -z "${fk_kvers}"; then
+diff --git a/bootscript/arm64/bootscr.uboot-generic b/bootscript/arm64/bootscr.uboot-generic
+index 33f90d2..d644ee5 100644
+--- a/bootscript/arm64/bootscr.uboot-generic
++++ b/bootscript/arm64/bootscr.uboot-generic
+@@ -15,10 +15,14 @@
+ # The uboot must support the booti and generic filesystem load commands.
+ 
+ if test -n "${console}"; then
+-  setenv bootargs "${bootargs} console=${console}"
++  if test -n "${bootargs}"; then
++    setenv bootargs "${bootargs} console=${console}"
++  else
++    setenv bootargs "console=${console}"
++  fi
+ fi
+ 
+-setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} @@LINUX_KERNEL_CMDLINE@@
++setenv bootargs "@@LINUX_KERNEL_CMDLINE_DEFAULTS@@@@LINUX_KERNEL_CMDLINE_DEFAULTS_DELIM@@${bootargs}@@LINUX_KERNEL_CMDLINE_DELIM@@@@LINUX_KERNEL_CMDLINE@@"
+ @@UBOOT_ENV_EXTRA@@
+ 
+ if test -z "${fk_kvers}"; then
+diff --git a/bootscript/armhf/bootscr.sunxi b/bootscript/armhf/bootscr.sunxi
+index 9576b24..8750583 100644
+--- a/bootscript/armhf/bootscr.sunxi
++++ b/bootscript/armhf/bootscr.sunxi
+@@ -33,10 +33,14 @@ else
+ fi
+ 
+ if test -n "${console}"; then
+-  setenv bootargs "${bootargs} console=${console}"
++  if test -n "${bootargs}"; then
++    setenv bootargs "${bootargs} console=${console}"
++  else
++    setenv bootargs "console=${console}"
++  fi
+ fi
+ 
+-setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} @@LINUX_KERNEL_CMDLINE@@
++setenv bootargs "@@LINUX_KERNEL_CMDLINE_DEFAULTS@@@@LINUX_KERNEL_CMDLINE_DEFAULTS_DELIM@@${bootargs}@@LINUX_KERNEL_CMDLINE_DELIM@@@@LINUX_KERNEL_CMDLINE@@"
+ @@UBOOT_ENV_EXTRA@@
+ 
+ if test -z "${image_locations}"; then
+diff --git a/functions b/functions
+index 1533192..de925f8 100644
+--- a/functions
++++ b/functions
+@@ -432,6 +432,12 @@ get_kernel_cmdline_defaults() {
+ 	echo "$LINUX_KERNEL_CMDLINE_DEFAULTS"
+ }
+ 
++get_delimiter() {
++	if test -n "$1"; then
++		echo " "
++	fi
++}
++
+ mkimage_kernel() {
+ 	local kaddr="$1"
+ 	local epoint="$2"
+@@ -475,10 +481,15 @@ mkimage_script() {
+ 			echo "WARNING: ubootenv.d snippet used, but $sdata has no @@UBOOT_ENV_EXTRA@@ marker. Snippet will be ignored." >&2
+ 	fi
+ 
++	kernel_cmdline=$(get_kernel_cmdline)
++	kernel_cmdline_defaults=$(get_kernel_cmdline_defaults)
++
+ 	printf "Generating boot script u-boot image... " >&2
+ 	sed -e "s/@@KERNEL_VERSION@@/$kvers/g" \
+-            -e "s!@@LINUX_KERNEL_CMDLINE@@!$(get_kernel_cmdline)!g" \
+-            -e "s!@@LINUX_KERNEL_CMDLINE_DEFAULTS@@!$(get_kernel_cmdline_defaults)!g" \
++            -e "s!@@LINUX_KERNEL_CMDLINE@@!$kernel_cmdline!g" \
++            -e "s!@@LINUX_KERNEL_CMDLINE_DEFAULTS@@!$kernel_cmdline_defaults!g" \
++            -e "s!@@LINUX_KERNEL_CMDLINE_DELIM@@!$(get_delimiter "$kernel_cmdline")!g" \
++            -e "s!@@LINUX_KERNEL_CMDLINE_DEFAULTS_DELIM@@!$(get_delimiter "$kernel_cmdline_defaults")!g" \
+             -e "/@@UBOOT_ENV_EXTRA@@/{
+                   s/@@UBOOT_ENV_EXTRA@@//g
+                   r $ubootenv
+-- 
+2.19.1

@@ -1,0 +1,62 @@
+To : 774227@bugs.debian.org
+Subject : Bug#774227: busybox-static: execs applets when chrooting
+From : Alexander Kurtz <alexander@kurtz.be>
+Date : Mon, 03 Jul 2017 12:49:31 +0200
+Message-id : 1499078971.26287.1.camel@kurtz.be
+Reply-to : Alexander Kurtz <alexander@kurtz.be>, 774227@bugs.debian.org
+In-reply-to : <20141230142611.GA11359@client.brlink.eu>
+References : <20141230142611.GA11359@client.brlink.eu>
+
+
+Control: found -1 1:1.22.0-19+b3
+Control: severity -1 serious
+Dear maintainers,
+I just ran into this bug as well and just like for Bernhard, it had me
+pulling my hair for a couple of hours before I realized what was wrong:
+	root@shepard:~# apt install busybox-static
+	Reading package lists... Done
+	Building dependency tree       
+	Reading state information... Done
+	The following packages will be REMOVED:
+	  busybox*
+	The following NEW packages will be installed:
+	  busybox-static
+	0 upgraded, 1 newly installed, 1 to remove and 0 not upgraded.
+	Need to get 855 kB of archives.
+	After this operation, 1,186 kB of additional disk space will be used.
+	Do you want to continue? [Y/n] y
+	Get:1 http://cdn-fastly.deb.debian.org/debian buster/main amd64 busybox-static amd64 1:1.22.0-19+b3 [855 kB]
+	Fetched 855 kB in 1s (571 kB/s)        
+	(Reading database ... 332551 files and directories currently installed.)
+	Removing busybox (1:1.22.0-19+b3) ...
+	Selecting previously unselected package busybox-static.
+	(Reading database ... 332542 files and directories currently installed.)
+	Preparing to unpack .../busybox-static_1%3a1.22.0-19+b3_amd64.deb ...
+	Unpacking busybox-static (1:1.22.0-19+b3) ...
+	Processing triggers for man-db (2.7.6.1-2) ...
+	Setting up busybox-static (1:1.22.0-19+b3) ...
+	root@shepard:~# /bin/busybox chroot / id --version
+	id: unrecognized option '--version'
+	BusyBox v1.22.1 (Debian 1:1.22.0-19+b3) multi-call binary.
+	Usage: id [OPTIONS] [USER]
+	Print information about USER or the current user
+		-u	User ID
+		-g	Group ID
+		-G	Supplementary group IDs
+		-n	Print names instead of numbers
+		-r	Print real ID instead of effective ID
+	root@shepard:~# /bin/busybox chroot / /usr/bin/id --version
+	id (GNU coreutils) 8.26
+	Copyright (C) 2016 Free Software Foundation, Inc.
+	License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+	This is free software: you are free to change and redistribute it.
+	There is NO WARRANTY, to the extent permitted by law.
+	Written by Arnold Robbins and David MacKenzie.
+	root@shepard:~# 
+As you can see, chroot will run the applet rather than the binary
+unless the full path is given. While this *may* be useful in some
+situations, it can also lead to *really* subtle failures in others, so
+I'm raising the severity of this bug. Please consider applying
+Bernhard's patch if possible or at least documenting this behaviour!
+Best regards
+Alexander Kurtzsignature.asc

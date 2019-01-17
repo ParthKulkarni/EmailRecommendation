@@ -1,0 +1,50 @@
+To : Cyril Brulebois <kibi@debian.org>,	Paul Schlüter <nemo.paoso@web.de>,	854801@bugs.debian.org, 740998@bugs.debian.org
+Subject : Bug#854801: No network after netinst Stretch RC2
+From : Pierre Ynard <linkfanel@yahoo.fr>
+Date : Sat, 11 Feb 2017 02:44:56 +0100
+Message-id : 20170211014456.GA22097@via.ecp.fr
+Reply-to : Pierre Ynard <linkfanel@yahoo.fr>, 854801@bugs.debian.org
+In-reply-to : <[🔎] 20170210161731.GK17507@mraw.org>
+
+
+> >   (=> To setup a network connection I had to edit /etc/network/interfaces)
+I'm confused. The installer didn't set up any network access in
+/etc/network/interfaces ? Because it ran from a CD? But it detected
+IPv6 nameservers on the network and installed rdnssd? Isn't networking
+supposed to work anyway even if task selection doesn't install
+network-manager? I'm not clear on what happened there, and what was
+supposed to happen.
+> This seems due to the Conflicts added in rdnssd indeed, because of:
+>   https://bugs.debian.org/740998
+However reports in #778492 at the time indicated that the conflict would
+be resolved by removing rdnssd and installing network-manager... So I'm
+surprised if we get an opposite result now.
+>  2. In finish-install.d/55netcfg-copy-config, where the /e/n/i and other
+>     settings copy is performed, we could check that flag and n-m's
+>     status; if the flag is set and n-m wasn't installed, install rdnssd.
+The scope of the problem is a bit wider than just checking for
+network-manager. As it was elaborated upon above in #740998, any pair
+of two network tools writing to /etc/resolv.conf without cooperation is
+prone to problems. The conflict in question here was a bit of an ad-hoc
+solution because both rdnssd and network-manager were automatically
+started daemons likely to be pulled in a basic install.
+So on one hand, adding a custom check for just network-manager is ad hoc
+too and doesn't address the general problem. On the other hand, it's all
+relative and if the conflict hurts more than it was supposed to help, it
+could be removed too - e.g. if it's indeed what prevents network-manager
+from getting installed somehow.
+The recent version of the rdnssd package should be much friendlier
+and more cooperative than before in managing /etc/resolv.conf when
+resolvconf is not installed. The impact of running network-manager and
+rdnssd concurrently should be lower than before.
+I don't really believe in second-guessing the decision made by the
+package manager when resolving dependencies and conflicts. But I
+can suggest other options than the conflict. /etc/default/rdnssd
+can be edited to disable writing to /etc/resolv.conf, or make it
+conditional on network-manager, reducing rdnssd to unused reporting.
+/etc/rdnssd/merge-hook can be edited to improve interaction or detect
+that /etc/resolv.conf was written by network-manager.
+Best regards,
+-- 
+Pierre Ynard
+"Une âme dans un corps, c'est comme un dessin sur une feuille de papier."

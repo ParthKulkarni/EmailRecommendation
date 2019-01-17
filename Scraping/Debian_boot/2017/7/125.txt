@@ -1,0 +1,49 @@
+To : Cyril Brulebois <kibi@debian.org>, 867402@bugs.debian.org
+Subject : Bug#867402: Debootstrap Error Couldn't retrieve dists/stretch/main/binary-amd64/Packages
+From : jg@wn.de
+Date : Fri, 7 Jul 2017 15:49:22 +0200
+Message-id : 20170707154922.6c861ee3@itlap007
+Reply-to : jg@wn.de, 867402@bugs.debian.org
+In-reply-to : <[🔎] 20170706162324.GA4111@mraw.org>
+References : <[🔎] 20170706152244.67cc0a2c@itlap007> <[🔎] 20170706162324.GA4111@mraw.org>
+
+
+Hello Cyril,
+Thanks for looking into this.
+> The issue is likely that none of the URLs was fetched successfully,
+> rather than the last one returning 404.
+No, I can't confirm this.
+Normally we use a http proxy during installation/preseeding ( squid-deb-proxy and with "d-i mirror/http/proxy string ..." in preseed config)
+Therefor when using the "normal" mirror ftp.de.debian.org I can see in the squid logs that the installer request InRelease, Release, Release.gpg, Packages.xz
+whereas when using snapshot.debian.org it requests InRelease, Release, Release.gpg, Packages.xz, Packages.gz, Packages (which is answered with http status code 404)
+So Packages.gz, Packages are requested in addition when using snapshot.debian.org.
+Here is an excerpt of the squid logs:
+ftp.de.debian.org
+=============
+1499424363.414     42 195.66.76.23 TCP_MISS/404 615 GET http://ftp.de.debian.org/debian/dists/stretch/InRelease - HIER_DIRECT/141.76.2.4 text/html
+1499424363.501     58 195.66.76.23 TCP_REFRESH_UNMODIFIED/200 113783 GET http://ftp.de.debian.org/debian/dists/stretch/Release - HIER_DIRECT/141.76.2.4 -
+1499424363.588     52 195.66.76.23 TCP_REFRESH_UNMODIFIED/200 3462 GET http://ftp.de.debian.org/debian/dists/stretch/Release.gpg - HIER_DIRECT/141.76.2.4 -
+1499424364.019    153 195.66.76.23 TCP_REFRESH_UNMODIFIED/200 7094856 GET http://ftp.de.debian.org/debian/dists/stretch/main/binary-amd64/Packages.xz - HIER_DIRECT/141.76.2.4 application/x-xz
+1499424367.867      0 195.66.76.23 TCP_MEM_HIT/200 28613 GET http://ftp.de.debian.org/debian/pool/main/a/acl/libacl1_2.2.52-3+b1_amd64.deb - HIER_NONE/- application/x-debian-package
+snapshot.debian.org
+===================
+1499423482.111   6781 195.66.76.23 TCP_MISS/404 2589 GET http://snapshot.debian.org/archive/debian/20170618T160104Z/dists/stretch/InRelease - HIER_DIRECT/193.62.202.30 text/html
+1499423482.143      4 195.66.76.23 TCP_MEM_HIT/200 114207 GET http://snapshot.debian.org/archive/debian/20170618T160104Z/dists/stretch/,  - HIER_NONE/- application/octet-stream
+1499423482.175      0 195.66.76.23 TCP_MEM_HIT/200 3887 GET http://snapshot.debian.org/archive/debian/20170618T160104Z/dists/stretch/Release.gpg - HIER_NONE/- application/octet-stream
+1499423482.638    192 195.66.76.23 TCP_MEM_HIT/200 7095214 GET http://snapshot.debian.org/archive/debian/20170618T160104Z/dists/stretch/main/binary-amd64/Packages.xz - HIER_NONE/- application/octet-stream
+1499423483.733   1038 195.66.76.23 TCP_MEM_HIT/200 9497612 GET http://snapshot.debian.org/archive/debian/20170618T160104Z/dists/stretch/main/binary-amd64/Packages.gz - HIER_NONE/- application/octet-stream
+1499423489.524   5744 195.66.76.23 TCP_MISS/404 2589 GET http://snapshot.debian.org/archive/debian/20170618T160104Z/dists/stretch/main/binary-amd64/Packages - HIER_DIRECT/193.62.202.30 text/html
+> snapshot.debian.org is sometimes slow to respond, or can even return an
+> error (until the backend gets kicked). Can you reproduce the issue every
+> time? If so, can you wireshark it, just to be sure?
+ 
+ 
+Yes, I can reproduce the issue every time.
+To debar squid-deb-proxy from being the cause of the problem I disabled the "d-i mirror/http/proxy string ..." preseed setting and now it works !
+I tried several times without http proxy and each time it succeeded to install from snapshot.debian.org.
+So it looks like squid-deb-proxy is the problem and not Debootstrap !
+The strange thing is that squid-deb-proxy works just fine with ftp.de.debian.org but it fails with snapshot.debian.org for stretch (but it used to work with jessie).
+I believe that something goes wrong with squid while or just after downloading http://snapshot.debian.org/archive/debian/20170618T160104Z/dists/stretch/main/binary-amd64/Packages.gz
+I also flushed the squid cache but it then again fails at the same point (even on the first run when it gets a TCP_MISS)
+ 
+Thanks

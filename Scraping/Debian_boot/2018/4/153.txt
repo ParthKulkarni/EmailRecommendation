@@ -1,0 +1,67 @@
+To : Olliver Schinagl <oliver@schinagl.nl>, 895466@bugs.debian.org
+Subject : Bug#895466: debootstrap 1.0.96 fails due to missing apt-config
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 12 Apr 2018 09:05:04 +0100
+Message-id : 20180412080504.GA1726@espresso.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 895466@bugs.debian.org
+In-reply-to : <[🔎] e500cb43-3cd2-ef1f-dd6f-23cf3c563cfa@schinagl.nl>
+References : <[🔎] e500cb43-3cd2-ef1f-dd6f-23cf3c563cfa@schinagl.nl> <[🔎] e500cb43-3cd2-ef1f-dd6f-23cf3c563cfa@schinagl.nl>
+
+
+On Wed, 11 Apr 2018 at 22:14:21 +0200, Olliver Schinagl wrote:
+> Tags: newcomer
+The newcomer tag is for use by the package's maintainer. It indicates a
+bug that is particularly suitable for new contributors to work on as an
+introduction to contributing to this package (I don't think this is one
+of those). It does not indicate bugs that were encountered by new users,
+or bugs that particularly affect new users.
+> While running debootstrap on a non-native debian system, debootstrap keeps
+> failing with
+> 
+> debootstrap: line 55: apt-config: command not found
+> 
+> The change causing the issue seems to be https://anonscm.debian.org/cgit/d-i/debootstrap.git/commit/?id=98858a907a9f69e
+> which always seems to pass the if check (even though it's not installed) and
+> then fails on the eval.
+Recent versions (I'm looking at the git repository here) seem to have
+introduced seversal misunderstood conditionals. Were these tested or
+reviewed?
+The important thing to remember in shell conditions is that the square
+brackets in "if [ ... ]; then" are not special shell syntax: the
+opening square bracket is another name for test(1), and the closing
+square bracket is required and ignored when test(1) is invoked as
+[(1). The square brackets should be used if and only if you want to
+check a condition that is most easily checked via test(1).
+The line mentioned in this bug is:
+    if [ "apt-config -v > /dev/null" ]; then
+which is equivalent to "if true; then" because "apt-config -v > /dev/null"
+is a non-empty string. I think this was meant to be either
+    if apt-config -v > /dev/null 2>&1; then
+which enters the "then" block whenever apt-config -v exits 0 (success),
+or
+    if [ -n "$(apt-config -v 2>/dev/null)" ]; then
+which enters the "then" block whenever apt-config -v produces output.
+Either way, stderr should probably be redirected to /dev/null (as shown)
+to silence "apt-config: not found" messages on non-Debian systems.
+This is not the only problematic conditional. There's also:
+    +if [ ! "$VARIANT" = fakechroot ] && [ "$(apt-config -v > /dev/null 2>&1)" ]; then
+The second part of this condition will always evaluate to false, because
+apt-config -v > /dev/null 2>&1 never produces output (it has all been
+redirected to /dev/null), so the $() operator produces no output, and
+the test is [ "" ] which returns false. I think this was meant to be:
+    if [ ! "$VARIANT" = fakechroot ] && apt-config -v > /dev/null 2>&1; then
+in which the second part becomes a check for "did apt-config -v exit with
+status 0?", or possibly
+    if [ ! "$VARIANT" = fakechroot ] && [ -n "$(apt-config -v 2>/dev/null)" ]; then
+in which the second part checks whether apt-config produced output.
+Similarly:
+    +if [ "$(ls -A "$TARGET" > /dev/null 2>&1)" ]; then
+doesn't do anything useful, because the output of ls is discarded. Either
+the intention was to check whether the output of ls was non-empty (in
+which case remove the "> /dev/null" redirection and use 2>/dev/null),
+or the intention was to check the exit status (in which case remove []
+and "$()").
+When testing whether a string is (non-)empty, I would recommend using the
+[ -n "$foo" ] or [ -z "$foo" ] form instead of just [ "$foo" ] or
+! [ "$foo" ] - it makes it a bit clearer what the intention was.
+    smcv

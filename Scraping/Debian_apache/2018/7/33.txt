@@ -1,0 +1,26 @@
+To : "debian-apache@lists debian. org" <debian-apache@lists.debian.org>
+Subject : Problems with lbmethod_* modules requiring symbols from proxy
+From : Ondřej Surý <ondrej@isc.org>
+Date : Wed, 25 Jul 2018 14:50:43 +0200
+Message-id : BE655328-43EE-49AA-BA69-E1CC927D5C52@isc.org
+
+
+Hi,
+while updating apache2 to 2.4.34, I found out (or rather users found out) that lbmethod_bybusyness
+module now require symbols from mod_proxy.
+Unfortunately, because the modules are loaded in alphabetical order, this breaks module loading,
+and apache2 ends up with error loading lbmethod_bybusyness due to missing symbol.
+The possible solutions:
+1. Statically compile mod_proxy in -> I was unsuccessful, because moving ‘proxy’ to static makes
+*all* proxy modules including lbmethod_* modules to be compiled statically.  DOESN’T WORK
+2. Moving proxy symlink before lbmethod_* or lbmethod_* symlinks after proxy module.  That works
+if done manually, but a2enmod and a2query doesn’t have support for priorities.  Adding such support
+would require a substantial work in *perl* - because it must not break existing deployments.
+I think that in theory, this could be driven by “Depends” field, starting say at “20-“ prefix and increasing
+the number by 10 on each “Depends:” iteration.  Unfortunately, I don’t have the time nor the perl-foo
+to do that.
+Anyway, I just wanted to warn the other maintainers before the 2.4.34 upload.
+Ondrej
+--
+Ondřej Surý
+ondrej@isc.org

@@ -1,0 +1,29 @@
+To : Philipp Kern <pkern@debian.org>
+Subject : Bug#855035: debian-installer: https does not work with stretch rc2 installer
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 15 Feb 2017 15:11:38 +0100
+Message-id : 20170215141138.GF13178@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 855035@bugs.debian.org
+In-reply-to : <[🔎] 20170215140641.GE13178@mraw.org>
+References : <[🔎] 871sv28by3.fsf@msgid.hilluzination.de> <[🔎] 20170213150342.GG28989@mraw.org> <[🔎] 87lgta6jpi.fsf@msgid.hilluzination.de> <[🔎] 20170213192801.GA13178@mraw.org> <[🔎] ddf3b5b81c77032a7afdb263e2415934@mail.kern.pm> <[🔎] 20170214140746.GD13178@mraw.org> <[🔎] 20170215140641.GE13178@mraw.org>
+
+
+Cyril Brulebois <kibi@debian.org> (2017-02-15):
+> I should clarify a bit: we can't look at PROTOCOL at this point, since a
+> netinst with mirror/protocol=https is going to use local files on the
+> cdrom; if it was using https, debootstrap would do the job already
+> (except it would fail to load both packages right now since Steve only
+> added them to the images a few hours ago).
+Eww, we have this code right now already:
+| 	# If we need SSL certificates, copy them in now.
+| 	if [ "$PROTOCOL" = "https" ] && [ -d /etc/ssl/certs ]; then
+| 		if find /etc/ssl/certs/ -name \*.crt | grep -q .; then
+| 			mkdir -p /target/usr/local/share/ca-certificates
+| 			cp -a /etc/ssl/certs/*.crt /target/usr/local/share/ca-certificates/
+| 			chroot /target update-ca-certificates || true
+| 		fi
+| 	fi
+→ It's likely not getting run with netinst images…
+I think I'll file this as another bug report for reference.
+KiBi.
+signature.asc

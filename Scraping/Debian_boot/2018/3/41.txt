@@ -1,0 +1,48 @@
+To : 694068@bugs.debian.org
+Subject : Bug#694068: netcfg: Wireless connectivity present during an install but absent afterwards
+From : "Trent W. Buck" <trentbuck@gmail.com>
+Date : Tue, 6 Mar 2018 11:07:59 +1100
+Message-id : 20180306000757.GA2483@frey
+Reply-to : "Trent W. Buck" <trentbuck@gmail.com>, 694068@bugs.debian.org
+In-reply-to : <[🔎] 05032018104721.bfae72353091@desktop.copernicus.org.uk>
+References : <20121123143120.GA14732@desktop> <20121123143120.GA14732@desktop> <[🔎] 05032018104721.bfae72353091@desktop.copernicus.org.uk> <20121123143120.GA14732@desktop>
+
+
+Brian Potkin wrote:
+> The number of users affected by this issue over the years is not
+> insignificant. Not a single one has written in support of the
+> situation.
+This issue has bitten me at least twice so far.
+This issue's history seems to be bogged down on whether interfaces(5) can be mode 0600 (to hide the cleartext passphrase).
+This is not necessary; the passphrase can go in a separate file.
+Here is a minimal config, assuming WPA2 PSK (not Enterprise) and DHCP (not static) for all SSIDs:
+    cat >/etc/network/interfaces <<EOF
+    allow-auto lo $iface
+    iface lo inet loopback
+    iface default inet dhcp
+    iface $iface inet manual
+      wpa-roam /etc/wpa_supplicant/wpa_supplicant-$iface.conf
+    EOF
+    wpa_passphrase "$ssid" "$passphrase" >"/etc/wpa_supplicant/wpa_supplicant-$iface.conf"
+    chmod 0600 "/etc/wpa_supplicant/wpa_supplicant-$iface.conf"
+If you don't want to udebify wpa_passphrase, you can do it by hand:
+    cat >"/etc/wpa_supplicant/wpa_supplicant-$iface.conf" <<EOF
+    network={
+      ssid="$ssid"
+      psk="$passphrase"
+    }
+    EOF
+If you really hate ifupdown, you can use systemd instead (not fully tested):
+    cat >/etc/systemd/network/$iface.network <<EOF
+    [Match]
+    iface=$iface
+    [Network]
+    DHCP=yes
+    EOF
+    systemctl enable wpa_supplicant@$iface.service
+    wpa_passphrase "$ssid" "$passphrase" >"/etc/wpa_supplicant/wpa_supplicant-$iface.conf"
+    chmod 0600 "/etc/wpa_supplicant/wpa_supplicant-$iface.conf"
+If even these things are too much, can you AT LEAST install wpasupplicant?
+Writing config files is much easier than ferrying .debs between computers by USB key.
+If this bug is going to be kept ANOTHER Debian release,
+can you at least warn people about it in the buster Installation Guide?

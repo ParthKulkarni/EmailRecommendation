@@ -1,0 +1,51 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#857545: choose-mirror: FTBFS due to encoding issues
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 12 Mar 2017 13:28:39 +0100
+Message-id : 20170312122839.11415.68694.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 857545@bugs.debian.org
+
+
+Source: choose-mirror
+Version: 2.76
+Severity: normal
+Tags: patch l10n
+Hi,
+I only noticed choose-mirror was FTBFSing right after pushing the 2.76
+tag, so I cancelled the upload to avoid wasting resources. The failure
+is due to a mirror's getting added for RE Réunion in Mirrors.masterlist;
+I've first tried to strip the acute accent from the list, but that's not
+sufficient since the mapping is done through iso-codes, where Réunion is
+spelled with this accent.
+The FTBFS looks like this:
+| # Build the templates
+| ./mktemplates debian/choose-mirror-bin.templates-in debian/choose-mirror-bin.templates.http-in debian/choose-mirror-bin.templates.https-in debian/choose-mirror-bin.templates.ftp.base-in debian/choose-mirror-bin.templates.both-in
+| Creating the list of countries for HTTP mirrors... Done.
+| Creating the list of countries for HTTPS mirrors... Done.
+| Creating the list of countries for FTP mirrors... Done.
+| Insert the lists of choices into the templates file... Done.
+| ERROR: xgettext failed to generate PO template file because there is non-ASCII
+|        string marked for translation. Please make sure that all strings marked
+|        for translation are in uniform encoding (say UTF-8), then *prepend* the
+|        following line to POTFILES.in and rerun intltool-update:
+| 
+|            [encoding: UTF-8]
+| 
+| Makefile:90: recipe for target 'debian/choose-mirror-bin.templates' failed
+| make[2]: *** [debian/choose-mirror-bin.templates] Error 1
+So I've tried this:
+| diff --git a/mktemplates b/mktemplates
+| index 6b60866..8240550 100755
+| --- a/mktemplates
+| +++ b/mktemplates
+| @@ -58,6 +58,7 @@ mkdir debian/pobuild
+|  
+|  # Create the appropriate POTFILES.in file there
+|  cat >debian/pobuild/POTFILES.in <<EOF
+| +[encoding: UTF-8]
+|  [type: gettext/rfc822deb] templates.tmp
+|  EOF
+|  
+That seems to do the trick, but it would be great to have a confirmation
+that it's OK to have non-ASCII characters in Choices field of templates.
+KiBi.

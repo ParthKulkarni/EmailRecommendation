@@ -1,0 +1,70 @@
+To : 902658@bugs.debian.org
+Subject : Bug#902658: apache2: apachectl graceful/restart results in segfault
+From : "bruno.pomar" <bruno.pomar@aviation-civile.gouv.fr>
+Date : Tue, 10 Jul 2018 11:33:22 +0200
+Message-id : 20180710113322.7a07bbc6@jasmin
+Reply-to : "bruno.pomar" <bruno.pomar@aviation-civile.gouv.fr>, 902658@bugs.debian.org
+References : <153026133281.6373.14208472717127920044.reportbug@sunnyserver.hellgate.at>
+
+
+I have the same problem with the same Debian and Apache2 version
+(upgrade testing/buster 2018/07/07):
+/var/log/kern.log:
+Jul  9 18:25:28 eussa kernel: [12436.633037] /usr/sbin/apach[12386]: segfault at 7f5c82d98660 ip 00007f5c82d98660 sp 00007ffcfaf711f8 error 14 in libcap-ng.so.0.0.0[7f5c82d70000+200000]
+Jul  9 18:25:28 eussa kernel: [12436.708687] /usr/sbin/apach[12387]: segfault at 7f5c82d98660 ip 00007f5c82d98660 sp 00007ffcfaf72628 error 14 in libcap-ng.so.0.0.0[7f5c82d70000+200000]
+But for me, the culprit was "nscd", if i start or restart apache2 with
+service "nscd" started, i have a segfault.
+If i stop "nscd", apache2 start normaly and after i can start
+"nscd". But after a new "apache2 restart" produce a segfault.
+ii  apache2                           2.4.33-3+b1    
+ii  apache2-bin                       2.4.33-3+b1 
+ii  apache2-data                      2.4.33-3    
+ii  apache2-dev                       2.4.33-3+b1 
+ii  apache2-doc                       2.4.33-3    
+ii  apache2-utils                     2.4.33-3+b1 
+ii  libapache2-mod-apreq2             2.13-5+b2   
+ii  libapache2-mod-authnz-pam         1.1.0-1     
+ii  libapache2-mod-perl2              2.0.10-2+b1 
+ii  libapache2-reload-perl            0.13-1      
+ii  libapache2-request-perl           2.13-5+b2      
+ii  nscd                              2.27-3
+# apachectl -M
+Loaded Modules:
+ core_module (static)
+ so_module (static)
+ watchdog_module (static)
+ http_module (static)
+ log_config_module (static)
+ logio_module (static)
+ version_module (static)
+ unixd_module (static)
+ alias_module (shared)
+ apreq_module (shared)
+ auth_basic_module (shared)
+ authn_core_module (shared)
+ authn_file_module (shared)
+ authnz_pam_module (shared)
+ authz_core_module (shared)
+ authz_host_module (shared)
+ authz_user_module (shared)
+ autoindex_module (shared)
+ cgid_module (shared)
+ deflate_module (shared)
+ dir_module (shared)
+ env_module (shared)
+ filter_module (shared)
+ include_module (shared)
+ mime_module (shared)
+ mpm_event_module (shared)
+ negotiation_module (shared)
+ perl_module (shared)
+ reqtimeout_module (shared)
+ setenvif_module (shared)
+ status_module (shared)
+ unique_id_module (shared)
+ userdir_module (shared)
+-- 
++-----------------------------------------------------------------------+
+. Mèl. bruno pomar à aviation-civile gouv fr
+. Tél. +33 (0)2 98 37 32 65 --- Fax. +33 (0)2 98 37 35 04
+. CRNA Ouest, Service T, Subdivision QI

@@ -1,0 +1,90 @@
+To : Philipp Kern <pkern@debian.org>
+Subject : Bug#841842: debian-installer: should use EXT4's native file-system-level encryption
+From : Theodore Ts'o <tytso@mit.edu>
+Date : Sun, 25 Jun 2017 12:28:48 -0400
+Message-id : 20170625162848.bcfj6ulkzsqibpah@thunk.org
+Reply-to : Theodore Ts'o <tytso@mit.edu>, 841842@bugs.debian.org
+In-reply-to : <[🔎] 1d2e40d3-0abe-abfc-e19c-61c1fd800ca2@debian.org>
+References : <147724850705.16704.7850699475739212204.reportbug@bethany> <[🔎] 20170625021916.GA1560@mraw.org> <[🔎] 1d2e40d3-0abe-abfc-e19c-61c1fd800ca2@debian.org>
+
+
+TL;DR summary:
+* For single user systems, use LUKS / dm-crypt.
+* For multi-user systems, file system level encryption may make sense,
+  but a lot of the tools necessary to do user-friendly key management
+  for a traditional Unix desktop or server have not been implemented
+  yet.  Ext4 encryption is basically a superior version of ecryptfs.
+* There are limitations to ext4 encryption as it is currently
+  implemented.  If someone has lots of free time or has a
+  commercial/product reasons to extend ext4 in general or ext4
+  encryption specifically, please talk to me.  I'm happy to help
+  people with designs, especially if they are then willing to
+  contribute resources to get the job done.
+On Sun, Jun 25, 2017 at 01:01:58PM +0200, Philipp Kern wrote:
+> 
+> To replace LUKS as an FDE mode we'd first need support in
+> initramfs-tools to load a key into the kernel's keyring on boot.
+You should **not** use ext4 encryption as a replacement for full disk
+encryption.  If you want full disk encryption, you should be using
+dm-crypt.
+Ext4 encryption is useful if you don't want to encrypt the entire disk
+with a single key --- either for performance reasons (e.g., you're
+running on an older Intel CPU which doesn't have AES acceleration), or
+you want to have different portions of the disks encrypted with
+different keys, which is the case for Chrome and Android.  In the case
+of Android, different users on a tablet, or your work profile and your
+personal profile each use different keys.  This allows you to remove a
+user, or when you leave your job for a different employer, allows the
+work profile to be removed --- without having to wipe the entire
+device.
+But from a security perspective, dm-crypt is more secure because all
+of the file system metadata (e.g., the file size of individual inodes,
+including encrypted files) are encrypted.  This is one of the
+advantages of block-level encryption versus encryption at the file
+system level.
+> But in general ext4 fs-level encryption is "weird" in that the
+> encryption secret is stored in the login keyring. That makes sense in
+> the Android world for which it was designed but complicates matters
+> somewhat on a plain Linux system and has "interesting" behavior
+> depending if the file you're trying to access is already loaded into the
+> page cache or not. (As there's a secret you need to have activated in
+> addition to fs-level permission bits, which are actually separate.) I
+> think something like pam_e4crypt for the encryption of the user's home
+> directory would make more sense to support.
+Yes, or if you want to have a ~/Private directory which is encrypted,
+and everything else is left unencrypted.  You should think of ext4
+encryption as being a better version of ecryptfs, not of LUKS.  Both
+have their place, but for most users whose systems are single user
+laptops or desktops, LUKS really is the better choice.
+It's also true some of the userspace utilities to allow ext4
+encryption to be used on a desktop aren't yet fully developed.  I had
+some conversations with some folks at Canonical to see if they would
+be interested in implementing the userspace support for traditional
+Unix systems (as opposed to for Android and Chrome OS) but that was
+before the big reorg at Canonical and I don't know if they are still
+signed up to do that work.
+> I think that nested policies aren't actually supported. I'm also unsure
+> if setting the policy at the root inode works or not. 
+No to both.  There are some tricky security issues with the first, and
+if someone is really interested I can talk about some of the ideas
+we've had about how to solve them.  We haven't had a product reason to
+implement it, and I haven't had the time to implement cool
+technologies just because it's cool for quite some time now.  These
+days I tend to accumulate designs for cool technologies, and then see
+if I can find a product manager who really wants the feature and who
+can fund the headcount necessary to do the work, and then give them
+the design doc.  (Even if the product manager works for a
+different company than my current employer; that's one of the beauties
+of open source. :-)
+As for setting the policy at the root inode, this would require doing
+some extra work in the kernel and e2fsprogs to deal with the
+lost+found inode.  So it added extra complexity, and we had no product
+reason to support it, so we punted on that idea.
+> (And I tried to confirm both questions, but encryption didn't work
+> with loop filesystems because of the blocksize, unfortunately.)
+Well, you can make it work with a loop file system but for small
+file systems, mke2fs defaults to a 1k block file system to make the file
+system conserve space.  You can work around this problem by creating a
+much larger loop file system, or specifying -b 4096 to mke2fs.  But
+that's neither here nor there.
+						- Ted

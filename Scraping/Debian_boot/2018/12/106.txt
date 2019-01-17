@@ -1,0 +1,150 @@
+To : "submit@bugs.debian.org" <submit@bugs.debian.org>
+Subject : Bug#916233: Difficulty with Debian Buster netinst dvd on Mac Pro 1,1
+From : David George Henderson III <dgh@caltech.edu>
+Date : Tue, 11 Dec 2018 18:46:59 +0000
+Message-id : bb28908c-4e8e-8754-1774-a67df633a2f5@caltech.edu
+Reply-to : David George Henderson III <dgh@caltech.edu>, 916233@bugs.debian.org
+
+
+Package: d-i.debian.org
+Severity: important
+I'm trying to install Debian testing on a Mac Pro 1,1 dedicated 
+boot/swap/root partition set.
+The 12/3/2018 debian-testing-amd64-i386-netinst.iso DVD boots using the 
+refit boot manager.
+     It hangs at the first splash screen when I select install for amd64.
+     This is very similar to what I notice in 915813@bugs.debian.org
+What works to install Debian Buster/testing on a Mac Pro 1,1 with Radeon 
+570 video card:
+1. Install Jessie/amd64 without X11 using the amd64-i386 netinst dvd
+2. Perform a dist-upgrade to Buster, still without any X11.
+     The dist-upgrade ran without an intermediate upgrade to Stretch.
+     After doing this I have a functional system with no X11 window 
+manager using firmware video.
+         (This was tested with a shutdown and reboot)
+3. After performing the dist-upgrade to buster:
+     a. install xserver-xorg-video-nouveau
+     b. install xfce following directions in https://wiki.debian.org/Xfce
+What seems to be failing with the Buster amd64-i386 netinst:
+     It looks like installer disk seems to be running the 
+xserver-xorg-video-radeon driver.
+         This behavior for xserver-xorg-video-radeon seems to have 
+started with Stretch
+     The Mac Pro 1,1 has a 32 bit ia32 EFI firmware.
+         I have never gotten the radeon driver to work on this machine 
+for either Stretch or Buster.
+         What does work is xserver-xorg-video-nouveau
+I have a change suggestion for the debian installer:
+     Go back to using the text window installer.
+     If you can't go back to using the text window installer,
+         run installer under xserver-xorg-video-nouveau
+Init: systemd (via /run/systemd/system)
+*** /home/dgh/mp_config.txt
+dgh@mpgpt:~$ lspci
+00:00.0 Host bridge: Intel Corporation 5000X Chipset Memory Controller 
+Hub (rev
+30)
+00:02.0 PCI bridge: Intel Corporation 5000 Series Chipset PCI Express x8 
+Port
+2-3 (rev 30)
+00:03.0 Non-VGA unclassified device: Intel Corporation 5000 Series 
+Chipset PCI
+Express x4 Port 3 (rev 30)
+00:04.0 PCI bridge: Intel Corporation 5000X Chipset PCI Express x16 Port 4-7
+(rev 30)
+00:05.0 Non-VGA unclassified device: Intel Corporation 5000 Series 
+Chipset PCI
+Express x4 Port 5 (rev 30)
+00:06.0 Non-VGA unclassified device: Intel Corporation 5000 Series 
+Chipset PCI
+Express x4 Port 6 (rev 30)
+00:07.0 Non-VGA unclassified device: Intel Corporation 5000 Series 
+Chipset PCI
+Express x4 Port 7 (rev 30)
+00:08.0 System peripheral: Intel Corporation 5000 Series Chipset DMA Engine
+(rev 30)
+00:10.0 Host bridge: Intel Corporation 5000 Series Chipset FSB Registers 
+(rev
+30)
+00:10.1 Host bridge: Intel Corporation 5000 Series Chipset FSB Registers 
+(rev
+30)
+00:10.2 Host bridge: Intel Corporation 5000 Series Chipset FSB Registers 
+(rev
+30)
+00:11.0 Host bridge: Intel Corporation 5000 Series Chipset Reserved 
+Registers
+(rev 30)
+00:13.0 Host bridge: Intel Corporation 5000 Series Chipset Reserved 
+Registers
+(rev 30)
+00:15.0 Host bridge: Intel Corporation 5000 Series Chipset FBD Registers 
+(rev
+30)
+00:16.0 Host bridge: Intel Corporation 5000 Series Chipset FBD Registers 
+(rev
+30)
+00:1b.0 Audio device: Intel Corporation 631xESB/632xESB High Definition 
+Audio
+Controller (rev 09)
+00:1c.0 PCI bridge: Intel Corporation 631xESB/632xESB/3100 Chipset PCI 
+Express
+Root Port 1 (rev 09)
+00:1c.1 PCI bridge: Intel Corporation 631xESB/632xESB/3100 Chipset PCI 
+Express
+Root Port 2 (rev 09)
+00:1c.2 PCI bridge: Intel Corporation 631xESB/632xESB/3100 Chipset PCI 
+Express
+Root Port 3 (rev 09)
+00:1c.3 PCI bridge: Intel Corporation 631xESB/632xESB/3100 Chipset PCI 
+Express
+Root Port 4 (rev 09)
+00:1d.0 USB controller: Intel Corporation 631xESB/632xESB/3100 Chipset 
+UHCI USB
+Controller #1 (rev 09)
+00:1d.1 USB controller: Intel Corporation 631xESB/632xESB/3100 Chipset 
+UHCI USB
+Controller #2 (rev 09)
+00:1d.2 USB controller: Intel Corporation 631xESB/632xESB/3100 Chipset 
+UHCI USB
+Controller #3 (rev 09)
+00:1d.3 USB controller: Intel Corporation 631xESB/632xESB/3100 Chipset 
+UHCI USB
+Controller #4 (rev 09)
+00:1d.7 USB controller: Intel Corporation 631xESB/632xESB/3100 Chipset EHCI
+USB2 Controller (rev 09)
+00:1e.0 PCI bridge: Intel Corporation 82801 PCI Bridge (rev d9)
+00:1f.0 ISA bridge: Intel Corporation 631xESB/632xESB/3100 Chipset LPC
+Interface Controller (rev 09)
+00:1f.1 IDE interface: Intel Corporation 631xESB/632xESB IDE Controller (rev
+09)
+00:1f.2 SATA controller: Intel Corporation 631xESB/632xESB SATA AHCI 
+Controller
+(rev 09)
+00:1f.3 SMBus: Intel Corporation 631xESB/632xESB/3100 Chipset SMBus 
+Controller
+(rev 09)
+01:00.0 PCI bridge: Intel Corporation 6311ESB/6321ESB PCI Express 
+Upstream Port
+(rev 01)
+01:00.1 PIC: Intel Corporation 6311ESB/6321ESB I/OxAPIC Interrupt Controller
+(rev 01)
+01:00.3 PCI bridge: Intel Corporation 6311ESB/6321ESB PCI Express to PCI-X
+Bridge (rev 01)
+02:00.0 PCI bridge: Intel Corporation 6311ESB/6321ESB PCI Express Downstream
+Port E1 (rev 01)
+02:01.0 PCI bridge: Intel Corporation 6311ESB/6321ESB PCI Express Downstream
+Port E2 (rev 01)
+02:02.0 PCI bridge: Intel Corporation 6311ESB/6321ESB PCI Express Downstream
+Port E3 (rev 01)
+05:00.0 Ethernet controller: Intel Corporation 80003ES2LAN Gigabit Ethernet
+Controller (Copper) (rev 01)
+05:00.1 Ethernet controller: Intel Corporation 80003ES2LAN Gigabit Ethernet
+Controller (Copper) (rev 01)
+08:00.0 VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI]
+Juniper XT [Radeon HD 5770]
+08:00.1 Audio device: Advanced Micro Devices, Inc. [AMD/ATI] Juniper 
+HDMI Audio
+[Radeon HD 5700 Series]
+0f:00.0 Network controller: Broadcom Corporation BCM4321 802.11a/b/g/n 
+(rev 01)

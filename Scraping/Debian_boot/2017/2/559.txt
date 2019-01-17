@@ -1,0 +1,130 @@
+To : submit@bugs.debian.org
+Subject : Bug#856405: unblock: libdebian-installer/0.109 and others
+From : Steven Chamberlain <steven@pyro.eu.org>
+Date : Tue, 28 Feb 2017 16:56:20 +0000
+Message-id : 20170228165619.GM53239@pyro.eu.org
+Reply-to : Steven Chamberlain <steven@pyro.eu.org>, 856405@bugs.debian.org
+
+
+Package: release.debian.org
+User: release.debian.org@packages.debian.org
+Usertags: unblock
+X-Debbugs-Cc: debian-boot@lists.debian.org
+Hi!
+Attached are proposed debdiffs for anna, cdebootstrap and their
+dependency libdebian-installer (Bug #856210).
+Would the release team be willing to grant unblocks for these?
+(It would also require an ACK from the d-i release manager).
+In the installer, net-retriever verifies the Release file with SHA256,
+but anna only validates the .udeb files with MD5, which was surprising.
+The .udeb files are extracted and then their contents may be executed
+with full privileges during the install (Bug #856211).
+netboot images typically fetch .udeb files over unsecured HTTP.  Other
+install media bundles those so they need not be downloaded, but it could
+still happen if networking is configured during the install and a
+network mirror has newer versions of any required .udeb files.  (Some
+.udeb files are retrieved later, after installing the base system).
+If not already considered a grave security flaw, it might be during the
+lifetime of stretch (-2022?).  Even if fixed in a point release, any
+install media created before then would remain vulnerable.
+cdebootstrap - not used by the installer, but available in stretch - 
+only verifies Release files using MD5 (Bug #856215), which is an
+unintended regression since jessie.
+The changes to libdebian-installer are ABI-compatible, such that only
+reverse-dependencies that use the md5sum field should be affected
+(thought to be just anna and cdebootstrap).  They would FTBFS until
+patched, and already-built binaries would report a "md5sum mismatch" if
+they used this new version of the library at run-time, since the new
+SHA256 hashes would not match the MD5 hashes they expect.
+unblock libdebian-installer/0.109
+unblock anna/1.58
+unblock cdebootstrap/0.7.7
+Thanks!
+-- System Information:
+Debian Release: stretch/sid
+  APT prefers unstable
+  APT policy: (500, 'unstable'), (1, 'experimental')
+Architecture: kfreebsd-amd64 (x86_64)
+Kernel: kFreeBSD 10.1-0-amd64
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: sysvinit (via /sbin/init)
+signature.ascdiff -Nru cdebootstrap-0.7.6/debian/changelog cdebootstrap-0.7.7/debian/changelog
+--- cdebootstrap-0.7.6/debian/changelog	2016-11-08 18:31:14.000000000 +0000
++++ cdebootstrap-0.7.7/debian/changelog	2017-02-28 16:44:30.000000000 +0000
+@@ -1,3 +1,17 @@
++cdebootstrap (0.7.7) unstable; urgency=high
++
++  * Team upload.
++  * Implement SHA256 verification of .deb files (Closes: #856212).
++  * Implement SHA256 verification of Packages files.
++    - (Build-)Depend on libdebian-installer4-dev >= 0.109 which provides
++      those sha256 fields
++  * Remove support for SHA1 hashes, since they are no longer published
++    in Release files, and the full length of them was not previously
++    being checked against the expected values (Closes: #856213).
++  * Disallow fallback to MD5-only verification (Closes: #856215).
++
++ -- Steven Chamberlain <stevenc@debian.org>  Tue, 28 Feb 2017 16:44:30 +0000
++
+ cdebootstrap (0.7.6) unstable; urgency=medium
+ 
+   * Make generation of tar reproducible. (closes: #777737)
+diff -Nru cdebootstrap-0.7.6/debian/control cdebootstrap-0.7.7/debian/control
+--- cdebootstrap-0.7.6/debian/control	2016-11-08 18:23:34.000000000 +0000
++++ cdebootstrap-0.7.7/debian/control	2017-02-28 15:46:16.000000000 +0000
+@@ -9,7 +9,7 @@
+  libbz2-dev,
+  libcurl4-gnutls-dev,
+  libdebconfclient0-dev (>= 0.40),
+- libdebian-installer4-dev (>= 0.81~),
++ libdebian-installer4-dev (>= 0.109~),
+  liblzma-dev,
+  pkg-config,
+  zlib1g-dev
+diff -Nru cdebootstrap-0.7.6/src/check.c cdebootstrap-0.7.7/src/check.c
+--- cdebootstrap-0.7.6/src/check.c	2014-06-22 12:57:53.000000000 +0100
++++ cdebootstrap-0.7.7/src/check.c	2017-02-28 15:47:10.000000000 +0000
+@@ -32,6 +32,9 @@
+ #include "frontend.h"
+ #include "suite.h"
+ 
++/* Length of a SHA256 hash in hex representation */
++#define SHA256_HEX_LENGTH 64
++
+ static int check_sum (const char *target, const char *exec, const char *sum, const char *message)
+ {
+   int ret;
+@@ -51,14 +54,14 @@
+   if (ret)
+     return 1;
+ 
+-  if (!strncmp (buf, sum, 32))
++  if (!strncmp (buf, sum, SHA256_HEX_LENGTH))
+     return 0;
+   return 1;
+ }
+ 
+ int check_deb (const char *target, di_package *p, const char *message)
+ {
+-  return check_sum (target, "md5sum", p->md5sum, message);
++  return check_sum (target, "sha256sum", p->sha256, message);
+ }
+ 
+ int check_packages (const char *target, const char *ext, di_release *rel)
+@@ -72,14 +75,12 @@
+   snprintf (buf_file, sizeof (buf_file), "main/binary-%s/Packages%s", arch, ext);
+   key.string = (char *) buf_file;
+   key.size = strlen (buf_file);
+-  item = di_hash_table_lookup (rel->md5sum, &key);
++  item = di_hash_table_lookup (rel->sha256, &key);
+   if (!item)
+     log_text (DI_LOG_LEVEL_ERROR, "Can't find checksum for Packages file");
+ 
+-  if (item->sum[1])
+-    return check_sum (target, "sha1sum", item->sum[1], buf_name);
+   if (item->sum[0])
+-    return check_sum (target, "md5sum", item->sum[0], buf_name);
++    return check_sum (target, "sha256sum", item->sum[0], buf_name);
+   return 1;
+ }

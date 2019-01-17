@@ -1,0 +1,38 @@
+To : Samuel Thibault <sthibault@debian.org>, 901255@bugs.debian.org, Igor Scheller <debian@igorscheller.de>
+Subject : Bug#901255: netcfg-static: Unable to configure fe80::1 as a gateway
+From : Philipp Kern <pkern@debian.org>
+Date : Sun, 10 Jun 2018 22:33:42 +0200
+Message-id : 8d516413-bbf5-6ff9-ba6f-237f9344b102@debian.org
+Reply-to : Philipp Kern <pkern@debian.org>, 901255@bugs.debian.org
+In-reply-to : <[🔎] 20180610172539.qjfu7hvfaspn2faa@var.youpi.perso.aquilenet.fr>
+References : <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com> <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com> <[🔎] 20180610172539.qjfu7hvfaspn2faa@var.youpi.perso.aquilenet.fr> <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com>
+
+
+On 6/10/18 7:25 PM, Samuel Thibault wrote:
+> Igor Scheller, le dim. 10 juin 2018 18:57:50 +0200, a ecrit:
+>> When I try to configure fe80::1 (next router) as a gateway in an IPv6 only
+>> network the installer stops with an "Unreachable gateway" error.
+>>
+>> Looking at netcfg-common.c:netcfg_gateway_reachable its checked by comparing
+>> bytes. Imho a better way would be to configure the interface and ping the
+>> gateway?
+> Well, the gateway has no obligation to respond to pings, so it's not a
+> proper way.
+> 
+> Checking that the prefix matches however makes complete sense, and
+> should just work.  Provided that the network prefix length is correct,
+> of course, but it has to be otherwise it's a configuration error. I
+> guess the problem is rather there.
+Well, the gateway may as well be link-local and not be in the assigned
+prefix. That's unfortunately a valid configuration. I wouldn't call
+fe80::1 "next router", though. It's not a well-known address. ff02::2
+(all routers) would be, in a way. But alas.
+I guess the answer here is that if the gateway is in fe80::/10 the route
+needs to be added with the interface's name, just like pointopoint does it.
+The better setup is to use autoconfiguration and let the router announce
+itself. That's how most production IPv6 setups work because the standard
+calls for that. But I know that especially providers like Hetzner are
+notorious for requiring their users to use a hard-coded fe80::1 default
+gateway. (And ifupdown supports this correctly.)
+Kind regards
+Philipp Kern

@@ -1,0 +1,196 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#869729: apache2: 'service apache2 restart' sometimes stops without restarting
+From : Benjamin Moody <benjamin.moody@gmail.com>
+Date : Tue, 25 Jul 2017 18:03:13 -0400
+Message-id : 20170725220313.14307.85629.reportbug@physionet1.ecg.mit.edu
+Reply-to : Benjamin Moody <benjamin.moody@gmail.com>, 869729@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.10-10+deb8u10
+Severity: normal
+Dear Maintainer,
+as the subject line says, sometimes running 'service apache2 restart'
+fails to restart apache.  Instead, it *stops* apache without
+restarting it, and fails to give any error message.
+In addition, sometimes, *upgrading* the apache2 packages causes the
+web server to be stopped without restarting.  In fact, I first noticed
+this problem when I upgraded to (I think) version 2.4.10-10+deb8u10,
+and only noticed a couple hours later that the web server wasn't
+running for some reason.  So this seems to be a recent change.
+It is not easy to reproduce this issue.  I just ran 'service apache2
+restart' several times in a row, as well as reinstalling the packages
+using 'apt-get install --reinstall apache2-bin apache2-utils
+apache2-data apache2 apache2-mpm-event', and every time the web server
+came back as expected.
+(I don't know whether 'systemctl' has the same problem.  I manage a
+number of heterogeneous systems and use 'service' out of habit.)
+This is a heavily customized server with a bunch of weird stuff going
+on in its configuration.  However, as far as I'm aware, there's
+nothing about the apache configuration that *should* cause it to fail
+- when I notice that apache is not running, I log in and run 'service
+apache2 restart' again, and it works.
+-- Package-specific info:
+-- System Information:
+Debian Release: 8.8
+  APT prefers oldstable-updates
+  APT policy: (500, 'oldstable-updates'), (500, 'oldstable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 3.16.0-4-amd64 (SMP w/16 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages apache2 depends on:
+ii  apache2-bin    2.4.10-10+deb8u10
+ii  apache2-data   2.4.10-10+deb8u10
+ii  apache2-utils  2.4.10-10+deb8u10
+ii  dpkg           1.17.27
+ii  lsb-base       4.1+Debian13+nmu1
+ii  mime-support   3.58
+ii  perl           5.20.2-3+deb8u7
+ii  procps         2:3.3.9-9
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.35
+Versions of packages apache2 suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  lynx-cur [www-browser]                           2.8.9dev1-2+deb8u1
+ii  w3m [www-browser]                                0.5.3-19+deb8u1
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.5.1-3
+ii  libaprutil1              1.5.4-1
+ii  libaprutil1-dbd-mysql    1.5.4-1
+ii  libaprutil1-dbd-pgsql    1.5.4-1
+ii  libaprutil1-dbd-sqlite3  1.5.4-1
+ii  libaprutil1-ldap         1.5.4-1
+ii  libc6                    2.19-18+deb8u10
+ii  libldap-2.4-2            2.4.40+dfsg-1+deb8u3
+ii  liblua5.1-0              5.1.5-7.1
+ii  libpcre3                 2:8.35-3.3+deb8u4
+ii  libssl1.0.0              1.0.1t-1+deb8u6
+ii  libxml2                  2.9.1+dfsg1-5+deb8u4
+ii  perl                     5.20.2-3+deb8u7
+ii  zlib1g                   1:1.2.8.dfsg-2+b1
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  lynx-cur [www-browser]                           2.8.9dev1-2+deb8u1
+ii  w3m [www-browser]                                0.5.3-19+deb8u1
+Versions of packages apache2 is related to:
+ii  apache2      2.4.10-10+deb8u10
+ii  apache2-bin  2.4.10-10+deb8u10
+-- Configuration Files:
+/etc/apache2/apache2.conf changed:
+Mutex file:${APACHE_LOCK_DIR} default
+PidFile ${APACHE_PID_FILE}
+Timeout 300
+KeepAlive On
+MaxKeepAliveRequests 100
+KeepAliveTimeout 5
+User ${APACHE_RUN_USER}
+Group ${APACHE_RUN_GROUP}
+HostnameLookups Off
+ErrorLog ${APACHE_LOG_DIR}/error.log
+LogLevel warn
+IncludeOptional mods-enabled/*.load
+IncludeOptional mods-enabled/*.conf
+Include ports.conf
+<Directory />
+	Options FollowSymLinks
+	AllowOverride None
+	Require all denied
+</Directory>
+<Directory /usr/share>
+	AllowOverride None
+	Require all granted
+</Directory>
+<Directory /var/www/>
+	Options Indexes FollowSymLinks
+	AllowOverride None
+	Require all granted
+</Directory>
+AccessFileName .htaccess
+<FilesMatch "^\.ht">
+	Require all denied
+</FilesMatch>
+LogFormat "%v:%p %h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" vhost_combined
+LogFormat "%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" combined
+LogFormat "%h %l %u %t \"%r\" %>s %O" common
+LogFormat "%{Referer}i -> %U" referer
+LogFormat "%{User-agent}i" agent
+IncludeOptional conf.d/*.conf
+/etc/apache2/envvars changed:
+unset HOME
+if [ "${APACHE_CONFDIR##/etc/apache2-}" != "${APACHE_CONFDIR}" ] ; then
+	SUFFIX="-${APACHE_CONFDIR##/etc/apache2-}"
+else
+	SUFFIX=
+fi
+export APACHE_RUN_USER=apache
+export APACHE_RUN_GROUP=apache
+export APACHE_PID_FILE=/var/run/apache2$SUFFIX.pid
+export APACHE_RUN_DIR=/var/run/apache2$SUFFIX
+export APACHE_LOCK_DIR=/var/lock/apache2$SUFFIX
+export APACHE_LOG_DIR=/var/log/apache2$SUFFIX
+export LANG=C
+export LANG
+/etc/apache2/mods-available/authn_dbd.load changed:
+LoadModule auth_pgsql_module /usr/lib/apache2/modules/mod_auth_pgsql.so
+LoadModule authn_dbd_module /usr/lib/apache2/modules/mod_authn_dbd.so
+/etc/apache2/mods-available/authn_dbm.load changed:
+LoadModule authn_dbm_module /usr/lib/apache2/modules/mod_authn_dbm.so
+LoadModule auth_pgsql_module /usr/lib/apache2/modules/mod_auth_pgsql.so
+/etc/apache2/mods-available/autoindex.conf changed:
+<IfModule mod_autoindex.c>
+IndexOptions FancyIndexing VersionSort HTMLTable NameWidth=* DescriptionWidth=* Charset=UTF-8
+AddIconByEncoding (CMP,/icons/compressed.gif) x-compress x-gzip x-bzip2
+AddIconByType (TXT,/icons/text.gif) text/*
+AddIconByType (IMG,/icons/image2.gif) image/*
+AddIconByType (SND,/icons/sound2.gif) audio/*
+AddIconByType (VID,/icons/movie.gif) video/*
+AddIcon /icons/binary.gif .bin .exe
+AddIcon /icons/binhex.gif .hqx
+AddIcon /icons/tar.gif .tar
+AddIcon /icons/world2.gif .wrl .wrl.gz .vrml .vrm .iv
+AddIcon /icons/compressed.gif .Z .z .tgz .gz .zip
+AddIcon /icons/a.gif .ps .ai .eps
+AddIcon /icons/layout.gif .html .shtml .htm .pdf
+AddIcon /icons/text.gif .txt
+AddIcon /icons/c.gif .c
+AddIcon /icons/p.gif .pl .py
+AddIcon /icons/f.gif .for
+AddIcon /icons/dvi.gif .dvi
+AddIcon /icons/uuencoded.gif .uu
+AddIcon /icons/script.gif .conf .sh .shar .csh .ksh .tcl
+AddIcon /icons/tex.gif .tex
+AddIcon /icons/bomb.gif /core
+AddIcon (SND,/icons/sound2.gif) .ogg
+AddIcon (VID,/icons/movie.gif) .ogm
+AddIcon /icons/back.gif ..
+AddIcon /icons/hand.right.gif README
+AddIcon /icons/folder.gif ^^DIRECTORY^^
+AddIcon /icons/blank.gif ^^BLANKICON^^
+AddIcon /icons/odf6odt-20x22.png .odt
+AddIcon /icons/odf6ods-20x22.png .ods
+AddIcon /icons/odf6odp-20x22.png .odp
+AddIcon /icons/odf6odg-20x22.png .odg
+AddIcon /icons/odf6odc-20x22.png .odc
+AddIcon /icons/odf6odf-20x22.png .odf
+AddIcon /icons/odf6odb-20x22.png .odb
+AddIcon /icons/odf6odi-20x22.png .odi
+AddIcon /icons/odf6odm-20x22.png .odm
+AddIcon /icons/odf6ott-20x22.png .ott
+AddIcon /icons/odf6ots-20x22.png .ots
+AddIcon /icons/odf6otp-20x22.png .otp
+AddIcon /icons/odf6otg-20x22.png .otg
+AddIcon /icons/odf6otc-20x22.png .otc
+AddIcon /icons/odf6otf-20x22.png .otf
+AddIcon /icons/odf6oti-20x22.png .oti
+AddIcon /icons/odf6oth-20x22.png .oth
+DefaultIcon /icons/unknown.gif
+ReadmeName README.html
+HeaderName HEADER.html
+IndexIgnore .??* *~ *# RCS CVS *,v *,t 
+IndexIgnore .??* *~ *# HEADER* README* RCS CVS *,v *,t *.css 
+</IfModule>
+-- no debconf information

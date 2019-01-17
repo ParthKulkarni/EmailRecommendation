@@ -1,0 +1,64 @@
+To : debootstrap@packages.debian.org, debuerreotype@packages.debian.org, 	elbrus@debian.org
+Subject : Re: debootstrap/1.0.98 breaks debuerreotype/0.4-2 autopkgtest in testing
+From : Tianon Gravi <admwiggin@gmail.com>
+Date : Tue, 15 May 2018 14:49:15 -0700
+Message-id : CAHnKnK0fiX31afJYJpfZ-hcx+1AP4-K4_4Hr8-O5nnexVi4D5w@mail.gmail.com
+In-reply-to : <1526389913.5324614-elbrus@testavoira.debian.org>
+References : <1526389913.5324614-elbrus@testavoira.debian.org>
+
+
+On Tue, 15 May 2018 at 06:11, Paul Gevers <elbrus@debian.org> wrote:
+> This e-mail is meant to trigger prompt direct communication between the
+> maintainers of the involved packages as one party has insight in what
+> changed and the other party insight in what is being tested. Please
+> therefore get in touch with each other with your ideas about what the
+> causes of the problem might be, proposed patches, etc. A regression in a
+> reverse dependency can be due to one of the following reasons (of course
+> not complete):
+> * new bug in the candidate package (fix the package)
+> * bug in the test case that only gets triggered due to the update (fix
+>    the reverse dependency, but see below)
+> * out-of-date reference date in the test case that captures a former bug
+>    in the candidate package (fix the reverse dependency, but see below)
+> * deprecation of functionality that is used in the reverse dependency
+>    and/or its test case (discussion needed)
+> Triaging tips are being collected on the Debian Wiki [4].
+As just a little color into what the autopkgtest for "debuerreotype" does,
+it uses snapshot.debian.org to create a point-in-time reproducible snapshot
+of Debian Stretch from 2017-01-01T00:00:00Z (
+http://snapshot.debian.org/archive/debian/20170101T000000Z/).
+I've managed to reproduce the change locally for testing vs unstable, and
+"diffoscope" provides the the following insight:
+| @@ -160,16 +160,14 @@
+|  drwxr-xr-x   0        0        0        0 2017-01-01 00:00:00.000000 opt/
+|  drwxr-xr-x   0        0        0        0 2016-11-27 18:29:38.000000
+proc/
+|  drwx------   0        0        0        0 2017-01-01 00:00:00.000000
+root/
+|  -rw-r--r--   0        0        0      570 2010-01-31 11:52:26.000000
+root/.bashrc
+|  -rw-r--r--   0        0        0      148 2015-08-17 15:30:33.000000
+root/.profile
+|  drwxr-xr-x   0        0        0        0 2017-01-01 00:00:00.000000 run/
+|  drwxrwxrwt   0        0        0        0 2017-01-01 00:00:00.000000
+run/lock/
+| -drwxr-xr-x   0        0        0        0 2017-01-01 00:00:00.000000
+run/mount/
+| --rw-r--r--   0        0        0        0 2017-01-01 00:00:00.000000
+run/mount/utab
+|  -rw-rw-r--   0        0        0        0 2017-01-01 00:00:00.000000
+run/utmp
+|  lrwxrwxrwx   0        0        0        0 2017-01-01 00:00:00.000000
+sbin -> usr/sbin
+|  drwxr-xr-x   0        0        0        0 2017-01-01 00:00:00.000000 srv/
+|  drwxr-xr-x   0        0        0        0 2016-11-27 18:29:38.000000 sys/
+|  drwxrwxrwt   0        0        0        0 2017-01-01 00:00:00.000000 tmp/
+|  drwxr-xr-x   0        0        0        0 2017-01-01 00:00:00.000000 usr/
+|  drwxr-xr-x   0        0        0        0 2017-01-01 00:00:00.000000
+usr/bin/
+So it looks like some recent change in "debootstrap" has either started
+removing "run/mount/" or has changed whatever was triggering it to be
+created?
+♥,
+- Tianon
+   4096R / B42F 6819 007F 00F8 8E36  4FD4 036A 9C25 BF35 7DD4

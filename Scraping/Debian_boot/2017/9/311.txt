@@ -1,0 +1,72 @@
+To : Josua Mayer <josua.mayer97@gmail.com>, 876773@bugs.debian.org
+Subject : Bug#876773: flash-kernel: Please add support for the original SolidRun CuBox (Dove)
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Mon, 25 Sep 2017 12:22:50 -0700
+Message-id : 87zi9iwpkl.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 876773@bugs.debian.org
+In-reply-to : <[🔎] 150636229001.682.3893554561366307423.reportbug@cubox>
+References : <[🔎] 150636229001.682.3893554561366307423.reportbug@cubox> <[🔎] 150636229001.682.3893554561366307423.reportbug@cubox>
+
+
+On 2017-09-25, Josua Mayer wrote:
+> The SolidRun CuBox has very good support in Mainline Linux.
+> Thus it is a great candidate for supporting it in Debian.
+...
+> I have come up with the database entry below, and this preliminary boot-script:
+> setenv loadaddr   0x02000000
+> setenv loadaddrrd 0x20000000
+> setenv bootargs console=ttyS0,115200n8
+> ${fstype}load ${device_name} 0:${partition} ${loadaddr} /boot/uImage
+> ${fstype}load ${device_name} 0:${partition} ${loadaddrrd} /boot/uInitrd
+> bootm $loadaddr $loadaddrrd
+loaddr is already set in your environment, no need to set it again.
+If you use:
+  setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} ${console} @@LINUX_KERNEL_CMDLINE@@
+Then flash-kernel can be configured with options from
+/etc/default/flash-kernel.
+And have this before the load/bootm parts:
+  @@UBOOT_ENV_EXTRA@@
+Then local environment overrides can be set from
+/etc/flash-kerenel/ubootenv.d or /usr/share/flash-kernel/ubootenv.d.
+> I am running U-Boot 2009.08-dirty (Mar 09 2013 - 18:15:45) Marvell version: 5.4.4 NQ SR1.
+> It comes with a prepopulated bootcmd environment variable that tries out:
+> - usb sata(ide) mmc
+> - partitions 1,2
+> - directores / and /boot
+> to find a boot.scr.
+> At the time of loading it, these variables are set accordingly:
+> device_name, partition, directory, fstype
+> which can be used in our boot.scr.
+You also *might* want to emulate upstream u-boot conventions and use the
+variables consistant with other boot scripts, and set up a thin
+compatibility layer:
+  setenv kernel_addr_r $loadaddr
+  setenv ramdisk_addr_r 0x20000000
+  setenv devtype $device_name
+  setenv devnum 0
+  setenv bootpart $partition
+  setenv distro_bootpart $partition
+  setenv prefix $directory
+With that at the top of your file, you could probably copy the
+uboot-generic script and make minor modifications to get it working
+(change "load" to "${fstype}load" and "bootz" to "bootm", change "/boot"
+to "${prefix}"), and it would be more similar to the standard boot
+scripts, and it'd be easier to adapt if upstream u-boot support was
+later added with distro_bootcmd support.
+> One important thing that is missing, is bootargs!
+> We need to set: console, root, rootfstype, rootwait
+Your bootscript already sets the console in bootargs, so I'm not sure
+what you mean...
+> - rootfstype could be gathered from fstype
+I would not assume that the / fs and /boot fs are the same. But, you
+shouldn't need to set that if you're using an initrd that can detect the
+filesystem on it's own (e.g. initramfs-tools).
+> - any ideas how to generate the root= option?
+>   Ideally we could use UUID= there!
+>   Or does Bootloader-Sets-Incorrect-Root: yes help here?
+Again, with initramfs-tools, flash-kernel adds a root= entry based on
+fstab in the initrd, so that in that case, you don't need root= defined
+in the u-boot environment.
+live well,
+  vagrant
+signature.asc

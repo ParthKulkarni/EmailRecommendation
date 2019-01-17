@@ -1,0 +1,41 @@
+To : submit@bugs.debian.org
+Subject : Bug#853990: Add prompt for iSCSI initiator name in installer
+From : Kevin Otte <nivex@nivex.net>
+Date : Thu, 2 Feb 2017 16:22:22 -0500
+Message-id : f9dcf33a-8e7a-e123-ad09-f7b38606d023@nivex.net
+Reply-to : Kevin Otte <nivex@nivex.net>, 853990@bugs.debian.org
+
+
+Package: partman-iscsi
+Version: 44
+The installer should prompt for the desired iSCSI initiator name before
+starting the initiator. Many iSCSI targets require the specification of
+the IQN as part of their ACLs. It is useful for the administrator to be
+able to set this.
+I have included a patch based on Ubuntu's modifications to the package
+that appears to achieve this.
+--- iscsi-base.sh	2011-07-24 21:01:40.000000000 -0400
++++ /tmp/iscsi-base.sh	2017-02-02 16:17:27.583471157 -0500
+@@ -1,5 +1,22 @@
+ . /usr/share/debconf/confmodule
+ 
++iscsi_start () {
++	db_input critical partman-iscsi/initiatorname || true
++	db_go || true
++	db_get partman-iscsi/initiatorname
++	if [ -n "$RET" ]; then
++	        echo "## DO NOT EDIT OR REMOVE THIS FILE!" > /etc/iscsi/initiatorname.iscsi
++	        echo "## If you remove this file, the iSCSI daemon will not start." >> /etc/iscsi/initiatorname.iscsi
++	        echo "## If you change the InitiatorName, existing access control lists" >> /etc/iscsi/initiatorname.iscsi
++	        echo "## may reject this initiator.  The InitiatorName must be unique">> /etc/iscsi/initiatorname.iscsi
++	        echo "## for each iSCSI initiator.  Do NOT duplicate iSCSI InitiatorNames." >> /etc/iscsi/initiatorname.iscsi
++	        printf "InitiatorName=$RET\n"  >> /etc/iscsi/initiatorname.iscsi
++	        chmod 600 /etc/iscsi/initiatorname.iscsi
++	fi
++
++	iscsi-start
++}
++
+ iscsi_login () {
+ 	local portal discovery targets target
+ 	local state=0

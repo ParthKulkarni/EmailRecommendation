@@ -1,0 +1,698 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#872725: installation-reports: When installing with a encrypted swap, device was saved as /dev/sda2 in /etc/crypttab, but on first boot devices had been switched (sda became sdb, and vice versa).
+From : Julien Lecomte <julien@lecomte.at>
+Date : Sun, 20 Aug 2017 16:43:08 +0200
+Message-id : 150324018824.10567.13733290822185888483.reportbug@pumilio.lecomte.at
+Reply-to : Julien Lecomte <julien@lecomte.at>, 872725@bugs.debian.org
+
+
+Package: installation-reports
+Severity: important
+Dear Maintainer,
+-- Package-specific info:
+Boot method: CD on USB flashdrive
+Image version: latest debian 9 available on site (as of 2017-08-19)
+Date: 2017-08-20
+Machine: built
+Partitions: cf. below
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [O]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [O]
+Comments/Problems:
+When I installed Debian, I chose the following for my personalized partition:
+/dev/sda
+  /dev/sda1 => /boot, ext4
+  /dev/sda2 => encrypted, swap
+  /dev/sda3 => encrypted, /
+I left my /dev/sdb as unused, it only has /dev/sdb1
+The following got saved in crypttab:
+sda2_crypt /dev/sda2 /dev/urandom cipher=aes-xts-plain64,size=256,swap
+sda3_crypt UUID=34d65b53-5df5-48da-8ca6-884b38a9cd7d none luks
+And the fstab was saved as :
+UUID=f2050f17-78c5-431f-bfdc-80af4f2d0dc9 /boot ext4 discard,sync 0 2
+/dev/mapper/sda3_crypt / ext4 discard,errors=remount-ro 0       1
+/dev/mapper/sda2_crypt none swap sw 0 0
+Nevertheless, on reboot, I noticed that swap was not mounted. The issue is that
+on first reboot, /dev/sda and /dev/sdb got switched.
+All the partitions referenced by UUID got mounted correctly.
+I'm probably lucky that /dev/sda2 from install didn't point to anything anymore since it could have trashed a partition of mine.
+Shouldn't /etc/crypttab be created by using the UUID or partid of the swap?
+Thanks,
+Julien
+-- 
+Please make sure that the hardware-summary log file, and any other
+installation logs that you think would be useful are attached to this
+report. Please compress large files using gzip.
+Once you have filled out this report, mail it to submit@bugs.debian.org.
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="9 (stretch) - installer build 20170615"
+X_INSTALLATION_MEDIUM=cdrom
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux pumilio 4.9.0-3-amd64 #1 SMP Debian 4.9.30-2 (2017-06-12) x86_64 GNU/Linux
+lspci -knn: 00:00.0 Host bridge [0600]: Intel Corporation 4th Gen Core Processor DRAM Controller [8086:0c00] (rev 06)
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8534]
+lspci -knn: 00:01.0 PCI bridge [0604]: Intel Corporation Xeon E3-1200 v3/4th Gen Core Processor PCI Express x16 Controller [8086:0c01] (rev 06)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:14.0 USB controller [0c03]: Intel Corporation 9 Series Chipset Family USB xHCI Controller [8086:8cb1]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8534]
+lspci -knn: 	Kernel driver in use: xhci_hcd
+lspci -knn: 	Kernel modules: xhci_pci
+lspci -knn: 00:16.0 Communication controller [0780]: Intel Corporation 9 Series Chipset Family ME Interface #1 [8086:8cba]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8534]
+lspci -knn: 00:19.0 Ethernet controller [0200]: Intel Corporation Ethernet Connection (2) I218-V [8086:15a1]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:85c4]
+lspci -knn: 	Kernel driver in use: e1000e
+lspci -knn: 	Kernel modules: e1000e
+lspci -knn: 00:1a.0 USB controller [0c03]: Intel Corporation 9 Series Chipset Family USB EHCI Controller #2 [8086:8cad]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8534]
+lspci -knn: 	Kernel driver in use: ehci-pci
+lspci -knn: 	Kernel modules: ehci_pci
+lspci -knn: 00:1b.0 Audio device [0403]: Intel Corporation 9 Series Chipset Family HD Audio Controller [8086:8ca0]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8618]
+lspci -knn: 00:1c.0 PCI bridge [0604]: Intel Corporation 9 Series Chipset Family PCI Express Root Port 1 [8086:8c90] (rev d0)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1c.4 PCI bridge [0604]: Intel Corporation 9 Series Chipset Family PCI Express Root Port 5 [8086:8c98] (rev d0)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1d.0 USB controller [0c03]: Intel Corporation 9 Series Chipset Family USB EHCI Controller #1 [8086:8ca6]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8534]
+lspci -knn: 	Kernel driver in use: ehci-pci
+lspci -knn: 	Kernel modules: ehci_pci
+lspci -knn: 00:1f.0 ISA bridge [0601]: Intel Corporation 9 Series Chipset Family Z97 LPC Controller [8086:8cc4]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8534]
+lspci -knn: 00:1f.2 SATA controller [0106]: Intel Corporation 9 Series Chipset Family SATA Controller [AHCI Mode] [8086:8c82]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8534]
+lspci -knn: 	Kernel driver in use: ahci
+lspci -knn: 	Kernel modules: ahci
+lspci -knn: 00:1f.3 SMBus [0c05]: Intel Corporation 9 Series Chipset Family SMBus Controller [8086:8ca2]
+lspci -knn: 	Subsystem: ASUSTeK Computer Inc. Device [1043:8534]
+lspci -knn: 01:00.0 VGA compatible controller [0300]: NVIDIA Corporation GM204 [GeForce GTX 970] [10de:13c2] (rev a1)
+lspci -knn: 	Subsystem: Micro-Star International Co., Ltd. [MSI] Device [1462:3160]
+lspci -knn: 01:00.1 Audio device [0403]: NVIDIA Corporation GM204 High Definition Audio Controller [10de:0fbb] (rev a1)
+lspci -knn: 	Subsystem: Micro-Star International Co., Ltd. [MSI] Device [1462:3160]
+lspci -knn: 03:00.0 RAID bus controller [0104]: Adaptec Series 6 - 6G SAS/PCIe 2 [9005:028b] (rev 01)
+lspci -knn: 	Subsystem: Adaptec Device [9005:0200]
+lspci -knn: 	Kernel driver in use: aacraid
+lspci -knn: 	Kernel modules: aacraid
+usb-list: 
+usb-list: Bus 01 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.9.0-3-amd64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 01 Device 02: EHCI Host Controller [8087:8009]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.9.0-3-amd64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 02: EHCI Host Controller [8087:8001]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 01: xHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.9.0-3-amd64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 07: DYMO LabelWriter 450  Turbo [0922:0021]
+usb-list:    Level 01 Parent 01 Port 12  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: DYMO
+usb-list:    Interface 00: Class 07(print) Subclass 01 Protocol 02 Driver <none>
+usb-list: 
+usb-list: Bus 03 Device 03: DYMO LabelWriter 450  Turbo [0424:2514]
+usb-list:    Level 01 Parent 01 Port 03  Class 09(hub  ) Subclass 00 Protocol 02
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 02 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 05: Microsoft® LifeCam HD-6000 for Notebooks [045e:076f]
+usb-list:    Level 02 Parent 03 Port 02  Class ef(misc ) Subclass 02 Protocol 01
+usb-list:    Manufacturer: Microsoft
+usb-list:    Interface 00: Class 0e(video) Subclass 01 Protocol 00 Driver <none>
+usb-list:    Interface 01: Class 0e(video) Subclass 02 Protocol 00 Driver <none>
+usb-list:    Interface 02: Class 01(audio) Subclass 01 Protocol 00 Driver <none>
+usb-list:    Interface 03: Class 01(audio) Subclass 02 Protocol 00 Driver <none>
+usb-list: 
+usb-list: Bus 03 Device 04: USB-PS/2 Optical Mouse [046d:c050]
+usb-list:    Level 01 Parent 01 Port 04  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Logitech
+usb-list:    Interface 00: Class 03(HID  ) Subclass 01 Protocol 02 Driver usbhid
+usb-list: 
+usb-list: Bus 03 Device 06: USB Keyboard [046d:c31c]
+usb-list:    Level 01 Parent 01 Port 05  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Logitech
+usb-list:    Interface 00: Class 03(HID  ) Subclass 01 Protocol 01 Driver usbhid
+usb-list:    Interface 01: Class 03(HID  ) Subclass 00 Protocol 00 Driver usbhid
+usb-list: 
+usb-list: Bus 04 Device 01: xHCI Host Controller [1d6b:0003]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 03
+usb-list:    Manufacturer: Linux 4.9.0-3-amd64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+lsmod: Module                  Size  Used by
+lsmod: ufs                    73728  0
+lsmod: qnx4                   16384  0
+lsmod: hfsplus               102400  0
+lsmod: hfs                    57344  0
+lsmod: minix                  36864  0
+lsmod: msdos                  20480  0
+lsmod: ntfs                  102400  0
+lsmod: fuse                   98304  0
+lsmod: battery                20480  0
+lsmod: xts                    16384  4
+lsmod: gf128mul               16384  1 xts
+lsmod: dm_crypt               24576  2
+lsmod: dm_mod                118784  5 dm_crypt
+lsmod: md_mod                131072  0
+lsmod: xfs                  1208320  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   176128  0
+lsmod: btrfs                1060864  0
+lsmod: xor                    24576  1 btrfs
+lsmod: raid6_pq              110592  1 btrfs
+lsmod: vfat                   20480  0
+lsmod: fat                    69632  2 msdos,vfat
+lsmod: ext4                  585728  2
+lsmod: crc16                  16384  1 ext4
+lsmod: jbd2                  106496  1 ext4
+lsmod: crc32c_generic         16384  6
+lsmod: fscrypto               28672  1 ext4
+lsmod: ecb                    16384  0
+lsmod: mbcache                16384  3 ext4
+lsmod: e1000e                245760  0
+lsmod: ptp                    20480  1 e1000e
+lsmod: pps_core               16384  1 ptp
+lsmod: nls_utf8               16384  0
+lsmod: isofs                  40960  0
+lsmod: hid_generic            16384  0
+lsmod: usbhid                 53248  0
+lsmod: hid                   122880  2 hid_generic,usbhid
+lsmod: sd_mod                 45056  4
+lsmod: uas                    24576  0
+lsmod: usb_storage            73728  1 uas
+lsmod: ahci                   36864  3
+lsmod: libahci                32768  1 ahci
+lsmod: xhci_pci               16384  0
+lsmod: libata                249856  2 ahci,libahci
+lsmod: aacraid               102400  0
+lsmod: ehci_pci               16384  0
+lsmod: xhci_hcd              188416  1 xhci_pci
+lsmod: ehci_hcd               81920  1 ehci_pci
+lsmod: scsi_mod              225280  5 sd_mod,usb_storage,libata,uas,aacraid
+lsmod: usbcore               249856  7 usbhid,usb_storage,ehci_hcd,xhci_pci,uas,xhci_hcd,ehci_pci
+lsmod: usb_common             16384  1 usbcore
+lsmod: fan                    16384  0
+lsmod: thermal                20480  0
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                   3289324       112   3289212   0% /run
+df: devtmpfs              16436648         0  16436648   0% /dev
+df: /dev/mapper/sda3_crypt
+df:                      227781060   2862644 201654160   1% /target
+df: /dev/sda1              1888268     41464   1732836   2% /target/boot
+df: /dev/mapper/sda3_crypt
+df:                      227781060   2862644 201654160   1% /dev/.static/dev
+df: devtmpfs              16436648         0  16436648   0% /target/dev
+free:              total         used         free       shared      buffers
+free: Mem:      32893212      3700008     29193204       133768       320444
+free: -/+ buffers:            3379564     29513648
+free: Swap:     15625212            0     15625212
+/proc/cmdline: BOOT_IMAGE=/install.amd/vmlinuz desktop=xfce vga=788 initrd=/install.amd/initrd.gz --- quiet 
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 60
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0x19
+/proc/cpuinfo: cpu MHz		: 3400.415
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 0
+/proc/cpuinfo: initial apicid	: 0
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6796.20
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 60
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0x19
+/proc/cpuinfo: cpu MHz		: 3423.449
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 1
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 2
+/proc/cpuinfo: initial apicid	: 2
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6797.09
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 60
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0x19
+/proc/cpuinfo: cpu MHz		: 3399.377
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 2
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 4
+/proc/cpuinfo: initial apicid	: 4
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6797.16
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 60
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0x19
+/proc/cpuinfo: cpu MHz		: 3401.660
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 3
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 6
+/proc/cpuinfo: initial apicid	: 6
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6797.12
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 4
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 60
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0x19
+/proc/cpuinfo: cpu MHz		: 3400.000
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 1
+/proc/cpuinfo: initial apicid	: 1
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6797.51
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 5
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 60
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0x19
+/proc/cpuinfo: cpu MHz		: 3400.000
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 1
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 3
+/proc/cpuinfo: initial apicid	: 3
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6797.20
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 6
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 60
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0x19
+/proc/cpuinfo: cpu MHz		: 3436.315
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 2
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 5
+/proc/cpuinfo: initial apicid	: 5
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6797.14
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 7
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 60
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0x19
+/proc/cpuinfo: cpu MHz		: 3448.974
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 3
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 7
+/proc/cpuinfo: initial apicid	: 7
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6797.10
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/ioports: 0000-0cf7 : PCI Bus 0000:00
+/proc/ioports:   0000-001f : dma1
+/proc/ioports:   0020-0021 : pic1
+/proc/ioports:   0040-0043 : timer0
+/proc/ioports:   0050-0053 : timer1
+/proc/ioports:   0060-0060 : keyboard
+/proc/ioports:   0062-0062 : PNP0C09:00
+/proc/ioports:     0062-0062 : EC data
+/proc/ioports:   0064-0064 : keyboard
+/proc/ioports:   0066-0066 : PNP0C09:00
+/proc/ioports:     0066-0066 : EC cmd
+/proc/ioports:   0070-0077 : rtc0
+/proc/ioports:   0080-008f : dma page reg
+/proc/ioports:   00a0-00a1 : pic2
+/proc/ioports:   00c0-00df : dma2
+/proc/ioports:   00f0-00ff : fpu
+/proc/ioports:     00f0-00f0 : PNP0C04:00
+/proc/ioports:   0290-029f : pnp 00:04
+/proc/ioports:   02a0-02af : pnp 00:04
+/proc/ioports:   03c0-03df : vesafb
+/proc/ioports:   04d0-04d1 : pnp 00:05
+/proc/ioports:   0800-087f : pnp 00:01
+/proc/ioports:   0a00-0aff : pnp 00:04
+/proc/ioports: 0cf8-0cff : PCI conf1
+/proc/ioports: 0d00-ffff : PCI Bus 0000:00
+/proc/ioports:   1800-1803 : ACPI PM1a_EVT_BLK
+/proc/ioports:   1804-1805 : ACPI PM1a_CNT_BLK
+/proc/ioports:   1808-180b : ACPI PM_TMR
+/proc/ioports:   1820-182f : ACPI GPE0_BLK
+/proc/ioports:   1850-1850 : ACPI PM2_CNT_BLK
+/proc/ioports:   1854-1857 : pnp 00:03
+/proc/ioports:   e000-efff : PCI Bus 0000:01
+/proc/ioports:     e000-e07f : 0000:01:00.0
+/proc/ioports:   f000-f01f : 0000:00:1f.3
+/proc/ioports:   f020-f03f : 0000:00:1f.2
+/proc/ioports:     f020-f03f : ahci
+/proc/ioports:   f040-f05f : 0000:00:19.0
+/proc/ioports:   f060-f063 : 0000:00:1f.2
+/proc/ioports:     f060-f063 : ahci
+/proc/ioports:   f070-f077 : 0000:00:1f.2
+/proc/ioports:     f070-f077 : ahci
+/proc/ioports:   f080-f083 : 0000:00:1f.2
+/proc/ioports:     f080-f083 : ahci
+/proc/ioports:   f090-f097 : 0000:00:1f.2
+/proc/ioports:     f090-f097 : ahci
+/proc/iomem: 00000000-00000fff : reserved
+/proc/iomem: 00001000-00099bff : System RAM
+/proc/iomem: 00099c00-0009ffff : reserved
+/proc/iomem: 000a0000-000bffff : PCI Bus 0000:00
+/proc/iomem: 000c0000-000ce9ff : Video ROM
+/proc/iomem: 000cf000-000d57ff : Adapter ROM
+/proc/iomem: 000d8000-000dbfff : PCI Bus 0000:00
+/proc/iomem: 000dc000-000dffff : PCI Bus 0000:00
+/proc/iomem: 000e0000-000fffff : reserved
+/proc/iomem:   000e0000-000e3fff : PCI Bus 0000:00
+/proc/iomem:   000e4000-000e7fff : PCI Bus 0000:00
+/proc/iomem:   000f0000-000fffff : System ROM
+/proc/iomem: 00100000-a16e1fff : System RAM
+/proc/iomem: a16e2000-a16e8fff : ACPI Non-volatile Storage
+/proc/iomem: a16e9000-a1b46fff : System RAM
+/proc/iomem: a1b47000-a1fe8fff : reserved
+/proc/iomem: a1fe9000-bdbb4fff : System RAM
+/proc/iomem: bdbb5000-bddc4fff : reserved
+/proc/iomem: bddc5000-bdde2fff : ACPI Tables
+/proc/iomem: bdde3000-be30bfff : ACPI Non-volatile Storage
+/proc/iomem: be30c000-beffefff : reserved
+/proc/iomem: befff000-beffffff : System RAM
+/proc/iomem: bf000000-bfffffff : RAM buffer
+/proc/iomem: c0000000-feafffff : PCI Bus 0000:00
+/proc/iomem:   c0000000-d1ffffff : PCI Bus 0000:01
+/proc/iomem:     c0000000-cfffffff : 0000:01:00.0
+/proc/iomem:     d0000000-d1ffffff : 0000:01:00.0
+/proc/iomem:       d1000000-d1ffffff : vesafb
+/proc/iomem:   de000000-df0fffff : PCI Bus 0000:01
+/proc/iomem:     de000000-deffffff : 0000:01:00.0
+/proc/iomem:     df080000-df083fff : 0000:01:00.1
+/proc/iomem:   df400000-df8fffff : PCI Bus 0000:03
+/proc/iomem:     df400000-df7fffff : 0000:03:00.0
+/proc/iomem:     df800000-df83ffff : 0000:03:00.0
+/proc/iomem:     df840000-df8400ff : 0000:03:00.0
+/proc/iomem:     df841000-df8417ff : 0000:03:00.0
+/proc/iomem:   df900000-df91ffff : 0000:00:19.0
+/proc/iomem:     df900000-df91ffff : e1000e
+/proc/iomem:   df920000-df92ffff : 0000:00:14.0
+/proc/iomem:     df920000-df92ffff : xhci-hcd
+/proc/iomem:   df930000-df933fff : 0000:00:1b.0
+/proc/iomem:   df934000-df9340ff : 0000:00:1f.3
+/proc/iomem:   df935000-df9357ff : 0000:00:1f.2
+/proc/iomem:     df935000-df9357ff : ahci
+/proc/iomem:   df936000-df9363ff : 0000:00:1d.0
+/proc/iomem:     df936000-df9363ff : ehci_hcd
+/proc/iomem:   df937000-df9373ff : 0000:00:1a.0
+/proc/iomem:     df937000-df9373ff : ehci_hcd
+/proc/iomem:   df938000-df938fff : 0000:00:19.0
+/proc/iomem:     df938000-df938fff : e1000e
+/proc/iomem:   df93a000-df93a00f : 0000:00:16.0
+/proc/iomem:   dffe0000-dffeffff : pnp 00:06
+/proc/iomem:   dfff0000-dfffffff : pnp 00:06
+/proc/iomem:   e0000000-efffffff : PCI MMCONFIG 0000 [bus 00-ff]
+/proc/iomem:     e0000000-efffffff : reserved
+/proc/iomem:       e0000000-efffffff : pnp 00:06
+/proc/iomem: fec00000-fec00fff : reserved
+/proc/iomem:   fec00000-fec003ff : IOAPIC 0
+/proc/iomem: fed00000-fed03fff : reserved
+/proc/iomem:   fed00000-fed003ff : HPET 0
+/proc/iomem:     fed00000-fed003ff : PNP0103:00
+/proc/iomem: fed10000-fed17fff : pnp 00:06
+/proc/iomem: fed18000-fed18fff : pnp 00:06
+/proc/iomem: fed19000-fed19fff : pnp 00:06
+/proc/iomem: fed1c000-fed1ffff : reserved
+/proc/iomem:   fed1c000-fed1ffff : pnp 00:06
+/proc/iomem: fed20000-fed3ffff : pnp 00:06
+/proc/iomem: fed40000-fed44fff : pnp 00:00
+/proc/iomem: fed45000-fed8ffff : pnp 00:06
+/proc/iomem: fed90000-fed93fff : pnp 00:06
+/proc/iomem: fee00000-fee00fff : Local APIC
+/proc/iomem:   fee00000-fee00fff : reserved
+/proc/iomem: ff000000-ffffffff : reserved
+/proc/iomem:   ff000000-ffffffff : INT0800:00
+/proc/iomem:     ff000000-ffffffff : pnp 00:06
+/proc/iomem: 100000000-83effffff : System RAM
+/proc/iomem:   367200000-36780b1e1 : Kernel code
+/proc/iomem:   36780b1e2-367f1c4ff : Kernel data
+/proc/iomem:   368081000-36812cfff : Kernel bss
+/proc/iomem: 83f000000-83fffffff : RAM buffer
+/proc/iomem: c00000000-fbfffffff : PCI Bus 0000:00
+/proc/interrupts:            CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+/proc/interrupts:   0:         19          0          0          0          0          0          0          0   IO-APIC   2-edge      timer
+/proc/interrupts:   1:          3          0          0          0          0          0          0          0   IO-APIC   1-edge      i8042
+/proc/interrupts:   8:         30          0          1          1          1          0          0          0   IO-APIC   8-edge      rtc0
+/proc/interrupts:   9:          0          0          0          0          0          0          0          0   IO-APIC   9-fasteoi   acpi
+/proc/interrupts:  12:          1          0          0          0          2          0          0          0   IO-APIC  12-edge      i8042
+/proc/interrupts:  16:         36          0          8          0          1          5          1          0   IO-APIC  16-fasteoi   ehci_hcd:usb1
+/proc/interrupts:  23:         19         11         10          0          3          4          9          1   IO-APIC  23-fasteoi   ehci_hcd:usb2
+/proc/interrupts:  25:        950        106         62         30        262        125        108         44   PCI-MSI 1572864-edge      aacraid
+/proc/interrupts:  26:      11548       2320       2269       1400       4725       3294       1957       1613   PCI-MSI 327680-edge      xhci_hcd
+/proc/interrupts:  27:     198682      35599      21869      17131      55563      33877      27078      18653   PCI-MSI 512000-edge      ahci[0000:00:1f.2]
+/proc/interrupts:  28:     309642      12397      18647       5583      93438      16877      11941       8434   PCI-MSI 409600-edge      eno1
+/proc/interrupts: NMI:          5          6          4          3          4          3          4          3   Non-maskable interrupts
+/proc/interrupts: LOC:      62196      72918      66353      60347      60888      62877      64734      61329   Local timer interrupts
+/proc/interrupts: SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+/proc/interrupts: PMI:          5          6          4          3          4          3          4          3   Performance monitoring interrupts
+/proc/interrupts: IWI:          1          0          0          0          0          0          0          0   IRQ work interrupts
+/proc/interrupts: RTR:          7          0          0          0          0          0          0          0   APIC ICR read retries
+/proc/interrupts: RES:      40520      16386       6393       3139       3131       3598       2399       2382   Rescheduling interrupts
+/proc/interrupts: CAL:       1575       1421       1383       1381       1439       1447       1389       1459   Function call interrupts
+/proc/interrupts: TLB:        849        692        668        674        770        761        755        702   TLB shootdowns
+/proc/interrupts: TRM:          0          0          0          0          0          0          0          0   Thermal event interrupts
+/proc/interrupts: THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+/proc/interrupts: DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+/proc/interrupts: MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+/proc/interrupts: MCP:         11         11         11         11         11         11         11         11   Machine check polls
+/proc/interrupts: ERR:          9
+/proc/interrupts: MIS:          0
+/proc/interrupts: PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+/proc/interrupts: PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+/proc/meminfo: MemTotal:       32893212 kB
+/proc/meminfo: MemFree:        29193560 kB
+/proc/meminfo: MemAvailable:   32147544 kB
+/proc/meminfo: Buffers:          320444 kB
+/proc/meminfo: Cached:          2938912 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           785936 kB
+/proc/meminfo: Inactive:        2503012 kB
+/proc/meminfo: Active(anon):     111152 kB
+/proc/meminfo: Inactive(anon):    52200 kB
+/proc/meminfo: Active(file):     674784 kB
+/proc/meminfo: Inactive(file):  2450812 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:      15625212 kB
+/proc/meminfo: SwapFree:       15625212 kB
+/proc/meminfo: Dirty:              1892 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         29696 kB
+/proc/meminfo: Mapped:             4644 kB
+/proc/meminfo: Shmem:            133768 kB
+/proc/meminfo: Slab:             321284 kB
+/proc/meminfo: SReclaimable:     295016 kB
+/proc/meminfo: SUnreclaim:        26268 kB
+/proc/meminfo: KernelStack:        2880 kB
+/proc/meminfo: PageTables:          764 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:    32071816 kB
+/proc/meminfo: Committed_AS:     209728 kB
+/proc/meminfo: VmallocTotal:   34359738367 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:         0 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+/proc/meminfo: DirectMap4k:      134196 kB
+/proc/meminfo: DirectMap2M:     6098944 kB
+/proc/meminfo: DirectMap1G:    27262976 kB
+/proc/bus/input/devices: I: Bus=0003 Vendor=046d Product=c050 Version=0110
+/proc/bus/input/devices: N: Name="Logitech USB-PS/2 Optical Mouse"
+/proc/bus/input/devices: P: Phys=usb-0000:00:14.0-5/input0
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:14.0/usb3/3-5/3-5:1.0/0003:046D:C050.0001/input/input2
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=mouse0 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=17
+/proc/bus/input/devices: B: KEY=ff0000 0 0 0 0
+/proc/bus/input/devices: B: REL=143
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0003 Vendor=046d Product=c31c Version=0110
+/proc/bus/input/devices: N: Name="Logitech USB Keyboard"
+/proc/bus/input/devices: P: Phys=usb-0000:00:14.0-6/input0
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:14.0/usb3/3-6/3-6:1.0/0003:046D:C31C.0002/input/input3
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=sysrq kbd leds 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=120013
+/proc/bus/input/devices: B: KEY=1000000000007 ff9f207ac14057ff febeffdfffefffff fffffffffffffffe
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: B: LED=1f
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0003 Vendor=046d Product=c31c Version=0110
+/proc/bus/input/devices: N: Name="Logitech USB Keyboard"
+/proc/bus/input/devices: P: Phys=usb-0000:00:14.0-6/input1
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:14.0/usb3/3-6/3-6:1.1/0003:046D:C31C.0003/input/input4
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=kbd 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=1b
+/proc/bus/input/devices: B: KEY=2010000 397ad801d001 1e000000000000 0
+/proc/bus/input/devices: B: ABS=100000000
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: 
+-- System Information:
+Debian Release: 9.1
+  APT prefers stable
+  APT policy: (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-3-amd64 (SMP w/8 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

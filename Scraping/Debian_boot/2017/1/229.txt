@@ -1,0 +1,94 @@
+To : 817232@bugs.debian.org
+Subject : Bug#817232: Stil present in 1.158
+From : sacrificial-spam-address@sciencehorizons.net
+Date : 20 Jan 2017 02:49:42 -0500
+Message-id : 20170120074942.686.qmail@ns.sciencehorizons.net
+Reply-to : sacrificial-spam-address@sciencehorizons.net, 817232@bugs.debian.org
+
+
+# dpkg -s keyboard-configuration
+Package: keyboard-configuration
+Status: install ok installed
+Priority: optional
+Section: utils
+Installed-Size: 2502
+Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Architecture: all
+Multi-Arch: foreign
+Source: console-setup
+Version: 1.137
+Replaces: console-setup (<< 1.47), console-setup-mini (<< 1.47)
+Depends: liblocale-gettext-perl, initscripts
+Pre-Depends: debconf (>= 1.5.34)
+Breaks: console-setup (<< 1.71), console-setup-mini (<< 1.47)
+Conffiles:
+ /etc/init.d/console-setup 0db5a9bc1f799d7ce34a971a8aa43264
+ /etc/init.d/keyboard-setup 6ecdd8d7eae634bc48cbc82a73c12c25
+Description: system-wide keyboard preferences
+ This package maintains the keyboard preferences in
+ /etc/default/keyboard.  Other packages can use the information
+ provided by this package in order to configure the keyboard on the
+ console or in X Window.
+# dpkg -L keyboard-configuration
+/.
+/etc
+/etc/init.d
+/etc/init.d/keyboard-setup
+/etc/init.d/console-setup
+/usr
+/usr/share
+/usr/share/man
+/usr/share/man/man5
+/usr/share/man/man5/keyboard.5.gz
+/usr/share/doc
+/usr/share/doc/keyboard-configuration
+/usr/share/doc/keyboard-configuration/copyright
+/usr/share/doc/keyboard-configuration/copyright.fonts.gz
+/usr/share/doc/keyboard-configuration/changelog.gz
+/usr/share/doc/keyboard-configuration/FAQ.gz
+/usr/share/doc/keyboard-configuration/README.Debian
+/usr/share/doc/keyboard-configuration/copyright.xkb.gz
+/usr/share/lintian
+/usr/share/lintian/overrides
+/usr/share/lintian/overrides/keyboard-configuration
+/usr/share/bug
+/usr/share/bug/keyboard-configuration
+/usr/share/bug/keyboard-configuration/control
+/usr/share/console-setup
+/usr/share/console-setup/keyboard
+/usr/share/console-setup/kbdnames-maker
+/usr/share/console-setup/KeyboardNames.pl
+/usr/share/doc/keyboard-configuration/xorg.lst
+# dpkg -i keyboard-configuration_1.158_all.deb 
+(Reading database ... 297104 files and directories currently installed.)
+Preparing to unpack keyboard-configuration_1.158_all.deb ...
+update-rc.d: warning /etc/init.d/keyboard-setup still exist. Terminating
+dpkg: error processing archive keyboard-configuration_1.158_all.deb (--install):
+ subprocess new pre-installation script returned error exit status 1
+Errors were encountered while processing:
+ keyboard-configuration_1.158_all.deb
+I could force this by manually removing the file, but an earlier
+version of keyboard-configuration created the file, and the later
+version should cope with it.
+The bug is that update-rc.d expects the script to have been deleted,
+and will fail if not.  But the preinst script only removes the files
+*after* running update-rc.d:
+#!/bin/sh
+set -e
+if [ -x "/etc/init.d/keyboard-setup" ]; then
+    update-rc.d keyboard-setup remove >/dev/null
+fi
+if [ -x "/etc/init.d/console-setup" ]; then
+    update-rc.d console-setup remove >/dev/null
+fi
+dpkg-maintscript-helper rm_conffile /etc/init.d/keyboard-setup 1.138~ -- "$@"
+dpkg-maintscript-helper rm_conffile /etc/init.d/console-setup 1.138~ -- "$@"
+Either add -f to the update-rc.d invocation, or try something more like:
+#!/bin/sh
+set -e
+for file in keyboard-setup console-setup; do
+    if [ -x /etc/init.d/$file ]; then
+	dpkg-maintscript-helper rm_conffile /etc/init.d/$file 1.138~ -- "$@"
+	update-rc.d $file remove >/dev/null
+    fi
+done

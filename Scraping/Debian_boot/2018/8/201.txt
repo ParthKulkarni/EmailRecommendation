@@ -1,0 +1,85 @@
+To : Holger Wansing <hwansing@mailbox.org>
+Subject : Re: [d-i] remaining packages uploads
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 14 Aug 2018 00:00:04 +0200
+Message-id : 20180813220004.njwj2mh62np24arm@mraw.org
+In-reply-to : <[🔎] 20180813230532.ff778e9ec7c7a5787cfc08c2@mailbox.org>
+References : <[🔎] 20180813230532.ff778e9ec7c7a5787cfc08c2@mailbox.org>
+
+
+Hi Holger,
+Holger Wansing <hwansing@mailbox.org> (2018-08-13):
+> Hi Cyril, hi all,
+> 
+> now that I have did some uploads for d-i packages, mostly with l10n updates,
+> there are some packages left for uploading, which I'm unsure about or which
+> I left out by intend:
+> 
+> 
+> - arcboot-installer	build fails. "no binary artefacts"
+> - s390-dasd		build fails. "no binary artefacts"
+> - s390-netdevice	build fails. "no binary artefacts"
+> - zipl-installer	build fails. "no binary artefacts"
+Indeed, I see how one can be surprised at first. It happened to me too a
+few years ago! ;)
+Those are only useful (therefore built) on a few architectures. You can
+see that in the Architecture field of their debian/control file. If
+you're looking at l10n changes, (source-)uploading looks good. But maybe
+keep an eye on the build logs to make sure there are no new FTBFSes
+(failure to build from source):
+  https://buildd.debian.org/status/package.php?p=arcboot-installer
+  https://buildd.debian.org/status/package.php?p=s390-dasd
+  etc.
+It's a good idea to do so for things you've built locally, but it can
+be a bit of a burden to check all packages… I'll end up seeing what
+packages don't migrate on the long run, so I'll notice anyway. Anyone
+can, looking at the udebs (second part) with an old age:
+  https://d-i.debian.org/testing-summary.html
+> - cdebconf-terminal	when comparing 0.33.dsc against 0.34.dsc, there are 
+> 			masses of deletions (not declared in the changelog file;
+> 			and I cannot find any commit that could have caused this;
+> 			so this is most probably a wrong way of building the
+> 			package or the like ?)
+Sometimes the previous uploader has an unclean git tree, and include
+some extraneous files, which then show up as deletions. Rebuilding a
+source package from the 0.33 git tag, I see these changes when compared
+against the one in the archive:
+ aclocal.m4   |  171 --
+ config.guess | 1530 ----------------------
+ config.sub   | 1782 --------------------------
+ configure    | 4035 -----------------------------------------------------------
+ 4 files changed, 7518 deletions(-)
+… which you can in turn ignore.
+> - choose-mirror	For the next buster d-i alpha release to happen, there seems 
+> 			to be one more upload needed anyway (to update from 
+> 			mirrors.masterlist). So I did not upload just for l10n.
+Right, I can do that.
+> - console-setup		non-trivial changings included
+Feel free to upload that one.
+> - flash-kernel		non-trivial changings included
+Not an expert here, I'd check with Vagrant.
+> - lilo-installer	non-trivial changes ? (source.lintian-overrides)
+Is that the right package?
+kibi@armor:~/debian-installer/packages/lilo-installer$ git diff --stat 1.57..
+ debian/changelog |  6 ++++++
+ debian/control   |  4 ++--
+ debian/po/he.po  |  4 ++--
+ debian/po/sv.po  | 25 ++++++++++++++-----------
+ 4 files changed, 24 insertions(+), 15 deletions(-)
+Either way, we don't really support lilo, so… ;)
+> - preseed		additional changes (mark 'checksum error' strings as
+> 			translatable, which have been introduced in Stretch
+> 			development cycle)
+I'd defer to l10n-knowledgeable people for that one. :)
+> - tasksel		many other, non-trivial changings included
+Right package?
+kibi@armor:~/debian-installer/packages/tasksel$ git diff --stat 3.44..
+ debian/changelog   | 7 +++++++
+ debian/po/de.po    | 8 +++++---
+ debian/po/pt_BR.po | 8 ++++----
+ 3 files changed, 16 insertions(+), 7 deletions(-)
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

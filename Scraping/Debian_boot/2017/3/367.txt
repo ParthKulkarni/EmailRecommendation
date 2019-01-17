@@ -1,0 +1,164 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#858943: unblock: systemd/232-22
+From : Michael Biebl <biebl@debian.org>
+Date : Tue, 28 Mar 2017 22:52:05 +0200
+Message-id : 149073432580.15714.7002773787076498768.reportbug@pluto.milchstrasse.xx
+Reply-to : Michael Biebl <biebl@debian.org>, 858943@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+User: release.debian.org@packages.debian.org
+Usertags: unblock
+Hello release team,
+since 232-19, a couple of fixes accumulated which we'd like to see enter
+testing/stretch
+As this potentially affects the installer, I've CC debian-boot aka KiBi.
+A complete debdiff is attached.
+The changelog + annotations follows. Sorry if it's a bit verbose.
+> systemd (232-22) unstable; urgency=medium
+> 
+>   [ Martin Pitt ]
+>   * resolved: Disable DNSSEC by default on stretch and zesty.
+>     Both Debian stretch and Ubuntu zesty are close to releasing, switch to
+>     DNSSEC=off by default for those. Users can still turn it back on with
+>     DNSSEC=allow-downgrade (or even "yes").
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=3361c8f55c9fe2d6a4cb232693728845480fb9ac
+(not relevant for the installer)
+According to Martin, the DNSSEC in resolved still triggers too many
+issues so it's not safe to enable by default.
+Do note, that resolved in Debian is not enabled by default though. So
+it's a low risk change which errs on the side of being conservative.
+>   [ Michael Biebl ]
+>   * Add Conflicts against hal.
+>     Since v183, udev no longer supports RUN+="socket:". This feature is
+>     still used by hal, but now generates vast amounts of errors in the
+>     journal. Thus force the removal of hal by adding a Conflicts to the udev
+>     package. This is safe, as hal is long dead and no package depends on it
+>     anymore.
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=29757891624a73702b1de4b4d5ebd70d721357db
+(not relevant for the installer)
+This is a potentially odd one. hal has been removed in jessie, but
+apparently some users still have it installed after upgrading from
+previous releases. This now leads to massive amounts of error messages
+in the journal (basically on every uevent). So forcing the removal of
+hal seems justified.
+There is a slight catch: the Conflicts could potentially lead to udev
+not being upgraded or udev removed in favour of keeping hal.
+But: since no other package depends on hal anymore and lots of packages
+depend on udev this scenario is rather unlikely. I did several upgrade
+tests and was not able to trigger such a condition. In all cases, hal
+was removed as intended.
+>   [ Dimitri John Ledkov ]
+>   * Adjust pkgconfig files to point at rootlibdir.
+>     The .so symlinks got moved to rootlibdir in v232 so the .pc files for
+>     libudev and libsystemd need to be adjusted accordingly. Otherwise we
+>     break cross compilation. (LP: #1674201)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=5c41fe140cb0b09cb8e31380538476f500d4921f
+(not relevant for the installer)
+A rather obvious 3 line fix
+>  -- Michael Biebl <biebl@debian.org>  Tue, 28 Mar 2017 21:23:30 +0200
+> 
+> systemd (232-21) unstable; urgency=medium
+> 
+>   * resolved: Downgrade "processing query..." message to debug.
+>     It doesn't really add much value in normal operation and just spams the
+>     log. (Closes: #858197)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=3e44b1d677159e91cc5cc105a76469498ef74965
+(not relevant for the installer)
+While resolved is not enabled by default in Debian, if you do it
+manually, it was spamming the journal. It's a low risk one-line change.
+>   * Do not throw a warning in emergency and rescue mode if plymouth is not
+>     installed.
+>     Ideally, plymouth should only be referenced via dependencies, not
+>     ExecStartPre. This at least avoids the confusing error message on
+>     minimal installations that do not carry plymouth.
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=78102d62b90d97574ae107799b0dcd2c6483c061
+(not relevant for the installer)
+Lot's of users where confused by error messages in the journal, if
+plymouth is not installed (which is the default in Debian).
+While the error message is harmless, it's better to simply avoid it
+altogether.
+>   * rules: Allow SPARC vdisk devices when identifying CD drives
+>     (Closes: #858014)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=99e1327b3883fcc5632af7aad4c19ce93e2a55b1
+(might be relevant for the installer)
+Requested by a porter, didn't see a good reason not to include it.
+Low-risk change.
+>  -- Michael Biebl <biebl@debian.org>  Tue, 21 Mar 2017 19:52:17 +0100
+> 
+> systemd (232-20) unstable; urgency=medium
+> 
+>   [ Martin Pitt ]
+>   * debian/gbp.conf: Switch to "stretch" branch
+ignore, not relevant
+>   * udev: Fix /dev/disk/by-path aliases for virtio disks. (Closes: #856558)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=8ecdc5ca14cf9390104f434c77d76355485d49d4
+(might be relevant for the installer)
+Quoting Martin: "this is reasonably straightforward and also important to
+get fixed in Stretch"
+>   * udev: Create persistent net names for virtio CCW devices.
+>     This only affects s390x as only this has CCW devices. This provides
+>     stable network interface names for those and avoids changing the names
+>     on updating Stretch to Buster. (Closes: #856559)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=bb9ad652f309a90a5424381503083ee9a530a888
+(might be relevant for the installer)
+This only affects s390x, so regression potential is low and it's
+important to get into stretch, otherwise we'd have migration issues in
+buster (as names would change, which would be ugly)
+>   * Move systemd.link(5) to udev package.
+>     .link files are being handled by udev, so it should ship the
+>     corresponding manpage. Bump Breaks/Replaces accordingly. (Closes: #857270)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=637e2349d0f4114de6af5dd793b3571719f35565
+(not relevant for the installer)
+Low risk change.
+>   [ Michael Biebl ]
+>   * Avoid strict DM API versioning.
+>     Compiling against the dm-ioctl.h header as provided by the Linux kernel
+>     will embed the DM interface version number. Running an older kernel can
+>     lead to errors on shutdown when trying to detach DM devices.
+>     As a workaround, build against a local copy of dm-ioctl.h based on 3.13,
+>     which is the minimum required version to support DM_DEFERRED_REMOVE.
+>     (Closes: #856337)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=db3b97883a555923a0555fec1bd54e9f3250d0a9
+(not relevant for the installer)
+This affects mostly users running a custom or older kernels.
+The changelog should be self-explanatory. The last bump of the DM
+interface version was in 4.8 and we don't want to to enforce that
+as minimal kernel version.
+>   * cryptsetup-generator: Run cryptsetup service before swap unit.
+>     Otherwise if the cryptsetup service unit and swap unit for a swap
+>     device are not strictly ordered, it might happen that the swap unit
+>     activates/mounts the swap device before its cryptsetup service unit has
+>     a chance to run the 'mkswap' command. (Closes: #787028)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=6d6984ec44d8fc1d86bce06955263d7826a7a2b0
+>   * Override package-name-doesnt-match-sonames lintian warning for libnss-*
+packaging issue, not really relevant
+>   * networkd: Fix size of MTUBytes so that it does not overwrite ARP
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=9bc999cb8a12f84c90ee37f0f68021d555fb054e
+straightforward fix which was requested by a user. Didn't see a good
+reason not to cherry-pick this patch.
+ 
+>   [ Felipe Sateler ]
+>   * git-cherry-pick: Actually use cherry-pick for picking.
+>     Use git cherry-pick for picking instead of rebase.
+>     This allows using -x flag and thus record the upstream commit that is
+>     being picked.
+packaging issue, git-cherry-pick is used internally.
+>  -- Michael Biebl <biebl@debian.org>  Thu, 16 Mar 2017 17:38:24 +0100
+> 
+Thanks for reading/listening. Keep up the stellar work.
+Regards,
+Michael
+on behalf of the pkg-systemd team.
+unblock systemd/232-22
+-- System Information:
+Debian Release: 9.0
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'unstable'), (200, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=de_DE.utf8, LC_CTYPE=de_DE.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

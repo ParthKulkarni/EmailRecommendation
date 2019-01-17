@@ -1,0 +1,84 @@
+To : 688336@bugs.debian.org
+Subject : Bug#688336:
+From : Mike Mestnik <cheako@mikemestnik.net>
+Date : Tue, 30 May 2017 00:28:39 -0500
+Message-id : CAF8px544hDvv-HkBNziN0rtC7--5KKWqjWMRMqs=EVCm-L1-Pg@mail.gmail.com
+Reply-to : Mike Mestnik <cheako@mikemestnik.net>, 688336@bugs.debian.org
+
+
+Refresh and simplify the patches.
+https://github.com/cheako/os-prober/tree/btrfs-subvol
+Also note os-probe fork:
+https://github.com/campadrenalin/os-prober/commit/b571c0c7c3fe8986cc17dd200173fb7d86ef0c24
+This commit reorgs the project making merges with the fork difficult.
+From 66781ea3fa21d7ff259cfaf3b0ded1021b3f7720 Mon Sep 17 00:00:00 2001
+From: Michael Mestnik <cheako+github_com@mikemestnik.net>
+Date: Tue, 30 May 2017 00:20:30 -0500
+Subject: [PATCH 2/2] Add support for multiple root on the same btrfs.
+---
+ os-probes/common/50mounted-tests | 32 ++++++++++++++++++++++++++++++--
+ 1 file changed, 30 insertions(+), 2 deletions(-)
+diff --git a/os-probes/common/50mounted-tests b/os-probes/common/50mounted-tests
+index 37b56cf..77d0a48 100755
+--- a/os-probes/common/50mounted-tests
++++ b/os-probes/common/50mounted-tests
+@@ -67,11 +67,39 @@ if [ "$types" = btrfs ]; then
+ 	# note that the btrfs volume must not be mounted ro
+ 	if mount -t btrfs -U "$UUID" "$tmpmnt"  2>/dev/null; then
+ 		debug "btrfs volume $UUID mounted"
++		debug "begin btrfs processing for $UUID"
++	found=
++		mounted=
++		mpoint="$(grep btrfs /proc/self/mountinfo | grep "$partition " | cut -d ' ' -f 5)"
++		if [ -n "$mpoint" ]; then
++		if [ "x$mpoint" = "x/" ]; then
++				continue # this is the root for the running system
++			fi
++			mounted=1
++		else
++			# again, do not mount btrfs ro
++			mount -t btrfs -o subvol="$subvol" -U "$UUID" "$tmpmnt"
++			mpoint="$tmpmnt"
++		fi
+ 	else
+ 		warn "cannot mount btrfs volume $UUID, exiting"
+ 		rmdir "$tmpmnt" || true
+ 		exit 1
+ 	fi
++	test="/usr/lib/os-probes/mounted/90linux-distro"
++		if [ -f "$test" ] && [ -x "$test" ]; then
++			debug "running subtest $test"
++			if "$test" "$partition" "$mpoint" btrfs "UUID=$UUID"; then
++				debug "os found by subtest $test on $partition"
++				found=1
++			fi
++		fi
++		if [ -z "$mounted" ]; then
++			if ! umount "$tmpmnt"; then
++			    warn "failed to umount $tmpmnt"
++			fi
++		fi
++
+ 	# besides regular subvols, get ro and snapshot so thet can be excluded
+         subvols=$(btrfs subvolume list "$tmpmnt" | cut -d ' ' -f 9)
+         rosubvols=$(btrfs subvolume list -r "$tmpmnt" | cut -d ' ' -f 9)
+@@ -83,8 +111,7 @@ if [ "$types" = btrfs ]; then
+         fi
+ 	if [ -z "$subvols" ]; then
+ 		debug "no subvols found on btrfs volume $UUID"
+-		exit 1
+-	fi
++	else
+ 	found=
+         for subvol in $subvols; do
+ 		debug "begin btrfs processing for $UUID subvol=$subvol"
+@@ -126,6 +153,7 @@ if [ "$types" = btrfs ]; then
+ 	else
+ 		exit 1
+ 	fi
++	fi
+ fi
+ 
+ if type grub-mount >/dev/null 2>&1 && \
+-- 
+2.11.0

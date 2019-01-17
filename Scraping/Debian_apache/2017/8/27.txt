@@ -1,0 +1,77 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#873115: concurrent apache2 -k graceful hang
+From : Joey Hess <id@joeyh.name>
+Date : Thu, 24 Aug 2017 12:23:25 -0400
+Message-id : 20170824162325.7fypmo5zzv4ejnkt@kitenet.net
+Reply-to : Joey Hess <id@joeyh.name>, 873115@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3+deb
+Severity: normal
+I woke up to a server with hundreds of apach2e -k graceful processes running.
+This prevented any cgis from running since it was nearly out of process slots.
+ 2142 ?        SNs    0:01 /usr/sbin/apache2 -k graceful
+ 6007 ?        SN     0:00  \_ /usr/sbin/apache2 -k graceful
+ 4680 ?        SNl    0:00  \_ /usr/sbin/apache2 -k graceful
+ 2217 ?        SNs    0:01 /usr/sbin/apache2 -k graceful
+ 7127 ?        SN     0:00  \_ /usr/sbin/apache2 -k graceful
+ 2542 ?        SNl    0:00  \_ /usr/sbin/apache2 -k graceful
+ 2177 ?        SNs    0:01 /usr/sbin/apache2 -k graceful
+ 6748 ?        SN     0:00  \_ /usr/sbin/apache2 -k graceful
+ 4189 ?        SNl    0:00  \_ /usr/sbin/apache2 -k graceful
+ 2214 ?        SNs    0:01 /usr/sbin/apache2 -k graceful
+ 6738 ?        SN     0:00  \_ /usr/sbin/apache2 -k graceful
+ 3023 ?        SNl    0:00  \_ /usr/sbin/apache2 -k graceful
+This was just after an upgrade from oldstable the day before.
+I'm at this point not quite sure what reloaded apache multiple times,
+but it was probably a cron job reloading it once per vhost or something
+like that.
+Running a single apache2ctl graceful did not result in any such stuck
+processes. I was able to reproduce the basic problem thus:
+apache2ctl graceful & apache2ctl graceful & apache2ctl graceful
+With 3 running concurrently, they get in each other's way.
+Output to the console looked like this:
+pell:/# apache2ctl graceful & apache2ctl graceful  & apache2ctl graceful
+[1] 15772
+[2] 15773
+httpd not running, trying to start
+httpd not running, trying to start
+httpd not running, trying to start
+[1]-  Done                    apache2ctl graceful
+pell:/# 
+[2]+  Done                    apache2ctl graceful
+pell:/# 
+pell:/# ps -fax |grep graceful
+16120 pts/0    S+     0:00           \_ grep graceful
+15788 ?        Ss     0:00 /usr/sbin/apache2 -k graceful
+15790 ?        S      0:00  \_ /usr/sbin/apache2 -k graceful
+15795 ?        Sl     0:00  \_ /usr/sbin/apache2 -k graceful
+15796 ?        Sl     0:00  \_ /usr/sbin/apache2 -k graceful
+15789 ?        Ss     0:00 /usr/sbin/apache2 -k graceful
+15901 ?        S      0:00  \_ /usr/sbin/apache2 -k graceful
+15903 ?        Sl     0:00  \_ /usr/sbin/apache2 -k graceful
+15904 ?        Sl     0:00  \_ /usr/sbin/apache2 -k graceful
+15794 ?        Ss     0:00 /usr/sbin/apache2 -k graceful
+15902 ?        S      0:00  \_ /usr/sbin/apache2 -k graceful
+16010 ?        Sl     0:00  \_ /usr/sbin/apache2 -k graceful
+What are the stuck processes doing? Waiting on something..
+pell:/# strace -p 15794
+strace: Process 15794 attached
+_newselect(0, NULL, NULL, NULL, {tv_sec=0, tv_usec=762363}) = 0 (Timeout)
+waitpid(-1, 0xbfce1210, WNOHANG|WSTOPPED) = 0
+_newselect(0, NULL, NULL, NULL, {tv_sec=1, tv_usec=0}) = 0 (Timeout)
+waitpid(-1, 0xbfce1210, WNOHANG|WSTOPPED) = 0
+pell:/# strace -p 15902
+strace: Process 15902 attached
+accept(4,  ^C
+pell:/# ls -l /proc/15902/fd/4
+lrwx------ 1 root root 64 Aug 24 16:18 /proc/15902/fd/4 -> socket:[2396130]
+pell:/# strace -p 16010
+strace: Process 16010 attached
+read(7,    ^C
+pell:/# ls -l /proc/16010/fd/7
+lr-x------ 1 root root 64 Aug 24 16:18 /proc/16010/fd/7 -> pipe:[2401595]
+-- 
+see shy jo
+signature.asc

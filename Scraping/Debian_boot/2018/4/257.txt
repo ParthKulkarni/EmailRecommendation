@@ -1,0 +1,70 @@
+To : 896826@bugs.debian.org
+Subject : Bug#896826: also filter for recipes defined by the installer
+From : Garinot Pierre <garinot.pierre@errlock.org>
+Date : Sat, 28 Apr 2018 18:31:20 +0200
+Message-id : 20180428183120.1744fa70@laptop.domovoy
+Reply-to : Garinot Pierre <garinot.pierre@errlock.org>, 896826@bugs.debian.org
+In-reply-to : <handler.896826.B896826.152466702721580.ackinfo@bugs.debian.org>
+References : <[🔎] 20180425163111.4f31bb90@laptop.domovoy> <handler.896826.B896826.152466702721580.ackinfo@bugs.debian.org> <[🔎] 152458605152.16272.6997610814379893227.reportbug@laptop.domovoy>
+
+
+I updated the patch (joined) so that we also run filter_lvm on recipes
+from /lib/partman/recipes*.
+pgpXPuYYfr_jr.pgpdiff -Nru partman-auto-137/debian/changelog partman-auto-137+arcadia1/debian/changelog
+--- partman-auto-137/debian/changelog	2016-10-13 07:02:40.000000000 +0200
++++ partman-auto-137+arcadia1/debian/changelog	2018-04-27 21:16:34.000000000 +0200
+@@ -1,3 +1,9 @@
++partman-auto (137+arcadia1) unstable; urgency=medium
++
++  * Filter LVs for computing min_size
++
++ -- Garinot Pierre <garinot.pierre@errlock.org>  Fri, 27 Apr 2018 21:16:34 +0200
++
+ partman-auto (137) unstable; urgency=medium
+ 
+   [ Helge Deller ]
+diff -Nru partman-auto-137/lib/recipes.sh partman-auto-137+arcadia1/lib/recipes.sh
+--- partman-auto-137/lib/recipes.sh	2013-10-01 07:21:24.000000000 +0200
++++ partman-auto-137+arcadia1/lib/recipes.sh	2018-04-27 21:16:34.000000000 +0200
+@@ -200,6 +200,21 @@
+ 	done
+ }
+ 
++filter_lvm () {
++	scheme_lvm=$(
++	    foreach_partition '
++		if echo "$*" | grep -q '\''in_vg{'\''; then
++			echo "$*"
++		fi'
++	)
++	scheme=$(
++	    foreach_partition '
++		if ! echo "$*" | grep -q '\''in_vg{'\''; then
++			echo "$*"
++		fi'
++	)
++}
++
+ min_size () {
+ 	local size
+ 	size=0
+@@ -374,6 +389,9 @@
+ 		recipe="$RET"
+ 		decode_recipe $recipe $type
+ 		filter_reused
++		if [ "$type" = "lvm" ]; then
++			filter_lvm
++		fi
+ 		min_size=$(min_size)
+ 		if [ $min_size -le $free_size ]; then
+ 			return 0
+@@ -401,6 +419,9 @@
+ 		[ -f "$recipe" ] || continue
+ 		decode_recipe $recipe $type
+ 		filter_reused
++		if [ "$type" = "lvm" ]; then
++			filter_lvm
++		fi
+ 		if [ $(min_size) -le $free_size ]; then
+ 			choices="${choices}${recipe}${TAB}${name}${NL}"
+ 			if [ "$default_recipe" = no ]; then

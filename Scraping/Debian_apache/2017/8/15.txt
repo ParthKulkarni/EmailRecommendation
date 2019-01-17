@@ -1,0 +1,52 @@
+To : 858373-done@bugs.debian.org
+Subject : Bug #858373: apache2: segfaults upon recieving bad request when using worker/event mpm and cgid errordoc
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Tue, 8 Aug 2017 02:07:07 +0200 (CEST)
+Message-id : ne.DEB.2.11.1708080204430.20586@manul.sfritsch.de
+Reply-to : 858373@bugs.debian.org
+References : <alpine.DEB.2.11.1708080204430.20586@manul.sfritsch.de> <20170321165507.6943.66558.reportbug@mrsnorris.cae.wisc.edu>
+
+
+Your message dated Tue, 8 Aug 2017 02:07:07 +0200 (CEST)
+with message-id <alpine.DEB.2.11.1708080204430.20586@manul.sfritsch.de>
+and subject line Bug #858373: apache2: segfaults upon recieving bad request when using worker/event mpm and cgid errordoc
+has caused the Debian Bug report #858373,
+regarding apache2: segfaults upon recieving bad request when using worker/event mpm and cgid errordoc
+to be marked as done.
+This means that you claim that the problem has been dealt with.
+If this is not the case it is now your responsibility to reopen the
+Bug report if necessary, and/or fix the problem forthwith.
+(NB: If you are a system administrator and have no idea what this
+message is talking about, this may indicate a serious mail system
+misconfiguration somewhere. Please contact owner@bugs.debian.org
+immediately.)
+-- 
+858373: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=858373
+Debian Bug Tracking System
+Contact owner@bugs.debian.org with problems
+We have some websites running on Debian Wheezy, so still using Apache 
+2.2.22, that are configured either in Worker or Event MPM (so are using 
+mod_cgid in what follows), and have a custom "ErrorDocument 400" 
+directive that points at a perl script for providing custom ModSecurity 
+error.
+I haven't dug up an older version of the package from snapshots to 
+confirm this, but I think that since the recently backported 
+HttpProtocolOptions directive to that version (BTW, where was that 
+announced - I had to run strings on the binary to find it), I've been 
+seeing a lot of segfault/coredumps registered in the Apache error logs.
+After some analysis, I've found that I can reproduce the error with a 
+fairly trivial shell command:
+From the coredump, I was able to find that this line (1371) in the 
+cgid_handler() code in the modules/generators/mod_cgid.c source file has 
+a null pointer issue on the r->protocol field:
+No combination of adjustments to the HttpProtocolOptions directive 
+seemed to help from what I could see.
+I also haven't been able to reproduce this issue on a Prefork MPM 
+backend webserver.
+Varying the details of the perl ErrorDocument script's implementation 
+don't appear to help either (eg: it still occurs even with a simple 
+hello world script).
+The error still occurs if I disable ModSecurity, but leave the 
+ErrorDocument for 400 messages.
+Version: 2.2.22-13+deb7u11
+The fix has been released in DLA 841-2. Closing the report.

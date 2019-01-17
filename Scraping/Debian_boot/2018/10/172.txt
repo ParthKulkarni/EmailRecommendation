@@ -1,0 +1,27 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#911810: debian-installer: cannot boot installed on EFI with single xfs root
+From : Yangfl <mmyangfl@gmail.com>
+Date : Thu, 25 Oct 2018 13:43:30 +0800
+Message-id : CAAXyoMNreXmV6GoVYGy2dGzuGbrOEacmQvkPMJ1mmCwqMuTP1Q@mail.gmail.com
+Reply-to : Yangfl <mmyangfl@gmail.com>, 911810@bugs.debian.org
+
+
+Package: debian-installer
+Severity: important
+I found with the lastest weekly iso (found in
+debian-cdimage/weekly-builds/amd64/iso-cd/debian-testing-amd64-netinst.iso)
+installing with xfs+uefi lead to a non-bootable system due to grub not
+being able to find the xfs module, without any notice or warning
+during setup. I've confirmed it on KVM+OVMF / Hyper-V gen 2.
+Step to reproduce:
+ 1. setup VM with EFI enabled
+ 2. when partitioning, use xfs as root (/) fs, no /boot, and a EFI system
+    partition (if you omit EFI system partition, setup won't let you continue)
+ 3. finish installation, not bootable, only a plain GRUB prompt
+ 4. grub> insmod xfs
+    error: file '/boot/grub/x86_64-efi/xfs.mod' not found.
+    grub> set root=(hd0,`Tab`
+    Possible partitions are:
+      Partition hd0,gpt1: Filesystem type fat, UUID xxxxx
+      Partition hd0,gpt2: No known filesystem detected
+It doesn't happen with a separate /boot partition (in ext4) present.

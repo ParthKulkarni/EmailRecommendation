@@ -1,0 +1,97 @@
+To : Jeremy Bicha <jbicha@ubuntu.com>, 873041@bugs.debian.org
+Subject : Re: Bug#873041: libxcursor1-udeb: Broken dpkg-shlibdeps rule
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 24 Aug 2017 03:22:13 +0200
+Message-id : 20170824012213.GA32338@mraw.org
+In-reply-to : <[🔎] CAAajCMbLh8e3JM2osaB3tazk0g93X6kSbEW8DHMbPkd1mKaS4g@mail.gmail.com>
+References : <[🔎] CAAajCMbLh8e3JM2osaB3tazk0g93X6kSbEW8DHMbPkd1mKaS4g@mail.gmail.com>
+
+
+Control: reassign -1 libxcursor1 1:1.1.14-2
+Control: retitle -1 libxcursor1: broken shlibs for the udeb
+Control: tag -1 patch
+(Minor nitpick.)
+Jeremy Bicha <jbicha@ubuntu.com> (2017-08-23):
+> When libxcursor was converted to dh's rules, the line defining PACKAGE
+> was accidentally removed.
+> 
+> So this line:
+> dh_makeshlibs -V "libxcursor1 (>> 1.1.2)" --add-udeb=$(PACKAGE)-udeb
+> 
+> gets interpreted as:
+> dh_makeshlibs -V "libxcursor1 (>> 1.1.2)" --add-udeb=-udeb
+> 
+> Which leads to packages like gtk+3.0 failing to build from source:
+> 
+> =========
+> dpkg-shlibdeps: warning: can't parse dependency -udeb (>> 1.1.2)
+> dpkg-shlibdeps: error: invalid dependency got generated:
+> libepoxy0-udeb (>= 1.3), libx11-6-udeb (>= 2:1.6.0), -udeb (>> 1.1.2),
+> libgtk-3-0-udeb (>= 3.22.19), libxinerama1-udeb,
+> libgdk-pixbuf2.0-0-udeb (>= 2.36.5), libxi6-udeb (>= 2:1.6.99.1),
+> libatk-bridge-2.0-0-udeb, libglib2.0-udeb (>= 2.53.4), fontconfig-udeb
+> (>= 2.11.94), libxext6-udeb (>= 2:1.3.0), libc6-udeb (>= 2.24),
+> libatk1.0-udeb (>= 2.24.0), libcairo2-udeb (>= 1.14.0),
+> libpango1.0-udeb (>= 1.40.11), libcairo2-udeb (>= 1.10.0)
+> dh_shlibdeps: dpkg-shlibdeps -Tdebian/libgtk-3-0-udeb.substvars -tudeb
+> debian/libgtk-3-0-udeb/usr/lib/x86_64-linux-gnu/libgtk-3.so.0.2200.19
+> debian/libgtk-3-0-udeb/usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.19
+> returned exit code 255
+> dh_shlibdeps: Aborting due to earlier error
+> =========
+Thanks for filing this bug report, Jeremy.
+Drew, such conversion from xsfbs to dh should really be accompanied by
+a thorough debdiff check:
+  $ debdiff --controlfiles=ALL ../libxcursor*changes
+which makes the breakage obvious:
+| Shlibs files of package libxcursor1: lines which differ (wdiff format)
+| ----------------------------------------------------------------------
+| udeb: libXcursor 1 [--udeb-] {+libxcursor1-udeb+} (>> 1.1.2)
+(This one is between the version in unstable and a build with the
+trivial, attached patch. You would have had the opposite between the
+-1 and -2 uploads.)
+Also: DEBDIFF_CONTROLFILES=ALL in ~/.devscripts works fine.
+KiBi.
+signature.ascFrom 3e91691c6274547e1aa8a033447f993ff617d80c Mon Sep 17 00:00:00 2001
+From: Cyril Brulebois <kibi@debian.org>
+Date: Thu, 24 Aug 2017 01:20:00 +0000
+Subject: [PATCH] debian/rules: Set PACKAGE to libxcursor1 (Closes: #873041).
+Otherwise dh_makeshlibs is called with an incomplete package name for
+the udeb, which breaks reverse dependencies.
+---
+ debian/changelog | 6 ++++++
+ debian/rules     | 3 +++
+ 2 files changed, 9 insertions(+)
+diff --git a/debian/changelog b/debian/changelog
+index 9ccc9f8..b1402c0 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,8 +1,14 @@
+ libxcursor (1:1.1.14-3) UNRELEASED; urgency=medium
+ 
++  [ Drew Parsons ]
+   * Team upload.
+   * debian/control Homepage: https://www.x.org
+ 
++  [ Cyril Brulebois ]
++  * debian/rules: Set PACKAGE to libxcursor1. Otherwise dh_makeshlibs is
++    called with an incomplete package name for the udeb, which breaks
++    reverse dependencies (Closes: #873041).
++
+  -- Drew Parsons <dparsons@debian.org>  Sun, 20 Aug 2017 13:54:29 +0800
+ 
+ libxcursor (1:1.1.14-2) unstable; urgency=medium
+diff --git a/debian/rules b/debian/rules
+index 61ad145..3619536 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -1,4 +1,7 @@
+ #!/usr/bin/make -f
++
++PACKAGE = libxcursor1
++
+ %:
+ 	dh $@
+ 
+-- 
+2.14.0

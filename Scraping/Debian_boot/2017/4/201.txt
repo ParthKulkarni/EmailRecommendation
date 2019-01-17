@@ -1,0 +1,49 @@
+To : Laurent Besson <lolotux@gmail.com>,	Geert Stappers <stappers@stappers.nl>
+Subject : Re: Starting cups in debian installation with preseed
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 17 Apr 2017 15:43:04 +0200
+Message-id : 20170417134304.GH16486@mraw.org
+In-reply-to : <[🔎] 20170416210240.GZ1384@gpm.stappers.nl>
+References : <[🔎] b3d288d9-40e6-33a1-ccc8-c6bb8345aaad@gmail.com> <[🔎] 20170416210240.GZ1384@gpm.stappers.nl>
+
+
+Hi,
+Geert Stappers <stappers@stappers.nl> (2017-04-16):
+> On Fri, Apr 14, 2017 at 11:34:41AM +0200, Laurent Besson wrote:
+> > Hi,
+> > 
+> > First excuse for my English, I'm french and it's no very good !
+> > 
+> > Is possible to start a service as cups during installation with a preseed?
+> > 
+> > I tried with :
+> > /d-i preseed/late_command string in-target cupsd//
+> > //d-i preseed/late_command string chroot /target ; cupsd/
+> > 
+> > /d-i preseed/late_command string in-target service cups restart//
+> > //d-i preseed/late_command string chroot /target ; service cups restart/
+> > 
+> > But none works!
+If you try anything like “chroot /foo; bar”, you create a shell in the
+/foo environment, wait for it to return, THEN start the bar command.
+You're not actually starting the bar command in the /foo chroot.
+See synopsis in manpage: chroot [OPTION] NEWROOT [COMMAND [ARG]...]
+It seems cupsd might be daemonizing itself automatically (based on a
+quick look at its own manpage), but that could have been another issue
+with starting services during the installation process.
+> > In a console during installation, i tried : chroot /target ; cupsd
+> > And it works!
+> > 
+> > Where's the difference?
+No, you typed chroot /target, which gave you a different shell, in which
+you typed cupsd.
+> If I recall correct are preseed late commands allready in target chroot.
+That seems incorrect based on documentation:
+    Template: preseed/late_command
+    Type: string
+    Description: for internal use; can be preseeded
+     Shell command or commands to run in the d-i environment as late as possible
+and based on code, see preseed_command and finish-install.d/07preseed in
+src:preseed.
+KiBi.
+signature.asc

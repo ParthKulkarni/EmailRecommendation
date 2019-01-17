@@ -1,0 +1,301 @@
+To : "Andreas B. Mundt" <andi.mundt@web.de>, 902423@bugs.debian.org
+Subject : Bug#902423: debian-installer: clean up arm64/armhf configuration
+From : Karsten Merker <merker@debian.org>
+Date : Tue, 26 Jun 2018 17:34:19 +0200
+Message-id : 20180626153419.kckbjfzft7zhjb55@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 902423@bugs.debian.org
+In-reply-to : <[🔎] 153001779843.16292.89422716045499969.reportbug@fuzi.localdomain>
+References : <[🔎] 153001779843.16292.89422716045499969.reportbug@fuzi.localdomain> <[🔎] 153001779843.16292.89422716045499969.reportbug@fuzi.localdomain>
+
+
+On Tue, Jun 26, 2018 at 02:56:38PM +0200, Andreas B. Mundt wrote:
+> Package: debian-installer
+> Severity: wishlist
+> 
+> Hi all,
+> 
+> as a follow-up on #902020, I looked into the build process of armhf
+> installation media.  As I am not very familliar with the build process
+> and the history of the different components, I would like to post some
+> observations and a draft patch addressing some but not all issues
+> here.  It might perhaps be helpful for someone with more insight to
+> clean up the code.
+Hello,
+first many thanks for your attempts at cleaning up the codebase. I
+am one of the original authors of the armhf support in d-i and the
+way the existing code is structured is a result of "historical
+reasons" and "I didn't know better at the time of writing" ;-).
+> The draft patch moves most of the stuff done from the armhf netboot
+> configuration in 'build/config/armhf/netboot.cfg' to the more general
+> 'build/config/arm.cfg'.  However there are still some issues I do not
+> understand:
+> 
+>  • Both 'build/config/armhf/netboot.cfg' and
+>    'build/config/armhf/hd-media.cfg' contain the same recipe code in
+>    the 'netboot_images_concatenateable' and respectively the
+>    'hd-media_images_concatenateable' target.
+While the recipes are similar, the "ingredients" of the resulting
+images (netboot and hd-media) are different (for more information
+please see below).  It might well be possible to factor out common
+code here, but unfortunately I don't have time to tackle that at
+the moment.
+>  • The use of GRUB and U-Boot is not clear to me.  armhf seems to use
+>    GRUB for the miniiso but U-Boot for all other media.  GRUB is
+>    referencing the kernel under '…/linux', U-BOOT prefers '…/vmlinuz'.
+U-Boot has been the "traditional" bootloader/system-firmware for
+armhf systems and the boot process inside u-boot is traditionally
+handled by a u-boot bootscript.  Perhaps an additional explanation
+is required here: most armhf systems don't have any on-board
+system-firmware (i.e. an on-board "BIOS" when talking in x86-PC
+terms).  This means that u-boot is not only a bootloader like GRUB
+or syslinux, but it is both "BIOS" and bootloader, and u-boot is on
+armhf commonly loaded from an SD card (armhf systems with u-boot in
+an onboard flash chip exist, but they are the exception, not the
+rule).
+In contrast to u-boot, GRUB doesn't support running on a bare-metal
+system and requires that it is started from an UEFI-compatible
+firmware environment, which traditionally hasn't been available on
+armhf systems.  With arm64 gaining traction, UEFI has become
+available in the arm world - first in the arm64 space but rather
+recently also on some armhf systems, but nonetheless having UEFI is
+still rather uncommon on armhf.
+Booting directly from a CD (aka mini.iso) is not supported by
+u-boot, but it is supported by UEFI, which explains why the
+mini.iso uses an UEFI-GRUB.
+To make things a bit more complicated, there are recent
+developments to emulate the UEFI boot protocol on top of u-boot,
+i.e. to use u-boot to provide enough of an UEFI environment to
+chainload UEFI-GRUB from u-boot.  This works to a certain extent
+already, but still has a number of problems and limitations, so
+while this might in the future allow to provide a unified boot
+environment for all armhf systems, we aren't there yet.
+> diff --git a/build/config/arm.cfg b/build/config/arm.cfg
+> index 28d81e37f..f687af48c 100644
+> --- a/build/config/arm.cfg
+> +++ b/build/config/arm.cfg
+> @@ -10,6 +10,13 @@ ifeq ($(GRUB_EFI),y)
+>  	efi-image $(TEMP_GRUB_EFI) $(GRUB_PLATFORM) $(GRUB_EFI_NAME) $(NETBOOT_PATH)
+>  endif
+>  
+> +.PHONY: netboot_ubootscript_tftp
+> +netboot_ubootscript_tftp:
+> +ifeq ($(UBOOT),y)
+> +	mkimage -T script -A arm -d boot/arm/bootscr.tftpboot $(SOME_DEST)/$(EXTRANAME)tftpboot.scr
+> +	update-manifest $(SOME_DEST)/$(EXTRANAME)tftpboot.scr "TFTP boot script for mainline u-boot (>= v2014.10)"
+> +endif
+> +
+>  # Supply GRUB EFI configuration.
+>  .PHONY: arch_cd_info_dir
+>  arch_cd_info_dir: arm_grub_efi
+> @@ -54,9 +61,7 @@ arch_miniiso: arm_grub_efi
+>  		cp -a $(GRUB_FONT) $(TEMP_CD_TREE)/boot/grub/font.pf2; \
+>  		cp -a $(TEMP_GRUB_EFI)/boot/grub/$(GRUB_PLATFORM)/* \
+>  			$(TEMP_CD_TREE)/boot/grub/$(GRUB_PLATFORM)/; \
+> -	fi
+> -
+> -	if [ "$(GRUB_EFI)" = y ]; then \
+> +		\
+>  		xorriso -as mkisofs -r -J -c boot.cat \
+>  			-boot-load-size 4 -boot-info-table \
+>  			-eltorito-alt-boot \
+> @@ -65,14 +70,14 @@ arch_miniiso: arm_grub_efi
+>  	fi
+>  
+>  .PHONY: arch_netboot_dir
+> -arch_netboot_dir: arm_grub_efi
+> +arch_netboot_dir: arm_grub_efi netboot_ubootscript_tftp
+>  	-rm -f $(TEMP_NETBOOT_DIR)
+>  	mkdir -p $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)
+> -	cp $(TEMP_KERNEL) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/linux
+>  	cp $(TEMP_INITRD) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/initrd.gz
+>  
+> -	if [ "$(GRUB_EFI)" = y ]; then \
+> +	if [ "$(GRUB_EFI)" = y ] && [ "$(UBOOT)" = n ]; then \
+>  		set -e; \
+> +		cp $(TEMP_KERNEL) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/linux; \
+>  		mkdir -p $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/grub/$(GRUB_PLATFORM); \
+>  		cp -a $(TEMP_GRUB_EFI)/bootnet$(GRUB_EFI_NAME).efi $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH); \
+>  		cp -a $(GRUB_FONT) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/grub/font.pf2; \
+> @@ -84,3 +89,11 @@ arch_netboot_dir: arm_grub_efi
+>  			HEADER boot/$(ARCH)/grub/grub-efi.cfg \
+>  		> $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/grub/grub.cfg; \
+>  	fi
+> +
+> +	if [ "$(UBOOT)" = y ]; then \
+> +		set -e; \
+> +		cp $(TEMP_KERNEL) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/vmlinuz; \
+> +		cp -r $(TEMP_DTBS) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/dtbs/; \
+> +		cp $(SOME_DEST)/$(EXTRANAME)tftpboot.scr $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH); \
+> +		( cd $(TEMP_NETBOOT_DIR); ln -s $(NETBOOT_PATH)/tftpboot.scr boot.scr.uimg ) \
+> +	fi
+> diff --git a/build/config/arm64.cfg b/build/config/arm64.cfg
+> index d9e782df9..de4a89628 100644
+> --- a/build/config/arm64.cfg
+> +++ b/build/config/arm64.cfg
+> @@ -9,6 +9,8 @@ GRUB_EFI=y
+>  GRUB_PLATFORM=arm64-efi
+>  GRUB_EFI_NAME=aa64
+>  
+> +UBOOT=n
+> +
+>  arch_boot_screens:
+>  arch_tree:
+>  
+> diff --git a/build/config/armhf.cfg b/build/config/armhf.cfg
+> index 598644460..d7a76debe 100644
+> --- a/build/config/armhf.cfg
+> +++ b/build/config/armhf.cfg
+> @@ -11,6 +11,8 @@ GRUB_EFI=y
+>  GRUB_PLATFORM=arm-efi
+>  GRUB_EFI_NAME=arm
+>  
+> +UBOOT=y
+> +
+>  arch_boot_screens:
+>  arch_tree:
+>  
+> diff --git a/build/config/armhf/netboot.cfg b/build/config/armhf/netboot.cfg
+> index 93ea03870..077df1ef4 100644
+> --- a/build/config/armhf/netboot.cfg
+> +++ b/build/config/armhf/netboot.cfg
+> @@ -1,60 +1,9 @@
+>  MEDIA_TYPE = netboot image
+>  
+> -CONCATENATEABLE_SUFFIX =
+> -TFTP_INSTALLER_PATH = debian-installer/armhf/
+> -
+> -TARGET = $(KERNEL) $(INITRD) $(MINIISO) netboot_bootscript_sd netboot_bootscript_tftp netboot_tarball netboot_images_concatenateable
+> -
+> +NETBOOT_DIR_TARGETS = $(TEMP_INITRD) $(TEMP_KERNEL) $(TEMP_DTBS)
+> +TARGET = $(NETBOOT_DIR) $(NETBOOT_TAR) $(MINIISO)
+>  EXTRANAME = $(MEDIUM)/
+>  
+> -MANIFEST-INITRD = "netboot initrd"
+> -MANIFEST-KERNEL = "kernel image to netboot"
+> +MANIFEST-NETBOOT_DIR = "PXE boot directory for tftp server"
+> +MANIFEST-NETBOOT_TAR = "tarball of PXE boot directory"
+>  MANIFEST-MINIISO = "tiny CD image that boots the netboot installer"
+> -
+> -FLOPPY_SIZE = 100000
+> -
+> -GZIPPED = .gz
+> -
+> -.PHONY: netboot_bootscript_sd
+> -netboot_bootscript_sd:
+> -	mkimage -T script -A arm -d boot/arm/bootscr.mainline_common $(SOME_DEST)/$(EXTRANAME)boot.scr
+> -	update-manifest $(SOME_DEST)/$(EXTRANAME)boot.scr "Universal boot script for mainline u-boot (>= v2014.10)"
+> -
+> -.PHONY: netboot_bootscript_tftp
+> -netboot_bootscript_tftp:
+> -	mkimage -T script -A arm -d boot/arm/bootscr.tftpboot $(SOME_DEST)/$(EXTRANAME)tftpboot.scr
+> -	update-manifest $(SOME_DEST)/$(EXTRANAME)tftpboot.scr "TFTP boot script for mainline u-boot (>= v2014.10)"
+> -
+> -.PHONY: netboot_tarball
+> -netboot_tarball: $(KERNEL) $(INITRD) $(TEMP_DTBS) netboot_bootscript_tftp
+> -	rm -rf $(TEMP)/netboot_tarball
+> -	mkdir -p $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)
+> -	echo 'Debian version:  $(DEBIAN_VERSION)' > $(TEMP)/netboot_tarball/version.info
+> -	echo 'Installer build: $(BUILD_DATE)' >> $(TEMP)/netboot_tarball/version.info
+> -	cp $(KERNEL) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)vmlinuz
+> -	cp $(INITRD) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)initrd.gz
+> -	cp -r $(TEMP_DTBS) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)dtbs/
+> -	cp $(SOME_DEST)/$(EXTRANAME)tftpboot.scr $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)
+> -	( cd $(TEMP)/netboot_tarball; ln -s $(TFTP_INSTALLER_PATH)tftpboot.scr boot.scr.uimg )
+> -	tar -C $(TEMP)/netboot_tarball/ -zcf $(SOME_DEST)/$(EXTRANAME)netboot.tar.gz ./$(TFTP_INSTALLER_PATH)tftpboot.scr ./$(TFTP_INSTALLER_PATH)initrd.gz ./$(TFTP_INSTALLER_PATH)vmlinuz ./$(TFTP_INSTALLER_PATH)dtbs/ ./boot.scr.uimg ./version.info
+> -
+> -.PHONY: netboot_images_concatenateable
+> -netboot_images_concatenateable: $(KERNEL) $(INITRD) $(TEMP_DTBS) netboot_bootscript_sd
+> -	-rm -rf $(TEMP)/netboot_images_concatenateable
+> -	mkdir $(TEMP)/netboot_images_concatenateable
+> -	cp $(KERNEL) $(TEMP)/netboot_images_concatenateable/vmlinuz
+> -	cp $(INITRD) $(TEMP)/netboot_images_concatenateable/initrd.gz
+> -	cp $(SOME_DEST)/$(EXTRANAME)boot.scr $(TEMP)/netboot_images_concatenateable/boot.scr
+> -	cp -r $(TEMP_DTBS) $(TEMP)/netboot_images_concatenateable/dtbs/
+> -	cp boot/README.device-tree $(TEMP)/netboot_images_concatenateable/dtbs/README
+> -	mkdir -p $(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)
+> -	set -e; while read LINE; \
+> -	do \
+> -	  if [ -n "$${LINE}" ] && ! echo $${LINE}|grep -q -e "^#"; then \
+> -	    set -- $${LINE} ;\
+> -	    gen-hd-image -v -z -b firmware -s "$(FLOPPY_SIZE)" -o "$(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)/firmware.$${1}.img" "$$2" "$$3" "$$4" "$$5" ;\
+> -	  fi ;\
+> -	done < boot/arm/u-boot-image-config
+> -	gen-hd-image -v -z -b firmware -s "$(FLOPPY_SIZE)" -o "$(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)/firmware.none.img"
+> -	gen-hd-image -v -z -b partition -s "$(FLOPPY_SIZE)" -i "$(TEMP)/netboot_images_concatenateable" -o "$(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)/partition.img"
+> -	cp boot/README.concatenateable_images "$(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)/"
+This patch breaks the d-i build process for the netboot flavor:
+mkimage -T script -A arm -d boot/arm/bootscr.tftpboot ./dest/netboot/tftpboot.scr
+mkimage: Can't open ./dest/netboot/tftpboot.scr: No such file or directory
+config/arm.cfg:16: recipe for target 'netboot_ubootscript_tftp' failed
+make[7]: *** [netboot_ubootscript_tftp] Error 1
+Makefile:288: recipe for target '_build' failed
+make[6]: *** [_build] Error 2
+Makefile:185: recipe for target 'flavour_build' failed
+make[5]: *** [flavour_build] Error 2
+Makefile:181: recipe for target 'medium_build' failed
+make[4]: *** [medium_build] Error 2
+Makefile:177: recipe for target 'subarch_build' failed
+make[3]: *** [subarch_build] Error 2
+Makefile:172: recipe for target 'all_build' failed
+make[2]: *** [all_build] Error 2
+Unfortunately I'm very short on available time, so I cannot take a
+deeper look at this topic now. From a quick glance at the patch, it
+appears to completely remove the generation of the "netboot" SD
+card images - we still need those, so please don't remove that
+part of the code without a functionally-equivalent replacement ;-).
+The terminology within d-i is a bit confusing in this regard as
+"netboot" has two different meanings in the context of d-i:
+- One is "netboot" as in "loading a boot image over TFTP"
+  (i.e. PXE-booting in x86-PC terms).
+- The other meaning is using the d-i "netboot" flavour, which
+  downloads packages over a network connection instead of
+  installing them from local media (i.e. CD/DVD/USB stick),
+  regardless of how d-i itself got loaded (i.e. one can load the
+  d-i "netboot" flavour from a TFTP server, but also from a USB
+  stick or an SD card).
+The d-i "netboot flavour" is used in different images:
+- In the tftpboot tarball, i.e. a tarball that one unpacks on a
+  TFTP server for doing the complete installation over the network
+  without having any d-i component loaded from a local medium. 
+  This requires that the system that shall boot from the TFTP
+  server already has some form of u-boot running on it, e.g. 
+  because it is one of the few armhf systems that has u-boot in an
+  on-board SPI flash or because it has eMMC storage on which the
+  vendor has already preinstalled u-boot.
+- The "netboot SD card images", which contain u-boot, the kernel
+  and the d-i "netboot flavour" initrd for writing to an SD card,
+  from from which an armhf system can boot. The actual packages
+  that d-i installs are downloaded over the network, though.
+  As the "netboot SD card images" contain u-boot and u-boot is
+  hardware-specific (due to being the "BIOS" and therefore having
+  to handle hardware-specific low-level initialization), we would
+  need a different SD card image for every armhf system type, which
+  would require enormous amounts of space and bandwidth on our
+  mirrors.  Therefore we split the images into two parts - the
+  system-specific part that contains u-boot and the system-agnostic
+  part that contains d-i.  The system-specific part with u-boot is
+  just a few hundred kilobytes per system type while the
+  system-agnostic part is ~30MB:
+  https://d-i.debian.org/daily-images/armhf/daily/netboot/SD-card-images/
+  https://d-i.debian.org/daily-images/armhf/daily/netboot/SD-card-images/README.concatenateable_images
+  
+  The generation of these parts is handled by the "concatenateable
+  images" targets in d.i.
+For the "hd-media" flavour of d-i, i.e. the flavour that handles
+installing packages from local media, we also have different
+images:
+- SD card images similar to the "netboot SD card images",
+  but containing the "hd-media" flavour of d-i instead of the
+  "netboot" flavour of d-i. The user can write those to
+  an SD card, boot from it and provide a physical CD/DVD or
+  an ISO image of a Debian CD/DVD to pull the packages from.
+- The hd-media tarball, which a user can unpack onto a USB stick
+  and then copy a CD/DVD ISO image onto it as the package source.
+  If the target system already has a u-boot on it, the user can
+  use that u-boot to directly boot d-i from the usb stick.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

@@ -1,0 +1,127 @@
+To : Philip Hands <phil@hands.com>
+Subject : Re: Remote Debian installation assistance for newbies using WireGuard VPN
+From : ST <smntov@gmail.com>
+Date : Thu, 26 Apr 2018 16:15:27 +0300
+Message-id : 1524748527.21032.147.camel@gmail.com
+In-reply-to : <[🔎] 87a7truuoy.fsf@hands.com>
+References : <[🔎] 1524646833.21032.97.camel@gmail.com> <[🔎] 87h8nzv49m.fsf@hands.com>	 <[🔎] 1524663226.21032.123.camel@gmail.com> <[🔎] 87a7truuoy.fsf@hands.com>
+
+
+On Wed, 2018-04-25 at 18:17 +0200, Philip Hands wrote:
+> ST <smntov@gmail.com> writes:
+> 
+> > On Wed, 2018-04-25 at 14:50 +0200, Philip Hands wrote:
+> >> ST <smntov@gmail.com> writes:
+> >> 
+> >> > Hello Debian Install System Team,
+> >> >
+> >> > there used to be Linux install parties - a very cool event in itself and
+> >> > a way to bring new users into community. However it is not so easy to
+> >> > organize and it is somewhat limiting in time and space.
+> >> >
+> >> > Several weeks ago I learned about the kernel-space VPN - WireGuard [1]
+> >> > and was so positively shocked by the ease of it's configuration/use [2]
+> >> > so that I don't stop to think how it can be effectively utilized.
+> >> >
+> >> > Today I was thinking whether it would be possible to use this technology
+> >> > to enable an experienced Linux user to help a fellow newbie to install
+> >> > Debian on his Windows box?...
+> >> >
+> >> > The idea is to add an "Remote assistance mode" into win32-loader. Once
+> >> > toggled - it will preseed and run Debian Installer (after reboot)
+> >> > without any interaction until it:
+> >> > 1. creates a WG interface,
+> >> > 2. obtains an IP from a (not yet extent) Debian WireGuard VPN server [3]
+> >> > (the assisting Linux profi also should be part of this VPN so he can SSH
+> >> > to the newbie through NAT).
+> >> > 3. runs SSH server listening on that IP.
+> >> > 4. generates a short random password for the root user and displays it
+> >> > together with its IP from step #2 on the monitor of the newbie. This
+> >> > information (IP and root's password) are communicated by newbie to his
+> >> > Linux profi friend by phone/sms/etc..
+> >> >
+> >> >>From this point on the Linux profi can SSH to the box and continue the
+> >> > installation process in text mode.
+> >> >
+> >> > Is something like this possible?
+> >> 
+> >> I've not yet used WireGuard, but from what I can see one needs a unique
+> >> key per client to be known to the server (perhaps there's a way of
+> >> telling it not to care).  Also, the examples around the place also seem
+> >> to suggest that one needs a UDP port per connection.
+> >> 
+> >> Also, the wireguard.com front page does currently say:
+> >> 
+> >>   WireGuard is not yet complete. _You should not rely on this code._
+> >> 
+> >> Anyway, I don't see that one actually needs WireGuard to implement it.
+> >> 
+> >> A similar result could be achieved by configuring the new system to ssh
+> >> to a server somewhere, and either have that connection used for the
+> >> remote control, or have ssh also do port-forwarding back to the new
+> >> installation.
+> >
+> > Indeed?!... I'm positively shocked once again... Never knew it could be
+> > possible. Let's say we have a newbie (with a private IP - N which is
+> > behind NAT) and the same for a profie with IP P. And a publicly visible
+> > server with the IP S. Let's say both can SSH to S:22 and know each
+> > others' passwords/keys.
+> >
+> >  Could you, please, describe in details how one can implement both
+> > approaches, namely:
+> >
+> > 1. "to ssh to a server somewhere, and either have that connection used",
+> > i.e. `ssh newbie@S:22`... so what now? How profi can get through to N?
+> 
+> Many years ago I used to plumb things like this together with expect,
+> but there's bound to be a better way to do it these days -- tmate.io
+> (mentioned elsewhere in the thread) seems like it might be part of such
+> a solution.  I doesn't trike me as the optimal approach though.
+> 
+> > 2. "or have ssh also do port-forwarding back to the new installation"
+> > could you, please show the sequence of commands to achieve this?
+> 
+> One would use something like this on the target system:
+> 
+>   ssh -R 0:localhost:22 newbie@S
+> 
+> which leaves you with the challenge of telling the "profi" the port
+> that's been allocated, which is probably scriptable on the server
+> somehow,
+It sounds like a great approach. The port should be allocated randomly
+from available ports instead of the VPN IP form step #2 above. This
+random port together with the random root password will be displayed on
+newbie's monitor. Both credentials he will pass by phone to the profi.
+>  at which point they can do what boils down to:
+> 
+>   ssh -J profie@S:22 -p $DYN_PORT root@localhost
+> 
+> which should jump via the server, up the reverse port forward, and then
+> onto the target.
+> 
+> Making that so that nobody gets to do anything nasty on the server
+This should be no problem: there will be two accounts (with known
+private/public keys) - newbie and profi. On the newbie account you'll
+block absolutely every possible command (with *) via `visudo`. For the
+profi you'll block via `visudo` almost everything except for `ssh`
+command with very strict possible arguments which enable only utilizing
+the reverse tunnel established by newbies.
+>  or to
+> connect to the wrong newbie
+There is nothing to implement here - if a profi tries to connect to some
+other newbie - he will fail, since he doesn't know his local root
+password.
+I think something like this could be made a part of Debian
+infrastructure not just for Installation purpose, but also at any point
+of time. One might implement some sort of "SOS! Need help!" button in
+Gnome, or elsewhere which will allow profis to help newbies in the same
+way.
+This design is also easily scalable/made failure proof by providing
+several SSH servers for reverse tunnels within one DNS A entry. Newbie
+will establish connections to _all_ known SSH servers, while profi will
+pick up any random one.
+While digging into this I found that `autossh` might be useful here for
+keeping the tunnel alive for long periods of time.
+So what do you think about this idea? Should I file a feature request
+for this? If yes - where?
+Thank you!

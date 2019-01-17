@@ -1,0 +1,61 @@
+To : Mike Mestnik <cheako+debian_reportbug@mikemestnik.net>, 864181@bugs.debian.org
+Subject : Bug#864181: os-prober: dmraid detection not functional.
+From : Philip Hands <phil@hands.com>
+Date : Wed, 07 Jun 2017 10:39:16 +0200
+Message-id : 87k24op4y3.fsf@whist.hands.com
+Reply-to : Philip Hands <phil@hands.com>, 864181@bugs.debian.org
+In-reply-to : <[🔎] 149661103576.3935.4190305223897242480.reportbug@debian>
+References : <[🔎] 149661103576.3935.4190305223897242480.reportbug@debian>
+
+
+Mike Mestnik <cheako@mikemestnik.net> writes:
+> Package: os-prober
+> Version: 1.75
+> Severity: normal
+>
+> -----BEGIN PGP SIGNED MESSAGE-----
+> Hash: SHA1
+>
+> Here is the code as found in os-prober:17
+> : >"$OS_PROBER_TMP/dmraid-map"
+> DMRAID=$(type dmraid >/dev/null 2>&1 || true)
+> if [ "$DMRAID" ]; then
+>         dmraid -r -c >"$OS_PROBER_TMP/dmraid-map"
+> fi
+>
+> The problem is that $DMRAID will always be empty because stdout is
+> redirected.
+That was introduced by commit 9d89a525.
+It seems untidy to have that done outside of on_sataraid().
+I've just pushed an alternative approach here:
+  https://anonscm.debian.org/cgit/d-i/os-prober.git/commit/?h=pu/bug-864181&id=ebf32d6e0ba1d77a0644b57e59070bfa542cb62b
+If you compare that to the parent of 9d89a525 you get:
+=-=-=-
+diff --git a/os-prober b/os-prober
+index 0e51682..e0e1a1b 100755
+--- a/os-prober
++++ b/os-prober
+@@ -18,7 +18,12 @@ on_sataraid () {
+        type dmraid >/dev/null 2>&1 || return 1
+        local parent="${1%/*}"
+        local device="/dev/${parent##*/}"
+-       if dmraid -r -c | grep -q "$device"; then
++
++       local mapcache="$OS_PROBER_TMP/dmraid-map"
++       [ -f "$mapcache" ] ||
++               dmraid -r -c >"$mapcache" 2>/dev/null || true
++
++       if grep -q "$device" "$mapcache"; then
+                return 0
+        fi
+        return 1
+=-=-=-
+which strikes me as rather neater.
+Cheers, Phil.
+P.S. on reflection, perhaps the test should be -e rather than -f, but it
+_really_ shouldn't matter.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

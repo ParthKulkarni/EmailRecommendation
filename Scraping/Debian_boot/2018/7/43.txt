@@ -1,0 +1,43 @@
+To : "submit@bugs.debian.org" <submit@bugs.debian.org>
+Subject : Bug#903122: debian-installer-9-netboot-amd64: Please add char/virtio_console module (paravirtualized serial) to netinst
+From : Vincent Caron <vincent@zerodeux.net>
+Date : Fri, 06 Jul 2018 14:31:41 +0200
+Message-id : 1530880301.28531.0.camel@zerodeux.net
+Reply-to : Vincent Caron <vincent@zerodeux.net>, 903122@bugs.debian.org
+
+
+Package: debian-installer-9-netboot-amd64
+Severity: wishlist
+Tags: d-i
+Dear Maintainer,
+while automating Debian image creations thru netinst + KVM, I stumbled
+upon a limitation from the emulated UARTs (if one sends back from the
+guest to the host large logs, it might overrun the UART buffer which
+complains with kernel messages about overused IRQ).
+While turning to paravirtualized serial, I realized that the
+char/virtio_console kernel module is missing in the netinst's initrd,
+and this driver is required very early. Obviously I still use the UART
+emulation for kernel messages since it's the only _very early_ output
+medium, thus emulated UART and paravirtualized serials should be used
+together.
+If this module makes it to netinst's initrd, one would use those kvm
+args:
+-chardev file,path=virtiocon0.log,id=virtiocon0
+-device virtio-serial
+-device virtconsole,chardev=virtiocon0
+... and in the guest a /dev/hvc0 would appear. Anything the guest would
+write to /dev/hv0 would en up in the host's vitriocon0.log file.
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.16.0-0.bpo.2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8),
+LANGUAGE=en_US:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+debian-installer-9-netboot-amd64 depends on no packages.
+debian-installer-9-netboot-amd64 recommends no packages.
+Versions of packages debian-installer-9-netboot-amd64 suggests:
+pn  tftpd-hpa  <none>

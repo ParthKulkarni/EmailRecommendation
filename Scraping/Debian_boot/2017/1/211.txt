@@ -1,0 +1,71 @@
+To : Wookey <wookey@debian.org>, 851790@bugs.debian.org
+Subject : Bug#851790: installation-reports: DNS not working
+From : Steve McIntyre <steve@einval.com>
+Date : Wed, 18 Jan 2017 19:29:31 +0000
+Message-id : 20170118192931.GB12912@einval.com
+Reply-to : Steve McIntyre <steve@einval.com>, 851790@bugs.debian.org
+In-reply-to : <[🔎] 20170118184333.18240.91126.reportbug@cheddar.halon.org.uk>
+References : <[🔎] 20170118184333.18240.91126.reportbug@cheddar.halon.org.uk>
+
+
+On Wed, Jan 18, 2017 at 06:43:33PM +0000, Wookey wrote:
+>Package: installation-reports
+>Severity: grave
+>Tags: d-i
+>Justification: renders package unusable
+>
+>Dear Maintainer,
+>
+>The current installer, with the new 4.9 kernel, is unable to resolve
+>domains, so is quite seriously broken.
+hosts, not domains, but yes...
+>This was noted during install on an arm64 gigabyte MP30-AR1
+>desktop/server, when choose-mirror failed, but it soon became clear
+>that DNS was not working.
+>
+>Testing on an x86 VM with the same daily image (18th Jan 2017) found
+>the same problem. Going back to the rc1 installer image (4.8 kernel)
+>it works OK.
+>
+>Tests showed that the network came up fine and things are pingable by IP, but not name:
+># ping wookware.org                                                           
+>ping: bad address 'wookware.org'
+># ping 93.93.131.118
+>PING 93.93.131.118 (93.93.131.118): 56 data bytes
+>64 bytes from 93.93.131.118: seq=0 ttl=50 time=19.892 ms
+>
+>similarly the failing line from the choose-mirror log works if an address is inserted:
+>Jan 18 17:04:11 choose-mirror[31201]: DEBUG: command: wget --no-verbose http://debian-mirror.cambridge.arm.com/debian/dists/stretch/Release -O - | grep -E '^(Suite|Codename|Architectures):'                                                   
+>Jan 18 17:04:11 choose-mirror[31201]: WARNING **: mirror does not support the specified release (stretch) 
+>
+># wget --no-verbose http://debian-mirror.cambridge.arm.com/debian/dists/stretch/Release -O - | grep -E '^(Suite|Codename|Architectures):'
+>wget: unable to resolve host address 'debian-mirror.cambridge.arm.com'
+>
+># wget --no-verbose http://10.1.194.51/debian/dists/stretch/Release -O - | gre
+>p -E '^(Suite|Codename|Architectures):'
+>Suite: testing
+>Codename: stretch
+>Architectures: amd64 arm64 armel armhf i386 mips mips64el mipsel ppc64el s390x
+>2017-01-18 17:47:12 URL:http://10.1.194.51/debian/dists/stretch/Release [177979/177979] -> "-" [1]
+>
+>resolv.conf is as expected:
+>search cambridge.arm.com
+>nameserver 10.1.2.24
+>nameserver 10.1.2.23
+>
+>(adding nameserver 8.8.8.8 makes no difference)
+>
+>Watching packets go by when doing a VM install it is clear that the
+>local DNS server returns the correct response, but this is being ignored
+>or lost by the D-I initrd.
+For the sake of completeness, I can confirm that the same problem
+shows up when running on a different network too. I also see this
+using the oldest amd64 daily I can grab (from 2017-01-17) which has
+the 4.9 kernel too.
+I'll see if I can debug this, but I'm not sure where to look straight
+away.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"Managing a volunteer open source project is a lot like herding
+ kittens, except the kittens randomly appear and disappear because they
+ have day jobs." -- Matt Mackall

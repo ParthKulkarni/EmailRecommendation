@@ -1,0 +1,81 @@
+To : Steve McIntyre <steve@einval.com>
+Subject : Bug#860545: debootstrap fails to locate xzcat if the default shell is set to posh
+From : Sven Joachim <svenjoac@gmx.de>
+Date : Tue, 18 Apr 2017 18:39:01 +0200
+Message-id : 87o9vty8ka.fsf@turtle.gmx.de
+Reply-to : Sven Joachim <svenjoac@gmx.de>, 860545@bugs.debian.org
+In-reply-to : <[🔎] 20170418145743.GW8529@einval.com> (Steve McIntyre's message of	"Tue, 18 Apr 2017 15:57:43 +0100")
+References : <[🔎] 149251589238.30263.17360723432367270873.reportbug@um-mbp-306.ultimaker.com>	<[🔎] 20170418135200.GV8529@einval.com> <[🔎] 87a87dzsx8.fsf@turtle.gmx.de>	<[🔎] 20170418145743.GW8529@einval.com>
+
+
+Control: tags -1 + patch
+On 2017-04-18 15:57 +0100, Steve McIntyre wrote:
+> On Tue, Apr 18, 2017 at 04:33:55PM +0200, Sven Joachim wrote:
+>>On 2017-04-18 14:52 +0100, Steve McIntyre wrote:
+>>>
+>>> Just tested this - it appears that posh doesn't include "type", which
+>>> is what debootstrap is using to check what's available. I don't
+>>> personally know if "type" is a hard requirement in a posix shell here.
+>>
+>>It's not.  The portable equivalent would be 'command -v', however posh
+>>does not implement that either, since it only became mandatory in
+>>POSIX.1-2008.  I'm afraid there is no easy better solution: while
+>>'which' would always work on Debian systems, it's not guaranteed to be
+>>available elsewhere.
+>
+> Joy. :-(
+>
+> There are other hacky ways of trying this out - try "type ls" to see
+> if type works, then fall back to which, etc. Or actually try running
+> the extractor command (xzcat /dev/null), and check for the return
+> code.
+This wouldn't work, since /dev/null is not in xz format. ;-)
+Fortunately there is a better solution: Joey Hess has already put an
+in_path() function (basically a stripped-down version of debianutils'
+which command) that can be used instead.  See the attached patch which
+worked for me (I did not dare to symlink posh to /bin/sh, but rather
+changed the shebang in /usr/sbin/debootstrap to test it).
+Cheers,
+       Sven
+>From 620ec3850c483d75b7c71fdcfc925101fa1f26f4 Mon Sep 17 00:00:00 2001
+From: Sven Joachim <svenjoac@gmx.de>
+Date: Tue, 18 Apr 2017 18:21:52 +0200
+Subject: [PATCH] Avoid the 'type' shell command
+It is not mandatory in POSIX and tus not implemented by posh.  Use the
+in_path function instead which is taylored for this need.
+---
+ functions | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+diff --git a/functions b/functions
+index e22d4a0..982174d 100644
+--- a/functions
++++ b/functions
+@@ -899,7 +899,7 @@ extract_ar_deb_field () {
+ 		*) error 1 UNKNOWNCONTROLCOMP "Unknown compression type for %s in %s" "$tarball" "$pkg" ;;
+ 	esac
+ 
+-	if type $cat_cmd >/dev/null 2>&1; then
++	if in_path $cat_cmd >/dev/null 2>&1; then
+ 		ar -p "$pkg" "$tarball" | $cat_cmd |
+ 		    tar -O -xf - control ./control 2>/dev/null |
+ 		    grep -i "^$field:" | sed -e 's/[^:]*: *//' | head -n 1
+@@ -920,7 +920,7 @@ extract_ar_deb_data () {
+ 		*) error 1 UNKNOWNDATACOMP "Unknown compression type for %s in %s" "$tarball" "$pkg" ;;
+ 	esac
+ 
+-	if type $cat_cmd >/dev/null 2>&1; then
++	if in_path $cat_cmd >/dev/null 2>&1; then
+ 		ar -p "$pkg" "$tarball" | $cat_cmd | tar $EXTRACT_DEB_TAR_OPTIONS -xf -
+ 	else
+ 		error 1 UNPACKCMDUNVL "Extracting %s requires the %s command, which is not available" "$pkg" "$cat_cmd"
+@@ -944,7 +944,7 @@ choose_extractor () {
+ 
+ 	if [ -n "$EXTRACTOR_OVERRIDE" ]; then
+ 		extractor="$EXTRACTOR_OVERRIDE"
+-	elif type dpkg-deb >/dev/null 2>&1; then
++	elif in_path dpkg-deb >/dev/null 2>&1; then
+ 		extractor="dpkg-deb"
+ 	else
+ 		extractor="ar"
+-- 
+2.11.0

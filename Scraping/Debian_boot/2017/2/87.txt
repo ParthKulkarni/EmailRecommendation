@@ -1,0 +1,38 @@
+To : James Clarke <jrtc27@debian.org>, 852215@bugs.debian.org
+Subject : Bug#852215: FTBFS on non-release architectures
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 3 Feb 2017 16:28:00 +0100
+Message-id : 20170203152800.GM14512@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 852215@bugs.debian.org
+In-reply-to : <20170122160320.lcvgnusuprvtyhys@debian>
+References : <20170122160320.lcvgnusuprvtyhys@debian>
+
+
+Hi,
+James Clarke <jrtc27@debian.org> (2017-01-22):
+> As you know, debian-installer does not build on non-release
+> architectures, since it tries to build for stretch. Some architectures
+> also have some of the needed udebs in the unreleased suite, such as
+> sparc-utils on sparc64. The attached patch lets me build on sparc64
+> even after a `dch --release`, and I would assume on other ports
+> architectures too. Is this something you would consider applying?
+As mentioned on IRC a tiny while back, I can understand how this is
+necessary since ports are going to have specific packages (e.g.
+bootloaders) which don't really make sense to have in the official
+archive.
+It looks to me like your proposed patch makes it a bit hard to
+understand what's happening in debian/rules, and I'd like to propose
+a different take on this, by first having the usual daily builds vs.
+release heuristics, then having overrides for ports. I've pushed a
+pu/support-for-ports branch for you folks to double check:
+  https://anonscm.debian.org/cgit/d-i/debian-installer.git/commit/?h=pu/support-for-ports&id=6580c874c5263fb500f5b222f7d4f6a1c17ac532
+  https://anonscm.debian.org/cgit/d-i/debian-installer.git/commit/?h=pu/support-for-ports&id=1ca77bc7c8aaa7c4948905bd0dc4ca8b397a0c00
+I removed amd64 from RELEASE_ARCHES so that amd64 would be considered
+like a port (2005 called, it wants its sarge-amd64 release back!) and
+it seems to work just fine, with a warning about an invalid mirror
+when unreleased isn't found there. So hopefully that shouldn't make
+it any harder for kfreebsd-* (which currently FTBFS anyway…).
+Please let me know what you think and which results you get with a
+real test on unreleased ports.
+KiBi.
+signature.asc

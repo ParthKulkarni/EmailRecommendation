@@ -1,0 +1,113 @@
+To : 731859@bugs.debian.org
+Subject : Bug#731859: Happens to me on stretch
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Mon, 18 Jun 2018 20:22:28 +0900
+Message-id : 20180618202228.57b001b60cd13124a91489ba@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 731859@bugs.debian.org
+In-reply-to : <1529288151.8236.2.camel@stuart.id.au>
+References : <20131210144833.27986.22338.reportbug@hoothoot> <[🔎] 20180615161831.1d5063d557290d4389f87aed@iijmio-mail.jp> <1529288151.8236.2.camel@stuart.id.au> <20131210144833.27986.22338.reportbug@hoothoot>
+
+
+Hi,
+On Mon, 18 Jun 2018 12:15:51 +1000
+Russell Stuart <russell-debian@stuart.id.au> wrote:
+> I didn't get that failure, but a postinst expecting /proc to be mounted
+> doesn't sound unreasonable.
+ Hmm.
+> > I'm not sure how to run nested chroot with success, it means
+> > "chroot "/tmp/${suite}" /bin/sh" line would still fail, though.
+> 
+> The nested chroot was just a way of getting a repeatable test
+> environment in a few lines of shell script.  It worked for me, but
+> apparently not for you.  So I've attached a new version which provides
+> numerous environments.  They all fail for me in exactly the same way
+> the simple one did; hopefully you will find at least of them more
+> illuminating than my previous effort.  Sadly it's an order of magnitude
+> larger.
+> 
+> Here are ways you can run it:
+> 
+>   ./bug-731859-demo-v2.sh stretch chroot
+>   ./bug-731859-demo-v2.sh stretch nspawn
+>   ./bug-731859-demo-v2.sh stretch kvm
+>   ./bug-731859-demo-v2.sh buster chroot
+>   ./bug-731859-demo-v2.sh buster nspawn
+>   ./bug-731859-demo-v2.sh buster kvm
+> 
+> The "chroot" environment is as before, but with dev, dev/pts, proc and
+> sys mounted in the chroot when the demonstration runs.  The "nspawn" is
+> a systemd-nspawn running in a directory identical to the chroot.  "kvm"
+> is a qemu-system-x86_64 VM using an identical directory as it's root
+> file system.  It will drop you in a shell when it starts.  Run the
+> demonstration by running /bug.sh.  Press Control-A followed by  x to
+> exit.
+> 
+> When running these tests either unset the http_proxy environment
+> variable or set it to something that will work inside all environments.
+ I've run it and got failure as below (my question is can we run nested
+ chroot without failure?)
+> ./bug-731859-demo-v2.sh stretch chroot
++ chroot /tmp/stretch /bin/sh
+chroot: failed to run command '/bin/sh': No such file or directory
+> ./bug-731859-demo-v2.sh stretch nspawn
+I: Base system installed successfully.
++ chroot /home/x/stretch /bin/sh
+chroot: failed to run command '/bin/sh': No such file or directory
++ ls -l /home/x/stretch/sbin/ldconfig /home/x/stretch/sbin/ldconfig.REAL
+-rwxr-xr-x 1 x x     67 Jun 18 16:47 /home/x/stretch/sbin/ldconfig
+-rwxr-xr-x 1 x x 881912 Jan 14 19:39 /home/x/stretch/sbin/ldconfig.REAL
+Container stretch.nspawn exited successfully.
+> ./bug-731859-demo-v2.sh stretch kvm
+Begin: Running /scripts/init-premount ... done.
+Begin: Mounting root file system ... Begin: Running /scripts/local-top ... done.
+Begin: Running /scripts/local-premount ... [    3.245515] Btrfs loaded, crc32c=crc32c-generic
+Scanning for Btrfs filesystems
+[    3.324262] print_req_error: I/O error, dev fd0, sector 0
+[    3.327074] floppy: error 10 while reading block 0
+[    3.411652] random: fast init done
+done.
+[    3.445007] cryptd: max_cpu_qlen set to 1000
+Warning: fsck not present, so skipping root file system
+[    3.492000] EXT4-fs (sda): mounting ext2 file system using the ext4 subsystem
+[    3.495787] EXT4-fs (sda): mounted filesystem without journal. Opts: (null)
+done.
+Begin: Running /scripts/local-bottom ... done.
+Begin: Running /scripts/init-bottom ... done.
+/bin/sh: 0: can't access tty; job control turned off
+> ./bug-731859-demo-v2.sh buster chroot
+I: Base system installed successfully.
++ chroot /home/x/buster /bin/sh
+chroot: failed to run command '/bin/sh': No such file or directory
++ ls -l /home/x/buster/sbin/ldconfig /home/x/buster/sbin/ldconfig.REAL
+-rwxr-xr-x 1 x x     67 Jun 18 10:07 /home/x/buster/sbin/ldconfig
+-rwxr-xr-x 1 x x 901088 Mar 29 19:47 /home/x/buster/sbin/ldconfig.REAL
++ exit
++ umount buster.chroot/sys
++ umount buster.chroot/proc
++ umount buster.chroot/dev/pts
++ umount buster.chroot/dev
+> ./bug-731859-demo-v2.sh buster nspawn
+I: Base system installed successfully.
++ chroot /home/x/buster /bin/sh
+chroot: failed to run command '/bin/sh': No such file or directory
++ ls -l /home/x/buster/sbin/ldconfig /home/x/buster/sbin/ldconfig.REAL
+-rwxr-xr-x 1 x x     67 Jun 18 17:03 /home/x/buster/sbin/ldconfig
+-rwxr-xr-x 1 x x 901088 Mar 30 04:47 /home/x/buster/sbin/ldconfig.REAL
+Container buster.nspawn exited successfully.
+> ./bug-731859-demo-v2.sh buster kvm
+Begin: Running /scripts/init-premount ... done.                                                                                                                             
+Begin: Mounting root file system ... Begin: Running /scripts/local-top ... done.
+Begin: Running /scripts/local-premount ... [    3.308450] Btrfs loaded, crc32c=crc32c-generic
+Scanning for Btrfs filesystems  
+[    3.384200] print_req_error: I/O error, dev fd0, sector 0
+[    3.386911] floppy: error 10 while reading block 0
+[    3.471441] random: fast init done  
+done.                                   
+[    3.504605] cryptd: max_cpu_qlen set to 1000
+Warning: fsck not present, so skipping root file system 
+[    3.548903] EXT4-fs (sda): mounting ext2 file system using the ext4 subsystem
+[    3.553363] EXT4-fs (sda): mounted filesystem without journal. Opts: (null)       
+done.                                                                           
+Begin: Running /scripts/local-bottom ... done.                                  
+Begin: Running /scripts/init-bottom ... done.                                   
+/bin/sh: 0: can't access tty; job control turned off

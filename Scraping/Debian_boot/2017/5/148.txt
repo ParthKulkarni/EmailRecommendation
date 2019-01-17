@@ -1,0 +1,28 @@
+To : submit@bugs.debian.org
+Subject : Bug#862745: netcfg incorrectly defaults hostname to DHCPv6-provided NTP server address
+From : Malcolm Scott <debbugs@malc.org.uk>
+Date : Tue, 16 May 2017 15:44:44 +0100 (BST)
+Message-id : alpine.DEB.2.20.1705161536190.12871@metis.retrosnub.co.uk
+Reply-to : Malcolm Scott <debbugs@malc.org.uk>, 862745@bugs.debian.org
+
+
+Package: netcfg
+Version: 1.141
+netcfg uses a NTP server address from DHCPv6 as the default hostname (in the 
+absence of a hostname explicitly provided via DHCP), due to a typo in 
+autoconfig.c.
+...and then the installer prompts me for a hostname with a pre-filled 
+default of "2001:630:212:200::123:1b" (or if preseeded, blindly proceeds 
+with the installed system's hostname set to that IPv6 address).
+diff -Naur netcfg-1.141.orig/autoconfig.c netcfg-1.141/autoconfig.c
+--- netcfg-1.141.orig/autoconfig.c      2012-10-02 02:02:23.000000000 +0100
++++ netcfg-1.141/autoconfig.c   2017-05-16 15:33:55.284092137 +0100
+@@ -347,7 +347,7 @@
+                        ns_idx++;
+                } else if (!strncmp("NTP server[", l, 11) && ntp_idx < NETCFG_NTPSERVERS_MAX) {
+                        p = strstr(l, "] ") + 2;
+-                       strncpy(interface->ntp_servers[ns_idx++], p, sizeof(interface->ntp_servers[ntp_idx]));
++                       strncpy(interface->ntp_servers[ntp_idx], p, sizeof(interface->ntp_servers[ntp_idx]));
+                        ntp_idx++;
+                } else if (!strncmp("Domain search list[0] ", l, 21)) {
+                        p = strstr(l, "] ") + 2;

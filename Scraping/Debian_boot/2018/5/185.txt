@@ -1,0 +1,136 @@
+To : Karsten Merker <merker@debian.org>, 899118@bugs.debian.org
+Subject : Bug#899118: flash-kernel: add missing arm64 boards
+From : Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date : Mon, 21 May 2018 01:01:56 +0200
+Message-id : 2b3fcfe2-d919-e557-97cf-455ba0cf94f6@gmx.de
+Reply-to : Heinrich Schuchardt <xypron.glpk@gmx.de>, 899118@bugs.debian.org
+In-reply-to : <[🔎] 20180520191538.wcb4tanpxbrsadn3@excalibur.cnev.de>
+References : <[🔎] 20180519125741.5291-1-xypron.glpk@gmx.de> <[🔎] 20180520191538.wcb4tanpxbrsadn3@excalibur.cnev.de> <[🔎] 20180519125741.5291-1-xypron.glpk@gmx.de>
+
+
+On 05/20/2018 09:15 PM, Karsten Merker wrote:
+> On Sat, May 19, 2018 at 02:57:41PM +0200, Heinrich Schuchardt wrote:
+> 
+>> Package: flash-kernel
+>> Version: 3.94
+>> Severity: normal
+>> Tags: patch
+>>
+>> Add 60 missing database entries for arm64 boards
+>> supported both by U-Boot and by Linux:
+>>
+>> Amlogic Meson GXL (S905X) P212 Development Board
+>> BananaPi-M64
+>> Freescale Layerscape 2080a QDS Board
+>> Freescale Layerscape 2080a RDB Board
+>> FriendlyARM NanoPi A64
+>> FriendlyARM NanoPi NEO 2
+>> FriendlyARM NanoPi NEO Plus2
+>> GeekBox
+>> HiKey Development Board
+>> HiSilicon Poplar Development Board
+>> Khadas VIM
+>> Libre Computer Board ALL-H3-CC H5
+>> Libre Technology CC
+>> LS1012A Freedom Board
+>> LS1012A QDS Board
+>> LS1012A RDB Board
+>> LS1043A RDB Board
+>> LS1046A RDB Board
+>> LS1088A QDS Board
+>> LS1088A RDB Board
+>> Marvell Armada 3720 Development Board DB-88F3720-DDR3
+>> Marvell Armada 7040 DB board
+>> NVIDIA Tegra210 P2371 (P2530/P2595) reference design
+>> NVIDIA Tegra210 P2571 reference design
+>> Olimex A64-Olinuxino
+>> OrangePi Win/Win Plus
+>> OrangePi Zero Plus2
+>> Pine64
+>> Renesas Draak board based on r8a77995
+>> Renesas Eagle board based on r8a77970
+>> Renesas H3ULCB board based on r8a7795 ES2.0+
+>> Renesas M3ULCB board based on r8a7796
+>> Renesas Salvator-X board based on r8a7795 ES2.0+
+>> Renesas Salvator-X board based on r8a7796
+>> Renesas Salvator-X board based on r8a77965
+>> Rockchip PX5 EVB
+>> Rockchip RK3328 EVB
+>> SoCFPGA Stratix 10 SoCDK
+>> UniPhier LD11 Global Board (REF_LD11_GP)
+>> UniPhier LD11 Reference Board
+>> UniPhier LD20 Global Board (REF_LD20_GP)
+>> UniPhier LD20 Reference Board
+>> UniPhier PXs3 Reference Board
+>> Xunlong Orange Pi PC 2
+>> Xunlong Orange Pi Prime
+>> ZynqMP ZC1232 RevA
+>> ZynqMP ZC1254 RevA
+>> ZynqMP ZC1275 RevA
+>> ZynqMP zc1751-xm015-dc1 RevA
+>> ZynqMP zc1751-xm016-dc2 RevA
+>> ZynqMP zc1751-xm017-dc3 RevA
+>> ZynqMP zc1751-xm018-dc4
+>> ZynqMP zc1751-xm019-dc5 RevA
+>> ZynqMP ZCU100 RevC
+>> ZynqMP ZCU102 Rev1.0
+>> ZynqMP ZCU102 RevA
+>> ZynqMP ZCU102 RevB
+>> ZynqMP ZCU104 RevA
+>> ZynqMP ZCU106 RevA
+>> ZynqMP ZCU111 RevA
+> 
+> Hello,
+> 
+> many thanks for the patch.  Just to make sure that we don't run
+> into problems later on: do all these boards really use u-boot's
+> config_distro_bootcmd.h and thereby work properly with
+> bootscr.uboot-generic?
+> 
+> When looking at the defconfigs for several of these systems, I
+> see e.g. CONFIG_BOOTARGS settings that don't really match what I
+> would expect for systems using config_distro_bootcmd.h.
+> Three random examples:
+> 
+> - r8a77995_draak_defconfig:
+>   CONFIG_BOOTARGS="console=ttySC0,115200 rw root=/dev/nfs nfsroot=192.168.0.1:/export/rfs ip=192.168.0.20"
+> 
+> - ls1088ardb_sdcard_qspi_defconfig:
+>   CONFIG_BOOTARGS="console=ttyS0,115200 root=/dev/ram0 earlycon=uart8250,mmio,0x21c0500 ramdisk_size=0x3000000 default_hugepagesz=2m hugepagesz=2m hugepages=256"
+> 
+> - hikey_defconfig:
+>   CONFIG_BOOTARGS="console=ttyAMA0,115200n8 root=/dev/mmcblk0p9 rw"
+> 
+> Regards,
+> Karsten
+> 
+Thanks for reviewing.
+For a board to be able to benefit from flash-kernel U-Boot must:
+- be capable to load and execute boot.scr
+- provide the booti command
+- allow the definition of the following environment variables:
+  - devtype, devnum, partition
+  - fdtfile
+  - kernel_addr_r
+  - fdt_addr_r
+  - ramdisk_addr_r
+In your examples above I could not find any evidence that U-Boot cannot
+be configured and built to fulfill these requirements.
+For instance build
+make r8a77995_draak_defconfig
+make menuconfig
+CONFIG_DISTRO_DEFAULTS=y
+CONFIG_BOOTARGS="console=ttySC0,115200"
+CONFIG_ENV_IS_IN_MMC=y (this is a default value)
+make -j6
+Setup missing environment variables interactively and save them to MMC
+and you can rely on flash-kernel for booting.
+ls1088ardb_sdcard_qspi_defconfig and hikey_defconfig select
+CONFIG_DISTRO_DEFAULTS=y. CONFIG_BOOTARGS has to be reconfigured.
+This patch is only about providing flash-kernel for the boards. It is
+not about providing U-Boot configured to match flash-kernel's requirements.
+I think that even for boards for which we do not provide U-Boot as a
+Debian package we should allow the usage of flash-kernel without setting
+up a local override for the machine database (/etc/flash-kernel/db).
+Best regards
+Heinrich

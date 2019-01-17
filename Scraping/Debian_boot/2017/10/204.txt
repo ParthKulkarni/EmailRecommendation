@@ -1,0 +1,53 @@
+To : Daniel Kahn Gillmor <dkg@fifthhorseman.net>, 877012@bugs.debian.org
+Subject : Bug#877012: apt-setup: debian sources.list entries should have signed-by options pointing to specific keys
+From : Philipp Kern <pkern@debian.org>
+Date : Sun, 15 Oct 2017 10:09:26 +0200
+Message-id : dd233a7e-7fdf-d63c-f8f5-64a0ce3d6eee@debian.org
+Reply-to : Philipp Kern <pkern@debian.org>, 877012@bugs.debian.org
+In-reply-to : <150653782991.31121.8889768588606075031.reportbug@alice.fifthhorseman.net>
+References : <150653782991.31121.8889768588606075031.reportbug@alice.fifthhorseman.net> <150653782991.31121.8889768588606075031.reportbug@alice.fifthhorseman.net>
+
+
+On 09/27/2017 08:43 PM, Daniel Kahn Gillmor wrote:
+> In #861695, i'm trying to get debian-archive-keyring to ship the
+> standard repository keys in /usr/share/keyrings/.  on a system where
+> that's done, apt-setup should write the sources.list snippets for the
+> debian repos with a "signed-by" option (see sources.list(5), which
+> points specifically to the key that should be used to authorize this
+> repo.
+> 
+> I think doing this right for debian repositories is going to require
+> #861695 to be corrected first, which is why the first bug report here
+> ("debian sources.list entries should have signed-by options pointing
+> to specific keys") is marked as blocked by that bug.
+The idea is to have one GPG file per codename and then let 50mirror
+deduce the codename from the Release file and use
+/usr/share/keyrings/${codename}.gpg for this? Right now a lot of this
+information isn't really available to the scripts because it isn't
+needed, after all the chroot that has just been bootstrapped will
+contain the trusted keys in a single keyring.
+> But apt-setup can fix its configuration of any pre-seeded local
+> repositories without waiting on the debian-archive-keyring package,
+> which is the point of the second bug ("set up local repository keys
+> using signed-by option, and do not use "apt-key add"").
+> 
+> In particular, generators/60local can place the proposed key into a
+> file *outside* of /etc/apt/trusted.gpg.d/, and can add the signed-by
+> argument to the sources.list stanza it creates.
+> 
+> The result of fixing these two bugs should be that new installations
+> can have an empty /etc/apt/trusted.gpg and nothing in
+> /etc/apt/trusted.gpg.d/*.gpg, and each repository added will be
+> individually authenticated.  This is a pre-requisite for being able to
+> more tightly constrain software repositories (e.g. pinning, etc), and
+> should be the default of the future.
+Any idea where these should then actually live? It should be /etc
+because it's local configuration, I think. This mechanism loses the key
+agility we have with debian-archive-keyring and the reference of a file
+updatable by a package instead of a single key but that's maybe fair in
+the context of local configuration[*].
+Kind regards
+Philipp Kern
+[*] But nevertheless I guess also inventing some way to transition from
+key to key on a repo metadata basis would be nice to have eventually.
+signature.asc

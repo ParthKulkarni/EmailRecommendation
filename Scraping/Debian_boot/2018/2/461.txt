@@ -1,0 +1,52 @@
+To : 891757@bugs.debian.org
+Subject : Bug#891757: package's /etc/udhcpd.conf still mentions obsolete "remaining" option
+From : Nathan Stratton Treadway <debbugs2017@nathanst.com>
+Date : Wed, 28 Feb 2018 12:47:43 -0500
+Message-id : 20180228174743.GT10096@nathanst.com
+Reply-to : Nathan Stratton Treadway <debbugs2017@nathanst.com>, 891757@bugs.debian.org
+In-reply-to : <[🔎] 20180228153646.GA16029@nathanst.com>
+References : <[🔎] 20180228153646.GA16029@nathanst.com> <[🔎] 20180228153646.GA16029@nathanst.com>
+
+
+On Wed, Feb 28, 2018 at 10:36:46 -0500, Nathan Stratton Treadway wrote:
+> (Comparing those two files quickly I don't see any other obsolete option
+> still listed in the Debian /etc/udhcpd.conf file.)
+Actually, looking a little more closely it seems that this
+Debian-specific file was copied (essentially unchanged) from the
+upstream "examples" version of the file shortly before the
+above-mentioned commit 2b0e95780863da44f6a9244699ece8620a599e19, and it
+hasn't been updated since.  So perhaps it would make sense just to
+distribute the upstream version as Debian's /etc/udhcpd.conf rather than
+having a separate copy?
+=====
+$ git diff 2b0e95780863da44f6a9244699ece8620a599e19^1:examples/udhcp/udhcpd.conf HEAD:debian/tree/udhcpd/etc/udhcpd.conf | cat
+diff --git a/2b0e95780863da44f6a9244699ece8620a599e19^1:examples/udhcp/udhcpd.conf b/HEAD:debian/tree/udhcpd/etc/udhcpd.conf
+index 8c9a968..672c481 100644
+--- a/2b0e95780863da44f6a9244699ece8620a599e19^1:examples/udhcp/udhcpd.conf
++++ b/HEAD:debian/tree/udhcpd/etc/udhcpd.conf
+@@ -114,7 +114,7 @@ option      lease   864000          # 10 days of seconds
+ #opt ntpsrv
+ #opt tftp
+ #opt bootfile
+-
++#opt wpad
+ 
+ # Static leases map
+ #static_lease 00:60:08:11:CE:4E 192.168.0.54
+$ git log debian/tree/udhcpd/etc/udhcpd.conf
+commit 9f5c542f05969830b28e16d73c2f8af69c742a90
+Author: Bastian Blank <waldi@debian.org>
+Date:   Sat Nov 7 18:26:56 2009 +0000
+    * debian/busybox-syslogd.busybox-klogd.init, debian/busybox-syslogd.default,
+      debian/busybox-syslogd.init, debian/busybox-syslogd.links,
+      debian/udhcpc.install, debian/udhcpc.links,
+      debian/udhcpd.install, debian/udhcpd.links: Add.
+    * debian/config/deb, debian/config/static: Enable FEATURE_PIDFILE-
+    * debian/control: Add new binary packages.
+    * debian/copyright: Fix typo.
+    * debian/rules: Build new binary packages.
+    * debian/tree/udhcpc, debian/tree/udhcpd: Add trees.
+    
+    r61201
+=====
+						Nathan

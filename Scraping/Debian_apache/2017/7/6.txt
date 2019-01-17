@@ -1,0 +1,28 @@
+To : 867565@bugs.debian.org
+Subject : Bug#867565: apache2 segfaults on stop
+From : Valentin Vidic <Valentin.Vidic@CARNet.hr>
+Date : Wed, 26 Jul 2017 15:14:27 +0200
+Message-id : 20170726131427.2lk5imioceeyqgln@gavran.carpriv.carnet.hr
+Reply-to : Valentin Vidic <Valentin.Vidic@CARNet.hr>, 867565@bugs.debian.org
+In-reply-to : <[🔎] 2288787.UEyk7OagaR@k>
+References : <[🔎] 20170707123059.6dgnwscgta7gwwhn@gavran.carpriv.carnet.hr> <[🔎] 2288787.UEyk7OagaR@k>
+
+
+On Sun, Jul 09, 2017 at 08:40:33AM +0200, Stefan Fritsch wrote:
+> I cannot reproduce this. Does this happen for you always or did maybe the 
+> crash only happen during the first stop after the security update for expat or 
+> for apache2? It would be great if you could check that in the logs. Maybe /
+> var/log/apt/history.log helps.
+The problem seems to be related to mod_wsgi.  You can try installing
+package like keystone that uses wsgi and the problem will appear in
+the kernel log:
+# service apache2 restart
+Jul 26 15:11:07 stretch kernel: [13675.487624] apache2[14224]: segfault at 7f4c870a47a0 ip 00007f4c870a47a0 sp 00007ffe37558148 error 14 in libexpat.so.1.6.2[7f4c8910d000+27000]
+# service apache2 restart
+Jul 26 15:11:08 stretch kernel: [13677.399062] apache2[14354]: segfault at 7fdca73897a0 ip 00007fdca73897a0 sp 00007ffcd8cfb788 error 14 in libexpat.so.1.6.2[7fdca93f2000+27000]
+# service apache2 restart
+Jul 26 15:11:10 stretch kernel: [13678.620403] apache2[14477]: segfault at 7f4c0ecd47a0 ip 00007f4c0ecd47a0 sp 00007ffc7cfd2188 error 14 in libexpat.so.1.6.2[7f4c10d3d000+27000]
+# service apache2 restart
+Jul 26 15:11:11 stretch kernel: [13679.628174] apache2[14600]: segfault at 7f2daf1c67a0 ip 00007f2daf1c67a0 sp 00007ffd329bdb48 error 14 in libexpat.so.1.6.2[7f2db122f000+27000]
+-- 
+Valentin

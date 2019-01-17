@@ -1,0 +1,67 @@
+To : 792823@bugs.debian.org
+Subject : Bug#792823: keyboard-configuration: keymap variant unsupported by debian-installer should be use for the installed system
+From : Olaf Mandel <olaf@mandel.name>
+Date : Sun, 25 Jun 2017 15:52:41 +0200
+Message-id : d7fb4e86-9d60-59c0-3b66-5c753dd2db35@mandel.name
+Reply-to : Olaf Mandel <olaf@mandel.name>, 792823@bugs.debian.org
+
+
+Package: keyboard-configuration
+Version: 1.164
+Followup-For: Bug #792823
+Dear Maintainer,
+problem still persists in Stretch. To reproduce, add the following
+option to the kernel command line while booting the
+<http://cdimage.debian.org/cdimage/release/9.0.0/amd64/iso-cd/debian-9.0.0-amd64-netinst.iso>
+installer: keyboard-configuration/xkb-keymap=de(nodeadkeys)
+This will result in both the installer and the installed system using a
+default us keyboard layout.
+A deeper investigation found that it is the call to db_go in line 1346
+of the debian/keyboard-configuration.config file that erases the
+unrecognized setting.
+It is also not possible to preseed the installer with a "basic" setting
+for keyboard-configuration/xkb-keymap and the installed system with a
+more advanced setup via the internal keyboard-configuration/layoutcode
+and keyboard-configuration/variantcode settings: their values overwrite
+xkb-keymap in line 1235 of the script.
+My current workaround is to configure the installed system via
+preseed/late_command, using sed to edit /etc/default/keyboard in the
+target. But that is less than ideal...
+Thank you,
+Olaf Mandel
+-- System Information:
+Debian Release: 9.0
+  APT prefers stable-debug
+  APT policy: (500, 'stable-debug'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-3-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8),
+LANGUAGE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages keyboard-configuration depends on:
+ii  debconf                 1.5.61
+ii  liblocale-gettext-perl  1.07-3+b1
+keyboard-configuration recommends no packages.
+keyboard-configuration suggests no packages.
+Versions of packages console-setup depends on:
+ii  console-setup-linux  1.164
+ii  debconf              1.5.61
+ii  xkb-data             2.19-1
+Versions of packages console-setup suggests:
+ii  locales   2.24-11+deb9u1
+ii  lsb-base  9.20161125
+Versions of packages console-setup-linux depends on:
+ii  init-system-helpers  1.48
+ii  kbd                  2.0.3-2+b1
+Versions of packages console-setup-linux suggests:
+ii  console-setup  1.164
+Versions of packages keyboard-configuration is related to:
+pn  console-common        <none>
+pn  console-data          <none>
+pn  console-tools         <none>
+pn  gnome-control-center  <none>
+ii  kbd                   2.0.3-2+b1
+ii  systemd               232-25
+-- debconf information excluded
+signature.asc

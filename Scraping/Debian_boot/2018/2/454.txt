@@ -1,0 +1,95 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#891572: better debugging to boot banana pi
+From : Marc Haber <mh+debian-packages@zugschlus.de>
+Date : Mon, 26 Feb 2018 19:54:54 +0100
+Message-id : 151967129478.1400.13307327291914681333.reportbug@banana.ka51.zugschlus.de
+Reply-to : Marc Haber <mh+debian-packages@zugschlus.de>, 891572@bugs.debian.org
+
+
+Package: flash-kernel
+Version: 3.92
+Severity: wishlist
+Tags: patch
+Hi,
+the attached modified bootscr.sunxi gives more debugging output and
+makes it easier to manually replace a failed boot on the u-boot command
+line. Please consider applying it.
+Greetings
+Marc
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable
+  APT policy: (500, 'unstable')
+Architecture: armhf (armv7l)
+Kernel: Linux 4.15.6-zgbpi-armmp-lpae (SMP w/2 CPU cores)
+Locale: LANG=de_DE.utf8, LC_CTYPE=de_DE.utf8 (charmap=UTF-8), LANGUAGE=en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages flash-kernel depends on:
+ii  debconf [debconf-2.0]  1.5.65
+ii  devio                  1.2-1.2+b1
+ii  initramfs-tools        0.130
+ii  linux-base             4.5
+ii  mtd-utils              1:2.0.1-1
+ii  ucf                    3.0038
+Versions of packages flash-kernel recommends:
+ii  u-boot-tools  2018.01+dfsg1-2
+flash-kernel suggests no packages.
+-- Configuration Files:
+/etc/flash-kernel/bootscript/bootscr.sunxi changed:
+if test -n "${boot_targets}"
+then
+  echo "Mainline u-boot / new-style environment detected."
+  # Mainline u-boot v2014.10 uses ${devtype}, ${devnum} and
+  # ${bootpart} where u-boot-sunxi uses ${device} and ${partition}.
+  # ${distro_bootpart} replaced ${bootpart} in u-boot v2016.01.
+  if test -z "${device}"; then setenv device "${devtype}"; fi
+  if test -z "${partition}${distro_bootpart}"; then setenv partition "${devnum}:${bootpart}"; fi
+  if test -z "${partition}"; then setenv partition "${devnum}:${distro_bootpart}"; fi
+else
+  echo "U-boot-sunxi / old-style environment detected."
+  # U-boot-sunxi does not predefine kernel_addr_r, fdt_addr_r and
+  # ramdisk_addr_r, so they have to be manually set. Use the values
+  # from mainline u-boot v2014.10, except for ramdisk_addr_r,
+  # which is set to 0x44300000 to allow for initrds larger than
+  # 13MB on u-boot-sunxi.
+  setenv kernel_addr_r 0x42000000
+  setenv fdt_addr_r 0x43000000
+  setenv ramdisk_addr_r 0x44300000
+fi
+if test -n "${console}"; then
+  setenv bootargs "${bootargs} console=${console}"
+fi
+setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} @@LINUX_KERNEL_CMDLINE@@
+@@UBOOT_ENV_EXTRA@@
+if test -z "${image_locations}"; then
+   setenv image_locations ${prefix}
+fi
+if test -z "${image_locations}"; then
+   setenv image_locations /boot/ /
+fi
+if test -z "${fk_kvers}"; then
+   setenv fk_kvers '@@KERNEL_VERSION@@'
+fi
+if test -n "${fdtfile}"; then
+   setenv fdtpath dtbs/${fk_kvers}/${fdtfile}
+else
+   setenv fdtpath dtb-${fk_kvers}
+fi
+for pathprefix in ${image_locations}
+do
+  if test -e ${device} ${partition} ${pathprefix}vmlinuz-${fk_kvers}
+  then
+    echo "load ${device} ${partition} ${kernel_addr_r} ${pathprefix}vmlinuz-${fk_kvers}" 
+    echo "load ${device} ${partition} ${fdt_addr_r} ${pathprefix}${fdtpath}"
+    echo "load ${device} ${partition} ${ramdisk_addr_r} ${pathprefix}initrd.img-${fk_kvers}"
+    echo "bootz ${kernel_addr_r} ${ramdisk_addr_r}:\$\{filesize\} ${fdt_addr_r}"
+    load ${device} ${partition} ${kernel_addr_r} ${pathprefix}vmlinuz-${fk_kvers} \
+    && load ${device} ${partition} ${fdt_addr_r} ${pathprefix}${fdtpath} \
+    && load ${device} ${partition} ${ramdisk_addr_r} ${pathprefix}initrd.img-${fk_kvers} \
+    && echo "Booting Debian ${fk_kvers} from ${device} ${partition}..." \
+    && bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+  fi
+done
+-- debconf information:
+* flash-kernel/linux_cmdline: quiet

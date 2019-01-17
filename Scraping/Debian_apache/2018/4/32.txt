@@ -1,0 +1,36 @@
+To : Moritz Muehlenhoff <jmm@inutil.org>
+Subject : Bug#881725: apache2: reload fails inside (libvirt) lxc container
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Sat, 14 Apr 2018 11:25:13 +0200 (CEST)
+Message-id : alpine.DEB.2.20.1804141118520.7892@manul.sfritsch.de
+Reply-to : Stefan Fritsch <sf@sfritsch.de>, 881725@bugs.debian.org
+In-reply-to : <20180309122526.GA17375@inutil.org>
+References : <151067076078.12331.11188779696635278469.reportbug@mango.ad.beechwoods.com> <151067076078.12331.11188779696635278469.reportbug@mango.ad.beechwoods.com> <20180309122526.GA17375@inutil.org> <151067076078.12331.11188779696635278469.reportbug@mango.ad.beechwoods.com>
+
+
+On Fri, 9 Mar 2018, Moritz Muehlenhoff wrote:
+> On Tue, Nov 14, 2017 at 02:46:00PM +0000, Matthew Gabeler-Lee wrote:
+> > Package: apache2
+> > Version: 2.4.25-3+deb9u3
+> > Severity: normal
+> > 
+> > When running inside a libvirt-managed lxc os container, the reload command
+> > on the systemd unit fails always:
+> > 
+> > Nov 14 14:38:33 hostname systemd[1]: Reloading The Apache HTTP Server.
+> > Nov 14 14:38:33 hostname systemd[11798]: apache2.service: Failed at step NAMESPACE spawning /usr/sbin/apachectl: No such file or directory
+> > Nov 14 14:38:33 hostname systemd[1]: apache2.service: Control process exited, code=exited status=226
+> > Nov 14 14:38:33 hostname systemd[1]: Reload failed for The Apache HTTP Server.
+> > 
+> > Restart works normally.
+> > 
+> > This mostly crops up for me via the logrotate script.
+> 
+> JFTR, this isn't limited to LXC containers, we've also seen that on baremetal
+> stretch installations at the Wikimedia Foundation. Our internal task is
+> at https://phabricator.wikimedia.org/T185195, I'll update this bug when/if we
+> have additional information.
+This seems to be a systemd bug. Changing PrivateTmp from true to false in 
+apache2.service fixes the issue. But even with PrivateTmp it works for 
+some time. It would be interesting what is the trigger to make it fail 
+later on.

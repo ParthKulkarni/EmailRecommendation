@@ -1,0 +1,36 @@
+To : Ondřej Surý <ondrej@sury.org>, Jonathan Vollebregt <jnvsor@gmail.com>
+Subject : Bug#851357: Regression: No longer supports ServerName containing underscore
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Sat, 14 Jan 2017 20:18:37 +0100
+Message-id : 2262578.FgPkbCezEf@k
+Reply-to : 851357@bugs.debian.org, 851357@bugs.debian.org
+In-reply-to : <[🔎] 1599e444f50.2768.595dd7c4cc70d453d3914ebcaf051657@sury.org>
+References : <[🔎] 148439037919.31461.11643334611594345508.reportbug@overkill> <[🔎] 2420295.ouEeKYWLn3@k> <[🔎] 1599e444f50.2768.595dd7c4cc70d453d3914ebcaf051657@sury.org>
+
+
+On Saturday, 14 January 2017 19:36:34 CET Ondřej Surý wrote:
+> Stefan,
+> 
+> JFTR underscores in domain names are allowed, just not for hostnames. SRV,
+> TLSA and other RRs make use of them.
+But the character restriction for hostnames is valid for all parts of the FQDN 
+of a host. From RFC1035 section 2.3.1 (a FQDN consists of multiple labels 
+separated by dots):
+  The labels must follow the rules for ARPANET host names.  They must
+  start with a letter, end with a letter or digit, and have as interior
+  characters only letters, digits, and hyphen.  There are also some
+  restrictions on the length.  Labels must be 63 characters or less.
+For example, while TLSA uses things like _tcp and _443 in the looked up RRs, 
+its spec RFC  6698 section 3 explicitly states that the labels in the "base 
+domain name" must meet the restrictions from RFC 952, which means no 
+underscores.
+And for http/https, only hostnames are relevant. Even if they look like a 
+domain name like heise.de. 
+Jonathan, So , host/domain names with underscores are not RFC compliant even 
+though they are common in internal networks. And I looked up some discussions 
+on the upstream httpd-dev list and consensus was that they wanted only a 
+single knob to switch to legacy behavior. Though underscores in domain names 
+were not discussed explicitly.
+Also interesting: RFC 7230 section 5.4 says that a http server must respond 
+with "400 bad request" if the Host header field contains an invalid field-value 
+(though it does not define "invalid" explicitly).

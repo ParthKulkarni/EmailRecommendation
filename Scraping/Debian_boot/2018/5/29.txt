@@ -1,0 +1,682 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#897559: installation-reports: Stretch on HP ProBook 440 G5: Smooth installation, WiFi needs staging driver
+From : chrysn <chrysn@fsfe.org>
+Date : Wed, 2 May 2018 22:37:41 +0200
+Message-id : 20180502203730.GA1442@hephaistos.amsuess.com
+Reply-to : chrysn <chrysn@fsfe.org>, 897559@bugs.debian.org
+
+
+Package: installation-reports
+Severity: normal
+This is an installation report on an HP ProBook 440 G5, type number
+3KX82ES#ABD.
+It appears that the 3KX82ES number is what defines the hardware relevant
+to this report; other ProBook 440 G5 appear to use different (Intel)
+WiFi adapters.  (And don't be irritated if you don't find it on HP
+support; HP's PartSurfer[1] does recognize it -- that appears to be a
+common issue judging from support staff's reactions.)
+The overall installation went very smooth.
+The only exotic component in this machine is the WiFi/Bluetooth card,
+which appears to be a Realtek 8822BE family device. (See
+Comments/Problems below).
+[1]: http://partsurfer.hp.com/Search.aspx?searchText=3KX82ES#ABD
+-- Package-specific info:
+Boot method: netinstall image via USB
+Image version: https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-9.4.0-amd64-netinst.iso
+Date: 2018-05-02
+Machine: HP ProBook 440 G5 (3KX82ES#ABD)
+Partitions: /dev/nvme0n1p[123]
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [ ] (no drive built in)
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [O]
+Comments/Problems:
+I chose to force a UEFI installation and use guided full-disk mode with
+encrypted LVM, installed the XFCE desktop environment (probably makes no
+difference). The system was in factory state before I started the
+installation.
+The "The installer is now overwriting ... with random data" message was
+hard-cropped to the right ("This step m"), probably because
+/dev/nvme0n1p3 appears to be an unusually long device name.
+The touchpad was unavailable during graphical installation (but
+available at the first boot).
+Suspend-to-RAM and suspend-to-disk work out of the box.
+The display brightness, "open display settings" and "on/off" buttons
+work out of the box. The output volume buttons work as soon as the
+PulseAudio widget is added to the XFCE panel; mute-mike is not captured
+by that but shows correctly as XF86AudioMicMute in xev. The Suspend
+button is recognized by xfce4-power-manager (just mapped to "Do nothing"
+by default). The radio button kind of works, but follows its own logic
+(enabling WiFi from network-manager goes unnoticed by it, so you might
+have to press it twice to disable WiFi).
+To get Bluetooth to run, I had to install the non-free firmware-realtek
+package.
+In order to get WiFi to run, I had to install the 4.15 kernel sources
+from backports, unpack them, and (relative to the packaged amd64
+.config) enable the R8822BE module. Additionally, I had to download [2]
+to /lib/firmware/rtlwifi. With that, I can connect to my home WiFi. (Did
+not test particulars band support or throughput, but it works and is
+fast enough for the applications I run.)
+[2]: https://github.com/wkennington/linux-firmware/raw/master/rtlwifi/rtl8822befw.bin
+(The automatically gathered data below is from the stretch kernel, as I
+started assembling this report as the installation progressed).
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="9 (stretch) - installer build 20170615+deb9u3"
+X_INSTALLATION_MEDIUM=cdrom
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux hera 4.9.0-6-amd64 #1 SMP Debian 4.9.82-1+deb9u3 (2018-03-02) x86_64 GNU/Linux
+lspci -knn: 00:00.0 Host bridge [0600]: Intel Corporation Device [8086:5904] (rev 02)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:02.0 VGA compatible controller [0300]: Intel Corporation Device [8086:5916] (rev 02)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:04.0 Signal processing controller [1180]: Intel Corporation Skylake Processor Thermal Subsystem [8086:1903] (rev 02)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:14.0 USB controller [0c03]: Intel Corporation Sunrise Point-LP USB 3.0 xHCI Controller [8086:9d2f] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 	Kernel driver in use: xhci_hcd
+lspci -knn: 	Kernel modules: xhci_pci
+lspci -knn: 00:14.2 Signal processing controller [1180]: Intel Corporation Sunrise Point-LP Thermal subsystem [8086:9d31] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:15.0 Signal processing controller [1180]: Intel Corporation Sunrise Point-LP Serial IO I2C Controller #0 [8086:9d60] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:15.1 Signal processing controller [1180]: Intel Corporation Sunrise Point-LP Serial IO I2C Controller #1 [8086:9d61] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:16.0 Communication controller [0780]: Intel Corporation Sunrise Point-LP CSME HECI #1 [8086:9d3a] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:17.0 SATA controller [0106]: Intel Corporation Sunrise Point-LP SATA Controller [AHCI mode] [8086:9d03] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 	Kernel driver in use: ahci
+lspci -knn: 	Kernel modules: ahci
+lspci -knn: 00:1c.0 PCI bridge [0604]: Intel Corporation Sunrise Point-LP PCI Express Root Port #5 [8086:9d14] (rev f1)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1c.5 PCI bridge [0604]: Intel Corporation Sunrise Point-LP PCI Express Root Port #6 [8086:9d15] (rev f1)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1d.0 PCI bridge [0604]: Intel Corporation Sunrise Point-LP PCI Express Root Port #9 [8086:9d18] (rev f1)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1d.3 PCI bridge [0604]: Intel Corporation Device [8086:9d1b] (rev f1)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1f.0 ISA bridge [0601]: Intel Corporation Device [8086:9d4e] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:1f.2 Memory controller [0580]: Intel Corporation Sunrise Point-LP PMC [8086:9d21] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 00:1f.3 Audio device [0403]: Intel Corporation Device [8086:9d71] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 	Kernel driver in use: snd_hda_intel
+lspci -knn: 	Kernel modules: snd_hda_intel, snd_soc_skl
+lspci -knn: 00:1f.4 SMBus [0c05]: Intel Corporation Sunrise Point-LP SMBus [8086:9d23] (rev 21)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 01:00.0 Ethernet controller [0200]: Realtek Semiconductor Co., Ltd. RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller [10ec:8168] (rev 15)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 	Kernel driver in use: r8169
+lspci -knn: 	Kernel modules: r8169
+lspci -knn: 02:00.0 Network controller [0280]: Realtek Semiconductor Co., Ltd. Device [10ec:b822]
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:831b]
+lspci -knn: 03:00.0 Non-Volatile memory controller [0108]: Intel Corporation Device [8086:f1a5] (rev 03)
+lspci -knn: 	Subsystem: Intel Corporation Device [8086:390a]
+lspci -knn: 	Kernel driver in use: nvme
+lspci -knn: 	Kernel modules: nvme
+lspci -knn: 04:00.0 Unassigned class [ff00]: Realtek Semiconductor Co., Ltd. RTS522A PCI Express Card Reader [10ec:522a] (rev 01)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:837b]
+lspci -knn: 	Kernel driver in use: rtsx_pci
+lspci -knn: 	Kernel modules: rtsx_pci
+usb-list: 
+usb-list: Bus 01 Device 01: xHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.9.0-6-amd64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 01 Device 02: HP HD Camera [04ca:706e]
+usb-list:    Level 01 Parent 01 Port 05  Class ef(misc ) Subclass 02 Protocol 01
+usb-list:    Manufacturer: DGHJC019IA8760
+usb-list:    Interface 00: Class 0e(video) Subclass 01 Protocol 00 Driver <none>
+usb-list:    Interface 01: Class 0e(video) Subclass 02 Protocol 00 Driver <none>
+usb-list: 
+usb-list: Bus 01 Device 03: Bluetooth Radio  [0bda:b00b]
+usb-list:    Level 01 Parent 01 Port 06  Class e0(wlcon) Subclass 01 Protocol 01
+usb-list:    Manufacturer: Realtek 
+usb-list:    Interface 00: Class e0(wlcon) Subclass 01 Protocol 01 Driver <none>
+usb-list:    Interface 01: Class e0(wlcon) Subclass 01 Protocol 01 Driver <none>
+usb-list: 
+usb-list: Bus 01 Device 04: Bluetooth Radio  [138a:003f]
+usb-list:    Level 01 Parent 01 Port 07  Class ff(vend.) Subclass 12 Protocol ff
+usb-list:    Interface 00: Class ff(vend.) Subclass 00 Protocol 00 Driver <none>
+usb-list: 
+usb-list: Bus 02 Device 01: xHCI Host Controller [1d6b:0003]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 03
+usb-list:    Manufacturer: Linux 4.9.0-6-amd64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 02: DataTraveler 3.0 [0951:1666]
+usb-list:    Level 01 Parent 01 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Kingston
+usb-list:    Interface 00: Class 08(mstor) Subclass 06 Protocol 50 Driver usb-storage
+lsmod: Module                  Size  Used by
+lsmod: ufs                    73728  0
+lsmod: qnx4                   16384  0
+lsmod: hfsplus               102400  0
+lsmod: hfs                    57344  0
+lsmod: minix                  36864  0
+lsmod: msdos                  20480  0
+lsmod: ntfs                  102400  0
+lsmod: fuse                   98304  0
+lsmod: xts                    16384  2
+lsmod: gf128mul               16384  1 xts
+lsmod: dm_crypt               24576  1
+lsmod: dm_mod                118784  12 dm_crypt
+lsmod: md_mod                131072  0
+lsmod: xfs                  1224704  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   176128  0
+lsmod: btrfs                1060864  0
+lsmod: xor                    24576  1 btrfs
+lsmod: raid6_pq              110592  1 btrfs
+lsmod: ext4                  585728  3
+lsmod: crc16                  16384  1 ext4
+lsmod: jbd2                  106496  1 ext4
+lsmod: crc32c_generic         16384  6
+lsmod: fscrypto               28672  1 ext4
+lsmod: ecb                    16384  0
+lsmod: mbcache                16384  4 ext4
+lsmod: r8169                  86016  0
+lsmod: mii                    16384  1 r8169
+lsmod: nls_ascii              16384  1
+lsmod: nls_cp437              20480  1
+lsmod: vfat                   20480  1
+lsmod: fat                    69632  2 msdos,vfat
+lsmod: efivars                20480  0
+lsmod: nls_utf8               16384  0
+lsmod: isofs                  40960  0
+lsmod: sd_mod                 49152  0
+lsmod: vga16fb                24576  0
+lsmod: vgastate               24576  1 vga16fb
+lsmod: uas                    24576  0
+lsmod: usb_storage            73728  1 uas
+lsmod: snd_hda_codec_hdmi     49152  1
+lsmod: snd_hda_codec_conexant    24576  1
+lsmod: snd_hda_codec_generic    69632  1 snd_hda_codec_conexant
+lsmod: rtsx_pci_sdmmc         24576  0
+lsmod: mmc_core              147456  1 rtsx_pci_sdmmc
+lsmod: snd_soc_skl            65536  0
+lsmod: snd_soc_skl_ipc        45056  1 snd_soc_skl
+lsmod: snd_soc_sst_ipc        16384  1 snd_soc_skl_ipc
+lsmod: snd_soc_sst_dsp        32768  1 snd_soc_skl_ipc
+lsmod: snd_hda_ext_core       28672  1 snd_soc_skl
+lsmod: snd_soc_sst_match      16384  1 snd_soc_skl
+lsmod: snd_soc_core          212992  1 snd_soc_skl
+lsmod: snd_compress           20480  1 snd_soc_core
+lsmod: snd_hda_intel          36864  0
+lsmod: snd_hda_codec         135168  4 snd_hda_intel,snd_hda_codec_conexant,snd_hda_codec_hdmi,snd_hda_codec_generic
+lsmod: psmouse               135168  0
+lsmod: evdev                  24576  2
+lsmod: snd_hda_core           86016  7 snd_hda_intel,snd_hda_codec_conexant,snd_hda_codec,snd_hda_ext_core,snd_soc_skl,snd_hda_codec_hdmi,snd_hda_codec_generic
+lsmod: nvme                   28672  3
+lsmod: snd_hwdep              16384  1 snd_hda_codec
+lsmod: nvme_core              40960  5 nvme
+lsmod: snd_pcm               110592  7 snd_hda_intel,snd_hda_codec,snd_hda_ext_core,snd_hda_core,snd_soc_skl,snd_hda_codec_hdmi,snd_soc_core
+lsmod: snd_timer              32768  1 snd_pcm
+lsmod: snd                    86016  10 snd_compress,snd_hda_intel,snd_hwdep,snd_hda_codec_conexant,snd_hda_codec,snd_timer,snd_hda_codec_hdmi,snd_hda_codec_generic,snd_soc_core,snd_pcm
+lsmod: soundcore              16384  1 snd
+lsmod: ahci                   36864  0
+lsmod: libahci                32768  1 ahci
+lsmod: rtsx_pci               57344  1 rtsx_pci_sdmmc
+lsmod: mfd_core               16384  1 rtsx_pci
+lsmod: xhci_pci               16384  0
+lsmod: libata                249856  2 ahci,libahci
+lsmod: xhci_hcd              188416  1 xhci_pci
+lsmod: scsi_mod              225280  4 sd_mod,usb_storage,libata,uas
+lsmod: usbcore               253952  4 usb_storage,xhci_pci,uas,xhci_hcd
+lsmod: usb_common             16384  1 usbcore
+lsmod: thermal                20480  0
+lsmod: i2c_hid                20480  0
+lsmod: hid                   122880  1 i2c_hid
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                    807044       124    806920   0% /run
+df: devtmpfs               4013728         0   4013728   0% /dev
+df: /dev/mapper/hera--vg-root
+df:                       28703652   2893964  24328576  11% /target
+df: /dev/nvme0n1p2          241965     39583    189890  17% /target/boot
+df: /dev/nvme0n1p1          523248       132    523116   0% /target/boot/efi
+df: /dev/mapper/hera--vg-home
+df:                      207333164     61484 196670004   0% /target/home
+df: /dev/mapper/hera--vg-root
+df:                       28703652   2893964  24328576  11% /dev/.static/dev
+df: devtmpfs               4013728         0   4013728   0% /target/dev
+free:              total         used         free       shared      buffers
+free: Mem:       8070404      3665280      4405124       199968       183712
+free: -/+ buffers:            3481568      4588836
+free: Swap:      8278012            0      8278012
+/proc/cmdline: BOOT_IMAGE=/install.amd/vmlinuz vga=788 --- quiet
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 142
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz
+/proc/cpuinfo: stepping	: 9
+/proc/cpuinfo: microcode	: 0x62
+/proc/cpuinfo: cpu MHz		: 3099.957
+/proc/cpuinfo: cache size	: 3072 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 4
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 2
+/proc/cpuinfo: apicid		: 0
+/proc/cpuinfo: initial apicid	: 0
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb invpcid_single kaiser tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		: cpu_meltdown spectre_v1 spectre_v2
+/proc/cpuinfo: bogomips	: 5424.00
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 142
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz
+/proc/cpuinfo: stepping	: 9
+/proc/cpuinfo: microcode	: 0x62
+/proc/cpuinfo: cpu MHz		: 3099.957
+/proc/cpuinfo: cache size	: 3072 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 4
+/proc/cpuinfo: core id		: 1
+/proc/cpuinfo: cpu cores	: 2
+/proc/cpuinfo: apicid		: 2
+/proc/cpuinfo: initial apicid	: 2
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb invpcid_single kaiser tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		: cpu_meltdown spectre_v1 spectre_v2
+/proc/cpuinfo: bogomips	: 5424.00
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 142
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz
+/proc/cpuinfo: stepping	: 9
+/proc/cpuinfo: microcode	: 0x62
+/proc/cpuinfo: cpu MHz		: 3099.957
+/proc/cpuinfo: cache size	: 3072 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 4
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 2
+/proc/cpuinfo: apicid		: 1
+/proc/cpuinfo: initial apicid	: 1
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb invpcid_single kaiser tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		: cpu_meltdown spectre_v1 spectre_v2
+/proc/cpuinfo: bogomips	: 5424.00
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 142
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz
+/proc/cpuinfo: stepping	: 9
+/proc/cpuinfo: microcode	: 0x62
+/proc/cpuinfo: cpu MHz		: 3099.957
+/proc/cpuinfo: cache size	: 3072 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 4
+/proc/cpuinfo: core id		: 1
+/proc/cpuinfo: cpu cores	: 2
+/proc/cpuinfo: apicid		: 3
+/proc/cpuinfo: initial apicid	: 3
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb invpcid_single kaiser tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		: cpu_meltdown spectre_v1 spectre_v2
+/proc/cpuinfo: bogomips	: 5424.00
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/ioports: 0000-0cf7 : PCI Bus 0000:00
+/proc/ioports:   0000-001f : dma1
+/proc/ioports:   0020-0021 : pic1
+/proc/ioports:   0040-0043 : timer0
+/proc/ioports:   0050-0053 : timer1
+/proc/ioports:   0060-0060 : keyboard
+/proc/ioports:   0062-0062 : PNP0C09:00
+/proc/ioports:     0062-0062 : EC data
+/proc/ioports:   0064-0064 : keyboard
+/proc/ioports:   0066-0066 : PNP0C09:00
+/proc/ioports:     0066-0066 : EC cmd
+/proc/ioports:   0070-0077 : rtc0
+/proc/ioports:   0080-008f : dma page reg
+/proc/ioports:   00a0-00a1 : pic2
+/proc/ioports:   00c0-00df : dma2
+/proc/ioports:   00f0-00ff : fpu
+/proc/ioports:   0200-023f : pnp 00:07
+/proc/ioports:   0680-069f : pnp 00:02
+/proc/ioports: 0cf8-0cff : PCI conf1
+/proc/ioports: 0d00-ffff : PCI Bus 0000:00
+/proc/ioports:   164e-164f : pnp 00:02
+/proc/ioports:   1800-18fe : pnp 00:02
+/proc/ioports:     1800-1803 : ACPI PM1a_EVT_BLK
+/proc/ioports:     1804-1805 : ACPI PM1a_CNT_BLK
+/proc/ioports:     1808-180b : ACPI PM_TMR
+/proc/ioports:     1810-1815 : ACPI CPU throttle
+/proc/ioports:     1850-1850 : ACPI PM2_CNT_BLK
+/proc/ioports:     1854-1857 : pnp 00:04
+/proc/ioports:     1880-189f : ACPI GPE0_BLK
+/proc/ioports:   2000-20fe : pnp 00:01
+/proc/ioports:   3000-3fff : PCI Bus 0000:02
+/proc/ioports:     3000-30ff : 0000:02:00.0
+/proc/ioports:   4000-4fff : PCI Bus 0000:01
+/proc/ioports:     4000-40ff : 0000:01:00.0
+/proc/ioports:       4000-40ff : r8169
+/proc/ioports:   5000-503f : 0000:00:02.0
+/proc/ioports:   5060-507f : 0000:00:17.0
+/proc/ioports:     5060-507f : ahci
+/proc/ioports:   5080-5087 : 0000:00:17.0
+/proc/ioports:     5080-5087 : ahci
+/proc/ioports:   5088-508b : 0000:00:17.0
+/proc/ioports:     5088-508b : ahci
+/proc/ioports:   6000-6fff : PCI Bus 0000:04
+/proc/ioports:   efa0-efbf : 0000:00:1f.4
+/proc/ioports:   ffff-ffff : pnp 00:02
+/proc/ioports:     ffff-ffff : pnp 00:02
+/proc/ioports:       ffff-ffff : pnp 00:02
+/proc/iomem: 00000000-00000fff : reserved
+/proc/iomem: 00001000-00057fff : System RAM
+/proc/iomem: 00058000-00058fff : reserved
+/proc/iomem: 00059000-0009dfff : System RAM
+/proc/iomem: 0009e000-0009efff : reserved
+/proc/iomem: 0009f000-0009ffff : System RAM
+/proc/iomem: 000a0000-000fffff : reserved
+/proc/iomem:   000a0000-000bffff : PCI Bus 0000:00
+/proc/iomem:   000c0000-000cffff : Video ROM
+/proc/iomem:   000d0000-000d0fff : Adapter ROM
+/proc/iomem:   000f0000-000fffff : System ROM
+/proc/iomem: 00100000-a1a95fff : System RAM
+/proc/iomem:   97200000-9781747c : Kernel code
+/proc/iomem:   9781747d-97f21c7f : Kernel data
+/proc/iomem:   9808c000-98137fff : Kernel bss
+/proc/iomem: a1a96000-a1a96fff : reserved
+/proc/iomem: a1a97000-a1d53fff : System RAM
+/proc/iomem: a1d54000-a1d54fff : reserved
+/proc/iomem: a1d55000-c00c2fff : System RAM
+/proc/iomem: c00c3000-c00c3fff : ACPI Non-volatile Storage
+/proc/iomem: c00c4000-c00c4fff : reserved
+/proc/iomem: c00c5000-d0f9afff : System RAM
+/proc/iomem: d0f9b000-d149afff : reserved
+/proc/iomem: d149b000-d1d7efff : reserved
+/proc/iomem: d1d7f000-d1f7efff : ACPI Non-volatile Storage
+/proc/iomem: d1f7f000-d1ffefff : ACPI Tables
+/proc/iomem: d1fff000-d1ffffff : System RAM
+/proc/iomem: d2000000-d67fffff : reserved
+/proc/iomem: d6800000-f7ffffff : PCI Bus 0000:00
+/proc/iomem:   d6800000-d681ffff : pnp 00:0a
+/proc/iomem:   e0000000-efffffff : 0000:00:02.0
+/proc/iomem:     e0000000-e02fffff : efifb
+/proc/iomem:   f0000000-f00fffff : PCI Bus 0000:04
+/proc/iomem:     f0000000-f0000fff : 0000:04:00.0
+/proc/iomem:       f0000000-f0000fff : rtsx_pci
+/proc/iomem:   f0100000-f01fffff : PCI Bus 0000:03
+/proc/iomem:     f0100000-f0103fff : 0000:03:00.0
+/proc/iomem:       f0100000-f0103fff : nvme
+/proc/iomem:   f0200000-f02fffff : PCI Bus 0000:02
+/proc/iomem:     f0200000-f020ffff : 0000:02:00.0
+/proc/iomem:   f0300000-f03fffff : PCI Bus 0000:01
+/proc/iomem:     f0300000-f0303fff : 0000:01:00.0
+/proc/iomem:       f0300000-f0303fff : r8169
+/proc/iomem:     f0304000-f0304fff : 0000:01:00.0
+/proc/iomem:       f0304000-f0304fff : r8169
+/proc/iomem:   f0400000-f040ffff : 0000:00:14.0
+/proc/iomem:     f0400000-f040ffff : xhci-hcd
+/proc/iomem:   f0410000-f0413fff : 0000:00:1f.2
+/proc/iomem:   f0414000-f0415fff : 0000:00:17.0
+/proc/iomem:     f0414000-f0415fff : ahci
+/proc/iomem:   f0416000-f04167ff : 0000:00:17.0
+/proc/iomem:     f0416000-f04167ff : ahci
+/proc/iomem:   f0417000-f04170ff : 0000:00:17.0
+/proc/iomem:     f0417000-f04170ff : ahci
+/proc/iomem: f8000000-fbffffff : PCI MMCONFIG 0000 [bus 00-3f]
+/proc/iomem:   f8000000-fbffffff : reserved
+/proc/iomem:     f8000000-fbffffff : pnp 00:0a
+/proc/iomem: fd000000-fe7fffff : PCI Bus 0000:00
+/proc/iomem:   fd000000-fdabffff : pnp 00:00
+/proc/iomem:   fdac0000-fdacffff : INT344B:00
+/proc/iomem:     fdac0000-fdacffff : INT344B:00
+/proc/iomem:   fdad0000-fdadffff : pnp 00:00
+/proc/iomem:   fdae0000-fdaeffff : INT344B:00
+/proc/iomem:     fdae0000-fdaeffff : INT344B:00
+/proc/iomem:   fdaf0000-fdafffff : INT344B:00
+/proc/iomem:     fdaf0000-fdafffff : INT344B:00
+/proc/iomem:   fdb00000-fdffffff : pnp 00:00
+/proc/iomem:   fe010000-fe010fff : reserved
+/proc/iomem:   fe030000-fe030007 : pnp 00:09
+/proc/iomem:   fe030008-fe030fff : pnp 00:08
+/proc/iomem:   fe031000-fe031fff : pnp 00:08
+/proc/iomem:   fe03d000-fe3fffff : pnp 00:00
+/proc/iomem: fec00000-fec003ff : IOAPIC 0
+/proc/iomem: fed00000-fed003ff : HPET 0
+/proc/iomem:   fed00000-fed003ff : PNP0103:00
+/proc/iomem: fed10000-fed17fff : pnp 00:0a
+/proc/iomem: fed18000-fed18fff : pnp 00:0a
+/proc/iomem: fed19000-fed19fff : pnp 00:0a
+/proc/iomem: fed20000-fed3ffff : pnp 00:0a
+/proc/iomem: fed40000-fed44fff : MSFT0101:00
+/proc/iomem:   fed40000-fed44fff : MSFT0101:00
+/proc/iomem: fed45000-fed8ffff : pnp 00:0a
+/proc/iomem: fed90000-fed93fff : pnp 00:0a
+/proc/iomem: fedf0000-fedfffff : pnp 00:07
+/proc/iomem: fee00000-feefffff : pnp 00:0a
+/proc/iomem:   fee00000-fee00fff : Local APIC
+/proc/iomem: ff000000-ffffffff : INT0800:00
+/proc/iomem:   ff000000-ffffffff : pnp 00:0a
+/proc/iomem: 100000000-2287fffff : System RAM
+/proc/iomem: 228800000-22bffffff : RAM buffer
+/proc/iomem: 1c00000000-1fffffffff : PCI Bus 0000:00
+/proc/iomem:   1c00000000-1c001fffff : PCI Bus 0000:04
+/proc/iomem:   1ffe000000-1ffeffffff : 0000:00:02.0
+/proc/iomem:   1fff000000-1fff00ffff : 0000:00:1f.3
+/proc/iomem:     1fff000000-1fff00ffff : ICH HD audio
+/proc/iomem:   1fff010000-1fff017fff : 0000:00:04.0
+/proc/iomem:   1fff018000-1fff01bfff : 0000:00:1f.3
+/proc/iomem:     1fff018000-1fff01bfff : ICH HD audio
+/proc/iomem:   1fff01c000-1fff01c0ff : 0000:00:1f.4
+/proc/iomem:   1fff01d000-1fff01dfff : 0000:00:16.0
+/proc/iomem:   1fff01e000-1fff01efff : 0000:00:15.1
+/proc/iomem:   1fff01f000-1fff01ffff : 0000:00:15.0
+/proc/iomem:   1fff020000-1fff020fff : 0000:00:14.2
+/proc/interrupts:             CPU0       CPU1       CPU2       CPU3       
+/proc/interrupts:    0:         30          0          0          0   IO-APIC    2-edge      timer
+/proc/interrupts:    1:        128         63       2184         28   IO-APIC    1-edge      i8042
+/proc/interrupts:    8:          1         15          1          0   IO-APIC    8-edge      rtc0
+/proc/interrupts:    9:       1385        203       2558        165   IO-APIC    9-fasteoi   acpi
+/proc/interrupts:   12:       1949        425      39670        232   IO-APIC   12-edge      i8042
+/proc/interrupts:   14:          0          0          0          0   IO-APIC   14-fasteoi   INT344B:00
+/proc/interrupts:  272:          0          0          0          0   PCI-MSI 458752-edge      aerdrv, PCIe PME
+/proc/interrupts:  273:          0          0          0          0   PCI-MSI 468992-edge      aerdrv, PCIe PME
+/proc/interrupts:  274:          0          0          0          0   PCI-MSI 475136-edge      aerdrv, PCIe PME
+/proc/interrupts:  275:          0          0          0          0   PCI-MSI 481280-edge      aerdrv, PCIe PME, pciehp
+/proc/interrupts:  276:          7          0          0          1   PCI-MSI 2097152-edge      rtsx_pci
+/proc/interrupts:  277:       4801       1593       6820       2077   PCI-MSI 327680-edge      xhci_hcd
+/proc/interrupts:  278:    6329469          0          0          0   PCI-MSI 1572864-edge      nvme0q0, nvme0q1
+/proc/interrupts:  279:          0          0          0          0   PCI-MSI 376832-edge      ahci[0000:00:17.0]
+/proc/interrupts:  280:        177        115          0         13   PCI-MSI 514048-edge      snd_hda_intel:card0
+/proc/interrupts:  281:          0    6448678          0          0   PCI-MSI 1572865-edge      nvme0q2
+/proc/interrupts:  282:          0          0    7811380          0   PCI-MSI 1572866-edge      nvme0q3
+/proc/interrupts:  283:          0          0          0    7570452   PCI-MSI 1572867-edge      nvme0q4
+/proc/interrupts:  284:     227830       6601     859826       4666   PCI-MSI 524288-edge      enp1s0
+/proc/interrupts:  NMI:         98         96        101         96   Non-maskable interrupts
+/proc/interrupts:  LOC:     288873     282243     334848     283128   Local timer interrupts
+/proc/interrupts:  SPU:          0          0          0          0   Spurious interrupts
+/proc/interrupts:  PMI:         98         96        101         96   Performance monitoring interrupts
+/proc/interrupts:  IWI:          1          0          1          0   IRQ work interrupts
+/proc/interrupts:  RTR:          0          0          0          0   APIC ICR read retries
+/proc/interrupts:  RES:   10087216    9852351   10247914   10189877   Rescheduling interrupts
+/proc/interrupts:  CAL:       3030       2837       3124       2877   Function call interrupts
+/proc/interrupts:  TLB:       2189       2049       2210       2294   TLB shootdowns
+/proc/interrupts:  TRM:          0          0          0          0   Thermal event interrupts
+/proc/interrupts:  THR:          0          0          0          0   Threshold APIC interrupts
+/proc/interrupts:  DFR:          0          0          0          0   Deferred Error APIC interrupts
+/proc/interrupts:  MCE:          0          0          0          0   Machine check exceptions
+/proc/interrupts:  MCP:         53         53         53         53   Machine check polls
+/proc/interrupts:  ERR:          0
+/proc/interrupts:  MIS:          0
+/proc/interrupts:  PIN:          0          0          0          0   Posted-interrupt notification event
+/proc/interrupts:  PIW:          0          0          0          0   Posted-interrupt wakeup event
+/proc/meminfo: MemTotal:        8070404 kB
+/proc/meminfo: MemFree:         4405180 kB
+/proc/meminfo: MemAvailable:    7443200 kB
+/proc/meminfo: Buffers:          183712 kB
+/proc/meminfo: Cached:          3054032 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           709060 kB
+/proc/meminfo: Inactive:        2570120 kB
+/proc/meminfo: Active(anon):     155688 kB
+/proc/meminfo: Inactive(anon):    85780 kB
+/proc/meminfo: Active(file):     553372 kB
+/proc/meminfo: Inactive(file):  2484340 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:       8278012 kB
+/proc/meminfo: SwapFree:        8278012 kB
+/proc/meminfo: Dirty:              2060 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         41608 kB
+/proc/meminfo: Mapped:            20200 kB
+/proc/meminfo: Shmem:            199968 kB
+/proc/meminfo: Slab:             334708 kB
+/proc/meminfo: SReclaimable:     304760 kB
+/proc/meminfo: SUnreclaim:        29948 kB
+/proc/meminfo: KernelStack:        2064 kB
+/proc/meminfo: PageTables:         1028 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:    12313212 kB
+/proc/meminfo: Committed_AS:     277604 kB
+/proc/meminfo: VmallocTotal:   34359738367 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:         0 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+/proc/meminfo: DirectMap4k:      138848 kB
+/proc/meminfo: DirectMap2M:     7094272 kB
+/proc/meminfo: DirectMap1G:     1048576 kB
+/proc/bus/input/devices: I: Bus=0011 Vendor=0001 Product=0001 Version=ab41
+/proc/bus/input/devices: N: Name="AT Translated Set 2 keyboard"
+/proc/bus/input/devices: P: Phys=isa0060/serio0/input0
+/proc/bus/input/devices: S: Sysfs=/devices/platform/i8042/serio0/input/input0
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=sysrq kbd leds event0 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=120013
+/proc/bus/input/devices: B: KEY=402000000 3803078f800d001 feffffdfffefffff fffffffffffffffe
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: B: LED=7
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0001 Vendor=14f1 Product=2008 Version=0001
+/proc/bus/input/devices: N: Name="HDA Digital PCBeep"
+/proc/bus/input/devices: P: Phys=card0/codec#0/beep0
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:1f.3/sound/card0/input8
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=kbd event1 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=40001
+/proc/bus/input/devices: B: SND=6
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+/proc/bus/input/devices: N: Name="HDA Intel PCH Mic"
+/proc/bus/input/devices: P: Phys=ALSA
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:1f.3/sound/card0/input9
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=event2 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=21
+/proc/bus/input/devices: B: SW=10
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+/proc/bus/input/devices: N: Name="HDA Intel PCH Headphone"
+/proc/bus/input/devices: P: Phys=ALSA
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:1f.3/sound/card0/input10
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=event3 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=21
+/proc/bus/input/devices: B: SW=4
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+/proc/bus/input/devices: N: Name="HDA Intel PCH HDMI/DP,pcm=3"
+/proc/bus/input/devices: P: Phys=ALSA
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:1f.3/sound/card0/input11
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=event4 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=21
+/proc/bus/input/devices: B: SW=140
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0011 Vendor=0002 Product=0007 Version=01a1
+/proc/bus/input/devices: N: Name="SynPS/2 Synaptics TouchPad"
+/proc/bus/input/devices: P: Phys=isa0060/serio3/input0
+/proc/bus/input/devices: S: Sysfs=/devices/platform/i8042/serio3/input/input7
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=mouse0 event5 
+/proc/bus/input/devices: B: PROP=5
+/proc/bus/input/devices: B: EV=b
+/proc/bus/input/devices: B: KEY=e520 10000 0 0 0 0
+/proc/bus/input/devices: B: ABS=660800011000003
+/proc/bus/input/devices: 
+/proc/fb: 0 EFI VGA
+/proc/fb: 1 VGA16 VGA
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-6-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_GB.utf8, LC_CTYPE=en_GB.utf8 (charmap=UTF-8), LANGUAGE=en_GB:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+signature.asc

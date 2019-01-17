@@ -1,0 +1,274 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#887670: installation-reports: Espressobin required workarounds
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Thu, 18 Jan 2018 15:13:44 -0800
+Message-id : 87h8risqtz.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 887670@bugs.debian.org
+
+
+Package: installation-reports
+Severity: normal
+Had partial success installing on Espressobin, but required a few
+manual steps and workarounds...
+live well,
+  vagrant
+-- Package-specific info:
+Boot method: network
+Image version: https://d-i.debian.org/daily-images/arm64/20180110-02:05/netboot/
+Date: 2018-01-18
+Machine: Espressobin
+Partitions: $ df -Tl
+Filesystem     Type     1K-blocks   Used Available Use% Mounted on
+udev           devtmpfs    465256      0    465256   0% /dev
+tmpfs          tmpfs       101876   2772     99104   3% /run
+/dev/sda3      ext4       4740224 915520   3564200  21% /
+tmpfs          tmpfs       509380      0    509380   0% /dev/shm
+tmpfs          tmpfs         5120      0      5120   0% /run/lock
+tmpfs          tmpfs       509380      0    509380   0% /sys/fs/cgroup
+/dev/sda1      ext4        463826  59362    375997  14% /boot
+tmpfs          tmpfs       101876      0    101876   0% /run/user/1000
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [E]
+Detect network card:    [E]
+Configure network:      [E]
+Detect CD:              [ ]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [E]
+Overall install:        [O]
+Comments/Problems:
+Initial boot did not work with vendor-shipped u-boot, downloaded and
+installed u-boot from armbian.com, which worked, though required
+manually generating a uInitrd, and manually issuing the tftp/load and
+"booti" commands.
+Ethernet interface appeared to detect, but could not get a DHCP
+address. Used a USB-ethernet adapter as a workaround.
+Had to manually generate a uInitrd, and manually load it from u-boot
+for the initial boot.
+Configured flash-kernel to include the correct
+.dtb file in /boot/dtbs:
+/etc/flash-kernel/db:
+  Machine: Globalscale Marvell ESPRESSOBin Board
+  DTB-Id: marvell/armada-3720-espressobin.dtb
+Build the uinitrd:
+  $ mkimage -T ramdisk -O linux -A arm64 -d /boot/initrd.img-VERSION /boot/uinitrd.img-VERSION
+And from the u-boot prompt:
+  scsi rescan
+  load scsi 0:1 $loadaddr /boot/vmlinuz
+  load scsi 0:1 $fdt_addr /boot/dtb
+  load scsi 0:1 $ramfs_addr /boot/uinitrd.img
+  booti $loadaddr $ramfs_addr $fdt_addr
+--
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="10 (buster) - installer build 20180110-02:03"
+X_INSTALLATION_MEDIUM=netboot
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux eb64 4.14.0-3-arm64 #1 SMP Debian 4.14.12-2 (2018-01-06) aarch64 GNU/Linux
+usb-list: 
+usb-list: Bus 01 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.14.0-3-arm64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 01 Device 02: USB 10/100 LAN [0bda:8152]
+usb-list:    Level 01 Parent 01 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Realtek
+usb-list:    Interface 00: Class ff(vend.) Subclass ff Protocol 00 Driver r8152
+usb-list: 
+usb-list: Bus 02 Device 01: xHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.14.0-3-arm64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 01: xHCI Host Controller [1d6b:0003]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 03
+usb-list:    Manufacturer: Linux 4.14.0-3-arm64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+lsmod: Module                  Size  Used by
+lsmod: dm_mod                143360  0
+lsmod: md_mod                159744  0
+lsmod: xfs                  1257472  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   196608  0
+lsmod: btrfs                1245184  0
+lsmod: xor                    20480  1 btrfs
+lsmod: zstd_decompress        77824  1 btrfs
+lsmod: zstd_compress         163840  1 btrfs
+lsmod: xxhash                 16384  2 zstd_compress,zstd_decompress
+lsmod: raid6_pq              102400  1 btrfs
+lsmod: vfat                   24576  0
+lsmod: fat                    81920  1 vfat
+lsmod: ext4                  667648  2
+lsmod: crc16                  16384  1 ext4
+lsmod: mbcache                16384  1 ext4
+lsmod: jbd2                  114688  1 ext4
+lsmod: crc32c_generic         16384  0
+lsmod: fscrypto               32768  1 ext4
+lsmod: ecb                    16384  0
+lsmod: usb_storage            73728  0
+lsmod: sd_mod                 53248  4
+lsmod: ahci_mvebu             16384  3
+lsmod: libahci_platform       20480  1 ahci_mvebu
+lsmod: libahci                40960  2 ahci_mvebu,libahci_platform
+lsmod: libata                262144  3 ahci_mvebu,libahci_platform,libahci
+lsmod: scsi_mod              241664  3 sd_mod,usb_storage,libata
+lsmod: cdc_ether              16384  0
+lsmod: usbnet                 45056  1 cdc_ether
+lsmod: r8152                  69632  0
+lsmod: mii                    20480  2 usbnet,r8152
+lsmod: marvell                24576  3
+lsmod: mv88e6xxx             114688  0
+lsmod: dsa_core               57344  1 mv88e6xxx
+lsmod: devlink                49152  1 dsa_core
+lsmod: sdhci_xenon_driver     24576  0
+lsmod: xhci_plat_hcd          16384  0
+lsmod: xhci_hcd              237568  1 xhci_plat_hcd
+lsmod: ehci_orion             16384  0
+lsmod: ehci_hcd               90112  1 ehci_orion
+lsmod: sdhci_pltfm            16384  1 sdhci_xenon_driver
+lsmod: usbcore               274432  8 ehci_orion,usbnet,usb_storage,ehci_hcd,cdc_ether,xhci_plat_hcd,r8152,xhci_hcd
+lsmod: sdhci                  61440  2 sdhci_pltfm,sdhci_xenon_driver
+lsmod: mvneta                 57344  0
+lsmod: mvmdio                 16384  0
+lsmod: of_mdio                16384  7 mvmdio,mv88e6xxx,mvneta,dsa_core
+lsmod: fixed_phy              16384  3 of_mdio,mvneta,dsa_core
+lsmod: libphy                 65536  7 of_mdio,mvmdio,mv88e6xxx,mvneta,dsa_core,marvell,fixed_phy
+lsmod: gpio_regulator         16384  1
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                    101872        80    101792   0% /run
+df: devtmpfs                463356         0    463356   0% /dev
+df: /dev/sda3              4740224    737072   3742648  16% /target
+df: /dev/sda1               463826     59362    375997  14% /target/boot
+df: /dev/sda3              4740224    737072   3742648  16% /dev/.static/dev
+df: devtmpfs                463356         0    463356   0% /target/dev
+df: none                    101872        80    101792   0% /target/run
+free:              total       used       free     shared    buffers     cached
+free: Mem:       1018712     779288     239424     148344      67772     569552
+free: -/+ buffers/cache:     141964     876748
+free: Swap:       488444        512     487932
+/proc/cmdline: 
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: BogoMIPS	: 25.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: BogoMIPS	: 25.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/device-tree/model: Globalscale Marvell ESPRESSOBin Board./proc/ioports: 00000000-0000ffff : /soc/pcie@d0070000
+/proc/iomem: 00000000-3fffffff : System RAM
+/proc/iomem:   00080000-00b3ffff : Kernel code
+/proc/iomem:   00fa0000-011a6fff : Kernel data
+/proc/iomem: d0012000-d00123ff : /soc/internal-regs@d0000000/serial@12000
+/proc/iomem: d0013000-d00130ff : /soc/internal-regs@d0000000/nb-periph-clk@13000
+/proc/iomem: d0013200-d00132ff : /soc/internal-regs@d0000000/tbg@13200
+/proc/iomem: d0013c00-d0013c1f : /soc/internal-regs@d0000000/pinctrl@13800
+/proc/iomem: d0018000-d00180ff : /soc/internal-regs@d0000000/sb-periph-clk@18000
+/proc/iomem: d0018c00-d0018c1f : /soc/internal-regs@d0000000/pinctrl@18800
+/proc/iomem: d001e808-d001e80b : /soc/internal-regs@d0000000/sdhci@d0000
+/proc/iomem: d0030000-d0033fff : /soc/internal-regs@d0000000/ethernet@30000
+/proc/iomem: d0058000-d005bfff : /soc/internal-regs@d0000000/usb@58000
+/proc/iomem: d005e000-d005ffff : /soc/internal-regs@d0000000/usb@5e000
+/proc/iomem: d0070000-d008ffff : /soc/pcie@d0070000
+/proc/iomem: d00d0000-d00d02ff : /soc/internal-regs@d0000000/sdhci@d0000
+/proc/iomem: d00e0000-d00e1fff : /soc/internal-regs@d0000000/sata@e0000
+/proc/iomem: e8000000-e8ffffff : /soc/pcie@d0070000
+/proc/interrupts:            CPU0       CPU1       
+/proc/interrupts:   1:          0          0     GICv3  25 Level     vgic
+/proc/interrupts:   3:     224693     174182     GICv3  30 Level     arch_timer
+/proc/interrupts:   4:          0          0     GICv3  27 Level     kvm guest timer
+/proc/interrupts:   6:          0          0     GICv3  23 Level     arm-pmu
+/proc/interrupts:   7:    1362412          0     GICv3  43 Level     serial
+/proc/interrupts:   8:        183          0     GICv3  74 Level   
+/proc/interrupts:   9:          0          0     GICv3  35 Level     xhci-hcd:usb2
+/proc/interrupts:  10:     172231          0     GICv3  49 Level     ehci_hcd:usb1
+/proc/interrupts:  11:       2970          0     GICv3  57 Level     mmc0
+/proc/interrupts:  12:      74755          0     GICv3  59 Level     ahci-mvebu[d00e0000.sata]
+/proc/interrupts:  13:          0          0     GICv3  61 Level     advk-pcie
+/proc/interrupts:  31:          2          0     GICv3  79 Level     d0060900.xor
+/proc/interrupts:  32:          2          0     GICv3  80 Level     d0060900.xor
+/proc/interrupts: IPI0:    185742     208882       Rescheduling interrupts
+/proc/interrupts: IPI1:        17         71       Function call interrupts
+/proc/interrupts: IPI2:         0          0       CPU stop interrupts
+/proc/interrupts: IPI3:         0          0       CPU stop (for crash dump) interrupts
+/proc/interrupts: IPI4:         0          0       Timer broadcast interrupts
+/proc/interrupts: IPI5:         0          0       IRQ work interrupts
+/proc/interrupts: IPI6:         0          0       CPU wake-up interrupts
+/proc/interrupts: Err:          0
+/proc/meminfo: MemTotal:        1018712 kB
+/proc/meminfo: MemFree:          239300 kB
+/proc/meminfo: MemAvailable:     719232 kB
+/proc/meminfo: Buffers:           67772 kB
+/proc/meminfo: Cached:           569552 kB
+/proc/meminfo: SwapCached:           84 kB
+/proc/meminfo: Active:           286872 kB
+/proc/meminfo: Inactive:         375276 kB
+/proc/meminfo: Active(anon):      30800 kB
+/proc/meminfo: Inactive(anon):   142420 kB
+/proc/meminfo: Active(file):     256072 kB
+/proc/meminfo: Inactive(file):   232856 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:        488444 kB
+/proc/meminfo: SwapFree:         487932 kB
+/proc/meminfo: Dirty:              1584 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         24840 kB
+/proc/meminfo: Mapped:             5520 kB
+/proc/meminfo: Shmem:            148344 kB
+/proc/meminfo: Slab:              95260 kB
+/proc/meminfo: SReclaimable:      81116 kB
+/proc/meminfo: SUnreclaim:        14144 kB
+/proc/meminfo: KernelStack:        1308 kB
+/proc/meminfo: PageTables:          520 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:      997800 kB
+/proc/meminfo: Committed_AS:     179688 kB
+/proc/meminfo: VmallocTotal:   135290290112 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:     18432 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: CmaTotal:          65536 kB
+/proc/meminfo: CmaFree:           64720 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: arm64 (aarch64)
+Kernel: Linux 4.14.0-2-arm64 (SMP w/2 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+signature.asc

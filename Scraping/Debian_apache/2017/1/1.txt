@@ -1,0 +1,84 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#850294: apache2: ETags disrupt browser caching when compression is enabled
+From : Frederic MASSOT <frederic@juliana-multimedia.com>
+Date : Thu, 05 Jan 2017 20:00:17 +0100
+Message-id : 20170105190017.32746.64977.reportbug@nodens.juliana-multimedia.com
+Reply-to : Frederic MASSOT <frederic@juliana-multimedia.com>, 850294@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.10-10+deb8u3
+Severity: normal
+Dear Maintainer,
+I observed a different behavior of browser caching between two Apache servers with the same configuration, one uses version 2.2.22-13+deb7u6, the other version 2.4.10-10+deb8u3.
+On both servers the deflate, expires, filter and headers modules are enabled.
+I found the bugs by testing browser caching for javascript files.
+In both configurations there are:
+AddOutputFilterByType DEFLATE application/javascript
+ExpiresByType application/javascript "access plus 1 year"
+For the Apache 2.2 server, in firebug on the second access, there is a 304 HTTP response for all files.
+For the Apache 2.4 server, in firebug during the second access, for some javascript file one has a 200 HTTP response and 304 for others.
+The difference is due to the size of the files, the smaller ones are not compressed and the caching works.
+On the Apache 2.2 server, ETags of compressed files have the form "468166-1f5d-4d64c1c493b5c" as for uncompressed files.
+On the Apache 2.4 server, the ETags of the compressed files have the form "bd5-544a79430b300-gzip".
+When ETAGs are disabled on the Apache 2.4 server, caching by browsers works well for all files.
+Header unset ETag
+FileETag none
+I do not know if the problem comes from the modules between them or the structure of the ETag.
+Regards.
+-- Package-specific info:
+-- System Information:
+Debian Release: 8.0
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 3.16.0-4-amd64 (SMP w/2 CPU cores)
+Locale: LANG=fr_FR.UTF-8, LC_CTYPE=fr_FR.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages apache2 depends on:
+ii  apache2-bin    2.4.10-10+deb8u3
+ii  apache2-data   2.4.10-10+deb8u3
+ii  apache2-utils  2.4.10-9
+ii  dpkg           1.17.23
+ii  lsb-base       4.1+Debian13+nmu1
+ii  mime-support   3.58
+ii  perl           5.20.2-3+deb8u6
+ii  procps         2:3.3.9-8
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.35
+Versions of packages apache2 suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  w3m [www-browser]                                0.5.3-19
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.5.1-3
+ii  libaprutil1              1.5.4-1
+ii  libaprutil1-dbd-sqlite3  1.5.4-1
+ii  libaprutil1-ldap         1.5.4-1
+ii  libc6                    2.19-18+deb8u3
+ii  libldap-2.4-2            2.4.40-4
+ii  liblua5.1-0              5.1.5-7.1
+ii  libpcre3                 2:8.35-3.3
+ii  libssl1.0.0              1.0.1k-1
+ii  libxml2                  2.9.1+dfsg1-4
+ii  perl                     5.20.2-3+deb8u6
+ii  zlib1g                   1:1.2.8.dfsg-2+b1
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  w3m [www-browser]                                0.5.3-19
+Versions of packages apache2 is related to:
+ii  apache2      2.4.10-10+deb8u3
+ii  apache2-bin  2.4.10-10+deb8u3
+-- Configuration Files:
+/etc/apache2/apache2.conf changed [not included]
+/etc/apache2/conf-available/security.conf changed [not included]
+/etc/apache2/mods-available/cache_disk.conf changed [not included]
+/etc/apache2/mods-available/deflate.conf changed [not included]
+/etc/apache2/mods-available/dir.conf changed [not included]
+/etc/apache2/mods-available/mpm_prefork.conf changed [not included]
+/etc/apache2/sites-available/000-default.conf changed [not included]
+/etc/default/apache2 changed [not included]
+/etc/logrotate.d/apache2 changed [not included]
+-- no debconf information

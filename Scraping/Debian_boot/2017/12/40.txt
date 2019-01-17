@@ -1,0 +1,57 @@
+To : debian-boot@lists.debian.org, debian-cloud@lists.debian.org,	pere@debian.org
+Subject : Re: Replace discover by isenkram in d-i, better integration with virtualizations/clouds
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 3 Dec 2017 19:47:08 +0100
+Message-id : 20171203184708.4b3zgln5du4yro7q@mraw.org
+In-reply-to : <[🔎] 20171203163049.GA15449@home.ouaza.com>
+References : <[🔎] 20171203163049.GA15449@home.ouaza.com>
+
+
+Hi,
+Raphael Hertzog <hertzog@debian.org> (2017-12-03):
+> debian-installer is using discover[1] to install some packages based
+> on the hardware it discovers. Unfortunately, discover is dead upstream
+> (Debian is the upstream really) and the hardware->package database is
+> not maintained at all.
+The fact it's been maintained “officially” by the D-I team (see its
+Maintainer field) but in separate repositories didn't quite help.
+> In the last years, Petter Rheinholdtsen worked on isenkram[2] with a
+> similar but a bit broader goal. I noticed it has better support
+> of clouds and that it will install some virtualization/cloud-related
+> packages automatically whereas discover does not. It also makes it easier
+> to install the appropriate firmware packages.
+> 
+> I would thus suggest that we consider replacing discover by isenkram-cli.
+> 
+> Last time I discussed this with Petter, he was willing to do the ground
+> work on the debian-installer side but he did not want to lead this
+> discussion. I'm thus starting the discussion myself.
+> 
+> I see mainly benefits to such a move. The only downside is that it
+> would pull python by default. This entirely depends on whether we want
+> to keep it installed or not. We could install it just to do a single
+> scan and install pass during installation and then get rid of it (this
+> would then likely be made configurable with a debconf preseed).
+Well, I'm not sure it's really a good idea to put more packages in the
+default installation loop; we've been going the opposite direction for
+quite a while, and that seems like the right thing to do.
+Quick digression: As for virtualization and cloud support, it seems the
+cloud team has been working on standardizing a tool that fits most virt-
+& cloud- related needs (at least that's what I gathered from Steve's
+presentation during mini-DebConf in Cambridge), so I'm not entirely
+convinced by the net gain on the d-i side for this specific use case (if
+users are using something else entirely anyway…).
+Anyway, back to the isenkram suggestion: of course, using maintained
+stuff is better anyway. But that's a little more than just python:
+| Depends: debconf (>= 0.5) | debconf-2.0, python (<< 2.8), python (>= 2.7), python:any (>= 2.6.6-7~), appstream, python-gi, python-apt, gir1.2-appstream-1.0, lsb-release, curl, usbutils
+(The recursive dependency graph is a bit wider still.)
+I have no idea about the isenkram architecture, but reusing the “data
+files mapping hardware to packages” part is probaby a good idea. ISTR
+Petter mentioned we could strip bits and pieces and only use something
+that wouldn't depend on the whole lot, but I lost count. (That was
+likely back when we had to deal with hw-detect and firmware support.)
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

@@ -1,0 +1,84 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#837004: installation-locale: FTBFS: no output file produced because warnings were issued
+From : Aurelien Jarno <aurelien@aurel32.net>
+Date : Mon, 6 Feb 2017 00:40:07 +0100
+Message-id : 20170205234006.v2ed6gdja3snjylg@aurel32.net
+Reply-to : Aurelien Jarno <aurelien@aurel32.net>, 837004@bugs.debian.org
+In-reply-to : <[🔎] 20170204224540.GH25704@mraw.org>
+References : <20160907215955.4gaten5p76l5y27x@xanadu.blop.info> <[🔎] 20170204224540.GH25704@mraw.org>
+
+
+On 2017-02-04 23:45, Cyril Brulebois wrote:
+> Hi,
+> 
+> Lucas Nussbaum <lucas@debian.org> (2016-09-07):
+> > Source: installation-locale
+> > Version: 1.6
+> > Severity: serious
+> > Tags: stretch sid
+> > User: debian-qa@lists.debian.org
+> > Usertags: qa-ftbfs-20160906 qa-ftbfs
+> > Justification: FTBFS on amd64
+> > 
+> > Hi,
+> > 
+> > During a rebuild of all packages in sid, your package failed to build on
+> > amd64.
+> > 
+> > Relevant part (hopefully):
+> > > make[1]: Entering directory '/<<PKGBUILDDIR>>'
+> > > localedef -i C.UTF-8.in -f "UTF-8" ./C.UTF-8
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_CTYPE'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_NUMERIC'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_TIME'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_COLLATE'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_MONETARY'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_MESSAGES'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_PAPER'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_NAME'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_ADDRESS'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_TELEPHONE'
+> > > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_IDENTIFICATION'
+> > > no output file produced because warnings were issued
+> > > Makefile:4: recipe for target 'C.UTF-8' failed
+> > > make[1]: *** [C.UTF-8] Error 4
+> 
+> I think this is due to the following commit, first released with 2.24:
+> | commit 900f59f084bfe35cb389bbe0dc464413a1a38e90
+> | Author: Mike Frysinger <vapier@gentoo.org>
+> | Date:   Wed Apr 13 18:38:56 2016 -0400
+> | 
+> |     localedef: check LC_IDENTIFICATION.category values
+> |     
+> |     Currently localedef accepts any value for the category keyword.  This has
+> |     allowed bad values to propagate to the vast majority of locales (~90%).
+> |     Add some logic to only accept a few standards.
+> 
+> I suppose it makes sense to add a Debian-specific patch to the glibc
+> package to accept “our extra standard”. I've successfully tested the
+> attached patch on top of glibc master, even if I had to disable the
+> testsuite because of this:
+> | FAIL: rt/tst-shm
+> | original exit status 1
+> | ----------
+> | +---------------------------------------------------------------------+
+> | |     Encountered regressions that don't match expected failures.     |
+> | +---------------------------------------------------------------------+
+> | FAIL: rt/tst-shm
+> | debian/rules.d/build.mk:115: recipe for target '/home/kibi/hack/glibc/glibc-debian.git/stamp-dir/check_libc' failed
+> 
+> With upgraded libc packages, installation-locale builds fine again.
+> 
+> glibc maintainer: if you agree with this proposed path and patch, please
+> steal this bug report awawy from src:installation-locale.
+Well this kind of patch is not mergeable upstream, so we will have to
+keep it forever. What would be wrong in using a supported value for 
+the debian-installer locale? It should only be a dozen of lines to
+change.
+Alternatively would it make sense to install the C.UTF-8 locale from
+libc-bin in libc6-udeb?
+Aurelien
+-- 
+Aurelien Jarno                          GPG: 4096R/1DDD8C9B
+aurelien@aurel32.net                 http://www.aurel32.net
+signature.asc

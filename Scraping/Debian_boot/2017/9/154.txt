@@ -1,0 +1,92 @@
+To : Steve McIntyre <steve@einval.com>
+Subject : Bug#875858: pkgsel: Offer to install/manage unattended-upgrades
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Tue, 19 Sep 2017 07:17:51 +0200
+Message-id : 20170919051751.z4xpzd3h6xbftlci@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 875858@bugs.debian.org
+In-reply-to : <[🔎] 20170915142758.tcz5mnoulcxta42d@tack.einval.com>
+References : <[🔎] 150546871303.4559.13969797016748677490.reportbug@x260-buxy.home.ouaza.com> <[🔎] 20170915142758.tcz5mnoulcxta42d@tack.einval.com> <[🔎] 150546871303.4559.13969797016748677490.reportbug@x260-buxy.home.ouaza.com>
+
+
+Control: tag -1 + patch
+On Fri, 15 Sep 2017, Steve McIntyre wrote:
+> >For Debian, I don't think that making such a difference makes sense.
+> >We should:
+> >- either always show the question with its default value of "none"
+> >  (thus making sure that they have a chance to opt-in to this feature)
+> >- or not show the question (priority "medium") but make it default
+> >  to install unattended-upgrades so that they get updates by default but
+> >  have a chance to disable that with preseeding
+> >
+> >Given the last discussion on -devel
+> >(https://lists.debian.org/debian-devel/2016/11/threads.html#00117) I think
+> >we should make a bold choice and do the latter.
+> >
+> >I'm going to submit a tested patch later on.
+> 
+> Sounds reasonable, yes.
+Ok, so here's my set of patches. Relevant to this bug are the first and
+the last one. The other commits are other random improvements that I merged
+from Ubuntu that looked like useful.
+I tested the attached patches on modified mini.iso where I force-injected
+pkgsel and bootstrap-base (because I could not manage to get anna to
+reload the modified templates if I installed the new pkgsel manually once
+the installer was started up to the configure network step).
+Reviews are welcome.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/
+>From 266d0b69f7eeb4397414b308d0308dc4fc2982d7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20Hertzog?= <hertzog@debian.org>
+Date: Mon, 18 Sep 2017 16:41:27 +0200
+Subject: [PATCH 7/7] Install/enable unattended-upgrades by default
+Closes: #875858
+---
+ debian/changelog             | 1 +
+ debian/pkgsel.templates      | 2 +-
+ pre-pkgsel.d/20update-policy | 4 ++--
+ 3 files changed, 4 insertions(+), 3 deletions(-)
+diff --git a/debian/changelog b/debian/changelog
+index fd9f68f..566ad33 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -12,6 +12,7 @@ pkgsel (0.46) UNRELEASED; urgency=medium
+     and do a single run at the end.
+   * Add a final "apt-get clean" call at the end to ensure that we don't have
+     any .deb file remaining in APT's cache.
++  * Install/enable unattended-upgrades by default. Closes: #875858
+ 
+  -- Raphaël Hertzog <hertzog@debian.org>  Fri, 15 Sep 2017 11:26:14 +0200
+ 
+diff --git a/debian/pkgsel.templates b/debian/pkgsel.templates
+index 8d13fca..04fb797 100644
+--- a/debian/pkgsel.templates
++++ b/debian/pkgsel.templates
+@@ -51,7 +51,7 @@ _Description: Running ${SCRIPT}...
+ 
+ Template: pkgsel/update-policy
+ Type: select
+-Default: none
++Default: unattended-upgrades
+ Choices-C: none, unattended-upgrades
+ __Choices: No automatic updates, Install security updates automatically
+ _Description: How do you want to manage upgrades on this system?
+diff --git a/pre-pkgsel.d/20update-policy b/pre-pkgsel.d/20update-policy
+index c3588da..e9b0b2b 100755
+--- a/pre-pkgsel.d/20update-policy
++++ b/pre-pkgsel.d/20update-policy
+@@ -15,8 +15,8 @@ if [ "$DISTRIB_ID" = "ubuntu" ] || [ "$DISTRIB_ID_LIKE" = "ubuntu" ]; then
+ 		update_priority=medium
+ 	fi
+ else
+-	# In Debian, we always ask the question
+-	update_priority=high
++	# In Debian, by default, we don't display it but enable unattended-upgrades
++	update_priority=medium
+ fi
+ 
+ db_input "$update_priority" pkgsel/update-policy || true
+-- 
+2.14.1

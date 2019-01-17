@@ -1,0 +1,48 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#877012: apt-setup: debian sources.list entries should have signed-by options pointing to specific keys
+From : Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Date : Wed, 27 Sep 2017 14:43:49 -0400
+Message-id : 150653782991.31121.8889768588606075031.reportbug@alice.fifthhorseman.net
+Reply-to : Daniel Kahn Gillmor <dkg@fifthhorseman.net>, 877012@bugs.debian.org
+
+
+Package: apt-setup
+Severity: wishlist
+Control: clone -1 -2
+Control: retitle -2 set up local repository keys using signed-by option, and do not use "apt-key add"
+Control: block -1 861695 -2
+Control: affects 861695 + apt-setup
+When apt-setup creates a sources.list, it currently just expects every
+repository key to be already present in /etc/apt/trusted.gpg or
+/etc/apt/trusted.gpg.d/*.gpg.
+collecting all keys in one repository means that each key is
+authorized to sign other repositories as well.  This lack of scoping
+makes it difficult to constrain repository owners from malicious
+behavior.  It also makes it difficult to know when to remove old keys
+-- should the wheezy archive signing key still be enabled on my buster
+system?
+In #861695, i'm trying to get debian-archive-keyring to ship the
+standard repository keys in /usr/share/keyrings/.  on a system where
+that's done, apt-setup should write the sources.list snippets for the
+debian repos with a "signed-by" option (see sources.list(5), which
+points specifically to the key that should be used to authorize this
+repo.
+I think doing this right for debian repositories is going to require
+#861695 to be corrected first, which is why the first bug report here
+("debian sources.list entries should have signed-by options pointing
+to specific keys") is marked as blocked by that bug.
+But apt-setup can fix its configuration of any pre-seeded local
+repositories without waiting on the debian-archive-keyring package,
+which is the point of the second bug ("set up local repository keys
+using signed-by option, and do not use "apt-key add"").
+In particular, generators/60local can place the proposed key into a
+file *outside* of /etc/apt/trusted.gpg.d/, and can add the signed-by
+argument to the sources.list stanza it creates.
+The result of fixing these two bugs should be that new installations
+can have an empty /etc/apt/trusted.gpg and nothing in
+/etc/apt/trusted.gpg.d/*.gpg, and each repository added will be
+individually authenticated.  This is a pre-requisite for being able to
+more tightly constrain software repositories (e.g. pinning, etc), and
+should be the default of the future.
+Thanks for helping to maintain debian-installer!
+       --dkg

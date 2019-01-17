@@ -1,0 +1,56 @@
+To : Maximilian Stein <m@steiny.biz>, 862992@bugs.debian.org, debootstrap@packages.debian.org
+Subject : Re: Bug#862992: systemd: avoid attempt to re-create /etc/mtab by systemd-tmpfiles-setup.service
+From : Michael Biebl <biebl@debian.org>
+Date : Fri, 19 May 2017 20:43:20 +0200
+Message-id : 8d41143e-1f6a-84d2-2e86-cdbf6db05b2b@debian.org
+In-reply-to : <1010dceb-3079-06f9-3fd0-55f57fa85c6f@steiny.biz>
+References : <1010dceb-3079-06f9-3fd0-55f57fa85c6f@steiny.biz>
+
+
+Am 19.05.2017 um 19:58 schrieb Maximilian Stein:
+> Package: systemd
+> Version: 232-23
+> Severity: normal
+> 
+> Dear Maintainer,
+> 
+> After having upgraded to Stretch, I noticed that
+> systemd-tmpfiles-setup.service attempts to create /etc/mtab as
+> configured in /usr/lib/tmpfiles.d/debian.conf. Unfortunately, this
+> does not work on some of my machines where / is mounted read-only and
+> consequently, systemd-tmpfiles-setup.service fails.
+> 
+> Moreover, this step does not seem to be necessary, as /etc/mtab is
+> symlinked to /proc/mounts after a fresh debootstrap. /proc/mounts in
+> turn symlinks to /proc/self/mounts, the same file as configured in
+> /usr/lib/tmpfiles.d/debian.conf.
+> 
+> What exactly are the reasons for re-creating /etc/mtab on every boot? Is
+> this step really necessary?
+Well, it's not really re-created on every boot, just if /etc/mtab is
+*not* a relative symlink to ../proc/self/mounts.
+debootstrap from sid creates /etc/mtab as relative symlink to
+../proc/mounts afaics (the version from jessie seems to create it as an
+absolute symlink to /proc/mounts)
+So I guess the problem here is that there is a mismatch between what
+debootstrap creates and what systemd-tmpfiles (i.e. debian.conf) expects.
+In jessie we handled this slightly differently [1]. We had a dedicated
+service unit which checked if /etc/mtab was a symlink. So we didn't run
+into the issue there, that the symlink can be absolute or relative and
+point to either /proc/mounts or /proc/self/mounts.
+We chose ../proc/self/mounts in debian.conf since that's also what's
+used by systemd upstream [2], i.e. we are consistent with other distros
+in that aspect.
+Maybe we can change debootstrap to use ../proc/self/mounts or is there a
+good reason why it should point to ../proc/mounts?
+CCed the debootstrap maintainers for their input.
+Regards,
+Michael
+[1]
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?id=b3ba0e60
+[2]
+https://github.com/systemd/systemd/blob/master/tmpfiles.d/etc.conf.m4#L12
+-- 
+Why is it that all of the instruments seeking intelligent life in the
+universe are pointed away from Earth?
+signature.asc

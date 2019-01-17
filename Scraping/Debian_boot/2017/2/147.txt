@@ -1,0 +1,45 @@
+To : 839894@bugs.debian.org
+Subject : Bug#839894: [patch] fix installation to system that has many disks (>= 27) (Re: Bug#839894: installation-report: Jessie installer fails to install GRUB on a large JBOD system
+From : Hideki Yamane <henrich@gmail.com>
+Date : Sat, 04 Feb 2017 13:15:36 +0900
+Message-id : 1486181736.22730.3.camel@gmail.com
+Reply-to : Hideki Yamane <henrich@gmail.com>, 839894@bugs.debian.org
+In-reply-to : <3504e309610dd763c9639e49d86ee61a.squirrel@mail.hartrao.ac.za>
+References : <20161006074536.2191.65353.reportbug@flexbuff.hartrao.ac.za>    <20161006182426.GN2080@csclub.uwaterloo.ca> <3504e309610dd763c9639e49d86ee61a.squirrel@mail.hartrao.ac.za>
+
+
+control: reassign -1 grub-installer
+control: tags -1 +patch
+Hi,
+On Tue, 11 Oct 2016 12:13:33 +0200 "Jonathan Quick" <jon@hartrao.ac.za> wrote:
+> > Probably this part of grub-installer is the problem:
+> >
+> >     /dev/[hsv]d[a-z0-9]|/dev/xvd[a-z]|/dev/cciss/c[0-9]d[0-9]*|/dev/ida/c[0-9]d[0-9]*|/dev/rs/c[0-9]d[0-9]*|/dev/mmcblk[0-9]|/dev/nvme[0-9]*n[0-9]*|/dev/ad[0-9]*|/dev/da[0-9]*)
+> >
+> >
+> > /dev/[hsv]d[a-z0-9] will match /dev/sda through /dev/sdz, but NOT /dev/sdak.
+> >
+> > If it added /dev/sd[a-z][a-z] as well, it should work for you.
+> >
+> > So maybe:
+> >     /dev/[hsv]d[a-z0-9]|/dev/sd[a-z][a-z]|/dev/xvd[a-z]|/dev/cciss/c[0-9]d[0-9]*|/dev/ida/c[0-9]d[0-9]*|/dev/rs/c[0-9]d[0-9]*|/dev/mmcblk[0-9]|/dev/nvme[0-9]*n[0-9]*|/dev/ad[0-9]*|/dev/da[0-9]*)
+> >
+> > Not sure if other places need fixing too.
+> 
+> Having edited grub-installer in-place during the install process, I can
+> confirm that the above change is sufficient to fix the problem and the
+> installation then completes normally.
+ More tiny fix is enough for this issue. I've confirmed it by 
+ s%/dev/[hsv]d[a-z0-9]%/dev/[hsv]d[a-z0-9]*% - adding one "*" in
+ VirtualBox (it's easy to create such environment).
+--- grub-installer.orig	2017-02-03 22:51:57.598613756 +0900
++++ grub-installer	2017-02-04 00:19:37.085153540 +0900
+@@ -254,7 +254,7 @@
+     /dev/mapper)
+ 	disc_offered_devfs="$bootfs"
+ 	;;
+-    /dev/[hsv]d[a-z0-9]|/dev/xvd[a-z]|/dev/cciss/c[0-9]d[0-9]*|/dev/ida/c[0-9]d[0-9]*|/dev/rs/c[0-9]d[0-9]*|/dev/mmcblk[0-9]|/dev/nvme[0-9]*n[0-9]*|/dev/ad[0-9]*|/dev/da[0-9]*)
++    /dev/[hsv]d[a-z0-9]*|/dev/xvd[a-z]|/dev/cciss/c[0-9]d[0-9]*|/dev/ida/c[0-9]d[0-9]*|/dev/rs/c[0-9]d[0-9]*|/dev/mmcblk[0-9]|/dev/nvme[0-9]*n[0-9]*|/dev/ad[0-9]*|/dev/da[0-9]*)
+ 	disc_offered_devfs="$prefix"
+ 	;;
+     *)

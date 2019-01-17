@@ -1,0 +1,91 @@
+To : 857741@bugs.debian.org
+Subject : Re: Bug#857741 closed by Emilio Pozuelo Monfort <pochu@respighi.debian.org> (unblock openssh)
+From : Colin Watson <cjwatson@debian.org>
+Date : Thu, 16 Mar 2017 15:32:29 +0000
+Message-id : 20170316153229.GA9040@riva.ucam.org
+Mail-followup-to : 857741@bugs.debian.org, debian-boot@lists.debian.org
+In-reply-to : <handler.857741.D857741.148960881026941.notifdone@bugs.debian.org>
+References : <E1coFIV-0005HL-T0@respighi.debian.org> <20170314150007.GA27509@riva.ucam.org> <handler.857741.D857741.148960881026941.notifdone@bugs.debian.org>
+
+
+Control: reopen -1
+Control: retitle -1 unblock: openssh/1:7.4p1-9
+I'm afraid that 1:7.4p1-8 caused a CI failure, and on investigation this
+was a real problem easily reproduced in a local adt-run.  Sorry for not
+noticing this earlier.  I've uploaded 1:7.4p1-9 to fix this with the
+following diff.  This will presumably need another d-i ack, and
+certainly an adjustment to the existing hint.
+diff -Nru openssh-7.4p1/debian/.git-dpm openssh-7.4p1/debian/.git-dpm
+--- openssh-7.4p1/debian/.git-dpm	2017-03-14 13:41:39.000000000 +0000
++++ openssh-7.4p1/debian/.git-dpm	2017-03-16 13:42:23.000000000 +0000
+@@ -1,6 +1,6 @@
+ # see git-dpm(1) from git-dpm package
+-a0f9daa9c3cc2b37b9707b228263eb717d201371
+-a0f9daa9c3cc2b37b9707b228263eb717d201371
++35b2ea77a74348b575d680061f35ec7992b26ec8
++35b2ea77a74348b575d680061f35ec7992b26ec8
+ 971a7653746a6972b907dfe0ce139c06e4a6f482
+ 971a7653746a6972b907dfe0ce139c06e4a6f482
+ openssh_7.4p1.orig.tar.gz
+diff -Nru openssh-7.4p1/debian/changelog openssh-7.4p1/debian/changelog
+--- openssh-7.4p1/debian/changelog	2017-03-14 13:49:14.000000000 +0000
++++ openssh-7.4p1/debian/changelog	2017-03-16 13:43:15.000000000 +0000
+@@ -1,3 +1,10 @@
++openssh (1:7.4p1-9) unstable; urgency=medium
++
++  * Fix null pointer dereference in ssh-keygen; this fixes an autopkgtest
++    regression introduced in 1:7.4p1-8.
++
++ -- Colin Watson <cjwatson@debian.org>  Thu, 16 Mar 2017 13:43:15 +0000
++
+ openssh (1:7.4p1-8) unstable; urgency=medium
+ 
+   * Fix ssh-keygen -H accidentally corrupting known_hosts that contained
+diff -Nru openssh-7.4p1/debian/patches/series openssh-7.4p1/debian/patches/series
+--- openssh-7.4p1/debian/patches/series	2017-03-14 13:41:39.000000000 +0000
++++ openssh-7.4p1/debian/patches/series	2017-03-16 13:42:23.000000000 +0000
+@@ -32,3 +32,4 @@
+ restore-authorized_keys2.patch
+ ssh-keygen-hash-corruption.patch
+ ssh-keyscan-hash-port.patch
++ssh-keygen-null-deref.patch
+diff -Nru openssh-7.4p1/debian/patches/ssh-keygen-null-deref.patch openssh-7.4p1/debian/patches/ssh-keygen-null-deref.patch
+--- openssh-7.4p1/debian/patches/ssh-keygen-null-deref.patch	1970-01-01 01:00:00.000000000 +0100
++++ openssh-7.4p1/debian/patches/ssh-keygen-null-deref.patch	2017-03-16 13:42:23.000000000 +0000
+@@ -0,0 +1,31 @@
++From 35b2ea77a74348b575d680061f35ec7992b26ec8 Mon Sep 17 00:00:00 2001
++From: "dtucker@openbsd.org" <dtucker@openbsd.org>
++Date: Mon, 6 Mar 2017 02:03:20 +0000
++Subject: upstream commit
++
++Check l->hosts before dereferencing; fixes potential null
++pointer deref. ok djm@
++
++Upstream-ID: 81c0327c6ec361da794b5c680601195cc23d1301
++
++Origin: https://anongit.mindrot.org/openssh.git/commit/?id=18501151cf272a15b5f2c5e777f2e0933633c513
++Last-Update: 2017-03-16
++
++Patch-Name: ssh-keygen-null-deref.patch
++---
++ ssh-keygen.c | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/ssh-keygen.c b/ssh-keygen.c
++index 0833ee61..a7c1e80b 100644
++--- a/ssh-keygen.c
+++++ b/ssh-keygen.c
++@@ -1082,7 +1082,7 @@ known_hosts_hash(struct hostkey_foreach_line *l, void *_ctx)
++ 	struct known_hosts_ctx *ctx = (struct known_hosts_ctx *)_ctx;
++ 	char *hashed, *cp, *hosts, *ohosts;
++ 	int has_wild = l->hosts && strcspn(l->hosts, "*?!") != strlen(l->hosts);
++-	int was_hashed = l->hosts[0] == HASH_DELIM;
+++	int was_hashed = l->hosts && l->hosts[0] == HASH_DELIM;
++ 
++ 	switch (l->status) {
++ 	case HKF_STATUS_OK:
+unblock openssh/1:7.4p1-9
+Thanks,
+-- 
+Colin Watson                                       [cjwatson@debian.org]
+signature.asc

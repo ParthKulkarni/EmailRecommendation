@@ -1,0 +1,50 @@
+To : submit@bugs.debian.org
+Subject : Bug#863435: open-iscsi-udeb: finish-install script always thinks that iSCSI is used
+From : Christian Seiler <christian@iwakd.de>
+Date : Fri, 26 May 2017 22:04:35 +0200
+Message-id : 0cb3ffa1-538c-e5e2-bfdb-5d6e34f341d2@iwakd.de
+Reply-to : Christian Seiler <christian@iwakd.de>, 863435@bugs.debian.org
+
+
+Package: open-iscsi-udeb
+Version: 2.0.874-2
+Severity: important
+Affects: debian-installer
+X-Debbugs-Cc: debian-boot@lists.debian.org, kibi@debian.org
+Control: tags -1 + stretch sid
+Dear Maintainer,
+As reported on debian-release@/debian-boot@ recently, a
+recent change in how the initiator name was generated in
+the package causes finish-install to assume iSCSI is
+always used.
+This has two consequences:
+ - update-initramfs -k all -u is needlessly called on
+   all Debian installations, even those without iSCSI
+   (looses a couple of seconds time, on _really_ slow
+   systems possibly even a minute)
+ - clutters every new installation with
+   /etc/iscsi/initiatorname.iscsi, even those that don't
+   use iSCSI
+This is harmless (nothing breaks), but can be annoying.
+Also, for Buster this risks that other installer components
+start relying on the fact that the initramfs is regenerated
+late in the installation process - which they shouldn't.
+It probably hasn't affected anything in Stretch yet, but
+this should be fixed really early in the Buster cycle to
+avoid any such problems.
+KiBi said that for Stretch this should be fixed in the
+first point release, so the plan is to open a p-u bug
+once this is fixed in sid after the Stretch release.
+Regards,
+Christian
+-- System Information:
+Debian Release: 9.0
+  APT prefers testing-debug
+  APT policy: (500, 'testing-debug'), (500, 'testing'), (1, 'experimental-debug')
+Architecture: amd64
+ (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

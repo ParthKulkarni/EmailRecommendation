@@ -1,0 +1,437 @@
+To : debian-boot@lists.debian.org
+Subject : Re: Clean up bug report for debootstrap
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Mon, 5 Mar 2018 22:47:45 +0900
+Message-id : 20180305224745.eeb68c1ee712e6c67fd90329@iijmio-mail.jp
+In-reply-to : <20180225232204.7267835d0c2815d772502769@iijmio-mail.jp>
+References : <20180225232204.7267835d0c2815d772502769@iijmio-mail.jp>
+
+
+On Sun, 25 Feb 2018 23:22:04 +0900
+Hideki Yamane <henrich@iijmio-mail.jp> wrote:
+>  It seems that we can close below bug reports for debootstrap with
+>  proposed patches (including mine).
+ I've prepared NMU for fixes about old archived releases and will
+ upload 10 delayed queue. I believe that it is no harm for buster/sid
+ since it doesn't tough any part of it, see attached patch.
+ And set temporary repo at https://salsa.debian.org/henrich/debootstrap
+ so you can pull changes from it later.
+diff --git a/debian/changelog b/debian/changelog
+index b1ef82b..7421862 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,19 @@
++debootstrap (1.0.93+nmu1) unstable; urgency=medium
++
++  * Non-maintainer Upload.
++  * Use force_md5 for breezy, dapper and edgy (Closes: #659360, #676373)
++    Now you can create Ubuntu breezy/dapper/edgy chroot.
++  * Add Suggests: ubuntu-archive-keyring for debootstraping Ubuntu on Debian.
++    When you fetch Ubuntu packages ubuntu-archive-keyring is necessary.
++    (Closes: #736995)
++  * Change repository URI for old Ubuntu releases (Closes: #676370, #839073)
++    Archived Ubuntu releases are at old-releases.ubuntu.com/ubuntu
++  * Set correct keyring and default mirror for old debian releases.
++    Now you can fetch popato/woody/sarge/etch/lenny/squeeze if you want.
++    (Closes: #891404, #600647, #792729)
++
++ -- Hideki Yamane <henrich@debian.org>  Mon, 05 Mar 2018 22:28:22 +0900
++
+ debootstrap (1.0.93) unstable; urgency=medium
+ 
+   [ Mattia Rizzolo ]
+diff --git a/debian/control b/debian/control
+index e987ace..0d9d9a9 100644
+--- a/debian/control
++++ b/debian/control
+@@ -12,6 +12,7 @@ Package: debootstrap
+ Architecture: all
+ Depends: ${misc:Depends}, wget
+ Recommends: gnupg, ${keyring}
++Suggests: ubuntu-archive-keyring
+ Description: Bootstrap a basic Debian system
+  debootstrap is used to create a Debian base system from scratch,
+  without requiring the availability of dpkg or apt. It does this by
+diff --git a/scripts/breezy b/scripts/breezy
+index 2148cec..f15967a 100644
+--- a/scripts/breezy
++++ b/scripts/breezy
+@@ -3,6 +3,7 @@ mirror_style release
+ download_style apt
+ finddebs_style from-indices
+ variants - buildd
++force_md5
+ 
+ case $ARCH in
+   alpha|ia64) LIBC="libc6.1" ;;
+diff --git a/scripts/dapper b/scripts/dapper
+index af83c0c..b1e44d0 100644
+--- a/scripts/dapper
++++ b/scripts/dapper
+@@ -10,6 +10,7 @@ mirror_style release
+ download_style apt
+ finddebs_style from-indices
+ variants - buildd
++force_md5
+ 
+ case $ARCH in
+   alpha|ia64) LIBC="libc6.1" ;;
+diff --git a/scripts/edgy b/scripts/edgy
+index 01d6568..719a258 100644
+--- a/scripts/edgy
++++ b/scripts/edgy
+@@ -1,6 +1,6 @@
+ case $ARCH in
+   amd64|i386|powerpc|sparc)
+-    default_mirror http://archive.ubuntu.com/ubuntu
++    default_mirror http://old-releases.ubuntu.com/ubuntu
+     ;;
+   *)
+     default_mirror http://ports.ubuntu.com/ubuntu-ports
+@@ -10,6 +10,7 @@ mirror_style release
+ download_style apt
+ finddebs_style from-indices
+ variants - buildd fakechroot
++force_md5
+ 
+ if doing_variant fakechroot; then
+     test "$FAKECHROOT" = "true" || error 1 FAKECHROOTREQ "This variant requires fakechroot environment to be started"
+diff --git a/scripts/etch b/scripts/etch
+deleted file mode 120000
+index 9a63c96..0000000
+--- a/scripts/etch
++++ /dev/null
+@@ -1 +0,0 @@
+-sid
+\ No newline at end of file
+diff --git a/scripts/etch b/scripts/etch
+new file mode 100644
+index 0000000..22c89a9
+--- /dev/null
++++ b/scripts/etch
+@@ -0,0 +1,216 @@
++mirror_style release
++download_style apt
++finddebs_style from-indices
++variants - buildd fakechroot minbase
++default_mirror http://archive.debian.org/debian
++keyring /usr/share/keyrings/debian-archive-removed-keys.gpg
++force_md5
++
++if doing_variant fakechroot; then
++	test "$FAKECHROOT" = "true" || error 1 FAKECHROOTREQ "This variant requires fakechroot environment to be started"
++fi
++
++case $ARCH in
++	alpha|ia64) LIBC="libc6.1" ;;
++	kfreebsd-*) LIBC="libc0.1" ;;
++	hurd-*)     LIBC="libc0.3" ;;
++	*)          LIBC="libc6" ;;
++esac
++
++work_out_debs () {
++	required="$(get_debs Priority: required)"
++
++	if doing_variant - || doing_variant fakechroot; then
++		#required="$required $(get_debs Priority: important)"
++		#  ^^ should be getting debconf here somehow maybe
++		base="$(get_debs Priority: important)"
++	elif doing_variant buildd; then
++		base="apt build-essential"
++	elif doing_variant minbase; then
++		base="apt"
++	fi
++
++	if doing_variant fakechroot; then
++		# ldd.fake needs binutils
++		required="$required binutils"
++	fi
++
++	case $MIRRORS in
++	    https://*)
++		base="$base apt-transport-https ca-certificates"
++		;;
++	esac
++}
++
++first_stage_install () {
++	case "$CODENAME" in
++		etch|etch-m68k|jessie|jessie-kfreebsd|lenny|squeeze|wheezy) ;;
++		*)
++			EXTRACT_DEB_TAR_OPTIONS="$EXTRACT_DEB_TAR_OPTIONS -k"
++			setup_merged_usr
++			;;
++	esac
++
++	extract $required
++
++	mkdir -p "$TARGET/var/lib/dpkg"
++	: >"$TARGET/var/lib/dpkg/status"
++	: >"$TARGET/var/lib/dpkg/available"
++
++	setup_etc
++	if [ ! -e "$TARGET/etc/fstab" ]; then
++		echo '# UNCONFIGURED FSTAB FOR BASE SYSTEM' > "$TARGET/etc/fstab"
++		chown 0:0 "$TARGET/etc/fstab"; chmod 644 "$TARGET/etc/fstab"
++	fi
++
++	setup_devices
++}
++
++second_stage_install () {
++	setup_dynamic_devices
++
++	x_feign_install () {
++		local pkg="$1"
++		local deb="$(debfor $pkg)"
++		local ver="$(in_target dpkg-deb -f "$deb" Version)"
++
++		mkdir -p "$TARGET/var/lib/dpkg/info"
++
++		echo \
++"Package: $pkg
++Version: $ver
++Maintainer: unknown
++Status: install ok installed" >> "$TARGET/var/lib/dpkg/status"
++
++		touch "$TARGET/var/lib/dpkg/info/${pkg}.list"
++	}
++
++	x_feign_install dpkg
++
++	x_core_install () {
++		smallyes '' | in_target dpkg --force-depends --install $(debfor "$@")
++	}
++
++	p () {
++		baseprog="$(($baseprog + ${1:-1}))"
++	}
++
++	if doing_variant fakechroot; then
++		setup_proc_fakechroot
++	else
++		setup_proc
++		in_target /sbin/ldconfig
++	fi
++
++	DEBIAN_FRONTEND=noninteractive
++	DEBCONF_NONINTERACTIVE_SEEN=true
++	export DEBIAN_FRONTEND DEBCONF_NONINTERACTIVE_SEEN
++
++	baseprog=0
++	bases=7
++
++	p; progress $baseprog $bases INSTCORE "Installing core packages" #1
++	info INSTCORE "Installing core packages..."
++
++	p; progress $baseprog $bases INSTCORE "Installing core packages" #2
++	ln -sf mawk "$TARGET/usr/bin/awk"
++	x_core_install base-passwd
++	x_core_install base-files
++	p; progress $baseprog $bases INSTCORE "Installing core packages" #3
++	x_core_install dpkg
++
++	if [ ! -e "$TARGET/etc/localtime" ]; then
++		ln -sf /usr/share/zoneinfo/UTC "$TARGET/etc/localtime"
++	fi
++
++	if doing_variant fakechroot; then
++		install_fakechroot_tools
++	fi
++
++	p; progress $baseprog $bases INSTCORE "Installing core packages" #4
++	x_core_install $LIBC
++
++	p; progress $baseprog $bases INSTCORE "Installing core packages" #5
++	x_core_install perl-base
++
++	p; progress $baseprog $bases INSTCORE "Installing core packages" #6
++	rm "$TARGET/usr/bin/awk"
++	x_core_install mawk
++
++	p; progress $baseprog $bases INSTCORE "Installing core packages" #7
++	if doing_variant -; then
++		x_core_install debconf
++	fi
++
++	baseprog=0
++	bases=$(set -- $required; echo $#)
++
++	info UNPACKREQ "Unpacking required packages..."
++
++	exec 7>&1
++
++	smallyes '' |
++		(repeatn 5 in_target_failmsg UNPACK_REQ_FAIL_FIVE "Failure while unpacking required packages.  This will be attempted up to five times." "" \
++		dpkg --status-fd 8 --force-depends --unpack $(debfor $required) 8>&1 1>&7 || echo EXITCODE $?) |
++		dpkg_progress $baseprog $bases UNPACKREQ "Unpacking required packages" UNPACKING
++
++	info CONFREQ "Configuring required packages..."
++
++	echo \
++"#!/bin/sh
++exit 101" > "$TARGET/usr/sbin/policy-rc.d"
++	chmod 755 "$TARGET/usr/sbin/policy-rc.d"
++
++	mv "$TARGET/sbin/start-stop-daemon" "$TARGET/sbin/start-stop-daemon.REAL"
++	echo \
++"#!/bin/sh
++echo
++echo \"Warning: Fake start-stop-daemon called, doing nothing\"" > "$TARGET/sbin/start-stop-daemon"
++	chmod 755 "$TARGET/sbin/start-stop-daemon"
++
++	setup_dselect_method apt
++
++	smallyes '' |
++		(in_target_failmsg CONF_REQ_FAIL "Failure while configuring required packages." "" \
++		dpkg --status-fd 8 --configure --pending --force-configure-any --force-depends 8>&1 1>&7 || echo EXITCODE $?) |
++		dpkg_progress $baseprog $bases CONFREQ "Configuring required packages" CONFIGURING
++
++	baseprog=0
++	bases="$(set -- $base; echo $#)"
++
++	info UNPACKBASE "Unpacking the base system..."
++
++	setup_available $required $base
++	done_predeps=
++	while predep=$(get_next_predep); do
++		# We have to resolve dependencies of pre-dependencies manually because
++		# dpkg --predep-package doesn't handle this.
++		predep=$(without "$(without "$(resolve_deps $predep)" "$required")" "$done_predeps")
++		# XXX: progress is tricky due to how dpkg_progress works
++		# -- cjwatson 2009-07-29
++		p; smallyes '' |
++		in_target dpkg --force-overwrite --force-confold --skip-same-version --install $(debfor $predep)
++		base=$(without "$base" "$predep")
++		done_predeps="$done_predeps $predep"
++	done
++
++	if [ -n "$base" ]; then
++		smallyes '' |
++			(repeatn 5 in_target_failmsg INST_BASE_FAIL_FIVE "Failure while installing base packages.  This will be re-attempted up to five times." "" \
++			dpkg --status-fd 8 --force-overwrite --force-confold --skip-same-version --unpack $(debfor $base) 8>&1 1>&7 || echo EXITCODE $?) |
++			dpkg_progress $baseprog $bases UNPACKBASE "Unpacking base system" UNPACKING
++
++		info CONFBASE "Configuring the base system..."
++
++		smallyes '' |
++			(repeatn 5 in_target_failmsg CONF_BASE_FAIL_FIVE "Failure while configuring base packages.  This will be re-attempted up to five times." "" \
++			dpkg --status-fd 8 --force-confold --skip-same-version --configure -a 8>&1 1>&7 || echo EXITCODE $?) |
++			dpkg_progress $baseprog $bases CONFBASE "Configuring base system" CONFIGURING
++	fi
++
++	mv "$TARGET/sbin/start-stop-daemon.REAL" "$TARGET/sbin/start-stop-daemon"
++	rm -f "$TARGET/usr/sbin/policy-rc.d"
++
++	progress $bases $bases CONFBASE "Configuring base system"
++	info BASESUCCESS "Base system installed successfully."
++}
+diff --git a/scripts/etch-m68k b/scripts/etch-m68k
+index 9a63c96..190cf35 120000
+--- a/scripts/etch-m68k
++++ b/scripts/etch-m68k
+@@ -1 +1 @@
+-sid
+\ No newline at end of file
++etch
+\ No newline at end of file
+diff --git a/scripts/feisty b/scripts/feisty
+index b0a4631..e38f799 100644
+--- a/scripts/feisty
++++ b/scripts/feisty
+@@ -1,6 +1,6 @@
+ case $ARCH in
+   amd64|i386|powerpc|sparc)
+-    default_mirror http://archive.ubuntu.com/ubuntu
++    default_mirror http://old-releases.ubuntu.com/ubuntu
+     ;;
+   *)
+     default_mirror http://ports.ubuntu.com/ubuntu-ports
+diff --git a/scripts/gutsy b/scripts/gutsy
+index 3e53e13..1846df2 100644
+--- a/scripts/gutsy
++++ b/scripts/gutsy
+@@ -1,11 +1,16 @@
+ case $ARCH in
+   amd64|i386)
++	case $SUITE in
++	  gutsy|hardy|intrepid|jaunty|karmic|lucid|maverick|natty|oneiric|precise|quantal|raring|saucy|utopic|vivid|wily|yakkety|zesty)
++	default_mirror http://old-releases.ubuntu.com/ubuntu
++	  ;;
++	  *)
+ 	default_mirror http://archive.ubuntu.com/ubuntu
+ 	;;
+   sparc)
+ 	case $SUITE in
+ 	  gutsy)
+-	default_mirror http://archive.ubuntu.com/ubuntu
++	default_mirror http://old-releases.ubuntu.com/ubuntu
+ 	;;
+ 	  *)
+ 	default_mirror http://ports.ubuntu.com/ubuntu-ports
+diff --git a/scripts/lenny b/scripts/lenny
+index 9a63c96..190cf35 120000
+--- a/scripts/lenny
++++ b/scripts/lenny
+@@ -1 +1 @@
+-sid
+\ No newline at end of file
++etch
+\ No newline at end of file
+diff --git a/scripts/potato b/scripts/potato
+index b6dedab..4867c61 100644
+--- a/scripts/potato
++++ b/scripts/potato
+@@ -1,5 +1,7 @@
+ mirror_style release
+ download_style apt var-state
++default_mirror http://archive.debian.org/debian
++keyring /usr/share/keyrings/debian-archive-removed-keys.gpg
+ force_md5
+ 
+ LIBC=libc6
+diff --git a/scripts/sarge b/scripts/sarge
+index aa37d94..051e5a4 100644
+--- a/scripts/sarge
++++ b/scripts/sarge
+@@ -1,5 +1,7 @@
+ mirror_style release
+ download_style apt
++default_mirror http://archive.debian.org/debian
++keyring /usr/share/keyrings/debian-archive-removed-keys.gpg
+ force_md5
+ 
+ LIBC=libc6
+diff --git a/scripts/squeeze b/scripts/squeeze
+index 9a63c96..190cf35 120000
+--- a/scripts/squeeze
++++ b/scripts/squeeze
+@@ -1 +1 @@
+-sid
+\ No newline at end of file
++etch
+\ No newline at end of file
+diff --git a/scripts/woody b/scripts/woody
+index 12c65a3..a72f290 100644
+--- a/scripts/woody
++++ b/scripts/woody
+@@ -1,5 +1,7 @@
+ mirror_style release
+ download_style apt
++default_mirror http://archive.debian.org/debian
++keyring /usr/share/keyrings/debian-archive-removed-keys.gpg
+ force_md5
+ 
+ LIBC=libc6
+diff --git a/scripts/woody.buildd b/scripts/woody.buildd
+index 0dd8d50..9d61384 100644
+--- a/scripts/woody.buildd
++++ b/scripts/woody.buildd
+@@ -1,5 +1,7 @@
+ mirror_style release
+ download_style apt
++default_mirror http://archive.debian.org/debian
++keyring /usr/share/keyrings/debian-archive-removed-keys.gpg
+ force_md5
+ 
+ LIBC=libc6

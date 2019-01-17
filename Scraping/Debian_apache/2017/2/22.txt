@@ -1,0 +1,88 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#854521: apache2: apache not working after a jessie->stretch upgrade
+From : Vincent Danjean <vdanjean@debian.org>
+Date : Wed, 08 Feb 2017 00:14:26 +0100
+Message-id : 148650926637.21241.5134339995939416023.reportbug@aya.danjean.fr
+Reply-to : Vincent Danjean <vdanjean@debian.org>, 854521@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3
+Severity: important
+  Hi,
+  I just did an jessie->stretch upgrade on one of my machines. The
+upgrade run smoothly, no error reported. But, after the upgrade,
+apache was not running anymore.
+  Looking at the log, I found the following error:
+[Tue Feb 07 23:10:05.693502 2017] [mpm_prefork:notice] [pid 17214] AH00171: Graceful restart requested, doing restart
+apache2: Syntax error on line 146 of /etc/apache2/apache2.conf: Syntax error on line 2 of /etc/apache2/mods-enabled/access_compat.load: Cannot load /usr/lib/apache2/modules/mod_access_compat.so into server: /usr/lib/apache2/modules/mod_access_compat.so: undefined symbol: ap_get_useragent_host
+Google leads me to https://bz.apache.org/bugzilla/show_bug.cgi?id=59842
+that give me the fix: just do a plain apache2 restart
+# /etc/init.d/apache2 restart
+  This full restart should probably be done in the postinst script
+if there is a transition between before and after 2.4.19 (as this
+is the case for jessie->stretch) according to the previously cited
+apache bugzilla report.
+  Regards,
+    Vincent
+-- Package-specific info:
+-- System Information:
+Debian Release: 9.0
+  APT prefers testing
+  APT policy: (990, 'testing'), (500, 'stable-updates'), (500, 'stable'), (200, 'unstable'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.7.0-0.bpo.1-amd64 (SMP w/4 CPU cores)
+Locale: LANG=fr_FR.UTF-8, LC_CTYPE=fr_FR.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/bash
+Init: systemd (via /run/systemd/system)
+Versions of packages apache2 depends on:
+ii  apache2-bin          2.4.25-3
+ii  apache2-data         2.4.25-3
+ii  apache2-utils        2.4.25-3
+ii  dpkg                 1.18.18
+ii  init-system-helpers  1.47
+ii  lsb-base             9.20161125
+ii  mime-support         3.60
+ii  perl                 5.24.1-1
+pn  perl:any             <none>
+ii  procps               2:3.3.12-3
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.38
+Versions of packages apache2 suggests:
+pn  apache2-doc                     <none>
+ii  apache2-suexec-pristine         2.4.25-3
+ii  chromium [www-browser]          56.0.2924.76-1~deb8u1
+ii  epiphany-browser [www-browser]  3.22.5-1
+ii  firefox-esr [www-browser]       45.7.0esr-1
+ii  w3m [www-browser]               0.5.3-34
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.5.2-5
+ii  libaprutil1              1.5.4-3
+ii  libaprutil1-dbd-sqlite3  1.5.4-3
+ii  libaprutil1-ldap         1.5.4-3
+ii  libc6                    2.24-9
+ii  libldap-2.4-2            2.4.44+dfsg-3
+ii  liblua5.2-0              5.2.4-1.1+b1
+ii  libnghttp2-14            1.18.1-1
+ii  libpcre3                 2:8.39-2
+ii  libssl1.0.2              1.0.2k-1
+ii  libxml2                  2.9.4+dfsg1-2.2
+pn  perl:any                 <none>
+ii  zlib1g                   1:1.2.8.dfsg-5
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                     <none>
+ii  apache2-suexec-pristine         2.4.25-3
+ii  chromium [www-browser]          56.0.2924.76-1~deb8u1
+ii  epiphany-browser [www-browser]  3.22.5-1
+ii  firefox-esr [www-browser]       45.7.0esr-1
+ii  w3m [www-browser]               0.5.3-34
+Versions of packages apache2 is related to:
+ii  apache2      2.4.25-3
+ii  apache2-bin  2.4.25-3
+-- Configuration Files:
+/etc/apache2/apache2.conf changed [not included]
+/etc/apache2/mods-available/userdir.conf changed [not included]
+/etc/apache2/sites-available/000-default.conf changed [not included]
+/etc/logrotate.d/apache2 changed [not included]
+-- no debconf information

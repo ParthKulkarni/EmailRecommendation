@@ -1,0 +1,68 @@
+To : Andre Heider <a.heider@gmail.com>, 884003@bugs.debian.org
+Subject : Bug#884003: FDT overlay support
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Sat, 20 Jan 2018 17:15:41 -0800
+Message-id : 87shb0t3k2.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 884003@bugs.debian.org
+In-reply-to : <039fb165-1192-de01-0836-5dd830810648@gmail.com>
+References : <d117fc6a-9da2-f6bd-43f8-85f7de5b4f03@gmail.com> <039fb165-1192-de01-0836-5dd830810648@gmail.com> <d117fc6a-9da2-f6bd-43f8-85f7de5b4f03@gmail.com>
+
+
+On 2017-12-12, Andre Heider wrote:
+> Subject: [PATCH 06/10] beaglebone: clean up boot script
+>
+> Use $fk_image_locations and distro compatible variable names, get rid
+> of the duplicated code from bootscr.uboot-generic, and use that script
+> additionally instead.
+>
+> Signed-off-by: Andre Heider <a.heider@gmail.com>
+> ---
+>  bootscript/armhf/bootscr.beaglebone | 49 +++++--------------------------------
+>  db/all.db                           |  4 +--
+>  2 files changed, 8 insertions(+), 45 deletions(-)
+>
+> diff --git a/bootscript/armhf/bootscr.beaglebone b/bootscript/armhf/bootscr.beaglebone
+> index edc1cd0..f04532d 100644
+> --- a/bootscript/armhf/bootscr.beaglebone
+> +++ b/bootscript/armhf/bootscr.beaglebone
+...
+> -if test "${devnum}" = ""
+> -then
+> -  setenv partition ${bootpart}
+> -elif test "${distro_bootpart}" = ""
+> -then
+> -  # use partition provided by bootpart
+> -  setenv partition ${devnum}:${bootpart}
+> -else
+> -  # use partition provided by distro_bootpart
+> -  setenv partition ${devnum}:${distro_bootpart}
+> +if test -z "${devtype}"; then
+> +  setenv devtype "mmc"
+>  fi
+...
+> +if test -z "${devnum}"; then
+> +  setenv devnum ${bootpart}
+>  fi
+I just realized that the handling of bootpart is incorrect here...
+Before distro_bootcmd support was added, bootpart sometimes contained
+both a device number and a the partition:
+  bootpart=0:1
+Then, distro_bootcmd support was added, and it changed to:
+  bootpart=1
+But that broke legacy scripts, so distro_bootpart was added:
+  distro_bootpart=1
+This will result in this expanding incorrectly:
+  load ${devtype} ${devnum}:${partition} ....
+To render as this in the legacy case:
+  load mmc 0:1:0:1 ....
+I haven't figured out in u-boot's shell how to extract parts of
+variables, and we're dealing with legacy versions of
+u-boot... so... hrm.
+This is a similar problem with the legacy u-boot-sunxi support in the
+bootscr.sunxi with the "partition" variable.
+Supporting legacy u-boot variables is a tangled mess, but u-boot is
+definitely something people might be hesitant to update, at risk of
+bricking a system.
+live well,
+  vagrant
+signature.asc

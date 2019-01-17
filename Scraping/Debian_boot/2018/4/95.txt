@@ -1,0 +1,43 @@
+To : submit@bugs.debian.org
+Subject : Bug#895096: debootstrap: -unpack-tarball option doesn't recognize tar.gz file
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sat, 7 Apr 2018 09:44:59 +0900
+Message-id : 20180407094459.776836d0c4eb8b41746082db@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 895096@bugs.debian.org
+
+
+package: debootstrap
+severity: minor
+tags: patch
+Hi,
+ --unpack-tarball option doesn't recognize tar.gz
+> $ sudo debootstrap --unpack-tarball=/home/henrich/tmp/debootstrap.tar.gz sid sid
+> E: Unknown tarball: must be either .tar or .tgz
+ And here's a proposed patch.
+ 
+diff --git a/debootstrap b/debootstrap
+index f67326c..1934f59 100755
+--- a/debootstrap
++++ b/debootstrap
+@@ -122,7 +122,7 @@ usage()
+       --no-resolve-deps      don't try to resolve dependencies automatically
+ 
+       --unpack-tarball=T     acquire .debs from a tarball instead of http
+-      --make-tarball=T       download .debs and create a tarball (tgz format)
++      --make-tarball=T       download .debs and create a tarball
+       --second-stage-target=DIR
+                              Run second stage in a subdirectory instead of root
+                                (can be used to create a foreign chroot)
+@@ -577,10 +577,12 @@ if [ "$UNPACK_TARBALL" ]; then
+        fi
+        if [ "${UNPACK_TARBALL%.tar}" != "$UNPACK_TARBALL" ]; then
+                (cd "$TARGET" && tar -xf "$UNPACK_TARBALL")
++       elif [ "${UNPACK_TARBALL%.tar.[g|x]z}" != "$UNPACK_TARBALL" ]; then
++               (cd "$TARGET" && tar -xf "$UNPACK_TARBALL")
+        elif [ "${UNPACK_TARBALL%.tgz}" != "$UNPACK_TARBALL" ]; then
+                (cd "$TARGET" && zcat "$UNPACK_TARBALL" | tar -xf -)
+        else
+-               error 1 NOTTAR "Unknown tarball: must be either .tar or .tgz"
++               error 1 NOTTAR "Unknown tarball: must be .tar.[gz,xz], .tar or .tgz"
+        fi
+ fi

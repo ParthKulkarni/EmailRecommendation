@@ -1,0 +1,54 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#900612: apache2-suexec-pristine: Packaging steps undo setting of setuid bit
+From : Jason Perrin <jvperrin@ocf.berkeley.edu>
+Date : Fri, 01 Jun 2018 17:06:10 -0700
+Message-id : 152789797050.6001.17306038050152952857.reportbug@fireball.ocf.berkeley.edu
+Reply-to : Jason Perrin <jvperrin@ocf.berkeley.edu>, 900612@bugs.debian.org
+
+
+Package: apache2-suexec-pristine
+Version: 2.4.25-3+deb9u4
+Severity: normal
+Tags: patch
+Justification: fails to build from source (but built successfully in the past)
+Dear Maintainer,
+When building the apache2-suexec-pristine (and apache2-suexec-custom) packages
+from source, I expected the built .deb packages to contain setuid binaries
+(at /usr/lib/apache2/suexec-pristine and /usr/lib/apache2/suexec-custom
+respectively). However, when packaging was done, the packages contained
+binaries with the permissions 0754, not 4754, as set in the debian/rules file.
+Looking into this more, it appears that chgrp (through the chown system call)
+clears the setuid bit (and all bits in the first octet of permissions) when it
+is run, so the steps in override_dh_fixperms-arch end up removing the setuid
+bit when chgrp is run after chmod.
+This appears to be a problem in the source for this package, on the master
+branch, as well as on separate branches for different distros:
+https://salsa.debian.org/apache-team/apache2/blob/master/debian/rules#L148-153
+I'm not sure how this has worked properly to produce packages, since the last
+change to that section was 6 years ago, so I'm a bit confused on that point.
+Here is a patch to fix the setting of the setuid bit in both packages by just
+moving the chmod to after chgrp has already run:
+--- debian/rules
++++ debian/rules
+@@ -146,11 +146,11 @@ override_dh_install: clean-config-vars-stamp \
+ override_dh_fixperms-arch:
+        # standard suexec
+-       chmod 4754 debian/apache2-suexec-pristine/usr/lib/apache2/suexec-pristine
+        chgrp www-data debian/apache2-suexec-pristine/usr/lib/apache2/suexec-pristine
++       chmod 4754 debian/apache2-suexec-pristine/usr/lib/apache2/suexec-pristine
+        # configurable suexec
+-       chmod 4754 debian/apache2-suexec-custom/usr/lib/apache2/suexec-custom
+        chgrp www-data debian/apache2-suexec-custom/usr/lib/apache2/suexec-custom
++       chmod 4754 debian/apache2-suexec-custom/usr/lib/apache2/suexec-custom
+        dh_fixperms -a -Xusr/lib/apache2/suexec-custom -Xusr/lib/apache2/suexec-pristine
+        chown -R www-data:www-data debian/apache2/var/cache/apache2/mod_cache_disk
+        chown root:adm debian/apache2/var/log/apache2
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-6-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8) (ignored: LC_ALL set to en_US.UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8) (ignored: LC_ALL set to en_US.UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

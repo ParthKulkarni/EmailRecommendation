@@ -1,0 +1,38 @@
+To : submit@bugs.debian.org
+Subject : Bug#872059: No longer creates /dev/console.
+From : brsr.alternative@gmail.com
+Date : Mon, 14 Aug 2017 02:05:37 +0100
+Message-id : 20170814010537.pbny4w4u5hrpphhl@rici-macbook
+Reply-to : brsr.alternative@gmail.com, 872059@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.89
+Tags: patch
+Dear maintainer,
+After upgrading to Stretch, I noticed that the init scripts would no longer
+produce any output on the system console during boot. Note I use a kernel with
+the needed drivers linked statically lest I need to use an initramfs so this
+issue may not apply with an initramfs; also, I
+use sysvinit instead of systemd. After investigating, I found the cause of the
+problem to be that the special file `/dev/console' was not present in the file
+system; this would not be a problem normally since, when devtmpfs gets mounted,
+`/dev/console' will be created, but I suppose that takes place after the kernel
+starts init (probably in an init script). The relation this issue has to
+debootstrap is that version 1.0.67 of debootsrap (from Jessie) created the files
+in `/dev' by unpacking the archive at `/usr/share/debootstrap/devices.tar.gz';
+from what I gather, it DID include `/dev/console'. Now, in the version 1.0.89,
+this was changed to calls to mknod in `/usr/share/debootstrap/functions' and
+`/dev/console' is NOT created.  Perhaps no longer creating it was intentional as
+it is not needed with systemd (I think), but I guess you may agree that this is
+not the desired behaviour since sysvinit is officially supported. The change
+required in the file `functions' is minute and I included the patch; I have NOT
+tested it though, sorry!
+P.S. Slightly unrelated but, in the line I added in the patch, I did not quote
+the path with the variable expansion for consistency with the code around it
+since the paths are not quoted in the rest of that function; they should be
+though!
+Yours faithfully,
+B.R.S.R.
+1179a1180
+> 	mknod -m 600 $TARGET/dev/console c 5 1

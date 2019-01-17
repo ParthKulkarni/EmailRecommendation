@@ -1,0 +1,59 @@
+To : Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Subject : Bug#851774: [pkg-gnupg-maint] Bug#851774: Stop using apt-key add to add keys in generators/60local
+From : David Kalnischkies <david@kalnischkies.de>
+Date : Sun, 5 Feb 2017 19:11:52 +0100
+Message-id : 20170205181152.j5stvmdisfegl5ie@crossbow
+Mail-followup-to : Daniel Kahn Gillmor <dkg@fifthhorseman.net>,	Cyril Brulebois <kibi@debian.org>, 851774@bugs.debian.org,	Marga Manterola <marga@google.com>, deity@lists.debian.org,	pkg-gnupg-maint@lists.alioth.debian.org
+Reply-to : David Kalnischkies <david@kalnischkies.de>, 851774@bugs.debian.org
+In-reply-to : <[🔎] 87bmuhp5x4.fsf@alice.fifthhorseman.net>
+References : <CAM+PWT0Yx4YK63J=84zA2dvhXwjGROxC72AhEE=7uGnOs+mbcg@mail.gmail.com> <91472e5c-7c1b-b017-536d-541b563716cb@philkern.de> <20170121183343.GA31901@debian.org> <[🔎] 20170204232552.GA22682@mraw.org> <[🔎] 87k295pj81.fsf@alice.fifthhorseman.net> <[🔎] 20170205004854.GD21141@mraw.org> <[🔎] 87bmuhp5x4.fsf@alice.fifthhorseman.net>
+
+
+On Sun, Feb 05, 2017 at 12:23:19AM -0500, Daniel Kahn Gillmor wrote:
+> On Sat 2017-02-04 19:48:54 -0500, Cyril Brulebois wrote:
+> > [ dkg wrote: ]
+> >> Regardless of the choice of filesystem location (fragment directory or
+> >> elsewhere), gpgv does want to see the curated keyrings it depends on
+> >> in binary format, so on to the next bit:
+> >
+> > I'm a bit confused here: apt-get update (in a sid chroot, not attempted
+> > in d-i) is fine with an armor key in the fragment directory; are you
+> > saying that using the Signed-by option for sources.list would mean
+> > having to have a (curated) keyring, and an non-armored version, hence
+> > the need for the transformation you're suggesting below?
+> 
+> Sorry, i guess it's possible that apt is doing something fancier that i
+> don't know about, then.
+> 
+> gpgv on its own expects the --keyring files it encounters to be either a
+> sequence of raw OpenPGP packets that together form a series of OpenPGP
+> certificates (a.k.a. "a keyring") or GnuPG's "keybox" format.  AFAIK,
+> gpgv does not accept ascii-armored files for its --keyring argument.
+> 
+> maybe the apt folks can weight in on what's going on with armored
+> fragments?  If it's converting them before handing them off to gpgv,
+> maybe you can just count on it to convert the files that aren't in the
+> fragment directory as well?
+apt >= 1.4 uses basically the awk snippet (it is slightly more complex
+to deal with two or more armor keys in one file, but that is implemented
+more for our testcases than a real external requirement) [see apt-key
+for implementation details].
+Note that you can NOT use files in keybox format in exchange as apt
+merges all keyrings into a big one with 'cat' to avoid both a dependency
+on gnupg and to avoid running into limits on the amount of keyring files
+(gpg has a limit of 40 keyring files in a single invocation – and there
+is always the looming threat of having that be 1 one day…).
+So, as long as you make it so that an armored file has the extension
+'asc' and binary (OpenPGP packet) file has 'gpg' apt will do the right
+thing with them in the fragment directory just as well as in Signed-By
+[in stretch, but Signed-By is a new-in-stretch feature, too].
+> > Remember we're talking about adding extra repositories with custom d-i
+> > configuration, so I'm fine with people having broken stuff because they
+> > pasted a whole mail…
+> 
+> agreed, we can expect these folks to get the details right.
+For the same reason I wouldn't worry too much about people using *.asc
+files with binary format contents and vice versa to be honest.
+Best regards
+David Kalnischkies
+signature.asc

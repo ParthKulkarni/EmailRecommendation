@@ -1,0 +1,106 @@
+To : submit@bugs.debian.org
+Subject : Bug#860286: installation-reports: Turris Omnia (stretch rc3; missing "ahci_mvebu.ko" module)
+From : Robert Edmonds <edmonds@debian.org>
+Date : Fri, 14 Apr 2017 01:42:50 -0400
+Message-id : 20170414054250.4kohcudt537zb2au@mycre.ws
+Reply-to : Robert Edmonds <edmonds@debian.org>, 860286@bugs.debian.org
+
+
+Package: installation-reports
+Boot method:
+    The machine's boot loader was first upgraded from:
+"U-Boot 2015.10-rc2 (Aug 18 2016 - 20:43:35 +0200), Build: jenkins-omnia-master-23"
+    to:
+"U-Boot 2015.10-rc2 (Apr 13 2017 - 18:18:08 +0200), Build: jenkins-omnia-test-812"
+    using the image from
+    https://api.turris.cz/openwrt-repo/omnia-test/nor_fw/uboot-turris-omnia-spl.kwb.
+    The debian-installer images listed below were then downloaded to an
+    ext2 filesystem on an mSATA SSD installed in the machine, in the
+    "/install" directory.
+    The system was then booted with the following U-Boot commands:
+        => mw 0xf10184a0 0xfd4d4cfa
+        => mw 0xf1020300 0x403
+        => scsi scan
+        scanning bus for devices...
+          Device 0: (0:0) Vendor: ATA Prod.: KINGSTON SMS200S Rev: 60AA
+                    Type: Hard Disk
+                    Capacity: 114473.4 MB = 111.7 GB (234441648 x 512)
+        Found 1 device(s).
+        => ext2load scsi 0:1 0x01000000 install/vmlinuz
+        3699520 bytes read in 104 ms (33.9 MiB/s)
+        => ext2load scsi 0:1 0x02000000 install/armada-385-turris-omnia.dtb
+        16906 bytes read in 23 ms (717.8 KiB/s)
+        => ext2load scsi 0:1 0x03000000 install/initrd.gz
+        21316847 bytes read in 456 ms (44.6 MiB/s)
+        => setenv bootargs 'earlyprintk console=ttyS0,115200'
+        => bootz 0x01000000 0x03000000:$filesize 0x02000000
+Image version:
+http://ftp.nl.debian.org/debian/dists/testing/main/installer-armhf/20170407/images/device-tree/armada-385-turris-omnia.dtb
+http://ftp.nl.debian.org/debian/dists/testing/main/installer-armhf/20170407/images/netboot/initrd.gz
+http://ftp.nl.debian.org/debian/dists/testing/main/installer-armhf/20170407/images/netboot/vmlinuz
+Machine: Turris Omnia
+Processor: Marvell Armada 385
+Memory: 2 GB
+Partitions:
+    Disk /dev/sda: 111.8 GiB, 120034123776 bytes, 234441648 sectors
+    Units: sectors of 1 * 512 = 512 bytes
+    Sector size (logical/physical): 512 bytes / 512 bytes
+    I/O size (minimum/optimal): 512 bytes / 512 bytes
+    Disklabel type: dos
+    Disk identifier: 0x56ffd8d2
+    Device     Boot   Start       End   Sectors  Size Id Type
+    /dev/sda1          2048   1050623   1048576  512M 83 Linux
+    /dev/sda2       1050624 210765823 209715200  100G 83 Linux
+Output of lspci -knn (or lspci -nn):
+    00:01.0 PCI bridge [0604]: Marvell Technology Group Ltd. Device [11ab:6820] (rev 04)
+    00:02.0 PCI bridge [0604]: Marvell Technology Group Ltd. Device [11ab:6820] (rev 04)
+    00:03.0 PCI bridge [0604]: Marvell Technology Group Ltd. Device [11ab:6820] (rev 04)
+    02:00.0 Network controller [0280]: Qualcomm Atheros QCA986x/988x 802.11ac Wireless Network Adapter [168c:003c]
+        Kernel driver in use: ath10k_pci
+        Kernel modules: ath10k_pci
+    03:00.0 Network controller [0280]: Qualcomm Atheros AR9287 Wireless Network Adapter (PCI-Express) [168c:002e] (rev 01)
+        Subsystem: Qualcomm Atheros AR9287 Wireless Network Adapter (PCI-Express) [168c:30a4]
+        Kernel driver in use: ath9k
+        Kernel modules: ath9k
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [ ]
+Load installer modules: [O]
+Detect hard drives:     [E]
+Partition hard drives:  [O]
+Install base system:    [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Install tasks:          [O]
+Install boot loader:    [ ]
+Overall install:        [O]
+Comments/Problems:
+    The installer environment was unable to detect the mSATA SSD
+    installed in the system, due to the absence of the ahci_mvebu.ko
+    kernel module. I was able to work around this by downloading the
+    linux-image-4.9.0-2-armmp-unsigned_4.9.18-1_armhf.deb package from
+    the archive on another machine and extracting the file
+    lib/modules/4.9.0-2-armmp/kernel/drivers/ata/ahci_mvebu.ko, and
+    transferring this .ko file to the installer environment's
+    /lib/modules/4.9.0-2-armmp/kernel/drivers/ata/ directory, then
+    running "depmod -a" and "modprobe ahci_mvebu". This made /dev/sda
+    appear and I was able to proceed with partitioning the mSATA SSD.
+    I understand from [0] that debian-installer is unable to configure
+    the boot loader on this machine, so I skipped the "Install boot
+    loader" step and manually copied the dtb file into /target/boot/dtb.
+    After rebooting the machine I ran the following commands in the
+    U-Boot environment:
+setenv debbootargs earlyprintk console=ttyS0,115200 rootfstype=ext4 rootwait root=/dev/sda2 ro quiet pcie_aspm=off
+setenv debboot 'setenv bootargs "$debbootargs"; mw 0xf10184a0 0xfd4d4cfa; mw 0xf1020300 0x403; scsi scan; ext2load scsi 0:1 0x01000000 vmlinuz; ext2load scsi 0:1 0x02000000 dtb; ext2load scsi 0:1 0x03000000 initrd.img; bootz 0x01000000 0x03000000:$filesize 0x02000000'
+setenv debbootcmd 'i2c dev 1; i2c read 0x2a 0x9 1 0x00FFFFF0; setexpr.b rescue *0x00FFFFF0; if test $rescue -ge 2; then echo BOOT RESCUE; run rescueboot; else if test $rescue -ge 1; then echo BOOT eMMC TurrisOS FS; run mmcboot; else echo BOOT Debian FS; run debboot; fi; fi'
+setenv bootcmd "$debbootcmd"
+saveenv
+boot
+    The machine then successfully booted Debian.
+[0] https://wiki.debian.org/InstallingDebianOn/TurrisOmnia
+-- 
+Robert Edmonds
+edmonds@debian.org

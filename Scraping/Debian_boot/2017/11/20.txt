@@ -1,0 +1,47 @@
+To : Samuel Thibault <sthibault@debian.org>
+Subject : Bug#880210: installation-guide: validity errors when building the manual
+From : Holger Wansing <linux@wansing-online.de>
+Date : Thu, 2 Nov 2017 19:35:27 +0100
+Message-id : 20171102193527.0f6505910dc3769f0d5d9fa6@wansing-online.de
+Reply-to : Holger Wansing <linux@wansing-online.de>, 880210@bugs.debian.org
+In-reply-to : <20171031203719.hisdmikyfakhwxby@var.youpi.perso.aquilenet.fr>
+References : <150937905991.14550.3080831846943683314.reportbug@armor.home> <150937905991.14550.3080831846943683314.reportbug@armor.home> <20171031203719.hisdmikyfakhwxby@var.youpi.perso.aquilenet.fr> <150937905991.14550.3080831846943683314.reportbug@armor.home>
+
+
+Hi,
+Samuel Thibault <sthibault@debian.org> wrote:
+> Control: severity -1 wishlist
+> 
+> Hello,
+> 
+> Cyril Brulebois, on lun. 30 oct. 2017 16:57:39 +0100, wrote:
+> > Now we've got those as well (excerpt):
+> > | /home/d-i/trunk/manual/en/preparing/bios-setup/arm.xml:5: element sect2: validity error : ID boot-dev-select already defined
+> > |   <sect2 arch="arm64" id="boot-dev-select"><title>Boot Device Selection</title>
+> 
+> We actually already had these in some situations, I don't remember
+> exactly which.  AIUI this warning is spurious:
+> 
+> $ grep -r boot-dev-select en/
+> ./boot-installer/intro-usb.xml:<xref linkend="boot-dev-select"/> and <xref
+> ./boot-installer/intro-cd.xml:<xref linkend="boot-dev-select"/>,
+> ./using-d-i/components.xml:linkend="boot-dev-select-sun"/>.</phrase>
+> ./preparing/bios-setup/i386.xml:  <sect2 arch="any-x86" id="boot-dev-select"><title>Boot Device Selection</title>
+> ./preparing/bios-setup/sparc.xml:  <sect2 arch="sparc" id="boot-dev-select-sun">
+> ./preparing/bios-setup/arm.xml:  <sect2 arch="arm64" id="boot-dev-select"><title>Boot Device Selection</title>
+> 
+> There's really only one such id at a time.
+> 
+> Of course it'd still be nice to find out how to avoid this warning.
+As can be seen in above grep output, the relevant id exists for two archs.
+The point is, that ids have to be unique for the whole manual now, not only per arch.
+(In the very beginning of the build, merge_xml merges all xml files per chapter into
+one big xml file. And in this file the ids are existing more than once now.)
+I am working on a fix for that, making the ids unique like
+- ./preparing/bios-setup/i386.xml:  <sect2 arch="any-x86" id="boot-dev-select"><title>Boot Device Selection</title>
+- ./preparing/bios-setup/arm.xml:  <sect2 arch="arm64" id="boot-dev-select"><title>Boot Device Selection</title>
++ ./preparing/bios-setup/i386.xml:  <sect2 arch="any-x86" id="boot-dev-select-x86"><title>Boot Device Selection</title>
++ ./preparing/bios-setup/arm.xml:  <sect2 arch="arm64" id="boot-dev-select-arm64"><title>Boot Device Selection</title>
+Performing that on all relevant fixes all those warnings.
+The fix needs to unfuzzy translations as well, so please be patient :-)
+Holger

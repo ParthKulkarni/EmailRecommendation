@@ -1,0 +1,32 @@
+To : 731859@bugs.debian.org, Russell Stuart <russell-debian@stuart.id.au>
+Subject : Bug#731859: Happens to me on stretch
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Fri, 15 Jun 2018 16:18:31 +0900
+Message-id : 20180615161831.1d5063d557290d4389f87aed@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 731859@bugs.debian.org
+In-reply-to : <1527419960.5720.6.camel@stuart.id.au>
+References : <20131210144833.27986.22338.reportbug@hoothoot>
+
+
+Hi,
+On Sun, 27 May 2018 21:19:20 +1000 Russell Stuart <russell-debian@stuart.id.au> wrote:
+> The attached script ("bug-731859-demo.sh") does a nested debootstrap
+> run.  The outer run sets up a chroot for the  Debian suite passed on
+> the command line (eg, "stretch"), then runs a nested debootstrap --
+> variant=fakechroot in that environment.  For me both these fail:
+> 
+>     ./bug-731859-demo.sh stretch
+>     ./bug-731859-demo.sh buster
+ Thank you for providing script :)
+ I've tested it and got failure. However, I could fix it a bit by adding
+ "sudo mount -t proc none "${suite}.chroot/proc"" after debootstraping.
+ Because debootstrap failure is caused by "systemd-machine-id-setup" in
+ systemd.postinst, and can improve it with /proc mount.
+ Russell, could you test it, please?
+> They fail in different ways, but the root cause appears to be the same:
+>  the ldconfig isn't working.  Note that both leave ldd.REAL and
+> ldconfig.REAL lying around in the nested run.
+ I'm not sure how to run nested chroot with success, it means
+ "chroot "/tmp/${suite}" /bin/sh" line would still fail, though.
+-- 
+Hideki Yamane <henrich@iijmio-mail.jp>

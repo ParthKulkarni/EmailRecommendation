@@ -1,0 +1,48 @@
+To : Cyril Brulebois <kibi@debian.org>, 838503@bugs.debian.org
+Subject : Bug#838503: debian-installer: mdadm should not start syncing RAID1 arrays at full speed during installation
+From : Steve McIntyre <steve@einval.com>
+Date : Thu, 6 Dec 2018 23:09:01 +0000
+Message-id : 20181206230901.hitnwhyqzi4t7ew6@tack.einval.com
+Reply-to : Steve McIntyre <steve@einval.com>, 838503@bugs.debian.org
+In-reply-to : <20170624190149.GC29790@mraw.org>
+References : <20160921170956.GB9507@lud.imag.fr> <20170624190149.GC29790@mraw.org> <20160921170956.GB9507@lud.imag.fr>
+
+
+[ Responding to this old bug, prompted by discussion in #debian-boot
+  tonight ]
+On Sat, Jun 24, 2017 at 09:01:49PM +0200, Cyril Brulebois wrote:
+>Hi Baptiste,
+>
+>Baptiste Jonglez <debian@bitsofnetworks.org> (2016-09-21):
+>> When creating a RAID1 array in the debian-installer and using it for
+>> the installation, mdadm immediately starts syncing the disks of the
+>> RAID array.
+>> 
+>> This is a bad idea, because the subsequent install will be really slow
+>> on rotational disks (linear disk access by mdadm and random disk
+>> access by dpkg).  On a fairly recent computer with 2 SATA disks, the
+>> installation took around 20 minutes before even arriving to the
+>> tasksel step.
+>
+>Well, I can understand the argument, but the user could very well expect
+>disks to be in mirror mode as soon as possible, and not wait until a few
+>days after the installation before the initial sync ends…
+The number isn't persistent across reboots, so it would speed up again
+on the reboot after the installation finished.
+>> I can see two solutions:
+>> 
+>> 1) lower the speed of the syncing operation, by setting the
+>>    "dev.raid.speed_limit_max" sysctl setting to e.g. 1000;
+>
+>I'm not sure it would be a good idea to stick a hardcoded value there,
+>even if we were to lower the available bandwidth… Too many different
+>cases, be it about actual hardware, disk sizes, etc.
+1000 is a nice small number, which I think might make sense as a
+default *while* we're installing. Once the installer has finished and
+the system is rebooted, all will go back to normal. Hell, we could
+even expose this value via debconf for expert (and preseed) if needed.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"Yes, of course duct tape works in a near-vacuum. Duct tape works
+ anywhere. Duct tape is magic and should be worshipped."
+   -― Andy Weir, "The Martian"

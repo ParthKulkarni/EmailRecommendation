@@ -1,0 +1,42 @@
+To : Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+Subject : Re: Busybox 1.27 breaks kernel cmdline preseeding
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 24 Nov 2017 11:40:51 +0000
+Message-id : 20171124114027.x4bx4nfgrpaau6gp@mraw.org
+In-reply-to : <[🔎] CACfMzvqcj_Hfwoe0YizaV4NzsA153R0r24MDFNriocSDiw+Jfw@mail.gmail.com>
+References : <[🔎] CACfMzvqcj_Hfwoe0YizaV4NzsA153R0r24MDFNriocSDiw+Jfw@mail.gmail.com>
+
+
+Hi Mathieu,
+Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com> (2017-11-22):
+> In Ubuntu we recently noticed the following: with busybox 1.27.0; d-i now
+> does not take into account some preseeding that happens at the kernel
+> cmdline.
+> 
+> For instance:
+> linux /vmlinux etc. etc. etc. debconf/priority=critical
+> netcfg/get_hostname=blah
+> 
+> Here, debconf/priority and netcfg/get_hostname would not be preseeded
+> correctly. On the other hand, using their aliases 'priority' and 'hostname'
+> would work correctly.
+> 
+> I investigated this with Adam Conrad and we tracked it down to changes in
+> busybox's handling of /. It was previously permitted in variable names in
+> the environment (cmdline preseeding eventually makes it there, where it
+> gets read by env2debconf), and is no longer acceptable. This is why
+> 'priority' works and 'debconf/priority' does not. It is technically correct
+> to not allow slashes in variable names in the environment.
+> 
+> Now, how should we go about fixing this? Adam pointed out we could always
+> just parse /proc/cmdline, but this does not just work on kfreebsd. It's
+> also possible to consider both /proc/cmdline and the environment; or just
+> revert the particular change in busybox.
+> 
+> I don't feel strongly either way, but I want to make the solution available
+> in Debian as well... Anybody have a preference?
+Right now (thinking of a release soon-ish), I think I'd be happy with a
+specific revert for the time being; then get people to figure out what to
+do next (I have no clue about such things at the moment).
+KiBi.
+signature.asc

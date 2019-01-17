@@ -1,0 +1,93 @@
+To : Paul Schlüter <nemo.paoso@web.de>
+Subject : Re: Bug#854801: No network after netinst Stretch RC2
+From : Bernhard Schmidt <berni@birkenwald.de>
+Date : Mon, 13 Feb 2017 22:39:29 +0100
+Message-id : 70c5ab55-c975-4cde-6cbb-66d43d6db67f@birkenwald.de
+In-reply-to : <[🔎] 1487006672.2520.12.camel@uliaga>
+References : <[🔎] 1486738488.2520.3.camel@uliaga> <[🔎] 20170210161731.GK17507@mraw.org> <[🔎] 3ebf5248-2f9c-f036-1ef5-1da92b80deae@birkenwald.de> <[🔎] 1487006672.2520.12.camel@uliaga>
+
+
+Hi
+On 13.02.2017 18:24, Paul Schlüter wrote:
+> Am Montag, den 13.02.2017, 10:31 +0100 schrieb Bernhard Schmidt:
+>> @Paul: Can you share the installer log (/var/log/installer/syslog) and
+>> the content of your /etc/network/interfaces after installation? I'll try
+>> to get that information myself tonight, I don't have RDNSS here in the
+>> office network unfortunately.
+> 
+> Hi Bernhard,
+> 
+> please find attached
+> 
+> - installer-log.gz: /var/log/installer/syslog
+> - interfaces: original (and current) /etc/network/interfaces
+> 
+> (I reverted my modification of "interfaces" after the installation of
+> network-manager-gnome).
+So, I've tried to reproduce the issue and failed. I'm in a qemu VM on a
+network that provides IPv6 SLAAC with RDNSS and IPv4 DHCP. I have booted
+using the RC2-netinst-amd64 image and installed the XFCE desktop task.
+As expected I ended up with rdnssd installed (no network-manager), but
+/etc/network/interfaces is properly populated and I got network
+connectivity.
+I think I have found the source of your problem. According to your logs
+you are installing on a WiFi interface (wlp2s0). The first attempt to
+write your /etc/network/interfaces shows correct stanzas for the interface
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Network config complete
+Feb  9 06:32:45 netcfg[6883]: DEBUG: No interface given; clearing
+/etc/network/interfaces
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Writing informative header
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Success!
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Writing loopback interface
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Success!
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Writing DHCP stanza for wlp2s0
+Feb  9 06:32:45 netcfg[6883]: INFO: Detected wlp2s0 as a hotpluggable device
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Writing SLAAC stanza for wlp2s0
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Writing wireless options for wlp2s0
+Feb  9 06:32:45 netcfg[6883]: DEBUG: Success!
+but the second attempt in finish-install.d only writes the loopback
+Feb  9 07:27:06 finish-install: info: Running
+/usr/lib/finish-install.d/55netcfg-copy-config
+Feb  9 07:27:06 netcfg[30397]: INFO: Starting netcfg v.1.141
+Feb  9 07:27:06 netcfg[30397]: DEBUG: No interface given; clearing
+/etc/network/interfaces
+Feb  9 07:27:06 netcfg[30397]: DEBUG: Writing informative header
+Feb  9 07:27:06 netcfg[30397]: DEBUG: Success!
+Feb  9 07:27:06 netcfg[30397]: DEBUG: Writing loopback interface
+Feb  9 07:27:06 netcfg[30397]: DEBUG: Success!
+Feb  9 07:27:06 finish-install: info: Running
+/usr/lib/finish-install.d/60cleanup
+I think the code to blame is here
+https://anonscm.debian.org/cgit/d-i/netcfg.git/tree/finish-install.d/55netcfg-copy-config#n42
+> # Check for preseeding. If the value of the question is empty then set
+> # default options. Document automatic selection changes in the template.
+> if [ -z "$RET" ]; then
+> 	if $NM_IS_INSTALLED; then
+> 		db_set netcfg/target_network_config $CONFIG_NM
+> 	else
+> 		if [ "$NETCFG_CONNECTION_TYPE" = "wired" ]; then
+> 			db_set netcfg/target_network_config $CONFIG_INTERFACES
+> 		else # wireless
+> 			db_set netcfg/target_network_config $CONFIG_LOOPBACK
+> 		fi
+> 	fi
+> fi
+in finish-install /e/n/i will never be properly populated for a wireless
+installation without network-manager, although I think ifupdown would be
+capable to do this (not tested, but have a look at
+https://anonscm.debian.org/cgit/d-i/netcfg.git/tree/write_interface.c).
+I guess the justification is that people using wireless usually would
+want a GUI to roam between networks, and a interface stanza would
+prevent even a (later installed) network-manager from touching the
+interface.
+rdnssd just triggers this more often because it will prevent
+network-manager installations on the desktop tasks normally using the
+wireless connectivity.
+But, all in all, I think network-manager should take precedence over
+rdnssd. So we can either
+a) go for Cyril's suggestion and just install rdnssd in finish-install
+if network-manager is not getting installed there (but honestly I have
+no idea of the netcfg code base)
+b) drop the Conflicts and make the rdnssd merge-hook a no-op if
+network-manager is installed/running.
+Bernhard

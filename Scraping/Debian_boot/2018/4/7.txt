@@ -1,0 +1,56 @@
+To : Adam Borowski <kilobyte@angband.pl>, 693219@bugs.debian.org, Paul Wise	 <pabs@debian.org>
+Subject : Bug#693219: Bug#826709: Doesn't mention --foreign in help output
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Mon, 02 Apr 2018 19:55:23 +0100
+Message-id : e681fa8471b8a4cd956732438cc889ef90b2dc0f.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 693219@bugs.debian.org
+In-reply-to : <[🔎] 20180402132758.2qckripyfrjigpgv@angband.pl>
+References : <20121114115155.19383.5573.reportbug@tack.local>  <20151126173148.GA3270@reva.itsari.org>  <1465372864.2168.15.camel@debian.org>  <20180401113241.b6d6f3a3291158742c54affb@iijmio-mail.jp>  <[🔎] f75fb1e8970079da717fe75d4a91a2afa6990848.camel@debian.org>  <20121114115155.19383.5573.reportbug@tack.local>  <[🔎] 20180402132758.2qckripyfrjigpgv@angband.pl> <20121114115155.19383.5573.reportbug@tack.local>
+
+
+On Mon, 2018-04-02 at 15:27 +0200, Adam Borowski wrote:
+> On Sun, Apr 01, 2018 at 11:24:14AM +0800, Paul Wise wrote:
+> > CCing the maintainer of arch-test who will probably have some input.
+> > 
+> > On Sun, 2018-04-01 at 11:32 +0900, Hideki Yamane wrote:
+> > 
+> > > +               if [ "$HOST_ARCH" = "amd64" ] && [ "$ARCH" = "i386" ] ; then
+> > > +               # i386 binary can be run on amd64 host
+> > 
+> > It is a bad idea to hard-code this and hard-code it for only two
+> > arches
+> 
+> Especially that amd64 hosts only _usually_ can run i386.  It's a kernel
+> config option that happens to be enabled in Debian kernels, but may be
+> omitted from derivative or self-built ones, usually for reasons of space and
+> security (compat syscalls and ioctls are a source of bugs, sometimes
+> exploitable).  Thus, CONFIG_IA32_EMULATION might or might not be enabled.
+Yes, this is a good reason to do a run-time check.
+> On x86 I'm not aware of any 64-bit only hardware, but elsewhere, 32-bit
+> compat is optional -- skipping it can make chips cheaper and more
+> power-efficient, thus arm64 is often incapable of running armhf or armel.
+It is optional but not "often" omitted.  I'm only aware of Cavium
+leaving it out.
+> Even on armhf, the manufacturer may choose to skip costly synchronization
+> needed for obsolete SWP instructions required by armel, which means
+> debootstrap (strictly single-threaded I think) will succeed but installed
+> system will run into mysterious corruption.
+[...]
+I think you're referring to the need for DMB on v6+, right?  The ARMv6
+ARM claims that memory ordering wasn't specified at all in earlier
+architecture versions, so older code using SWP was not portable anyway.
+So far as I can see, OpenSSL still uses SWP when built for ARMv4/v5,
+and does not use DMB.  We should really fix that.
+dietlibc also uses SWP without DMB - but then its ARMv6/v7
+implementation and several other architectures (mips, ppc) are also
+lacking memory barriers, so I assume no-one really uses it in
+multithreaded programs.
+uclibc has some trivial wrappers around SWP that don't seem to be used
+any more.
+And... that's it, so far as I can see.
+Ben.
+-- 
+Ben Hutchings
+Make three consecutive correct guesses and you will be considered
+an expert.
+signature.asc

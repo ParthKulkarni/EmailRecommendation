@@ -1,0 +1,133 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#863634: unblock (pre-approval): systemd/232-24
+From : Michael Biebl <biebl@debian.org>
+Date : Mon, 29 May 2017 16:37:23 +0200
+Message-id : 149606864335.20256.5483371696983529115.reportbug@pluto.milchstrasse.xx
+Reply-to : Michael Biebl <biebl@debian.org>, 863634@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+User: release.debian.org@packages.debian.org
+Usertags: unblock
+Hi,
+I'd like to make another upload of systemd if possible.
+It fixes a remote DoS in resolved (#863277). We don't enable resolved
+by default in Debian, so this bug is not super critical.
+But since an (upstream) fix exists, I would prefer to have this fix in
+stretch. The attached debdiff also has two smaller fixes which have
+piled up in the stretch branch in the mean time.
+Please let me know if I can proceed with the upload.
+If you want me to postpone that for 9.1, I'm fine as well. Uploading it
+now would have the benefit though of at least some testing in unstable.
+The changes don't touch d-i, but I've CCed debian-boot@ anyway for an
+ack.
+Full debdiff attached.
+Regards,
+Michael
+-- System Information:
+Debian Release: 9.0
+  APT prefers unstable
+  APT policy: (500, 'unstable'), (200, 'experimental')
+Architecture: amd64
+ (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-3-amd64 (SMP w/4 CPU cores)
+Locale: LANG=de_DE.utf8, LC_CTYPE=de_DE.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+diff --git a/debian/changelog b/debian/changelog
+index 2c670e7..68276b7 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,21 @@
++systemd (232-24) unstable; urgency=medium
++
++  [ Felipe Sateler ]
++  * Specify nobody user and group.
++    Otherwise nss-systemd will translate to group 'nobody', which doesn't
++    exist on debian systems.
++
++  [ Michael Biebl ]
++  * Add Depends: procps to systemd.
++    It's required by /usr/lib/systemd/user/systemd-exit.service which calls
++    /bin/kill to stop the systemd --user instance. (Closes: #862292)
++  * resolved: fix null pointer p->question dereferencing.
++    This fixes a bug which allowed a remote DoS (daemon crash) via a crafted
++    DNS response with an empty question section.
++    Fixes: CVE-2017-9217 (Closes: #863277)
++
++ -- Michael Biebl <biebl@debian.org>  Mon, 29 May 2017 16:25:43 +0200
++
+ systemd (232-23) unstable; urgency=medium
+ 
+   [ Michael Biebl ]
+diff --git a/debian/control b/debian/control
+index b48a50a..c4e7db1 100644
+--- a/debian/control
++++ b/debian/control
+@@ -74,6 +74,7 @@ Depends: ${shlibs:Depends},
+          util-linux (>= 2.27.1),
+          mount (>= 2.26),
+          adduser,
++         procps,
+ Breaks: lvm2 (<< 2.02.104-1),
+         apparmor (<< 2.9.2-1),
+         systemd-shim (<< 10-3~),
+diff --git a/debian/patches/resolved-bugfix-of-null-pointer-p-question-dereferencing-.patch b/debian/patches/resolved-bugfix-of-null-pointer-p-question-dereferencing-.patch
+new file mode 100644
+index 0000000..0d134c1
+--- /dev/null
++++ b/debian/patches/resolved-bugfix-of-null-pointer-p-question-dereferencing-.patch
+@@ -0,0 +1,24 @@
++From: Evgeny Vereshchagin <evvers@ya.ru>
++Date: Wed, 24 May 2017 08:56:48 +0300
++Subject: resolved: bugfix of null pointer p->question dereferencing (#6020)
++
++See https://bugs.launchpad.net/ubuntu/+source/systemd/+bug/1621396
++(cherry picked from commit a924f43f30f9c4acaf70618dd2a055f8b0f166be)
++---
++ src/resolve/resolved-dns-packet.c | 3 +++
++ 1 file changed, 3 insertions(+)
++
++diff --git a/src/resolve/resolved-dns-packet.c b/src/resolve/resolved-dns-packet.c
++index 337a8c4..07a761e 100644
++--- a/src/resolve/resolved-dns-packet.c
+++++ b/src/resolve/resolved-dns-packet.c
++@@ -2264,6 +2264,9 @@ int dns_packet_is_reply_for(DnsPacket *p, const DnsResourceKey *key) {
++         if (r < 0)
++                 return r;
++ 
+++        if (!p->question)
+++                return 0;
+++
++         if (p->question->n_keys != 1)
++                 return 0;
++ 
+diff --git a/debian/patches/series b/debian/patches/series
+index 44daef3..adc86a7 100644
+--- a/debian/patches/series
++++ b/debian/patches/series
+@@ -62,6 +62,7 @@ Adjust-pkgconfig-files-to-point-at-rootlibdir-4584.patch
+ journal-fix-up-syslog-facility-when-forwarding-native-mes.patch
+ machinectl-make-sure-that-inability-to-get-OS-version-isn.patch
+ nspawn-support-ephemeral-boots-from-images.patch
++resolved-bugfix-of-null-pointer-p-question-dereferencing-.patch
+ debian/Use-Debian-specific-config-files.patch
+ debian/don-t-try-to-start-autovt-units-when-not-running-wit.patch
+ debian/Make-logind-hostnamed-localed-timedated-D-Bus-activa.patch
+diff --git a/debian/rules b/debian/rules
+index 016fc51..d6e984f 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -126,7 +126,9 @@ CONFFLAGS = \
+ 	--disable-wheel-group \
+ 	--with-ntp-servers="$(DEFAULT_NTP_SERVERS)"  \
+ 	--with-system-uid-max=999 \
+-	--with-system-gid-max=999
++	--with-system-gid-max=999 \
++	--with-nobody-user=nobody \
++	--with-nobody-group=nogroup
+ 
+ # resolved's DNSSEC support is still not mature enough, don't enable it by
+ # default on stable Debian/Ubuntu releases

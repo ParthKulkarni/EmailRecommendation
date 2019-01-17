@@ -1,0 +1,49 @@
+To : Bernhard Schmidt <berni@debian.org>
+Subject : Bug#853927: debian-installer: Hang in os-prober in "dmsetup create -r osprober-linux-sda1"
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 10 Feb 2017 08:11:37 +0100
+Message-id : 20170210071137.GG17507@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 853927@bugs.debian.org
+In-reply-to : <[🔎] 20170207123440.GA10326@fliwatuet.svr02.mucip.net>
+References : <[🔎] 148598352830.29157.16885692808004372139.reportbug@paver.krastavac> <[🔎] 20170202120414.GB9976@einval.com> <[🔎] 20170202160010.GF14512@mraw.org> <[🔎] 20170203111010.c4ia6ai7b7cwat5j@mail.sl.id.au> <[🔎] 20170203124216.GA24574@mraw.org> <[🔎] 20170204012303.ocafqxvppw2kyhbx@mail.sl.id.au> <[🔎] 20170204013240.GA23551@mraw.org> <[🔎] 20170207123440.GA10326@fliwatuet.svr02.mucip.net>
+
+
+Hi Bernhard,
+Bernhard Schmidt <berni@debian.org> (2017-02-07):
+> On Sat, Feb 04, 2017 at 02:32:40AM +0100, Cyril Brulebois wrote:
+> I'm having the same problem with Stretch *RC2* and without Crypto
+> 
+> ~ # blkid
+> /dev/mapper/sysvg-root:    UUID="62e90454-25b4-4803-b9c3-8ea1337b919a"    TYPE="ext4"
+> /dev/sda1:                 UUID="arFRxm-N1ki-U3JC-S3dB-hHSI-mEux-xtnoos"  TYPE="LVM2_member"  PARTUUID="3629c5e6-01"
+> /dev/mapper/sysvg-swap_1:  UUID="c4b8fc97-102c-4d59-b4e8-3d2600bd7eca"    TYPE="swap"
+> /dev/dm-3:                 UUID="arFRxm-N1ki-U3JC-S3dB-hHSI-mEux-xtnoos"  TYPE="LVM2_member"
+> 
+> Extract from the process list
+> 
+>  1097 root      6416 S    udpkg --configure --force-configure grub-installer
+>  1098 root      4512 S    {grub-installer.} /bin/sh -e /var/lib/dpkg/info/grub-installer.postinst configure
+>  1107 root      4512 S    {grub-installer} /bin/sh /usr/bin/grub-installer /target
+>  2279 root      4512 S    {in-target} /bin/sh /bin/in-target update-grub
+>  2325 root      6276 S    log-output -t in-target chroot /target update-grub
+>  2326 root      4288 S    {grub-mkconfig} /bin/sh /usr/sbin/grub-mkconfig -o /boot/grub/grub.cfg
+>  2693 root      4288 S    {30_os-prober} /bin/sh /etc/grub.d/30_os-prober
+>  2697 root      4288 S    {30_os-prober} /bin/sh /etc/grub.d/30_os-prober
+>  2698 root      4288 S    {os-prober} /bin/sh /usr/bin/os-prober
+>  2699 root      5864 S    tr   ^
+>  2700 root      5844 S    paste -s -d  
+>  2767 root      4288 S    {50mounted-tests} /bin/sh /usr/lib/os-probes/50mounted-tests /dev/sda1
+> -tests /dev/sda14288 S    {50mounted-tests} /bin/sh /usr/lib/os-probes/50mounted--More-- 
+>  2778 root     22592 S    dmsetup create -r osprober-linux-sda1
+>  2780 root         0 SW<  [kdmflush]
+>  2782 root         0 SW<  [bioset]
+Can you please double check the os-prober version you've installed? You
+can use this from another VT during the installation process:
+  chroot /target dpkg -l os-prober
+I'm rather surprised by your issue given we've tried to fix exactly this
+one, and tests seemed OK, but maybe you're using a mirror which might be
+lagging behind? (os-prober might be on your installation image though,
+but you haven't told us what you used.)
+Expected fixed version is 1.74; affected versions are 1.72 and 1.73.
+KiBi.
+signature.asc

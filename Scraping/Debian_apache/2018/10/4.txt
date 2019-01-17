@@ -1,0 +1,66 @@
+To : Stefan Fritsch <sf@sfritsch.de>, 902657@bugs.debian.org
+Subject : Bug#902657: Segfault is caused by libcap-ng0 0.7.9
+From : gregor herrmann <gregoa@debian.org>
+Date : Fri, 5 Oct 2018 15:19:09 +0200
+Message-id : 20181005131909.GA5945@jadzia.comodo.priv.at
+Reply-to : gregor herrmann <gregoa@debian.org>, 902657@bugs.debian.org
+In-reply-to : <7822474.b2VXKxi0oM@k>
+References : <7bb2e51f-a690-619c-a061-6995a9bab526@yahoo.at> <7822474.b2VXKxi0oM@k> <7bb2e51f-a690-619c-a061-6995a9bab526@yahoo.at>
+
+
+On Sat, 28 Jul 2018 10:20:40 +0200, Stefan Fritsch wrote:
+> retitle 902657 graceful/restart results in segfault if libcap-ng0 is loaded
+> severity 902657 important
+> block 902657 by 904808
+> thanks
+> 
+> The problem is caused by  libcap-ng0 0.7.9 . This is usually pulled in by php 
+> extensions. There is nothing apache can do.
+I hit this again today (due to changes in certbot, I believe, which
+circumvented my workaround), and syslog tells me:
+Oct  5 14:53:30 colleen kernel: [7424454.447477] apache2[5130]: segfault at 7f6436afb660 ip 00007f6436afb660 sp 00007ffea9e783d8 error 14 in libicudata.so.60.2[7f6439fe1000+19a8000]
+Oct  5 14:53:30 colleen kernel: [7424454.450391] apache2[5131]: segfault at 7f6436afb660 ip 00007f6436afb660 sp 00007ffea9e78298 error 14 in libicudata.so.60.2[7f6439fe1000+19a8000]
+This looks different than the libcap-ng0 failures we've seen in this
+bug before.
+(I also notice that https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=902658#52
+mentions libglib-2.0.so.0)
+# pid=7034; for i in $(awk '{ print $6 }' < /proc/$pid/maps|sort -u|grep /) ; do ldd -d  $i|grep libicudata && echo $i ; done
+ldd: /dev/zero: not regular file
+ldd: /SYSV64000047: No such file or directory
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007fad78485000)
+/usr/lib/apache2/modules/libphp7.2.so
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f8be050e000)
+/usr/lib/php/20170718/dom.so
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f53820a1000)
+/usr/lib/php/20170718/intl.so
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f0a0e1e7000)
+/usr/lib/php/20170718/simplexml.so
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007fa681648000)
+/usr/lib/php/20170718/xmlreader.so
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f89fb2ef000)
+/usr/lib/php/20170718/xml.so
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007fdd517b7000)
+/usr/lib/php/20170718/xmlwriter.so
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f913e616000)
+/usr/lib/php/20170718/xsl.so
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f3c25907000)
+/usr/lib/x86_64-linux-gnu/libexslt.so.0.8.20
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f53238e9000)
+/usr/lib/x86_64-linux-gnu/libicui18n.so.60.2
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f801c3fa000)
+/usr/lib/x86_64-linux-gnu/libicuio.so.60.2
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007fda8fc92000)
+/usr/lib/x86_64-linux-gnu/libicuuc.so.60.2
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007f7f5c3c7000)
+/usr/lib/x86_64-linux-gnu/libxml2.so.2.9.4
+        libicudata.so.60 => /usr/lib/x86_64-linux-gnu/libicudata.so.60 (0x00007ff45599a000)
+/usr/lib/x86_64-linux-gnu/libxslt.so.1.1.32
+Cheers,
+gregor, who considers hacking /usr/sbin/apache2ctl locally instead of
+        working around in several places
+-- 
+ .''`.  https://info.comodo.priv.at -- Debian Developer https://www.debian.org
+ : :' : OpenPGP fingerprint D1E1 316E 93A7 60A8 104D  85FA BB3A 6801 8649 AA06
+ `. `'  Member VIBE!AT & SPI Inc. -- Supporter Free Software Foundation Europe
+   `-   NP: Dire Straits: Wild West End
+signature.asc

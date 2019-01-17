@@ -1,0 +1,197 @@
+To : debian-apache@lists.debian.org
+Subject : Re: Bug#894713: stretch-pu:  apache2/2.4.25-3+deb9u5
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Sat, 02 Jun 2018 10:29:53 +0200
+Message-id : 2101334.ahXDsRGgxa@k
+In-reply-to : <33194895.zMR6IxZlse@k>
+References : <152275725330.3199.10882644970793316680.reportbug@manul.sfritsch.de> <381572461.U70aQcU6Zo@k> <33194895.zMR6IxZlse@k>
+
+
+On Sunday, 20 May 2018 18:32:55 CEST Stefan Fritsch wrote:
+> As I don't see any other way to fix the open issues, I would still like to
+> go ahead. But I will prepare a new package/diff with a NEWS.Debian entry
+> that informs about this change.
+The new debdiff is attached. the NEWS part is also below.
+Cheers,
+Stefan
+--- apache2-2.4.25/debian/apache2.NEWS  2018-03-30 17:07:14.000000000 +0200
++++ apache2-2.4.25/debian/apache2.NEWS  2018-06-02 10:01:13.000000000 +0200
+@@ -1,3 +1,12 @@
++apache2 (2.4.25-3+deb9u5) stretch; urgency=medium
++
++  * This package upgrades mod_http2 to the version from apache2 2.4.33. This
++    fixes a lot of bugs and some security issues, but it also removes the
++    support for using HTTP/2 when running with mpm_prefork. HTTP/2 support
++    is only provided when running with mpm_event or mpm_worker.
++
++ -- Stefan Fritsch <sf@debian.org>  Sat, 02 Jun 2018 09:51:46 +0200
+diff -Nru apache2-2.4.25/debian/apache2.apache-htcacheclean.init apache2-2.4.25/debian/apache2.apache-htcacheclean.init
+--- apache2-2.4.25/debian/apache2.apache-htcacheclean.init	2018-03-31 10:45:18.000000000 +0200
++++ apache2-2.4.25/debian/apache2.apache-htcacheclean.init	2018-05-13 18:52:55.000000000 +0200
+@@ -30,6 +30,13 @@
+ HTCACHECLEAN_PATH="${HTCACHECLEAN_PATH:=/var/cache/apache2$DIR_SUFFIX/mod_cache_disk}"
+ HTCACHECLEAN_OPTIONS="${HTCACHECLEAN_OPTIONS:=-n}"
+ 
++# Read configuration variable file if it is present
++if [ -f /etc/default/apache-htcacheclean$DIR_SUFFIX ] ; then
++       . /etc/default/apache-htcacheclean$DIR_SUFFIX
++elif [ -f /etc/default/apache-htcacheclean ] ; then
++       . /etc/default/apache-htcacheclean
++fi
++
+ PIDDIR="/var/run/apache2/$RUN_USER"
+ PIDFILE="$PIDDIR/$NAME.pid"
+ DAEMON_ARGS="$HTCACHECLEAN_OPTIONS \
+diff -Nru apache2-2.4.25/debian/apache2.NEWS apache2-2.4.25/debian/apache2.NEWS
+--- apache2-2.4.25/debian/apache2.NEWS	2018-03-30 17:07:14.000000000 +0200
++++ apache2-2.4.25/debian/apache2.NEWS	2018-06-02 10:01:13.000000000 +0200
+@@ -1,3 +1,12 @@
++apache2 (2.4.25-3+deb9u5) stretch; urgency=medium
++
++  * This package upgrades mod_http2 to the version from apache2 2.4.33. This
++    fixes a lot of bugs and some security issues, but it also removes the
++    support for using HTTP/2 when running with mpm_prefork. HTTP/2 support
++    is only provided when running with mpm_event or mpm_worker.
++
++ -- Stefan Fritsch <sf@debian.org>  Sat, 02 Jun 2018 09:51:46 +0200
++
+ apache2 (2.4.10-2) unstable; urgency=low
+ 
+   The default period for which rotated log files are kept has been
+diff -Nru apache2-2.4.25/debian/changelog apache2-2.4.25/debian/changelog
+--- apache2-2.4.25/debian/changelog	2018-03-31 10:47:16.000000000 +0200
++++ apache2-2.4.25/debian/changelog	2018-06-02 10:01:13.000000000 +0200
+@@ -1,3 +1,20 @@
++apache2 (2.4.25-3+deb9u5) stretch; urgency=medium
++
++  * Upgrade mod_http and mod_proxy_http2 to the versions from 2.4.33. This
++    fixes
++    - CVE-2018-1302: mod_http2: Potential crash w/ mod_http2
++    - Segfaults in mod_http2 (Closes: #873945)
++    - mod_http2 issue with option "Indexes" and directive "HeaderName"
++      (Closes: #850947)
++    Unfortunately, this also removes support for http2 when running on
++    mpm_prefork.
++  * mod_http2: Avoid high memory usage with large files, causing crashes on
++    32bit archs. Closes: #897218
++  * Make the apache-htcacheclean init script actually look into
++    /etc/default/apache-htcacheclean for its config. Closes: #898563
++
++ -- Stefan Fritsch <sf@debian.org>  Sat, 02 Jun 2018 10:01:13 +0200
++
+ apache2 (2.4.25-3+deb9u4) stretch-security; urgency=medium
+ 
+   * CVE-2017-15710: mod_authnz_ldap: Out of bound write in mod_authnz_ldap
+diff -Nru apache2-2.4.25/debian/patches/CVE-2017-7659.diff apache2-2.4.25/debian/patches/CVE-2017-7659.diff
+--- apache2-2.4.25/debian/patches/CVE-2017-7659.diff	2018-03-31 10:45:18.000000000 +0200
++++ apache2-2.4.25/debian/patches/CVE-2017-7659.diff	1970-01-01 01:00:00.000000000 +0100
+@@ -1,33 +0,0 @@
+-#commit 672187c168b94b562d8065e08e2cad5b00cdd0e3
+-#Author: Stefan Eissing <icing@apache.org>
+-#Date:   Wed Feb 1 20:40:38 2017 +0000
+-#
+-#    On the trunk:
+-#    
+-#    mod_http2: fix for crash when running out of memory. Initial patch by Robert Swiecki <robert@swiecki.net>
+-#    
+-#    
+-#    
+-#    git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/trunk@1781304 13f79535-47bb-0310-9956-ffa450edef68
+-#
+---- apache2.orig/modules/http2/h2_stream.c
+-+++ apache2/modules/http2/h2_stream.c
+-@@ -286,11 +286,13 @@ apr_status_t h2_stream_set_request_rec(h
+-         return APR_ECONNRESET;
+-     }
+-     status = h2_request_rcreate(&req, stream->pool, r);
+--    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, status, r, APLOGNO(03058)
+--                  "h2_request(%d): set_request_rec %s host=%s://%s%s",
+--                  stream->id, req->method, req->scheme, req->authority, 
+--                  req->path);
+--    stream->rtmp = req;
+-+    if (status == APR_SUCCESS) {
+-+        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, status, r, APLOGNO(03058)
+-+                      "h2_request(%d): set_request_rec %s host=%s://%s%s",
+-+                      stream->id, req->method, req->scheme, req->authority, 
+-+                      req->path);
+-+        stream->rtmp = req;
+-+    }
+-     return status;
+- }
+- 
+diff -Nru apache2-2.4.25/debian/patches/mod_http2_mem_usage_32bit.diff apache2-2.4.25/debian/patches/mod_http2_mem_usage_32bit.diff
+--- apache2-2.4.25/debian/patches/mod_http2_mem_usage_32bit.diff	1970-01-01 01:00:00.000000000 +0100
++++ apache2-2.4.25/debian/patches/mod_http2_mem_usage_32bit.diff	2018-05-13 18:52:55.000000000 +0200
+@@ -0,0 +1,12 @@
++# https://svn.apache.org/r1830419
++# http://bugs.debian.org/897218
++--- apache2.orig/modules/http2/h2_bucket_beam.c
+++++ apache2/modules/http2/h2_bucket_beam.c
++@@ -924,6 +924,7 @@ apr_status_t h2_beam_send(h2_bucket_beam
++             while (!APR_BRIGADE_EMPTY(sender_bb) && APR_SUCCESS == rv) {
++                 if (space_left <= 0) {
++                     report_prod_io(beam, force_report, &bl);
+++                    r_purge_sent(beam);
++                     rv = wait_not_full(beam, block, &space_left, &bl);
++                     if (APR_SUCCESS != rv) {
++                         break;
+diff -Nru apache2-2.4.25/debian/patches/mod_http2-revert-new-proxy-features.diff apache2-2.4.25/debian/patches/mod_http2-revert-new-proxy-features.diff
+--- apache2-2.4.25/debian/patches/mod_http2-revert-new-proxy-features.diff	1970-01-01 01:00:00.000000000 +0100
++++ apache2-2.4.25/debian/patches/mod_http2-revert-new-proxy-features.diff	2018-06-02 09:48:33.000000000 +0200
+@@ -0,0 +1,34 @@
++# Revert part of r1824187 which requires a newer mod_proxy
++--- apache2.orig/modules/http2/h2_h2.c
+++++ apache2/modules/http2/h2_h2.c
++@@ -60,6 +60,7 @@ const char *H2_MAGIC_TOKEN = "PRI * HTTP
++ /*******************************************************************************
++  * The optional mod_ssl functions we need. 
++  */
+++static APR_OPTIONAL_FN_TYPE(ssl_engine_disable) *opt_ssl_engine_disable;
++ static APR_OPTIONAL_FN_TYPE(ssl_is_https) *opt_ssl_is_https;
++ static APR_OPTIONAL_FN_TYPE(ssl_var_lookup) *opt_ssl_var_lookup;
++ 
++@@ -445,6 +446,7 @@ apr_status_t h2_h2_init(apr_pool_t *pool
++ {
++     (void)pool;
++     ap_log_error(APLOG_MARK, APLOG_TRACE1, 0, s, "h2_h2, child_init");
+++    opt_ssl_engine_disable = APR_RETRIEVE_OPTIONAL_FN(ssl_engine_disable);
++     opt_ssl_is_https = APR_RETRIEVE_OPTIONAL_FN(ssl_is_https);
++     opt_ssl_var_lookup = APR_RETRIEVE_OPTIONAL_FN(ssl_var_lookup);
++     
++--- apache2.orig/modules/http2/mod_proxy_http2.c
+++++ apache2/modules/http2/mod_proxy_http2.c
++@@ -580,9 +580,9 @@ run_connect:
++     
++     /* Step Three: Create conn_rec for the socket we have open now. */
++     if (!ctx->p_conn->connection) {
++-        status = ap_proxy_connection_create_ex(ctx->proxy_func,
++-                                               ctx->p_conn, ctx->rbase);
++-        if (status != OK) {
+++        if ((status = ap_proxy_connection_create(ctx->proxy_func, ctx->p_conn,
+++                                                 ctx->owner, 
+++                                                 ctx->server)) != OK) {
++             ap_log_cerror(APLOG_MARK, APLOG_DEBUG, status, ctx->owner, APLOGNO(03353)
++                           "setup new connection: is_ssl=%d %s %s %s", 
++                           ctx->p_conn->is_ssl, ctx->p_conn->ssl_hostname, 
+diff -Nru apache2-2.4.25/debian/patches/mod_http2-upgrade-to-2.4.33.diff apache2-2.4.25/debian/patches/mod_http2-upgrade-to-2.4.33.diff
+--- apache2-2.4.25/debian/patches/mod_http2-upgrade-to-2.4.33.diff	1970-01-01 01:00:00.000000000 +0100
++++ apache2-2.4.25/debian/patches/mod_http2-upgrade-to-2.4.33.diff	2018-06-02 09:48:33.000000000 +0200
+[...]
+diff -Nru apache2-2.4.25/debian/patches/series apache2-2.4.25/debian/patches/series
+--- apache2-2.4.25/debian/patches/series	2018-03-31 10:45:18.000000000 +0200
++++ apache2-2.4.25/debian/patches/series	2018-06-02 09:48:33.000000000 +0200
+@@ -13,7 +13,6 @@
+ 
+ CVE-2017-3167.diff
+ CVE-2017-3169.diff
+-CVE-2017-7659.diff
+ CVE-2017-7668.diff
+ CVE-2017-7679.diff
+ CVE-2017-9788-mod_auth_digest.diff
+@@ -25,3 +24,6 @@
+ CVE-2018-1301-HTTP-request-read-out-of-bounds.diff
+ CVE-2018-1303-mod_cache_socache-oob.diff
+ CVE-2018-1312-mod_auth_digest-nonce.diff
++mod_http2-upgrade-to-2.4.33.diff
++mod_http2-revert-new-proxy-features.diff
++mod_http2_mem_usage_32bit.diff

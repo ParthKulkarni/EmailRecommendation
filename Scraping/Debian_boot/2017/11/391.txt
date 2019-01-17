@@ -1,0 +1,39 @@
+To : Mikhail Zakharenko <mikhail.zakharenko@gmail.com>, 838503@bugs.debian.org
+Subject : Bug#838503: debian-installer: mdadm should not start syncing RAID1 arrays at full speed during installation
+From : Philip Hands <phil@hands.com>
+Date : Mon, 27 Nov 2017 16:06:36 +0100
+Message-id : 87bmjnzrpf.fsf@whist.hands.com
+Reply-to : Philip Hands <phil@hands.com>, 838503@bugs.debian.org
+In-reply-to : <[🔎] df0d7a66-54d9-7a1a-5ab5-009f7881fae6@gmail.com>
+References : <20160921170956.GB9507@lud.imag.fr> <[🔎] df0d7a66-54d9-7a1a-5ab5-009f7881fae6@gmail.com> <20160921170956.GB9507@lud.imag.fr>
+
+
+On Mon, 27 Nov 2017, Mikhail Zakharenko <mikhail.zakharenko@gmail.com> wrote:
+> Hi Cyril!
+>
+> Could You provide preseed variable for "dev.raid.speed_limit_max" sysctl 
+> setting?
+> I want to adjust it to near acceptable value around 50Mbytes per second, 
+> because RAID 1 installation is really slow now
+This seems like a bit of a kludge to me.
+Do dpkg pre and post hooks work in the context of d-i?
+If so, could we not just have a hook for dpkg install that tunes the max
+setting down low to avoid the conflict, and turn it back up again
+afterwards?
+I suspect that that would not result in a significant slow-down of the
+sync, while getting rid of the performance issue.
+To address the concern about leaving people with still-sync-ing systems
+post-reboot (which is not actually prevented by the status quo, I note)
+we could add an extra progress screen near the end of the install.
+It could track the progress of any remaining md sync (if any), while
+pointing out that cancelling out of the screen will do no harm, and will
+only mean that the sync that one is waiting for is going to be completed
+post reboot.
+A preseed variable to allow always skipping past that progress screen
+would seem like a reasonable thing to have, if we did all the above.
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

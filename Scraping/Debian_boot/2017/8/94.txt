@@ -1,0 +1,53 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: Black screen / X issue fixed
+From : Philip Hands <phil@hands.com>
+Date : Tue, 15 Aug 2017 01:16:25 +0200
+Message-id : 87o9rhagfq.fsf@whist.hands.com
+In-reply-to : <[🔎] 20170814223541.GA8498@mraw.org>
+References : <[🔎] 20170808184629.GA10017@mraw.org> <[🔎] 20170813133309.GB16891@mraw.org> <[🔎] 87tw1a9qda.fsf@whist.hands.com> <[🔎] 20170814223541.GA8498@mraw.org>
+
+
+Cyril Brulebois <kibi@debian.org> writes:
+> Hi,
+>
+> Philip Hands <phil@hands.com> (2017-08-14):
+>> Yes that's the behaviour I was commenting on in IRC, and which was
+>> obviously being spotted by the jenkins/cucumber setup.
+>
+> Sorry, based on earlier comments over the previous days/weeks, I went
+> for a “X is broken” shortcut and might not have actually got your exact
+> point.
+>
+>> BTW It is possible to run get something like shell access to the
+>> running d-i via its ttyS0 (by putting rather a lot of stuff on the
+>> kernel boot command line), so if that would help I can run tests for
+>> you and/or explain the proceedure.
+>
+> If you would have a little time to explain this, that would be immensely
+> useful. Feel free to just sum it up quickly in an email, I might write
+> some docs about it afterwards.
+Well, it's a bit horrible, but as long as you don't need to type the
+kernel command line by hand it's OK.
+The code that does the trick is here:
+  https://anonscm.debian.org/cgit/qa/jenkins.debian.net.git/tree/cucumber/features/step_definitions/common_steps.rb#n217
+which you can see the result of at about 27 seconds into this:
+  https://jenkins.debian.net/view/lvc/job/lvc_debian-testing-daily/1341/artifact/results/00%3A01%3A57_Install_Debian,_and_boot_to_a_login_prompt,_Examples___1_.mpg
+What that does is start a while loop that reads from /dev/ttyS0, and
+runs the commands that you type, returning the STDOUT, STDERR, and
+result code, separated by various control characters which you probably
+don't care about.
+If you do that, then you can use nc (or whatever) to connect to the TCP
+port which is defined for the KVM's ttyS0, and type commands, and get
+their output, followed by a result code.  It's almost like having a shell
+prompt, other than the slightly odd ordering of STDERR and the result.
+It would probably be better to have a udeb that contains a thing for
+running the listener, like the debugging thing that is available in
+tails -- theirs returns results in json, and lets one run as users other
+than root, and can drop thing into the background, but we don't really
+need all that in d-i.
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

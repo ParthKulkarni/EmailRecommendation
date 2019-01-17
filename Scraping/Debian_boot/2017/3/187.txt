@@ -1,0 +1,44 @@
+To : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Subject : Bug#857808: debian-installer: Garbage on terminal with default TERM setting over serial console
+From : Samuel Thibault <sthibault@debian.org>
+Date : Sun, 19 Mar 2017 22:10:18 +0100
+Message-id : 20170319211018.252hwlpj5jzbqqeo@var.youpi.perso.aquilenet.fr
+Mail-followup-to : Samuel Thibault <sthibault@debian.org>,	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,	857808@bugs.debian.org,	Michael Karcher <debian@mkarcher.dialup.fu-berlin.de>,	debian-sparc <debian-sparc@lists.debian.org>,	screen@packages.debian.org
+Reply-to : Samuel Thibault <sthibault@debian.org>, 857808@bugs.debian.org
+In-reply-to : <[🔎] 9159d29d-1b5b-5cf7-6f63-c1cb9b8ed9e5@physik.fu-berlin.de> <[🔎] f0b058b1-518a-a398-ee57-d2273cb12569@physik.fu-berlin.de>
+
+
+Control: reassign -1 screen
+Control: retitle -1 screen: emits \0 characters which garbages d-i output over serial console
+Control: tags -1 + upstream patch
+Control: forwarded -1 http://savannah.gnu.org/bugs/?50588
+Hello,
+To screen maintainers: screen spuriously emits \0 characters as now
+reported on:
+http://savannah.gnu.org/bugs/?50588
+John Paul Adrian Glaubitz, on dim. 19 mars 2017 21:37:19 +0100, wrote:
+> On 03/19/2017 09:30 PM, Samuel Thibault wrote:
+> > I'm wondering whether we want to include the fix in Stretch?
+> 
+> I can test the patch and see if that fixes our problem. If it does, I'd
+> suggest including this patch so we make sure other people don't run into
+> this problem when using debian-installer over serial console. It might
+> affected machines other than SPARC servers.
+John Paul Adrian Glaubitz, on dim. 19 mars 2017 21:50:20 +0100, wrote:
+> So, I just did a quick test with screen and mc and, indeed, with the
+> patch applied, the problem is fixed for me.
+Screen maintainers, do you feel like uploading the attached patch to fix
+the issue in Stretch?
+Thanks,
+Samuel
+--- a/termcap.c
++++ b/termcap.c
+@@ -486,6 +486,8 @@ int he;
+ 
+   D_tcinited = 1;
+   MakeTermcap(0);
++  /* Make sure libterm uses external term properties for our tputs() calls.  */
++  e_tgetent(tbuf, D_termname);
+ #ifdef MAPKEYS
+   CheckEscape();
+ #endif

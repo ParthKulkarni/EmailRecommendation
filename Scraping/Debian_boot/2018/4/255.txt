@@ -1,0 +1,71 @@
+To : 896826@bugs.debian.org
+Subject : Bug#896826: Fixed by ignoring partitions using 'in_vg{ ... }'
+From : Garinot Pierre <garinot.pierre@errlock.org>
+Date : Wed, 25 Apr 2018 16:31:11 +0200
+Message-id : 20180425163111.4f31bb90@laptop.domovoy
+Reply-to : Garinot Pierre <garinot.pierre@errlock.org>, 896826@bugs.debian.org
+References : <[🔎] 152458605152.16272.6997610814379893227.reportbug@laptop.domovoy>
+
+
+Actually i took a closer look at this and wrote a patch that fixes it
+for me.
+It is attached with this mail.
+It filters partitions using 'in_vg{' when computing min_size in
+choose_recipe() and using method 'lvm'.
+I saw that min_size() is used in some other places in partman, that's
+the reason i put the filter in choose_recipe():
+The recipe is still the same, we only modify the $scheme used by
+min_size() for this particular check.
+For all i know and understand about d-i, this shouldn't affect anything
+other than this bug.
+I'm not used to making patches for debian packages, much less for the
+installer, so that may not be the _right_ way to do it, just tell me
+and i'll find the time to modify my patch. Anyway, it works for me.diff -Nru partman-auto-137/debian/changelog partman-auto-137+nmu1/debian/changelog
+--- partman-auto-137/debian/changelog	2016-10-13 07:02:40.000000000 +0200
++++ partman-auto-137+nmu1/debian/changelog	2018-04-25 09:57:42.000000000 +0200
+@@ -1,3 +1,10 @@
++partman-auto (137+nmu1) UNRELEASED; urgency=medium
++
++  * Non-maintainer upload.
++  * Test
++
++ -- Garinot Pierre <garinot.pierre@errlock.org>  Wed, 25 Apr 2018 09:57:42 +0200
++
+ partman-auto (137) unstable; urgency=medium
+ 
+   [ Helge Deller ]
+diff -Nru partman-auto-137/lib/recipes.sh partman-auto-137+nmu1/lib/recipes.sh
+--- partman-auto-137/lib/recipes.sh	2013-10-01 07:21:24.000000000 +0200
++++ partman-auto-137+nmu1/lib/recipes.sh	2018-04-25 09:57:42.000000000 +0200
+@@ -200,6 +200,21 @@
+ 	done
+ }
+ 
++filter_lvm () {
++	scheme_lvm=$(
++	    foreach_partition '
++		if echo "$*" | grep -q '\''in_vg{'\''; then
++			echo "$*"
++		fi'
++	)
++	scheme=$(
++	    foreach_partition '
++		if ! echo "$*" | grep -q '\''in_vg{'\''; then
++			echo "$*"
++		fi'
++	)
++}
++
+ min_size () {
+ 	local size
+ 	size=0
+@@ -374,6 +389,9 @@
+ 		recipe="$RET"
+ 		decode_recipe $recipe $type
+ 		filter_reused
++		if [ "$type" = "lvm" ]; then
++			filter_lvm
++		fi
+ 		min_size=$(min_size)
+ 		if [ $min_size -le $free_size ]; then
+ 			return 0

@@ -1,0 +1,76 @@
+To : 885556@bugs.debian.org
+Subject : Re: Bug#885556: multipath-udeb: depends on a non-udeb package: liburcu6
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 15 Jan 2018 04:02:05 +0100
+Message-id : 20180115030205.ne6b55yqyyuzqdl7@mraw.org
+In-reply-to : <20171227230655.zdw6mlf5chpkworm@mraw.org>
+References : <20171227230655.zdw6mlf5chpkworm@mraw.org>
+
+
+clone 885556 -1
+reassign -1 src:liburcu 0.10.0-2
+retitle -1 please provide a udeb
+severity -1 important
+block 885556 by -1
+thanks
+Hi,
+Cyril Brulebois <kibi@debian.org> (2017-12-28):
+> [Please keep debian-boot@ in copy of your replies.]
+> 
+> Hi,
+> 
+> Your udeb package depends on a non-udeb package (liburcu6), making it
+> uninstallable on all architectures.
+So, looking at the source, it seems liburcu really isn't an option, as
+it's hardcoded in a few makefiles, etc. I've drafted a patch to add a
+udeb to src:liburcu, which you'll find attached.
+Let's see if I got the BTS dance right. :)
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.ascdiff -Nru liburcu-0.10.0/debian/changelog liburcu-0.10.0/debian/changelog
+--- liburcu-0.10.0/debian/changelog	2017-07-14 14:47:55.000000000 +0000
++++ liburcu-0.10.0/debian/changelog	2018-01-15 00:44:59.000000000 +0000
+@@ -1,3 +1,9 @@
++liburcu (0.10.0-3) UNRELEASED; urgency=medium
++
++  * Add a liburcu6 udeb, needed by multipath-udeb (See: #885556).
++
++ -- Cyril Brulebois <kibi@debian.org>  Mon, 15 Jan 2018 00:44:59 +0000
++
+ liburcu (0.10.0-2) unstable; urgency=medium
+ 
+   * [7ef3bce] Add missing m68k headers
+diff -Nru liburcu-0.10.0/debian/control liburcu-0.10.0/debian/control
+--- liburcu-0.10.0/debian/control	2017-07-06 15:19:06.000000000 +0000
++++ liburcu-0.10.0/debian/control	2018-01-15 00:44:59.000000000 +0000
+@@ -35,3 +35,11 @@
+  a given data structure to live at the same time, and by monitoring the data
+  structure accesses to detect grace periods after which memory reclamation is
+  possible.
++
++Package: liburcu6-udeb
++Package-Type: udeb
++Section: debian-installer
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Description: userspace RCU (read-copy-update) library -- udeb
++ This is a udeb version of liburcu6.
+diff -Nru liburcu-0.10.0/debian/liburcu6-udeb.install liburcu-0.10.0/debian/liburcu6-udeb.install
+--- liburcu-0.10.0/debian/liburcu6-udeb.install	1970-01-01 00:00:00.000000000 +0000
++++ liburcu-0.10.0/debian/liburcu6-udeb.install	2018-01-15 00:44:57.000000000 +0000
+@@ -0,0 +1 @@
++usr/lib/*/lib*.so.*
+diff -Nru liburcu-0.10.0/debian/rules liburcu-0.10.0/debian/rules
+--- liburcu-0.10.0/debian/rules	2017-07-06 15:19:06.000000000 +0000
++++ liburcu-0.10.0/debian/rules	2018-01-15 00:41:56.000000000 +0000
+@@ -26,7 +26,7 @@
+ 	dh_auto_build -- V=1
+ 
+ override_dh_makeshlibs:
+-	dh_makeshlibs -V
++	dh_makeshlibs -V --add-udeb=liburcu6-udeb
+ 
+ override_dh_auto_test:
+ 	dh_auto_test -- regtest

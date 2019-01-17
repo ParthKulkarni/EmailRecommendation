@@ -1,0 +1,51 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#855489: lilo-installer: fails in postinst: sfdisk: invalid option -- '1'
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sun, 19 Feb 2017 05:50:26 +0100
+Message-id : 148747982631.7001.10540279946450226239.reportbug@umbar.angband.pl
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 855489@bugs.debian.org
+
+
+Package: lilo-installer
+Version: 1.51
+Severity: grave
+Justification: renders package unusable
+(reported by "jim" on #debian-boot)
+After choosing LILO rather than GRUB as the boot loader, lilo-installer fails
+when invoking sfdisk.
+Tested on /dev/vda and /dev/vda1.
+A totally untested idea for a patch attached.
+>From 227e1812e381be61b40330e372d62348a9e8dd75 Mon Sep 17 00:00:00 2001
+From: Adam Borowski <kilobyte@angband.pl>
+Date: Sun, 19 Feb 2017 05:43:39 +0100
+Subject: [PATCH] Reverse the order of arguments to sfdisk -A, add a space.
+During a massive overhaul in util-linux 2.26, sfdisk -A accidentally changed
+meaning to --append.  This change was later reverted, but while doing so the
+parsing and argument order have changed.
+---
+ debian/postinst | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+diff --git a/debian/postinst b/debian/postinst
+index 58ab0ce..f81f89b 100755
+--- a/debian/postinst
++++ b/debian/postinst
+@@ -155,7 +155,7 @@ if (echo "${bootdev}" | grep -v '/c[0-9]d[0-9]$' | grep -q '[0-9]$') \
+ 		if [ "${RET}" = "true" ]; then
+ 			pnum=$(echo ${bootdev} | sed 's/^.*\([0-9]\+\)$/\1/')
+ 			echo -n "I: Setting partition to active..." >&2
+-			sfdisk -A${pnum} ${disc_offered_devfs}
++			sfdisk --activate ${disc_offered_devfs} ${pnum}
+ 			echo "done." >&2
+ 		fi
+ 	fi
+@@ -174,7 +174,7 @@ if [ "${raid_boot}" = no ] && (! fdisk -l "$disc_offered_devfs" | grep '^/dev/'
+ 		# /boot.
+ 		pnum="$(echo "$bootfs" | sed 's/^.*\([0-9]\+\)$/\1/')"
+ 		echo -n "I: Setting partition $bootfs to active..." >&2
+-		sfdisk -A"$pnum" "$disc_offered_devfs"
++		sfdisk --activate ${disc_offered_devfs} ${pnum}
+ 		echo "done." >&2
+ 	fi
+ fi
+-- 
+2.11.0

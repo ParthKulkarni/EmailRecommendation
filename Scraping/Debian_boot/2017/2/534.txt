@@ -1,0 +1,110 @@
+To : 856211@bugs.debian.org
+Subject : Bug#856211: anna: please implement SHA256 verification of .udeb files
+From : Steven Chamberlain <steven@pyro.eu.org>
+Date : Mon, 27 Feb 2017 15:26:19 +0000
+Message-id : 20170227152619.GF68952@pyro.eu.org
+Reply-to : Steven Chamberlain <steven@pyro.eu.org>, 856211@bugs.debian.org
+In-reply-to : <[🔎] 20170227152127.GE68952@pyro.eu.org>
+References : <[🔎] 20170226163102.GC86601@pyro.eu.org> <[🔎] 20170227152127.GE68952@pyro.eu.org>
+
+
+Steven Chamberlain wrote:
+> Attached is [...]
+Regards,
+-- 
+Steven Chamberlain
+steven@pyro.eu.org
+signature.ascdiff --git a/anna.c b/anna.c
+index 4b68816..e03d34a 100644
+--- a/anna.c
++++ b/anna.c
+@@ -318,8 +318,8 @@ install_modules(di_packages *status, di_packages *packages) {
+ 					}
+ 				}
+ 
+-				if (! md5sum(package->md5sum, dest_file)) {
+-					di_log(DI_LOG_LEVEL_WARNING, "bad md5sum");
++				if (! sha256sum(package->sha256, dest_file)) {
++					di_log(DI_LOG_LEVEL_WARNING, "bad sha256sum");
+ 					if (!quiet)
+ 						/* error handling may use a progress bar, so stop the current one */
+ 						debconf_progress_stop(debconf);
+diff --git a/debian/changelog b/debian/changelog
+index d6682ca..c885457 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,11 @@
++anna (1.58) UNRELEASED; urgency=medium
++
++  * Team upload.
++  * Replace md5sum verification with sha256sum (Closes: #856211).
++    - (Build-)Depend on libdebian-installer soname version 5.
++
++ -- Steven Chamberlain <stevenc@debian.org>  Mon, 27 Feb 2017 15:13:37 +0000
++
+ anna (1.57) unstable; urgency=medium
+ 
+   [ Updated translations ]
+diff --git a/debian/control b/debian/control
+index def2af9..20ff1c3 100644
+--- a/debian/control
++++ b/debian/control
+@@ -3,7 +3,7 @@ Section: debian-installer
+ Priority: standard
+ Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+ Uploaders: Bastian Blank <waldi@debian.org>, Christian Perrier <bubulle@debian.org>
+-Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.15.7), libdebconfclient0-dev (>= 0.46), libdebian-installer4-dev (>= 0.41)
++Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.15.7), libdebconfclient0-dev (>= 0.46), libdebian-installer5-dev
+ Vcs-Browser: https://anonscm.debian.org/cgit/d-i/anna.git
+ Vcs-Git: https://anonscm.debian.org/git/d-i/anna.git
+ 
+diff --git a/util.c b/util.c
+index 39af3db..7d09cf8 100644
+--- a/util.c
++++ b/util.c
+@@ -224,23 +224,26 @@ int load_templates (di_packages *packages) {
+ }
+ #endif /* LOADTEMPLATES */
+ 
+-/* Check whether the md5sum of file matches sum. If not, return 0. */
+-int md5sum(const char *sum, const char *file) {
++/* Length of a SHA256 hash in hex representation */
++#define SHA256_HEX_LENGTH 64
++
++/* Check whether the sha256sum of file matches sum. If not, return 0. */
++int sha256sum(const char *sum, const char *file) {
+ 	FILE *fp;
+ 	char line[1024];
+ 
+-	/* Trivially true if the Packages file doesn't have md5sum lines */
++	/* Trivially true if the Packages file doesn't have sha256sum lines */
+ 	if (sum == NULL)
+ 		return 1;
+-	snprintf(line, sizeof(line), "/usr/bin/md5sum %s", file);
++	snprintf(line, sizeof(line), "/usr/bin/sha256sum %s", file);
+ 	fp = popen(line, "r");
+ 	if (fp == NULL)
+ 		return 0;
+ 	if (fgets(line, sizeof(line), fp) != NULL) {
+ 		pclose(fp);
+-		if (strlen(line) < 32)
++		if (strlen(line) < SHA256_HEX_LENGTH)
+ 			return 0;
+-		line[32] = '\0';
++		line[SHA256_HEX_LENGTH] = '\0';
+ 		return !strcmp(line, sum);
+ 	}
+ 	pclose(fp);
+diff --git a/util.h b/util.h
+index 71135e0..0c9e0a2 100644
+--- a/util.h
++++ b/util.h
+@@ -10,7 +10,7 @@ bool is_installed(di_package *p, di_packages *status);
+ size_t package_to_choice(di_package *package, char *buf, size_t size);
+ char *list_to_choices(di_package **packages, int c_values);
+ int get_package (di_package *package, char *dest);
+-int md5sum(const char* sum, const char *file);
++int sha256sum(const char* sum, const char *file);
+ int skip_package(di_package *p);
+ int package_name_compare(const void *v1, const void *v2);
+ void take_includes(di_packages *packages);

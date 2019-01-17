@@ -1,0 +1,96 @@
+To : Karsten Merker <merker@debian.org>
+Subject : Re: Help building debian-installer for arm64
+From : Loys Ollivier <lollivier@baylibre.com>
+Date : Tue, 16 Jan 2018 17:35:28 +0100
+Message-id : fffa4937-12c4-86a5-a195-a5939349b072@baylibre.com
+In-reply-to : <[🔎] 20180112174815.zxhzyb4owojrvqka@excalibur.cnev.de>
+References : <CALZWD59WFfF+KDsRgwHS+w27Ek5mpwyRP6AEu-mSWbwf3JWutw@mail.gmail.com> <20171226210508.v7r2jsswhyymwa3v@excalibur.cnev.de> <[🔎] c2d290c3-394b-86c8-728e-807b259f9398@baylibre.com> <[🔎] 20180112174815.zxhzyb4owojrvqka@excalibur.cnev.de>
+
+
+On 12/01/2018 18:48, Karsten Merker wrote:
+> On Fri, Jan 12, 2018 at 01:52:39PM +0100, Loys Ollivier wrote:
+>> On 26/12/2017 22:05, Karsten Merker wrote:
+>>> On Tue, Dec 26, 2017 at 05:13:26PM +0100, Loys Ollivier wrote:
+> 
+>> I have been able to build the d-i natively and boot from it. Thanks for
+>> the help with that. The problem is, my kernel is still missing some
+>> modules.
+>>
+>>> Regarding the kernel udebs: those are created by the Debian
+>>> kernel package. A package built with "make deb-pkg" from within
+>>> an upstream kernel tree only builds regular debs, but no udebs.
+>>> To have udebs for a custom kernel, you should start from the
+>>> Debian kernel package sources and modify them as needed for
+>>> your custom kernel.
+>>>
+>>> The Debian kernel package repository is available at
+>>> https://anonscm.debian.org/git/kernel/linux.git.
+>>> Please note that this repository only contains the packaging
+>>> part, not the upstream kernel sources.
+>>>
+>>> For how to use that with an upstream kernel source, please
+>>> read
+>>>
+>>>   https://anonscm.debian.org/git/kernel/linux.git/tree/debian/README.source?h=sid
+>>>
+>>
+>> I have been able to build a Debian kernel using your tools. But I think
+>> I am missing something... I followed
+>> https://kernel-handbook.alioth.debian.org/ch-common-tasks.html#s-common-official
+>> section 4.3.
+>> I did "make deb-pkg" and got linux kernel deb packages but still no
+>> udebs. I did not find in the documentation how to create those udebs.
+>>
+>> I guess once I have them I will be able to rebuild the d-i with my
+>> custom kernel.
+> 
+> Hello,
+> 
+> "make deb-pkg" uses a function of the upstream kernel Makefile to
+> build .deb packages. This function doesn't support building udebs;
+> udebs are only built by the Debian kernel package build infrastructure,
+> which is in debian/rules (and is called by dpkg-buildpackage).
+> 
+> To build a Debian kernel package including udebs from git, run
+> the following steps:
+> 
+> $ sudo apt-get install build-essential fakeroot rsync git
+> $ sudo apt-get build-dep linux
+> $ git clone -b sid --single-branch https://anonscm.debian.org/git/kernel/linux.git
+>   (this gets you the Debian packaging files for a kernel package)
+> $ cd linux
+> $ ./debian/bin/genorig.py /path/to/local/linux-kernel-git-repository
+>   (this creates a DFSG-free upstream kernel tarball for the kernel version
+>    defined by the newest entry in debian/changelog from an upstream
+>    kernel git repository)
+> $ debian/rules orig
+>   (this unpacks the upstream kernel tarball in the right place for
+>    the package build process)
+> $ debian/rules debian/control
+>   (this creates the final control file for building the
+>    package from a template)
+> $ dpkg-buildpackage -us -uc -rfakeroot -B
+>   (this runs the actual binary package build, using the control
+>    file generated in the previous step)
+> 
+> For building the package from a custom kernel source, create a new
+> changelog entry that fits your custom kernel in debian/changelog and
+> replace /path/to/local/linux-kernel-git-repository with the path to
+> your custom kernel repository.  If you are working on a bleeding-edge
+> kernel source (i.e. 4.15rc), you should use the "master" branch of
+> https://anonscm.debian.org/git/kernel/linux.git instead of the "sid"
+> branch as your base.
+> 
+> HTH,
+> Karsten
+>
+Hello,
+Thanks for the continuous help Karsten. I have followed your steps.
+Using the sid branch and the orig file (4.14.13-1) from the debian linux
+repo.
+Unfortunately when I run the last command to build the package. It fails
+after building the kernel + modules with the error message: "Can't read
+ABI reference.  ABI not checked!"
+I guessed I might still miss one step :(
+Thanks,
+Loys

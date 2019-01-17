@@ -1,0 +1,84 @@
+To : debian-boot@lists.debian.org
+Subject : LVM partitioning preseed.cfg / kickstart question
+From : Jim Campbell <jcampbell@gnome.org>
+Date : Tue, 06 Mar 2018 12:47:40 -0600
+Message-id : 1520362060.3186231.1293710240.45AA71A2@webmail.messagingengine.com
+Reply-to : jcampbell@gnome.org
+
+
+Hi All,
+I seem to be having trouble with correctly partitioning a hard drive using a PXE boot + preseed file , and am seeking help.
+What works:
+I can use an expert_recipe string as part of a preseed.cfg file contained in a custom ISO (booted via grub-imageboot), and it correctly partitions a drive with LVM.  Additionally, and I can use http-served kickstart file commands like:
+part /boot --fstype ext4 --size 1024 --asprimary
+part pv.01 --size 1 --grow
+volgroup linuxvg pv.01
+logvol swap   --fstype swap --vgname=linuxvg --size=6272   --name=swap
+logvol /      --fstype xfs  --vgname=linuxvg --size=80248  --name=root_vol
+logvol /spare --fstype xfs  --vgname=linuxvg --size=61440  --name=spare_vol
+logvol /home  --fstype xfs  --vgname=linuxvg --size=76800  --name=home_vol --grow
+in an http-served ks=http://path/to/file.ks file, and it will also partition the drive with LVM, but my issue is that the results between the two aren't consistent, and I want to use an expert_recipe string for both.  This is because the expert_recipe string allows for proportional partition sizes based on the overall size of the disk.  (Note: I use the "spare_vol" as a placeholder, and it gets removed in the "post" install section of the installer).
+Where things break down for me:
+For me, any attempt to use a kickstart / kickseed file served via http with an expert_recipe string doesn't give me my desired partitions.
+If I use bare d-i commands for the expert_recipe string in an http-served preseed.cfg file, the partitions don't get picked-up at all.
+I tried doing something like (note: this partition layout uses a "spare" partition which gets removed in the "post" installer section):
+echo "d-i partman-auto/expert_recipe string \
+  boot-root :: \
+  1024 1024 1024 ext4 \
+  $primary{ } \
+  $bootable{ }            \
+  method{ format }        \
+  format{ }               \
+  use_filesystem{ }       \
+  filesystem{ ext4 }      \
+  mountpoint{ /boot }     \
+  . \
+  100 1000 -1 xfs         \
+  $defaultignore{ }       \
+  $primary{ }             \
+  method{ lvm }           \
+  vg_name{ linux }        \
+  . \
+  80248 80248 80248 xfs   \
+  $lvmok{ }               \
+  in_vg{ linux }          \
+  lv_name{ root_vol }     \
+  method{ format }        \
+  format{ }               \
+  use_filesystem{ }       \
+  filesystem{ xfs }       \
+  mountpoint{ / }         \
+  . \
+  6272 6272 6272 linux-swap \
+  $lvmok{ }               \
+  in_vg{ linux }          \
+  method{ swap }          \
+  lv_name{ swap_vol }     \
+  format{ }               \
+  filesystem{ swap }      \
+  .                       \
+  61440 61440 61440 xfs   \
+  $lvmok{ }               \
+  in_vg{ linux }          \
+  lv_name{ spare_vol }    \
+  method{ format }        \
+  format{ }               \
+  use_filesystem{ }       \
+  filesystem{ xfs }       \
+  mountpoint{ /spare }    \
+  . \
+  76800 76800 76800 xfs   \
+  $lvmok{ }               \
+  in_vg{ linux }          \
+  lv_name{ home_vol }     \
+  method{ format }        \
+  format{ }               \
+  use_filesystem{ }       \
+  filesystem{ xfs }       \
+  mountpoint{ /home }     \
+."  >> /var/spool/kickseed/parse/preseed.cfg
+But I wind up with partitions at /dev/sda1, /dev/sda5 - /sda9 (which I don't want) instead of a primary partitions at /dev/sda1 along with a bunch of /dev/mapper/ . . .  LVM partitions (which I do want). 
+I've also tried including my preseed.cfg in a custom initrd.gz which is out on the server, but to no avail.
+I hope this all makes sense. Let me know if you have any advice or additional questions.
+Kind regards,
+Jim

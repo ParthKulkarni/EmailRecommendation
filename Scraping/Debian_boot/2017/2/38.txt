@@ -1,0 +1,80 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#853927: debian-installer: Hang in os-prober in "dmsetup create -r osprober-linux-sda1"
+From : Scott Leggett <scott@sl.id.au>
+Date : Thu, 2 Feb 2017 19:12:20 +1100
+Message-id : 148598352830.29157.16885692808004372139.reportbug@paver.krastavac
+Reply-to : Scott Leggett <scott@sl.id.au>, 853927@bugs.debian.org
+
+
+Package: debian-installer
+Severity: important
+Tags: d-i
+Dear Maintainer,
+I tried to install Debian Stretch using the RC1 installer onto my
+Thinkpad T430.
+Installation hung at the install-grub step instead of completing
+correctly.
+By opening a console on a VT, I saw that the installer was hung in the
+os-prober step. Since there is no other OS on this machine, I killed the
+process at the end of the os-prober process tree, which was `dmsetup
+create -r osprober-linux-sda1`.
+This caused installation to continue and complete successfully without
+any error notification.
+I use a custom partitioning set-up, so I thought that possibly could be
+the cause of the hang if it's something that the os-prober script can't
+handle?  This machine uses UEFI and has a EFI System Partition at the
+front of sdb.
+This output is after finishing the installation and booting into the
+machine.
+  $ lsblk
+  NAME            MAJ:MIN RM   SIZE RO TYPE  MOUNTPOINT
+  sda               8:0    0 465.8G  0 disk  
+  └─sda1            8:1    0 465.8G  0 part  
+    └─sda1_crypt  254:5    0 465.8G  0 crypt 
+      └─spin-home 254:6    0 238.4G  0 lvm   /home
+  sdb               8:16   0 232.9G  0 disk  
+  ├─sdb1            8:17   0   487M  0 part  /boot/efi
+  ├─sdb2            8:18   0   488M  0 part  /boot
+  └─sdb3            8:19   0   232G  0 part  
+    └─sdb3_crypt  254:0    0   232G  0 crypt 
+      ├─ssd-swap  254:1    0  14.9G  0 lvm   [SWAP]
+      ├─ssd-tmp   254:2    0  29.8G  0 lvm   /tmp
+      ├─ssd-root  254:3    0  59.6G  0 lvm   /
+      └─ssd-var   254:4    0 119.2G  0 lvm   /var
+  $ mount | column -t
+  sysfs                  on  /sys                             type  sysfs       (rw,nosuid,nodev,noexec,relatime)
+  proc                   on  /proc                            type  proc        (rw,nosuid,nodev,noexec,relatime)
+  udev                   on  /dev                             type  devtmpfs    (rw,nosuid,relatime,size=8114844k,nr_inodes=2028711,mode=755)
+  devpts                 on  /dev/pts                         type  devpts      (rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000)
+  tmpfs                  on  /run                             type  tmpfs       (rw,nosuid,noexec,relatime,size=1625196k,mode=755)
+  /dev/mapper/ssd-root   on  /                                type  ext4        (rw,relatime,errors=remount-ro,data=ordered)
+  securityfs             on  /sys/kernel/security             type  securityfs  (rw,nosuid,nodev,noexec,relatime)
+  tmpfs                  on  /dev/shm                         type  tmpfs       (rw,nosuid,nodev)
+  tmpfs                  on  /run/lock                        type  tmpfs       (rw,nosuid,nodev,noexec,relatime,size=5120k)
+  tmpfs                  on  /sys/fs/cgroup                   type  tmpfs       (ro,nosuid,nodev,noexec,mode=755)
+  cgroup                 on  /sys/fs/cgroup/systemd           type  cgroup      (rw,nosuid,nodev,noexec,relatime,xattr,release_agent=/lib/systemd/systemd-cgroups-agent,name=systemd)
+  pstore                 on  /sys/fs/pstore                   type  pstore      (rw,nosuid,nodev,noexec,relatime)
+  efivarfs               on  /sys/firmware/efi/efivars        type  efivarfs    (rw,nosuid,nodev,noexec,relatime)
+  cgroup                 on  /sys/fs/cgroup/cpu,cpuacct       type  cgroup      (rw,nosuid,nodev,noexec,relatime,cpu,cpuacct)
+  cgroup                 on  /sys/fs/cgroup/net_cls,net_prio  type  cgroup      (rw,nosuid,nodev,noexec,relatime,net_cls,net_prio)
+  cgroup                 on  /sys/fs/cgroup/perf_event        type  cgroup      (rw,nosuid,nodev,noexec,relatime,perf_event)
+  cgroup                 on  /sys/fs/cgroup/blkio             type  cgroup      (rw,nosuid,nodev,noexec,relatime,blkio)
+  cgroup                 on  /sys/fs/cgroup/memory            type  cgroup      (rw,nosuid,nodev,noexec,relatime,memory)
+  cgroup                 on  /sys/fs/cgroup/cpuset            type  cgroup      (rw,nosuid,nodev,noexec,relatime,cpuset)
+  cgroup                 on  /sys/fs/cgroup/freezer           type  cgroup      (rw,nosuid,nodev,noexec,relatime,freezer)
+  cgroup                 on  /sys/fs/cgroup/devices           type  cgroup      (rw,nosuid,nodev,noexec,relatime,devices)
+  cgroup                 on  /sys/fs/cgroup/pids              type  cgroup      (rw,nosuid,nodev,noexec,relatime,pids)
+  systemd-1              on  /proc/sys/fs/binfmt_misc         type  autofs      (rw,relatime,fd=36,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=9633)
+  mqueue                 on  /dev/mqueue                      type  mqueue      (rw,relatime)
+  debugfs                on  /sys/kernel/debug                type  debugfs     (rw,relatime)
+  hugetlbfs              on  /dev/hugepages                   type  hugetlbfs   (rw,relatime)
+  /dev/sdb2              on  /boot                            type  ext2        (rw,relatime,block_validity,barrier,user_xattr,acl)
+  /dev/mapper/ssd-tmp    on  /tmp                             type  ext4        (rw,relatime,data=ordered)
+  /dev/mapper/ssd-var    on  /var                             type  ext4        (rw,relatime,data=ordered)
+  /dev/sdb1              on  /boot/efi                        type  vfat        (rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro)
+  /dev/mapper/spin-home  on  /home                            type  ext4        (rw,relatime,data=ordered)
+  tmpfs                  on  /run/user/1000                   type  tmpfs       (rw,nosuid,nodev,relatime,size=1625192k,mode=700,uid=1000,gid=1000)
+--
+Regards,
+Scott
+signature.asc

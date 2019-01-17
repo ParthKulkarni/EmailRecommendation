@@ -1,0 +1,23 @@
+To : 846256@bugs.debian.org
+Subject : Bug#846256: failure on boot
+From : "Badics, Alex" <alex.badics@balabit.com>
+Date : Fri, 23 Jun 2017 14:23:04 +0200
+Message-id : CAJsjXgrd_t5F1PrgdLQgnFtRRjBDTrA7NXsZ=5RC_47gz4-BzA@mail.gmail.com
+Reply-to : "Badics, Alex" <alex.badics@balabit.com>, 846256@bugs.debian.org
+
+
+Hi,
+We also encountered the bug, and to me, it seems to be caused by the
+systemd-tmpfiles-setup.service, shown as "Create Volatile Files and
+Directories". This is because /tmp is listed as "D" in
+/usr/lib/tmpfiles.d/tmp.conf, which means its contents gets removed
+when /bin/systemd-tmpfiles --remove is called, and the service files
+does exactly that.
+You might see it in your journal that the bug only happens if
+console-setup is started before systemd-tmpfiles-setup.
+I think not having "DefaultDependencies=no" in setup-console's unit
+file or explicitly having systemd-tmpfiles-setup in After would solve
+the problem.
+Also, isn't Bug#818065 a duplicate of this?
+Regards,
+Alex Badics

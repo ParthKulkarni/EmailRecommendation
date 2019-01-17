@@ -1,0 +1,131 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: Salsa
+From : Steve McIntyre <steve@einval.com>
+Date : Thu, 3 May 2018 22:10:28 +0100
+Message-id : 20180503211028.dfmsbh7pljicibf3@tack.einval.com
+In-reply-to : <[🔎] 20180502135209.bbci3p6z3y6cqcnl@tack.einval.com>
+
+
+YA update
+On Wed, May 02, 2018 at 02:52:09PM +0100, Steve McIntyre wrote:
+>Update again...
+>
+>On Sun, Apr 29, 2018 at 01:12:51PM +0100, Steve McIntyre wrote:
+>>
+>>So, an initial run of svn2git just ignoring the people directory took
+>>11.5h here, and gave me a .git dir of ~680M. That's quite
+>>big. I'm re-doing it now with an "authors" file in place, to get
+>>something more usable.
+>
+>If anybody would like to play with this, I've just uploaded it to
+>
+>https://salsa.debian.org/93sam/d-i-test1
+>
+>and I'll leave it up there for now.
+>
+>>Discussing with KiBi on IRC last night, we're thinking that it's
+>>probably worth splitting the manual off into a separate
+>>project/repo. I'll try doing that too, and see what we get.
+>
+>To make things go much faster, I grabbed a copy of the svn repo
+>directly and I've been running with that. It goes *much* more quickly
+>due to the latency reduction on each revision checkout, but it
+>reliably fails with:
+>
+>Name does not refer to a filesystem directory: Failure opening
+>'/trunk/installer/build/pkg-lists/netboot/mipsel/sb1-swarm-bn.cfg':
+>'/trunk/installer/build/pkg-lists/netboot/mipsel' is not a directory
+>in filesystem '48c42b26-1dd6-0310-b98f-a58d8bce7237' at
+>/usr/share/perl5/Git/SVN/Ra.pm line 312
+>
+>at r35516. Joy. I've not modified the svn data files in any way, and
+>this worked from alioth...
+>
+>Having looked online, I find various recommendations to avoid using
+>this version of svn2git (which is a simple wrapper around
+>git-svn). I'm now trying the svn2git tool the KDE people used for
+>migration:
+>
+>  https://github.com/svn-all-fast-export/svn2git.git
+After some fighting with config, I've used this tool with the attached
+configs - a rules to control what goes where, and a mapping file for
+username -> name/email lookups.
+It is *massively* faster than the first tool, something like a factor
+of 15-20x. That makes it much more feasible to run this a few times
+with different configs, to compare results. For now, I've not filtered
+any branches or anything, but I've ignored /people and /README and
+moved the manual out into a separate repo. The outputs from this run
+were a surprising amount bigger than my first test repo, as the
+following bare clones from each will show:
+tack:/tmp$ du -s test*
+613888  test1-bare.git
+3653432 test2-bare.git
+714336  test2-manual-bare.git
+I've not worked out why yet. In case people might find them useful (or
+maybe find time to have a look!), I've pushed these new test repos to
+salsa too:
+  https://salsa.debian.org/93sam/d-i-test2
+  https://salsa.debian.org/93sam/d-i-test2-manual
+Suggestions on what else we might want to separate or prune here would
+be helpful. I don't really like the idea of losing our history. We
+could maybe prune old branches, but I'm not sure it'll save much. Or
+am I worrying too much about the repo sizes already?
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+You lock the door
+And throw away the key
+There's someone in my head but it's not me 
+signature.asc#
+# Declare the repositories we know about:
+#
+create repository d-i.git
+end repository
+create repository d-i-manual.git
+end repository
+#
+# Declare the rules
+# Note: rules must end in a slash
+#
+# Ignore this dir:
+# Note that rules are applied in order of appearance, so this rule
+# must appear before the generic rules
+match /people/
+end match
+match /README
+end match
+match /trunk/manual/
+  repository d-i-manual.git
+  branch master
+end match
+match /branches/([^/]+)/manual/
+  repository d-i-manual.git
+  branch \1
+end match
+match /tags/([^/]+)/manual/
+  repository d-i-manual.git
+  branch refs/tags/\1
+end match
+match /trunk/
+  repository d-i.git
+  branch master
+end match
+match /branches/([^/]+)/
+  repository d-i.git
+  branch \1
+end match
+match /tags/([^/]+)/
+  repository d-i.git
+  branch refs/tags/\1
+end match
+#
+#match /project2/trunk/
+#  repository project2
+#  branch master
+#end match
+#
+# Note how we can use regexp to capture the repository name
+#match /([^/]+)/branches/([^/]+)/
+#  repository \1
+#  branch \2
+#end match
+# No tag processing

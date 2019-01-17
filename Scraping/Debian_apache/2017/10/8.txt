@@ -1,0 +1,32 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#878920: IncludeOptional should deal gracefully with a missing directory in the specified path
+From : Moritz Muehlenhoff <jmm@debian.org>
+Date : Tue, 17 Oct 2017 19:27:54 +0200
+Message-id : 150826127456.29107.9056108398212916025.reportbug@hullmann.westfalen.local
+Reply-to : Moritz Muehlenhoff <jmm@debian.org>, 878920@bugs.debian.org
+
+
+Source: apache2
+Version: 2.4.25-3+deb9u3
+Severity: normal
+Hi,
+libapache2-mod-security2 sets a Recommends: on modsecurity-crs and ships a
+/etc/apache2/mods-enabled/security2.conf with the following directive:
+-----
+# Include OWASP ModSecurity CRS rules if installed
+IncludeOptional /usr/share/modsecurity-crs/owasp-crs.load
+-----
+But when installing on a system where the installation of recommended packages
+is disabled, modsecurity-crs isn't installed and as such the the
+/usr/share/modsecurity-crs/ directory isn't present, which makes the
+IncludeOptional directive fail and preventing the Apache startup:
+-----
+Oct 17 14:57:17 foo systemd[1]: Starting The Apache HTTP Server...
+Oct 17 14:57:17 foo apachectl[18942]: apache2: Syntax error on line 11 of /etc/apache2/apache2.conf: Syntax error on line 12 of /etc/apache2/mods-enabled/security2.conf:
+Could not open config directory /usr/share/modsecurity-crs: No such file or directory
+Oct 17 14:57:17 foo apachectl[18942]: Action 'start' failed.
+-----
+Creating /usr/share/modsecurity-crs/ fixes it, but that seems like a misfeature/bug?
+Shouldn't it also fail gracefully in the absence of one of the path elements?
+Cheers,
+        Moritz

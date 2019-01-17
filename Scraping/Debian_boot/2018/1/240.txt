@@ -1,0 +1,54 @@
+To : 886506@bugs.debian.org
+Subject : busybox sh broken on i386 with glibc 2.26, leads to kernel panic
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Wed, 17 Jan 2018 12:08:32 +0100
+Message-id : 20180117110832.GA3203@home.ouaza.com
+Mail-followup-to : Raphael Hertzog <hertzog@debian.org>,	886506@bugs.debian.org, debian-boot@lists.debian.org,	Chris Boot <bootc@debian.org>, debian-glibc@lists.debian.org,	Aurelien Jarno <aurel32@debian.org>
+
+
+Control: reassign -1 src:glibc 2.26-1
+Control: retitle -1 busybox sh broken on i386 with glibc 2.26, leads to kernel panic
+Control: severity -1 serious
+Control: affects -1 + busybox src:linux
+Hello,
+on i386 with glibc 2.26-4, busybox sh is broken:
+    $ busybox sh
+    [...]
+    BusyBox v1.27.2 (Debian 1:1.27.2-2) built-in shell (ash)
+    Enter 'help' for a list of built-in commands.
+    Segmentation fault
+In the kernel messages, you see this:
+[1097712.640730] traps: busybox[3288] general protection ip:f7e9a51d sp:ff8da68c error:0 in libc-2.26.so[f7d48000+1cd000]
+There's a work-around (the same as the one described in
+#887169):
+    $ GLIBC_TUNABLES=glibc.tune.hwcaps=-SSE4_2 busybox sh
+    [...]
+    BusyBox v1.27.2 (Debian 1:1.27.2-2) built-in shell (ash)
+    Enter 'help' for a list of built-in commands.
+    ~ $
+Given that busybox's sh is used in the initrd and that the init
+command is a shell script, this will lead to the kernel panic
+shown earlier in this bug report.
+Possible work-arounds in the mean time:
+- disable busybox in the initrd by setting BUSYBOX=n in
+  /etc/initramfs-tools/initramfs.conf (but this is not
+  possible if you use cryptsetup)
+- you can add the "GLIBC_TUNABLES=glibc.tune.hwcaps=-SSE4_2" to the kernel
+  command line so that it's set in the environment of the init script
+  (this will at least let you boot once to fix it permanently)
+- install busybox-static instead of busybox (since it was built with
+  an earlier version of glibc) and rebuild your initrd.
+Aurélien Jaron commented on IRC that this was strange that busybox
+was affected by this bug since the analysis made in #887169 lead to
+believe that only binaries compiled with -mstack-align=4 would be
+affected.
+I see that busybox uses things like this:
+include/platform.h:# define ALIGN1 __attribute__((aligned(1)))
+include/platform.h:# define ALIGN2 __attribute__((aligned(2)))
+include/platform.h:# define ALIGN4 __attribute__((aligned(4)))
+Could those attributes have a similar effect than -mstack-align=4 ?
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

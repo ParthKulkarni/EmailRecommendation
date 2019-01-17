@@ -1,0 +1,68 @@
+To : 829134@bugs.debian.org
+Subject : Bug#829134: debootstrap: Changes needed to support unprivileged userns debootstrap
+From : Johannes Schauer <josch@debian.org>
+Date : Wed, 13 Jun 2018 00:38:07 +0200
+Message-id : 152884308789.5345.13766424296507180081@localhost
+Reply-to : Johannes Schauer <josch@debian.org>, 829134@bugs.debian.org
+In-reply-to : <147334199742.29541.5976952643286155441@localhost>
+References : <146731753657.3914.10688875335333413273.reportbug@joyplim> <147334199742.29541.5976952643286155441@localhost> <146731753657.3914.10688875335333413273.reportbug@joyplim>
+
+
+Hi,
+On Thu, 08 Sep 2016 15:39:57 +0200 Johannes Schauer <josch@debian.org> wrote:
+> On Thu, 30 Jun 2016 13:12:16 -0700 Ben Longbons <brlongbons@gmail.com> wrote:
+> > Now that the kernel supports user_namespaces(7), it should be possible to
+> > debootstrap in them. Some small changes are needed.
+> > 
+> > Configuration needed:
+> > * Kernel 3.8 or later (3.11 recommended)
+> > * Set the sysctl kernel.unprivileged_userns_clone to 1
+> >     (Debian-specific "temporary" patch from years ago).
+> > * Install the `uidmap` package and add yourself to /etc/sub[ug]id
+> > * Install the `lxc` package (for one helper binary only)
+> > * Make sure the current directory is searchable by other.
+> > 
+> > I have attached the necessary changes as a wrapper script,
+> 
+> I find your script highly interesting!
+> 
+> A year ago I tried to write a tool that combined the powers of
+> lxc-usernsexec(1) and unshare(1) because I was unable to combine them in a way
+> that would give me both: correct mapping of user and group ids as well as
+> unsharing the user namespace and others. I blogged about it here:
+> 
+> https://blog.mister-muffin.de/2015/10/25/unshare-without-superuser-privileges/
+> 
+> and the code is here:
+> 
+> https://gitlab.mister-muffin.de/josch/user-unshare/blob/master/user-unshare
+> 
+> I do not know whether what you demonstrated now in shell already worked one
+> year ago (in particular I was not aware of the lxc-unshare tool) but your
+> script works fine for me. I'm happy that it seems that I don't have to further
+> dabble with the perl code I came up with because lxc-usernsexec and lxc-unshare
+> seem to be able to do the major grunt work while the rest can be done in simple
+> POSIX shell. Thank you!
+The disadvantage of the lxc-usernsexec and lxc-unshare tools is, that they are
+part of the lxc package. See bug #847491.
+> I wonder though: why would this feature be useful for debootstrap? The
+> resulting directory would have all the wrong ownership information. The
+> directory would only be useful if its user knows exactly how to map the user
+> ids between the host and the unshared user namespace.
+> 
+> So my practical question:
+> 
+> How do you use the chroots that you create in this fashion? Which commands do
+> you use to work with them?
+To answer my own question: by packing up the chroot into a tarball. The files
+stored inside the tarball will have the correct permission.
+I combined the insights from your tool with the Perl script I wrote and cited
+above and added support to sbuild-createchroot to run debootstrap without
+needing sudo but using Linux user namespaces.
+Since debootstrap does not yet offer this functionality itself, I will carry
+the code as part of sbuild. See the following two commits for details:
+https://salsa.debian.org/debian/sbuild/commit/f21d63cca448a5fc90338319e2ea507623293060?expanded=1
+https://salsa.debian.org/debian/sbuild/commit/53e250cdeb0035663833fa0c8ce80adf96d31c03?expanded=1
+Thanks!
+cheers, josch
+signature.asc

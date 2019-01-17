@@ -1,0 +1,41 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>
+Subject : Bug#840372: debootstrap: second-stage fails within systemd-nspawn: proc already mounted
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Mon, 23 Apr 2018 15:59:31 +0200
+Message-id : 20180423135931.GA16344@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 840372@bugs.debian.org
+In-reply-to : <[🔎] 20180423222141.b4718b66c7a4ce5fe8e3307b@iijmio-mail.jp>
+References : <20161011015051.30918.79686.reportbug@pxe> <[🔎] 20180417234733.6533982aff571b1ba0b53158@iijmio-mail.jp> <[🔎] 20180419080649.GF8532@home.ouaza.com> <[🔎] 20180423222141.b4718b66c7a4ce5fe8e3307b@iijmio-mail.jp> <20161011015051.30918.79686.reportbug@pxe>
+
+
+On Mon, 23 Apr 2018, Hideki Yamane wrote:
+> On Thu, 19 Apr 2018 10:06:49 +0200
+> Raphael Hertzog <hertzog@debian.org> wrote:
+> > Your patch will try to umount /proc even if it has not been mounted by
+> > debootstrap. That's wrong. If you detect that /proc was handled outside of
+> > debootstrap, then you should also not umount it.
+> 
+> +               if [ ! -n "$(ls -A /proc)" ]; then
+> +                       in_target mount -t proc proc /proc
+> 
+>  is when there's no file under /proc, then try to mount /proc - not try
+>  to umount it.
+I'm saying this because the following lines are left untouched and are
+called in all cases:
+                umount_on_exit /proc
+                umount_on_exit /proc/bus/usb
+(They are in the context of your unified diff)
+They should only be called if debootstrap is mounting /proc by itself.
+> > And the handling of /sys should be entirely separate from /proc. Even if
+> > /proc was already mounted, you want debootstrap to ensure that /sys is
+> > mounted too.
+> 
+>  Okay, it should be that.
+Yes, if and only if multiple mounts on /sys do not cause the same problem than multiple
+mounts on /proc. Otherwise you want to protect the mount call with a check ensuring that
+/sys is not yet mounted.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

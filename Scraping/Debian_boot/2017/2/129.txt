@@ -1,0 +1,625 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#820168: debian-installer: The Grub installation step in Debian Testing Installer fails on Gigabyte MP30-AR0
+From : Ronald Maas <ronaldjmaas@gmail.com>
+Date : Wed, 8 Feb 2017 21:38:05 -0800
+Message-id : CACk0-0Q+-do9oBP+Swy9_yuAci0YXrzS7PfE3zCfR2X-B5tKcQ@mail.gmail.com
+Reply-to : Ronald Maas <ronaldjmaas@gmail.com>, 820168@bugs.debian.org
+In-reply-to : <[🔎] 20170204023853.GA3020@mraw.org>
+References : <20160406045649.22861.1500.reportbug@haswell.home.local> <[🔎] 20170204023853.GA3020@mraw.org>
+
+
+Hi KiBi,
+Good news. I was able to successfully install Stretch RC2 on the
+Gigabyte MP30-AR0 motherboard. Also the installer was able to
+recognize the network properly, so this bug and also bug 820022 can be
+closed.
+Attached the dmesg output for reference.
+A minor issue remaining is that the AST2400 VGA adapter is not
+recognized out of the box. Serial console did work and I was also able
+to ssh into the machine after installation and reboot. Reason is
+CONFIG_DRM_AST is not set in the kernel configuration. Hope Debian
+kernel team could consider changing it to compile it as a module.
+Thanks for all the hard work.
+Kind regards,
+Ronald Maas
+On Fri, Feb 3, 2017 at 6:38 PM, Cyril Brulebois <kibi@debian.org> wrote:
+> Control: tag -1 - d-i
+>
+> Hi Ronald,
+>
+> Ronald Maas <ronaldjmaas@gmail.com> (2016-04-05):
+>> The Grub installation step in Debian Installer failed on TianoCore
+>> UEFI firmware. The /target/boot/efi directory is empty and the
+>> following error is displayed:
+>>
+>> GRUB installation failed
+>> The 'grub-efi-arm64' package failed to install into /target/
+>>
+>> Version-Release number of selected component (if applicable):
+>>
+>> Debian Testing DVD ISO dated 28-03-2016
+>>
+>> How reproducible:
+>>
+>> Every time.
+>>
+>> Steps to Reproduce:
+>>
+>> 1. Download http://cdimage.debian.org/cdimage/weekly-builds/arm64/iso-dvd/debian-testing-arm64-DVD-1.iso
+>> 2. Verify checksum
+>> 3. Copy to USB drive using Windows Win32DiskImager
+>> 4. Insert drive in X-Gene system
+>> 5. Boot X-Gene system
+>> 6. Navigate to UEFI Shell
+>> 7. Enter the following command to start the Fedora installer:
+>>    FS1:\EFI\BOOT\BOOTAA64.EFI
+>> 8. In the Grub boot menu select the first menu option and hit enter
+>> 9. Proceed through the remaining steps of the setup procedure. Selecting
+>>    default options where applicable. Note on the MP30-AR0 the network is not
+>>    function (see bug report
+>>    https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=820022. So skip this step
+>>    to continue
+>> 10. After the GRUB installation step fails, continue without bootloader and reboot
+>> 11. System fails to boot Debian Testing and starts the UEFI Shell instead
+>>
+>> Actual results:
+>>
+>> No GRUB bootloader is installed. After restarting the system, no 'debian' menu
+>> entry is visible in UEFI and the /boot/efi directory is empty
+>>
+>> Expected results:
+>>
+>> To be able to boot Debian Testing after selecting the 'debian' menu entry in
+>> UEFI. Also /boot/efi should contain EFI/debian/grubaa64.efi
+>>
+>> Additional info:
+>>
+>> Hardware
+>> Gigabyte MP30-AR0 motherboard with APM X-Gene 1 processor flashed with TianoCore UEFI
+>> Kingston KVR16LE11S8/4HB 16 GB ECC DDR3 DRAM
+>> HGST Deskstar NAS 6 TB hard drive
+>> Logitech USB keyboard
+>>
+>> The standard U-Boot firmware has been replaced by TianoCore UEFI using the steps described in: https://rwmj.wordpress.com/2016/03/08/gigabyte-mp30-ar0-flashing-uefi/
+>
+> Any chance you could give Stretch RC 2 a try? Info/download at:
+>   https://www.debian.org/devel/debian-installer/
+>
+>
+> KiBi.
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 4.9.0-1-arm64 (debian-kernel@lists.debian.org) (gcc version 6.3.0 20161229 (Debian 6.3.0-2) ) #1 SMP Debian 4.9.2-2 (2017-01-12)
+[    0.000000] Boot CPU: AArch64 Processor [500f0001]
+[    0.000000] efi: Getting EFI parameters from FDT:
+[    0.000000] efi: EFI v2.40 by American Megatrends
+[    0.000000] efi:  ACPI 2.0=0x807ff43000  ESRT=0x807e161e18  SMBIOS 3.0=0x807e161c18 
+[    0.000000] esrt: Reserving ESRT space from 0x000000807e161e18 to 0x000000807e161e50.
+[    0.000000] On node 0 totalpages: 4194304
+[    0.000000]   DMA zone: 8192 pages used for memmap
+[    0.000000]   DMA zone: 0 pages reserved
+[    0.000000]   DMA zone: 524288 pages, LIFO batch:31
+[    0.000000]   Normal zone: 57344 pages used for memmap
+[    0.000000]   Normal zone: 3670016 pages, LIFO batch:31
+[    0.000000] percpu: Embedded 22 pages/cpu @ffff807fffe93000 s50200 r8192 d31720 u90112
+[    0.000000] pcpu-alloc: s50200 r8192 d31720 u90112 alloc=22*4096
+[    0.000000] pcpu-alloc: [0] 0 [0] 1 [0] 2 [0] 3 [0] 4 [0] 5 [0] 6 [0] 7 
+[    0.000000] Detected PIPT I-cache on CPU0
+[    0.000000] Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 4128768
+[    0.000000] Kernel command line: BOOT_IMAGE=/boot/vmlinuz-4.9.0-1-arm64 root=/dev/sda2 ro quiet
+[    0.000000] PID hash table entries: 4096 (order: 3, 32768 bytes)
+[    0.000000] Dentry cache hash table entries: 2097152 (order: 12, 16777216 bytes)
+[    0.000000] Inode-cache hash table entries: 1048576 (order: 11, 8388608 bytes)
+[    0.000000] software IO TLB [mem 0xfbfec000-0xfffec000] (64MB) mapped at [ffff80007bfec000-ffff80007ffebfff]
+[    0.000000] Memory: 16363176K/16777216K available (6780K kernel code, 1020K rwdata, 2164K rodata, 3264K init, 634K bss, 414040K reserved, 0K cma-reserved)
+[    0.000000] Virtual kernel memory layout:
+[    0.000000]     modules : 0xffff000000000000 - 0xffff000008000000   (   128 MB)
+[    0.000000]     vmalloc : 0xffff000008000000 - 0xffff7dffbfff0000   (129022 GB)
+[    0.000000]       .text : 0xffff000008080000 - 0xffff000008720000   (  6784 KB)
+[    0.000000]     .rodata : 0xffff000008720000 - 0xffff000008940000   (  2176 KB)
+[    0.000000]       .init : 0xffff000008940000 - 0xffff000008c70000   (  3264 KB)
+[    0.000000]       .data : 0xffff000008c70000 - 0xffff000008d6f200   (  1021 KB)
+[    0.000000]        .bss : 0xffff000008d6f200 - 0xffff000008e0dbb4   (   635 KB)
+[    0.000000]     fixed   : 0xffff7dfffe7fd000 - 0xffff7dfffec00000   (  4108 KB)
+[    0.000000]     PCI I/O : 0xffff7dfffee00000 - 0xffff7dffffe00000   (    16 MB)
+[    0.000000]     vmemmap : 0xffff7e0000000000 - 0xffff800000000000   (  2048 GB maximum)
+[    0.000000]               0xffff7e0000000000 - 0xffff7e0200000000   (  8192 MB actual)
+[    0.000000]     memory  : 0xffff800000000000 - 0xffff808000000000   (524288 MB)
+[    0.000000] Hierarchical RCU implementation.
+[    0.000000] 	Build-time adjustment of leaf fanout to 64.
+[    0.000000] 	RCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=8.
+[    0.000000] RCU: Adjusting geometry for rcu_fanout_leaf=64, nr_cpu_ids=8
+[    0.000000] NR_IRQS:64 nr_irqs:64 0
+[    0.000000] GIC: Adjusting CPU interface base to 0x00000000780af000
+[    0.000000] GIC: Using split EOI/Deactivate mode
+[    0.000000] GIC: PPI0 is secure or misconfigured
+[    0.000000] GIC: PPI13 is secure or misconfigured
+[    0.000000] arm_arch_timer: WARNING: Invalid trigger for IRQ2, assuming level low
+[    0.000000] arm_arch_timer: WARNING: Please fix your firmware
+[    0.000000] arm_arch_timer: WARNING: Invalid trigger for IRQ3, assuming level low
+[    0.000000] arm_arch_timer: WARNING: Please fix your firmware
+[    0.000000] arm_arch_timer: Architected cp15 timer(s) running at 50.00MHz (phys).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0xb8812736b, max_idle_ns: 440795202655 ns
+[    0.000002] sched_clock: 56 bits at 50MHz, resolution 20ns, wraps every 4398046511100ns
+[    0.000211] Console: colour dummy device 80x25
+[    0.000215] console [tty0] enabled
+[    0.000226] Calibrating delay loop (skipped), value calculated using timer frequency.. 100.00 BogoMIPS (lpj=200000)
+[    0.000230] pid_max: default: 32768 minimum: 301
+[    0.000308] Security Framework initialized
+[    0.000312] Yama: disabled by default; enable with sysctl kernel.yama.*
+[    0.000324] AppArmor: AppArmor disabled by boot time parameter
+[    0.000349] Mount-cache hash table entries: 32768 (order: 6, 262144 bytes)
+[    0.000353] Mountpoint-cache hash table entries: 32768 (order: 6, 262144 bytes)
+[    0.000758] ftrace: allocating 24669 entries in 97 pages
+[    0.020517] ASID allocator initialised with 65536 entries
+[    0.021378] Remapping and enabling EFI services.
+[    0.021392]   EFI remap 0x0000000010510000 => 0000000020000000
+[    0.021395]   EFI remap 0x0000000010540000 => 0000000020010000
+[    0.021397]   EFI remap 0x0000000017000000 => 0000000020020000
+[    0.021399]   EFI remap 0x000000001c020000 => 0000000020030000
+[    0.021401]   EFI remap 0x000000001c025000 => 0000000020045000
+[    0.021415]   EFI remap 0x0000000082000000 => 0000000020200000
+[    0.021417]   EFI remap 0x00000000fffed000 => 0000000020f0d000
+[    0.021422]   EFI remap 0x000000807ce8e000 => 0000000020f2e000
+[    0.021426]   EFI remap 0x000000807d3c7000 => 0000000021177000
+[    0.021428]   EFI remap 0x000000807d8f6000 => 00000000213c6000
+[    0.021429]   EFI remap 0x000000807d8f9000 => 00000000213c9000
+[    0.021431]   EFI remap 0x000000807d914000 => 00000000213e4000
+[    0.021434]   EFI remap 0x000000807d91b000 => 00000000213eb000
+[    0.021436]   EFI remap 0x000000807d93b000 => 000000002140b000
+[    0.021449]   EFI remap 0x000000807d93f000 => 000000002140f000
+[    0.021450]   EFI remap 0x000000807e144000 => 0000000021c14000
+[    0.021452]   EFI remap 0x000000807e146000 => 0000000021c16000
+[    0.021454]   EFI remap 0x000000807e15f000 => 0000000021c2f000
+[    0.021456]   EFI remap 0x000000807e165000 => 0000000021c35000
+[    0.021458]   EFI remap 0x000000807e175000 => 0000000021c45000
+[    0.021460]   EFI remap 0x000000807e185000 => 0000000021c55000
+[    0.021461]   EFI remap 0x000000807e1b2000 => 0000000021c82000
+[    0.021463]   EFI remap 0x000000807e1b5000 => 0000000021c85000
+[    0.021465]   EFI remap 0x000000807e1d2000 => 0000000021ca2000
+[    0.021467]   EFI remap 0x000000807e1d3000 => 0000000021ca3000
+[    0.021469]   EFI remap 0x000000807e24f000 => 0000000021d1f000
+[    0.021473]   EFI remap 0x000000807e2e1000 => 0000000021db1000
+[    0.021475]   EFI remap 0x000000807ffaf000 => 0000000021eef000
+[    0.021477]   EFI remap 0x000000807ffcf000 => 0000000021f0f000
+[    0.021839] Detected PIPT I-cache on CPU1
+[    0.021865] CPU1: Booted secondary processor [500f0001]
+[    0.022086] Detected PIPT I-cache on CPU2
+[    0.022107] CPU2: Booted secondary processor [500f0001]
+[    0.022313] Detected PIPT I-cache on CPU3
+[    0.022326] CPU3: Booted secondary processor [500f0001]
+[    0.022526] Detected PIPT I-cache on CPU4
+[    0.022546] CPU4: Booted secondary processor [500f0001]
+[    0.022747] Detected PIPT I-cache on CPU5
+[    0.022760] CPU5: Booted secondary processor [500f0001]
+[    0.022960] Detected PIPT I-cache on CPU6
+[    0.022980] CPU6: Booted secondary processor [500f0001]
+[    0.023185] Detected PIPT I-cache on CPU7
+[    0.023197] CPU7: Booted secondary processor [500f0001]
+[    0.023228] Brought up 8 CPUs
+[    0.023231] SMP: Total of 8 processors activated.
+[    0.023234] CPU features: detected feature: 32-bit EL0 Support
+[    0.023238] CPU: All CPU(s) started at EL2
+[    0.024692] devtmpfs: initialized
+[    0.026581] SMBIOS 3.0.0 present.
+[    0.026684] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[    0.026748] pinctrl core: initialized pinctrl subsystem
+[    0.027146] NET: Registered protocol family 16
+[    0.036413] cpuidle: using governor ladder
+[    0.052419] cpuidle: using governor menu
+[    0.052439] vdso: 2 pages (1 code @ ffff000008727000, 1 data @ ffff000008c75000)
+[    0.052445] hw-breakpoint: found 4 breakpoint and 4 watchpoint registers.
+[    0.052563] DMA: preallocated 256 KiB pool for atomic allocations
+[    0.052627] Serial: AMBA PL011 UART driver
+[    0.052753] irq: type mismatch, failed to map hwirq-16 for /interrupt-controller@78010000!
+[    0.068624] HugeTLB registered 2 MB page size, pre-allocated 0 pages
+[    0.069149] xgene-msi 79000000.msi: APM X-Gene PCIe MSI driver loaded
+[    0.069191] ACPI: Interpreter disabled.
+[    0.069328] vgaarb: loaded
+[    0.069428] Registered efivars operations
+[    0.069456] ------------[ cut here ]------------
+[    0.069465] WARNING: CPU: 0 PID: 1 at /build/linux-fd_naX/linux-4.9.2/drivers/firmware/efi/runtime-wrappers.c:43 efi_call_virt_check_flags+0x8c/0xb8
+[    0.069466] Modules linked in:
+[    0.069472] CPU: 0 PID: 1 Comm: swapper/0 Not tainted 4.9.0-1-arm64 #1 Debian 4.9.2-2
+[    0.069473] Hardware name: GIGABYTE MP30-AR0/MP30-AR0, BIOS F01 09/05/2016
+[    0.069475] task: ffff807ffe4d0d80 task.stack: ffff807ffe4d4000
+[    0.069477] PC is at efi_call_virt_check_flags+0x8c/0xb8
+[    0.069480] LR is at virt_efi_get_next_variable+0xa4/0xd0
+[    0.069482] pc : [<ffff0000085c3c2c>] lr : [<ffff0000085c4404>] pstate: 00000005
+[    0.069482] sp : ffff807ffe4d7c20
+[    0.069484] x29: ffff807ffe4d7c20 x28: 0000000000000000 
+[    0.069486] x27: ffff0000089d9af8 x26: ffff000008d47000 
+[    0.069489] x25: 0000000000000000 x24: 0000000000000001 
+[    0.069491] x23: 0000000000000040 x22: ffff807ffe4d7d08 
+[    0.069493] x21: ffff0000088c1080 x20: 0000000000000000 
+[    0.069495] x19: 0000000000000040 x18: ffffffffffffffff 
+[    0.069497] x17: 0000000000000000 x16: 00000000b9174a11 
+[    0.069500] x15: ffff00000806bfff x14: 0000000000000000 
+[    0.069502] x13: 0000000000000004 x12: 0000000000000081 
+[    0.069504] x11: 0000000000000006 x10: 0000000000000081 
+[    0.069506] x9 : 0000000000000000 x8 : ffff807feb02a400 
+[    0.069508] x7 : 0000000000000000 x6 : 0000000000000001 
+[    0.069510] x5 : 0000000021ddef98 x4 : 0000000021ddefa0 
+[    0.069512] x3 : ffff807ffe4d7d08 x2 : 0000000000000010 
+[    0.069514] x1 : 0000000000000001 x0 : ffff000008d48000 
+[    0.069518] ---[ end trace 642730cb4c9e830c ]---
+[    0.069520] Call trace:
+[    0.069523] Exception stack(0xffff807ffe4d7a30 to 0xffff807ffe4d7b60)
+[    0.069524] 7a20:                                   0000000000000040 0001000000000000
+[    0.069526] 7a40: ffff807ffe4d7c20 ffff0000085c3c2c 0000000000000005 ffff807ffe4d7d08
+[    0.069528] 7a60: ffff807ffe4d7a90 0000000021dba040 ffff807ffe4d7aa0 0000000021d1f4c3
+[    0.069530] 7a80: ffff807ffe4d7ab0 0000000021dc8758 ffff807ffe4d7ac0 0000000000000010
+[    0.069532] 7aa0: 0000000021d9eff8 ffff807ffe4d7d08 ffff807ffe4d7ae0 0000000021dbad40
+[    0.069534] 7ac0: ffff807ffe4d7ae0 0000000000000010 0000000021d9eff8 ffff807ffe4d7d08
+[    0.069536] 7ae0: ffff807ffe4d7b50 0000000000040902 ffff000008d48000 0000000000000001
+[    0.069537] 7b00: 0000000000000010 ffff807ffe4d7d08 0000000021ddefa0 0000000021ddef98
+[    0.069539] 7b20: 0000000000000001 0000000000000000 ffff807feb02a400 0000000000000000
+[    0.069541] 7b40: 0000000000000081 0000000000000006 0000000000000081 0000000000000004
+[    0.069543] [<ffff0000085c3c2c>] efi_call_virt_check_flags+0x8c/0xb8
+[    0.069546] [<ffff0000085c4404>] virt_efi_get_next_variable+0xa4/0xd0
+[    0.069548] [<ffff0000085c1f94>] efivar_init+0xa4/0x360
+[    0.069552] [<ffff00000898289c>] efisubsys_init+0xf8/0x280
+[    0.069556] [<ffff00000808395c>] do_one_initcall+0x5c/0x170
+[    0.069559] [<ffff000008940dcc>] kernel_init_freeable+0x1ac/0x250
+[    0.069563] [<ffff00000870b550>] kernel_init+0x18/0x108
+[    0.069564] [<ffff000008083680>] ret_from_fork+0x10/0x50
+[    0.069566] Disabling lock debugging due to kernel taint
+[    0.069568] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069584] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069593] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069600] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069608] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069619] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069627] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069633] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069639] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.069646] efi: [Firmware Bug]: IRQ flags corrupted (0x00000040=>0x00000000) by EFI get_next_variable
+[    0.070357] clocksource: Switched to clocksource arch_sys_counter
+[    0.083645] VFS: Disk quotas dquot_6.6.0
+[    0.083679] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    0.083780] pnp: PnP ACPI: disabled
+[    0.086959] NET: Registered protocol family 2
+[    0.087232] TCP established hash table entries: 131072 (order: 8, 1048576 bytes)
+[    0.087569] TCP bind hash table entries: 65536 (order: 8, 1048576 bytes)
+[    0.087935] TCP: Hash tables configured (established 131072 bind 65536)
+[    0.087963] UDP hash table entries: 8192 (order: 6, 262144 bytes)
+[    0.088100] UDP-Lite hash table entries: 8192 (order: 6, 262144 bytes)
+[    0.088331] NET: Registered protocol family 1
+[    0.088344] PCI: CLS 0 bytes, default 128
+[    0.088441] Unpacking initramfs...
+[    0.480204] Freeing initrd memory: 16796K (ffff807ffa6b6000 - ffff807ffb71d000)
+[    0.480385] hw perfevents: enabled with armv8_pmuv3 PMU driver, 5 counters available
+[    0.480495] kvm [1]: 8-bit VMID
+[    0.480497] kvm [1]: IDMAP page: 80715000
+[    0.480499] kvm [1]: HYP VA range: 800000000000:ffffffffffff
+[    0.480736] kvm [1]: Hyp mode initialized successfully
+[    0.480761] kvm [1]: vgic-v2@780c0000
+[    0.480871] kvm [1]: vgic interrupt IRQ1
+[    0.480874] kvm [1]: Invalid trigger for IRQ4, assuming level low
+[    0.480886] GIC: PPI14 is secure or misconfigured
+[    0.480904] kvm [1]: virtual timer IRQ4
+[    0.481648] futex hash table entries: 2048 (order: 6, 262144 bytes)
+[    0.481697] audit: initializing netlink subsys (disabled)
+[    0.481732] audit: type=2000 audit(0.464:1): initialized
+[    0.481942] Initialise system trusted keyrings
+[    0.482099] workingset: timestamp_bits=46 max_order=22 bucket_order=0
+[    0.482195] zbud: loaded
+[    0.555816] Key type asymmetric registered
+[    0.555819] Asymmetric key parser 'x509' registered
+[    0.555854] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 250)
+[    0.555902] io scheduler noop registered
+[    0.555903] io scheduler deadline registered
+[    0.555912] io scheduler cfq registered (default)
+[    0.556552] OF: PCI: host bridge /soc/pcie@1f2b0000 ranges:
+[    0.556556] OF: PCI:   No bus range found for /soc/pcie@1f2b0000, using [bus 00-ff]
+[    0.556567] OF: PCI:    IO 0xe010000000..0xe01000ffff -> 0x00000000
+[    0.556573] OF: PCI:   MEM 0xe180000000..0xe1ffffffff -> 0x80000000
+[    0.556576] OF: PCI:   MEM 0xf000000000..0xffffffffff -> 0xf000000000
+[    0.556609] xgene-pcie 1f2b0000.pcie: (rc) link down
+[    0.556678] xgene-pcie 1f2b0000.pcie: PCI host bridge to bus 0000:00
+[    0.556682] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    0.556685] pci_bus 0000:00: root bus resource [io  0x0000-0xffff]
+[    0.556688] pci_bus 0000:00: root bus resource [mem 0xe180000000-0xe1ffffffff] (bus address [0x80000000-0xffffffff])
+[    0.556690] pci_bus 0000:00: root bus resource [mem 0xf000000000-0xffffffffff pref]
+[    0.556710] pci 0000:00:00.0: [10e8:e004] type 01 class 0x060400
+[    0.556793] pci 0000:00:00.0: supports D1 D2
+[    0.556953] pci 0000:00:00.0: PCI bridge to [bus 01]
+[    0.557085] pcieport 0000:00:00.0: Signaling PME through PCIe PME interrupt
+[    0.557090] pcie_pme 0000:00:00.0:pcie001: service driver pcie_pme loaded
+[    0.557148] aer 0000:00:00.0:pcie002: service driver aer loaded
+[    0.557227] OF: PCI: host bridge /soc/pcie@1f2d0000 ranges:
+[    0.557230] OF: PCI:   No bus range found for /soc/pcie@1f2d0000, using [bus 00-ff]
+[    0.557236] OF: PCI:    IO 0x9010000000..0x901000ffff -> 0x00000000
+[    0.557240] OF: PCI:   MEM 0x9180000000..0x91ffffffff -> 0x80000000
+[    0.557243] OF: PCI:   MEM 0x9400000000..0x97ffffffff -> 0x9400000000
+[    0.557272] xgene-pcie 1f2d0000.pcie: (rc) x1 gen-1 link up
+[    0.557332] xgene-pcie 1f2d0000.pcie: PCI host bridge to bus 0001:00
+[    0.557335] pci_bus 0001:00: root bus resource [bus 00-ff]
+[    0.557338] pci_bus 0001:00: root bus resource [io  0x10000-0x1ffff] (bus address [0x0000-0xffff])
+[    0.557341] pci_bus 0001:00: root bus resource [mem 0x9180000000-0x91ffffffff] (bus address [0x80000000-0xffffffff])
+[    0.557343] pci_bus 0001:00: root bus resource [mem 0x9400000000-0x97ffffffff pref]
+[    0.557358] pci 0001:00:00.0: [10e8:e004] type 01 class 0x060400
+[    0.557432] pci 0001:00:00.0: supports D1 D2
+[    0.557589] pci 0001:01:00.0: [1a03:1150] type 01 class 0x060400
+[    0.557773] pci 0001:01:00.0: supports D1 D2
+[    0.557775] pci 0001:01:00.0: PME# supported from D0 D1 D2 D3hot D3cold
+[    0.557870] pci 0001:01:00.0: disabling ASPM on pre-1.1 PCIe device.  You can enable it with 'pcie_aspm=force'
+[    0.557985] pci 0001:02:00.0: [1a03:2000] type 00 class 0x030000
+[    0.558023] pci 0001:02:00.0: reg 0x10: [mem 0x30000000-0x30ffffff]
+[    0.558045] pci 0001:02:00.0: reg 0x14: [mem 0x31000000-0x3101ffff]
+[    0.558068] pci 0001:02:00.0: reg 0x18: [io  0x10000000-0x1000007f]
+[    0.558223] pci 0001:02:00.0: supports D1 D2
+[    0.558225] pci 0001:02:00.0: PME# supported from D0 D1 D2 D3hot D3cold
+[    0.558303] vgaarb: device added: PCI:0001:02:00.0,decodes=io+mem,owns=none,locks=none
+[    0.558457] pci 0001:00:00.0: BAR 14: assigned [mem 0x9180000000-0x91817fffff]
+[    0.558460] pci 0001:00:00.0: BAR 13: assigned [io  0x10000-0x10fff]
+[    0.558464] pci 0001:01:00.0: BAR 14: assigned [mem 0x9180000000-0x91817fffff]
+[    0.558466] pci 0001:01:00.0: BAR 13: assigned [io  0x10000-0x10fff]
+[    0.558469] pci 0001:02:00.0: BAR 0: assigned [mem 0x9180000000-0x9180ffffff]
+[    0.558477] pci 0001:02:00.0: BAR 1: assigned [mem 0x9181000000-0x918101ffff]
+[    0.558484] pci 0001:02:00.0: BAR 2: assigned [io  0x10000-0x1007f]
+[    0.558491] pci 0001:01:00.0: PCI bridge to [bus 02]
+[    0.558495] pci 0001:01:00.0:   bridge window [io  0x10000-0x10fff]
+[    0.558505] pci 0001:01:00.0:   bridge window [mem 0x9180000000-0x91817fffff]
+[    0.558521] pci 0001:00:00.0: PCI bridge to [bus 01-02]
+[    0.558524] pci 0001:00:00.0:   bridge window [io  0x10000-0x10fff]
+[    0.558529] pci 0001:00:00.0:   bridge window [mem 0x9180000000-0x91817fffff]
+[    0.558652] pcieport 0001:00:00.0: Signaling PME through PCIe PME interrupt
+[    0.558655] pci 0001:01:00.0: Signaling PME through PCIe PME interrupt
+[    0.558656] pci 0001:02:00.0: Signaling PME through PCIe PME interrupt
+[    0.558661] pcie_pme 0001:00:00.0:pcie001: service driver pcie_pme loaded
+[    0.558718] aer 0001:00:00.0:pcie002: service driver aer loaded
+[    0.558816] OF: PCI: host bridge /soc/pcie@1f500000 ranges:
+[    0.558818] OF: PCI:   No bus range found for /soc/pcie@1f500000, using [bus 00-ff]
+[    0.558825] OF: PCI:    IO 0xa010000000..0xa01000ffff -> 0x00000000
+[    0.558829] OF: PCI:   MEM 0xa180000000..0xa1ffffffff -> 0x80000000
+[    0.558832] OF: PCI:   MEM 0xb000000000..0xbfffffffff -> 0xb000000000
+[    0.558862] xgene-pcie 1f500000.pcie: (rc) link down
+[    0.558919] xgene-pcie 1f500000.pcie: PCI host bridge to bus 0002:00
+[    0.558922] pci_bus 0002:00: root bus resource [bus 00-ff]
+[    0.558925] pci_bus 0002:00: root bus resource [io  0x20000-0x2ffff] (bus address [0x0000-0xffff])
+[    0.558927] pci_bus 0002:00: root bus resource [mem 0xa180000000-0xa1ffffffff] (bus address [0x80000000-0xffffffff])
+[    0.558930] pci_bus 0002:00: root bus resource [mem 0xb000000000-0xbfffffffff pref]
+[    0.558944] pci 0002:00:00.0: [10e8:e004] type 01 class 0x060400
+[    0.559016] pci 0002:00:00.0: supports D1 D2
+[    0.559165] pci 0002:00:00.0: PCI bridge to [bus 01]
+[    0.559276] pcieport 0002:00:00.0: Signaling PME through PCIe PME interrupt
+[    0.559281] pcie_pme 0002:00:00.0:pcie001: service driver pcie_pme loaded
+[    0.559334] aer 0002:00:00.0:pcie002: service driver aer loaded
+[    0.560219] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    0.560859] 1c020000.serial: ttyS0 at MMIO 0x1c020000 (irq = 35, base_baud = 3125000) is a 16550A
+[    0.659549] console [ttyS0] enabled
+[    0.659763] 1c021000.serial: ttyS1 at MMIO 0x1c021000 (irq = 36, base_baud = 3125000) is a 16550A
+[    0.659926] 1c022000.serial: ttyS2 at MMIO 0x1c022000 (irq = 37, base_baud = 3125000) is a 16550A
+[    0.660080] 1c023000.serial: ttyS3 at MMIO 0x1c023000 (irq = 38, base_baud = 3125000) is a 16550A
+[    0.660190] Serial: AMBA driver
+[    0.660260] msm_serial: driver initialized
+[    0.661354] mousedev: PS/2 mouse device common for all mice
+[    0.661619] rtc-efi rtc-efi: rtc core: registered rtc-efi as rtc0
+[    0.661846] xgene-rtc 10510000.rtc: rtc core: registered 10510000.rtc as rtc1
+[    0.662267] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.662943] NET: Registered protocol family 10
+[    0.663262] mip6: Mobile IPv6
+[    0.663267] NET: Registered protocol family 17
+[    0.663272] mpls_gso: MPLS GSO support
+[    0.663524] registered taskstats version 1
+[    0.663528] Loading compiled-in X.509 certificates
+[    0.666059] alg: No test for pkcs1pad(rsa,sha256) (pkcs1pad(rsa-generic,sha256))
+[    0.666508] Loaded X.509 cert 'Debian Project: Ben Hutchings: 008a018dca80932630'
+[    0.666548] zswap: loaded using pool lzo/zbud
+[    0.667057] rtc-efi rtc-efi: setting system clock to 2017-02-09 05:02:08 UTC (1486616528)
+[    0.667114] PM: Hibernation image not present or could not be loaded.
+[    0.667669] Freeing unused kernel memory: 3264K (ffff800000940000 - ffff800000c70000)
+[    0.689985] random: systemd-udevd: uninitialized urandom read (16 bytes read)
+[    0.690127] random: systemd-udevd: uninitialized urandom read (16 bytes read)
+[    0.690143] random: systemd-udevd: uninitialized urandom read (16 bytes read)
+[    0.691625] random: udevadm: uninitialized urandom read (16 bytes read)
+[    0.691687] random: udevadm: uninitialized urandom read (16 bytes read)
+[    0.692469] random: udevadm: uninitialized urandom read (16 bytes read)
+[    0.692604] random: udevadm: uninitialized urandom read (16 bytes read)
+[    0.692725] random: udevadm: uninitialized urandom read (16 bytes read)
+[    0.692912] random: udevadm: uninitialized urandom read (16 bytes read)
+[    0.693098] random: udevadm: uninitialized urandom read (16 bytes read)
+[    0.723327] libphy: Fixed MDIO Bus: probed
+[    0.725609] libphy: APM X-Gene MDIO bus: probed
+[    0.729588] SCSI subsystem initialized
+[    0.731782] usbcore: registered new interface driver usbfs
+[    0.731803] usbcore: registered new interface driver hub
+[    0.731865] usbcore: registered new device driver usb
+[    0.740175] libata version 3.00 loaded.
+[    0.887009] xgene-enet 1f210030.ethernet: clocks have been setup already
+[    0.896618] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    0.904374] xhci-hcd 19000000.dwusb: xHCI Host Controller
+[    0.904388] xhci-hcd 19000000.dwusb: new USB bus registered, assigned bus number 1
+[    0.904466] xhci-hcd 19000000.dwusb: hcc params 0x0220f06d hci version 0x100 quirks 0x00010010
+[    0.904492] xhci-hcd 19000000.dwusb: irq 42, io mem 0x19000000
+[    0.904592] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+[    0.904596] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    0.904598] usb usb1: Product: xHCI Host Controller
+[    0.904600] usb usb1: Manufacturer: Linux 4.9.0-1-arm64 xhci-hcd
+[    0.904602] usb usb1: SerialNumber: 19000000.dwusb
+[    0.904886] hub 1-0:1.0: USB hub found
+[    0.904908] hub 1-0:1.0: 1 port detected
+[    0.905109] xhci-hcd 19000000.dwusb: xHCI Host Controller
+[    0.905116] xhci-hcd 19000000.dwusb: new USB bus registered, assigned bus number 2
+[    0.905259] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    0.912690] usb usb2: We don't know the algorithms for LPM for this host, disabling LPM.
+[    0.912752] usb usb2: New USB device found, idVendor=1d6b, idProduct=0003
+[    0.912754] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    0.912756] usb usb2: Product: xHCI Host Controller
+[    0.912758] usb usb2: Manufacturer: Linux 4.9.0-1-arm64 xhci-hcd
+[    0.912759] usb usb2: SerialNumber: 19000000.dwusb
+[    0.912994] hub 2-0:1.0: USB hub found
+[    0.913013] hub 2-0:1.0: 1 port detected
+[    0.913211] xhci-hcd 19800000.dwusb: xHCI Host Controller
+[    0.913220] xhci-hcd 19800000.dwusb: new USB bus registered, assigned bus number 3
+[    0.913285] xhci-hcd 19800000.dwusb: hcc params 0x0220f06d hci version 0x100 quirks 0x00010010
+[    0.913301] xhci-hcd 19800000.dwusb: irq 43, io mem 0x19800000
+[    0.913381] usb usb3: New USB device found, idVendor=1d6b, idProduct=0002
+[    0.913384] usb usb3: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    0.913386] usb usb3: Product: xHCI Host Controller
+[    0.913388] usb usb3: Manufacturer: Linux 4.9.0-1-arm64 xhci-hcd
+[    0.913389] usb usb3: SerialNumber: 19800000.dwusb
+[    0.913397] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    0.913600] hub 3-0:1.0: USB hub found
+[    0.913614] hub 3-0:1.0: 1 port detected
+[    0.913742] xhci-hcd 19800000.dwusb: xHCI Host Controller
+[    0.913747] xhci-hcd 19800000.dwusb: new USB bus registered, assigned bus number 4
+[    0.913778] usb usb4: We don't know the algorithms for LPM for this host, disabling LPM.
+[    0.913820] usb usb4: New USB device found, idVendor=1d6b, idProduct=0003
+[    0.913822] usb usb4: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    0.913824] usb usb4: Product: xHCI Host Controller
+[    0.913825] usb usb4: Manufacturer: Linux 4.9.0-1-arm64 xhci-hcd
+[    0.913826] usb usb4: SerialNumber: 19800000.dwusb
+[    0.914025] hub 4-0:1.0: USB hub found
+[    0.914037] hub 4-0:1.0: 1 port detected
+[    0.914230] xgene-ahci 1a400000.sata: skip clock and PHY initialization
+[    0.914242] xgene-ahci 1a400000.sata: controller can't do NCQ, turning off CAP_NCQ
+[    0.914267] xgene-ahci 1a400000.sata: AHCI 0001.0300 32 slots 2 ports 6 Gbps 0x3 impl platform mode
+[    0.914270] xgene-ahci 1a400000.sata: flags: 64bit sntf pm only pmp fbs pio slum part ccc 
+[    0.914278] xgene-ahci 1a400000.sata: port 0 is not capable of FBS
+[    0.914295] xgene-ahci 1a400000.sata: port 1 is not capable of FBS
+[    0.915492] scsi host0: xgene-ahci
+[    0.915726] scsi host1: xgene-ahci
+[    0.915856] ata1: SATA max UDMA/133 mmio [mem 0x1a400000-0x1a400fff] port 0x100 irq 40
+[    0.915858] ata2: SATA max UDMA/133 mmio [mem 0x1a400000-0x1a400fff] port 0x180 irq 40
+[    0.915907] xgene-ahci 1a800000.sata: skip clock and PHY initialization
+[    0.915918] xgene-ahci 1a800000.sata: controller can't do NCQ, turning off CAP_NCQ
+[    0.915939] xgene-ahci 1a800000.sata: AHCI 0001.0300 32 slots 2 ports 6 Gbps 0x3 impl platform mode
+[    0.915942] xgene-ahci 1a800000.sata: flags: 64bit sntf pm only pmp fbs pio slum part ccc 
+[    0.915946] xgene-ahci 1a800000.sata: port 0 is not capable of FBS
+[    0.915963] xgene-ahci 1a800000.sata: port 1 is not capable of FBS
+[    0.916392] scsi host2: xgene-ahci
+[    0.916552] scsi host3: xgene-ahci
+[    0.916645] ata3: SATA max UDMA/133 mmio [mem 0x1a800000-0x1a800fff] port 0x100 irq 41
+[    0.916647] ata4: SATA max UDMA/133 mmio [mem 0x1a800000-0x1a800fff] port 0x180 irq 41
+[    0.920875] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    1.230364] usb 1-1: new high-speed USB device number 2 using xhci-hcd
+[    1.232541] ata3: SATA link down (SStatus 0 SControl 4330)
+[    1.232548] ata2: SATA link down (SStatus 0 SControl 4330)
+[    1.232555] ata4: SATA link down (SStatus 0 SControl 4330)
+[    1.238364] usb 3-1: new high-speed USB device number 2 using xhci-hcd
+[    1.370904] usb 1-1: New USB device found, idVendor=0624, idProduct=0248
+[    1.370907] usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[    1.370909] usb 1-1: Product: Gadget USB HUB
+[    1.370910] usb 1-1: Manufacturer: no manufacturer
+[    1.370912] usb 1-1: SerialNumber: 0123456789
+[    1.385340] hub 1-1:1.0: USB hub found
+[    1.385438] hub 1-1:1.0: 5 ports detected
+[    1.386025] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    1.386991] usb 3-1: New USB device found, idVendor=0bda, idProduct=5401
+[    1.386994] usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    1.386995] usb 3-1: Product: USB3.0 Hub
+[    1.386997] usb 3-1: Manufacturer: Realtek
+[    1.393885] hub 3-1:1.0: USB hub found
+[    1.395007] hub 3-1:1.0: 4 ports detected
+[    1.395515] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    1.554365] ata1: SATA link up 6.0 Gbps (SStatus 133 SControl 300)
+[    1.566491] ata1.00: ATA-8: KINGSTON SV300S37A120G, 583ABBF0, max UDMA/133
+[    1.566494] ata1.00: 234441648 sectors, multi 1: LBA48 NCQ (depth 0/32)
+[    1.576121] ata1.00: configured for UDMA/133
+[    1.576403] scsi 0:0:0:0: Direct-Access     ATA      KINGSTON SV300S3 BBF0 PQ: 0 ANSI: 5
+[    1.610407] sd 0:0:0:0: [sda] 234441648 512-byte logical blocks: (120 GB/112 GiB)
+[    1.610434] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    1.610487] sd 0:0:0:0: [sda] Write Protect is off
+[    1.610490] sd 0:0:0:0: [sda] Mode Sense: 00 3a 00 00
+[    1.610513] sd 0:0:0:0: [sda] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA
+[    1.611606]  sda: sda1 sda2 sda3
+[    1.612180] sd 0:0:0:0: [sda] Attached SCSI disk
+[    1.660177] PM: Starting manual resume from disk
+[    1.660184] PM: Hibernation image partition 8:3 present
+[    1.660186] PM: Looking for hibernation image.
+[    1.660383] PM: Image not found (code -22)
+[    1.660385] PM: Hibernation image not present or could not be loaded.
+[    1.686380] usb 1-1.1: new high-speed USB device number 3 using xhci-hcd
+[    1.690367] usb 3-1.1: new low-speed USB device number 3 using xhci-hcd
+[    1.716279] random: fast init done
+[    1.729789] EXT4-fs (sda2): mounted filesystem with ordered data mode. Opts: (null)
+[    1.798965] usb 1-1.1: New USB device found, idVendor=0624, idProduct=0249
+[    1.798969] usb 1-1.1: New USB device strings: Mfr=4, Product=5, SerialNumber=6
+[    1.798971] usb 1-1.1: Product: Keyboard/Mouse Function
+[    1.798973] usb 1-1.1: Manufacturer: Avocent
+[    1.798974] usb 1-1.1: SerialNumber: 20121018
+[    1.801892] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    1.803692] usb 3-1.1: New USB device found, idVendor=046d, idProduct=c31c
+[    1.803694] usb 3-1.1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    1.803696] usb 3-1.1: Product: USB Keyboard
+[    1.803698] usb 3-1.1: Manufacturer: Logitech
+[    1.813131] xgene-slimpro-i2c soc:i2cslimpro: i2c mailbox channel request failed
+[    1.834906] ip_tables: (C) 2000-2006 Netfilter Core Team
+[    1.851357] systemd[1]: systemd 232 running in system mode. (+PAM +AUDIT +SELINUX +IMA +APPARMOR +SMACK +SYSVINIT +UTMP +LIBCRYPTSETUP +GCRYPT +GNUTLS +ACL +XZ +LZ4 +SECCOMP +BLKID +ELFUTILS +KMOD +IDN)
+[    1.851593] systemd[1]: Detected architecture arm64.
+[    1.851899] systemd[1]: Set hostname to <debian9>.
+[    1.918913] systemd[1]: Listening on /dev/initctl Compatibility Named Pipe.
+[    1.919110] systemd[1]: Listening on udev Control Socket.
+[    1.919257] systemd[1]: Listening on Journal Audit Socket.
+[    1.919349] systemd[1]: Started Forward Password Requests to Wall Directory Watch.
+[    1.919441] systemd[1]: Listening on Journal Socket.
+[    1.919501] systemd[1]: Listening on Syslog Socket.
+[    1.919792] systemd[1]: Created slice System Slice.
+[    1.936733] EXT4-fs (sda2): re-mounted. Opts: errors=remount-ro
+[    1.999669] systemd-journald[227]: Received request to flush runtime journal from PID 1
+[    2.011511] EFI Variables Facility v0.08 2004-May-17
+[    2.013984] pstore: using zlib compression
+[    2.013999] pstore: Registered efi as persistent store backend
+[    2.015577] xgene-slimpro-mbox 10540000.mailbox: APM X-Gene SLIMpro MailBox registered
+[    2.015798] xgene-slimpro-i2c soc:i2cslimpro: Mailbox I2C Adapter registered
+[    2.024011] sd 0:0:0:0: Attached scsi generic sg0 type 0
+[    2.036036] X-Gene-DMA 1f270000.dma: PQ is disabled in HW
+[    2.036044] X-Gene-DMA 1f270000.dma: X-Gene DMA v0.00.1392 driver registered 4 channels
+[    2.036114] X-Gene-DMA 1f270000.dma: dma0chan0: CAPABILITY ( SGCPY XOR )
+[    2.036170] X-Gene-DMA 1f270000.dma: dma1chan0: CAPABILITY ( SGCPY )
+[    2.036220] X-Gene-DMA 1f270000.dma: dma2chan0: CAPABILITY ( SGCPY )
+[    2.036267] X-Gene-DMA 1f270000.dma: dma3chan0: CAPABILITY ( SGCPY )
+[    2.056860] hidraw: raw HID events driver (C) Jiri Kosina
+[    2.057562] EDAC MC: Ver: 3.0.0
+[    2.060356] EDAC MC0: Giving out device to module xgene_edac controller xgene_edac_mc_err: DEV xgene_edac_mc_err (INTERRUPT)
+[    2.060364] xgene-edac 78800000.edac: X-Gene EDAC MC registered
+[    2.060455] EDAC MC1: Giving out device to module xgene_edac controller xgene_edac_mc_err: DEV xgene_edac_mc_err (INTERRUPT)
+[    2.060459] xgene-edac 78800000.edac: X-Gene EDAC MC registered
+[    2.060545] EDAC MC2: Giving out device to module xgene_edac controller xgene_edac_mc_err: DEV xgene_edac_mc_err (INTERRUPT)
+[    2.060550] xgene-edac 78800000.edac: X-Gene EDAC MC registered
+[    2.060633] EDAC MC3: Giving out device to module xgene_edac controller xgene_edac_mc_err: DEV xgene_edac_mc_err (INTERRUPT)
+[    2.060638] xgene-edac 78800000.edac: X-Gene EDAC MC registered
+[    2.060681] EDAC DEVICE0: Giving out device to module xgene_edac controller xgene_pmd_err: DEV xgene_pmd_err (INTERRUPT)
+[    2.060686] xgene-edac 78800000.edac: X-Gene EDAC PMD0 registered
+[    2.060724] EDAC DEVICE1: Giving out device to module xgene_edac controller xgene_pmd_err: DEV xgene_pmd_err (INTERRUPT)
+[    2.060729] xgene-edac 78800000.edac: X-Gene EDAC PMD1 registered
+[    2.060765] EDAC DEVICE2: Giving out device to module xgene_edac controller xgene_pmd_err: DEV xgene_pmd_err (INTERRUPT)
+[    2.060769] xgene-edac 78800000.edac: X-Gene EDAC PMD2 registered
+[    2.060809] EDAC DEVICE3: Giving out device to module xgene_edac controller xgene_pmd_err: DEV xgene_pmd_err (INTERRUPT)
+[    2.060814] xgene-edac 78800000.edac: X-Gene EDAC PMD3 registered
+[    2.060856] EDAC DEVICE4: Giving out device to module xgene_edac controller xgene_l3_err: DEV xgene_l3_err (INTERRUPT)
+[    2.060860] xgene-edac 78800000.edac: X-Gene EDAC L3 registered
+[    2.060892] EDAC DEVICE5: Giving out device to module xgene_edac controller xgene_soc_err: DEV xgene_soc_err (INTERRUPT)
+[    2.060897] xgene-edac 78800000.edac: X-Gene EDAC SoC registered
+[    2.060904] xgene-edac 78800000.edac: IOB bus access error(s)
+[    2.066639] xgene-edac 78800000.edac: IOB bus read word aligned access error
+[    2.073656] xgene-edac 78800000.edac: IOB bus read to page out of range access error
+[    2.081366] xgene-edac 78800000.edac: IOB bridge agent (BA) transaction error
+[    2.088468] xgene-edac 78800000.edac: IOB BA write response error
+[    2.094531] xgene-edac 78800000.edac: Multiple IOB BA write response error
+[    2.101375] xgene-edac 78800000.edac: IOB BA write access at 0x00.00000000 (0x00000000)
+[    2.109341] xgene-edac 78800000.edac: IOB BA requestor ID 0x00002000
+[    2.123360] usbcore: registered new interface driver usbhid
+[    2.123363] usbhid: USB HID core driver
+[    2.126683] input: Avocent Keyboard/Mouse Function as /devices/platform/soc/19000000.dwusb/usb1/1-1/1-1.1/1-1.1:1.0/0003:0624:0249.0001/input/input0
+[    2.170682] Adding 15998972k swap on /dev/sda3.  Priority:-1 extents:1 across:15998972k SSFS
+[    2.186727] hid-generic 0003:0624:0249.0001: input,hidraw0: USB HID v1.00 Keyboard [Avocent Keyboard/Mouse Function] on usb-19000000.dwusb-1.1/input0
+[    2.186962] input: Avocent Keyboard/Mouse Function as /devices/platform/soc/19000000.dwusb/usb1/1-1/1-1.1/1-1.1:1.1/0003:0624:0249.0002/input/input1
+[    2.187134] hid-generic 0003:0624:0249.0002: input,hidraw1: USB HID v1.00 Mouse [Avocent Keyboard/Mouse Function] on usb-19000000.dwusb-1.1/input1
+[    2.187299] input: Avocent Keyboard/Mouse Function as /devices/platform/soc/19000000.dwusb/usb1/1-1/1-1.1/1-1.1:1.2/0003:0624:0249.0003/input/input2
+[    2.187445] hid-generic 0003:0624:0249.0003: input,hidraw2: USB HID v1.00 Mouse [Avocent Keyboard/Mouse Function] on usb-19000000.dwusb-1.1/input2
+[    2.187700] input: Logitech USB Keyboard as /devices/platform/soc/19800000.dwusb/usb3/3-1/3-1.1/3-1.1:1.0/0003:046D:C31C.0004/input/input3
+[    2.217477] IPv6: ADDRCONF(NETDEV_UP): eth0: link is not ready
+[    2.246702] hid-generic 0003:046D:C31C.0004: input,hidraw3: USB HID v1.10 Keyboard [Logitech USB Keyboard] on usb-19800000.dwusb-1.1/input0
+[    2.248095] input: Logitech USB Keyboard as /devices/platform/soc/19800000.dwusb/usb3/3-1/3-1.1/3-1.1:1.1/0003:046D:C31C.0005/input/input4
+[    2.306490] hid-generic 0003:046D:C31C.0005: input,hidraw4: USB HID v1.10 Device [Logitech USB Keyboard] on usb-19800000.dwusb-1.1/input1
+[    3.243018] xgene-enet 1f210000.ethernet eth0: Link is Down
+[    5.290776] IPv6: ADDRCONF(NETDEV_CHANGE): eth0: link becomes ready
+[    5.290870] xgene-enet 1f210000.ethernet eth0: Link is Up - 1Gbps/Full - flow control off
+[    7.948275] systemd[1]: apt-daily.timer: Adding 7h 3min 43.824902s random time.
+[    8.081825] systemd[1]: apt-daily.timer: Adding 8h 37min 36.982976s random time.
+[   33.247983] efi_call_virt_check_flags: 156 callbacks suppressed
+[   33.247987] efi: [Firmware Bug]: IRQ flags corrupted (0x00000140=>0x00000100) by EFI set_time
+[   33.256506] efi: [Firmware Bug]: IRQ flags corrupted (0x00000140=>0x00000100) by EFI get_time
+[  187.140907] random: crng init done

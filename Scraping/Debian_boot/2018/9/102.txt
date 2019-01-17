@@ -1,0 +1,59 @@
+To : submit@bugs.debian.org
+Subject : Bug#909294: buster base installing reportbug-gtk, therefore pulling in loads of X/GTK libraries
+From : Brad Barnett <bahb@L8R.net>
+Date : Fri, 21 Sep 2018 03:28:10 -0400
+Message-id : 20180921032810.526bcfca@be.back.L8R.net
+Reply-to : Brad Barnett <bahb@L8R.net>, 909294@bugs.debian.org
+
+
+Package: installation-reports
+Boot method: iso in virtualbox
+Image version: https://cdimage.debian.org/cdimage/weekly-builds/amd64/iso-cd/debian-testing-amd64-netinst.iso
+Date: September 21, 2019
+Machine: 64bit Virtualbox with 'debian' selected
+Processor: N/A (I worry about CPU info now, thanks to Intel's bugs)
+Memory: 2G
+Partitions: One only, / + swap
+Output of lspci -knn (or lspci -nn):
+00:00.0 Host bridge [0600]: Intel Corporation 440FX - 82441FX PMC [Natoma] [8086:1237] (rev 02)
+00:01.0 ISA bridge [0601]: Intel Corporation 82371SB PIIX3 ISA [Natoma/Triton II] [8086:7000]
+00:01.1 IDE interface [0101]: Intel Corporation 82371AB/EB/MB PIIX4 IDE [8086:7111] (rev 01)
+00:02.0 VGA compatible controller [0300]: InnoTek Systemberatung GmbH VirtualBox Graphics Adapter [80ee:beef]
+00:03.0 Ethernet controller [0200]: Intel Corporation 82540EM Gigabit Ethernet Controller [8086:100e] (rev 02)
+00:04.0 System peripheral [0880]: InnoTek Systemberatung GmbH VirtualBox Guest Service [80ee:cafe]
+00:05.0 Multimedia audio controller [0401]: Intel Corporation 82801AA AC'97 Audio Controller [8086:2415] (rev 01)
+00:06.0 USB controller [0c03]: Apple Inc. KeyLargo/Intrepid USB [106b:003f]
+00:07.0 Bridge [0680]: Intel Corporation 82371AB/EB/MB PIIX4 ACPI [8086:7113] (rev 08)
+00:0d.0 SATA controller [0106]: Intel Corporation 82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode] [8086:2829] (rev 02)
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [O]
+Load installer modules: [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [O]
+Comments/Problems:
+All seemed to go quite well.
+However, post install I noticed many, many GTK+X libraries.  I chose
+'standard system utilities' and 'ssh' only during debconf.
+After a bit of examination, I noticed this in my apt/history.log:
+Commandline: apt-get -o APT::Status-Fd=4 -o APT::Keep-Fds::=5 -o
+APT::Keep-Fds::=6 -q -y -o APT::Install-Recommends=true -o
+APT::Get::AutomaticRemove=true -o APT::Acquire::Retries=3 install
+task-english task-ssh-server python2.7 reportbug wamerican
+liblockfile-bin hdparm groff-base debian-faq apt-listchanges perl ucf
+doc-debian traceroute wget man-db bash-completion mime-support
+gettext-base python perl-modules-5.26 dbus bzip2 netcat-traditional file
+python-minimal bind9-host python3-reportbug lsof libpam-systemd xz-utils
+manpages ncurses-term krb5-locales reportbug-gtk telnet openssh-client
+Not sure why, but 'reportbug-gtk' was installed.  This pulled loads of
+GTK / X11 packages in.
+(Is this too soon in the process to report debian installer bugs?)

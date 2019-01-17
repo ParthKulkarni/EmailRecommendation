@@ -1,0 +1,140 @@
+To : Russ Allbery <rra@debian.org>
+Subject : Re: Bug#758234: debian-policy: allow packages to depend on packages of lower priority
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Wed, 28 Jun 2017 13:13:31 +0200
+Message-id : 20170628111331.GA10427@fatal.se
+In-reply-to : <[🔎] 871sq7adbr.fsf@hope.eyrie.org>
+References : <53EE329C.1090505@debian.org> <20170620105515.GA14646@fatal.se> <20170620111633.GE10553@yellowpig> <20170620113604.GA14937@fatal.se> <874lva3844.fsf@hope.eyrie.org> <[🔎] 87shiuuxon.fsf@deep-thought.43-1.org> <[🔎] 871sq7adbr.fsf@hope.eyrie.org>
+
+
+Hi Russ,
+Your suggestion looks good to me so just in case it's useful:
+Seconded.
+Can't help but wonder why not just remove the "extra" (and mentioning it
+as deprecated in upgrade notes) rather than explicitly documenting it as
+deprecated. I guess keeping it around is useful to avoid people
+mass-bug-filing RC-bugs for all current extra packages.
+I also think a really good upgrade notice for this is needed. Should be
+very clearly mentioned people adjusting their packages should not forget
+to also file a bug against ftp.debian.org to align the overrides. I
+think the suggested new language in the policy itself is clear, but I'm
+still sure many people will overlook that the Priority field in the
+control file is not the canonical location for the actual priority used
+by the debian archive. I think you've done a very good job for upgrade
+notes keeping them short and to the point previously so I trust you'll
+do an excellent job here as well, but if you want help with suggestions
+please mention it and a non-native speaker like myself would make an
+attempt.
+Regards,
+Andreas Henriksson
+On Sun, Jun 25, 2017 at 03:54:00PM -0700, Russ Allbery wrote:
+[...]
+> diff --git a/policy.xml b/policy.xml
+> index ace6a3b..be458cd 100644
+> --- a/policy.xml
+> +++ b/policy.xml
+> @@ -837,11 +837,33 @@
+>        <title>Priorities</title>
+>  
+>        <para>
+> -        Each package should have a <emphasis>priority</emphasis> value,
+> -        which is included in the package's <emphasis>control
+> -        record</emphasis> (see <xref linkend="s-f-Priority"/>).  This
+> -        information is used by the Debian package management tools to
+> -        separate high-priority packages from less-important packages.
+> +        Each package must have a <emphasis>priority</emphasis> value,
+> +        which is set in the metadata for the Debian archive and is also
+> +        included in the package's control files (see <xref
+> +        linkend="s-f-Priority"/>).  This information is used to control
+> +        which packages are included in standard or minimal Debian
+> +        installations.
+> +      </para>
+> +      <para>
+> +        Most Debian packages will have a priority of
+> +        <literal>optional</literal>.  Priority levels other than
+> +        <literal>optional</literal> are only used for packages that should
+> +        be included by default in a standard installation of Debian.
+> +      </para>
+> +      <para>
+> +        The priority of a package is determined solely by the
+> +        functionality it provides directly to the user.  The priority of a
+> +        package should not be increased merely because another
+> +        higher-priority package depends on it; instead, the tools used to
+> +        construct Debian installations will correctly handle package
+> +        dependencies.  In particular, this means that C-like libraries
+> +        will almost never have a priority above
+> +        <literal>optional</literal>, since they do not provide
+> +        functionality directly to users.  However, as an exception, the
+> +        maintainers of Debian installers may request an increase of the
+> +        priority of a package to resolve installation issues and ensure
+> +        that the correct set of packages is included in a standard or
+> +        minimal install.
+>        </para>
+>        <para>
+>          The following <emphasis>priority levels</emphasis> are recognized
+> @@ -896,19 +922,22 @@
+>                installed by default if the user doesn't select anything
+>                else.  It doesn't include many large applications.
+>              </para>
+> +            <para>
+> +              No two packages that both have a priority of
+> +              <literal>standard</literal> or higher may conflict with each
+> +              other.
+> +            </para>
+>            </listitem>
+>          </varlistentry>
+>          <varlistentry>
+>            <term><literal>optional</literal></term>
+>            <listitem>
+>              <para>
+> -              (In a sense everything that isn't required is optional, but
+> -              that's not what is meant here.) This is all the software
+> -              that you might reasonably want to install if you didn't know
+> -              what it was and don't have specialized requirements.  This
+> -              is a much larger system and includes the X Window System, a
+> -              full TeX distribution, and many applications.  Note that
+> -              optional packages should not conflict with each other.
+> +              This is the default priority for the majority of the
+> +              archive.  Unless a package should be installed by default on
+> +              standard Debian systems, it should have a priority of
+> +              <literal>optional</literal>.  Packages with a priority of
+> +              <literal>optional</literal> may conflict with each other.
+>              </para>
+>            </listitem>
+>          </varlistentry>
+> @@ -916,22 +945,21 @@
+>            <term><literal>extra</literal></term>
+>            <listitem>
+>              <para>
+> -              This contains all packages that conflict with others with
+> -              required, important, standard or optional priorities, or are
+> -              only likely to be useful if you already know what they are
+> -              or have specialized requirements (such as packages
+> -              containing only detached debugging symbols).
+> +              <emphasis>This priority is deprecated.</emphasis>  Use the
+> +              <literal>optional</literal> priority instead.
+> +            </para>
+> +            <para>
+> +              The <literal>extra</literal> priority was previously used
+> +              for packages that conflicted with other packages and
+> +              packages that were only likely to be useful to people with
+> +              specialized requirements.  However, this distinction was
+> +              somewhat arbitrary, not consistently followed, and not
+> +              useful enough to warrant the maintenance effort.
+>              </para>
+>            </listitem>
+>          </varlistentry>
+>        </variablelist>
+> -      <para>
+> -        Packages must not depend on packages with lower priority values
+> -        (excluding build-time dependencies).  In order to ensure this, the
+> -        priorities of one or more packages may need to be adjusted.
+> -      </para>
+>      </section>
+> -
+>    </chapter>
+>  
+>    <chapter id="ch-binary">
+> 
+> -- 
+> Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

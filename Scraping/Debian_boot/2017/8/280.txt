@@ -1,0 +1,88 @@
+To : Vagrant Cascadian <vagrant@debian.org>
+Subject : Bug#860304: Aw: Re: Bug#860304: [BUG 860304] flash-kernel: Incorrect installation path for dtbs
+From : Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date : Sun, 27 Aug 2017 12:21:17 +0200
+Message-id : fa20d8ca-89ac-e718-828c-85062d787df4@gmx.de
+Reply-to : Heinrich Schuchardt <xypron.glpk@gmx.de>, 860304@bugs.debian.org
+In-reply-to : <[🔎] 87valbfyv7.fsf@aikidev.net>
+References : <149216323547.3708.17666040932415646663.reportbug@localhost> <trinity-742d58df-3680-4b36-b08d-c846b8e5308e-1503643366924@msvc-mesg-gmx019> <[🔎] 87valbfyv7.fsf@aikidev.net> <149216323547.3708.17666040932415646663.reportbug@localhost>
+
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+On 08/25/2017 05:31 PM, Vagrant Cascadian wrote:
+> On 2017-08-24, Heinrich Schuchardt wrote:
+>> is there really any need to keep /boot/dtbs/VERSION/ if we have 
+>> /boot/dtbs/VERSION/VENDOR/?
+> 
+> Yes, if the u-boot version on the board sets fdtfile to BOARD.dtb.
+> 
+> We have no way of knowing from flash-kernel what the u-boot on the
+> board will set for fdtfile. The fdtfile variable may be
+> VENDOR/BOARD.dtb or it may just be BOARD.dtb. In some boards,
+> depending on which version of u-boot you're using, it could be
+> either one.
+> 
+> Supporting both is the only real way I can think of to handle those
+> two common cases.
+> 
+> 
+> live well, vagrant
+> 
+I just want to make sure that we agree on the way we store and handle
+the vendor directory.
+In linux-next I found these two files:
+arch/arm64/boot/dts/broadcom/bcm2837-rpi-3-b.dts
+arch/arm/boot/dts/bcm2837-rpi-3-b.dts
+both with model = "Raspberry Pi 3 Model B".
+I suggest to have a single entry in all.db looking like this
+Machine: Raspberry Pi 3 Model B
+Kernel-Flavors: arm64 armmp armmp-lpae
+DTB-Id: broadcom/bcm2837-rpi-3-b.dtb
+U-Boot-Script-Name: bootscr.uboot-generic
+Required-Packages: u-boot-tools
+Boot-Script-Path: /boot/boot.scr
+where the vendor directory is encoded in DTB-Id.
+On a 64bit system flash-kernel will copy
+/usr/lib/linux-image-4.12.0-1-arm64/broadcom/bcm2837-rpi-3-b.dtb to
+/boot/dtbs/4.12.0-1-arm64/bcm2837-rpi-3-b.dtb.
+It creates a link to
+/boot/dtbs/4.12.0-1-arm64/broadcom/bcm2837-rpi-3-b.dtb.
+On a 32bit system flash-kernel we copy
+/usr/lib/linux-image-4.12.0-1-armmp/bcm2837-rpi-3-b.dtb to
+/boot/dtbs/4.12.0-1-armmp/bcm2837-rpi-3-b.dtb.
+We create a link to
+/boot/dtbs/4.12.0-1-armmp/broadcom/bcm2837-rpi-3-b.dtb
+because all.db has an entry with vendor directory.
+For a 32bit only system we will have an entry like
+Machine: Wandboard i.MX6 Quad Board
+Kernel-Flavors: armmp
+DTB-Id: imx6q-wandboard.dtb
+Boot-Script-Path: /boot/boot.scr
+U-Boot-Script-Name: bootscr.wandboard
+Required-Packages: u-boot-tools
+with no vendor directory given.
+On a 32bit system flash-kernel we copy
+/usr/lib/linux-image-4.12.0-1-armmp/imx6q-wandboard.dtb to
+/boot/dtbs/4.12.0-1-arm64/imx6q-wandboard.dtb.
+We do not create a link to
+/boot/dtbs/4.12.0-1-armmp/freescale/imx6q-wandboard.dtb
+because no vendor directory is provided in all.db.
+Does this match your view?
+Best regards
+Heinrich
+-----BEGIN PGP SIGNATURE-----
+iQIzBAEBCAAdFiEEbcT5xx8ppvoGt20zxIHbvCwFGsQFAlminRIACgkQxIHbvCwF
+GsTEPQ//TrMaAYnpyDBkweIVrnCJ1Esugm1wqAJ8Cz531V2ctayhIc5CEX5L3Bly
+rOD/TnXq6n8d9OHiarhlfih/pDPxKTDuOa5WuHM43iWs2hP8tlee9kiQwCuTkcqY
+R1a0PbqufovBRLcrljUleNHJcq1PQDMKCdOfNuRkwO4ssTekzvaee8zxrf/XR0rS
+qClD/+Dx9iHiWrVAaWAm4PP0f24EEtlc7FhRdWnQKtmu9ZHms9RE67T+4OyyVKvD
+HCIldDs4KI0lWyRK528Squb8ftWodo0N76BplYUN9qzfZyzorFZ9+iKKZMyVTEqQ
+1YBNTKQkivgrpzGqrUactOCXB2Nr/PHsxjDe4k01Vbe/5W53tkJ/3uGgHudZU07F
+zn8L4pO1IxXpHX7Twg8+qod6/lR/8VfvN4fLDMm8ME0/A7+qhgF+qgT7GvOAW+4Y
+kkicwDtqlBhd4JaMPoV3oTOKt1s9faHR03RoJcvgcgRgcZWJrt/VH5MsVpo4zhyt
+8R6dOXfDOxraHhZnfQZ5+Z4D67PLwsfNMXQvb30psXSqhBe4eGOtNBDBpOwuN0Rw
+kvHkvZoXqgPgThejoAp/zHNRC6ReB8lHyJ4NEmgzZ4mwD2ZCORM1Mc9aEUdrulvs
+aHvvncmcp13r7/FPexejJyOLIpad1uaLrh1jcjVR6WsLYOX7OBI=
+=GGNK
+-----END PGP SIGNATURE-----

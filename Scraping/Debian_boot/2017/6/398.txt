@@ -1,0 +1,62 @@
+To : 687687@bugs.debian.org
+Subject : Bug#687687: Cannot preseed ESSID
+From : Olaf Mandel <olaf@mandel.name>
+Date : Sun, 25 Jun 2017 18:06:22 +0200
+Message-id : 7ce55b92-006e-eb79-8521-cbe6e6dfe3dd@mandel.name
+Reply-to : Olaf Mandel <olaf@mandel.name>, 687687@bugs.debian.org
+
+
+tags 687687 +patch
+thanks
+Package: netcfg
+Version: 1.143
+Followup-For: Bug #687687
+Dear Maintainer,
+problem still exists in Stretch. Preseeding either:
+d-i netcfg/wireless_show_essids select net-essid
+or:
+d-i netcfg/wireless_show_essids select manual
+d-i netcfg/wireless_essid string net-essid
+d-i netcfg/wireless_essid_again string net-essid
+stops at the network list with the preseeded value preselected as the
+default.
+The problem seems to be line 159 in wireless.c: this forces to show the
+question again even if it was preseeded; it is intended to ensure that
+if the user revisits the list of networks (e.g. because they initially
+selected the wrong network and need to go back), they can select a
+different one.
+Attached is a patch with a slightly hacky solution: it uses a static
+variable to keep track of how often the list was already shown: the
+first time, don't remove the seen-flag.
+The patch is untested.
+signature.asc--- a/netcfg-1.143/wireless.c
++++ b/netcfg-1.143/wireless.c
+@@ -11,6 +11,7 @@
+ #include <iwlib.h>
+ #include <sys/types.h>
+ #include <assert.h>
++#include <stdbool.h>
+ 
+ #define ENTER_MANUALLY 10
+ 
+@@ -115,6 +116,7 @@
+ 
+ int netcfg_wireless_show_essids(struct debconfclient *client, struct netcfg_interface *interface)
+ {
++    static bool first = false;
+     wireless_scan_head network_list;
+     wireless_config wconf;
+     char *buffer;
+@@ -156,7 +158,11 @@
+         /* Asking the user. */
+         debconf_capb(client, "backup");
+         debconf_subst(client, "netcfg/wireless_show_essids", "essid_list", buffer);
+-        debconf_fset(client, "netcfg/wireless_show_essids", "seen", "false");
++        if (first)
++            first = false;
++        else
++            debconf_fset(client, "netcfg/wireless_show_essids", "seen",
++                    "false");
+         debconf_input(client, "high", "netcfg/wireless_show_essids");
+ 
+         if (debconf_go(client) == CMD_GOBACK) {

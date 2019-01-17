@@ -1,0 +1,59 @@
+To : Holger Levsen <holger@layer-acht.org>
+Subject : Bug#839046: debootstrap: enable --merged-usr by default
+From : Guillem Jover <guillem@debian.org>
+Date : Mon, 12 Feb 2018 04:00:49 +0100
+Message-id : 20180212030048.GC24590@gaara.hadrons.org
+Reply-to : Guillem Jover <guillem@debian.org>, 839046@bugs.debian.org
+In-reply-to : <[🔎] 20180205223205.q7drbkxlvipi2g4s@layer-acht.org>
+References : <87zimsjzba.fsf@deep-thought.43-1.org> <87zimsjzba.fsf@deep-thought.43-1.org> <6a8cff5b-abc1-5f96-3ca8-7a9df38c301b@debian.org> <9f3c48d8-cf39-0e08-09d9-680da81f93b7@debian.org> <20171223204937.GA2871@bongo.bofh.it> <[🔎] 20180203081640.GB30157@bongo.bofh.it> <87zimsjzba.fsf@deep-thought.43-1.org> <[🔎] 20180205191933.driohvgfvkkwu6ro@betterave.cristau.org> <[🔎] 20180205223205.q7drbkxlvipi2g4s@layer-acht.org> <87zimsjzba.fsf@deep-thought.43-1.org>
+
+
+On Mon, 2018-02-05 at 22:32:05 +0000, Holger Levsen wrote:
+> On Mon, Feb 05, 2018 at 08:19:33PM +0100, Julien Cristau wrote:
+> > On Sat, Feb  3, 2018 at 09:16:40 +0100, Marco d'Itri wrote:
+> > > On Dec 23, md wrote:
+> > > > On Dec 20, Julien Cristau <jcristau@debian.org> wrote:
+> > > > > > This change was reverted in 1.0.87 as dpkg-shlibdeps didn't cope
+> > > > > > properly with a merged-usr system. Thus reopening this bug report for
+> > > > > > that version.
+> > > > > > 
+> > > > > > The dpkg-shlibdeps bugs has been fixed [1] in the mean time. So it would
+> > > > > > be great if this bug report could be re-considered.
+> > > > > That'll be after stretch now.
+> > > > Stretch was been released long ago: please re-enable --merged-usr in 
+> > > > debootstrap.
+> > > There has not been any negative feedback, can we move on please?
+> > Is there buy-in from the dpkg maintainer?
+As I've mentioned in the past, I think the usrmerge filesystem layout
+has merit and can solve some issues, and to state it very clearly, I
+have no technical issue with it *what*so*ever*. But the same can be
+said about the non-usrmerge layout with multiple mount-points, which
+while not general anymore in Debian, can still be used perfectly fine
+on controlled subsets of packages and custom built kernels w/o reliance
+on an initramfs.
+What I still find to be terrible is the way it's been tried to be
+deployed in Debian, via the usrmerge package, which does not support
+reverting the change (#848626), for which there's (AFAIK) no way to
+select not using this irreversible hack from d-i, which breaks
+dpkg-query --search (at least #848622 and #858331). This seems like
+a nice PoV for people to play with it, in the same way local admins
+can use, to some extent, symlinks to redirect subtrees to other mount
+points, but I don't see how this can be seen as a production-ready
+solution shipped by default, TBH.
+In any case, I looked the other day into implementing the
+--map-pathname option for dpkg-query, and I've got most of the code
+ready. The problem is that this requires adding support for config
+files and config fragments to dpkg-query, which has the additional
+problem of making it possible to mess with the --showformat option
+and breaking the expectations from maintscripts, for example. The
+other problem is with the search behavior changing depending on the
+packages providing those mappings being installed (because dpkg would
+certainly not provide them).
+So I'll eventually try to find a solution for the dpkg-query issue,
+because it's a long-standing paper-cut in dpkg for local admins. But
+I'd not be very amused if this hack is enabled by default again and
+suddenly RC bugs start popping up in dpkg again, and people start
+pressuring with RCness to get those fixed again because well, it's
+obviously breaking people's systems…
+Thanks,
+Guillem

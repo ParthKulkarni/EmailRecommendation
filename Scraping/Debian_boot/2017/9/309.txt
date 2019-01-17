@@ -1,0 +1,97 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#876773: flash-kernel: Please add support for the original SolidRun CuBox (Dove)
+From : Josua Mayer <josua.mayer97@gmail.com>
+Date : Mon, 25 Sep 2017 17:58:10 +0000
+Message-id : 150636229001.682.3893554561366307423.reportbug@cubox
+Reply-to : Josua Mayer <josua.mayer97@gmail.com>, 876773@bugs.debian.org
+
+
+Package: flash-kernel
+Version: 3.79
+Severity: wishlist
+Tags: patch
+Dear Maintainer,
+The SolidRun CuBox has very good support in Mainline Linux.
+Thus it is a great candidate for supporting it in Debian.
+As I see it there are only 2 blockers right now:
+- missing conifg options in the kernel package
+- missing entry in flash-kernel
+In this bug I'd like to solve the latter.
+The board comes with a pretty old version of U-Boot that does support neither bootz nor distro_boot.
+This is why we need:
+- a custom boot.scr
+- uImage with appended DTB
+- uInitrd
+- a way to set root= cmdline option
+I have come up with the database entry below, and this preliminary boot-script:
+setenv loadaddr   0x02000000
+setenv loadaddrrd 0x20000000
+setenv bootargs console=ttyS0,115200n8
+${fstype}load ${device_name} 0:${partition} ${loadaddr} /boot/uImage
+${fstype}load ${device_name} 0:${partition} ${loadaddrrd} /boot/uInitrd
+bootm $loadaddr $loadaddrrd
+I am running U-Boot 2009.08-dirty (Mar 09 2013 - 18:15:45) Marvell version: 5.4.4 NQ SR1.
+It comes with a prepopulated bootcmd environment variable that tries out:
+- usb sata(ide) mmc
+- partitions 1,2
+- directores / and /boot
+to find a boot.scr.
+At the time of loading it, these variables are set accordingly:
+device_name, partition, directory, fstype
+which can be used in our boot.scr.
+One important thing that is missing, is bootargs!
+We need to set: console, root, rootfstype, rootwait
+- rootfstype could be gathered from fstype
+- any ideas how to generate the root= option?
+  Ideally we could use UUID= there!
+  Or does Bootloader-Sets-Incorrect-Root: yes help here?
+Please let me know if I can provide any additional details, or if you have something for me to test.
+One note about testing: Can I get flash-kernel to work with a custom built kernel, as long as the necessary config options are not enabled in -armmp?
+Yours sincerely
+Josua Mayer
+-- System Information:
+Debian Release: 9.1
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: armhf (armv7l)
+Kernel: Linux 4.9.45-dove-cubox (SMP w/1 CPU core)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages flash-kernel depends on:
+ii  debconf [debconf-2.0]  1.5.61
+ii  devio                  1.2-1.2+b1
+ii  initramfs-tools        0.130
+ii  linux-base             4.5
+ii  mtd-utils              1:2.0.0-1
+ii  ucf                    3.0036
+Versions of packages flash-kernel recommends:
+ii  u-boot-tools  2016.11+dfsg1-4
+flash-kernel suggests no packages.
+-- Configuration Files:
+/etc/flash-kernel/db changed:
+Machine: SolidRun CuBox
+Kernel-Flavors: armmp
+DTB-Id: dove-cubox.dtb
+DTB-Append: yes
+Boot-Kernel-Path: /boot/uImage
+Boot-Initrd-Path: /boot/uInitrd
+U-Boot-Kernel-Address: 0x00008000
+U-Boot-Initrd-Address: 0x0
+Boot-Script-Path: /boot/boot.scr
+U-Boot-Script-Name: bootscr.cubox
+Required-Packages: u-boot-tools
+Bootloader-Sets-Incorrect-Root: yes
+Machine: SolidRun CuBox (Engineering Sample)
+Kernel-Flavors: armmp           
+DTB-Id: dove-cubox-es.dtb
+DTB-Append: yes
+Boot-Kernel-Path: /boot/uImage 
+Boot-Initrd-Path: /boot/uInitrd  
+U-Boot-Kernel-Address: 0x00008000
+U-Boot-Initrd-Address: 0x0
+Boot-Script-Path: /boot/boot.scr   
+U-Boot-Script-Name: bootscr.cubox
+Required-Packages: u-boot-tools    
+Bootloader-Sets-Incorrect-Root: yes
+-- debconf information excluded

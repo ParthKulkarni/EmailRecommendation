@@ -1,0 +1,77 @@
+To : Debian BTS <submit@bugs.debian.org>
+Subject : Bug#917491: debian-installer-netboot-images: FTBFS (BAD signature from "Debian Archive Automatic Signing Key (8/jessie) <ftpmaster@debian.org>")
+From : Santiago Vila <sanvila@debian.org>
+Date : Thu, 27 Dec 2018 23:53:52 +0000
+Message-id : E1gcfTM-00018z-HM@paradis.debian.org
+Reply-to : Santiago Vila <sanvila@debian.org>, 917491@bugs.debian.org
+
+
+Package: src:debian-installer-netboot-images
+Version: 20170615+deb9u5
+Severity: serious
+Tags: ftbfs
+Dear maintainer:
+I tried to build this package in buster but it failed:
+--------------------------------------------------------------------------------
+[...]
+ debian/rules build-indep
+dh build-indep
+   dh_update_autotools_config -i
+ fakeroot debian/rules binary-indep
+dh binary-indep
+   dh_testroot -i
+   dh_prep -i
+   debian/rules override_dh_auto_install
+make[1]: Entering directory '/<<BUILDDIR>>/debian-installer-netboot-images-20170615+deb9u5'
+if ! ./get-images.sh amd64 && [ -n "stretch" ]; then\
+	echo; echo; echo; \
+	echo "Version not found in stretch-proposed-updates, falling back to stretch"; \
+	echo; echo; echo; \
+	sleep 5; \
+[... snipped ...]
+--2018-12-20 03:03:08--  http://deb.debian.org/debian/dists/stretch/Release.gpg
+Resolving deb.debian.org (deb.debian.org)... 149.20.4.15, 130.89.148.14, 128.31.0.62, ...
+Connecting to deb.debian.org (deb.debian.org)|149.20.4.15|:80... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: http://cdn-fastly.deb.debian.org/debian/dists/stretch/Release.gpg [following]
+--2018-12-20 03:03:08--  http://cdn-fastly.deb.debian.org/debian/dists/stretch/Release.gpg
+Resolving cdn-fastly.deb.debian.org (cdn-fastly.deb.debian.org)... 151.101.120.204, 2a04:4e42:1d::204
+Connecting to cdn-fastly.deb.debian.org (cdn-fastly.deb.debian.org)|151.101.120.204|:80... connected.
+HTTP request sent, awaiting response... 206 Partial Content
+Length: 2434 (2.4K), 833 remaining
+Saving to: '/<<BUILDDIR>>/debian-installer-netboot-images-20170615+deb9u5/Release.gpg'
+     0K ,.                                                    100% 44.9M=0s
+2018-12-20 03:03:08 (44.9 MB/s) - '/<<BUILDDIR>>/debian-installer-netboot-images-20170615+deb9u5/Release.gpg' saved [2434/2434]
+--2018-12-20 03:03:08--  http://deb.debian.org/debian/dists/stretch/Release
+Resolving deb.debian.org (deb.debian.org)... 149.20.4.15, 130.89.148.14, 128.31.0.62, ...
+Connecting to deb.debian.org (deb.debian.org)|149.20.4.15|:80... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: http://cdn-fastly.deb.debian.org/debian/dists/stretch/Release [following]
+--2018-12-20 03:03:08--  http://cdn-fastly.deb.debian.org/debian/dists/stretch/Release
+Resolving cdn-fastly.deb.debian.org (cdn-fastly.deb.debian.org)... 151.101.120.204, 2a04:4e42:1d::204
+Connecting to cdn-fastly.deb.debian.org (cdn-fastly.deb.debian.org)|151.101.120.204|:80... connected.
+HTTP request sent, awaiting response... 206 Partial Content
+Length: 117946 (115K), 23339 (23K) remaining
+Saving to: '/<<BUILDDIR>>/debian-installer-netboot-images-20170615+deb9u5/Release'
+        [ skipping 50K ]
+    50K ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,,,,,,,,, ,,........ 86% 2.13G 0s
+   100K .......... .....                                      100% 16.8M=0.001s
+2018-12-20 03:03:08 (24.6 MB/s) - '/<<BUILDDIR>>/debian-installer-netboot-images-20170615+deb9u5/Release' saved [117946/117946]
+gpgv: Signature made Wed Dec 19 20:22:50 2018 UTC
+gpgv:                using RSA key A1BD8E9D78F7FE5C3E65D8AF8B48AD6246925553
+gpgv: Can't check signature: No public key
+gpgv: Signature made Wed Dec 19 20:22:50 2018 UTC
+gpgv:                using RSA key 126C0D24BD8A2942CC7DF8AC7638D0442B90D010
+gpgv: BAD signature from "Debian Archive Automatic Signing Key (8/jessie) <ftpmaster@debian.org>"
+make[1]: *** [debian/rules:20: get-images-amd64] Error 1
+make[1]: Leaving directory '/<<BUILDDIR>>/debian-installer-netboot-images-20170615+deb9u5'
+make: *** [debian/rules:15: binary-indep] Error 2
+dpkg-buildpackage: error: fakeroot debian/rules binary-indep subprocess returned exit status 2
+--------------------------------------------------------------------------------
+The build was made in my autobuilder with "dpkg-buildpackage -A"
+but it also fails here:
+https://tests.reproducible-builds.org/debian/rb-pkg/unstable/amd64/debian-installer-netboot-images.html
+where you can get a full build log if you need it.
+If this is really a bug in one of the build-depends, please use reassign and affects,
+so that this is still visible in the BTS web page for this package.
+Thanks.

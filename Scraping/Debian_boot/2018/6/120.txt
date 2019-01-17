@@ -1,0 +1,81 @@
+To : 898468@bugs.debian.org
+Subject : Bug#898468: debian-installer: black screen/long delay in graphical installer after switching from linux 4.15 to 4.16
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 5 Jun 2018 19:20:59 +0200
+Message-id : 20180605172047.ont4aq4cop5fsmvf@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 898468@bugs.debian.org
+In-reply-to : <e3847385474aa3f7243ab1bf0a43eeb5c48d1628.camel@decadent.org.uk>
+References : <152609616539.5532.12788664828751075148.reportbug@armor.home> <152609616539.5532.12788664828751075148.reportbug@armor.home> <e3847385474aa3f7243ab1bf0a43eeb5c48d1628.camel@decadent.org.uk> <152609616539.5532.12788664828751075148.reportbug@armor.home>
+
+
+Hi,
+Ben Hutchings <ben@decadent.org.uk> (2018-05-13):
+> This sounds similar to the regression seen in stable affecting gnome-
+> session.  libICE has a function for generating the MIT-MAGIC-COOKIE-1
+> cookie, which now uses libbsd's arc4random_buf() which now uses
+> getrandom().  getrandom() is documented to block (by default) when not
+> much entropy is available, but until recently it could return too early
+> after boot.
+> 
+> I don't know whether the cookie is generated this way when d-i starts
+> the X server.
+> 
+> I opened bug #898088 against libbsd because arc4random_buf() is
+> documented to return "very quickly".
+Many thanks for the initial pointer and the libbsd bugfix. Unfortunately
+that wasn't our issue at all (we don't use libICE and there's no udeb
+for it anyway). I've documented my findings in a blog post:
+  https://debamax.com/blog/2018/05/25/debugging-black-screen-in-debian-installer/
+Summary: The issue is rather that we have fontconfig needing UUIDs for
+font handling, calling uuid_generate_random() from util-linux, which
+uses getrandom(), trying a few times with a little delay between each
+attempts when EAGAIN has been returned, before finally falling back to
+reading from /dev/{u,}random.
+I don't think making util-linux accept low entropy is the way to go,
+even if I've checked that doing so makes this issue go away for the
+graphical installer (see attached patch against util-linux, which
+pretends that getrandom() isn't available), since it can be used in
+things more critical than getting UUIDs for fonts…
+Maybe fontconfig could be modified to use a different function to get
+UUIDs (at least for its udeb build, in case uuid_generate_random() is
+strongly preferred for its regular build) in its FcDirCacheCreateUUID()
+function?
+I'm adding util-linux and fontconfig maintainers to the loop for their
+input/feedback.
+Thanks for your time.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.ascDisable autodetection in configure, but also disable detection fallback
+of both SYS_getrandom and __NR_getrandom to avoid accidental enabling
+in lib/randutils.c
+--- a/configure.ac
++++ b/configure.ac
+@@ -462,7 +462,6 @@ AC_CHECK_FUNCS([ \
+ 	getdtablesize \
+ 	getexecname \
+ 	getmntinfo \
+-	getrandom \
+ 	getrlimit \
+ 	getsgnam \
+ 	inotify_init \
+--- a/lib/randutils.c
++++ b/lib/randutils.c
+@@ -27,14 +27,14 @@
+ 
+ #ifdef HAVE_GETRANDOM
+ # include <sys/random.h>
+-#elif defined (__linux__)
++#elif 0
+ # if !defined(SYS_getrandom) && defined(__NR_getrandom)
+    /* usable kernel-headers, but old glibc-headers */
+ #  define SYS_getrandom __NR_getrandom
+ # endif
+ #endif
+ 
+-#if !defined(HAVE_GETRANDOM) && defined(SYS_getrandom)
++#if 0
+ /* libc without function, but we have syscal */
+ #define GRND_NONBLOCK 0x01
+ #define GRND_RANDOM 0x02

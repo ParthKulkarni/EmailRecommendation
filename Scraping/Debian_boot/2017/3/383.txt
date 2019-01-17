@@ -1,0 +1,38 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#859150: installation-guide: leaves many /tmp/tmp* files behind
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 31 Mar 2017 00:09:34 +0200
+Message-id : 20170330220934.6590.79004.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 859150@bugs.debian.org
+
+
+Source: installation-guide
+Severity: serious
+Tags: patch
+Justification: Fills up /tmp on dillon.debian.org
+Hi,
+Maybe to ease hands-on debugging, dblatex is called with the -d flag,
+which tells it to leave temporary files behind. This ends up filling
+up dillon's /tmp (in addition to being rather bad style in the first
+place…).
+Two possibilities:
+ - remove the -d flag entirely (untested);
+ - or set TMPDIR to a subdirectory of $tempdir, which gets automatically
+   removed after a build.
+The attached patch implements the second solution, but comments are
+welcome.
+KiBi.
+Index: build/buildone.sh
+===================================================================
+--- build/buildone.sh	(revision 70645)
++++ build/buildone.sh	(working copy)
+@@ -232,7 +232,8 @@
+ 
+     echo "Info: creating .pdf file..."
+ 
+-    ( dblatex -d -V -T db2latex -b xetex -p ./stylesheets/dblatex.xsl \
++    mkdir -p $tempdir/dblatex
++    (TMPDIR=$tempdir/dblatex dblatex -d -V -T db2latex -b xetex -p ./stylesheets/dblatex.xsl \
+     -o $tempdir/install.${language}.pdf \
+     $tempdir/install.${language}.profiled.xml --param=lingua=${language} )
+     RET=$?; [ $RET -ne 0 ] && return $RET

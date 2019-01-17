@@ -1,0 +1,31 @@
+To : debian-boot@lists.debian.org
+Subject : Avoiding use of symlinks in d-i archive tar
+From : Bastian Blank <waldi@debian.org>
+Date : Sun, 30 Jul 2017 00:44:28 +0200
+Message-id : 20170729224427.2skwhd7v4lzp533z@shell.thinkmo.de
+Mail-followup-to : debian-boot@lists.debian.org, kibi@debian.org
+
+
+Moin
+I recently did some changes to the Debian archive so that most
+ressources that actually change are just symlinks.  This much more suits
+the way rsync does it's work regarding symlinks and hardlinks.  In the
+next step I want to change our mirror script to ignore symlinks in the
+first sync stage to fix some more latent bugs.  This means that all
+symlinks will be handled in the time sensitive part of the mirror sync.
+Also there was a global deduplication step running on the main Debian
+archive that hardlinked all identical files together.  It has been
+disable due to it's implications it had on some parts of the archive.
+So all deduplication needs to be done elsewhere.
+Now there is exactly one other part in the archive that makes excessive
+use of symlinks: the installer.
+I would like to get rid of them within the installer.  Most users don't
+see them anyway, as HTTP does not provide informations about symlinks.
+They can remain in the installer debs.
+Instead all identical files should be hardlinked.  This allows the
+mirrors to only hold one copy of each.
+Regards,
+Bastian
+-- 
+Fascinating is a word I use for the unexpected.
+		-- Spock, "The Squire of Gothos", stardate 2124.5

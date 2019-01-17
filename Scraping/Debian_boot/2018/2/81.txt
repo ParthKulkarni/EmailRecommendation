@@ -1,0 +1,58 @@
+To : "Peng, Nancy (NSN - CN/Beijing)" <nancy.peng@nsn.com>, 776554@bugs.debian.org
+Subject : Bug#776554: sulogin says "System Maintenance Mode", doesn't asks for a password if the /etc/passwd (or shadow) entry for the user is empty
+From : Chris Boot <bootc@debian.org>
+Date : Mon, 5 Feb 2018 15:17:09 +0000
+Message-id : 3ce3e4ed-cbb7-fcf4-90a8-97e3fbf37118@debian.org
+Reply-to : Chris Boot <bootc@debian.org>, 776554@bugs.debian.org
+In-reply-to : <7132C7BB2434D74E9D4E4DE976AF45D91E23035C@SGSIMBX004.nsn-intra.net>
+References : <7132C7BB2434D74E9D4E4DE976AF45D91E23035C@SGSIMBX004.nsn-intra.net> <7132C7BB2434D74E9D4E4DE976AF45D91E23035C@SGSIMBX004.nsn-intra.net>
+
+
+Control: tags -1 moreinfo
+On 29/01/15 09:06, Peng, Nancy (NSN - CN/Beijing) wrote:
+> If the /etc/passwd (or shadow) entry for the user is empty, I invoke
+> `sulogin' without arguments from an ordinary shell
+> prompt, it prints `System Maintenance Mode', rather than to ask user for
+> a password “Give root password for system maintenance
+> (or type Control-D for normal startup)”
+>  
+> Here is a transcript:
+>  
+>   $ sulogin
+>   System Maintenance Mode
+>   $ /sbin/hello
+>   System Maintenance Mode
+>   $
+>  
+>  
+> I suggest that sulogin always ask user for a password even if
+> /etc/passwd (or shadow) entry for the user is empty.
+Hi Nancy,
+Do you mean that when the 'root' user has no password (in the password
+or shadow databases) that busybox's sulogin simply goes straight into
+maintenance mode rather than giving the user the choice of whether to do or?
+sulogin is only enabled in busybox-static. In busybox 1.27.2, the
+behaviour is as described above but the message is clearer than in your
+initial report:
+root@localhost:/# busybox sulogin
+sulogin: starting shell for system maintenance
+root@localhost:/#
+Note that busybox's sulogin doesn't work when run as non-root;
+util-linux's sulogin simply refuses to run ("only superuser can run this
+program") while busybox's goes through the motions of asking for a
+password but this never succeeds.
+I suspect that two changes are needed in busybox sulogin:
+1. Refuse to run as non-root as util-linux's implementation does. It
+only makes sense to run sulogin as root, during boot, to allow the user
+to perform maintenance if required.
+2. When root has no password, give the user the choice of whether to
+perform maintenance or not. Whether this is done by asking for a
+password anyway or by some other means is up for debate.
+Is this what you meant?
+If so I will bring it up for discussion on the busybox-users mailing list.
+Best regards,
+Chris
+-- 
+Chris Boot
+bootc@debian.org
+signature.asc

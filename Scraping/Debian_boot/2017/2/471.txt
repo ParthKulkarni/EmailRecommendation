@@ -1,0 +1,63 @@
+To : debian-boot@lists.debian.org
+Subject : partman - tmpfs?
+From : Alexander Skwar <alexanders.mailinglists+nospam@gmail.com>
+Date : Mon, 20 Feb 2017 16:24:33 +0100
+Message-id : CADn-QaMVaKqUe6io49xcLZHg0yquS8wEfYfcvWLDO2qivaC-4A@mail.gmail.com
+
+
+Hello
+I'd like to create a debian-installer partman recipe for unattended
+installation of Ubuntu 16.04 systems, where tmpfs should be used for
+/tmp.
+I tried having this in my preseed file:
+d-i partman-auto/expert_recipe string \
+      EveryWareDesktop :: \
+              1 1 1 free                                      \
+                      $bios_boot{ }                           \
+                      method{ biosgrub }                      \
+              . \
+              768 768 768 fat32                               \
+                      $primary{ }                             \
+                      method{ efi }                           \
+                      format{ }                               \
+              . \
+              100 1000 1000000000 ext3                        \
+                      $defaultignore{ }                       \
+                      $primary{ }                             \
+                      method{ lvm }                           \
+                      device{ <!--# echo var="disk1" --> }    \
+                      vg_name{ system }                       \
+              . \
+              4096 4096 4096 linux-swap                       \
+                      $lvmok{ } in_vg{ system }               \
+                      lv_name{ swap }                         \
+                      method{ swap } format{ }                \
+              . \
+              4096 8192 10240 ext4                            \
+                      $lvmok{ } in_vg{ system }               \
+                      lv_name{ root }                         \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ ext4 }    \
+                      label{ root }                           \
+                      mountpoint{ / }                         \
+                      options/noatime{ noatime }              \
+                      options/data{ data=writeback }          \
+                      options/user_xattr{ user_xattr }        \
+                      options/grpquota{ grpquota }            \
+                      options/usrquota{ usrquota }            \
+              . \
+              1 2 3 tmpfs                                     \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ tmpfs }   \
+                      mountpoint{ /tmp }
+But this did not create a "/tmp" line in the resulting /etc/fstab.
+Would anyone maybe have a working example at hand?
+I could, of course, also use a script which is run in the target
+during installation, but I'd rather have partman do this for me ;)
+Cheers,
+Alexander
+-- 
+Alexander
+-- 
+=>        Google+ => http://plus.skwar.me         <==
+=> Chat (Jabber/Google Talk) => a.skwar@gmail.com <==

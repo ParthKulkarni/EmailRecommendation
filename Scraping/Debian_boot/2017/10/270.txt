@@ -1,0 +1,57 @@
+To : Cyril Brulebois <kibi@debian.org>, 879478@bugs.debian.org, debian-boot <debian-boot@lists.debian.org>
+Subject : Re: [debhelper-devel] Bug#879478: debhelper: dh_testroot regression: relies on debian/control
+From : Niels Thykier <niels@thykier.net>
+Date : Sun, 22 Oct 2017 08:34:00 +0000
+Message-id : ed3a6ab9-5463-2894-1b85-eb069b1ec64f@thykier.net
+In-reply-to : <[🔎] 150864040341.32114.8464148918814030365.reportbug@armor.home>
+References : <[🔎] 150864040341.32114.8464148918814030365.reportbug@armor.home>
+
+
+Cyril Brulebois:
+> Package: debhelper
+> Version: 10.10
+> Severity: serious
+> Tags: d-i
+> Justification: triggers FTBFS
+> 
+> [ Please keep both debian-boot@ and myself in the loop, thanks. ]
+> 
+> Hi,
+> 
+> debian-installer uses compat 7, a build/ directory, and its daily-build
+> script is started from this directory. Makefiles use dh_testroot from
+> that directory, and starting with 10.10, the build is broken because of:
+Hi Cyril
+I am sorry to hear that this broke a build for you.
+> [...]
+> It seems to me that's due to the getpackages call addition, but I don't
+> think it's reasonable for debhelper to break compat 7 this way.
+Unfortunately, I cannot even fix this by guarding it with a compat bump
+(because that will die as it cannot find debian/compat).  For now, I
+will have it issue a warning and continue (plus make some assumptions
+about what the d/control file would have contained).  But eventually, I
+will remove that fallback and that *cannot* happen with a compat bump.
+For you, an easy fix appears be to re-arrange the lines:
+	dh_testroot
+	@[ -d ../debian ] || { echo "directory '../debian' [...] }
+Into:
+	@[ -d ../debian ] || { echo "directory '../debian' [...] }
+	cd .. && dh_testroot
+(Only occurs two places AFAICT in the Makefile).  This change would also
+be backwards compatible for you.
+> Also,
+> even if one might object d-i is abusing dh_testroot (or using it
+> incorrectly), its documented purpose is:
+> | dh_testroot simply checks to see if you are root. If not, it exits
+> | with an error. Debian packages must be built as root, though you can
+> | use fakeroot(1)
+> 
+> 
+> KiBi.
+> [...]
+The scope of dh_testroot has changed and I have committed an update of
+the documentation of dh_testroot targeting 10.10.1.  Furthermore, I have
+added a note in debhelper.7 that all debhelper tools must be run from
+the unpacked source root (except where otherwise noted).
+Thanks,
+~Niels

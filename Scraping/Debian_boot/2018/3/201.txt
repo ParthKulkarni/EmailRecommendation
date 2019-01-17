@@ -1,0 +1,58 @@
+To : 877855@bugs.debian.org
+Subject : Bug#877855: debootstrap does not carry --components across --foreign/--second-stage
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Wed, 21 Mar 2018 18:58:27 +0900
+Message-id : 20180321185827.da15819ae3c9ce088ffa29d1@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 877855@bugs.debian.org
+In-reply-to : <150727563972.7213.17902763729762113925.reportbug@midna.lan>
+References : <150727563972.7213.17902763729762113925.reportbug@midna.lan>
+
+
+control: tags -1 +confirmed
+On Fri, 06 Oct 2017 09:40:39 +0200 Michael Stapelberg <stapelberg@debian.org> wrote:
+> This debootstrap invocation’s sources.list lacks the extra components:
+> 
+> % sudo debootstrap --foreign --components main,contrib,non-free \
+>   --variant - testing bootstr http://deb.debian.org/debian
+> % sudo chroot /tmp/bootstr /debootstrap/debootstrap --second-stage
+> % sudo cat /tmp/bootstr/etc/apt/sources.list
+> deb http://deb.debian.org/debian testing main
+> 
+> Looking at /tmp/bootstr/debootstrap/debootstrap before the chroot command shows
+> “USE_COMPONENTS=main”, which I believe should include contrib and non-free.
+ And it lucks mirror URL that was specified by user.
+> $ sudo debootstrap --foreign --components main,contrib,non-free \
+>   --variant - testing bootstr http://debian-mirror.sakura.ne.jp/debian
+> $ sudo chroot /tmp/bootstr /debootstrap/debootstrap --second-stage
+> $ sudo cat /tmp/bootstr/etc/apt/sources.list
+> deb http://deb.debian.org/debian testing main
+ Since in debootstrap, $TARGET/etc/apt/sources.list is deleted at
+ starting for second stage.
+> if am_doing_phase second_stage; then
+>         if [ "$SECOND_STAGE_ONLY" = true ]; then
+>                 required="$(cat $DEBOOTSTRAP_DIR/required)"
+>                 base="$(cat $DEBOOTSTRAP_DIR/base)"
+>                 all_debs="$required $base"
+>         fi
+> 
+>         # second stage uses the chroot to clean itself up -- has to be able to
+>         # work from entirely within the chroot (in case we've booted into it,
+>         # possibly over NFS eg)
+> 
+>         second_stage_install
+> 
+>         # create sources.list
+>         # first, kill debootstrap.invalid sources.list
+>         if [ -e "$TARGET/etc/apt/sources.list" ]; then
+>                 rm -f "$TARGET/etc/apt/sources.list"
+>         fi
+>         if [ "${MIRRORS#http://}"; != "$MIRRORS" ]; then
+>                 setup_apt_sources "${MIRRORS%% *}"
+>                 mv_invalid_to "${MIRRORS%% *}"
+>         else
+>                 setup_apt_sources "$DEF_MIRROR"
+>                 mv_invalid_to "$DEF_MIRROR"
+>         fi
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp

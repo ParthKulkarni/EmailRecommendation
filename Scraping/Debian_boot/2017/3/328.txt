@@ -1,0 +1,56 @@
+To : Felipe Sateler <fsateler@debian.org>
+Subject : Bug#857132: console-setup: additional info needed ?
+From : Anton Zinoviev <anton@lml.bas.bg>
+Date : Thu, 23 Mar 2017 20:06:12 +0200
+Message-id : 20170323180612.GA6323@logic
+Reply-to : Anton Zinoviev <anton@lml.bas.bg>, 857132@bugs.debian.org
+In-reply-to : <[🔎] CAAfdZj_6_3+n7c3OXUGTShONuSVeP1y5Yw8TTUHZOxo-eGWhyw@mail.gmail.com>
+References : <[🔎] 149017858840.23048.7220154904975481356.reportbug@hermes.hilbert.loc> <[🔎] 20170322111851.GA1617@debian.lan> <[🔎] 20170322120016.xigufsgrjq36z4zb@hermes.hilbert.loc> <[🔎] 20170322130228.GA27537@logic> <[🔎] 87d1d8gvcd.fsf@turtle.gmx.de> <[🔎] 20170323130437.GA2628@logic> <[🔎] 16df1c0d-7d35-a771-13fc-5f686cea692b@debian.org> <[🔎] 20170323135831.GB3641@logic> <[🔎] CAAfdZj_6_3+n7c3OXUGTShONuSVeP1y5Yw8TTUHZOxo-eGWhyw@mail.gmail.com>
+
+
+On Thu, Mar 23, 2017 at 02:12:44PM -0300, Felipe Sateler wrote:
+> 
+> As mentioned by Michael, this is not done by udev or systemd.
+I think systemd runs getty which opens a console.  Then the kernel 
+creates virtual consoles on demand.
+> > From my tests it seems that the font used
+> > for this initialization is the same as the font used on the current
+> > console.  Isn't it possible that sometimes this font is set only _after_
+> > udev has started the script cached_setup_font.sh by the following rule
+> >
+> > ACTION=="add", SUBSYSTEM=="vtconsole", KERNEL=="vtcon*", RUN+="/etc/console-setup/cached_setup_font.sh"
+> >
+> > however the font of the current console is read _before_ the script
+> > cached_setup_font.sh has had a chance to configure the font?
+> 
+> I don't know of any component that does that.
+The kernel?
+> However, I see the following in cached_setup_font:
+> 
+> setfont '/etc/console-setup/cached_Lat15-Fixed16.psf.gz'
+> 
+> if ls /dev/fb* >/dev/null 2>/dev/null; then
+>     for i in /dev/vcs[0-9]*; do
+>         { :
+>             setfont '/etc/console-setup/cached_Lat15-Fixed16.psf.gz'
+>         } < /dev/tty${i#/dev/vcs} > /dev/tty${i#/dev/vcs}
+>     done
+> fi
+> 
+> Might it be that /dev/fb* do not exist during boot, and thus the font
+> is not loaded in all ttys?
+If /dev/fb* doesn't exist then the graphics card is in hardware text 
+mode in which case there is one font on all ttys (due to hardware 
+limitation).  If /dev/fb* is created afterwards, then udev will run 
+cached_setup_font again.
+I don't know what is going to happen if:
+1. udev runs cached_setup_font while there is no framebuffer
+2. the script tests that there is no /dev/fb*
+3. before the script completes its work /dev/fb* is created
+In this case the rule of udev will trigger for a second time.  However 
+since the script hasn't finished yet will then udev run a second copy of 
+it?  If not, then this too, might create problems.  On the other hand, 
+if udev always runs cached_setup_font again, do both copies run in 
+parallel (this shoudn't be a problem for cached_setup_font but it is 
+good to know if such possibility exists)?
+Anton Zinoviev

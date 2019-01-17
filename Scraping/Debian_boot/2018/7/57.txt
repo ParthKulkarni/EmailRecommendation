@@ -1,0 +1,48 @@
+To : Debian BTS <submit@bugs.debian.org>
+Subject : Bug#903320: debian-installer: drops ULA address after network setup
+From : Raphaël Halimi <raphael.halimi@gmail.com>
+Date : Sun, 8 Jul 2018 21:36:19 +0200
+Message-id : 6544b7ee-afe4-d1e5-0001-4f86eea05994@gmail.com
+Reply-to : Raphaël Halimi <raphael.halimi@gmail.com>, 903320@bugs.debian.org
+
+
+Package: debian-installer
+Version: stable
+Tags: d-i ipv6
+Hi,
+I have a purely virtual bridge (no physical device attached to it) to
+serve libvirt/QEMU/kvm virtual machines. I'm trying to implement an
+IPv6-only test network.
+On this network, hosts each get two addresses : a stateful ULA address
+(served by DHCPv6), and an SLAAC global address (configured from plain
+Router Advertisements only). Both prefixes are advertised by radvd. The
+global prefix is provided from my ISP, and passed to the virtual network
+through prefix delegation. The DNS server also has an ULA address inside
+this prefix, and is only reachable through that address (the firewall is
+configured to accept connections from addresses from the same prefix only).
+This works well with a fully installed system: both addresses are
+automatically brought up, and I can reach remote global addresses as
+well as local ULA addresses (from this prefix or from other ones),
+provided iptables allows the forwarding.
+However, d-i behaves in a way that prevents it to run successfully in
+this network. During the network setup, it does indeed get both
+addresses, sets up routes accordingly, and also gets other settings from
+the DHCP server (domain name, DNS server, etc etc). At this time, I'm
+still able to ping remote and local hosts in the console.
+But, after setting the host name and the domain name, for an unexplained
+reason, d-i immediately drops the ULA address (it's noted in the log)
+and keeps only the global address. This prevents the installation to
+proceed afterwards (when the network is needed to download packages),
+because although the Internet is still accessible, name resolution
+doesn't work (since the DNS server drops packets coming from the global
+address).
+I also tried without advertising the global prefix with radvd, and
+again, at the same point during the installation process, d-i removes
+the ULA address (which leaves the system with only the link-local
+address this time).
+Note that I tried with Buster alpha 3 image too, and d-i behaves exactly
+the same.
+Regards,
+-- 
+Raphaël Halimi
+signature.asc

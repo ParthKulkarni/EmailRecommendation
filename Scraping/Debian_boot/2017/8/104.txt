@@ -1,0 +1,117 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#871569: installation-reports: offline machine, install from ISO images -- use case feels neglected
+From : Christian Pernegger <pernegger@gmail.com>
+Date : Wed, 09 Aug 2017 13:20:28 +0200
+Message-id : 150227762810.22714.10979175185832799925.reportbug@buddha.southpark.chp
+Reply-to : Christian Pernegger <pernegger@gmail.com>, 871569@bugs.debian.org
+
+
+Package: installation-reports
+Severity: normal
+Hello,
+the idea was to install and use stretch on an offline machine. No
+network access available or needed, now or in future, but all the
+software in Debian at its disposal.
+I decided that the best way to achieve this would be to obtain a full
+set of ISO images, since there's signed official releases of those, dd
+them to a bunch of USB drives and use them as if they were CDs. (Maybe
+a partial mirror on an external HDD would have been the better
+option?)
+Issues:
+1) The installer booted off and recognised the first "Bluray" just
+fine, but at no point did it ask me if I had and wanted to add any
+other discs. It didn't even point me to the possibility of adding some
+via apt-cdrom. This was contrary to expectations, considering there's
+a set.
+Work around: add using apt-cdrom after installation has finished.
+2) Neither the installer nor the system installed by it seem to have
+any concept of ISO data being on something else than a physical disc
+in an optical drive by default. After the first boot the first
+"Bluray" wasn't found any longer by apt and friends, as the path to
+the "optical drive" had changed.
+Work around: change the /media/cdrom entry in /etc/fstab to use
+/dev/disk/by-path/ and stick to one USB port, possibly tweak an
+apt-cdrom option or two, I forget.
+3) After having added all three images I ran aptitude update -- out of
+habit but also because I'd gotten no indication that that wouldn't be
+neccessary. That spewed messages about not having a [signed, I
+presume?] Release file, "... can't be authenticated and is
+therefore potentially dangerous to use". See also #807996.
+Now that is *scary*, especially if you've done your homework and
+verified the ISOs every which way. 
+I'm still not quite sure what's up with that, I've a hard time
+believing that the official ISOs simply don't have signed release
+files. According to Google that seems to have been the case in the
+past, but with the recent push to deprecate unsigned repositories that
+seems unlikly. In a way that ties back to item 2 -- chances are the
+ISO is not on a physically immutable medium nowadays.
+4) When installing stuff, aptitude will sometimes output a warning
+about dpkg having completed fewer actions than expected. The
+likelyhood seems to increase with the number of packages installed /
+if the job spans multiple "discs". I'm not sure if it's actually
+detrimental, but in a couple of cases I could've sworn I needed a few
+tries to get everything to install.
+5) Running MATE with default settings breaks this setup again, because
+it'll automount the USB drive as soon as it's connected (ignoring the
+mount point set for that in fstab ...). If you manually unmount it
+using the GUI, it doesn't just unmount, it removes the drive from
+existence, as far as Linux is concerned.
+Work around: disable everything to do with automount.
+Don't get me wrong, it works quite well now and it wasn't hard to
+figure out, but I've been using Debian for close to twenty years
+now. Someone newish might be stranded. And sure, the majority of
+installs will have network access, but surely the official images' use
+case isn't just "boot off it and possibly save a bit on bandwidth"?
+(Somehow that reminds me of physical copies of Steam games ...)
+It's possible that sets of fixed-size images aren't the right approach
+for today, maybe a few boot images plus signed "mirror dumps" in
+various sizes are the way to go, but in any case I believe that
+(mostly) offline systems should still be supported as a first class
+option.
+Regards
+Christian Pernegger
+-- Package-specific info:
+Boot method: ISO image dd'ed to USB flash drive
+Image version: debian-9.1.0-amd64-BD-[123].iso
+Date: End of July, 2017
+Machine: 2016 netbook, Intel
+Partitions: n/a
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [ ]
+Configure network:      [O]*
+Detect CD:              [O]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [~]**
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [~]***
+Comments/Problems:
+*) Having to configure network (in order to set hostname) on a system
+with no NIC is a tad counter-intuitive.
+**) TBH, using base 10 units for measuring any kind of
+computer memory drives me up the wall. Why can't the installer's
+partitioning tool support base 2 suffixes as well? Have you tried
+creating two partitions that are exactly the same size with that
+thing? Hint: it doesn't work.
+Anyway, in previous versions I used to be able to do my partitioning
+on the (other) console using fdisk, then use the installer as normal,
+in stretch that confuses it no end. It would not format pre-existing
+partitions nor give me an option to do so, not even if the partition
+was zeroed. As a result it'd fail to mount the affected partitions
+later. luks involved, but nothing else fancy.
+Work around: Instruct the installer to zero the partition, abort that,
+commit changes, have it fail on the next partition, rinse, repeat.]
+***) see top of report for main points
+-- 
+Please make sure that the hardware-summary log file, and any other
+installation logs that you think would be useful are attached to this
+report. Please compress large files using gzip.
+Once you have filled out this report, mail it to submit@bugs.debian.org.
+<snip, because nothing in the report is hardware-specific and I'm
+filing from a different machine anyway>

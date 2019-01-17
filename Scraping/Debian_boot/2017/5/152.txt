@@ -1,0 +1,398 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#862746: unblock: simple-cdd/0.6.5
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Tue, 16 May 2017 08:17:12 -0700
+Message-id : 87mvaczv9j.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 862746@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+User: release.debian.org@packages.debian.org
+Usertags: unblock
+X-Debbugs-Cc: debian-boot@lists.debian.org, simple-cdd-devel@lists.alioth.debian.org
+Thanks for all your work on the Release Team!
+Please unblock package simple-cdd
+With the recent announcement shutting down public FTP services:
+  https://lists.debian.org/debian-announce/2017/msg00001.html
+This requires some significant changes in simple-cdd, as simple-cdd
+relied on Debian's FTP mirrors for downloading files discovered by FTP
+directory listing.
+Now simple-cdd uses http://deb.debian.org/debian/extrafiles, an
+inline-signed list of checksums for various content in the archive
+(notably, tools/*, docs/*). This also allows signature and checksum
+verification of all downloaded files, which is a huge security
+improvement.
+The default mirror is now switched to deb.debian.org using the http
+protocol.
+A fix was added to add packages of priority required, important and
+standard from security, updates and proposed-updates repositories to
+the locally generated repository. Otherwise packages with strict
+versioned dependencies would end up uninstallable (e.g. vim-tiny
+depends on vim-common ( =$version), but only vim-common would get
+updated, resulting in vim-tiny being uninstallable).
+Kernel selection for i386 on jessie and stretch also required
+updating, as the linux-image-486 packages were removed from the
+archive.
+No changes were made to the simple-cdd-profiles udeb, so should not
+have any impact on debian-installer.
+diff -Nru simple-cdd-0.6.4/build-simple-cdd simple-cdd-0.6.5/build-simple-cdd
+--- simple-cdd-0.6.4/build-simple-cdd	2017-01-16 13:40:32.000000000 -0800
++++ simple-cdd-0.6.5/build-simple-cdd	2017-05-15 13:21:24.000000000 -0700
+@@ -235,7 +235,11 @@
+                 for a in self.env.get("ARCHES"):
+                     if a == "alpha": self.env.append("kernel_packages", kernel_base + "alpha-generic")
+                     elif a == "armhf": self.env.append("kernel_packages", kernel_base + "armmp")
+-                    elif a == "i386": self.env.append("kernel_packages", kernel_base + "486")
++                    elif a == "i386":
++                        if self.env.get("CODENAME") == "jessie":
++                            self.env.append("kernel_packages", kernel_base + "586")
++                        else:
++                            self.env.append("kernel_packages", kernel_base + "686")
+                     elif a == "sparc": self.env.append("kernel_packages", kernel_base + "sparc64")
+                     elif a in ("amd64", "arm64", "sparc64") or a.startswith("powerpc") or a.startswith("s390"):
+                         self.env.append("kernel_packages", kernel_base + a)
+diff -Nru simple-cdd-0.6.4/debian/changelog simple-cdd-0.6.5/debian/changelog
+--- simple-cdd-0.6.4/debian/changelog	2017-01-17 15:10:07.000000000 -0800
++++ simple-cdd-0.6.5/debian/changelog	2017-05-15 14:10:37.000000000 -0700
+@@ -1,3 +1,22 @@
++simple-cdd (0.6.5) unstable; urgency=medium
++
++  [ Vagrant Cascadian ]
++  * Switch to using urllib instead of calling wget.
++    - Only re-download files if known checksums do not match.
++    - Explicitly set http_proxy in the environment.
++    - Verify "mirror_files" to download with archive's "extrafiles", a
++      signed list of checksums.
++    - Switch default mirror to deb.debian.org and default protocol to
++      http (Closes: #861198).
++    - Many thanks to Enrico Zini for code review and improvements.
++  * Update kernel package selection for i386.
++  * Add stanzas to pull in required, important and standard packages for
++    security, updates and proposed-updates when enabled.
++  * Fix bug causing tracebacks when checksum or file size verifications
++    fail.
++
++ -- Vagrant Cascadian <vagrant@debian.org>  Mon, 15 May 2017 14:10:37 -0700
++
+ simple-cdd (0.6.4) unstable; urgency=medium
+ 
+   [ Vagrant Cascadian ]
+diff -Nru simple-cdd-0.6.4/profiles/ltsp.downloads simple-cdd-0.6.5/profiles/ltsp.downloads
+--- simple-cdd-0.6.4/profiles/ltsp.downloads	2016-07-21 10:03:54.000000000 -0700
++++ simple-cdd-0.6.5/profiles/ltsp.downloads	2017-04-28 15:46:08.000000000 -0700
+@@ -2,4 +2,3 @@
+ xorg
+ udev 
+ ltsp-server-standalone
+-linux-image-486
+diff -Nru simple-cdd-0.6.4/setup.py simple-cdd-0.6.5/setup.py
+--- simple-cdd-0.6.4/setup.py	2016-11-27 17:05:05.000000000 -0800
++++ simple-cdd-0.6.5/setup.py	2017-05-15 13:59:12.000000000 -0700
+@@ -3,7 +3,7 @@
+ from setuptools import setup
+ 
+ setup(name="simple-cdd",
+-      version="0.6.1",
++      version="0.6.5",
+       description="create custom debian-installer CDs",
+       long_description="""simple-cdd is a limited though relatively easy tool to create a customized debian-installer CD.
+ 
+diff -Nru simple-cdd-0.6.4/simple_cdd/gnupg.py simple-cdd-0.6.5/simple_cdd/gnupg.py
+--- simple-cdd-0.6.4/simple_cdd/gnupg.py	2016-11-27 17:05:05.000000000 -0800
++++ simple-cdd-0.6.5/simple_cdd/gnupg.py	2017-05-15 13:21:24.000000000 -0700
+@@ -29,15 +29,37 @@
+             self.import_keyring(keyring_file)
+ 
+ 
+-    def verify_detached_sig(self, pathname, sigpathname):
++    def common_gpg_args(self):
+         args = ["gpg", "--no-default-keyring"]
+         for k in self.env.get("keyring"):
+             args.extend(("--keyring", k))
+-        args.extend(("--verify", sigpathname, pathname))
++        return args
++
++    def extract_inline_contents(self, pathname, sigpathname):
++        args = self.common_gpg_args() + ["--decrypt", sigpathname]
++        proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++        stdout, stderr = proc.communicate()
++        if stdout and proc.returncode == 0:
++            lines = stdout.splitlines(keepends=True)
++            with open(pathname, 'w') as x:
++                for line in lines:
++                    x.write(line.decode('utf-8'))
++        else:
++            raise Fail("Unable to extract data from %s to %s, returned %d", sigpathname, pathname, proc.returncode)
++
++    def verify_gpg_sig(self, *extra_args):
++        args = self.common_gpg_args()
++        args.extend(extra_args)
+         retval = run_command("verify gpg signature", args)
+         if retval != 0:
+             raise Fail("Signature verification failed on %s", pathname)
+ 
++    def verify_detached_sig(self, pathname, sigpathname):
++        return self.verify_gpg_sig("--verify", sigpathname, pathname)
++
++    def verify_inline_sig(self, pathname):
++        return self.verify_gpg_sig("--verify", pathname)
++
+     def import_keyring(self, keyring_file):
+         """
+         Import a keyring into our keyring file
+diff -Nru simple-cdd-0.6.4/simple_cdd/tools/mirror_reprepro.py simple-cdd-0.6.5/simple_cdd/tools/mirror_reprepro.py
+--- simple-cdd-0.6.4/simple_cdd/tools/mirror_reprepro.py	2017-01-16 13:07:41.000000000 -0800
++++ simple-cdd-0.6.5/simple_cdd/tools/mirror_reprepro.py	2017-05-15 13:21:24.000000000 -0700
+@@ -79,6 +79,14 @@
+                 "FilterList": "deinstall package-list",
+                 "VerifyRelease": "{verify_release_keys}",
+             },
++            "default-base-security": {
++                "Suite": "*/updates",
++                "Architectures": "{ARCHES}",
++                "UDebComponents": "",
++                "Method": "{security_mirror}",
++                "FilterFormula": "priority (== required) | priority (== important) | priority (== standard)",
++                "VerifyRelease": "{verify_release_keys}",
++            },
+             "default-updates": {
+                 "Suite": "{CODENAME}-updates",
+                 "Architectures": "{ARCHES}",
+@@ -87,6 +95,14 @@
+                 "FilterList": "deinstall package-list",
+                 "VerifyRelease": "{verify_release_keys}",
+             },
++            "default-base-updates": {
++                "Suite": "{CODENAME}-updates",
++                "Architectures": "{ARCHES}",
++                "UDebComponents": "main",
++                "Method": "{updates_mirror}",
++                "FilterFormula": "priority (== required) | priority (== important) | priority (== standard)",
++                "VerifyRelease": "{verify_release_keys}",
++            },
+             "default-extra": {
+                 "Suite": "*",
+                 "Architectures": "{ARCHES}",
+@@ -105,6 +121,14 @@
+                 "FilterList": "deinstall package-list",
+                 "VerifyRelease": "{verify_release_keys}",
+             },
++            "default-base-proposed-updates": {
++                "Suite": "{CODENAME}-proposed-updates",
++                "Architectures": "{ARCHES}",
++                "UDebComponents": "main",
++                "Method": "{debian_mirror}",
++                "FilterFormula": "priority (== required) | priority (== important) | priority (== standard)",
++                "VerifyRelease": "{verify_release_keys}",
++            },
+             "default-profiles-udeb": {
+                 "Suite": "{profiles_udeb_dist}",
+                 "Architectures": "{ARCHES}",
+@@ -143,14 +167,17 @@
+             # invoke reprepro's "magic delete" rule.
+             updates_used.append("-")
+         if self.env.get("security_mirror"):
++            updates_used.append("default-base-security")
+             updates_used.append("default-security")
+         if self.env.get("debian_mirror_extra"):
+             updates_used.append("default-extra")
+             if self.env.get("debian_mirror_extra_dist"):
+                 updates["default-extra"]["Suite"] = "{debian_mirror_extra_dist}"
+         if self.env.get("proposed_updates"):
++            updates_used.append("default-base-proposed-updates")
+             updates_used.append("default-proposed-updates")
+         if self.env.get("updates_mirror"):
++            updates_used.append("default-base-updates")
+             updates_used.append("default-updates")
+         if self.env.get("profiles_udeb_dist"):
+             updates_used.append("default-profiles-udeb")
+diff -Nru simple-cdd-0.6.4/simple_cdd/tools/mirror_wget.py simple-cdd-0.6.5/simple_cdd/tools/mirror_wget.py
+--- simple-cdd-0.6.4/simple_cdd/tools/mirror_wget.py	2016-11-27 17:05:05.000000000 -0800
++++ simple-cdd-0.6.5/simple_cdd/tools/mirror_wget.py	2017-05-15 13:57:45.000000000 -0700
+@@ -3,6 +3,7 @@
+ from simple_cdd.gnupg import Gnupg
+ from .base import Tool
+ from urllib.parse import urlparse, urljoin
++from urllib import request
+ import os
+ import re
+ import logging
+@@ -35,41 +36,74 @@
+             baseurl = env.get("wget_debian_mirror")
+             path_depth = urlparse(baseurl).path.strip("/").count("/") + 1
+ 
+-            def _wget_many(urls):
+-                args = ["wget", "--continue", "--timestamping", "--no-verbose",
+-                        "--no-parent", "--no-host-directories", "--recursive", "--cut-dirs={}".format(path_depth),
+-                        "--directory-prefix=" + env.get("MIRROR")]
+-                args.extend(urls)
+-                retval = run_command("wget {} files".format(len(urls)), args, logfd=logfd, env=wget_env)
+-                if retval != 0:
+-                    raise Fail("wget exited with code %s, see %s for full output log", retval, logfilename)
+-
+-            def _wget_one(url, output):
+-                args = ["wget", "-O", output, url]
+-                retval = run_command("wget {}".format(url), args, logfd=logfd, env=wget_env)
+-                if retval != 0:
+-                    raise Fail("wget exited with code %s, see %s for full output log", retval, logfilename)
++            if env.get("http_proxy"):
++                os.environ.setdefault('http_proxy', env.get("http_proxy"))
++
++            def _download(url, output, checksums=None, relname=None):
++                if checksums:
++                    if os.path.exists(output):
++                        try:
++                            checksums.verify_file(output, relname)
++                            log.debug("skipping download: %s checksum matched", output)
++                            return
++                        except Fail:
++                            log.debug("re-downloading: %s checksum invalid", output)
++                            pass
++                if not os.path.isdir(os.path.dirname(output)):
++                    os.makedirs(os.path.dirname(output))
++                log.debug("downloading: %s", output)
++                request.urlretrieve(url, filename=output)
++                if checksums:
++                    checksums.verify_file(output, relname)
++
++            if env.get("mirror_files"):
++                # Download the checksums present in the archive "extrafiles" and verify
++                extrafiles_file_inlinesig = os.path.join(env.get("MIRROR"), "extrafiles")
++                extrafiles_file= os.path.join(env.get("simple_cdd_temp"), "extrafiles.unsigned")
++                download_extrafiles_file = os.path.join(env.get("wget_debian_mirror"), "extrafiles")
++                _download(download_extrafiles_file, extrafiles_file_inlinesig)
++                self.gnupg.verify_inline_sig(extrafiles_file_inlinesig)
++                self.gnupg.extract_inline_contents(extrafiles_file, extrafiles_file_inlinesig)
++
++                # import checksums
++                extrafile_sums = Checksums()
++                extrafile_sums.parse_checksums_file(extrafiles_file, 'SHA256')
++
++                with open(extrafiles_file, 'r') as ef:
++                    efile = ef.readlines()
++                match_mirror_files = []
++                for m in env.get("mirror_files"):
++                    if m.endswith('/'):                        
++                        match_mirror_files.append(re.escape(m))
++                    else:
++                        match_mirror_files.append(re.escape(m) + "$")
++                match_mirror_files = "(" + "|".join(match_mirror_files) + ")"
++                ef_match = re.compile(match_mirror_files)
++                ef_files = []
++                for line in efile:
++                    hashsum, relname = line.split()
++                    if ef_match.match(relname):
++                        ef_files.append({
++                            "absname": os.path.join(env.get("MIRROR"), relname),
++                            "relname": relname,
++                            "url": os.path.join(env.get("wget_debian_mirror"), relname),
++                        })
++
++                for x in ef_files:
++                    _download(x["url"], x["absname"], checksums=extrafile_sums, relname=x["relname"])
+ 
+             checksum_files = env.get("checksum_files")
+ 
+             # Download files needed to build debian-installer image
+             files = []
+-            files.extend(env.get("mirror_files"))
+             files.extend(checksum_files)
+ 
+-            # Build the environment for running reprepro
+-            wget_env = {}
+-            for name, val, changed in self.env.export_iter():
+-                wget_env[name] = str(val)
+-
+-            _wget_many([urljoin(baseurl, x) for x in files])
+-
+             if checksum_files:
+                 # Get the release file and verify that it is valid
+                 release_file = os.path.join(env.get("simple_cdd_temp"), env.format("{DI_CODENAME}_Release"))
+                 download_release_file = os.path.join(env.get("wget_debian_mirror"), "dists", env.get("DI_CODENAME"), "Release")
+-                _wget_one(download_release_file, release_file)
+-                _wget_one(download_release_file + ".gpg", release_file + ".gpg")
++                _download(download_release_file, release_file)
++                _download(download_release_file + ".gpg", release_file + ".gpg")
+                 self.gnupg.verify_detached_sig(release_file, release_file + ".gpg")
+ 
+                 # Parse the release file for checksums
+@@ -89,11 +123,12 @@
+                         log.warn("Unknown hash type for %s, skipping file", file)
+                         continue
+ 
+-                    prefix_len = 7 + len(env.get("DI_CODENAME")) # dists/{DI_CODENAME}/
+-                    relname = file[prefix_len:]
++                    separator = os.path.join('dists/', env.get("DI_CODENAME"), '')
++                    separator, relname = file.split(separator)
+                     absname = os.path.join(env.get("MIRROR"), file)
++                    url = os.path.join(env.get("wget_debian_mirror"), file)
+                     # Validate the file
+-                    sums.verify_file(absname, relname)
++                    _download(url, absname, checksums=sums, relname=relname)
+ 
+                     # Get the list of extra files to download: those whose
+                     # pathname matches di_match
+@@ -110,13 +145,11 @@
+                                 "url": os.path.join(env.get("wget_debian_mirror"), dirname, relname),
+                             })
+ 
+-                    # Download the extra files
+-                    _wget_many([x["url"] for x in extra_files])
+-
+                     # Check downloaded files against their corresponding checksums.
+                     file_sums = Checksums()
+                     file_sums.parse_checksums_file(absname, hashtype)
+                     for f in extra_files:
+-                        file_sums.verify_file(f["absname"], f["relname"])
++                        # Download the extra files
++                        _download(f["url"], f["absname"], checksums=file_sums, relname=f["relname"])
+ 
+ 
+diff -Nru simple-cdd-0.6.4/simple_cdd/utils.py simple-cdd-0.6.5/simple_cdd/utils.py
+--- simple-cdd-0.6.4/simple_cdd/utils.py	2016-11-27 17:05:05.000000000 -0800
++++ simple-cdd-0.6.5/simple_cdd/utils.py	2017-05-15 13:57:45.000000000 -0700
+@@ -183,7 +183,7 @@
+         if expected_size is not None:
+             real_size = os.stat(absname).st_size
+             if real_size != expected_size:
+-                raise Fail("Invalid size for {}: expected {}, got {}", absname, expected_size, real_size)
++                raise Fail("Invalid size for %s: expected %d, got %d", absname, expected_size, real_size)
+ 
+         # Check the file against the checksums that we have
+         for hashtype in self.FIELDS:
+@@ -204,7 +204,7 @@
+ 
+             # Verify
+             if hasher.hexdigest() != hashsum:
+-                raise Fail("Invalid checksum for {}: expected {}, got {}", absname, hashsum, hasher.hexdigest())
++                raise Fail("Invalid checksum for %s: expected %s, got %s", absname, hashsum, hasher.hexdigest())
+ 
+     def parse_release_file(self, pathname):
+         """
+diff -Nru simple-cdd-0.6.4/simple_cdd/variables.py simple-cdd-0.6.5/simple_cdd/variables.py
+--- simple-cdd-0.6.4/simple_cdd/variables.py	2017-01-16 14:21:34.000000000 -0800
++++ simple-cdd-0.6.5/simple_cdd/variables.py	2017-04-26 15:40:37.000000000 -0700
+@@ -14,7 +14,7 @@
+             help="directory where the local mirror is stored"),
+     PathVar("simple_cdd_basedir", ["{simple_cdd_temp}", "debian-cd"],
+             help="working directory for debian-cd"),
+-    TextVar("server", "ftp.us.debian.org",
++    TextVar("server", "deb.debian.org",
+             help="default server used for mirrors"),
+     ListVar("mirror_components", ["main"],
+             help="components to use to build the distributions"),
+@@ -61,7 +61,7 @@
+     ListVar("simple_cdd_dirs",
+             ["{simple_cdd_dir}", os.path.dirname(os.path.abspath(sys.argv[0])), "/usr/share/simple-cdd"],
+             help="directories used to look for simple-cdd support scripts"),
+-    TextVar("debian_mirror", "ftp://{server}/debian/";, "--debian-mirror",
++    TextVar("debian_mirror", "http://{server}/debian/";, "--debian-mirror",
+             help="official Debian mirror to use to get Debian packages"),
+     TextVar("rsync_debian_mirror", "{server}::debian",
+             help="official Debian mirror to use to get Debian packages in rsync syntax, used only when using the rsync tool"),
+Thanks for taking the time to review!
+unblock simple-cdd/0.6.5
+live well,
+  vagrant
+signature.asc

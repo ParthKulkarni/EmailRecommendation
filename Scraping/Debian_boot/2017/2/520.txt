@@ -1,0 +1,54 @@
+To : debian-boot@lists.debian.org, security@debian.org
+Subject : Re: Bug#856210: libdebian-installer: please parse SHA256 field and add it to di_* structs
+From : Steven Chamberlain <steven@pyro.eu.org>
+Date : Sun, 26 Feb 2017 23:16:29 +0000
+Message-id : 20170226231628.GB15678@pyro.eu.org
+In-reply-to : <[🔎] 20170226223238.GA12308@riva.ucam.org>
+References : <[🔎] 20170226162506.GB86601@pyro.eu.org> <[🔎] 20170226183030.GG86601@pyro.eu.org> <[🔎] 20170226223238.GA12308@riva.ucam.org>
+
+
+Hi,
+Colin Watson wrote:
+> Just FYI, since it's not clear from
+> https://wiki.debian.org/InstallerDebacle that you know this, the
+> installer in fact uses debootstrap rather than cdebootstrap to install
+> the base system.
+I didn't realise that, thanks.  There was still a cdebootstrap-udeb in
+wheezy, so that installer is affected?  But not releases since.
+base-installer seems it would (still now) use it in preference to
+regular debootstrap, *if* it was available in the installer:
+http://sources.debian.net/src/base-installer/1.168/debian/bootstrap-base.postinst/?hl=145#L145
+Do you know any places where cdebootstrap is still used?  (It is still
+having new features added in the past months, so it may not be an option
+to simply remove it from the stable release).
+I found a random example in "gitlab-ci-multi-runner"
+http://sources.debian.net/src/gitlab-ci-multi-runner/1.10.3%2Bdfsg-1/debian/mk-prebuilt-images.sh.in/?hl=62#L62
+> AFAIK debootstrap has supported SHA256 since version
+> 1.0.28 in 2011.
+I looked at debootstrap in sid and it seems unaffected by these issues,
+yes.
+> >   + allow verifiers to check both MD5 *and* SHA256, for even stronger
+> >     authentication in case one or both algorithms are broken
+> 
+> Checking both adds only negligible security (look up "multicollisions")
+> and is a waste of time.
+I wouldn't dismiss it for that reason, but I think it adds such
+complexity that we would likely make some more serious error, if we
+tried.
+> The usual reason to keep support for older hash algorithms is just to
+> make transitions to newer ones less painful.
+Maybe it makes sense to do that on the archive side (add new hash
+algorithms before removing old ones);  but to do that here, in the
+consuming utility, has turned out quite harmful, in retrospect.
+From this, I would conclude that cdebootstrap should have dropped
+all support for MD5 when SHA1 support was added, i.e. require a SHA1
+field, and fail loudly if it's not there;  and prune out all of the MD5
+code (which might have avoided #856213).
+I think archive utils have had plenty of time (10 years!) to add SHA256
+fields, so it is reasonable now to require a SHA256 field be present,
+and validate only that?
+Regards,
+-- 
+Steven Chamberlain
+steven@pyro.eu.org
+signature.asc

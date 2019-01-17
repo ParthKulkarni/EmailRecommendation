@@ -1,0 +1,120 @@
+To : Ian Campbell <ijc@debian.org>
+Subject : Re: Salsa
+From : Steve McIntyre <steve@einval.com>
+Date : Sun, 6 May 2018 01:43:03 +0100
+Message-id : 20180506004303.5a2emaxf4jpberd2@tack.einval.com
+In-reply-to : <[🔎] 20180504162747.sw75fuguggfvqnm4@tack.einval.com>
+References : <[🔎] 20180503211028.dfmsbh7pljicibf3@tack.einval.com> <[🔎] 1525450913.23891.49.camel@debian.org> <[🔎] 20180504162747.sw75fuguggfvqnm4@tack.einval.com>
+
+
+On Fri, May 04, 2018 at 05:27:47PM +0100, Steve McIntyre wrote:
+>On Fri, May 04, 2018 at 05:21:53PM +0100, Ian Campbell wrote:
+>
+>>If it was a different tool maybe a `git gc --aggressive` will repack
+>>(and thus compact/delta-compress) the bigger one? (my hypothesis is
+>>that maybe the first run did it automatically and the second didn't)
+>
+>ACK, that was my initial thought. The first tool does a "git gc" after
+>each revision has been converted. The second one doesn't. But I did
+>"git gc" and "git repack -a -d" on the second afterwards. It reduced
+>from ~3.8G to the ~3.5G you see here.
+OK, so I've tried --aggressive too now, and wow does it make a big
+difference. I've tried using it on the d-i.git and d-i-manual.git
+repos and the difference is *huge*:
+# test2, previous results:
+$ du -s test*
+613888  test1-bare.git
+3653432 test2-bare.git
+714336  test2-manual-bare.git
+# test3, bare clones from new repos after git gc --aggressive:
+$ du -s test3-*
+261408  test3-bare.git
+37908   test3-manual-bare.git
+I've continued on and added an extra d-i-archive.git repo, splitting
+out lots of older stuff that's already been split into new repos as
+Bastian said (see attached config). After "git gc --aggressive" on
+each and a bare clone, I now get:
+$ du -s test4-*
+138500  test4-archive-bare.git
+174504  test4-bare.git
+38112   test4-manual-bare.git
+I think we're getting much closer to a reasonable solution here! I've
+uploaded each of these to salsa again, in case anybody else would like
+to play with them:
+https://salsa.debian.org/93sam/d-i-test4-archive.git
+https://salsa.debian.org/93sam/d-i-test4.git
+https://salsa.debian.org/93sam/d-i-test4-manual.git
+I've not yet applied my patch to d-i-test4.git to allow for building -
+see attached.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+< sladen> I actually stayed in a hotel and arrived to find a post-it
+          note stuck to the mini-bar saying "Paul: This fridge and
+          fittings are the correct way around and do not need altering"
+>From bb1df3b30ca83634b9fedb12fb32fb1244c11d9b Mon Sep 17 00:00:00 2001
+From: Steve McIntyre <steve@einval.com>
+Date: Fri, 4 May 2018 14:47:17 +0100
+Subject: [PATCH] Tweaks for git on salsa
+---
+ .mrconfig         |  2 +-
+ scripts/git-setup | 19 ++++++++++++++-----
+ 2 files changed, 15 insertions(+), 6 deletions(-)
+diff --git a/.mrconfig b/.mrconfig
+index 22067fcb0e..f17260caad 100644
+--- a/.mrconfig
++++ b/.mrconfig
+@@ -7,7 +7,7 @@
+ # see scripts/git-setup.
+ 
+ [.]
+-checkout = svn checkout svn+ssh://svn.debian.org/svn/d-i/trunk .
++checkout = git clone https://salsa.debian.org/93sam/d-i-test2 .
+ 
+ [packages/anna]
+ checkout = git clone https://salsa.debian.org/installer-team/anna
+diff --git a/scripts/git-setup b/scripts/git-setup
+index 96a9bfe8db..fdcd707edf 100755
+--- a/scripts/git-setup
++++ b/scripts/git-setup
+@@ -8,25 +8,34 @@ runshow () {
+ 
+ config_git_anon () {
+ 	# rewrite urls to use git://
+-	runshow git config --global 'url.https://anonscm.debian.org/git/d-i/.insteadOf' 'git+ssh://git.debian.org/git/d-i/'
++	runshow git config --global 'url.https://salsa.debian.org/installer-team/.insteadOf' 'git@salsa.debian.org:installer-team/'
+ }
+ 
+ config_git_auth () {
+ 	config_git_anon # speeds up checkouts
+ 	# use ssh for pushes
+-	runshow git config --global 'url.git+ssh://git.debian.org/git/d-i/.pushInsteadOf' 'git+ssh://git.debian.org/git/d-i/'
++	runshow git config --global 'url.git@salsa.debian.org:installer-team/.pushInsteadOf' 'https://salsa.debian.org/installer-team/'
+ }
+ 
+-URL=$(LANG=C svn info| grep '^URL' | awk '{print $2}')
++if [ -d .svn ]; then
++    URL=$(LANG=C svn info| grep '^URL' | awk '{print $2}')
++elif [ -d .git ]; then
++    URL=$(LANG=C git remote -v | awk '/salsa/ {if (NR==1) {print $2}}')
++else
++    echo "Can't work out what VCS you're using. Abort." >&2
++    exit 1
++fi
+ case "$URL" in
+-	svn+ssh*)
++	*ssh*|git@salsa*)
++		echo "Your working copy is using $URL, so setting up git with auth"
+ 		config_git_auth
+ 	;;
+ 	svn*|http*)
++		echo "Your working copy is using $URL, so setting up git anon"
+ 		config_git_anon
+ 	;;
+ 	*)
+-		echo "unknown svn url: $URL" >&2
++		echo "unknown VCS url: $URL" >&2
+ 		exit 1
+ 	;;
+ esac
+-- 
+2.11.0

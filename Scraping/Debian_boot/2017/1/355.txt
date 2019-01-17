@@ -1,0 +1,54 @@
+To : Steve McIntyre <steve@einval.com>, 816892@bugs.debian.org, Kusanagi Kouichi <slash@ac.auone-net.jp>
+Subject : Bug#816892: debootstrap synchronize the whole filesystem
+From : Philip Hands <phil@hands.com>
+Date : Sun, 29 Jan 2017 21:32:03 +0100
+Message-id : 87r33l38vw.fsf@whist.hands.com
+Reply-to : Philip Hands <phil@hands.com>, 816892@bugs.debian.org
+In-reply-to : <[🔎] 20170129182050.GA6715@einval.com>
+References : <56dc0833000e7ea600006edb000052021800079bca41@amlmta302.auone-net.jp> <[🔎] 20170129182050.GA6715@einval.com>
+
+
+Steve McIntyre <steve@einval.com> writes:
+> Hi!
+>
+> On Sun, Mar 06, 2016 at 07:36:35PM +0900, Kusanagi Kouichi wrote:
+>>Package: debootstrap
+>>Version: 1.0.79
+>>Severity: normal
+>>Tags: patch
+>>
+>>Sync at the end of debootstrap sometimes takes for a while. It seems
+>>enough to synchronize only a target filesystem.
+>
+>>diff -uNrp debootstrap-1.0.79.orig/debootstrap debootstrap-1.0.79/debootstrap
+>>--- debootstrap-1.0.79.orig/debootstrap	2015-11-09 13:01:25.000000000 +0900
+>>+++ debootstrap-1.0.79/debootstrap	2016-03-06 19:22:04.970728229 +0900
+>>@@ -686,7 +686,7 @@ if am_doing_phase second_stage; then
+>> 			mv "$TARGET/debootstrap/debootstrap.log" "$TARGET/var/log/bootstrap.log"
+>> 		fi
+>> 	fi
+>>-	sync
+>>+	sync -f "$TARGET"
+>> 
+>> 	if [ "$KEEP_DEBOOTSTRAP_DIR" = true ]; then
+>> 		if [ -x "$TARGET/debootstrap/debootstrap" ]; then
+>
+> There's a small problem here - debootstrap is designed and expected to
+> run in a lot of different environments, including limited ones like in
+> debian-installer. -f is a very new option and I doubt it's safe to use
+> by default...
+Well, in the case of busybox as used in d-i, sync seems to ignore its
+parameters.  The udeb busybox does so silently, whereas the normally
+packaged version of busybox gives the more verbose:
+  % busybox sync -f /tmp
+  sync: ignoring all arguments
+so, in that case it seems harmless ... but also useless ;-)
+Is there really any significant amount of work being done by sync here
+that is not going to involve to $TARGET? (or other partitions mounted
+below target, which we probably also want to sync at this point).
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

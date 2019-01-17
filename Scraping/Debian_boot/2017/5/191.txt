@@ -1,0 +1,42 @@
+To : Vagrant Cascadian <vagrant@debian.org>, Cyril Brulebois <kibi@debian.org>, 860304@bugs.debian.org
+Subject : Bug#860304: flash-kernel: Incorrect installation path for dtbs
+From : Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date : Fri, 26 May 2017 23:35:07 +0200
+Message-id : 3fb67c2c-9651-302b-859e-585a524aa047@gmx.de
+Reply-to : Heinrich Schuchardt <xypron.glpk@gmx.de>, 860304@bugs.debian.org
+In-reply-to : <[🔎] 874lw7a1i8.fsf@aikidev.net>
+References : <[🔎] 765d2837-9319-fc0c-a02c-4e33272ca499@gmx.de> <[🔎] 20170526163536.GF9052@mraw.org> <[🔎] 874lw7a1i8.fsf@aikidev.net>
+
+
+On 05/26/2017 08:58 PM, Vagrant Cascadian wrote:
+> On 2017-05-26, Cyril Brulebois <kibi@debian.org> wrote:
+>> And thanks for being persistent.
+> 
+> Indeed, I've been working around this issue locally rather than doing
+> the right things by filing bugs and writing patches... :)
+I recently created file /etc/flash-kernel/ubootenv.d/fdtfile with
+setenv fdtfile meson-gxbb-odroidc2.dtb
+on my Odroid C2 as workaround. But that is not a good permanent solution.
+> I think the best thing to do would be to install in both
+> /boot/dtbs/VERSION/FDTFILE and /boot/boot/dtbs/VERSION/SUBDIR/*.dtb, or
+> create symlinks (if supported by the filesystem) if the file is found in
+> a subdir... hopefully that won't require mangling the code too much;
+> I'll take a look at it... or feel free to beat me to it! :)
+> 
+/boot/boot/dtbs/VERSION/SUBDIR/*.dtb is what my patch does if a subdir
+is provided in /usr/share/flash-kernel/db/all.db.
+---
+If we want a more radical redesign:
+Why do we rely on environment variable fdtfile at all?
+The current device tree supplies file /proc/device-tree/model.
+We read all.db to find the name of the dtb with this model name and than
+install just this dtb from the Kernel installation.
+So there is not much of a choice for U-Boot to pass different values of
+fdtfile which will be of use when booting.
+Couldn't we simply write the dtb file name from all.db to /boot/boot.scr?
+Should the dtb file name or the model string change between two Kernel
+releases we are anyway in deep trouble when upgrading (unfortunately
+this may happen, cf.
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d59561479e6f9cccc1d5905db37f668e1cbfdac2).
+Best regards
+Heinrich Schuchardt

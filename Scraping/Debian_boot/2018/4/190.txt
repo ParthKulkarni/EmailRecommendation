@@ -1,0 +1,40 @@
+To : 741964@bugs.debian.org
+Subject : Bug#741964: debootstrap: --variant=fakechroot and --foreign
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Tue, 17 Apr 2018 22:06:08 +0900
+Message-id : 20180417220608.3e8f266411736e98867e7887@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 741964@bugs.debian.org
+In-reply-to : <20160217154453.GA31446@debirf-dominicain>
+References : <20140317183916.GA1616@debirf-dominicain>
+
+
+control: tags -1 +pending
+On Wed, 17 Feb 2016 15:44:53 +0000 jhcha54008 <jhcha54008@free.fr> wrote:
+> Here is an updated patch for debootstrap 1.0.78+nmu1.
+ Adjust it for current git.
+diff --git a/scripts/debian-common b/scripts/debian-common
+index 4ab1fe8..9b313fc 100644
+--- a/scripts/debian-common
++++ b/scripts/debian-common
+@@ -56,6 +56,10 @@ first_stage_install () {
+        fi
+ 
+        setup_devices
++
++       if doing_variant fakechroot; then
++               setup_proc_fakechroot
++       fi
+ }
+ 
+ second_stage_install () {
+@@ -89,9 +93,7 @@ Status: install ok installed" >> "$TARGET/var/lib/dpkg/status"
+                baseprog="$(($baseprog + ${1:-1}))"
+        }
+ 
+-       if doing_variant fakechroot; then
+-               setup_proc_fakechroot
+-       else
++       if doing_variant ! fakechroot; then
+                setup_proc
+                in_target /sbin/ldconfig
+        fi

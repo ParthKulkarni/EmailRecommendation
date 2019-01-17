@@ -1,0 +1,82 @@
+To : Debian BTS <submit@bugs.debian.org>
+Subject : Bug#858104: win32-loader: FTBFS (error parsing Built-Using field)
+From : Santiago Vila <sanvila@debian.org>
+Date : Sat, 18 Mar 2017 10:43:27 +0000
+Message-id : E1cpBpX-0007sy-Ls@moszumanska.debian.org
+Reply-to : Santiago Vila <sanvila@debian.org>, 858104@bugs.debian.org
+
+
+Package: src:win32-loader
+Version: 0.8.1
+Severity: serious
+Dear maintainer:
+I tried to build this package in stretch with "dpkg-buildpackage -A"
+but it failed:
+--------------------------------------------------------------------------------
+[...]
+ debian/rules build-indep
+/bin/sh: 1: test: xloadlin: unexpected operator
+/bin/sh: 1: test: xnsis: unexpected operator
+/bin/sh: 1: test: xloadlin: unexpected operator
+/bin/sh: 1: test: xnsis: unexpected operator
+dh build-indep
+   dh_testdir -i
+   dh_update_autotools_config -i
+   dh_auto_configure -i
+   debian/rules override_dh_auto_build
+make[1]: Entering directory '/<<PKGBUILDDIR>>'
+/bin/sh: 1: test: xloadlin: unexpected operator
+/bin/sh: 1: test: xnsis: unexpected operator
+/bin/sh: 1: test: xloadlin: unexpected operator
+[... snipped ...]
+Total size:                   632178 / 1137727 bytes (55.5%)
+1 warning:
+  Generating version information for language "1033-English" without standard key "FileVersion"
+du -h win32-loader.exe
+620K	win32-loader.exe
+make[2]: Leaving directory '/<<PKGBUILDDIR>>'
+make[1]: Leaving directory '/<<PKGBUILDDIR>>'
+   dh_auto_test -i
+   create-stamp debian/debhelper-build-stamp
+ fakeroot debian/rules binary-indep
+/bin/sh: 1: test: xloadlin: unexpected operator
+/bin/sh: 1: test: xnsis: unexpected operator
+/bin/sh: 1: test: xloadlin: unexpected operator
+/bin/sh: 1: test: xnsis: unexpected operator
+dh binary-indep
+   create-stamp debian/debhelper-build-stamp
+   dh_testroot -i
+   dh_prep -i
+   dh_auto_install -i
+   dh_install -i
+   dh_installdocs -i
+   dh_installchangelogs -i
+   dh_perl -i
+   dh_link -i
+   dh_strip_nondeterminism -i
+   dh_compress -i
+   dh_fixperms -i
+   dh_installdeb -i
+   debian/rules override_dh_gencontrol
+make[1]: Entering directory '/<<PKGBUILDDIR>>'
+/bin/sh: 1: test: xloadlin: unexpected operator
+/bin/sh: 1: test: xnsis: unexpected operator
+/bin/sh: 1: test: xloadlin: unexpected operator
+/bin/sh: 1: test: xnsis: unexpected operator
+dh_gencontrol -- -Vw32-loader:built-using="grub2 (= 2.02~beta3-5), cpio (= 2.11+dfsg-6), gzip (= 1.6-5), gnupg2 (= 2.1.18-6), debian-archive-keyring (= 2014.3), loadlin (1.6f-5) (= 1.6f-5+b1), ipxe (= 1.0.0+git-20161027.b991c67-1), nsis (2.51-1) (= 2.51-1+b1), libgcrypt20 (= 1.7.6-1), libgpg-error (= 1.26-2), "
+dpkg-gencontrol: warning: can't parse dependency loadlin (1.6f-5) (= 1.6f-5+b1)
+dpkg-gencontrol: error: error occurred while parsing Built-Using field: grub2 (= 2.02~beta3-5), cpio (= 2.11+dfsg-6), gzip (= 1.6-5), gnupg2 (= 2.1.18-6), debian-archive-keyring (= 2014.3), loadlin (1.6f-5) (= 1.6f-5+b1), ipxe (= 1.0.0+git-20161027.b991c67-1), nsis (2.51-1) (= 2.51-1+b1), libgcrypt20 (= 1.7.6-1), libgpg-error (= 1.26-2), 
+dh_gencontrol: dpkg-gencontrol -pwin32-loader -ldebian/changelog -Tdebian/win32-loader.substvars -Pdebian/win32-loader -Vw32-loader:built-using=grub2 (= 2.02~beta3-5), cpio (= 2.11+dfsg-6), gzip (= 1.6-5), gnupg2 (= 2.1.18-6), debian-archive-keyring (= 2014.3), loadlin (1.6f-5) (= 1.6f-5+b1), ipxe (= 1.0.0+git-20161027.b991c67-1), nsis (2.51-1) (= 2.51-1+b1), libgcrypt20 (= 1.7.6-1), libgpg-error (= 1.26-2),  returned exit code 255
+debian/rules:79: recipe for target 'override_dh_gencontrol' failed
+make[1]: *** [override_dh_gencontrol] Error 2
+make[1]: Leaving directory '/<<PKGBUILDDIR>>'
+debian/rules:38: recipe for target 'binary-indep' failed
+make: *** [binary-indep] Error 2
+dpkg-buildpackage: error: fakeroot debian/rules binary-indep gave error exit status 2
+--------------------------------------------------------------------------------
+The same thing happens in the reproducible builds autobuilders:
+https://tests.reproducible-builds.org/debian/rb-pkg/unstable/amd64/win32-loader.html
+so this should be easy to reproduce.
+If this is really a bug in one of the build-depends, please use reassign and affects,
+so that this is still visible in the page for this package.
+Thanks.

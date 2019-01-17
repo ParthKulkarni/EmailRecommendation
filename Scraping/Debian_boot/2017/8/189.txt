@@ -1,0 +1,101 @@
+To : Philip Hands <phil@hands.com>
+Subject : Bug#872577: debootstrap: Handle existing /dev
+From : Dan Nicholson <nicholson@endlessm.com>
+Date : Fri, 25 Aug 2017 16:07:29 -0500
+Message-id : CAJAOzpDQBN4Bf+=tc870p9SjzofbSZ701v_AxYzsTY5JGbck7g@mail.gmail.com
+Reply-to : Dan Nicholson <nicholson@endlessm.com>, 872577@bugs.debian.org
+In-reply-to : <[🔎] CAJAOzpA+VP9AnrNwsza0SghTytgfHZhxsUb5NH9X3W0a_XA2qw@mail.gmail.com>
+References : <[🔎] 20170818194803.clso7iv6eldeku5n@khazad-dum.debian.net> <CAJAOzpDchGOTubvN8BRNX6EDL7ST6Uxc3pSM+xoxtzwRbqVi_g__18216.9968764812$1503087324$gmane$org@mail.gmail.com> <[🔎] 87ziaubngi.fsf@deep-thought.43-1.org> <[🔎] CAJAOzpAkVcO1aXdBKA=SSF_jDOCe_98FXRi0gNj_JVnMmd7dOA@mail.gmail.com> <[🔎] CAKcyEGqzrNv+XxVL4kqauhuEhvs-0=1u4=JT4P5BczygxiWjmg@mail.gmail.com> <[🔎] 87y3qdj40v.fsf@whist.hands.com> <[🔎] CAJAOzpA+VP9AnrNwsza0SghTytgfHZhxsUb5NH9X3W0a_XA2qw@mail.gmail.com> <[🔎] CAJAOzpAkVcO1aXdBKA=SSF_jDOCe_98FXRi0gNj_JVnMmd7dOA@mail.gmail.com>
+
+
+On Tue, Aug 22, 2017 at 10:23 AM, Dan Nicholson <nicholson@endlessm.com> wrote:
+>
+> That certainly helps, but it doesn't cover everything since the
+> mkdir's and ln's could fail. Those are easier to handle by adding -p
+> and -f, respectively, but that's a subtle change in behavior for ln
+> relative to the mknod change. In the mknod case, an existing device is
+> left as is. In the ln case, it would be forcefully overwritten.
+Attached is a patch to handle all the potentially failing cases. I
+tested this by running debootstrap once, wiping everything the target
+except /dev, and running debootstrap again. It succeeded. As mentioned
+above, an existing device is skipped while the symlinks are forcefully
+overwritten. That seems inconsistent, but I'm not sure it matters. I
+could easily change the mknod function to forcefully remove, too.
+From 5e97c8d293764015fae25085cb884c5bf265207a Mon Sep 17 00:00:00 2001
+From: Dan Nicholson <nicholson@endlessm.com>
+Date: Fri, 25 Aug 2017 15:44:26 -0500
+Subject: [PATCH] Handle existing /dev (Closes: #872577)
+When devices.tar.gz was being used, the devices would be written into
+place with tar. This has the effect that the devices would be merged
+into an existing /dev in the target. setup_devices_simple() does not
+handle this case and fails when /dev already exists.
+Normally, the target would be empty and this wouldn't be an issue.
+However, some tools that use debootstrap to initialize a target depended
+on the old behavior. In particular, the obs-build package used for OBS
+sets up a minimal /dev in the generic prep code before using debootstrap
+to install packages needed for building debian packages.
+Allow for existing devices, directories and symlinks by skipping
+existing devices and directories and forcefully overwriting existing
+symlinks.
+---
+ functions | 39 ++++++++++++++++++++++++++-------------
+ 1 file changed, 26 insertions(+), 13 deletions(-)
+diff --git a/functions b/functions
+index 3cfa0d4..877cdbd 100644
+--- a/functions
++++ b/functions
+@@ -1161,26 +1161,39 @@ setup_dynamic_devices () {
+ 	esac
+ }
+ 
++# Create a device node if it does not exist. By default, the mode is 666.
++mknod_if_needed () {
++	local device="$1"
++	local type="$2"
++	local major="$3"
++	local minor="$4"
++	local mode="${5:-666}"
++
++	if [ ! -e "$device" ]; then
++		mknod -m "$mode" "$device" "$type" "$major" "$minor"
++	fi
++}
++
+ setup_devices_simple () {
+ 	# The list of devices that can be created in a container comes from
+ 	# src/core/cgroup.c in the systemd source tree.
+-	mknod -m 666 $TARGET/dev/null	c 1 3
+-	mknod -m 666 $TARGET/dev/zero	c 1 5
+-	mknod -m 666 $TARGET/dev/full	c 1 7
+-	mknod -m 666 $TARGET/dev/random	c 1 8
+-	mknod -m 666 $TARGET/dev/urandom	c 1 9
+-	mknod -m 666 $TARGET/dev/tty	c 5 0
+-	mkdir $TARGET/dev/pts/ $TARGET/dev/shm/
++	mknod_if_needed $TARGET/dev/null	c 1 3
++	mknod_if_needed $TARGET/dev/zero	c 1 5
++	mknod_if_needed $TARGET/dev/full	c 1 7
++	mknod_if_needed $TARGET/dev/random	c 1 8
++	mknod_if_needed $TARGET/dev/urandom	c 1 9
++	mknod_if_needed $TARGET/dev/tty	c 5 0
++	mkdir -p $TARGET/dev/pts/ $TARGET/dev/shm/
+ 	# Inside a container, we might not be allowed to create /dev/ptmx.
+ 	# If not, do the next best thing.
+-	if ! mknod -m 666 $TARGET/dev/ptmx c 5 2; then
++	if ! mknod_if_needed $TARGET/dev/ptmx c 5 2; then
+ 		warning MKNOD "Could not create /dev/ptmx, falling back to symlink. This chroot will require /dev/pts mounted with ptmxmode=666"
+-		ln -s pts/ptmx $TARGET/dev/ptmx
++		ln -sf pts/ptmx $TARGET/dev/ptmx
+ 	fi
+-	ln -s /proc/self/fd   $TARGET/dev/fd
+-	ln -s /proc/self/fd/0 $TARGET/dev/stdin
+-	ln -s /proc/self/fd/1 $TARGET/dev/stdout
+-	ln -s /proc/self/fd/2 $TARGET/dev/stderr
++	ln -sf /proc/self/fd   $TARGET/dev/fd
++	ln -sf /proc/self/fd/0 $TARGET/dev/stdin
++	ln -sf /proc/self/fd/1 $TARGET/dev/stdout
++	ln -sf /proc/self/fd/2 $TARGET/dev/stderr
+ }
+ 
+ setup_devices_fakechroot () {
+-- 
+2.5.5

@@ -1,0 +1,64 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#871033: newt: please add a libnewt0.52-udeb package
+From : Aurelien Jarno <aurel32@debian.org>
+Date : Sun, 06 Aug 2017 20:55:11 +0200
+Message-id : 150204571182.32143.1782737470327508211.reportbug@ohm.local
+Reply-to : Aurelien Jarno <aurel32@debian.org>, 871033@bugs.debian.org
+
+
+Source: newt
+Version: 0.52.20-1
+Severity: wishlist
+Tags: patch
+Dear Maintainer,
+debian-installer used to re-link all the libraries going into the initrd
+in order to strip unneeded symbols, using mklibs. That is the reason why
+libnewt0.52-pic was needed. Unfortunately it was subject to regular
+breakage, so d-i switched to mklibs-copy which just copies the regular
+library.
+It would now make sense to get rid of mklibs-copy and switch to a
+regular udeb. Therefore would it be possible to add a libnewt0.52-udeb
+package to newt? That's the purpose of the attached patch.
+Once the transition has been done, it will be possible to get rid of the
+libnewt0.52-pic package.
+Thanks,
+Aurelien
+diff -Nru newt-0.52.20/debian/control newt-0.52.20/debian/control
+--- newt-0.52.20/debian/control	2017-05-03 10:53:05.000000000 +0000
++++ newt-0.52.20/debian/control	2017-08-06 16:11:51.000000000 +0000
+@@ -82,6 +82,19 @@
+  to provide extra functionality. This package contains the shared library
+  for programs that have been built with newt.
+ 
++Package: libnewt0.52-udeb
++Architecture: any
++Section: debian-installer
++Priority: extra
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Description: Not Erik's Windowing Toolkit for Debian Installer
++ This is a udeb, or a microdeb, of the Not Erik's Windowing Toolkit. As such
++ it is the installer counterpart of libnewt0.52.
++ You only need this package to support applications needing Newt during
++ the Debian installation process time and probably don't need to select it.
++Package-Type: udeb
++
++
+ Package: whiptail
+ Architecture: any
+ Section: utils
+diff -Nru newt-0.52.20/debian/libnewt0.52-udeb.install newt-0.52.20/debian/libnewt0.52-udeb.install
+--- newt-0.52.20/debian/libnewt0.52-udeb.install	1970-01-01 00:00:00.000000000 +0000
++++ newt-0.52.20/debian/libnewt0.52-udeb.install	2017-08-06 16:11:51.000000000 +0000
+@@ -0,0 +1,2 @@
++usr/lib/*/libnewt.so.0.52.20 usr/lib
++usr/lib/*/libnewt.so.0.52 usr/lib
+diff -Nru newt-0.52.20/debian/rules newt-0.52.20/debian/rules
+--- newt-0.52.20/debian/rules	2017-05-03 10:53:05.000000000 +0000
++++ newt-0.52.20/debian/rules	2017-08-06 16:11:51.000000000 +0000
+@@ -84,3 +84,6 @@
+ 	mkdir -p debian/libnewt-pic/$(LIBDIR)
+ 	cp newt*.ver debian/libnewt-pic/$(LIBDIR)/libnewt_pic.map
+ 
++override_dh_makeshlibs:
++	dh_makeshlibs -a -V --add-udeb="libnewt0.52-udeb"
++

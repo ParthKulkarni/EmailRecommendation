@@ -1,0 +1,60 @@
+To : Michael Biebl <biebl@debian.org>, 858066@bugs.debian.org, debian-boot@lists.debian.org, Cyril Brulebois <kibi@debian.org>
+Subject : Re: Bug#858066: unblock: xfsprogs/4.9.0+nmu1
+From : Emilio Pozuelo Monfort <pochu@debian.org>
+Date : Sun, 19 Mar 2017 20:26:21 +0100
+Message-id : 5648228f-7e9e-2939-d476-7fd4611245ef@debian.org
+In-reply-to : <148978963153.27140.6899030165034119717.reportbug@pluto.milchstrasse.xx>
+References : <148978963153.27140.6899030165034119717.reportbug@pluto.milchstrasse.xx>
+
+
+On 17/03/17 23:27, Michael Biebl wrote:
+> Package: release.debian.org
+> Severity: normal
+> User: release.debian.org@packages.debian.org
+> Usertags: unblock
+> 
+> Please unblock package xfsprogs
+> 
+> I contains a single fix to better support merged-usr systems.
+> This change had already been applied in 4.3.0+nmu1 but was dropped
+> accidentally by a followup maintainer upload.
+> I talked to Nathan, the maintainer, and he acked the change.
+> 
+> Full debdiff is attached.
+Approved, but needs d-i ack, cc'ing Cyril.
+Cheers,
+Emilio
+> 
+> diff -Nru xfsprogs-4.9.0/debian/changelog xfsprogs-4.9.0+nmu1/debian/changelog
+> --- xfsprogs-4.9.0/debian/changelog	2017-01-05 23:05:55.000000000 +0100
+> +++ xfsprogs-4.9.0+nmu1/debian/changelog	2017-03-17 19:27:58.000000000 +0100
+> @@ -1,3 +1,11 @@
+> +xfsprogs (4.9.0+nmu1) unstable; urgency=medium
+> +
+> +  * Non-maintainer upload.
+> +  * Remove code in include/buildmacros which creates bogus symlinks for
+> +    libraries. (Closes: #766811)
+> +
+> + -- Michael Biebl <biebl@debian.org>  Fri, 17 Mar 2017 19:27:58 +0100
+> +
+>  xfsprogs (4.9.0) unstable; urgency=low
+>  
+>    * New upstream release
+> diff -Nru xfsprogs-4.9.0/include/buildmacros xfsprogs-4.9.0+nmu1/include/buildmacros
+> --- xfsprogs-4.9.0/include/buildmacros	2017-01-05 23:05:55.000000000 +0100
+> +++ xfsprogs-4.9.0+nmu1/include/buildmacros	2017-03-17 19:27:58.000000000 +0100
+> @@ -75,13 +75,7 @@
+>  	../$(INSTALL) -m 644 -T old_lib $(LIBNAME).lai $(PKG_LIB_DIR); \
+>  	../$(INSTALL) -m 644 $(LIBNAME).lai $(PKG_LIB_DIR)/$(LIBNAME).la ; \
+>  	../$(INSTALL) -m 755 -d $(PKG_ROOT_LIB_DIR); \
+> -	../$(INSTALL) -T so_base $(LIBNAME).lai $(PKG_ROOT_LIB_DIR); \
+> -	if [ "x$(shell readlink -f $(PKG_LIB_DIR))" != \
+> -	     "x$(shell readlink -f $(PKG_ROOT_LIB_DIR))" ]; then \
+> -		../$(INSTALL) -S $(PKG_LIB_DIR)/$(LIBNAME).a $(PKG_ROOT_LIB_DIR)/$(LIBNAME).a; \
+> -		../$(INSTALL) -S $(PKG_LIB_DIR)/$(LIBNAME).la $(PKG_ROOT_LIB_DIR)/$(LIBNAME).la; \
+> -		../$(INSTALL) -S $(PKG_ROOT_LIB_DIR)/$(LIBNAME).so $(PKG_LIB_DIR)/$(LIBNAME).so; \
+> -	fi
+> +	../$(INSTALL) -T so_base $(LIBNAME).lai $(PKG_ROOT_LIB_DIR);
+>  else
+>  INSTALL_LTLIB_DEV = $(INSTALL_LTLIB_STATIC)
+>  endif

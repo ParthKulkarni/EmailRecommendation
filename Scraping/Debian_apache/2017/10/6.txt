@@ -1,0 +1,103 @@
+To : 867565@bugs.debian.org
+Subject : Bug#867565: Apache2 wsgi segfaults with moinmoin wiki (python2.7)
+From : Andreas Huewel <A.Huewel@hoertech.de>
+Date : Mon, 16 Oct 2017 10:14:45 +0000
+Message-id : ef0e0338-3d76-ced6-30c2-3259217c7a56@hoertech.de
+Reply-to : Andreas Huewel <A.Huewel@hoertech.de>, 867565@bugs.debian.org
+References : <20170707123059.6dgnwscgta7gwwhn@gavran.carpriv.carnet.hr>
+
+
+I think it seems like same issue here
+After succeeding initial fresh debain 9 stable amd64 install (as
+webserver) I was able to run the apache2 driven wiki fro whole day.
+Now after the weekend I see: it has segfaulted and I cannot access the
+wiki. I CAN restart apache2 via sudo service apache2 restart. But that
+would not be a real solution for our small internal wiki workflow :-/
+This is in my messages log:
+htpcwiki kernel: [340598.118276] apache2[9540]: segfault at 7f081d81c7a0
+ip 00007f081d81c7a0 sp 00007ffc29b3db88 error 14 in
+libexpat.so.1.6.2[7f081f885000+27000]
+#########################################################
+= Notes Installing Wiki =
+see [[https://master19.moinmo.in/InstallDocs#server| MoinMoin Server
+Installation]]
+== setup Debian ==
+''Debian 9 Stretch netinstall'' to USB Stick, boot it, run
+Expert-Installer...
+ * Paket-Vorauswahl: web-server, ssh, drucker, grundsystem -> (no desktop)
+== Setup Web Server and Wiki ==
+see https://moinmo.in/HowTo/UbuntuQuick
+ * Webserver and python:
+{{{
+> sudo apt-get update
+> sudo apt-get install -y python-pip python-dev build-essential
+> sudo apt-get install apache2 libapache2-mod-wsgi
+}}}
+ * MoinMoin
+See https://moinmo.in/MoinMoinDownload
+{{{
+> cd ~/Download
+> wget http://static.moinmo.in/files/moin-1.9.9.tar.gz
+> sha256sum moin-1.9.9.tar.gz
+> tar -xzf moin-1.9.9.tar.gz
+}}}
+apply patch
+[[https://bitbucket.org/thomaswaldmann/moin-1.9/commits/561b7a9c2bd91b61d26cd8a5f39aa36bf5c6159e|fix
+wrong digestmod of hmac.new calls]]
+{{{
+sudo python setup.py install --force --record=install.log
+--prefix='/usr/local' --install-data=/srv/wiki
+}}}
+ * Test:
+{{{
+> cd /srv/wiki/share/moin/server
+> sudo python test.wsgi
+}}}
+ * Configure MoinMoin and Apache2
+{{{
+> cd /srv/wiki/share/moin/
+> sudo cp server/moin.wsgi .
+> sudo cp config/wikiconfig.py .
+> sudo emacs /etc/apache2/apache2.conf
+#
+#  MoinMoin WSGI configuration
+#
+# you will invoke your moin wiki at the root url, like
+http://servername/FrontPage:
+WSGIScriptAlias /   /srv/wiki/share/moin/moin.wsgi
+# create some wsgi daemons - use these parameters for a simple setup
+WSGIDaemonProcess moin user=www-data group=www-data processes=5
+threads=10 maximum-requests=1000 umask=0007
+# use the daemons we defined above to process requests!
+WSGIProcessGroup moin
+<Directory "/srv/wiki/share/moin">
+    Options All
+    AllowOverride All
+    Require all granted
+    Allow from all
+</Directory>
+}}}
+* WSGI stuff
+{{{
+> sudo emacs /srv/wiki/share/moin/moin.wsgi
+}}}
+add at the end of a1) paragraph the line
+{{{
+sys.path.insert(0, '/usr/local/lib/python2.7/site-packages')
+}}}
+and add at the end of the a2) paragraph the line:
+{{{
+sys.path.insert(0, '/srv/wiki/share/moin')
+}}}
+ * change owner+atttributes
+{{{
+> cd /srv/wiki/share
+> sudo chown -R www-data:www-data moin
+> sudo chmod -R ug+rwx moin
+> sudo chmod -R o-rwx moin
+}}}
+ * restart apache
+{{{
+sudo service apache2 restart
+}}}
+Test: browse to http://<IP>/ ... voila it works!

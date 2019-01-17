@@ -1,0 +1,63 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#900925: debootstrap may fail because of arch-test in stretch
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Wed, 6 Jun 2018 21:01:42 +0200
+Message-id : 20180606190142.GA1802@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 900925@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.101
+Severity: minor
+Dear Maintainer,
+The latest versions of debootstrap may fail on debian stretch if arch-test is installed.
+arch-test version 0.7-1 in stretch doesn't support option -c in use in
+debootstrap (>= 1.0.97)
+# debootstrap stable mychroot
+E: Unable to execute target architecture
+1 # echo $?
+1
+0 # cat mychroot/debootstrap/debootstrap.log
+Usage: "arch-test [-n]" or "arch-test [-n] <arch>".
+The patch below solved the issue for me (option --version
+was added in arch-test version 0.12-1 and option -c was added
+in version 0.11-1)
+# debootstrap stable mychroot
+I: Can't verify that target arch works
+[ ... ]
+I: Base system installed successfully.
+0 # echo $?
+0
+Regards,
+JH Chatenet
+--- /usr/sbin/debootstrap
++++ /usr/sbin/debootstrap
+@@ -591,8 +591,10 @@
+ if [ -x /usr/bin/arch-test ] && am_doing_phase second_stage; then
+ 	if doing_variant fakechroot; then
+ 		ret=0; arch-test "$ARCH" || ret=$?
+-	else
++	elif arch-test --version > /dev/null 2>&1; then
+ 		ret=0; arch-test -c "$TARGET" "$ARCH" || ret=$?
++	else
++		ret=3
+ 	fi
+ 
+ 	case $ret in
+-- System Information:
+Debian Release: 9.4
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-6-amd64 (SMP w/2 CPU cores)
+Locale: LANG=fr_FR.UTF-8, LC_CTYPE=fr_FR.UTF-8 (charmap=UTF-8), LANGUAGE=fr_FR.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: sysvinit (via /sbin/init)
+Versions of packages debootstrap depends on:
+ii  wget  1.18-5+deb9u2
+Versions of packages debootstrap recommends:
+ii  arch-test               0.7-1
+ii  debian-archive-keyring  2017.5
+ii  gnupg                   2.1.18-8~deb9u1
+Versions of packages debootstrap suggests:
+pn  squid-deb-proxy-client  <none>
+pn  ubuntu-archive-keyring  <none>
+-- no debconf information

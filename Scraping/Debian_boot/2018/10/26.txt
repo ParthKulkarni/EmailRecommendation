@@ -1,0 +1,107 @@
+To : 910227@bugs.debian.org
+Subject : Bug#910227: installation-reports: installation on DELL XPS 13 9370
+From : Samuel Thibault <sthibault@debian.org>
+Date : Sun, 28 Oct 2018 20:30:02 +0100
+Message-id : 20181028193002.56dy44o2lq5dguir@function
+Reply-to : Samuel Thibault <sthibault@debian.org>, 910227@bugs.debian.org
+In-reply-to : <[🔎] 20181028192252.vpccgx2bku4ivtwy@function>
+References : <[🔎] 153858549279.12302.5100335635649943259.reportbug@function> <20181003170738.vddtqh73oqjomrun@var.youpi.perso.aquilenet.fr> <[🔎] 20181028192252.vpccgx2bku4ivtwy@function> <[🔎] 153858549279.12302.5100335635649943259.reportbug@function>
+
+
+Hello,
+Samuel Thibault, le dim. 28 oct. 2018 20:22:52 +0100, a ecrit:
+> Samuel Thibault, le mer. 03 oct. 2018 19:07:38 +0200, a ecrit:
+> > samy, le mer. 03 oct. 2018 18:51:32 +0200, a ecrit:
+> > > One problem, however, is that since laptop has a HiDPI screen. The font used by
+> > > console-setup is far from being big enough, see bug 816111 about this. I manage
+> > > to read it but I have good eyes, most people won't be able to read it.
+> > 
+> > And it's the same in graphical mode, the fonts are extremely tiny (and
+> > the banner at the top is very compressed).
+> > 
+> > I have attached photos of what it looks like (sorry it's so awful, but
+> > you get the idea).
+> 
+> I'll commit a fix to debian-installer to keep the 800x600 resolution
+> from the grub menu.
+I propose to include this in stretch too, because on 4K laptops the
+current debian installer is hardly usable (I can myself hardly read the
+text).
+Samuel
+commit 78c74a9d53e5f929bac8921ed02ef39a6bb84a3d
+Author: Samuel Thibault <samuel.thibault@ens-lyon.org>
+Date:   Sun Oct 28 20:27:54 2018 +0100
+    Keep grub resolution in EFI boot, to avoid tiny fonts (closes: #910227)
+diff --git a/build/boot/hurd/grub-hurd-cdrom.cfg b/build/boot/hurd/grub-hurd-cdrom.cfg
+index d6a25c7a6..31ecfa3eb 100644
+--- a/build/boot/hurd/grub-hurd-cdrom.cfg
++++ b/build/boot/hurd/grub-hurd-cdrom.cfg
+@@ -12,6 +12,7 @@ insmod chain
+ 
+ if loadfont /boot/grub/font.pf2 ; then
+ 	set gfxmode=640x480
++	set gfxpayload=keep
+ 	insmod vbe
+ 	insmod gfxterm
+ 	terminal_output gfxterm
+diff --git a/build/boot/hurd/grub-hurd-pxe.cfg b/build/boot/hurd/grub-hurd-pxe.cfg
+index 6f9d274d8..045a2629f 100644
+--- a/build/boot/hurd/grub-hurd-pxe.cfg
++++ b/build/boot/hurd/grub-hurd-pxe.cfg
+@@ -3,6 +3,7 @@ set timeout=-1
+ 
+ if loadfont $prefix/font.pf2 ; then
+ 	set gfxmode=640x480
++	set gfxpayload=keep
+ 	insmod vbe
+ 	insmod gfxterm
+ 	terminal_output gfxterm
+diff --git a/build/boot/kfreebsd/grub-kfreebsd-cdrom.cfg b/build/boot/kfreebsd/grub-kfreebsd-cdrom.cfg
+index db3b592ba..30c11d25d 100644
+--- a/build/boot/kfreebsd/grub-kfreebsd-cdrom.cfg
++++ b/build/boot/kfreebsd/grub-kfreebsd-cdrom.cfg
+@@ -12,6 +12,7 @@ insmod chain
+ 
+ if loadfont /boot/grub/font.pf2 ; then
+ 	set gfxmode=640x480
++	set gfxpayload=keep
+ 	insmod vbe
+ 	insmod gfxterm
+ 	terminal_output gfxterm
+diff --git a/build/boot/kfreebsd/grub-kfreebsd-pxe.cfg b/build/boot/kfreebsd/grub-kfreebsd-pxe.cfg
+index c2108f22a..bc4b72e64 100644
+--- a/build/boot/kfreebsd/grub-kfreebsd-pxe.cfg
++++ b/build/boot/kfreebsd/grub-kfreebsd-pxe.cfg
+@@ -3,6 +3,7 @@ set timeout=-1
+ 
+ if loadfont $prefix/font.pf2 ; then
+ 	set gfxmode=640x480
++	set gfxpayload=keep
+ 	insmod vbe
+ 	insmod gfxterm
+ 	terminal_output gfxterm
+diff --git a/build/boot/x86/grub/grub-efi.cfg b/build/boot/x86/grub/grub-efi.cfg
+index 7ddbcafd6..9fe5563c1 100644
+--- a/build/boot/x86/grub/grub-efi.cfg
++++ b/build/boot/x86/grub/grub-efi.cfg
+@@ -1,5 +1,6 @@
+ if loadfont $prefix/font.pf2 ; then
+   set gfxmode=800x600
++  set gfxpayload=keep
+   insmod efi_gop
+   insmod efi_uga
+   insmod video_bochs
+diff --git a/debian/changelog b/debian/changelog
+index 27de9a63d..c29a28318 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -26,6 +26,9 @@ debian-installer (20180622) UNRELEASED; urgency=medium
+   [ Karsten Merker ]
+   * Add basic riscv64 support.
+ 
++  [ Samuel Thibault ]
++  * Keep grub resolution in EFI boot, to avoid tiny fonts (closes: #910227).
++
+  -- Andreas B. Mundt <andi@debian.org>  Fri, 22 Jun 2018 17:25:42 +0200
+ 
+ debian-installer (20180610) unstable; urgency=medium

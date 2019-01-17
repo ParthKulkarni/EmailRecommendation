@@ -1,0 +1,113 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#874014: base-installer: Please use common kernel for all subarchitectures on m68k
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Sat, 02 Sep 2017 00:20:58 +0200
+Message-id : 150430445850.32646.12850220583588807050.reportbug@ikarus
+Reply-to : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 874014@bugs.debian.org
+
+
+Source: base-installer
+Version: 1.171
+Severity: normal
+Tags: patch
+User: debian-68k@lists.debian.org
+Usertags: m68k
+Hello!
+base-installer currently fails to find a suitable kernel on any
+m68k system during install because it tries to install different
+kernels depending on the subarchitecture.
+Since we have just a common kernel for m68k these days, this
+mechanism no longer works and the kernel installation fails.
+With the attached patch, the kernel/m68k.sh script has been modified
+to use a common kernel on m68k. The corresponding test in kernel/tests/
+m68k has been updated as well.
+Please consider applying the patch for the next upload.
+Thanks,
+Adrian
+--
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+>From 1e8a67960b0a64f75a13a91159c8483fcc8dd144 Mon Sep 17 00:00:00 2001
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date: Sat, 2 Sep 2017 00:13:40 +0200
+Subject: [PATCH] m68k: Use common kernel for all subarchitectures
+Signed-off-by: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+---
+ kernel/m68k.sh               | 29 +++++++++++------------------
+ kernel/tests/m68k/crest.test | 17 +++++------------
+ 2 files changed, 16 insertions(+), 30 deletions(-)
+diff --git a/kernel/m68k.sh b/kernel/m68k.sh
+index f9403612..c42eafa3 100644
+--- a/kernel/m68k.sh
++++ b/kernel/m68k.sh
+@@ -1,29 +1,22 @@
+ arch_get_kernel_flavour () {
+-	case "$SUBARCH" in
+-	    amiga|atari|mac|bvme6000|mvme147|mvme16x|q40|sun3|sun3x)
+-		echo "$SUBARCH"
++	echo m68k
++}
++
++arch_check_usable_kernel () {
++	case "$1" in
++	    *-dbg)
++		return 1
++		;;
++	    *-m68k | *-m68k-*)
++		# Allow any other hyphenated suffix
+ 		return 0
+ 		;;
+ 	    *)
+-		warning "Unknown $ARCH subarchitecture '$SUBARCH'."
+ 		return 1
+ 		;;
+ 	esac
+ }
+ 
+-arch_check_usable_kernel () {
+-	# Subarchitecture must match exactly
+-	if echo "$1" | grep -Eq -- "-$2(-.*)?$"; then return 0; fi
+-	return 1
+-}
+-
+ arch_get_kernel () {
+-	case "$KERNEL_MAJOR" in
+-	    2.6|3.*|4.*)
+-		echo "linux-image-$1"
+-		;;
+-	    *)
+-		warning "Unsupported kernel major '$KERNEL_MAJOR'."
+-		;;
+-	esac
++	echo "linux-image-m68k"
+ }
+diff --git a/kernel/tests/m68k/crest.test b/kernel/tests/m68k/crest.test
+index ad4dfd0b..1383e497 100644
+--- a/kernel/tests/m68k/crest.test
++++ b/kernel/tests/m68k/crest.test
+@@ -1,16 +1,9 @@
+-subarch amiga
+ cpuinfo crest.cpuinfo
+ majors 2.6
+-flavour amiga
+-kernel-2.6 linux-image-amiga
++flavour m68k
++kernel-2.6 \
++  linux-image-m68k
+ usable \
+-  linux-image-amiga
++  linux-image-m68k
+ unusable \
+-  linux-image-atari \
+-  linux-image-bvme6000 \
+-  linux-image-hp \
+-  linux-image-mac \
+-  linux-image-mvme147 \
+-  linux-image-mvme16x \
+-  linux-image-q40 \
+-  linux-image-sun3
++  linux-image-m68k-dbg
+-- 
+2.14.1

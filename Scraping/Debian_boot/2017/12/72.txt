@@ -1,0 +1,58 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#883547: flash-kernel: please allow flavourless kernels
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Tue, 05 Dec 2017 03:11:16 +0100
+Message-id : 151243987647.25409.4775662987419206791.reportbug@localhost
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 883547@bugs.debian.org
+
+
+Package: flash-kernel
+Version: 3.88
+Severity: wishlist
+Hi!
+If for whatever reason you want or need to build your own kernels, the
+preferred way these days is "make bindeb-pkg".  It is also a good idea
+to use CONFIG_LOCALVERSION_AUTO=y, which marks the exact tree used to
+build the kernel.
+However, with this option, the version is _appended_ after local version,
+thus making it hard to add that "-armmp" string.
+I found no way to override this, other than manually editing
+--- functions~	2017-08-03 05:01:54.000000000 +0200
++++ functions	2017-12-05 02:39:54.113903579 +0100
+@@ -775,11 +775,6 @@
+ 	done
+ fi
+ 
+-if [ "$kfile_suffix" = "$kfile" ]; then
+-	echo "Kernel $kfile does not match any of the expected flavors ($kflavors), therefore not writing it to flash." >&2
+-	exit 0
+-fi
+-
+ echo "flash-kernel: installing version $kvers" >&2
+ 
+ mkarch="$(get_mkimage_architecture $kvers)"
+Just allowing an empty string flavour doesn't work, as it'll still want a -
+after the version.
+Thus, it would nice if there was an override -- or, perhaps, I'm holding it
+wrong?
+Meow!
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'unstable'), (500, 'testing'), (1, 'experimental')
+Architecture: armhf (armv7l)
+Kernel: Linux 4.14.0-00115-g3d7c587c4c1b (SMP w/4 CPU cores; PREEMPT)
+Locale: LANG=C.UTF-8, LC_CTYPE=C.UTF-8 (charmap=UTF-8), LANGUAGE=C.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: sysvinit (via /sbin/init)
+Versions of packages flash-kernel depends on:
+ii  debconf [debconf-2.0]  1.5.65
+ii  devio                  1.2-1.2+b1
+ii  initramfs-tools        0.130
+ii  linux-base             4.5
+ii  mtd-utils              1:2.0.1-1
+ii  ucf                    3.0036
+Versions of packages flash-kernel recommends:
+ii  u-boot-tools  2017.09+dfsg1-3
+flash-kernel suggests no packages.
+-- debconf information excluded

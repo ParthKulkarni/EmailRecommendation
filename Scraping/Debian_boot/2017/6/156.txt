@@ -1,0 +1,85 @@
+To : Cyril Brulebois <kibi@debian.org>, 864536@bugs.debian.org,	864457@bugs.debian.org
+Subject : Bug#864457: Bug#864536: missing kernel modules in D-I sd-card images
+From : Karsten Merker <merker@debian.org>
+Date : Sun, 11 Jun 2017 10:30:58 +0200
+Message-id : 20170611083058.GA32409@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 864457@bugs.debian.org
+In-reply-to : <[🔎] 20170611001737.GK8889@mraw.org>
+References : <[🔎] 20170610085804.c113bccc9158ba4bd8596781@tiscali.it> <[🔎] 20170611001737.GK8889@mraw.org>
+
+
+On Sun, Jun 11, 2017 at 02:17:37AM +0200, Cyril Brulebois wrote:
+> Hi Diego,
+> 
+> (adding kernel maintainers to the loop for the fix, and release team for
+> comments about the extra package I think we would need to fix this.)
+> 
+> Diego Roversi <diegor@tiscali.it> (2017-06-10):
+> > Package: debian-installer
+> > Version: 20170525
+> > 
+> > SD-card image from
+> > https://d-i.debian.org/daily-images/armhf/daily/netboot/SD-card-images/,
+> > doesn't have a kernel module, so mmc and network does'nt work.
+> > 
+> > There was also a thread in debian-arm mailing list about this issue:
+> > 
+> > https://lists.debian.org/debian-arm/2017/01/msg00000.html
+> > 
+> > The missing module is i2c_rk3x. Could you add to the image? 
+> 
+> Looking at linux.git, it seems this driver is built as a module, but there's
+> no i2c-modules udeb for armhf. I don't think this bug is critical enough to
+> have a linux upload before r0 (unless something is in the works already),
+> but I'm a little concerned that postponing a bug fix for r1 wouldn't be too
+> nice… Adding a new binary package in a point release feels wrong. :(
+Hello,
+as we appear to have the same underlying problem in bugs 864536,
+864457 and 856111, I personally think that adding the modules
+necessary for i2c-support in d-i is worth another upload before
+r0, provided the current diagnosis in 864457 is correct and
+handling the additional work due to this is doable for everybody
+involved.
+If the current diagnosis in 864457 is correct, not providing i2c
+modules AFAICS will not only break d-i completely on the
+Firefly-RK3288 (bug 864536) but also the following usecases:
+- all hd-media and thereby all offline installs
+- all installations to USB-connected harddisks
+- all non-serial-console installations due to non-working
+  USB keyboard support
+on all systems that use the AXP20x series of powermanagement
+controllers, which is a significant part of the armhf platforms
+that we provide installer images for:
+- A10-OLinuXino-Lime
+- A20-OLinuXino-Lime
+- A20-OLinuXino-Lime2
+- A20-OLinuXino-MICRO
+- A20-Olimex-SOM-EVB
+- BananaPi
+- BananaPro
+- Cubieboard
+- Cubieboard2
+- Cubietruck
+- Lamobo_R1
+- orangepi_plus
+- pcDuino
+- pcDuino3
+AIUI, the following changes to the kernel package would be
+needed:
+- add an i2c-modules config for armhf which includes the generic
+  i2c-modules config plus the i2c-mv64xxx and i2c-rk3x modules 
+- add the axp20x_usb_power module to the armhf kernel-image config
+  to address the specifics of bug #856111 (see Ben Hutchings' notes
+  at https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=856111#54)
+As that effectively only makes the same modules that we already
+install on all armhf systems also available inside the d-i
+environment, the chances of causing a regression by this change
+are rather low.  Size constraints are AFAIK not a problem on
+armhf (in contrast to armel), so the aforementioned changes
+should be rather low-risk.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

@@ -1,0 +1,32 @@
+To : "Alexander E. Patrakov" <patrakov@gmail.com>, 914297@bugs.debian.org
+Subject : Bug#914297: apache2: getrandom call blocks on first startup, systemd kills with timeout
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Sat, 15 Dec 2018 09:17:46 +0100
+Message-id : 5877396.Cxm9zufCss@k
+Reply-to : Stefan Fritsch <sf@sfritsch.de>, 914297@bugs.debian.org
+In-reply-to : <[🔎] CAN_LGv1MtutA0U=GnWnu1W7_MO6qXXPP3pcMrkTyGBNAcSHiKQ@mail.gmail.com>
+References : <154282304539.12589.819122470921469572.reportbug@li835-87.members.linode.com> <[🔎] CAN_LGv1MtutA0U=GnWnu1W7_MO6qXXPP3pcMrkTyGBNAcSHiKQ@mail.gmail.com> <154282304539.12589.819122470921469572.reportbug@li835-87.members.linode.com>
+
+
+reassign 914297 systemd
+affects 914297 apache2
+thanks
+On Saturday, 15 December 2018 02:24:54 CET Alexander E. Patrakov wrote:
+> Stefan Fritsch <sf@sfritsch.de>:
+> > The rng should be initialized after the seed is loaded from disk.
+> 
+> This is false according to systemd developers. Its state is changed,
+> but it is still not initialized, because they think that the seed
+> might come from a gold master image.
+That's broken, then.
+It turns out there was a similar bug against openssh which was closed as 
+wontfix [1]. I don't see how apache can do anything about this, either.
+But I disagree with the systemd maintainers that there is nothing that systemd 
+can do about this. They should credit the entropy loaded from the seed but 
+save a new seed immediately after reading it during startup, to avoid that the 
+same seed is used more than once.
+A second (but  worse) alternative would be to provide something that waits for 
+the RNG to be initialized that other services can depend on.
+Cheers,
+Stefan
+[1] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=912087

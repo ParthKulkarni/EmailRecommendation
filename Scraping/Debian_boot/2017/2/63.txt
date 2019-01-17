@@ -1,0 +1,83 @@
+To : victory <victory.deb@gmail.com>
+Subject : Bug#853917: ttx and grep result for DroidSansFallback(Full)?.ttf
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 3 Feb 2017 02:08:34 +0100
+Message-id : 20170203010834.GJ14512@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 853917@bugs.debian.org
+In-reply-to : <[🔎] 20170203032951.17b86654a0c3eb5c6b178224@gmail.com>
+References : <[🔎] 20170203032951.17b86654a0c3eb5c6b178224@gmail.com>
+
+
+Hi,
+victory <victory.deb@gmail.com> (2017-02-03):
+> added testing src apt line, apt update, apt-get source ..., tar zxf ...
+> $ ttx DroidSansFallback.ttf
+> $ ttx DroidSansFallbackFull.ttf
+> these 2 generate [filename].ttx
+> 
+> (just FYI, used letters (in ko) other than 7-bit are in 0xac00-0xd790 range)
+> 
+> $ grep Hangul DroidSansFallback.ttx prints 22344 lines
+>       <map code="0xac00" name="uniAC00"/><!-- Hangul Syllable -->
+>       <map code="0xac01" name="uniAC01"/><!-- Hangul Syllable -->
+>       <map code="0xac02" name="uniAC02"/><!-- Hangul Syllable -->
+>       <map code="0xac03" name="uniAC03"/><!-- Hangul Syllable -->
+>       <map code="0xac04" name="uniAC04"/><!-- Hangul Syllable -->
+>       <map code="0xac05" name="uniAC05"/><!-- Hangul Syllable -->
+> ...
+>       <map code="0xd79e" name="uniD79E"/><!-- Hangul Syllable -->
+>       <map code="0xd79f" name="uniD79F"/><!-- Hangul Syllable -->
+>       <map code="0xd7a0" name="uniD7A0"/><!-- Hangul Syllable -->
+>       <map code="0xd7a1" name="uniD7A1"/><!-- Hangul Syllable -->
+>       <map code="0xd7a2" name="uniD7A2"/><!-- Hangul Syllable -->
+>       <map code="0xd7a3" name="uniD7A3"/><!-- Hangul Syllable -->
+> 
+> $ grep Hangul DroidSansFallbackFull.ttx prints only 6 lines:
+>       <map code="0xac00" name="uniAC00"/><!-- Hangul Syllable -->
+>       <map code="0xd7a2" name="uniD7A2"/><!-- Hangul Syllable -->
+>       <map code="0xd7a3" name="uniD7A3"/><!-- Hangul Syllable -->
+>       <map code="0xac00" name="uniAC00"/><!-- Hangul Syllable -->
+>       <map code="0xd7a2" name="uniD7A2"/><!-- Hangul Syllable -->
+>       <map code="0xd7a3" name="uniD7A3"/><!-- Hangul Syllable -->
+> 
+> so, the latter has only 1 Hangul glyph (0xac00, 가) to be used in d-i
+> (0xd7a2 and 0xd7a3 are not used in d-i)
+I think this matches what happened upstream (warning, big repository:
+https://android.googlesource.com/platform/frameworks/base):
+| commit 562c45cc841681ed80d4e94515b23c28eb60eae4
+| Author: Bart Sears <bsears@google.com>
+| Date:   Mon Sep 24 00:32:57 2012 -0700
+| 
+|     Updated versions of DroidSansFallback
+|     
+|     Latest versions of DroidSansFallback from Monotype.
+|     
+|     The DroidSansFallback.ttf file has some additional glyphs and
+|     glyph fixes (including a fix for bug 6723057 and will likely fix
+|     bug 6629748).  It continues to cover Korean Hangul but does not
+|     cover CJK Ext A (for space reasons on small system image devices).
+|     The DroidSansFallbackFull.ttf file has the bug fixes listed and
+|     also removes the Korean Hangul because we are now going to use
+|     NanumGothic for Korean (NanumGothic.ttf is added in a separate
+|     CL in the external/naver-fonts directory).
+|     
+|     The falback_fonts.xml file has been modified to add NanumGothic.ttf
+|     before DroidSansFallback.
+|     
+|     Bug: 4531601
+|     Bug: 6723057
+|     Bug: 6629748
+|     Change-Id: I670d33078b4a97c4eda00fc2323be187696e927a
+even if how tags/versions in that repository match fonts-android's isn't
+too clear to me.
+Anyway, inspired by the commit message above, I've just built a d-i
+image with an extra /usr/share/fonts/truetype/nanum/NanumGothic.ttf
+taken from the fonts-nanum package, and it seems to work fine! (For
+someone who only knows what Korean glyphs can look like…) I've attached
+a screenshot, feel free to double check.
+I think I'll send a patch against src:fonts-nanum to request a udeb
+addition, then add it to src:debian-installer. And close the bug report
+against src:fonts-android.
+Any comment/objection?
+KiBi.
+korean.pngsignature.asc

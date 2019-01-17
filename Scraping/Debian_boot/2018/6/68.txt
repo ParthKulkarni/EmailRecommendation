@@ -1,0 +1,60 @@
+To : Holger Wansing <linux@wansing-online.de>
+Subject : Re: d-i repo at dillon
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 17 Jun 2018 23:16:52 +0200
+Message-id : 20180617211652.vaofcxsyejt3rdvr@mraw.org
+In-reply-to : <[🔎] 20180616165551.e588d712c7955ca4af7c37e3@wansing-online.de>
+References : <[🔎] 20180612190707.tps7c52vg4gpstma@mraw.org> <[🔎] 20180614203406.1b9b98a6fce5e6500318d897@wansing-online.de> <[🔎] 20180614205405.cb32bc220e4c2d6bbb08333b@wansing-online.de> <[🔎] 20180614203235.nehu75e4bxbfbsrr@mraw.org> <[🔎] 20180615220051.f9c1fe6f00575ca709650a8f@wansing-online.de> <[🔎] 20180615202541.f4bhyq3edlznteld@mraw.org> <[🔎] 20180616083642.c209568c471a66d7d320351a@wansing-online.de> <[🔎] 1529140655.16827.16.camel@hellion.org.uk> <[🔎] 20180616143316.e353f15b0506b4b47a7c6f73@wansing-online.de> <[🔎] 20180616165551.e588d712c7955ca4af7c37e3@wansing-online.de>
+
+
+Holger Wansing <linux@wansing-online.de> (2018-06-16):
+> Remaining points are:
+> - authentication does not work non-interactively (?)
+> - script currently does not check for git errors
+Running the script manually, I'm seeing:
+| Commit all general PO/POT files to GIT... done.
+| On branch master
+| Your branch is up-to-date with 'origin/master'.
+| Changes not staged for commit:
+| 	modified:   ../../scripts/etc/cron/crontab
+| 
+| no changes added to commit
+| Username for 'https://salsa.debian.org': ^C
+Let's look at ~/.gitconfig:
+| [url "git://git.debian.org/d-i/"]
+|         insteadOf = git+ssh://git.debian.org/git/d-i/
+| [url "git+ssh://git.debian.org/git/d-i/"]
+|         pushInsteadOf = git+ssh://git.debian.org/git/d-i/
+→ git.debian.org is gone, so removed.
+| [user]
+|         name = D-I role
+|         email = debian-boot@lists.debian.org
+| [http]
+|         sslcapath=/etc/ssl/ca-debian
+|         sslcainfo=/etc/ssl/ca-debian/ca-certificates.crt
+| [push]
+|         default = matching
+| [url "git@salsa.debian.org:"]
+|         pushInsteadOf = https://salsa.debian.org/
+→ Duplicated in a different way below, so removed.
+| [url "https://salsa.debian.org/installer-team/";]
+|         insteadOf = git@salsa.debian.org:installer-team/
+→ This one seems responsible for the SSH→HTTPS replacement when trying
+  to git push…
+| [url "git@salsa.debian.org:installer-team/"]
+|         pushInsteadOf = https://salsa.debian.org/installer-team/
+Interactively, I'm seeing the same issue anyway:
+| d-i@dillon:~/trunk$ git push -n
+| Username for 'https://salsa.debian.org': ^C
+Commenting out the insteadOf bit leads to:
+| d-i@dillon:~/trunk$ vi ~/.gitconfig 
+| d-i@dillon:~/trunk$ GIT_TRACE=1 git push -n
+| 21:09:37.847733 git.c:371               trace: built-in: git 'push' '-n'
+| 21:09:37.851080 run-command.c:350       trace: run_command: 'ssh' 'git@salsa.debian.org' 'git-receive-pack '\''installer-team/d-i.git'\'''
+| ^C
+Not exactly sure how to best fix this…
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

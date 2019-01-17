@@ -1,0 +1,32 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#855030: debian-installer-9-netboot-amd64: d-i does not copy kernel command line arguments after "---" to the bootloader
+From : Apollon Oikonomopoulos <apoikos@debian.org>
+Date : Mon, 13 Feb 2017 14:31:37 +0200
+Message-id : 20170213123136.ouipqghh4cgiuwby@marvin.dmesg.gr
+Reply-to : Apollon Oikonomopoulos <apoikos@debian.org>, 855030@bugs.debian.org
+
+
+Package: debian-installer-9-netboot-amd64
+Version: 20170127
+Severity: important
+Dear Maintainer,
+We are using d-i with preseeding to automatically provision virtual 
+machines. While testing the Stretch installer, I found out that 
+(contrary to Jessie's installer and the documentation), it does not copy 
+the "net.ifnames=0" argument from the kernel command line to grub's 
+command line, even though I specify it after "---".
+Steps to reproduce:
+1. Create an empty qemu disk image (/tmp/stretch.img)
+2. Boot the installer using kvm:
+ kvm -m 512 -kernel /usr/lib/debian-installer/images/9/amd64/text/debian-installer/amd64/linux  \
+ -initrd /usr/lib/debian-installer/images/9/amd64/text/debian-installer/amd64/initrd.gz  \
+ -append "url=URL_TO_SIMPLE_PRESEED_FILE country=GR locale=en_US language=en interface=eth0 keymap=us priority=critical --- net.ifnames=0" \
+ -drive format=qcow2,if=virtio,file=/tmp/stretch.img,cache=unsafe  \
+ -netdev user,id=user0 -device virtio-net-pci,netdev=user0 -no-reboot
+3. After installation, the virtual machine will boot up without 
+net.ifnames=0 and the primary network interface will be called ens3.
+The workaround in this case is to preseed 
+debian-installer/add-kernel-opts with the extra kernel command 
+arguments.
+Regards,
+Apollon

@@ -1,0 +1,38 @@
+To : Holger Levsen <holger@layer-acht.org>
+Subject : Bug#736126: Please install haveged on physical machines
+From : Nicolas Braud-Santoni <nicolas@braud-santoni.eu>
+Date : Fri, 8 Jun 2018 21:27:10 +0200
+Message-id : 20180608192710.itwnqp7pxdxse6y5@bogus
+Reply-to : Nicolas Braud-Santoni <nicolas@braud-santoni.eu>, 736126@bugs.debian.org
+In-reply-to : <20180524090627.uf3asvkb77wijhfa@layer-acht.org>
+References : <CAH8yC8k2wPM6Ukv8MqvLHMrU1ePLrDRkXJLNBsURg8WcD9-aFw@mail.gmail.com> <20140120092217.GC12357@loar> <52DD50CC.30409@svenhartge.de> <CAH8yC8k2wPM6Ukv8MqvLHMrU1ePLrDRkXJLNBsURg8WcD9-aFw@mail.gmail.com> <20180523203520.rjbaneoveok55nsm@bogus> <CAH8yC8k2wPM6Ukv8MqvLHMrU1ePLrDRkXJLNBsURg8WcD9-aFw@mail.gmail.com> <c66414fe34785443f63b5cdc62065bf1741a2391.camel@decadent.org.uk> <20180524090627.uf3asvkb77wijhfa@layer-acht.org> <CAH8yC8k2wPM6Ukv8MqvLHMrU1ePLrDRkXJLNBsURg8WcD9-aFw@mail.gmail.com>
+
+
+Hi Holger,
+On Thu, May 24, 2018 at 09:06:27AM +0000, Holger Levsen wrote:
+> > > Do we have a reasonablish way of telling whether a system is “real”
+> > > hardware or a virtual machine, and choose whether to install haveged or not
+> > > accordingly?
+>
+> why only install it on physical machines? IME haveged is useful on real
+> *and* virtual machines.
+Regardless of the platform, haveged will put data into random(4) and use
+the appropriate ioctl to increase the entropy counter, which is useful in
+that it prevents random(4) from “running out” of entropy. [0]
+On virtual machines, however, the data that the HAVEGE algorithm produces
+is not necessarily unpredictable [1]; hence, we shouldn't install haveged
+on those environments.
+Moreover, on virtual machines, the host virtualization system should provide
+entropy to its guests, for instance through virtio-rng (which can be picked
+up with rngd).
+TL;DR: On VMs, haveged might be unsafe, depending on the virtualization
+       environment's configuration, and we (d-i/tasksel) do not have enough
+       information available to make that call.
+Best,
+  nicoo
+[0]: Gods, this is painful to write. There is no reason for random(4) to
+     ever “run out” of entropy once initialized, but for some
+     misconceptions about cryptography; however, this is the implemented
+     behaviour and we kinda have to live with it for now.
+[1]: https://tls.mbed.org/tech-updates/security-advisories/polarssl-security-advisory-2011-02
+     is an example of the same algorithm failing on VMs.

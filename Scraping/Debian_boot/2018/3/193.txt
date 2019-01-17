@@ -1,0 +1,33 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>, 861343@bugs.debian.org
+Subject : Bug#861343: debootstrap: hardcodes mawk as awk provider
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Mon, 19 Mar 2018 22:12:54 +0100
+Message-id : 20180319211254.GC15786@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 861343@bugs.debian.org
+In-reply-to : <[🔎] 20180319220615.ea8ada36bedbe30f1cee9959@iijmio-mail.jp>
+References : <87zif1aecq.fsf@turtle.gmx.de> <[🔎] 20180319220615.ea8ada36bedbe30f1cee9959@iijmio-mail.jp> <87zif1aecq.fsf@turtle.gmx.de>
+
+
+Hi Hideki,
+On Mon, 19 Mar 2018, Hideki Yamane wrote:
+>  However, in scripts/*, there's unnecessary mawk hardcode line and
+>  we can remove it safely as attached patch.
+[...]
+> -	ln -sf mawk "$TARGET/usr/bin/awk"
+> +	ln -sf awk "$TARGET/usr/bin/awk"
+Huh? This doesn't make any sense. You are creating a symlink named "awk" that
+points to itself. And you will have broken everything.
+The problem is the lack of /usr/bin/awk because that file is handled by
+update-alternatives which can't be run in the early steps. So it's
+manually created and it needs to point to the awk alternative that
+has been unpacked earlier.
+At best you can try to match /usr/bin/*awk to try to guess how the
+awk executable is named and use that to look up the package name
+(for the x_core_install call that also hardcodes the mawk name)
+and create the appropriate symlink (which will get replaced by
+the update-alternatives managed one).
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

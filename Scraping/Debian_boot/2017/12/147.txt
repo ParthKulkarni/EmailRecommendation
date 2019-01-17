@@ -1,0 +1,66 @@
+To : Vagrant Cascadian <vagrant@debian.org>, 884003@bugs.debian.org
+Subject : Bug#884003: FDT overlay support
+From : Andre Heider <a.heider@gmail.com>
+Date : Thu, 21 Dec 2017 08:12:11 +0100
+Message-id : 1e1df2a5-1061-f371-6543-b5002f685985@gmail.com
+Reply-to : Andre Heider <a.heider@gmail.com>, 884003@bugs.debian.org
+In-reply-to : <[🔎] 877eth6q74.fsf@aikidev.net>
+References : <[🔎] d117fc6a-9da2-f6bd-43f8-85f7de5b4f03@gmail.com> <[🔎] 039fb165-1192-de01-0836-5dd830810648@gmail.com> <[🔎] 877eth6q74.fsf@aikidev.net> <[🔎] d117fc6a-9da2-f6bd-43f8-85f7de5b4f03@gmail.com>
+
+
+Hi Vagrant,
+On 20/12/17 22:32, Vagrant Cascadian wrote:
+Yeah, the copypasta is the first thing I noticed after git cloning. I 
+tried to make the overlay support universal. So the less duplication 
+there is, the easier it'll get to reuse it.
+Thanks for the first glance! There's no need to hurry, especially with 
+xmas around the corner.
+That's the big question. I looked around and found 3 cases where 
+distros/downstreams enable symbols, see [1], [2] and [3]. But those 3 
+are in a different boat than debian: It's just per family of SoC.
+I'm not sure if anything breaks if debian would enable it for its armhf 
+multi platform build. I'm currently trying to find out with a solution 
+appropriate for the upstream kernel [4], but I'm not sure if that pans out.
+That's not going to work, without -@ the "__symbols__" node is missing. 
+Without that an overlay can not reference e.g. the alias 'spi0'. You 
+need the original dts to include these.
+Since I used a boneblack too, you can find my basic overlays attached. 
+I'm not a device tree expert, so they might not be correct, but they're 
+good enough to test this and see the results (especially since commit [5]).
+-setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} @@LINUX_KERNEL_CMDLINE@@
+  if test -z "${fk_kvers}"; then
+It's not, I did that just to be consistent (see 3 lines above). Patch 
+can be dropped if you disagree.
+-load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${prefix}vmlinuz-${fk_kvers} \
+The purpose of this patch was to allow more deduplication of boot 
+scripts, e.g. bootscr.beaglebone and bootscr.sunxi. Both of these 
+support overlays with a recent u-boot (well, sunxi soon [6]), but also 
+contain this fallback loop for older and/or vendor-shipped versions.
+With the reusability of the overlay snippets it's possible to shove all 
+of that in another script and use that on those platforms. Would you 
+prefer that?
++if test -z "${fk_fdt_cmd}"; then
+Oh I tried, but u-boot chokes on it (parser errors out with a syntax 
+error at runtime). I don't know if it's not supported or if it's a bug, 
+but I just couldn't make it work. I didn't yet report it upstream, but 
+even if it's a bug and gets fixed we need a way this works everywhere 
+anyway.
+I'm not very experienced with u-boot scripts, so you're very much 
+welcome to try yourself ;)
+Yeah, while this already works great, it's also the part I want to 
+improve further. On error, this reloads the dtb file, so it relies on 
+the var $fdtpath.
+But u-boot's 'fdt' commands allows to copy the tree in memory, that 
+would make it cleaner and more robust. I need to explore that though.
+[1] 
+https://github.com/armbian/build/blob/master/patch/kernel/sunxi-next/add-overlay-compilation-support.patch#L98
+[2] 
+https://github.com/beagleboard/linux/commit/ed6b9450c2a2ec21149f14ff24770b69888abda6
+[3] 
+https://github.com/raspberrypi/linux/blob/rpi-4.15.y/arch/arm/boot/dts/Makefile#L1124
+[4] 
+http://lists.infradead.org/pipermail/linux-arm-kernel/2017-December/548366.html
+[5] 
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=956b200a846e324322f6211034c734c65a38e550
+overlay.tar.xz
+[6] https://lists.denx.de/pipermail/u-boot/2017-December/314474.html

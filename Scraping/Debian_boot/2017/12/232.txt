@@ -1,0 +1,80 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: [pkg-cryptsetup-devel] Upcoming transition: libcryptsetup4 -> libcryptsetup12
+From : Guilhem Moulin <guilhem@debian.org>
+Date : Mon, 18 Dec 2017 01:32:58 +0100
+Message-id : 20171218003258.GA2291@localhost.localdomain
+Mail-followup-to : Guilhem Moulin <guilhem@debian.org>,	Cyril Brulebois <kibi@debian.org>,	Debian-Boot <debian-boot@lists.debian.org>,	Debian Cryptsetup Team <pkg-cryptsetup-devel@lists.alioth.debian.org>,	Debian-Release <debian-release@lists.debian.org>
+In-reply-to : <[🔎] 20171217171221.mza6mf3r76py6h2s@mraw.org>
+References : <[🔎] 4877a771-712f-b7fa-b654-28e71192ce29@freesources.org> <[🔎] 20171217123255.rhsz4fhr75locdxi@mraw.org> <[🔎] 20171217160036.GB7778@localhost.localdomain> <[🔎] 20171217171221.mza6mf3r76py6h2s@mraw.org>
+
+
+On Sun, 17 Dec 2017 at 18:12:21 +0100, Cyril Brulebois wrote:
+> Guilhem Moulin <guilhem@debian.org> (2017-12-17):
+>> On Sun, 17 Dec 2017 at 13:32:55 +0100, Cyril Brulebois wrote:
+>>> Jonas Meurer <jonas@freesources.org> (2017-12-17):
+>>>> Debian-boot is Cc'ed as cryptsetup provides udebs, so
+>>>> debian-installer is affected as well.
+>>> 
+>>> Thanks for letting us (debian-boot@) know. AFAICT, on the udeb side
+>>> we only have crypsetup-udeb that depends on its library udeb, and no
+>>> other udebs are in the loop.
+>> 
+>> FWIW 2:2.0.0~rc1-1 (and soon 2:2.0.0-1) adds new dependencies on
+>> libargon2-0 and libjson-c3, that don't have udebs yet.  We filed
+>> #880525 and #880526 on Nov. 1 but didn't hear back from the respective
+>> maintainers yet, and so far didn't have time to write the patches
+>> ourselves.
+> 
+> FWIW, feel free to (x-debbugs-)cc debian-boot@ when requesting such
+> additions; you might get some feedback like a patch or two, or
+> alternative routes to consider.
+> 
+> I hadn't spotted libcryptsetup12-udeb isn't installable due to these
+> dependencies, as experimental isn't checked automatically:
+> https://d-i.debian.org/dose/
+Makes sense, sorry for not doing so.
+ 
+> I've added this as a todo item, along with looking into src:argon2 and
+> src:json-c. I'll try to look into that next week (ping welcome), but
+> we'll need to get those packages past NEW; it would be appreciated to
+> only start the cryptsetup transition once dependencies can be satisfied,
+> to avoid breaking d-i daily builds purposefully.
+Ack.  I see mejo has just requested the transition slot in #884618, that
+means we should we block that bug by #88052[56], right?
+> Also, from one the those two bugs: “cryptsetup ≥2.0.0 introduces a new
+> on-disk “LUKS2” format, which support Argon2i and Argon2id as PBKDF.”
+> 
+> Is that a new default format? Does it need any special handling from
+> d-i components, like options or files to create, or is that just a
+> transparent change for cryptsetup callers?
+The format isn't the new default in the sense that `cryptsetup
+luksFormat` still creates “legacy” LUKS (version 1) devices, and one
+needs to append `--type luks2` to create LUKS2 devices.  Opening a LUKS2
+block device does require a locking directory[0] (/run/lock/cryptsetup),
+but partman-crypto can stay as is as long as it keeps creating LUKS1
+devices.
+Not sure what's upstream's intention regarding making `cryptsetup
+luksFormat` create LUKS2 devices by default, but at this stage it seems
+precipitated to switch to LUKS2 in d-i: I'd rather stick to upstream's
+default, especially considering the following snippets of their v2.0.0
+Release Notes:
+    “Please note that […] the LUKS2 on-disk format itself are new
+    features and can contain some bugs.”
+    — https://gitlab.com/cryptsetup/cryptsetup/blob/v2.0.0/docs/v2.0.0-ReleaseNotes#L15
+(And FWIW it's possible to later in-place convert a device from LUKS1 to
+LUKS2 format using `cryptsetup convert`, although it of course won't
+magically upgrade the crypto & PKDF algorithms.)
+> Alternatively, instead of waiting for udebs to be available for the
+> dependencies, maybe support for those two libraries could be patched
+> out temporarily in the cryptsetup udebs?
+For libargon2-0 it should be a matter of changing the default PBKDF back
+to pbkdf2, but I don't see a way to drop the libjson-c3 dependency
+unless we compile cryptsetup without LUKS2 support (LUKS2 headers
+contain metadata stored in JSON format [1]), which is not trivial
+AFAICT.
+Cheers,
+-- 
+Guilhem.
+[0] https://gitlab.com/cryptsetup/cryptsetup/blob/v2.0.0/man/cryptsetup.8#L1346
+[1] https://gitlab.com/cryptsetup/cryptsetup/blob/v2.0.0/docs/LUKS2-format.txt#L33
+signature.asc

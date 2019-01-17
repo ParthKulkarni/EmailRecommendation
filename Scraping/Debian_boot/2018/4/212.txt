@@ -1,0 +1,42 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#895949: lintian: warn about packages with udebs but no udeb line in shlibs
+From : Emilio Pozuelo Monfort <pochu@debian.org>
+Date : Tue, 17 Apr 2018 20:27:43 +0200
+Message-id : 152398966388.24856.15782853481850234418.reportbug@tatooine
+Reply-to : Emilio Pozuelo Monfort <pochu@debian.org>, 895949@bugs.debian.org
+
+
+Package: lintian
+Version: 2.5.82
+Severity: wishlist
+Hi,
+(d-i's RM / debian-boot@ Cc'ed.)
+A package that builds a udeb and ships a shared library ought to include that
+udeb in the respective shared libraries' shlibs. This is achieved by passing
+the --add-udeb option to dh_makeshlibs. A broken package could look like this:
+ Package: libxft2
+ Source: xft
+contents:
+-rw-r--r-- root/root     89544 2018-04-17 20:11 ./usr/lib/x86_64-linux-gnu/libXft.so.2.3.2
+shlibs:
+libXft 2 libxft2 (>> 2.1.1)
+And the respective udeb:
+ Package: libxft2-udeb
+ Source: xft
+contents:
+-rw-r--r-- root/root     89416 2018-04-17 20:11 ./usr/lib/libXft.so.2.3.2
+lrwxrwxrwx root/root         0 2018-04-17 20:11 ./usr/lib/libXft.so.2 -> libXft.so.2.3.2
+This is broken because udebs that depend on libXft.so.2 will gain a dependency
+on libxft2 rather than libxft2-udeb, making that udeb uninstallable. To fix that,
+with the --add-udeb=libxft2-udeb option, libxft2's shlibs would look like this:
+libXft 2 libxft2 (>> 2.1.1)
+udeb: libXft 2 libxft2-udeb (>> 2.1.1)
+Note that the deb and the udeb don't need to match 1:1. There may be several
+debs with different shared libraries, and one udeb with all of them. In that
+case, for each library in the udeb, the corresponding package that ships it
+in a deb needs to have an appropriate udeb line. See src:pango1.0 for an
+example.
+A lintian error could save some problems in d-i by preventing these problems
+(that error could be turned into an archive auto-reject).
+Cheers,
+Emilio

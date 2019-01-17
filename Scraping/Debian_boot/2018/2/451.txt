@@ -1,0 +1,43 @@
+To : 864734@bugs.debian.org
+Subject : Bug#864734: pre-exist /dev/pts cause failure on debootstrap
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Mon, 26 Feb 2018 22:10:40 +0900
+Message-id : 20180226221040.1f4a32c90ee438bc0e26e6ad@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 864734@bugs.debian.org
+In-reply-to : <20180224220551.84f279ab03cd39a5e43d8f5b@iijmio-mail.jp>
+References : <CAJz1EP48pWJEGiFXqQrGuUkrjeNCxROaEJh1wSAEueZ-S72Y8Q@mail.gmail.com>
+
+
+control: tags -1 -moreinfo
+control: tags -1 +patch
+On Sat, 24 Feb 2018 22:05:51 +0900 Hideki Yamane <henrich@iijmio-mail.jp> wrote:
+>  Why did you exec "mkdir /mnt/{dev, dev/pts, proc, sys}"?
+>  It's unnecessary. Just run debootstrap works fine.
+ Anyway, here's a patch for it.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp
+>From 886fc787c15f57cdd7530907b83d5ca1c9ef348c Mon Sep 17 00:00:00 2001
+From: Hideki Yamane <henrich@debian.org>
+Date: Mon, 26 Feb 2018 17:20:20 +0900
+Subject: [PATCH] Avoid pre-exist directory causes failure
+Fix Bug#864734
+---
+ functions | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+diff --git a/functions b/functions
+index 3cfa0d4..43969ee 100644
+--- a/functions
++++ b/functions
+@@ -1170,7 +1170,8 @@ setup_devices_simple () {
+        mknod -m 666 $TARGET/dev/random c 1 8
+        mknod -m 666 $TARGET/dev/urandom        c 1 9
+        mknod -m 666 $TARGET/dev/tty    c 5 0
+-       mkdir $TARGET/dev/pts/ $TARGET/dev/shm/
++       # To avoid pre-exist directory causes error, specify "-p" option
++       mkdir -p $TARGET/dev/pts/ $TARGET/dev/shm/
+        # Inside a container, we might not be allowed to create /dev/ptmx.
+        # If not, do the next best thing.
+        if ! mknod -m 666 $TARGET/dev/ptmx c 5 2; then
+-- 
+2.16.2

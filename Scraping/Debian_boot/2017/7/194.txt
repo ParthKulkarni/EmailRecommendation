@@ -1,0 +1,54 @@
+To : Wei Liu <liuw@liuw.name>, Cyril Brulebois <kibi@debian.org>,	Ben Hutchings <benh@debian.org>
+Subject : Re: Bug#866130: Missing sunxi_wdt.ko for cubietruck
+From : Karsten Merker <merker@debian.org>
+Date : Thu, 13 Jul 2017 21:16:32 +0200
+Message-id : 20170713191632.rf7hkmjkgfasiec2@excalibur.cnev.de
+In-reply-to : <[🔎] 20170713162108.GG31714@mraw.org>
+References : <149858134962.3138.1984775378667444568.reportbug@zion.uk.xensource.com> <[🔎] 20170713162108.GG31714@mraw.org>
+
+
+On Thu, Jul 13, 2017 at 06:21:08PM +0200, Cyril Brulebois wrote:
+> Wei Liu <liuw@liuw.name> (2017-06-27):
+> > Package: debian-installer-9-netboot-armhf
+> > Severity: normal
+> > Tags: d-i
+> > 
+> > The cubietruck board uses the onboard watchdog to reset.
+> > 
+> > Without the said module d-i can't reboot the board after installation
+> > is finished.
+> 
+> I've just had a quick look but even if there are many watchdogs available,
+> there doesn't seem to be any of them shipped in a udeb package, so I'm not
+> sure what to use for a proposed patch…
+> 
+> Suggestions welcome.
+> 
+> (Item moved from my 9.1 task list to the 9.2 one.)
+Hello,
+many thanks for tracking this down to the watchdog driver.  We
+had experienced the effect that rebooting from within d-i didn't
+work properly on several sunxi-based systems, but hadn't found
+the actual cause yet.  I've tried to do a bit of further research
+and it looks like sunxi-based platforms are somewhat special in
+requiring the watchdog even for the normal system reset
+functionality and not only for an actual watchdog function.
+I haven't found indicators for similar dependencies on other
+platforms during my search, but of course they might exist
+nonetheless.
+Ben, do you know of any other platforms that require a watchdog
+driver for a "normal" system reset?
+If sunxi is the sole "odd" platform here, I suppose the best
+solution would be to integrate the sunxi_wdt module directly into
+the kernel-image-<version>-armmp-di udeb.  Probably we will need
+to include it for arm64 as well, as AFAIK the 64bit Allwinner
+SoCs A64 and H5 use the same watchdog logic as the older 32bit
+SoCs.  Proper support for A64 and H5 will be available in kernel
+4.13, so those will become target platforms for d-i in the nearer
+future.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

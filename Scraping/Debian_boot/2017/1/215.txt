@@ -1,0 +1,67 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#851790: installation-reports: DNS not working
+From : Aurelien Jarno <aurelien@aurel32.net>
+Date : Thu, 19 Jan 2017 08:57:54 +0100
+Message-id : 20170119075754.6tj6scw3zqwyafkw@aurel32.net
+Reply-to : Aurelien Jarno <aurelien@aurel32.net>, 851790@bugs.debian.org
+In-reply-to : <[🔎] 20170119005330.GD2857@mraw.org>
+References : <[🔎] 20170118184333.18240.91126.reportbug@cheddar.halon.org.uk> <[🔎] 20170118192931.GB12912@einval.com> <[🔎] 20170118230316.GB2857@mraw.org> <[🔎] 20170119003203.GC2857@mraw.org> <[🔎] 20170119005330.GD2857@mraw.org>
+
+
+On 2017-01-19 01:53, Cyril Brulebois wrote:
+> Cyril Brulebois <kibi@debian.org> (2017-01-19):
+> > Summing up things from IRC:
+> >  - in an uptodate sid chroot (both development version and minimal one
+> >    with daily-build script): no DNS issues with the generated mini.iso
+> >    (amd64, tested within stable's kvm on amd64). My image was also
+> >    tested successfully by Steve, so not a setup issue.
+> > 
+> >  - I can reproduce the issue with dailies from 2017-01-18, and from
+> >    2017-01-19 (I picked it in advance during its build on barriere).
+> > 
+> >  - I can reproduce the issue in the above mentioned sid chroot if
+> >    I downgrade these packages to testing's version (-9 → -8):
+> >      sudo apt-get install libc6:amd64=2.24-8 libc6-dev:amd64=2.24-8 libc-dev-bin=2.24-8
+> > 
+> >  - The older set of libc* packages is installed in barriere's current
+> >    amd64 sid chroot, too.
+> > 
+> >  - Steve could only produce broken images when building locally, until
+> >    he upgraded his libc* packages as well.
+> 
+> And since Steve was wondering how we could release something for Stretch
+> RC 1 with that… I've just confirmed that using -8 .deb with a -8 .udeb
+> (reversioned as -9+hack so that its being dropped under localudebs makes
+> it take precedence over sid's .udeb) leads to an image that's working
+> fine. And AFAICT that's the combination we had at the time.
+> 
+> I suspect the implementation change through the following patch in -9:
+>     glibc-2.24/debian/patches/any/cvs-resolv-internal-qtype.diff
+Indeed, I haven't done any test, but looking at the code, it shows that
+the changes assume that libresolv.so.2 and libnss_dns.so.2 stay in sync.
+> plus 283e7a294275a7da53258600deaaafbbec6b96c1 in debian-installer.git is
+> what is triggering the issue? (Explaining why host's libc .deb have an
+> impact on the built images.)
+Indeed this has been done to avoid crashes when libc6-udeb is
+re-installed at the beginning if the installer process, often causing
+crashes in case of version mismatch (because the libnss* libraries were
+in a different package).
+Now libc6-udeb is unpacked while building the image, but given we still
+have half a dozen of libraries without the corresponding udeb,
+mklibs copy them on the image, as well as the dependencies, which
+presumably includes libresolv.so.2.
+> It's been a while since I last looked at/understood mklibs stuff though,
+> feel free to fix my suspicions/conclusions.
+The long term solution is to package all the libraries into udeb
+packages. That way we can simply get rid of the mklibs pass.
+The workaround are to make sure the chroots are up-to-date (which should
+be the case now on the build daemons). An other alternative would be to
+avoid copying a library in mklibs if it is already present in the image.
+That might break if some very strict dependencies are used, though
+I guess the way the udebs are downloaded, they should always have the
+same or a newer version than in the chroot.
+Aurelien
+-- 
+Aurelien Jarno                          GPG: 4096R/1DDD8C9B
+aurelien@aurel32.net                 http://www.aurel32.net
+signature.asc

@@ -1,0 +1,81 @@
+To : 895412@bugs.debian.org
+Subject : Bug#895412: debootstrap: Cannot find dpkg on NetBSD (or other OSes using pkgsrc)
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Wed, 11 Apr 2018 19:02:11 +0900
+Message-id : 20180411190211.d8b454a188a1a5a9dc4b0bd8@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 895412@bugs.debian.org
+In-reply-to : <[🔎] 20180411183738.5742740da75a65ae273e71b1@iijmio-mail.jp>
+References : <[🔎] 20180411183738.5742740da75a65ae273e71b1@iijmio-mail.jp>
+
+
+On Wed, 11 Apr 2018 18:37:38 +0900 Hideki Yamane <henrich@iijmio-mail.jp> wrote:
+>  Is there any reason to do so? Just use dpkg is something wrong?
+ Here's a first proposal patch.
+diff --git a/debootstrap b/debootstrap
+index 891af2d..23f1ef6 100755
+--- a/debootstrap
++++ b/debootstrap
+@@ -472,10 +472,10 @@ fi
+ 
+ if in_path dpkg && \
+      dpkg --print-architecture >/dev/null 2>&1; then
+-       HOST_ARCH=$(/usr/bin/dpkg --print-architecture)
++       HOST_ARCH=$(dpkg --print-architecture)
+ elif in_path udpkg && \
+      udpkg --print-architecture >/dev/null 2>&1; then
+-       HOST_ARCH=$(/usr/bin/udpkg --print-architecture)
++       HOST_ARCH=$(udpkg --print-architecture)
+ elif [ -e "$DEBOOTSTRAP_DIR/arch" ]; then
+        HOST_ARCH=$(cat "$DEBOOTSTRAP_DIR/arch")
+ fi
+@@ -495,6 +495,9 @@ if [ -z "$HOST_OS" ]; then
+                FreeBSD*)
+                        HOST_OS=freebsd
+                ;;
++               NetBSD)
++                       HOST_OS=netbsd
++               ;;
+        esac
+ fi
+diff --git a/functions b/functions
+index 005b007..e588e83 100644
+--- a/functions
++++ b/functions
+@@ -1127,6 +1127,9 @@ setup_proc () {
+                settrans -a "$TARGET/servers" /hurd/firmlink /servers
+                settrans -a "$TARGET/proc" /hurd/firmlink /proc
+                ;;
++           netbsd*)
++               # Just a stub
++               ;;
+            *)
+                umount_on_exit /dev/pts
+                umount_on_exit /dev/shm
+@@ -1170,6 +1173,8 @@ setup_devices () {
+                ;;
+            hurd*)
+                ;;
++           netbsd*)
++               ;;
+            *)
+                setup_devices_simple
+                ;;
+@@ -1190,6 +1195,9 @@ setup_dynamic_devices () {
+            hurd*)
+                # Use the setup-translators of the hurd package
+                in_target /usr/lib/hurd/setup-translators -k ;;
++           netbsd*)
++               # Just a stub
++               ;;
+        esac
+ }
+ 
+@@ -1517,7 +1525,7 @@ check_sane_mount () {
+        mkdir -p "$1"
+ 
+        case "$HOST_OS" in
+-           *freebsd*|hurd*)
++           *freebsd*|hurd*|netbsd*)
+                ;;
+            *)
+                if ! doing_variant fakechroot &&  ! grep -q container=lxc-libvirt /proc/1/environ; then

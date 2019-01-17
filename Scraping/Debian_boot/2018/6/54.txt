@@ -1,0 +1,59 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: d-i repo at dillon
+From : Holger Wansing <linux@wansing-online.de>
+Date : Fri, 15 Jun 2018 22:00:51 +0200
+Message-id : 20180615220051.f9c1fe6f00575ca709650a8f@wansing-online.de
+In-reply-to : <[🔎] 20180614203235.nehu75e4bxbfbsrr@mraw.org>
+References : <[🔎] 20180603153658.142ceab3e1cd888576e4433a@wansing-online.de>	<[🔎] 20180603165747.fa3186463d5ca2d93e6799bb@wansing-online.de>	<[🔎] 20180604013348.mb6wpa466rzaap5j@mraw.org>	<[🔎] 20180612205157.9fa0a290b787b319f7c80ae1@wansing-online.de>	<[🔎] 20180612190707.tps7c52vg4gpstma@mraw.org>	<[🔎] 20180614203406.1b9b98a6fce5e6500318d897@wansing-online.de>	<[🔎] 20180614205405.cb32bc220e4c2d6bbb08333b@wansing-online.de>	<[🔎] 20180614203235.nehu75e4bxbfbsrr@mraw.org>
+
+
+Hi,
+Cyril Brulebois <kibi@debian.org> wrote:
+> Hi,
+> 
+> Holger Wansing <linux@wansing-online.de> (2018-06-14):
+> > > I also changed some lines from svn to git (./daily-build-aggregator
+> > > and ./daily-build-manager and ./daily-build-overview)
+> > 
+> > They fail, because on dillon, there is still a checkout of the svn
+> > repo.  So dillon needs an git checkout there.
+> > 
+> > Ok for me to do that?
+> 
+> Sure thing, and thanks!
+Done.
+Some cron jobs still fail. Until the reasons have been investigated, I have
+disabled those (3) jobs for now.
+Then I started to test the l10n-sync script.
+And it turns out, that there is some changed behaviour, when comparing
+the old "svn st" lines against the new "git status -s -uno" lines.
+The relevant diff is this:
+  # Do not accept working on an unclean copy
+- if $(svn st $DI_COPY/packages/po | grep -q "^C") ; then
+-	error "$DI_COPY seems to contain some SVN conflict files"
++ if $($git status -s -uno $DI_COPY/packages/po) ; then
++ 	error "$DI_COPY seems to contain some GIT conflict files"
++	error "in packages/po."
+        error "Please fix this before launching the script again"
+        exit 1
+As it seems, the svn st line returns 0, if there _are_ changes in the ../po dir
+while the new git status line returns 0, if there _are_no_ changes.
+So I tried to change "if" into "if !" and that seems to work so far, however
+I would like to receive a short confirmation from coding people for this
+(/me having no coding skills so far). 
+It seems to work at least.
+> Don't bother regarding the daily-build-logs.git repository (or whatever
+> it's called), it has gotten corrupted at some point, which I've never
+> found time to investigate, fix, or nuke. It might make sense to re-init
+> it to an empty repository at some point, so that further logs can be
+> injected in it. Just mentioning that so that you don't wonder too much,
+> not trying to put it in your plate.
+I cannot find such repo on salsa.
+Does this need to be created?
+Holger
+-- 
+============================================================
+Created with Sylpheed 3.5.1 under 
+	D E B I A N   L I N U X   9   " S T R E T C H " .
+Registered Linux User #311290 - https://linuxcounter.net/
+============================================================

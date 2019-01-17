@@ -1,0 +1,65 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>, 896071@bugs.debian.org
+Subject : Bug#896071: debootstrap fails to retrive Release file over https
+From : David Margerison <deltam@electrosonics.com.au>
+Date : Sun, 22 Apr 2018 09:40:54 +1000
+Message-id : CAMPXz=p9ZzCh235PpJKDR7_UJ+Pjih=RwCEK229O06HyvnPm0w@mail.gmail.com
+Reply-to : David Margerison <deltam@electrosonics.com.au>, 896071@bugs.debian.org
+In-reply-to : <[🔎] 20180421203259.de45ed6e95bef4e354d00be4@iijmio-mail.jp>
+References : <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <[🔎] 20180421203259.de45ed6e95bef4e354d00be4@iijmio-mail.jp> <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org>
+
+
+On 21 April 2018 at 21:32, Hideki Yamane <henrich@iijmio-mail.jp> wrote:
+>
+>  Thanks for the report, and here's a proposal fix.
+>
+>         [ ! "$VERBOSE" ] && NVSWITCH="-nv"
+>         local ret=0
+>         if [ "$USE_DEBIANINSTALLER_INTERACTION" ] && [ "$PROGRESS_NEXT" ]; then
+> -               wget "$@" 2>&1 >/dev/null | "$PKGDETAILS" "WGET%" "$PROGRESS_NOW" "$PROGRESS_NEXT" "$PROGRESS_END" >&3
+> +               wget $@ 2>&1 >/dev/null | "$PKGDETAILS" "WGET%" "$PROGRESS_NOW" "$PROGRESS_NEXT" "$PROGRESS_END" >&3
+>                 ret=$?
+>         else
+> -               wget $NVSWITCH "$@"
+> +               wget $NVSWITCH $@
+>                 ret=$?
+>         fi
+>         return $ret
+Hi, I have not looked into the actual problem, and I have not run the code,
+I have only looked at the patch above, but I offer some patch review comments
+in the hope you will find them useful.
+The "ret" variable in that function is entirely pointless. The
+exitstatus of an if statment
+is the exitstatus of the last command executed in the body of the if
+statement. And
+a bare return command will return the exitstatus of the previous
+command executed.
+So the below code will behave identically to the unpatched function:
+wgetprogress () {
+[ ! "$VERBOSE" ] && NVSWITCH="-nv"
+if [ "$USE_DEBIANINSTALLER_INTERACTION" ] && [ "$PROGRESS_NEXT" ]; then
+    wget "$@" 2>&1 >/dev/null | "$PKGDETAILS" "WGET%" "$PROGRESS_NOW"
+"$PROGRESS_NEXT" "$PROGRESS_END" >&3
+else
+    wget $NVSWITCH "$@"
+fi
+}
+>  "$@" is extracted as '' and wget tries to fetch it and fails,
+>  then returns 1.
+Regarding the proposed fix, in general using $@ without quotes is fragile.
+And I don't understand how changing "$@" to $@ will change the behaviour
+of wget. Testing here, both
+    wget
+and
+    wget ''
+return exitstatus 1.
+To test if the function was given any positional parameters, instead use
+if [ $# -eq 0 ] ; then
+    echo "There are no parameters"
+fi
+To test if $@ is empty, use
+if [ -z "$*" ] ; then
+   echo "All parameters are empty"
+fi
+But wouldn't it be better to fix the actual problem? If somewhere this
+function is called without parameters, then that is where the problem
+occurs and so is likely the best place to fix it.

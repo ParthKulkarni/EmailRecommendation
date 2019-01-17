@@ -1,0 +1,232 @@
+To : debian-boot@lists.debian.org
+Subject : [PATCH 2/7] Add ppc64 support based on powerpc configuration.
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Mon, 20 Mar 2017 19:17:16 +0100
+Message-id : 20170320181721.9779-3-glaubitz@physik.fu-berlin.de
+In-reply-to : <[🔎] 20170320181721.9779-1-glaubitz@physik.fu-berlin.de>
+References : <[🔎] 20170320181721.9779-1-glaubitz@physik.fu-berlin.de>
+
+
+Signed-off-by: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+---
+ build/config/ppc64.cfg                       | 97 ++++++++++++++++++++++++++++
+ build/config/ppc64/powerpc64.cfg             | 18 ++++++
+ build/config/ppc64/powerpc64/cdrom.cfg       |  9 +++
+ build/config/ppc64/powerpc64/monolithic.cfg  |  8 +++
+ build/config/ppc64/powerpc64/netboot-gtk.cfg | 16 +++++
+ build/config/ppc64/powerpc64/netboot.cfg     |  9 +++
+ debian/changelog                             |  1 +
+ 7 files changed, 158 insertions(+)
+ create mode 100644 build/config/ppc64.cfg
+ create mode 100644 build/config/ppc64/powerpc64.cfg
+ create mode 100644 build/config/ppc64/powerpc64/cdrom.cfg
+ create mode 100644 build/config/ppc64/powerpc64/monolithic.cfg
+ create mode 100644 build/config/ppc64/powerpc64/netboot-gtk.cfg
+ create mode 100644 build/config/ppc64/powerpc64/netboot.cfg
+diff --git a/build/config/ppc64.cfg b/build/config/ppc64.cfg
+new file mode 100644
+index 000000000..0637b87dd
+--- /dev/null
++++ b/build/config/ppc64.cfg
+@@ -0,0 +1,97 @@
++SUBARCH_SUPPORTED = powerpc64
++
++KERNELMAJOR = 2.6
++BASEVERSION = $(LINUX_KERNEL_ABI)
++
++# create the kernels with builtin initrd.
++builtin_initrd: $(TEMP_KERNEL) $(TEMP_INITRD)
++	# temporary hack
++	case $(KERNELMAJOR) in \
++		2.6)	\
++			for subarch in $(SUBARCHES); do	\
++				rm -f $(DEST)/vmlinuz-$$subarch.initrd;	\
++				mkvmlinuz -v				\
++					-a $$subarch			\
++					-r $(KERNELVERSION)		\
++					-k $(TEMP_KERNEL)		\
++					-z -i $(TEMP_INITRD)		\
++					-d $(TEMP)/lib			\
++					-o $(DEST)/vmlinuz-$$subarch.initrd;	\
++			done	\
++			;;	\
++		*)	\
++			echo "Kernel $(KERNELMAJOR) not supported"	\
++			;;\
++	esac
++
++# cd content for ppc64, includes yaboot for booting
++# apple ppc64 (newworld) computers
++cd_content_common:
++	mkdir -p $(TEMP_CD_TREE)/$(dir install/$(TYPE))
++
++	cp $(TEMP_KERNEL) $(TEMP_CD_TREE)/install/$(TYPE)-linux
++	ln -f $(TEMP_INITRD) $(TEMP_CD_TREE)/install/$(TYPE)-initrd.gz
++
++	# New-world bootability
++	cp -f boot/ppc64/ofboot.b $(TEMP_CD_TREE)/install/
++	cp -f /usr/lib/yaboot/yaboot $(TEMP_CD_TREE)/install/
++	bootvars-subst MEDIA_TYPE "${MEDIA_TYPE}" \
++		DEBIAN_VERSION "${DEBIAN_VERSION}" \
++		BUILD_DATE "${BUILD_DATE}" \
++		< boot/ppc64/boot.msg > $(TEMP_CD_TREE)/install/boot.msg
++	ramdisk-size-subst $(TEMP_INITRD) \
++		< boot/ppc64/yaboot.conf \
++		| sed 's,\$${TYPE},$(TYPE),g' \
++		> $(TEMP_CD_TREE)/install/yaboot.conf
++	# CHRP bootability
++	mkdir -p $(TEMP_CD_TREE)/etc
++	mkdir -p $(TEMP_CD_TREE)/ppc/chrp
++	cp -f $(TEMP_CD_TREE)/install/yaboot.conf $(TEMP_CD_TREE)/etc
++	cp -f boot/ppc64/bootinfo.txt $(TEMP_CD_TREE)/ppc
++
++# Adds yaboot to netboot dirs.
++netboot_content_common:
++	cp -f /usr/lib/yaboot/yaboot $(DEST)
++	bootvars-subst MEDIA_TYPE "${MEDIA_TYPE}" \
++		DEBIAN_VERSION "${DEBIAN_VERSION}" \
++		BUILD_DATE "${BUILD_DATE}" \
++		< boot/ppc64/boot.msg > $(DEST)/boot.msg
++	ramdisk-size-subst $(TEMP_INITRD) \
++	< boot/ppc64/yaboot.conf.netboot \
++	| sed 's,\$${TYPE},$(TYPE),g' \
++	> $(DEST)/yaboot.conf
++
++# creates a bootable cd image for ppc64
++arch_miniiso_common: cd_content_common
++	genisoimage -r -T --netatalk -chrp-boot -hfs -probe -map boot/ppc64/hfs.map -part -no-desktop -hfs-bless $(TEMP_CD_TREE)/install -hfs-volid Debian-Installer/PPC64 -o $(TEMP_MINIISO) $(TEMP_CD_TREE)
++
++# creates a bootable HFS filesystem, used for USB sticks
++hd_media_common: $(TEMP_KERNEL) $(TEMP_INITRD)
++	mkdir -p $(dir $(TEMP_BOOT))
++	: | dd of=$(TEMP_BOOT) bs=1024 seek=$(FLOPPY_SIZE)
++	HOME=$(TEMP) hformat -l $(DISK_LABEL) $(TEMP_BOOT)
++	HOME=$(TEMP) hmount $(TEMP_BOOT)
++	HOME=$(TEMP) hcopy -r $(TEMP_KERNEL) :vmlinux
++	HOME=$(TEMP) hcopy -r $(TEMP_INITRD) :initrd.gz
++	cp -a /usr/lib/yaboot/yaboot $(TEMP)/yaboot # used later
++	HOME=$(TEMP) hcopy -r $(TEMP)/yaboot :yaboot
++	HOME=$(TEMP) hattrib -c UNIX -t tbxi :yaboot
++
++	bootvars-subst MEDIA_TYPE "${MEDIA_TYPE}" \
++		DEBIAN_VERSION "${DEBIAN_VERSION}" \
++		BUILD_DATE "${BUILD_DATE}" \
++		< boot/ppc64/boot.msg > $(TEMP)/boot.msg
++	ramdisk-size-subst $(TEMP_INITRD) \
++		< boot/ppc64/yaboot.conf.hd-media \
++		> $(TEMP)/yaboot.conf
++	HOME=$(TEMP) hcopy -r $(TEMP)/boot.msg :boot.msg
++	HOME=$(TEMP) hcopy -r $(TEMP)/yaboot.conf :yaboot.conf
++
++	HOME=$(TEMP) hattrib -b :
++	HOME=$(TEMP) humount
++	rm -f $(TEMP)/.hcwd # clean up after hfsutils
++
++	$(if $(GZIPPED),gzip -v9f $(TEMP_BOOT))
++
++
++arch_tree:
+diff --git a/build/config/ppc64/powerpc64.cfg b/build/config/ppc64/powerpc64.cfg
+new file mode 100644
+index 000000000..05428a139
+--- /dev/null
++++ b/build/config/ppc64/powerpc64.cfg
+@@ -0,0 +1,18 @@
++MEDIUM_SUPPORTED = cdrom netboot netboot-gtk
++MEDIUM_SUPPORTED_EXTRA = monolithic
++
++# The version of the kernel to use.
++KERNELVERSION = $(BASEVERSION)-powerpc64
++KERNELNAME = vmlinux
++
++SUBARCHES = chrp
++
++cd_content: cd_content_common
++
++netboot_content: netboot_content_common
++
++arch_miniiso: arch_miniiso_common
++
++arch_boot_screens:
++
++arch_boot: arch_boot_initrd
+diff --git a/build/config/ppc64/powerpc64/cdrom.cfg b/build/config/ppc64/powerpc64/cdrom.cfg
+new file mode 100644
+index 000000000..886b0af76
+--- /dev/null
++++ b/build/config/ppc64/powerpc64/cdrom.cfg
+@@ -0,0 +1,9 @@
++MEDIA_TYPE = CD-ROM
++
++# cd booting does not need floppy images on powerpc
++TARGET = $(INITRD) $(KERNEL) builtin_initrd
++EXTRANAME = $(MEDIUM)/
++
++MANIFEST-BOOT = "CDROM image for 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-INITRD = "initrd for use with 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-KERNEL = "kernel for use with 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
+diff --git a/build/config/ppc64/powerpc64/monolithic.cfg b/build/config/ppc64/powerpc64/monolithic.cfg
+new file mode 100644
+index 000000000..727e191a0
+--- /dev/null
++++ b/build/config/ppc64/powerpc64/monolithic.cfg
+@@ -0,0 +1,8 @@
++MEDIA_TYPE = boot image
++
++TARGET = pkg-lists/standard-udebs pkg-lists/kernel-module-udebs $(INITRD) $(KERNEL) $(MINIISO)
++EXTRANAME = $(MEDIUM)/
++
++MANIFEST-INITRD = "initrd for 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-KERNEL = "kernel image for use with 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-MINIISO = "small bootable CD image for network install on 64bit Power and PowerPC machines (except pre-power5 iSeries)"
+diff --git a/build/config/ppc64/powerpc64/netboot-gtk.cfg b/build/config/ppc64/powerpc64/netboot-gtk.cfg
+new file mode 100644
+index 000000000..d263cef0b
+--- /dev/null
++++ b/build/config/ppc64/powerpc64/netboot-gtk.cfg
+@@ -0,0 +1,16 @@
++MEDIA_TYPE = netboot image
++
++TYPE = netboot/gtk
++
++TARGET = $(INITRD) $(KERNEL) $(MINIISO) builtin_initrd
++EXTRANAME = netboot/gtk/
++
++MANIFEST-BOOT = "tftp boot image for 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-INITRD = "initrd for use with 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-KERNEL = "kernel for use with 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++
++KEEP_GI_LANGS = 1
++
++# All images that include cdebconf should include symbols needed by these
++# plugins.
++EXTRAUDEBS += cdebconf-gtk-entropy
+diff --git a/build/config/ppc64/powerpc64/netboot.cfg b/build/config/ppc64/powerpc64/netboot.cfg
+new file mode 100644
+index 000000000..2d65a9c8d
+--- /dev/null
++++ b/build/config/ppc64/powerpc64/netboot.cfg
+@@ -0,0 +1,9 @@
++MEDIA_TYPE = netboot image
++
++TARGET = $(INITRD) $(KERNEL) $(MINIISO) builtin_initrd netboot_content
++EXTRANAME = $(MEDIUM)/
++
++MANIFEST-BOOT = "tftp boot image for 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-INITRD = "initrd for 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-KERNEL = "kernel for 64bit Power and PowerPC cpus (except pre-power5 iSeries)"
++MANIFEST-MINIISO = "small bootable CD image for powerpc64 netboot"
+diff --git a/debian/changelog b/debian/changelog
+index afb6d3c13..07c0b11c8 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -38,6 +38,7 @@ debian-installer (20170128) UNRELEASED; urgency=medium
+ 
+   [ John Paul Adrian Glaubitz ]
+   * Clone boot configuration files from powerpc for ppc64.
++  * Add ppc64 support based on powerpc configuration.
+ 
+  -- Samuel Thibault <sthibault@debian.org>  Sat, 11 Feb 2017 14:20:14 +0100
+ 
+-- 
+2.11.0

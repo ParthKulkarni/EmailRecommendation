@@ -1,0 +1,35 @@
+To : submit@bugs.debian.org
+Subject : Bug#879147: debian-ports support when installing the kernel and extra packages
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Thu, 19 Oct 2017 22:07:15 +0200
+Message-id : 20171019200715.GB3214@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 879147@bugs.debian.org
+
+
+Package: base-installer
+Version: 1.171
+Severity: wishlist
+Tags: patch
+X-Debbugs-CC: "Helge Deller" <deller@gmx.de>, "John Paul Adrian Glaubitz" <glaubitz@physik.fu-berlin.de>, "James Clarke" <jrtc27@debian.org>
+Dear Maintainer,
+bootstrap-base installs a kernel and some extra packages as its last
+steps ('install_kernel' and 'install_extra').
+The patch below enables the use of the 'unreleased' distribution on
+non released architectures during these steps. (A file 'port_architecture'
+should be created previously by another package, e.g. 
+choose-mirror-bin. See #879130)
+Regards,
+JH Chatenet
+--- a/library.sh
++++ b/library.sh
+@@ -873,6 +873,11 @@
+ 		APTSOURCE="$PROTOCOL://$MIRROR$DIRECTORY"
+ 
+ 		echo "deb $APTSOURCE $DISTRIBUTION $COMPONENTS" > $APT_SOURCES
++
++		if [ -e /usr/lib/choose-mirror/port_architecture ]; then
++			# Port architectures use both suites 'unstable' and 'unreleased'
++			echo "deb $APTSOURCE unreleased $COMPONENTS" >> $APT_SOURCES
++		fi
+ 	fi
+ }

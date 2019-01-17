@@ -1,0 +1,43 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#880846: debian-installer: compat is not suitable as the default in /etc/nsswitch.conf
+From : Russell Coker <russell@coker.com.au>
+Date : Sun, 05 Nov 2017 11:34:17 +1100
+Message-id : 150984205781.26823.7266175199304182941.reportbug@xev
+Reply-to : Russell Coker <russell@coker.com.au>, 880846@bugs.debian.org
+
+
+Package: debian-installer
+Severity: minor
+https://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/amd64/iso-cd/
+I just did an install from the image downloaded from the above URL using
+debootstrap.  I'm not sure if this bug applies to debian-installed,
+debootstrap, or both.
+When I installed it the /etc/nsswitch.conf file had the following entries:
+passwd:         compat
+group:          compat
+shadow:         compat
+According to nsswitch.conf(5) the "compat" line is to enable entries that
+start with "+" or "-" for special NIS operations.
+The benefit in having compat as the default is minor even for the tiny minority
+of users who have NIS enabled.  Putting in compat entries in /etc/nsswitch.conf
+is a tiny part of the work required to enable NIS.  I don't think that people
+who use NIS would find it an inconvenience to have "files" as the default.
+Currently we are having a discussion on the SE Linux policy mailing list about
+the permission for memory mapping files.  /lib/libnss_compat.so.X needs to
+map them which means that most domains need map access to etc_t while
+/lib/libnss_files.so.X doesn't map them and doesn't need such access.
+By default I advocate for changing SE Linux policy rather than changing system
+configuration.  But in this case I can't see any downside in making the default
+to use "files".  Having less complex parsing of those files seems like a good
+benefit too.  As a general rule less complex code will tend to have fewer
+security issues.
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.13.0-1-amd64 (SMP w/8 CPU cores)
+Locale: LANG=en_AU.UTF-8, LC_CTYPE=en_AU.UTF-8 (charmap=UTF-8), LANGUAGE=en_AU:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

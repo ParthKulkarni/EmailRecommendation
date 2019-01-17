@@ -1,0 +1,34 @@
+To : 872036@bugs.debian.org
+Subject : Bug#872036: AH00060: seg fault or similar nasty error detected in the parent  process
+From : Jérôme <jerome@jolimont.fr>
+Date : Mon, 10 Dec 2018 09:48:51 +0100
+Message-id : 67bf0afacc126ff1cfd339452ec6017e@jolimont.fr
+Reply-to : Jérôme <jerome@jolimont.fr>, 872036@bugs.debian.org
+References : <150264213812.15375.9122558661806739111.reportbug@localhost>
+
+
+In case that helps, I just noticed a similar error.
+I have a maintenance script that
+- modifies a config file to put the application in maintenance mode
+- systemctl reload apache2
+- performs database maintenance
+- sets the old config back
+- systemctl reload apache2
+When using this on a new installation where the DB is empty, the 
+maintenance task takes an instant, and the script basically does
+This sounds a lot like 
+https://bugzilla.redhat.com/show_bug.cgi?id=1376835
+The problem (httpd with worker/event mpm segfaults after multiple 
+successive graceful reloads) was fixed in 2.4.6-53.el7 (Development 
+Version)
+However, I'm using Debian Stretch's 2.4.25-3+deb9u6 so AFAIU, this 
+should include the patch.
+Unless there is something specific to my configuration, the issue can be 
+easily reproduced with
+When adding a sleep of a few hundreds milliseconds in between, the crash 
+does not happen.
+Also worth noting that despite the error message, apache is up and 
+running at the end of the process, so AFAICT, this is just noise in the 
+logs.
+--
+Jérôme

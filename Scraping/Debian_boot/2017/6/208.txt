@@ -1,0 +1,79 @@
+To : 864807@bugs.debian.org, Heinrich Schuchardt <xypron.glpk@gmx.de>
+Subject : Bug#864807: b53_mdio module doesn't get loaded automatically on Lamobo R1 (was: debian-installer: Lamobo R1 requires modprobe b53_mdio)
+From : Karsten Merker <merker@debian.org>
+Date : Thu, 15 Jun 2017 12:24:34 +0200
+Message-id : 20170615102433.GA10809@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 864807@bugs.debian.org
+In-reply-to : <[🔎] 7022fc44-aa05-8068-1965-6b81064abfd3@gmx.de>
+References : <[🔎] 7022fc44-aa05-8068-1965-6b81064abfd3@gmx.de>
+
+
+control: retitle 864807 b53_mdio module doesn't get loaded automatically on Lamobo R1
+control: reassign 864807 src:linux 4.9.30-2
+On Thu, Jun 15, 2017 at 08:34:34AM +0200, Heinrich Schuchardt wrote:
+> Package: debian-installer
+> Version: stretch
+> Severity: normal
+> 
+> Dear Maintainer,
+> 
+> the Lamobo R1 is an Arm system based on the Amlogic A20.
+s/Amlogic/Allwinner/ :-)
+> The network interface of the A20 is connected to a switch.
+> If the switch is not configured there is no external
+> network access and subsequently a network install fails.
+> 
+> On an installed system it is sufficient to have a line
+> in /etc/modules:
+> b53_mdio
+> 
+> I suggest the following corrections to the installer:
+> 
+> The initrd.img should include the b53_mdio module and its
+> prerequisites b53_common and dsa_core plus aforementioned
+> file /etc/modules.
+> 
+> The installer should compare the content of
+> /proc/device-tree/model
+> to the string
+> Lamobo R1
+> 
+> If this string is found, the file /etc/modules should be
+> appended with b53_mdio on the installed system.
+Hello,
+I wonder why module autoloading doesn't work in this case.
+All the modules you have listed as required:
+- drivers/net/dsa/b53/b53_mdio.ko
+- drivers/net/dsa/b53/b53_common.ko
+- net/dsa/dsa_core.ko
+are available (both in the installed system and in d-i).
+The devicetree for the Lamobo R1 contains the following fragment:
+  switch: ethernet-switch@1e {
+          compatible = "brcm,bcm53125";
+          [...]
+  }
+and the b43_mdio driver of_match table includes this
+compatible:
+static const struct of_device_id b53_of_match[] = {
+        { .compatible = "brcm,bcm5325" },
+        { .compatible = "brcm,bcm53115" },
+        { .compatible = "brcm,bcm53125" },
+        { .compatible = "brcm,bcm53128" },
+        { .compatible = "brcm,bcm5365" },
+        { .compatible = "brcm,bcm5395" },
+        { .compatible = "brcm,bcm5397" },
+        { .compatible = "brcm,bcm5398" },
+        { /* sentinel */ },
+};
+MODULE_DEVICE_TABLE(of, b53_of_match);
+I would therefore expect that the module gets loaded automatically
+without any manual intervention.  If it doesn't for some reason,
+that sounds to me like something that we should try to address in
+the kernel and not in d-i.  I'm reassigning the bug to the kernel
+package to get input from the kernel maintainers on this.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

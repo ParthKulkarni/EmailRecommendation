@@ -1,0 +1,58 @@
+To : submit@bugs.debian.org
+Subject : Bug#915830: busybox: cp: failed to access '/var/tmp/mkinitramfs_h8da2B//usr/bin/busybox': Too many levels of symbolic links
+From : Chris Lamb <lamby@debian.org>
+Date : Fri, 07 Dec 2018 09:43:47 +0100
+Message-id : 1544172227.2493473.1601828248.12337754@webmail.messagingengine.com
+Reply-to : Chris Lamb <lamby@debian.org>, 915830@bugs.debian.org
+
+
+Package: busybox
+Version: 1:1.27.2-3
+Severity: important
+Hi,
+Since a few days ago I am getting:
+  $ sudo update-initramfs -u -k all -v                   
+  Available versions: 4.18.0-2-amd64
+  Execute: /usr/sbin/update-initramfs -u -k "4.18.0-2-amd64" -b /boot -v
+  Keeping /boot/initrd.img-4.18.0-2-amd64.dpkg-bak
+  update-initramfs: Generating /boot/initrd.img-4.18.0-2-amd64
+  Copying module directory kernel/drivers/usb/host
+  (excluding hwa-hc.ko sl811_cs.ko sl811-hcd.ko u132-hcd.ko whci-hcd.ko)
+  Adding module /lib/modules/4.18.0-2-amd64/kernel/drivers/usb/common/usb-common.ko
+  Adding module /lib/modules/4.18.0-2-amd64/kernel/drivers/usb/core/usbcore.ko
+  […]
+  Calling hook udev
+  Adding binary /lib/systemd/systemd-udevd
+  Adding library-link /usr/lib/x86_64-linux-gnu/libkmod.so.2
+  Adding library /usr/lib/x86_64-linux-gnu/libkmod.so.2.3.3
+  Adding library-link /lib/x86_64-linux-gnu/libacl.so.1
+  Adding library /usr/lib/x86_64-linux-gnu/libacl.so.1.1.0
+  Adding library-link /lib/x86_64-linux-gnu/libattr.so.1
+  Adding library /usr/lib/x86_64-linux-gnu/libattr.so.1.1.0
+  Adding binary /bin/udevadm
+  Adding binary /lib/udev/ata_id
+  Adding binary /lib/udev/scsi_id
+  Adding binary /sbin/blkid
+  Calling hook zz-busybox
+  Adding binary-link /bin/busybox
+  Adding binary /usr/bin/busybox
+  cp: failed to access '/var/tmp/mkinitramfs_mSMoqa//usr/bin/busybox': Too many levels of symbolic links
+  E: /usr/share/initramfs-tools/hooks/zz-busybox failed with return 1.
+  Removing /boot/initrd.img-4.18.0-2-amd64.dpkg-bak
+  update-initramfs: failed for /boot/initrd.img-4.18.0-2-amd64 with 1.
+Adding a few debugging statements shows that:
+  /var/tmp/mkinitramfs_mSMoqa/usr/bin/busybox -> busybox
+If it helps:
+  
+  $ ls -l /usr/bin | grep busybox     
+  -rwxr-xr-x 1 root root       654,048 2018-07-13 05:19 busybox
+  $ ls -l /bin | grep busybox                        
+  lrwxrwxrwx 1 root root      16 2018-11-26 17:23 busybox -> /usr/bin/busybox
+Any ideas? Sounds very usrmerge related...  Setting severity to
+"important" as I'm a little worried to reboot. :)
+Best wishes,
+-- 
+      ,''`.
+     : :'  :     Chris Lamb
+     `. `'`      lamby@debian.org / chris-lamb.co.uk
+       `-

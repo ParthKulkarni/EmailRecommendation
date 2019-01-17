@@ -1,0 +1,234 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#856210: libdebian-installer: please parse SHA256 field and add it to di_* structs
+From : Steven Chamberlain <steven@pyro.eu.org>
+Date : Tue, 28 Feb 2017 15:36:49 +0000
+Message-id : 20170228153648.GJ53239@pyro.eu.org
+Reply-to : Steven Chamberlain <steven@pyro.eu.org>, 856210@bugs.debian.org
+In-reply-to : <[🔎] 20170228130750.GC53239@pyro.eu.org>
+References : <[🔎] 20170226162506.GB86601@pyro.eu.org> <[🔎] 20170226183030.GG86601@pyro.eu.org> <[🔎] 20170226210653.GA15975@shell.thinkmo.de> <[🔎] 20170227154044.GG68952@pyro.eu.org> <[🔎] 20170228031150.GD5630@mraw.org> <[🔎] 20170228130750.GC53239@pyro.eu.org>
+
+
+Steven Chamberlain wrote:
+> replace sum[0] with sha256 and leave sum[1] empty; 
+> [...] (we would drop the MD5- and SHA1-parsing code
+> and make absolutely sure nobody is still using those).
+The new patch attached would do that, and it remains otherwise
+ABI-compatible.
+It aims to be the most minimal diff, so it does not extend the testsuite
+for example, which still passes even though the Packages file testcase
+has no SHA256 fields.
+In src/release.c:  file->sum[1] is initialised to NULL by a calloc().
+In the future, someone might want to put SHA512 hashes there.  It does
+not hurt to keep the existing di_free(file->sum[1]) in place.
+Within the installer, this should only break anna, until the patch from
+#856211 is applied.
+Outside of the installer, cdebootstrap would break, until #856212 is
+patched.
+If we missed any other reverse-depends, they should FTBFS if they
+dereference the md5sum fields.  Already-built binaries should report a
+"md5sum mismatch", if they use the patched libdebian-installer at
+run-time and still try to do verification with MD5.
+Regards,
+-- 
+Steven Chamberlain
+steven@pyro.eu.org
+signature.ascdiff --git a/debian/changelog b/debian/changelog
+index 3dd29e1..748a78b 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,7 +1,17 @@
+ libdebian-installer (0.109) UNRELEASED; urgency=medium
+ 
++  [ Samuel Thibault ]
+   * Fix build with gcc-7. Closes: #853489
+ 
++  [ Steven Chamberlain ]
++  * In structs di_release and di_package, replace md5sum member with a
++    sha256 member.  This is ABI-compatible, but reverse-dependencies
++    will fail if they still try to verify with MD5 (Closes: #856212).
++  * Parse SHA256 fields instead of MD5Sum fields in Packages files.
++  * Parse SHA256 fields instead of MD5Sum fields in Release files.
++  * No longer try to parse SHA1 field, which is no longer present in
++    Release files as of stretch.
++
+  -- Samuel Thibault <sthibault@debian.org>  Tue, 31 Jan 2017 11:09:16 +0100
+ 
+ libdebian-installer (0.108) unstable; urgency=medium
+diff --git a/include/debian-installer/package.h b/include/debian-installer/package.h
+index 72d7444..e1f699d 100644
+--- a/include/debian-installer/package.h
++++ b/include/debian-installer/package.h
+@@ -112,7 +112,7 @@ struct di_package
+   di_slist depends;                                     /**< Any different dependency types */
+   char *filename;                                       /**< Filename field */
+   size_t size;                                          /**< Size field */
+-  char *md5sum;                                         /**< MD5Sum field */
++  char *sha256;                                         /**< SHA256 field */
+   char *short_description;                              /**< Description field, first part*/
+   char *description;                                    /**< Description field, second part */
+   unsigned int resolver;                                /**< @internal */
+diff --git a/include/debian-installer/package_internal.h b/include/debian-installer/package_internal.h
+index f6357d1..d410ce2 100644
+--- a/include/debian-installer/package_internal.h
++++ b/include/debian-installer/package_internal.h
+@@ -52,7 +52,7 @@ const di_parser_fieldinfo
+   internal_di_package_parser_field_enhances,
+   internal_di_package_parser_field_filename,
+   internal_di_package_parser_field_size,
+-  internal_di_package_parser_field_md5sum,
++  internal_di_package_parser_field_sha256,
+   internal_di_package_parser_field_description;
+ 
+ /**
+diff --git a/include/debian-installer/release.h b/include/debian-installer/release.h
+index 223a4f8..29b0cfb 100644
+--- a/include/debian-installer/release.h
++++ b/include/debian-installer/release.h
+@@ -40,7 +40,7 @@ struct di_release
+   char *origin;                                 /**< Origin field */
+   char *suite;                                  /**< Suite field */
+   char *codename;                               /**< Codename field */
+-  di_hash_table *md5sum;                        /**< checksum fields, includes di_release_file */
++  di_hash_table *sha256;                        /**< checksum fields, includes di_release_file */
+   di_mem_chunk *release_file_mem_chunk;         /**< @internal */
+ };
+ 
+@@ -55,7 +55,7 @@ struct di_release_file
+     di_rstring key;                             /**< @internal */
+   };
+   unsigned int size;                            /**< size */
+-  char *sum[2];                                 /**< checksums, currently md5 and sha1 */
++  char *sum[2];                                 /**< sum[0] is sha256, sum[1] is empty */
+ };
+ 
+ di_release *di_release_alloc (void);
+diff --git a/src/package.c b/src/package.c
+index 653b5dd..82c7653 100644
+--- a/src/package.c
++++ b/src/package.c
+@@ -38,7 +38,7 @@ void di_package_destroy (di_package *package)
+   di_free (package->architecture);
+   di_free (package->version);
+   di_free (package->filename);
+-  di_free (package->md5sum);
++  di_free (package->sha256);
+   di_free (package->short_description);
+   di_free (package->description);
+ 
+diff --git a/src/package_parser.c b/src/package_parser.c
+index 6d6a5e7..de80d7e 100644
+--- a/src/package_parser.c
++++ b/src/package_parser.c
+@@ -180,13 +180,13 @@ const di_parser_fieldinfo
+       di_parser_write_int,
+       offsetof (di_package, size)
+     ),
+-  internal_di_package_parser_field_md5sum =
++  internal_di_package_parser_field_sha256 =
+     DI_PARSER_FIELDINFO
+     (
+-      "MD5sum",
++      "SHA256",
+       di_parser_read_string,
+       di_parser_write_string,
+-      offsetof (di_package, md5sum)
++      offsetof (di_package, sha256)
+     ),
+   internal_di_package_parser_field_description =
+     DI_PARSER_FIELDINFO
+@@ -217,7 +217,7 @@ const di_parser_fieldinfo *di_package_parser_fieldinfo[] =
+   &internal_di_package_parser_field_enhances,
+   &internal_di_package_parser_field_filename,
+   &internal_di_package_parser_field_size,
+-  &internal_di_package_parser_field_md5sum,
++  &internal_di_package_parser_field_sha256,
+   &internal_di_package_parser_field_description,
+   NULL
+ };
+diff --git a/src/packages_parser.c b/src/packages_parser.c
+index ac5c06b..30d66ba 100644
+--- a/src/packages_parser.c
++++ b/src/packages_parser.c
+@@ -65,7 +65,7 @@ const di_parser_fieldinfo *di_packages_parser_fieldinfo[] =
+   &internal_di_package_parser_field_enhances,
+   &internal_di_package_parser_field_filename,
+   &internal_di_package_parser_field_size,
+-  &internal_di_package_parser_field_md5sum,
++  &internal_di_package_parser_field_sha256,
+   &internal_di_package_parser_field_description,
+   NULL
+ };
+@@ -109,7 +109,7 @@ const di_parser_fieldinfo *di_packages_minimal_parser_fieldinfo[] =
+   &internal_di_package_parser_field_depends,
+   &internal_di_package_parser_field_pre_depends,
+   &internal_di_package_parser_field_filename,
+-  &internal_di_package_parser_field_md5sum,
++  &internal_di_package_parser_field_sha256,
+   &internal_di_package_parser_field_size,
+   NULL
+ };
+diff --git a/src/release.c b/src/release.c
+index 7cc7cbf..6050795 100644
+--- a/src/release.c
++++ b/src/release.c
+@@ -61,21 +61,13 @@ const di_parser_fieldinfo
+       NULL,
+       offsetof (di_release, codename)
+     ),
+-  internal_di_release_parser_field_md5sum =
++  internal_di_release_parser_field_sha256 =
+     DI_PARSER_FIELDINFO
+     (
+-      "MD5Sum",
++      "SHA256",
+       di_release_parser_read_file,
+       NULL,
+       0
+-    ),
+-  internal_di_release_parser_field_sha1 =
+-    DI_PARSER_FIELDINFO
+-    (
+-      "SHA1",
+-      di_release_parser_read_file,
+-      NULL,
+-      1
+     );
+ 
+ /**
+@@ -86,8 +78,7 @@ const di_parser_fieldinfo *di_release_parser_fieldinfo[] =
+   &internal_di_release_parser_field_origin,
+   &internal_di_release_parser_field_suite,
+   &internal_di_release_parser_field_codename,
+-  &internal_di_release_parser_field_md5sum,
+-  &internal_di_release_parser_field_sha1,
++  &internal_di_release_parser_field_sha256,
+   NULL
+ };
+ 
+@@ -110,7 +101,7 @@ di_release *di_release_alloc (void)
+   di_release *ret;
+ 
+   ret = di_new0 (di_release, 1);
+-  ret->md5sum = di_hash_table_new_full (di_rstring_hash, di_rstring_equal, NULL, internal_di_release_file_destroy_func);
++  ret->sha256 = di_hash_table_new_full (di_rstring_hash, di_rstring_equal, NULL, internal_di_release_file_destroy_func);
+   ret->release_file_mem_chunk = di_mem_chunk_new (sizeof (di_release_file), 4096);
+ 
+   return ret;
+@@ -124,7 +115,7 @@ void di_release_free (di_release *release)
+   di_free (release->origin);
+   di_free (release->suite);
+   di_free (release->codename);
+-  di_hash_table_destroy (release->md5sum);
++  di_hash_table_destroy (release->sha256);
+   di_mem_chunk_destroy (release->release_file_mem_chunk);
+   di_free (release);
+ }
+@@ -169,7 +160,7 @@ void di_release_parser_read_file (data, fip, field_modifier, value, user_data)
+   int ret;
+   size_t buf_size;
+   di_release *release = *data;
+-  di_hash_table *table = release->md5sum;
++  di_hash_table *table = release->sha256;
+ 
+   while (1)
+   {

@@ -1,0 +1,100 @@
+To : Debian Bug Tracking System <907704@bugs.debian.org>
+Subject : Bug#907704: choose-mirror: default to deb.debian.org
+From : Julien Cristau <jcristau@debian.org>
+Date : Mon, 3 Sep 2018 16:41:10 +0200
+Message-id : e5c8c8e5-d253-8a2d-97ea-f3379e97bce5@debian.org
+Reply-to : Julien Cristau <jcristau@debian.org>, 907704@bugs.debian.org, 907704@bugs.debian.org
+In-reply-to : <66d80fd8-7b01-e344-780c-ae8116884066@debian.org>
+References : <66d80fd8-7b01-e344-780c-ae8116884066@debian.org> <66d80fd8-7b01-e344-780c-ae8116884066@debian.org>
+
+
+Control: tag -1 + patch
+On 08/31/2018 06:27 PM, Julien Cristau wrote:
+> Package: choose-mirror
+> Severity: wishlist
+> X-Debbugs-Cc: tfheen@debian.org
+> 
+> I think it's time for choose-mirror to stop asking by default.  AFAIK
+> deb.debian.org works well enough now that we don't need users to
+> manually select a mirror close to them.
+> 
+> PoC patch, completely untested:
+> 
+Updated patch, at least somewhat tested.  It downgrades the debconf
+priority for mirror/http/countries and mirror/http/mirrors so they're
+not asked by default (previous patch would still ask for a country).
+Only the "proxy" question remains; I'd kind of want to skip it by
+default unless we find out we can't get at the mirror directly, but
+that's something for another bug/patch.
+Cheers,
+Julien
+>From 5773506afb888b03d03b570bda4492c293d0d2f9 Mon Sep 17 00:00:00 2001
+From: Julien Cristau <jcristau@debian.org>
+Date: Mon, 3 Sep 2018 15:34:39 +0200
+Subject: [PATCH] Default http mirror to deb.debian.org (closes: #907704).
+---
+ choose-mirror.c                            | 6 ++++--
+ debian/changelog                           | 6 ++++++
+ debian/choose-mirror-bin.templates.http-in | 3 ++-
+ 3 files changed, 12 insertions(+), 3 deletions(-)
+diff --git a/choose-mirror.c b/choose-mirror.c
+index 2662c5f..f44c7ad 100644
+--- a/choose-mirror.c
++++ b/choose-mirror.c
+@@ -617,8 +617,10 @@ static int choose_country(void) {
+ 		debconf_set(debconf, countries, country);
+ 		debconf_fget(debconf, DEBCONF_BASE "country", "seen");
+ 		debconf_fset(debconf, countries, "seen", debconf->value);
++		debconf_input(debconf, "medium", countries);
++	} else {
++		debconf_input(debconf, "high", countries);
+ 	}
+-	debconf_input(debconf, "high", countries);
+ 
+ 	free (countries);
+ 	return 0;
+@@ -665,7 +667,7 @@ static int choose_mirror(void) {
+ 		debconf_subst(debconf, mir, "mirrors", list);
+ 		free(list);
+ 
+-		debconf_input(debconf, "high", mir);
++		debconf_input(debconf, "medium", mir);
+ 		free(mir);
+ 	} else {
+ 		char *host = add_protocol("hostname");
+diff --git a/debian/changelog b/debian/changelog
+index 762d821..e7fbf12 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,9 @@
++choose-mirror (2.92) UNRELEASED; urgency=medium
++
++  * Default http mirror to deb.debian.org (closes: #907704).
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 03 Sep 2018 15:33:14 +0200
++
+ choose-mirror (2.91) unstable; urgency=medium
+ 
+   * Update Vcs-{Browser,Git} to point to salsa (alioth's replacement).
+diff --git a/debian/choose-mirror-bin.templates.http-in b/debian/choose-mirror-bin.templates.http-in
+index 785851e..2dc1f02 100644
+--- a/debian/choose-mirror-bin.templates.http-in
++++ b/debian/choose-mirror-bin.templates.http-in
+@@ -29,13 +29,14 @@ _Description: Debian archive mirror country:
+ Template: mirror/http/mirror
+ Type: select
+ Choices: ${mirrors}
++Default: deb.debian.org
+ # :sl1:
+ _Description: Debian archive mirror:
+  Please select a Debian archive mirror. You should use a mirror in
+  your country or region if you do not know which mirror has the best
+  Internet connection to you.
+  .
+- Usually, ftp.<your country code>.debian.org is a good choice.
++ Usually, deb.debian.org is a good choice.
+ 
+ Template: mirror/http/hostname
+ Type: string
+-- 
+2.18.0

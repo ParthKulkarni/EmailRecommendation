@@ -1,0 +1,57 @@
+To : submit@bugs.debian.org
+Subject : Bug#868869: debian-installer should not recommend to change password periodically (and more)
+From : Hideki Yamane <henrich@debian.or.jp>
+Date : Wed, 19 Jul 2017 20:21:32 +0900
+Message-id : 20170719202132.ca7f8b0707af70ddbee360c6@debian.or.jp
+Reply-to : Hideki Yamane <henrich@debian.or.jp>, 868869@bugs.debian.org
+
+
+Package: debian-installer
+Severity: wishlist
+Tags: patch
+Hi,
+>> A good password will contain a mixture of letters, numbers and punctuation
+>> and should be changed at regular intervals.
+ Now debian-installer recommends to change root password periodically, however,
+ nowadays it SHOULD NOT. e.g. NIST publishes Digital Identity Guidelines,
+ in "5.1.1.2 Memorized Secret Verifiers" it says
+> Verifiers SHOULD NOT impose other composition rules (e.g., requiring 
+> mixtures of different character types or prohibiting consecutively 
+> repeated characters) for memorized secrets. Verifiers SHOULD NOT 
+> require memorized secrets to be changed arbitrarily (e.g., periodically). 
+ see https://pages.nist.gov/800-63-3/sp800-63b.html
+ We should follow it to provide secure environment for users, at least.
+ Patch attached.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.or.jp/org
+ http://wiki.debian.org/HidekiYamane
+>From 0cbb696c3a3bde3cb9f32f6778396eb341a0f137 Mon Sep 17 00:00:00 2001
+From: Hideki Yamane <henrich@debian.org>
+Date: Wed, 19 Jul 2017 20:15:03 +0900
+Subject: [PATCH] Do not recommend insecure password customs
+see Digital Identity Guidelines by NIST
+https://pages.nist.gov/800-63-3/sp800-63b.html
+> Verifiers SHOULD NOT impose other composition rules (e.g., requiring
+> mixtures of different character types or prohibiting consecutively
+> repeated characters) for memorized secrets. Verifiers SHOULD NOT
+> require memorized secrets to be changed arbitrarily (e.g., periodically).
+---
+ debian/user-setup-udeb.templates | 3 ---
+ 1 file changed, 3 deletions(-)
+diff --git a/debian/user-setup-udeb.templates b/debian/user-setup-udeb.templates
+index 45e16b4..df58475 100644
+--- a/debian/user-setup-udeb.templates
++++ b/debian/user-setup-udeb.templates
+@@ -40,9 +40,6 @@ _Description: Root password:
+  that is not easy to guess. It should not be a word found in dictionaries,
+  or a word that could be easily associated with you.
+  .
+- A good password will contain a mixture of letters, numbers and punctuation
+- and should be changed at regular intervals.
+- .
+  The root user should not have an empty password. If you leave this
+  empty, the root account will be disabled and the system's initial user
+  account will be given the power to become root using the "sudo"
+-- 
+2.13.2

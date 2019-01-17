@@ -1,0 +1,44 @@
+To : Igor Scheller <debian@igorscheller.de>
+Subject : Re: Bug#901255: netcfg-static: Unable to configure fe80::1 as a gateway
+From : Bjørn Mork <bjorn@mork.no>
+Date : Tue, 12 Jun 2018 10:52:30 +0200
+Message-id : 87h8m8v12p.fsf@miraculix.mork.no
+In-reply-to : <[🔎] 6adcea8d-78e5-0b80-574f-f17b9937349f@igorscheller.de> (Igor	Scheller's message of "Tue, 12 Jun 2018 01:24:15 +0200")
+References : <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com>	<[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com>	<[🔎] 20180610172539.qjfu7hvfaspn2faa@var.youpi.perso.aquilenet.fr>	<[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com>	<[🔎] 8d516413-bbf5-6ff9-ba6f-237f9344b102@debian.org>	<[🔎] 6adcea8d-78e5-0b80-574f-f17b9937349f@igorscheller.de>
+
+
+Igor Scheller <debian@igorscheller.de> writes:
+From 6bff2dee11a8d5493f87ec541f854e3897ef6a9a Mon Sep 17 00:00:00 2001
+> From: Igor Scheller <igor.scheller@igorshp.de>
+> Date: Mon, 11 Jun 2018 23:52:37 +0200
+> Subject: [PATCH] Added support for fe80 addresses as gateway
+>
+> ---
+>  netcfg-common.c                      |  5 ++++-
+>  static.c                             |  3 ++-
+>  test/test_netcfg_gateway_reachable.c | 24 ++++++++++++++++++++++++
+>  3 files changed, 30 insertions(+), 2 deletions(-)
+>
+> diff --git a/netcfg-common.c b/netcfg-common.c
+> index c6d1d8d5..007c1875 100644
+> --- a/netcfg-common.c
+> +++ b/netcfg-common.c
+> @@ -1677,8 +1677,11 @@ int netcfg_gateway_reachable(const struct netcfg_interface *interface)
+>      if (interface->address_family == AF_INET) {
+>          return (gw_addr.in4.s_addr && ((gw_addr.in4.s_addr & mask.in4.s_addr) == net.in4.s_addr));
+>      } else if (interface->address_family == AF_INET6) {
+> +        if ((ntohs(gw_addr.in6.s6_addr32[0]) & 0xffc0) == (0xfe80 & 0xffc0)) {
+> +            return 1;
+> +        }
+> +
+>          int i;
+> -        
+>          for (i = 0; i < 4; i++) {
+>              if ((gw_addr.in6.s6_addr32[i] & mask.in6.s6_addr32[i]) != net.in6.s6_addr32[i]) {
+>                  return 0;
+Huh?  What is this?  There is no "gateway must be in subnet" requirement
+in IPv6.  The gateway must only be reachable, which means that you must
+be able to resolve the L2 address using ND. Any other "is gateway
+reachable" test is bogus. "subnet" is completely irrelevant.
+Or did I  misunderstand what this code tries to do?
+Bjørn

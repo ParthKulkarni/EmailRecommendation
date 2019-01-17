@@ -1,0 +1,79 @@
+To : Stefan Fritsch <sf@debian.org>
+Subject : help needed to complete regression fix for apache2 Bug#858373
+From : Antoine Beaupre <anarcat@orangeseeds.org>
+Date : Wed, 19 Jul 2017 15:45:20 -0400
+Message-id : 20170719194520.uahfl74guvh4ixka@curie.anarc.at
+In-reply-to : <[🔎] 20170719181601.x24orqjghe7gzvn5@curie.anarc.at>
+References : <20170411023810.GC13258@sin.redhat.com> <20170321165507.6943.66558.reportbug@mrsnorris.cae.wisc.edu> <[🔎] 20170719181601.x24orqjghe7gzvn5@curie.anarc.at>
+
+
+Hi,
+(Sorry for the large CC list, but I am hoping to get a broad approval of
+the next changes for this in order to avoid previous mistakes. ;) In
+particular, I'd be very grateful for some input by Stefan considering
+his knowledge of the Apache codebase and how ... exotic this problems
+is.)
+As I mentioned in the #858373 bug report, I started looking at fixing
+the regression introduced by the 2.2.22-13+deb7u8 upload, part of
+DLA-841-1. The problem occurs when a CGI(d) ErrorDocument is configured
+to handle 400 error messages that can be triggered with a simple "GET /
+HTTP/1.0\n\n". Such a request segfaults Apache in Wheezy right now.
+I have been able to confirm that there is an unitialized variable that
+gets carried around. This issue was introduced as part of
+CVE-2016-8743-aux.patch in the original upload, although I fail to
+remember now why this hunk is there exactly. It seems to be related to a
+patch I somewhat blindly and incorrectly merged (see
+87r33tqvqs.fsf@curie.anarc.at for details).
+Unfortunately, re-introducing the protocol initialization code isn't
+sufficient: it does fix the segfaults, but the ErrorDocument handling is
+not quite working yet. Instead of seeing the output of the
+ErrorDocument, after 10 seconds, I get the raw 400 message, doubled with
+a 500 error document warning:
+$ echo -ne "GET /foo HTTP/1.0\n\n" | nc localhost 80
+HTTP/1.1 400 Bad Request
+Date: Wed, 19 Jul 2017 19:11:13 GMT
+Server: Apache/2.2.22 (Debian)
+Vary: Accept-Encoding
+Content-Length: 433
+Connection: close
+Content-Type: text/html; charset=iso-8859-1
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>400 Bad Request</title>
+</head><body>
+<h1>Bad Request</h1>
+<p>Your browser sent a request that this server could not understand.<br />
+</p>
+<p>Additionally, a 500 Internal Server Error
+error was encountered while trying to use an ErrorDocument to handle the request.</p>
+<hr>
+<address>Apache/2.2.22 (Debian) Server at wheezy.raw Port 80</address>
+</body></html>
+In the error log, I see:
+[Wed Jul 19 19:11:23 2017] [error] [client 127.0.0.1] (70007)The timeout
+specified has expired: Error reading request entity data
+The first part of the error is mod_reqtimeout kicking in as the request
+parser stalls on the CGI script. The second part is mod_cgi(d) failing
+to read the request from the CGI script, obviously.
+My theory is that there is *still* something wrong with the request
+parser, even after fixing the r->protocol initialization flaw. I base
+this theory on the fact that a 404 ErrorDocument works without problem.
+$ echo -ne "GET /foo HTTP/1.0\r\n\r\n" | nc localhost 80
+HTTP/1.1 404 Not Found
+Date: Wed, 19 Jul 2017 19:13:44 GMT
+Server: Apache/2.2.22 (Debian)
+Vary: Accept-Encoding
+Connection: close
+Content-Type: text/html
+Hello, World.
+Note that I have also tried to see if sending "\r\n" instead of just
+"\n" in my "hello world" example would work around the issue: it
+doesn't, unfortunately.
+I am at a loss as where to go from here, to be honest. The patch
+(attached) at least fixes the segfault, which resolves the primary issue
+at hand here (DoS by crashing processes!) but it would be nice to
+actually fix the ErrorDocument as well..
+Any ideas?
+Thanks in advance,
+A.
+signature.asc

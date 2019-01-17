@@ -1,0 +1,38 @@
+To : Kusanagi Kouichi <slash@ac.auone-net.jp>, 816892@bugs.debian.org
+Subject : Bug#816892: debootstrap synchronize the whole filesystem
+From : Steve McIntyre <steve@einval.com>
+Date : Sun, 29 Jan 2017 18:20:50 +0000
+Message-id : 20170129182050.GA6715@einval.com
+Reply-to : Steve McIntyre <steve@einval.com>, 816892@bugs.debian.org
+In-reply-to : <56dc0833000e7ea600006edb000052021800079bca41@amlmta302.auone-net.jp>
+References : <56dc0833000e7ea600006edb000052021800079bca41@amlmta302.auone-net.jp>
+
+
+Hi!
+On Sun, Mar 06, 2016 at 07:36:35PM +0900, Kusanagi Kouichi wrote:
+>Package: debootstrap
+>Version: 1.0.79
+>Severity: normal
+>Tags: patch
+>
+>Sync at the end of debootstrap sometimes takes for a while. It seems
+>enough to synchronize only a target filesystem.
+>diff -uNrp debootstrap-1.0.79.orig/debootstrap debootstrap-1.0.79/debootstrap
+>--- debootstrap-1.0.79.orig/debootstrap	2015-11-09 13:01:25.000000000 +0900
+>+++ debootstrap-1.0.79/debootstrap	2016-03-06 19:22:04.970728229 +0900
+>@@ -686,7 +686,7 @@ if am_doing_phase second_stage; then
+> 			mv "$TARGET/debootstrap/debootstrap.log" "$TARGET/var/log/bootstrap.log"
+> 		fi
+> 	fi
+>-	sync
+>+	sync -f "$TARGET"
+> 
+> 	if [ "$KEEP_DEBOOTSTRAP_DIR" = true ]; then
+> 		if [ -x "$TARGET/debootstrap/debootstrap" ]; then
+There's a small problem here - debootstrap is designed and expected to
+run in a lot of different environments, including limited ones like in
+debian-installer. -f is a very new option and I doubt it's safe to use
+by default...
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"Every time you use Tcl, God kills a kitten." -- Malcolm Ray

@@ -1,0 +1,81 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#859084: unblock: win32-loader/0.8.2
+From : Didier 'OdyX' Raboud <odyx@debian.org>
+Date : Thu, 30 Mar 2017 09:42:22 +0200
+Message-id : 149085974263.19173.11994277803997059967.reportbug@gyllingar
+Reply-to : Didier 'OdyX' Raboud <odyx@debian.org>, 859084@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+User: release.debian.org@packages.debian.org
+Usertags: unblock
+Please unblock-udeb package win32-loader 0.8.2 as it fixes a FTBFS
+in stretch (and is always blocked because of the manual migration to
+be done by ftpmasters):
+>   * Fix dpkg-query calls to use source:* for Version and Package directly
+>     - Add Build-Dependency on dpkg (>= 1.16.2) for that support
+>     - Fixes the FTBFS revealed by loadlin's binNMU
+>     (Closes: #858104)
+debdiff is attached.
+ftpmaster: please copy debian/tools/win32-loader/unstable into …/testing 
+unblock-udeb win32-loader/0.8.2
+Cheers, OdyX
+diff -Nru win32-loader-0.8.1/debian/changelog win32-loader-0.8.2/debian/changelog
+--- win32-loader-0.8.1/debian/changelog	2016-12-29 20:57:22.000000000 +0100
++++ win32-loader-0.8.2/debian/changelog	2017-03-20 21:23:59.000000000 +0100
+@@ -1,3 +1,14 @@
++win32-loader (0.8.2) unstable; urgency=medium
++
++  * The « Iao » release
++
++  * Fix dpkg-query calls to use source:* for Version and Package directly
++    - Add Build-Dependency on dpkg (>= 1.16.2) for that support
++    - Fixes the FTBFS revealed by loadlin's binNMU
++    (Closes: #858104)
++
++ -- Didier Raboud <odyx@debian.org>  Mon, 20 Mar 2017 21:23:59 +0100
++
+ win32-loader (0.8.1) unstable; urgency=medium
+ 
+   * The « poipoi » release
+diff -Nru win32-loader-0.8.1/debian/control win32-loader-0.8.2/debian/control
+--- win32-loader-0.8.1/debian/control	2016-12-29 19:06:06.000000000 +0100
++++ win32-loader-0.8.2/debian/control	2017-03-20 21:12:00.000000000 +0100
+@@ -4,6 +4,7 @@
+ Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+ Uploaders: Robert Millan <rmh.debian@aybabtu.com>, Didier Raboud <odyx@debian.org>, Christian Perrier <bubulle@debian.org>
+ Build-Depends:
++ dpkg (>= 1.16.2),
+  debhelper (>= 9),
+  nsis (>= 2.48), nsis-pluginapi,
+  mingw-w64,
+diff -Nru win32-loader-0.8.1/debian/rules win32-loader-0.8.2/debian/rules
+--- win32-loader-0.8.1/debian/rules	2016-12-29 20:06:05.000000000 +0100
++++ win32-loader-0.8.2/debian/rules	2017-03-20 21:10:08.000000000 +0100
+@@ -13,23 +13,13 @@
+ PACKAGES_LIST := $(shell set -e; \
+ 	for p in ${B_D_PACKAGES}; \
+ 	do \
+-		if test `dpkg-query --showformat='x$${Source}x' --show $$p` = "xx"; \
+-		then \
+-			dpkg-query --showformat='$${Package;-25} $${Version;-25} http://ftp.debian.org/debian/pool/main/$${Package;1}/$${Package}\\n' --show $$p; \
+-		else \
+-			dpkg-query --showformat='$${Package;-25} $${Version;-25} http://ftp.debian.org/debian/pool/main/$${Source;1}/$${Source}\\n' --show $$p; \
+-		fi; \
++		dpkg-query --showformat='$${source:Package;-25} $${source:Version;-25} http://ftp.debian.org/debian/pool/main/$${source:Package;1}/$${source:Package}\\n' --show $$p; \
+ 	done)
+ 
+ BUILT_USING_LIST := $(shell set -e; \
+ 	for p in ${B_D_PACKAGES}; \
+ 	do \
+-		if test `dpkg-query --showformat='x$${Source}x' --show $$p` = "xx"; \
+-		then \
+-			dpkg-query --showformat='$${Package} (= $${Version}), ' --show $$p; \
+-		else \
+-			dpkg-query --showformat='$${Source} (= $${Version}), ' --show $$p; \
+-		fi; \
++		dpkg-query --showformat='$${source:Package} (= $${source:Version}), ' --show $$p; \
+ 	done)
+ 
+ NSIS_VERSION  := $(shell dpkg-query -f='$${Version}' -W nsis )

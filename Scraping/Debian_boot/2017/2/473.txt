@@ -1,0 +1,95 @@
+To : Lennart Sorensen <lsorense@csclub.uwaterloo.ca>
+Subject : Re: partman - tmpfs?
+From : Alexander Skwar <alexanders.mailinglists+nospam@gmail.com>
+Date : Tue, 21 Feb 2017 16:15:23 +0100
+Message-id : CADn-QaPDh87HRe=_Acb0=nr8txp0KvPc-ua4=fQW4h651+pKtg@mail.gmail.com
+In-reply-to : <[🔎] 20170221150519.GF27806@csclub.uwaterloo.ca>
+References : <[🔎] CADn-QaMVaKqUe6io49xcLZHg0yquS8wEfYfcvWLDO2qivaC-4A@mail.gmail.com> <[🔎] 20170221150519.GF27806@csclub.uwaterloo.ca>
+
+
+Hi
+Hm, on Ubuntu 16.04:
+$ sudo systemctl enable tmp.mount
+Failed to execute operation: No such file or directory
+And all the wikis and howtos that I can find, say that
+/etc/fstab is to be modified on Ubuntu.
+Regards,
+Alexander
+2017-02-21 16:05 GMT+01:00 Lennart Sorensen <lsorense@csclub.uwaterloo.ca>:
+> On Mon, Feb 20, 2017 at 04:24:33PM +0100, Alexander Skwar wrote:
+>> I'd like to create a debian-installer partman recipe for unattended
+>> installation of Ubuntu 16.04 systems, where tmpfs should be used for
+>> /tmp.
+>>
+>> I tried having this in my preseed file:
+>>
+>>
+>> d-i partman-auto/expert_recipe string \
+>>       EveryWareDesktop :: \
+>>               1 1 1 free                                      \
+>>                       $bios_boot{ }                           \
+>>                       method{ biosgrub }                      \
+>>               . \
+>>               768 768 768 fat32                               \
+>>                       $primary{ }                             \
+>>                       method{ efi }                           \
+>>                       format{ }                               \
+>>               . \
+>>               100 1000 1000000000 ext3                        \
+>>                       $defaultignore{ }                       \
+>>                       $primary{ }                             \
+>>                       method{ lvm }                           \
+>>                       device{ <!--# echo var="disk1" --> }    \
+>>                       vg_name{ system }                       \
+>>               . \
+>>               4096 4096 4096 linux-swap                       \
+>>                       $lvmok{ } in_vg{ system }               \
+>>                       lv_name{ swap }                         \
+>>                       method{ swap } format{ }                \
+>>               . \
+>>               4096 8192 10240 ext4                            \
+>>                       $lvmok{ } in_vg{ system }               \
+>>                       lv_name{ root }                         \
+>>                       method{ format } format{ }              \
+>>                       use_filesystem{ } filesystem{ ext4 }    \
+>>                       label{ root }                           \
+>>                       mountpoint{ / }                         \
+>>                       options/noatime{ noatime }              \
+>>                       options/data{ data=writeback }          \
+>>                       options/user_xattr{ user_xattr }        \
+>>                       options/grpquota{ grpquota }            \
+>>                       options/usrquota{ usrquota }            \
+>>               . \
+>>               1 2 3 tmpfs                                     \
+>>                       method{ format } format{ }              \
+>>                       use_filesystem{ } filesystem{ tmpfs }   \
+>>                       mountpoint{ /tmp }
+>>
+>>
+>>
+>> But this did not create a "/tmp" line in the resulting /etc/fstab.
+>>
+>> Would anyone maybe have a working example at hand?
+>>
+>> I could, of course, also use a script which is run in the target
+>> during installation, but I'd rather have partman do this for me ;)
+>
+> As far as I can tell the correct way to enable /tmp being tmpfs with
+> systemd on debian (I would think Ubuntu is the same) is:
+>
+> systemctl enable tmp.mount
+>
+> Not sure how to preseed that, but I don't think you do it by messing
+> with fstab entries.
+>
+> Maybe something like:
+>
+> preseed/late_command="systemctl enable tmp.mount"
+>
+> --
+> Len Sorensen
+-- 
+Alexander
+-- 
+=>        Google+ => http://plus.skwar.me         <==
+=> Chat (Jabber/Google Talk) => a.skwar@gmail.com <==

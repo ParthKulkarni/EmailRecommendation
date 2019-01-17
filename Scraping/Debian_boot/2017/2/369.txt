@@ -1,0 +1,68 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#855140: FTBFS with a local partial mirror
+From : James Clarke <jrtc27@debian.org>
+Date : Tue, 14 Feb 2017 15:52:23 +0000
+Message-id : 20170214155223.gintknumv52ipjwq@debian
+Reply-to : James Clarke <jrtc27@debian.org>, 855140@bugs.debian.org
+
+
+Source: debian-installer
+Version: 20170127
+Severity: normal
+Tags: patch
+When a local mirror is configured which does not carry the suite being
+built, gen-sources.list.udeb does not filter it out, so apt ends up
+failing. This patch uses a similar logic to http:/ftp: for copy: URLs
+(any file: URLs are already converted to copy: URLs).
+Regards,
+James
+>From 20da994b8657cc9f1e9c2627c268be6b4b21c28d Mon Sep 17 00:00:00 2001
+From: James Clarke <jrtc27@debian.org>
+Date: Wed, 15 Feb 2017 04:32:12 +1300
+Subject: [PATCH] gen-sources.list.udeb: Check local mirrors for validity
+---
+ build/util/gen-sources.list.udeb | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+diff --git a/build/util/gen-sources.list.udeb b/build/util/gen-sources.list.udeb
+index 7f62d9d..8ebee90 100755
+--- a/build/util/gen-sources.list.udeb
++++ b/build/util/gen-sources.list.udeb
+@@ -30,6 +30,17 @@ test_url() {
+ 	return 1
+ }
+ 
++test_file() {
++	local file=$1
++	if [ $VERBOSE -ge 1 ]; then
++		echo "DEBUG: testing '[ -r $file ]'" >&2
++	fi
++	if [ -r $file ]; then
++		return 0
++	fi
++	return 1
++}
++
+ get_mirrors() {
+ 	local file
+ 	for file in $@; do
+@@ -84,6 +95,18 @@ for mirror in $MIRRORS; do
+ 			echo "$mirror $SUITE-proposed-updates $UDEB_COMPONENTS"
+ 			echo "INFO: using '$tmirror' for $SUITE-proposed-updates" >&2
+ 		fi
++	elif echo "$mirror" | grep -Eq "^deb copy:"; then
++		fmirror="$(echo $tmirror | sed -r "s/^copy://")"
++		if test_file $fmirror/dists/$SUITE/Release; then
++			echo "$mirror $SUITE $UDEB_COMPONENTS"
++		else
++			echo "WARNING: mirror '$tmirror' appears to be invalid; skipping" >&2
++		fi
++		if [ "$USE_PROPOSED_UPDATES" = 1 ] &&
++		   test_file $fmirror/dists/$SUITE-proposed-updates/Release; then
++			echo "$mirror $SUITE-proposed-updates $UDEB_COMPONENTS"
++			echo "INFO: using '$tmirror' for $SUITE-proposed-updates" >&2
++		fi
+ 	else
+ 		echo "$mirror $SUITE $UDEB_COMPONENTS"
+ 		if [ "$USE_PROPOSED_UPDATES" = 1 ]; then
+-- 
+2.9.3

@@ -1,0 +1,250 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#851790: installation-reports: DNS not working
+From : Wookey <wookey@debian.org>
+Date : Wed, 18 Jan 2017 18:43:33 +0000
+Message-id : 20170118184333.18240.91126.reportbug@cheddar.halon.org.uk
+Reply-to : Wookey <wookey@debian.org>, 851790@bugs.debian.org
+
+
+Package: installation-reports
+Severity: grave
+Tags: d-i
+Justification: renders package unusable
+Dear Maintainer,
+The current installer, with the new 4.9 kernel, is unable to resolve
+domains, so is quite seriously broken.
+This was noted during install on an arm64 gigabyte MP30-AR1
+desktop/server, when choose-mirror failed, but it soon became clear
+that DNS was not working.
+Testing on an x86 VM with the same daily image (18th Jan 2017) found
+the same problem. Going back to the rc1 installer image (4.8 kernel)
+it works OK.
+Tests showed that the network came up fine and things are pingable by IP, but not name:
+# ping wookware.org                                                           
+ping: bad address 'wookware.org'
+# ping 93.93.131.118
+PING 93.93.131.118 (93.93.131.118): 56 data bytes
+64 bytes from 93.93.131.118: seq=0 ttl=50 time=19.892 ms
+similarly the failing line from the choose-mirror log works if an address is inserted:
+Jan 18 17:04:11 choose-mirror[31201]: DEBUG: command: wget --no-verbose http://debian-mirror.cambridge.arm.com/debian/dists/stretch/Release -O - | grep -E '^(Suite|Codename|Architectures):'                                                   
+Jan 18 17:04:11 choose-mirror[31201]: WARNING **: mirror does not support the specified release (stretch) 
+# wget --no-verbose http://debian-mirror.cambridge.arm.com/debian/dists/stretch/Release -O - | grep -E '^(Suite|Codename|Architectures):'
+wget: unable to resolve host address 'debian-mirror.cambridge.arm.com'
+# wget --no-verbose http://10.1.194.51/debian/dists/stretch/Release -O - | gre
+p -E '^(Suite|Codename|Architectures):'
+Suite: testing
+Codename: stretch
+Architectures: amd64 arm64 armel armhf i386 mips mips64el mipsel ppc64el s390x
+2017-01-18 17:47:12 URL:http://10.1.194.51/debian/dists/stretch/Release [177979/177979] -> "-" [1]
+resolv.conf is as expected:
+search cambridge.arm.com
+nameserver 10.1.2.24
+nameserver 10.1.2.23
+(adding nameserver 8.8.8.8 makes no difference)
+Watching packets go by when doing a VM install it is clear that the
+local DNS server returns the correct response, but this is being ignored
+or lost by the D-I initrd.
+attached is an strace of strace ping wookware.org > /tmp/tracelog 2>&1
+That gets a response from the server OK, but then goes on to ask the
+other one. a working strace then uses the provided IP address. So
+there is nothing obviously going wrong there.
+-- Package-specific info:
+Boot method: USB
+Image version: http://gemmei.acc.umu.se/cdimage/daily-builds/daily/arch-latest/arm64/iso-cd/debian-testing-arm64-netinst.iso
+Date: <Date and time of the install>
+Machine: Gigabyte MP30-AR1, (and x86 VM)
+Partitions: (default guided LVM, with separate /home chosen)
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [O]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [E]
+Install tasks:          [ ]
+Install boot loader:    [ ]
+Overall install:        [ ]
+Comments/Problems:
+Worked as expected until DNS needed
+-- 
+Please make sure that the hardware-summary log file, and any other
+installation logs that you think would be useful are attached to this
+report. Please compress large files using gzip.
+Once you have filled out this report, mail it to submit@bugs.debian.org.
+removed automatic info as this report written on different machine fro install.
+execve("/bin/ping", ["ping", "wookware.org"], [/* 14 vars */]) = 0
+brk(NULL)                               = 0xaaaac9893000
+faccessat(AT_FDCWD, "/etc/ld.so.nohwcap", F_OK) = -1 ENOENT (No such file or directory)
+mmap(NULL, 12288, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0xffff86677000
+faccessat(AT_FDCWD, "/etc/ld.so.preload", R_OK) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/aarch64-linux-gnu/tls/aarch64/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/lib/aarch64-linux-gnu/tls/aarch64", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/aarch64-linux-gnu/tls/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/lib/aarch64-linux-gnu/tls", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/aarch64-linux-gnu/aarch64/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/lib/aarch64-linux-gnu/aarch64", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/aarch64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/lib/aarch64-linux-gnu", {st_mode=S_IFDIR|0755, st_size=360, ...}, 0) = 0
+openat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/tls/aarch64/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/tls/aarch64", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/tls/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/tls", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/aarch64/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/aarch64", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu", {st_mode=S_IFDIR|0755, st_size=120, ...}, 0) = 0
+openat(AT_FDCWD, "/lib/tls/aarch64/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/lib/tls/aarch64", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/tls/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/lib/tls", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/aarch64/libc.so.6", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+newfstatat(AT_FDCWD, "/lib/aarch64", 0xffffc66b2660, 0) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0\267\0\1\0\0\0\270\364\1\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=1275672, ...}) = 0
+mmap(NULL, 1348256, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0xffff86506000
+mprotect(0xffff86636000, 65536, PROT_NONE) = 0
+mmap(0xffff86646000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x130000) = 0xffff86646000
+mmap(0xffff8664c000, 12960, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0xffff8664c000
+close(3)                                = 0
+mprotect(0xffff86646000, 16384, PROT_READ) = 0
+mprotect(0xaaaaabc4f000, 4096, PROT_READ) = 0
+mprotect(0xffff8667c000, 4096, PROT_READ) = 0
+getuid()                                = 0
+getpid()                                = 31299
+socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0) = 3
+connect(3, {sa_family=AF_UNIX, sun_path="/var/run/nscd/socket"}, 110) = -1 ENOENT (No such file or directory)
+close(3)                                = 0
+socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0) = 3
+connect(3, {sa_family=AF_UNIX, sun_path="/var/run/nscd/socket"}, 110) = -1 ENOENT (No such file or directory)
+close(3)                                = 0
+brk(NULL)                               = 0xaaaac9893000
+brk(0xaaaac98b4000)                     = 0xaaaac98b4000
+openat(AT_FDCWD, "/etc/nsswitch.conf", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=41, ...}) = 0
+read(3, "passwd: files\ngroup: files\nshado"..., 4096) = 41
+read(3, "", 4096)                       = 0
+close(3)                                = 0
+openat(AT_FDCWD, "/etc/host.conf", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/etc/resolv.conf", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=67, ...}) = 0
+read(3, "search cambridge.arm.com\nnameser"..., 4096) = 67
+read(3, "", 4096)                       = 0
+close(3)                                = 0
+openat(AT_FDCWD, "/lib/aarch64-linux-gnu/libnss_dns.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/libnss_dns.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/libnss_dns.so.2", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0\267\0\1\0\0\0p\17\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0644, st_size=18552, ...}) = 0
+mmap(NULL, 82136, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0xffff864f1000
+mprotect(0xffff864f5000, 61440, PROT_NONE) = 0
+mmap(0xffff86504000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x3000) = 0xffff86504000
+close(3)                                = 0
+openat(AT_FDCWD, "/lib/aarch64-linux-gnu/libresolv.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/libresolv.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/libresolv.so.2", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0\267\0\1\0\0\0\3409\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0644, st_size=76488, ...}) = 0
+mmap(NULL, 149968, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0xffff864cc000
+mprotect(0xffff864dd000, 65536, PROT_NONE) = 0
+mmap(0xffff864ed000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x11000) = 0xffff864ed000
+mmap(0xffff864ef000, 6608, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0xffff864ef000
+close(3)                                = 0
+mprotect(0xffff864ed000, 4096, PROT_READ) = 0
+mprotect(0xffff86504000, 4096, PROT_READ) = 0
+newfstatat(AT_FDCWD, "/etc/resolv.conf", {st_mode=S_IFREG|0644, st_size=67, ...}, 0) = 0
+openat(AT_FDCWD, "/etc/resolv.conf", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=67, ...}) = 0
+read(3, "search cambridge.arm.com\nnameser"..., 4096) = 67
+read(3, "", 4096)                       = 0
+close(3)                                = 0
+socket(AF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.24")}, 16) = 0
+ppoll([{fd=3, events=POLLOUT}], 1, {tv_sec=0, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLOUT}], left {tv_sec=0, tv_nsec=0})
+sendto(3, "\253\301\1\0\0\1\0\0\0\0\0\0\10wookware\3org\0Q\0\0\1", 30, MSG_NOSIGNAL, NULL, 0) = 30
+ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=5, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLIN}], left {tv_sec=4, tv_nsec=999799760})
+ioctl(3, FIONREAD, [30])                = 0
+recvfrom(3, "\253\301\201\5\0\1\0\0\0\0\0\0\10wookware\3org\0Q\0\0\1", 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.24")}, [28->16]) = 30
+close(3)                                = 0
+socket(AF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.23")}, 16) = 0
+ppoll([{fd=3, events=POLLOUT}], 1, {tv_sec=0, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLOUT}], left {tv_sec=0, tv_nsec=0})
+sendto(3, "\253\301\1\0\0\1\0\0\0\0\0\0\10wookware\3org\0Q\0\0\1", 30, MSG_NOSIGNAL, NULL, 0) = 30
+ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=5, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLIN}], left {tv_sec=4, tv_nsec=999836840})
+ioctl(3, FIONREAD, [30])                = 0
+recvfrom(3, "\253\301\201\5\0\1\0\0\0\0\0\0\10wookware\3org\0Q\0\0\1", 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.23")}, [28->16]) = 30
+close(3)                                = 0
+socket(AF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.24")}, 16) = 0
+ppoll([{fd=3, events=POLLOUT}], 1, {tv_sec=0, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLOUT}], left {tv_sec=0, tv_nsec=0})
+sendto(3, "\253\301\1\0\0\1\0\0\0\0\0\0\10wookware\3org\0Q\0\0\1", 30, MSG_NOSIGNAL, NULL, 0) = 30
+ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=5, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLIN}], left {tv_sec=4, tv_nsec=999814460})
+ioctl(3, FIONREAD, [30])                = 0
+recvfrom(3, "\253\301\201\5\0\1\0\0\0\0\0\0\10wookware\3org\0Q\0\0\1", 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.24")}, [28->16]) = 30
+close(3)                                = 0
+socket(AF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.23")}, 16) = 0
+ppoll([{fd=3, events=POLLOUT}], 1, {tv_sec=0, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLOUT}], left {tv_sec=0, tv_nsec=0})
+sendto(3, "\253\301\1\0\0\1\0\0\0\0\0\0\10wookware\3org\0Q\0\0\1", 30, MSG_NOSIGNAL, NULL, 0) = 30
+ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=5, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLIN}], left {tv_sec=4, tv_nsec=999821220})
+ioctl(3, FIONREAD, [30])                = 0
+recvfrom(3, "\253\301\201\5\0\1\0\0\0\0\0\0\10wookware\3org\0Q\0\0\1", 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.23")}, [28->16]) = 30
+close(3)                                = 0
+socket(AF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.24")}, 16) = 0
+ppoll([{fd=3, events=POLLOUT}], 1, {tv_sec=0, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLOUT}], left {tv_sec=0, tv_nsec=0})
+sendto(3, "\\z\1\0\0\1\0\0\0\0\0\0\10wookware\3org\tcambri"..., 48, MSG_NOSIGNAL, NULL, 0) = 48
+ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=5, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLIN}], left {tv_sec=4, tv_nsec=999820640})
+ioctl(3, FIONREAD, [48])                = 0
+recvfrom(3, "\\z\201\5\0\1\0\0\0\0\0\0\10wookware\3org\tcambri"..., 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.24")}, [28->16]) = 48
+close(3)                                = 0
+socket(AF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.23")}, 16) = 0
+ppoll([{fd=3, events=POLLOUT}], 1, {tv_sec=0, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLOUT}], left {tv_sec=0, tv_nsec=0})
+sendto(3, "\\z\1\0\0\1\0\0\0\0\0\0\10wookware\3org\tcambri"..., 48, MSG_NOSIGNAL, NULL, 0) = 48
+ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=5, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLIN}], left {tv_sec=4, tv_nsec=999814800})
+ioctl(3, FIONREAD, [48])                = 0
+recvfrom(3, "\\z\201\5\0\1\0\0\0\0\0\0\10wookware\3org\tcambri"..., 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.23")}, [28->16]) = 48
+close(3)                                = 0
+socket(AF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.24")}, 16) = 0
+ppoll([{fd=3, events=POLLOUT}], 1, {tv_sec=0, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLOUT}], left {tv_sec=0, tv_nsec=0})
+sendto(3, "\\z\1\0\0\1\0\0\0\0\0\0\10wookware\3org\tcambri"..., 48, MSG_NOSIGNAL, NULL, 0) = 48
+ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=5, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLIN}], left {tv_sec=4, tv_nsec=999818300})
+ioctl(3, FIONREAD, [48])                = 0
+recvfrom(3, "\\z\201\5\0\1\0\0\0\0\0\0\10wookware\3org\tcambri"..., 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.24")}, [28->16]) = 48
+close(3)                                = 0
+socket(AF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.23")}, 16) = 0
+ppoll([{fd=3, events=POLLOUT}], 1, {tv_sec=0, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLOUT}], left {tv_sec=0, tv_nsec=0})
+sendto(3, "\\z\1\0\0\1\0\0\0\0\0\0\10wookware\3org\tcambri"..., 48, MSG_NOSIGNAL, NULL, 0) = 48
+ppoll([{fd=3, events=POLLIN}], 1, {tv_sec=5, tv_nsec=0}, NULL, 0) = 1 ([{fd=3, revents=POLLIN}], left {tv_sec=4, tv_nsec=999816600})
+ioctl(3, FIONREAD, [48])                = 0
+recvfrom(3, "\\z\201\5\0\1\0\0\0\0\0\0\10wookware\3org\tcambri"..., 2048, 0, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.1.2.23")}, [28->16]) = 48
+close(3)                                = 0
+openat(AT_FDCWD, "/lib/aarch64-linux-gnu/libnss_files.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/usr/lib/aarch64-linux-gnu/libnss_files.so.2", O_RDONLY|O_CLOEXEC) = -1 ENOENT (No such file or directory)
+openat(AT_FDCWD, "/lib/libnss_files.so.2", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0\267\0\1\0\0\0000\"\0\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0644, st_size=39168, ...}) = 0
+mmap(NULL, 128288, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0xffff864ac000
+mprotect(0xffff864b5000, 61440, PROT_NONE) = 0
+mmap(0xffff864c4000, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x8000) = 0xffff864c4000
+mmap(0xffff864c6000, 21792, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0xffff864c6000
+close(3)                                = 0
+mprotect(0xffff864c4000, 4096, PROT_READ) = 0
+openat(AT_FDCWD, "/etc/hosts", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=221, ...}) = 0
+read(3, "127.0.0.1\tlocalhost\n127.0.1.1\tde"..., 4096) = 221
+read(3, "", 4096)                       = 0
+close(3)                                = 0
+write(2, "ping: bad address 'wookware.org'"..., 33ping: bad address 'wookware.org'
+) = 33
+exit_group(1)                           = ?
++++ exited with 1 +++

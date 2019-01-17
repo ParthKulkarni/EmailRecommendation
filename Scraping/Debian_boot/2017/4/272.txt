@@ -1,0 +1,55 @@
+To : Frederic Bonnard <frediz@linux.vnet.ibm.com>
+Subject : Bug#860809: installation-reports: ipv6 SLAAC autoconf not working  with stretch's network install
+From : Philipp Kern <pkern@debian.org>
+Date : Mon, 24 Apr 2017 14:20:28 +0200
+Message-id : df7c3835317df1544e0ee85bbdb61c66@mail.kern.pm
+Reply-to : Philipp Kern <pkern@debian.org>, 860809@bugs.debian.org
+In-reply-to : <[🔎] 20170424140944.GB13673@kin.test.toulouse-stg.fr.ibm.com>
+References : <[🔎] 20170420140313.GD24749@kin.test.toulouse-stg.fr.ibm.com> <[🔎] 1e6672888bfec8a5f38a28118972c47c@mail.kern.pm> <[🔎] 20170424140944.GB13673@kin.test.toulouse-stg.fr.ibm.com>
+
+
+Hi Frederic,
+On 2017-04-24 14:09, Frederic Bonnard wrote:
+You seem to indicate that you need to use IPv4 to access the 
+nameserver?
+Is the real failure you report that it did not configure IPv4 
+correctly?
+I managed to get the manual setup menus, by changing the priority of 
+the
+installer, also undoing the IPv6 (if I remember correctly) and so on 
+but
+wrong, but given the ip output, it seems it was in the middle of an 
+IPv6
+the thing is that you received an IP allocation from the IPv6 router on 
+your subnet. That it's 6to4 makes me suspicious that it's a 
+misconfigured ancient Windows Server with ICS on the same subnet. Is 
+that possible?
+We're kind of in a bound here in terms of IPv6: We have received IP 
+addressing and routing but we're not allowed to call home to our servers 
+to check if actual connectivity exists. So we assume that given that one 
+autoconfiguration mechanism exists and succeeded that we don't have to 
+prompt for the other protocol. (The same would happen for IPv4 if there 
+would be a malicious IPv4 DHCP server and static IPv6-only 
+connectivity.)
+I'd somewhat argue that you need to keep your network sane or resort to 
+manual configuration as you did. But it's likely that the latter needs 
+some better documentation, so if you can point at what's missing where, 
+we can add it. :)
+It can be either if you're dual-stacked. If you don't receive an IPv6 
+announcement nor IPv4 DHCP you're prompted for static configuration and 
+you're unlikely to use another protocol in the nameserver prompt. I 
+suppose it said "IPv6 autoconfiguration succeeded" somewhere in the 
+process, but only very briefly. :/
+default via fe80::4e96:14ff:fe59:d7f0 dev enP5p1s0f1  metric 1024  
+expires 0sec
+So 4C:96:14:59:D7:F0 provides broken IPv6 connectivity on the same 
+subnet. It provided you with an address out of 9.3.1.95's 6to4 space. If 
+it'd route and you'd use a valid IPv6 nameserver, you'd be fine.
+However, there's another catch - the one why Windows made so many Linux 
+boxes sad in the past and why things like RA Guard matter: the expiry is 
+set to 0 sec. So it actually says that you shouldn't really send traffic 
+there. And then I suppose that Linux thinks "well, it's better than 
+nothing". On the other hand the address it handed out has a lifetime of 
+5 months. -_-
+Kind regards
+Philipp Kern

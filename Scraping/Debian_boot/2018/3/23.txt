@@ -1,0 +1,37 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#891976: localechooser: Unhelpful modifications to /root/.profile when locale "C" is chosen
+From : Matthew Woodcraft <matthew@woodcraft.me.uk>
+Date : Sat, 3 Mar 2018 15:08:05 +0000
+Message-id : 20180303150805.36coprcfxsm75szi@golux.woodcraft.me.uk
+Reply-to : Matthew Woodcraft <matthew@woodcraft.me.uk>, 891976@bugs.debian.org
+
+
+Package: localechooser
+Version: 2.69
+Severity: normal
+Tags: d-i
+If I install Stretch using Debian-Installer and select language 'C' ('no
+localisation'), and default locale 'C', then I end up with the following
+lines at the end of /root/.profile:
+# Installed by Debian Installer:
+#  no localization for root because C
+#  cannot be properly displayed at the Linux console
+LANG=C
+LANGUAGE=C
+This is mostly harmless, but it causes trouble if I later change
+/etc/default/locale (eg to C.UTF-8).
+This seems to have been going on for the last several Debian releases.
+sources.debian.net suggests that these lines are added by the
+post-base-installer.d/05localechooser script.
+The intention is apparently that those lines would be added if the
+selected language is one which has "no chance to be displayed at the
+Linux console", so I think adding them when the C locale was chosen is a
+bug.
+I don't understand how the code it's using to decide whether to do this
+ends up firing for "C", but in any case it appears to be broken:
+ - it evidently hasn't been updated for changes to the format of the
+   languagelist file ('cut -f 2-3' seems appropriate for the version in
+   etch but not the version in lenny);
+ - it fails to ignore comment lines.
+Perhaps terminals have improved sufficiently that this feature should
+just be removed altogether.

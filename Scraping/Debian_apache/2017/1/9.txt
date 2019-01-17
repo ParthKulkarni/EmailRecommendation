@@ -1,0 +1,36 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#851122: upgrading apache2-utils does not restart htcacheclean
+From : Peter Palfrader <weasel@debian.org>
+Date : Thu, 12 Jan 2017 08:33:34 +0000
+Message-id : 20170112083334.GA32327@sarek.noreply.org
+Reply-to : Peter Palfrader <weasel@debian.org>, 851122@bugs.debian.org
+
+
+Package: apache2-utils
+Version: 2.4.25-1
+Severity: important
+User: debian-admin@lists.debian.org
+Usertags: needed-by-DSA-Team
+Hi,
+I upgraded some debian.org hosts from DSA's build of apache 2.4.23-8 to our
+build of 2.4.25-1 on jessie.
+| 2017-01-11 18:39:36 upgrade apache2-utils:amd64 2.4.23-8~0+dsabpo8+1 2.4.25-1~0+dsabpo8+1
+[..]
+It seems that process does not restart htcacheclean:
+| picconi:~# ps xauf | grep -i htca'[c]'
+| www-data  2130  2.6  0.4  96544 76284 ?        Ss   Jan07 172:20 /usr/bin/htcacheclean -d 15 -p /var/cache/apache2/mod_cache_disk -l 3000M -n -t
+This seems like an oversight.  I would assume a package's services to be
+restarted upon package upgrade.
+Cheers,
+picconi:~# grep '^[^#]' /etc/default/apache-htcacheclean 
+HTCACHECLEAN_RUN=auto
+HTCACHECLEAN_MODE=daemon
+HTCACHECLEAN_SIZE=3000M
+HTCACHECLEAN_DAEMON_INTERVAL=15
+HTCACHECLEAN_PATH=/var/cache/apache2/mod_cache_disk
+HTCACHECLEAN_OPTIONS="-n -t"
+-- 
+                            |  .''`.       ** Debian **
+      Peter Palfrader       | : :' :      The  universal
+ https://www.palfrader.org/ | `. `'      Operating System
+                            |   `-    https://www.debian.org/

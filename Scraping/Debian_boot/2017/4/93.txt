@@ -1,0 +1,341 @@
+To : debian-mirrors@lists.debian.org
+Subject : Re: HTTPS metadata in Mirrors.masterlist?
+From : Axel Beckert <abe@debian.org>
+Date : Thu, 6 Apr 2017 23:20:36 +0200
+Message-id : 20170406212035.GI6510@sym.noone.org
+Mail-followup-to : debian-mirrors@lists.debian.org,	debian-boot@lists.debian.org
+In-reply-to : <8738jkogc5.fsf@gkar.ganneff.de>
+References : <20140211130429.GA18442@riva.ucam.org> <20140211134553.GA20550@riva.ucam.org> <8738jkogc5.fsf@gkar.ganneff.de>
+
+
+Hi,
+sorry for digging up that old thread from 2014, but it's exactly what
+I wanted to bring up, just with today's needs and possibilities:
+* CVE-2016-1252 in APT showed that HTTPS might still bring additional
+  security. After that issue, the amount of people asking for
+  HTTPS-secured Debian mirrors noticeably raised, see e.g. the edits
+  and comments from 2016 to answers to the 2013 question
+  https://unix.stackexchange.com/questions/90227/why-there-is-no-https-transport-for-debian-apt-tool/
+* With Let's Encrypt it's much easier for mirror admins to get SSL
+  certificates for ftp.$COUNTRY.debian.org and their local mirror
+  hostname without having to fall back to using SNI or not providing
+  SSL or at least not proper SSL certificates on all hostnames. (The
+  latter still seems rather common, see below.)
+Joerg Jaspert wrote:
+> On 13484 March 1977, Colin Watson wrote:
+> >> Would it be possible, then, to add "Archive-https: /debian/" to the
+> >> "Site: mirrors.kernel.org" stanza in Mirrors.masterlist, and perhaps
+> >> start maintaining Archive-https fields for other mirrors willing to
+> >> participate?  That would at least get a minimal list started for this
+> >> mode.
+> 
+> The list should be the smallest problem, one more field doesn't matter
+> too much.
+Especially with Let's Encrypt, getting proper SSL certificates for all
+DNS entries pointing to a mirror shouldn't be such a big issue
+anymore. See e.g. https://ftp.ch.debian.org/ aka
+https://debian.ethz.ch/ which have a single SSL certificate for hosts
+under different second-level domains.
+> The biggest problem I see is with what Kurt posted:
+> 
+> > So the first question I have about this if we can get
+> > ftp.TLD.debian.org certificates for this, and what happens when
+> > that host is down and DNS gets pointed to a different host?
+> 
+> > I have to guess that we should only do that on the hostname that
+> > is not ftp.TLD.debian.org, while I think it now only shows that
+> > name?
+> 
+> I see no real problem in getting certificates for those domains - way
+> more interesting is the handling of them. ftp.*.d.o gets pointed around
+> to other mirrors when the usual "owner" of it is down for whatever
+> reason. Depending on the country it may also end up on mirrors really
+> far away (better that than no ftp.whatever.d.o). So some mirror
+> somewhere may not just need one of those certs, but multiple[1]. And a
+> single cert/key must be on loads of mirrors. And then comes handling of
+> renewals too.
+This is probably still an issue despite getting an updated certificate
+via Let's Encrypt can be done much quicker than in the past.
+Nevertheless there still will be a short downtime without valid
+certificate when switching DNS entries.
+A wildcard certificate for selected (e.g. DSA-maintained) mirrors
+which then would be used as backup host for any primary mirror,
+which already provides HTTPS access, would probably suffice.
+Example: When ftp.ch.debian.org goes down for longer maintenance we
+usually redirected that CNAME to one of the hosts around
+kassia.debian.org (ftp.nl.debian.org or similar) where also one of the
+European syncproxies is located.
+So I can imagine the following setup to mitigate this:
+* We track which mirrors (also) provide HTTPS in Mirrors.masterlist.
+* If a primary mirror which doesn't provide HTTPS goes down, we
+  redirect it to the same mirror as we did in the past.
+* If one with HTTPS in central Europe goes down, we redirect it to
+  that mirror on kassia.debian.org given that it will have a wildcard
+  SSL certificate for ftp*.*.debian.org or similar. (We should look at
+  ftp*.*.debian.org instead of just ftp.*.debian.org if possible
+  because of mirrors like ftp2.de.debian.org.)
+And since quite some mirrors already provide access via HTTPS, IMHO we
+should start tracking them independent of having a proper solution to
+temporary CNAME changes or not -- because they're in use already if
+you want it or not.
+So far I'm at least aware of the following working HTTPS mirrors
+(picked out a few I read about in previous mailing list threads or
+found out by quickly checking in a web browser):
+* https://ftp.ch.debian.org/debian/ aka https://debian.ethz.ch/debian/
+  (same mirror but two entries in the Mirrors.masterlist)
+* https://ftp.de.debian.org/debian/
+* https://ftp.cz.debian.org/debian/
+* https://ftp.se.debian.org/debian/ (ftp.no.debian.org seems to point
+  to the same host, but is not yet accessible via HTTPS due to not
+  being listed in the certificate)
+* https://mirrors.kernel.org/debian/
+* https://mirror.sinavps.ch/debian/
+* https://pkg.adfinis-sygroup.ch/debian/
+* https://ftp.halifax.rwth-aachen.de/debian/ (not yet accessible as
+  https://ftp2.de.debian.org/debian/ due to certificate only being
+  valid for ftp.halifax.rwth-aachen.de)
+* https://mirrors.wikimedia.org/debian/ (not yet accessible as
+  https://ftp.us.debian.org/debian/ due to certificate only being
+  valid for mirrors.wikimedia.org)
+* https://mirror.as35701.net/debian/ (not yet accessible as
+  https://ftp.be.debian.org/debian/ due to certificate only being
+  valid for mirror.as35701.net)
+A short scan over all mirrors in the Mirror.masterlist showed that
+more than one third (176, around 38%) of them have at least port 443
+open:
+  → GET https://anonscm.debian.org/viewvc/webwml/webwml/english/mirror/Mirrors.masterlist\?view\=co \
+    | egrep '^Site:' \
+    | awk '{print $2}' \
+    | sort \
+    | while read m ; do nmap -p443 $m; done \
+    > https-mirrors.txt
+  → ( echo -n 'scale=2;'`egrep -c '^443/tcp open  https' https-mirrors.txt`/; \
+      egrep -c '^443/tcp.*https' https-mirrors.txt ) | bc
+  .38
+  → egrep -c '^443/tcp.*https' https-mirrors.txt
+  455
+  → egrep -c '^443/tcp open  https' https-mirrors.txt
+  176
+(Didn't check more certificates or subjectAltNames than those listed
+above yet, though. Full list of hosts I found having port 443 open can
+be found at the end of this mail.)
+After having HTTPS-enabled mirrors listed in the Mirrors.masterlist,
+the next step would be to make httpredir.debian.org HTTPS-aware.
+Currently https://httpredir.debian.org/ shows me the following error
+message:
+  httpredir.debian.org uses an invalid security certificate.
+  The certificate is only valid for www.debian.org
+(Yes, I'm aware that httpredir.debian.org points to quite some
+servers.)
+Luckily the software behind httpredir.debian.org seems to be already
+HTTPS-aware in some way. At least with Kali's HTTP redirector (which I
+assume uses the same software), I get different mirror lists depending
+on if I access the service by HTTP or HTTPS:
+  → GET -SUsed http://http.kali.org/kali/dists/kali-rolling/Release | egrep '^L'
+  Location: http://archive-3.kali.org/kali/dists/kali-rolling/Release
+  Link: <http://http.kali.org/kali/dists/kali-rolling/Release.meta4>; rel=describedby; type="application/metalink4+xml"
+  Link: <http://archive-3.kali.org/kali/dists/kali-rolling/Release>; rel=duplicate; pri=1; geo=de
+  Link: <http://ftp.halifax.rwth-aachen.de/kali/dists/kali-rolling/Release>; rel=duplicate; pri=2; geo=de
+  Link: <http://ftp.belnet.be/kali/kali/dists/kali-rolling/Release>; rel=duplicate; pri=3; geo=be
+  Link: <http://archive-4.kali.org/kali/dists/kali-rolling/Release>; rel=duplicate; pri=4; geo=fr
+  Link: <http://ftp.free.fr/pub/kali/dists/kali-rolling/Release>; rel=duplicate; pri=5; geo=fr
+  Last-Modified: Thu, 06 Apr 2017 12:16:51 GMT
+  → GET -SUsed https://http.kali.org/kali/dists/kali-rolling/Release | egrep '^L'
+  Location: https://ftp.halifax.rwth-aachen.de/kali/dists/kali-rolling/Release
+  Link: <http://http.kali.org/kali/dists/kali-rolling/Release.meta4>; rel=describedby; type="application/metalink4+xml"
+  Link: <https://ftp.halifax.rwth-aachen.de/kali/dists/kali-rolling/Release>; rel=duplicate; pri=1; geo=de
+  Link: <https://archive-3.kali.org/kali/dists/kali-rolling/Release>; rel=duplicate; pri=2; geo=de
+  Link: <https://archive-4.kali.org/kali/dists/kali-rolling/Release>; rel=duplicate; pri=3; geo=fr
+  Link: <https://ftp2.nluug.nl/os/Linux/distr/kali/dists/kali-rolling/Release>; rel=duplicate; pri=4; geo=nl
+  Link: <https://ftp1.nluug.nl/os/Linux/distr/kali/dists/kali-rolling/Release>; rel=duplicate; pri=5; geo=nl
+(And IIRC the Kali installer also offered me to choose if I want HTTP,
+FTP or HTTPS mirrors, at least with debconf priority set to "low". No
+more sure about Debian's installer on my last Stretch installation.)
+Full list of mirrors I found having port 443 open (using the data from
+above mentioned script):
+→ fgrep -B5 '443/tcp open  https' https-mirrors.txt \
+    | fgrep 'Nmap scan report for' \
+    | cut -c22-        
+archive.kernel.org (198.145.20.143)
+archive-klecker.debian.org (130.89.148.13)
+artfiles.org (80.252.110.38)
+buaya.klas.or.id (202.154.57.18)
+cdimage.debian.org (194.71.11.165)
+cosmos.cites.illinois.edu (192.17.174.4)
+deb.debian.org (140.211.166.202)
+debian.anexia.at (37.252.235.254)
+debian.bononia.it (91.121.193.42)
+debian.c3sl.ufpr.br (200.236.31.3)
+debian.charite.de (141.42.206.17)
+debian.cs.binghamton.edu (128.226.116.128)
+debian.dynamica.it (81.208.25.146)
+debian.ethz.ch (129.132.53.171)
+debian.inf.tu-dresden.de (141.76.2.4)
+debian.iskon.hr (213.191.133.160)
+debian.koyanet.lv (85.254.217.235)
+debian.lth.se (130.235.34.30)
+debian.ludost.net (79.98.105.18)
+debian.mirror.ate.info (46.29.125.16)
+debian.mirror.lhisp.com (185.36.180.99)
+debian.mirrors.crysys.hu (152.66.249.132)
+debian.netcologne.de (194.8.197.22)
+debian.osuosl.org (140.211.166.134)
+debian.redimadrid.es (193.145.15.16)
+debian.redparra.com (37.134.4.158)
+debian.revolsys.fr (94.23.208.222)
+debian.simnet.is (194.105.226.20)
+debian.superhosting.cz (95.168.211.41)
+debian.tu-bs.de (134.169.192.30)
+debian.ues.edu.sv (168.232.49.158)
+debian.usu.edu (129.123.104.15)
+debian.uvigo.es (193.146.32.74)
+debian.volia.net (82.144.192.7)
+debian.xtdv.net (118.69.65.177)
+dennou-k.gfd-dennou.org (130.54.59.159)
+dennou-q.gfd-dennou.org (133.5.166.3)
+freedom.dicea.unifi.it (150.217.9.3)
+free.hands.com (78.129.164.123)
+ftp2.cn.debian.org (101.6.6.178)
+ftp2.de.debian.org (137.226.34.46)
+ftp.acc.umu.se (194.71.11.165)
+ftp.antik.sk (88.212.10.12)
+ftp.arnes.si (193.2.1.88)
+ftp.be.debian.org (195.234.45.114)
+ftp.belnet.be (193.190.67.98)
+ftp.bg.debian.org (62.44.96.11)
+ftp.br.debian.org (200.236.31.3)
+ftp.caliu.cat (147.83.91.172)
+ftp.cc.uoc.gr (147.52.159.12)
+ftp.ch.debian.org (129.132.53.171)
+ftp-chi.osuosl.org (64.50.236.52)
+ftp.cn.debian.org (202.38.95.110)
+ftp.crifo.org (163.172.198.88)
+ftp.cz.debian.org (195.113.161.73)
+ftp.debianclub.org (203.150.226.27)
+ftp.debian.cz (195.113.161.73)
+ftp.debian.nl (194.109.21.67)
+ftp.de.debian.org (141.76.2.4)
+ftp.dk.debian.org (130.225.254.116)
+ftp.fau.de (131.188.12.211)
+ftp.gwdg.de (134.76.12.6)
+ftp.halifax.rwth-aachen.de (137.226.34.46)
+ftp.icm.edu.pl (193.219.28.2)
+ftp.iitm.ac.in (203.199.213.69)
+ftp.is.debian.org (194.105.226.20)
+ftp.jaist.ac.jp (150.65.7.130)
+ftp.jp.debian.org (133.5.166.3)
+ftp.lanet.kr (112.169.81.204)
+ftp-master.debian.org (138.16.160.17)
+ftp.metu.edu.tr (144.122.144.177)
+ftp.mpi-sb.mpg.de (139.19.205.14)
+ftp.nluug.nl (145.220.21.40)
+ftp.no.debian.org (194.71.11.165)
+ftp-nyc.osuosl.org (64.50.233.100)
+ftp-osl.osuosl.org (140.211.166.134)
+ftp.rnl.tecnico.ulisboa.pt (193.136.164.6)
+ftp.se.debian.org (194.71.11.165)
+ftp.sg.debian.org (210.23.25.77)
+ftp.sh.cvut.cz (147.32.127.196)
+ftp-stud.hs-esslingen.de (129.143.116.10)
+ftp.tu-graz.ac.at (129.27.3.13)
+ftp.udc.es (193.144.61.75)
+ftp.uk.debian.org (78.129.164.123)
+ftp.uni-mainz.de (134.93.178.166)
+ftp.uni-sofia.bg (62.44.96.11)
+ftp.u-strasbg.fr (130.79.200.5)
+ftp.zcu.cz (147.228.57.10)
+hanzubon.jp (61.115.118.67)
+kambing.ui.edu (152.118.24.30)
+merlin.fit.vutbr.cz (147.229.176.19)
+mirror.0x.sg (210.23.25.77)
+mirror.aarnet.edu.au (202.158.214.106)
+mirror.amaze.com.au (122.252.2.42)
+mirror.applebred.net (103.246.16.176)
+mirror.as35701.net (195.234.45.114)
+mirror.bytemark.co.uk (212.110.161.69)
+mirror.cedia.org.ec (201.159.221.67)
+mirror.checkdomain.de (46.4.50.2)
+mirror.corbina.net (195.14.50.21)
+mirror.crazynetwork.it (93.63.162.59)
+mirror.csclub.uwaterloo.ca (129.97.134.71)
+mirror.cse.iitk.ac.in (202.3.77.108)
+mirror.cse.unsw.edu.au (129.94.242.25)
+mirror.daniel-jost.net (88.198.52.102)
+mirror.de.leaseweb.net (37.58.58.140)
+mirror.dkm.cz (86.49.49.49)
+mirror.hmc.edu (134.173.34.196)
+mirror.i3d.net (213.163.76.200)
+mirror.kku.ac.th (202.28.209.254)
+mirror.liquidtelecom.com (197.155.77.1)
+mirror.litnet.lt (193.219.61.87)
+mirror.math.princeton.edu (128.112.18.21)
+mirror.nexcess.net (208.69.120.55)
+mirror.nforce.com (85.159.239.121)
+mirror.nl.leaseweb.net (5.79.108.33)
+mirror.one.com (46.30.211.12)
+mirror.plusserver.com (85.25.85.13)
+mirror.pmf.kg.ac.rs (147.91.204.28)
+mirror.poliwangi.ac.id (36.67.40.211)
+mirror.positive-internet.com (80.87.134.17)
+mirror.pregi.net (202.90.159.172)
+mirror.rit.edu (129.21.171.72)
+mirrors.acm.jhu.edu (128.220.70.55)
+mirrors.bloomu.edu (148.137.11.75)
+mirrors.cat.pdx.edu (131.252.208.20)
+mirrors.dcarsat.com.ar (186.33.231.17)
+mirrors.dotsrc.org (130.225.254.116)
+mirrorservice.org (212.219.56.184)
+mirrors.evowise.com (89.45.92.5)
+mirror.sinavps.ch (185.73.240.181)
+mirrors.ircam.fr (129.102.1.37)
+mirror.sjc02.svwh.net (72.5.72.15)
+mirrors.kernel.org (198.145.20.143)
+mirrors.linux.iu.edu (156.56.247.193)
+mirrors.lug.mtu.edu (141.219.84.115)
+mirrors.namecheap.com (209.188.21.32)
+mirrors.netix.net (87.121.121.2)
+mirrors.ocf.berkeley.edu (169.229.226.30)
+mirrors.pdx.kernel.org (198.145.20.143)
+mirrors.sfo.kernel.org (149.20.37.36)
+mirrors.syringanetworks.net (66.232.64.7)
+mirror.steadfast.net (208.100.4.53)
+mirrors.tuna.tsinghua.edu.cn (101.6.6.178)
+mirrors.ucr.ac.cr (163.178.174.25)
+mirror.sucs.swan.ac.uk (137.44.10.8)
+mirrors-usa.go-parts.com (69.46.22.133)
+mirrors.ustc.edu.cn (202.38.95.110)
+mirrors.wikimedia.org (208.80.154.15)
+mirrors.xjtu.edu.cn (202.117.3.45)
+mirrors.xmission.com (198.60.22.13)
+mirrors.xservers.ro (89.38.249.150)
+mirror.t-home.mk (195.26.153.65)
+mirror.ueb.edu.ec (190.15.128.196)
+mirror.units.it (140.105.48.55)
+mirror.usertrust.info (24.26.241.22)
+mirror.us.leaseweb.net (108.59.10.97)
+mirror.uta.edu.ec (200.93.227.165)
+mirror.vorboss.net (5.10.144.130)
+mirror.yandex.ru (213.180.204.183)
+oyu-net.jp (61.206.119.174)
+packages.hs-regensburg.de (194.95.104.50)
+pkg.adfinis-sygroup.ch (95.128.34.165)
+pubmirror.plutex.de (109.69.67.245)
+rsync.osuosl.org (140.211.166.134)
+security-master.debian.org (82.195.75.93)
+sft.if.usp.br (143.107.129.14)
+shadow.ind.ntou.edu.tw (140.121.80.200)
+suro.ubaya.ac.id (203.114.224.252)
+syncproxy2.eu.debian.org (130.89.148.10)
+syncproxy2.wna.debian.org (149.20.4.16)
+syncproxy3.eu.debian.org (5.153.231.9)
+syncproxy3.wna.debian.org (209.87.16.40)
+syncproxy.au.debian.org (150.203.164.60)
+syncproxy.cna.debian.org (128.101.240.216)
+the.earth.li (46.43.34.31)
+		Regards, Axel
+-- 
+ ,''`.  |  Axel Beckert <abe@debian.org>, http://people.debian.org/~abe/
+: :' :  |  Debian Developer, ftp.ch.debian.org Admin
+`. `'   |  4096R: 2517 B724 C5F6 CA99 5329  6E61 2FF9 CD59 6126 16B5
+  `-    |  1024D: F067 EA27 26B9 C3FC 1486  202E C09E 1D89 9593 0EDE
+signature.asc

@@ -1,0 +1,53 @@
+To : submit@bugs.debian.org
+Subject : Bug#897379: debian-common path if DEBOOTSTRAP_DIR in use
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Tue, 1 May 2018 19:46:36 +0200
+Message-id : 20180501174636.GA2924@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 897379@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.97
+Severity: minor
+Tags: patch
+Dear Maintainer,
+It seems that using the variable DEBOOTSTRAP_DIR may result in some strange 
+behavior. (/usr/sbin/debootstrap gives an unconditionnal priority to 
+DEBOOTSTRAP_DIR if set, and /usr/share/debootstrap/scripts/sid not)
+I test debootstrap version 1.0.97 on an amd64 host (debian 8 jessie, 
+debootstrap is installed)
+# dpkg -l debootstrap
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+||/ Name                               Version                Architecture           Description
++++-==================================-======================-======================-===============================
+ii  debootstrap                        1.0.67+deb8u1          all                    Bootstrap a basic Debian system
+# tar -zxf debootstrap_1.0.97.tar.gz
+# DEBOOTSTRAP_DIR=debootstrap-1.0.97 debootstrap-1.0.97/debootstrap sid mychroot
+# echo $?
+2
+# cat mychroot/debootstrap/debootstrap.log
+debootstrap-1.0.97/debootstrap: 9: .: Can't open /usr/share/debootstrap/scripts/debian-common
+The patch below solved the problem for me (DEBOOTSTRAP_DIR is set at the 
+beginning of /usr/sbin/debootstrap. I suppose scripts/etch and scripts/kali 
+deserve the same change).
+Thank you for your ongoing work on debootstrap !
+Regards,
+JH Chatenet
+diff -Naur debootstrap-1.0.97/scripts/sid debootstrap-1.0.97/scripts/sid
+--- debootstrap-1.0.97/scripts/sid 2018-04-17 04:06:32.000000000 +0200
++++ debootstrap-1.0.97/scripts/sid      2018-04-25 23:23:21.251598553 +0200
+@@ -5,10 +5,10 @@
+ keyring /usr/share/keyrings/debian-archive-keyring.gpg
+ # include common settings
+-if [ -d /usr/share/debootstrap/scripts ]; then
+- . /usr/share/debootstrap/scripts/debian-common
++if [ -e "$DEBOOTSTRAP_DIR/debian-common" ]; then
++ . "$DEBOOTSTRAP_DIR/debian-common"
+ elif [ -e "$DEBOOTSTRAP_DIR/scripts/debian-common" ]; then
+  . "$DEBOOTSTRAP_DIR/scripts/debian-common"
+ else
+- . /debootstrap/debian-common
++ error 1 NOCOMMON "debian-common cannot be found."
+ fi

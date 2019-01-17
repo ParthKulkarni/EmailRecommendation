@@ -1,0 +1,24 @@
+To : 872410@bugs.debian.org
+Subject : Bug#872410: bts
+From : Jörg Schulz <jschulz@sgbs.de>
+Date : Mon, 30 Apr 2018 17:24:22 +0200
+Message-id : 612a7e5c-bf68-6f4f-21ce-48d6a8710f2c@sgbs.de
+Reply-to : Jörg Schulz <jschulz@sgbs.de>, 872410@bugs.debian.org
+References : <2365093.Fpk48EIQC0@victory>
+
+
+Hello,
+I have the same problem as reported here. Hardware is an Intel NUC7i5.
+Digging a little deeper into the problem it looks like a timing issue to me.
+The sata-modules udeb is loaded. It contains the ahci-module and after
+"depmod -a" (line 33 @ bin/hw-detect) the ahci-module appears in
+"modules.dep". So far everything seems to be fine.
+The problem is around "update-dev" (line 233 @ bin/hw-detect). This
+issues "udevadm trigger --action=add" but after that the ahci-module
+is NOT loaded.
+Delaying the "update-dev" command by adding a "sleep 3" in front of it 
+results in a normally loaded ahci-module. "sleep 2" isn't enough on my
+Interestingly: placing an "udevadm control --reload" in front of 
+"update-dev" instead of "sleep 3" does the job but it only delays the 
+"update-dev" command by less than 1 second.
+Jörg

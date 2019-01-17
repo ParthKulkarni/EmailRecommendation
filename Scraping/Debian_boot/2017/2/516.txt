@@ -1,0 +1,99 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#856210: libdebian-installer: please parse SHA256 field and add it to di_* structs
+From : Steven Chamberlain <steven@pyro.eu.org>
+Date : Tue, 28 Feb 2017 13:07:51 +0000
+Message-id : 20170228130750.GC53239@pyro.eu.org
+Reply-to : Steven Chamberlain <steven@pyro.eu.org>, 856210@bugs.debian.org
+In-reply-to : <[🔎] 20170228031150.GD5630@mraw.org>
+References : <[🔎] 20170226162506.GB86601@pyro.eu.org> <[🔎] 20170226183030.GG86601@pyro.eu.org> <[🔎] 20170226210653.GA15975@shell.thinkmo.de> <[🔎] 20170227154044.GG68952@pyro.eu.org> <[🔎] 20170228031150.GD5630@mraw.org>
+
+
+Thanks for your comments!
+Cyril Brulebois wrote:
+> Steven Chamberlain <steven@pyro.eu.org> (2017-02-27):
+> > (If we really wanted, we could maybe avoid the ABI bump: [...]
+> 
+> Given the number of reverse dependencies, I doubt this is worth abusing
+> md5 storage for sha256 things.
+Maybe I should clarify that;  the current libdebian-installer/0.108 has:
+di_package struct {
+	...
+	char *md5sum; // -> dynamically allocated md5sum field
+	...
+}
+and we'd be changing it to:
+di_package struct {
+	...
+	char *sha256; // -> dynamically allocated sha256 field
+	...
+}
+("Sum" was dropped from name of that field in the Release file, so I do
+the same here)
+Changing the name, causes reverse-deps using that field to FTBFS.  I
+think that is just anna and cdebootstrap, which we'd patch anyway.
+The md5sum/sha256 field is a pointer to a dynamically-allocated field.
+The struct size, and the offset of other members does not change, so
+nothing else should need rebuilding with the newer package.h
+"If" somehow, we missed something, which tries to dereference
+package->md5sum at run-time with a new version of libdebian-installer,
+it would find a sha256 hash there instead of md5.  That should fail
+"safely" by complaining of a md5sum mismatch (even if it only compares
+the first 32 bytes, as cdebootstrap does currently).
+That's why I think an ABI bump could be safely avoided.  (And I think
+Bastian agrees now?)
+> Bumping the ABI seems reasonable to me,
+> even if that's effectively starting a mini-transition from a release
+> point of view.
+[...]
+> > -Package: libdebian-installer4-dev
+> > +Package: libdebian-installer5-dev
+> 
+> Please don't!
+You suggest to "bump the ABI" but not rename the packages?  or...?
+Maybe the argument above is convincing enough to just not bump the ABI?
+> > --- a/include/debian-installer/release.h
+> > +++ b/include/debian-installer/release.h
+> > @@ -40,7 +40,7 @@ struct di_release
+> >    char *origin;                                 /**< Origin field */
+> >    char *suite;                                  /**< Suite field */
+> >    char *codename;                               /**< Codename field */
+> > -  di_hash_table *md5sum;                        /**< checksum fields, includes di_release_file */
+> > +  di_hash_table *sha256;                        /**< checksum fields, includes di_release_file */
+> >    di_mem_chunk *release_file_mem_chunk;         /**< @internal */
+> >  };
+> 
+> So md5sum goes away from the di_release struct…
+Yes, the same as with di_package;  that preserves ABI compatibility,
+and getting rid of md5sum is also our intent.
+> 
+> >  
+> > @@ -55,7 +55,7 @@ struct di_release_file
+> >      di_rstring key;                             /**< @internal */
+> >    };
+> >    unsigned int size;                            /**< size */
+> > -  char *sum[2];                                 /**< checksums, currently md5 and sha1 */
+> > +  char *sum[2];                                 /**< checksums, currently md5 and sha256 */
+> 
+> … but is kept in the di_release_file one?
+Right, this struct currently contains:
+char *sum[0] -> dynamically allocated md5sum field
+char *sum[1] -> dynamically allocated sha1 field
+so that is what reverse-depends expect to be in those fields,
+currently.  To keep ABI comptibility, I should keep two items there.
+The sha1 field is always empty, since that was removed from the Release
+file.  We could either:
+  1. replace sum[0] with sha256 and leave sum[1] empty;  or
+  2. leave sum[0] containing md5 but replace sum[1] with sha256
+My patch did 2. because it results in a smaller diff.  But I like the
+idea of doing 1. instead (we would drop the MD5- and SHA1-parsing code
+and make absolutely sure nobody is still using those).
+If I did 1. and we didn't bump the ABI, it should be easy to test:
+  * we'd patch+update only libdebian-installer, then test:
+    anna should abort the install, due to mismatching md5sums;
+  * then we'd patch anna, and it should all work again;  one could
+    also delete the /usr/bin/md5sum symlink while testing.
+Regards,
+-- 
+Steven Chamberlain
+steven@pyro.eu.org
+signature.asc

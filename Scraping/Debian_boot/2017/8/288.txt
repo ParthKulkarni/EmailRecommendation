@@ -1,0 +1,69 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#873465: apt: wrongly reports failure on 'update' on mips64el, triggers d-i FTBFS
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 28 Aug 2017 06:24:50 +0200
+Message-id : 20170828042450.2910.72095.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 873465@bugs.debian.org
+
+
+Package: apt
+Version: 1.5~beta2
+Severity: serious
+Tags: d-i
+Justification: triggers FTBFS
+(Please keep debian-boot@ in the loop.)
+Hi,
+Daily builds of the Debian Installer on mips64el have started erroring
+out on 2017-08-19 with what I believed was some kind of network issue;
+but we've just hit the very same issue on the buildd when trying to
+build the actual debian-installer release:
+  https://buildd.debian.org/status/fetch.php?pkg=debian-installer&arch=mips64el&ver=20170828&stamp=1503891562&raw=0
+Excerpt:
+| Using generated sources.list.udeb:
+|    deb [trusted=yes] copy:/<<PKGBUILDDIR>>/build/ localudebs/
+|    deb http://ftp.at.debian.org/debian buster main/debian-installer
+|    deb http://ftp.debian.org/debian buster main/debian-installer
+| make[7]: 'sources.list.udeb' is up to date.
+| Ign:1 copy:/<<PKGBUILDDIR>>/build localudebs/ InRelease
+| Ign:2 copy:/<<PKGBUILDDIR>>/build localudebs/ Release
+| Get:3 http://ftp.at.debian.org/debian buster InRelease [124 kB]
+| Ign:4 copy:/<<PKGBUILDDIR>>/build localudebs/ Packages
+| Ign:4 copy:/<<PKGBUILDDIR>>/build localudebs/ Packages
+| Ign:4 copy:/<<PKGBUILDDIR>>/build localudebs/ Packages
+| Get:4 copy:/<<PKGBUILDDIR>>/build localudebs/ Packages [20 B]
+| Get:5 http://ftp.debian.org/debian buster InRelease [124 kB]
+| Get:6 http://ftp.at.debian.org/debian buster/main/debian-installer mips64el Packages [55.7 kB]
+| Get:7 http://ftp.debian.org/debian buster/main/debian-installer mips64el Packages [55.7 kB]
+| Fetched 358 kB in 1s (280 kB/s)
+| Reading package lists...
+| E: Some index files failed to download. They have been ignored, or old ones used instead.
+AFAICT, everything looks good and matches what happens on e.g. amd64:
+| Using generated sources.list.udeb:
+|    deb [trusted=yes] copy:/<<PKGBUILDDIR>>/build/ localudebs/
+|    deb http://mirror.bm.debian.org/debian buster main/debian-installer
+|    deb http://ftp.debian.org/debian buster main/debian-installer
+| make[9]: 'sources.list.udeb' is up to date.
+| Ign:1 copy:/<<PKGBUILDDIR>>/build localudebs/ InRelease
+| Ign:2 copy:/<<PKGBUILDDIR>>/build localudebs/ Release
+| Ign:3 copy:/<<PKGBUILDDIR>>/build localudebs/ Packages
+| Ign:3 copy:/<<PKGBUILDDIR>>/build localudebs/ Packages
+| Ign:3 copy:/<<PKGBUILDDIR>>/build localudebs/ Packages
+| Get:3 copy:/<<PKGBUILDDIR>>/build localudebs/ Packages [20 B]
+| Get:4 http://mirror.bm.debian.org/debian buster InRelease [124 kB]
+| Get:5 http://ftp.debian.org/debian buster InRelease [124 kB]
+| Get:6 http://mirror.bm.debian.org/debian buster/main/debian-installer amd64 Packages [50.5 kB]
+| Get:7 http://ftp.debian.org/debian buster/main/debian-installer amd64 Packages [50.5 kB]
+| Fetched 348 kB in 0s (563 kB/s)
+| Reading package lists...
+| Reading package lists...
+Given apt 1.5~beta2 was uploaded on the evening of the 17th, it probably
+reached the archive on the 18th, and was first used in the build chroot
+for the 0030Z build on the 19th. I'm filing this against apt since it
+seems clear to me there were no actual download errors, but it also
+seems likely that apt might be encountering gcc-7 related
+miscompilations, see #871514.
+In any case, a speedy fix would be much appreciated, as this is a
+blocker for the D-I Buster Alpha 1 release (which has already been
+delayed way too much for other reasons).
+Thanks for your time.
+KiBi.

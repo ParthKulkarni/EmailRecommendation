@@ -1,0 +1,74 @@
+To : Mike <daydreaminboy@gmail.com>
+Subject : Bug#826511: Aarch64 QEMU Bug
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 4 Feb 2017 05:16:22 +0100
+Message-id : 20170204041622.GB8024@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 826511@bugs.debian.org
+In-reply-to : <20160707152829.GA2437@excalibur.cnev.de>
+References : <CAGmGnXdQ-4vfQ35PC_u4zSN+DZUS1f7vu5Aqagto304ETseSzw@mail.gmail.com> <20160707152829.GA2437@excalibur.cnev.de>
+
+
+Control: tag -1 moreinfo
+Hi Mike,
+We're still waiting for your input, see Karsten's reply, quoted in full
+below:
+Karsten Merker <merker@debian.org> (2016-07-07):
+> On Sun, Jun 05, 2016 at 04:22:57PM -0400, Mike wrote:
+> 
+> > Package: debian-installer
+> > Version: 20160516+b1
+> > 
+> > Installing Debian using QEMU aarch64 (and looks like arm as well) requires
+> > extra steps due to lack of initrd and kernel support for virtio devices. While
+> > there is a workaround documented below, this seems like something that should
+> > be added to the distro build to incorporate support directly.
+> > 
+> > https://gmplib.org/~tege/qemu.html
+> > 
+> > See block 14.
+> 
+> I have just tried running a current arm64 debian-installer build
+> in qemu as described above and the network is functional there:
+> 
+> ~ # ip addr
+> 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue qlen 1
+>     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+>     inet 127.0.0.1/8 scope host lo
+>        valid_lft forever preferred_lft forever
+>     inet6 ::1/128 scope host 
+>        valid_lft forever preferred_lft forever
+> 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast qlen
+> 1000
+>     link/ether 52:54:00:12:34:56 brd ff:ff:ff:ff:ff:ff
+>     inet 10.0.2.15/24 scope global eth0
+>        valid_lft forever preferred_lft forever
+>     inet6 fec0::5054:ff:fe12:3456/64 scope site dynamic 
+>        valid_lft 86168sec preferred_lft 14168sec
+>     inet6 fe80::5054:ff:fe12:3456/64 scope link 
+>        valid_lft forever preferred_lft forever
+> 
+> ~ # lsmod
+> Module                  Size  Used by
+> virtio_blk             12059  0
+> virtio_net             30113  0
+> virtio_mmio             7649  0
+> virtio_ring            16560  3 virtio_blk,virtio_net,virtio_mmio
+> virtio                  7902  3 virtio_blk,virtio_net,virtio_mmio
+> 
+> Does the problem still occur for you with a current d-i build?
+> 
+> The test setup was as follows:
+> 
+> $ wget https://d-i.debian.org/daily-images/arm64/daily/netboot/debian-installer/arm64/linux
+> $ wget https://d-i.debian.org/daily-images/arm64/daily/netboot/debian-installer/arm64/initrd.gz
+> $ qemu-img create disk.img 10G
+> $ qemu-system-aarch64 -M virt -cpu cortex-a57 -m 256 -drive file=disk.img,if=none,id=blk -device virtio-blk-device,drive=blk -net user,hostfwd=tcp::2014-:22 -device virtio-net-device,vlan=0 -kernel linux -initrd initrd.gz -append "console=ttyAMA0 --"  -nographic
+> 
+> Regards,
+> Karsten
+> -- 
+> Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+> sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+> Werbung sowie der Markt- oder Meinungsforschung.
+KiBi.
+signature.asc

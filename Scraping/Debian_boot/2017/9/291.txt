@@ -1,0 +1,56 @@
+To : debian-boot@lists.debian.org
+Subject : Re: A survey of boot process in Debian on i386 with Legacy BIOS
+From : Lee Fisher <unifex@riseup.net>
+Date : Sun, 24 Sep 2017 09:55:01 -0700
+Message-id : 1b258ff9-e077-8cab-629d-2982ebaba8ef@riseup.net
+In-reply-to : <[🔎] 41c3f6ff-392f-df08-ca12-2ceaeae23372@cloud85.net>
+References : <[🔎] df4fefca-35a1-db93-7654-8e73fe570606@cloud85.net> <[🔎] 65dbf562-a126-8afd-c9d8-992c2895b80b@riseup.net> <[🔎] 41c3f6ff-392f-df08-ca12-2ceaeae23372@cloud85.net>
+
+
+On 09/24/2017 06:11 AM, Richard Owlett wrote:
+> [...]
+> Four of the references will do nicely to update my 1970's
+> preconceptions [...]
+I should have also mentioned 3 other key documents: NIST SP 800-147,
+800-147b, 800-155, and the recent 800-193. These are NIST's attempt at
+securing the system firmware, spec'ing out the security features that
+BIOS lacked, that TPMs, UEFI Secure Boot and coreboot Verified Boot
+start to add.
+Beyond the above NIST docs, the CC/NSA/NIAP protection profile for BIOS
+is also a good read for a description of the attack problem.
+https://www.niap-ccevs.org/Profile/Info.cfm?id=306
+Another book to add to list, which is mostly Atom and BIOS-centric:
+https://www.elsevier.com/books/modern-embedded-computing/barry/978-0-12-391490-3
+Note that if you stop at BIOS, you're not quite updated yet. BIOS is now
+becoming legacy, UEFI is the new standard on some systems (Apple,
+Windows PCs). Coreboot uses BIOS payloads on x86-based ChromeOS systems.
+AFAICT most Linux servers are moving to UEFI. Modern malware often
+infect the BIOS MBR. With Secure Boot disabled (eg, Fast Boot), UEFI is
+nearly as insecure as BIOS. To stay current with BIOS, look at the
+SeaBIOS project. And see how ChromeOS uses BIOS payloads on Intel (not
+ARM) systems. UEFI-based firmwaer can also support BIOS (CSM, Legacy
+Mode) systems.
+The firmware of most modern Intel systems use Intel FSP to init their
+code. AMD uses AGESA. Understanding how BIOS or UEFI uses FSP is needed
+for boot process. There's a European IBV -- whose name I forget at the
+moment, apologies -- that focuses on i386 systems and has a
+non-FSP-based BIOS.
+Beyond the main system firmware image, a modern system has an
+uncountable number of firmware blobs. NIST SP 800-193 gives a good
+overview of the various firmware components on a modern system, as does
+the CHIPSEC Project's HAL.
+Beyond simple local boot case, there's also remote boot. BIOS has has
+remote boot (RPL) for years, for "diskless workstations". Today, PXE and
+UEFI HTTP[S] Boot are used. Peripheral firmware impacts local boot,
+impacted by the PCIe option ROMs, USB firmware enables lots of attacks.
+Also, these days, the simple model of an untrusted system firmware (eg,
+BIOS) is getting less and less common. Most system firmware runs under
+some kind of management mode Trusted/Secure Execution Environment
+(TEE/SEE) (Intel SMM, Intel ME, Intel AMT, ARM TrustZone, AMD PSP, etc.)
+In recent years, attackers are learning how to host their malware from
+SMM, ME, AMT, and other places in UEFI. And there's a lot of 'OOB'
+firmware management software, IPMI, iLO, Intel AMT, DMTF Redfish, DMTF
+DASH and SMASH. Those have interactions at the OS- and firmware level,
+the latter even when the system is powered-off. These days, Intel Boot
+Guard is another factor in boot process, before Secure Boot.
+HTH

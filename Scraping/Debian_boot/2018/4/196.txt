@@ -1,0 +1,27 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>, 840372@bugs.debian.org
+Subject : Bug#840372: debootstrap: second-stage fails within systemd-nspawn: proc already mounted
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Thu, 19 Apr 2018 10:06:49 +0200
+Message-id : 20180419080649.GF8532@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 840372@bugs.debian.org
+In-reply-to : <[🔎] 20180417234733.6533982aff571b1ba0b53158@iijmio-mail.jp>
+References : <20161011015051.30918.79686.reportbug@pxe> <[🔎] 20180417234733.6533982aff571b1ba0b53158@iijmio-mail.jp> <20161011015051.30918.79686.reportbug@pxe>
+
+
+On Tue, 17 Apr 2018, Hideki Yamane wrote:
+> > So it looks like systemd-nspawn already took care of mounting /proc and
+> > debootstrap fails when trying to do the same? Maybe debootstrap could
+> > just skip mounting /proc if this mount is already present?
+> 
+>  Here's a proposed patch.
+Your patch will try to umount /proc even if it has not been mounted by
+debootstrap. That's wrong. If you detect that /proc was handled outside of
+debootstrap, then you should also not umount it.
+And the handling of /sys should be entirely separate from /proc. Even if
+/proc was already mounted, you want debootstrap to ensure that /sys is
+mounted too.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

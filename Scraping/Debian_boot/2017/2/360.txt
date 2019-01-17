@@ -1,0 +1,103 @@
+To : Samuel Thibault <sthibault@debian.org>, 855134@bugs.debian.org
+Subject : Bug#855134: installation-guide: mips related cleanups and updates
+From : Holger Wansing <linux@wansing-online.de>
+Date : Fri, 17 Feb 2017 20:50:37 +0100
+Message-id : 20170217205037.de73507d6ce5cf27f6e41d97@wansing-online.de
+Reply-to : Holger Wansing <linux@wansing-online.de>, 855134@bugs.debian.org
+In-reply-to : <[🔎] 20170216235431.vnq7eutcjtufiksn@var.youpi.perso.aquilenet.fr>
+References : <[🔎] 4180d938-ad71-8bc0-7d8a-68702799832b@debian.org>	<[🔎] 20170216190823.f8edc7fe7946fc29d1cdfa99@wansing-online.de>	<[🔎] 20170216235431.vnq7eutcjtufiksn@var.youpi.perso.aquilenet.fr>
+
+
+Hi,
+Samuel Thibault <sthibault@debian.org> wrote:
+> Holger Wansing, on jeu. 16 févr. 2017 19:08:23 +0100, wrote:
+> > James Cowgill <jcowgill@debian.org> wrote:
+> > > I've done a bit of cleaning up on the MIPS related part of the
+> > > installation guide. Mostly I have removed some old platforms which will
+> > > no longer be supported in Stretch and rewritten the supported platforms
+> > > section.
+> > 
+> > Someone already working on this?
+> > Shall I look into committing it?
+> 
+> I'd say feel free to :)
+> 
+> Ideally along the way the few .xml translations should at least get the
+> dropping of text. The po translations should be getting very fine.
+I have committed most of the changings and synced translations where possible.
+But I did not commit patch #2:
+Subject: [PATCH 02/11] Add full MIPS arch names to d/archlist
+---
+ debian/archlist | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+diff --git a/debian/archlist b/debian/archlist
+index 581f225..7c41b5a 100644
+--- a/debian/archlist
++++ b/debian/archlist
+@@ -10,9 +10,9 @@ armel	ARM softfloat
+ armhf	ARM harffloat
+ #hppa	PA-RISC (hppa)
+ #ia64	IA-64
+-mips	Mips
+-mips64el	Mipsel 64
+-mipsel	Mipsel
++mips	32-bit MIPS (big-endian)
++mips64el	64-bit MIPS (little-endian)
++mipsel	32-bit MIPS (little-endian)
+ #powerpc	PowerPC
+ ppc64el	PowerPC
+ s390x	S/390
+... since I'm unsure where these changings influence. Where are these names
+used?
+Additionally, I would like to propose a changing to the supported archs table,
+which currently looks this (the mips part):
+├────────────────────┼──────────────┼──────────────────────────────┼──────────┤
+│                    │              │MIPS Malta (32 bit)           │4kc-malta │
+│32bit MIPS          │              ├──────────────────────────────┼──────────┤
+│(big-endian)        │mips          │MIPS Malta (64 bit)           │5kc-malta │
+│                    │              ├──────────────────────────────┼──────────┤
+│                    │              │Cavium Octeon                 │octeon    │
+├────────────────────┼──────────────┼──────────────────────────────┼──────────┤
+│                    │              │MIPS Malta                    │5kc-malta │
+│64bit MIPS          │              ├──────────────────────────────┼──────────┤
+│(little-endian)     │mips64el      │Cavium Octeon                 │octeon    │
+│                    │              ├──────────────────────────────┼──────────┤
+│                    │              │Loongson 3                    │loongson-3│
+├────────────────────┼──────────────┼──────────────────────────────┼──────────┤
+│                    │              │MIPS Malta (32 bit)           │4kc-malta │
+│                    │              ├──────────────────────────────┼──────────┤
+│32bit MIPS          │              │MIPS Malta (64 bit)           │5kc-malta │
+│(little-endian)     │mipsel        ├──────────────────────────────┼──────────┤
+│                    │              │Cavium Octeon                 │octeon    │
+│                    │              ├──────────────────────────────┼──────────┤
+│                    │              │Loongson 3                    │loongson-3│
+├────────────────────┼──────────────┼──────────────────────────────┼──────────┤
+I would propose to delete the "Mips Malta (64 bit)" entries from the 32bit MIPS
+lines (mips and mipsel), since they are contained in the "MIPS Malta" entry
+within the 64bit MIPS line.
+That would lead to something like this:
+├────────────────────┼──────────────┼──────────────────────────────┼──────────┤
+│                    │              │Mips Malta                    │4kc-malta │
+│32bit MIPS          │mips          ├──────────────────────────────┼──────────┤
+│(big-endian)        │              │Cavium Octeon                 │octeon    │
+├────────────────────┼──────────────┼──────────────────────────────┼──────────┤
+│                    │              │MIPS Malta                    │5kc-malta │
+│64bit MIPS          │              ├──────────────────────────────┼──────────┤
+│(little-endian)     │mips64el      │Cavium Octeon                 │octeon    │
+│                    │              ├──────────────────────────────┼──────────┤
+│                    │              │Loongson 3                    │loongson-3│
+├────────────────────┼──────────────┼──────────────────────────────┼──────────┤
+│                    │              │Mips Malta                    │4kc-malta │
+│32bit MIPS          │mipsel        ├──────────────────────────────┼──────────┤
+│(little-endian)     │              │Cavium Octeon                 │octeon    │
+│                    │              ├──────────────────────────────┼──────────┤
+│                    │              │Loongson 3                    │Loongson-3│
+├────────────────────┼──────────────┼──────────────────────────────┼──────────┤
+Any objections?
+Holger
+-- 
+============================================================
+Created with Sylpheed 3.5.0 under
+	D E B I A N   L I N U X   8 . 0   " J E S S I E " .
+Registered Linux User #311290 - https://linuxcounter.net/
+============================================================

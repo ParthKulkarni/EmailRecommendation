@@ -1,0 +1,45 @@
+To : Ben Hutchings <ben@decadent.org.uk>
+Subject : Re: Busybox in Debian
+From : Denys Vlasenko <vda.linux@googlemail.com>
+Date : Mon, 14 Aug 2017 16:42:51 +0200
+Message-id : CAK1hOcNzzcub+EMwSEjCT2vSa5Baeh07Sw+hdQL=_JBV_=Y40w@mail.gmail.com
+In-reply-to : <[🔎] CAK1hOcN5_jMLXw-CUzBgSS2is3AFSrTFiayrv675=GLnp795vA@mail.gmail.com>
+References : <[🔎] 1a91f977-6d0f-5ad4-f026-fcfa854386bd@debian.org> <[🔎] CAK1hOcOaF_P7wGoE-qijHymB_DCMtJjM5KVEmGKPbj_wwowPBQ@mail.gmail.com> <[🔎] db152795-1058-ce5e-cc2b-d05c55e61d3c@debian.org> <[🔎] 1502547324.3944.2.camel@decadent.org.uk> <[🔎] CAK1hOcMvhAZNzs_LzbBgdOKFupAKxvQJHGDGH-k0othXBbMojw@mail.gmail.com> <[🔎] 1502715907.3688.10.camel@decadent.org.uk> <[🔎] CAK1hOcN5_jMLXw-CUzBgSS2is3AFSrTFiayrv675=GLnp795vA@mail.gmail.com>
+
+
+>> ipconfig
+Looks like it is used to run DHCP / BOOTP / RARP
+on several interfaces, including a possibility
+to run it on _all_ existing interfaces
+(excluding loopback and point-to-point).
+I see how this can be useful during boot.
+>> minips
+It's just mini-ps. Proliferation of reinvented tools
+with slightly different names.
+>> nuke
+This is "rm -rf -- FILE". Should not be necessary.
+>> resume
+Writes "maj:min:offset" to /sys/power/resume.
+Looks like this is support for resume from disk?
+>> run-init
+This tool is doing this:
+Usage: exec run-init [-d caps] [-c consoledev] /real-root /sbin/init [args]
+/*
+ * run_init(realroot, consoledev, drop_caps, init, initargs)
+ *
+ * This function should be called as the last thing in kinit,
+ * from initramfs, it does the following:
+ *
+ * - Delete all files in the initramfs;
+ * - Remounts /real-root onto the root filesystem;
+ * - Chroots;
+ * - Drops comma-separated list of capabilities;
+ * - Opens /dev/console;
+ * - Spawns the specified init program (with arguments.)
+ *
+ * On failure, returns a human-readable error message.
+ */
+There is the "switch_root" tool in util-linux which does the
+crucial part of this functionality - deleting / remounting / chrooting.
+It is in bbox too.
+If you want "resume" and "ipconfig" in bbox, I can do that.

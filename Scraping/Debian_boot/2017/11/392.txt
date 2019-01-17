@@ -1,0 +1,39 @@
+To : Colin Watson <cjwatson@debian.org>
+Subject : Bug#868848: debian-installer-utils: "list-devices partition" should report LVM logical volumes too
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Mon, 27 Nov 2017 21:53:24 +0100
+Message-id : 20171127205324.GA31142@x260-buxy
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 868848@bugs.debian.org
+In-reply-to : <20171029154332.gnifgwzlkcdctnxo@riva.ucam.org>
+References : <20170719082959.vc4u4bp26guxkzgu@home.ouaza.com> <20171029154332.gnifgwzlkcdctnxo@riva.ucam.org> <20170719082959.vc4u4bp26guxkzgu@home.ouaza.com>
+
+
+Control: tag -1 + pending
+Hi,
+On Sun, 29 Oct 2017, Colin Watson wrote:
+> I think this is basically a reasonable thing to do, but it seems to me
+> that it's going to cause rescue-mode to list LVs twice (see the
+> choose_root function).  Could you fix that?  A sensible approach would
+> probably be to exclude entries from LVMPARTS that are already in
+> PARTITIONS, and we can simplify that later once the new list-devices is
+> in place.
+I fixed that by simply deduplicating the entries (with sort -u) after
+having collated all entries to display.
+See https://anonscm.debian.org/cgit/d-i/rescue.git/commit/?id=cfcb7296b519f462395bcf7a63c1ed7da897b5d7
+> > and I'm not convinced that it's really required either (it's not a
+> > requirement for iso-scan at least). I'm ccing Colin, he might have
+> > some insight to share on this.
+> 
+> I could go either way on this, but I think it would probably make most
+> sense to exclude partitions already in use by VGs.  "list-devices
+> partition" is generally used to offer menus of partitions to find
+> various files on, for which in-use PVs aren't going to be eligible; and
+> the LVM assembly code uses its own code to find partitions.
+Done. I pushed my changes.
+https://anonscm.debian.org/cgit/d-i/debian-installer-utils.git/commit/?id=7e7e7905fb9805244274b93ae5280354d642125b
+https://anonscm.debian.org/cgit/d-i/debian-installer-utils.git/commit/?id=3b2e9de85580f384e234aa787ae8a9e0b677f62e
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

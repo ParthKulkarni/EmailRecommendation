@@ -1,0 +1,151 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: Bug#886968: btrfs-progs-udeb: depends on non-udeb: libzstd1
+From : Dimitri John Ledkov <xnox@debian.org>
+Date : Fri, 20 Apr 2018 14:29:30 +0100
+Message-id : CANBHLUgqM+1pOe3RjqDtFc7nm1haHDiLYA8+eL=sP8pkNXwtfg@mail.gmail.com
+In-reply-to : <[🔎] 20180417233051.ur3lagkphdy3myky@mraw.org>
+References : <151571322653.16403.9246774229958587686.reportbug@armor.home> <20180115002702.eiwbeol2whkh74da@mraw.org> <CANBHLUiZ3wV4m8LjQ01_1==O34dg7EQu7AVRgeiCKL3drGEg6A@mail.gmail.com> <[🔎] 20180417180143.yyi4qapbqcm6fk6p@mraw.org> <[🔎] CANBHLUgmcV4kY2M7_FCbBViouybY45kA_tvx3T+-u5S56vnROQ@mail.gmail.com> <[🔎] 20180417233051.ur3lagkphdy3myky@mraw.org>
+
+
+On 18 April 2018 at 00:30, Cyril Brulebois <kibi@debian.org> wrote:
+> Hi,
+>
+> Dimitri John Ledkov <xnox@debian.org> (2018-04-17):
+>> First, I apologize for not responding to this email earlier, as I have
+>> missed it in my mailbox.
+>
+> It's a mail from hours ago, so there's no apology needed.
+>
+>> Secondly, my work has been blocked by this NEW processing too for
+>> btrfs-progs. I'm not aware as to which Helmut's work was blocked,
+>> could you please elaborate what Helmut is blocked on? And/or how can
+>> libzstd/me help to unblock Helmut? -> is that about patches for
+>> crossbuilding that are part of
+>
+> [sentenced cut in the middle but] Yes, Helmut works quite a lot on
+> crossbuilding and commits sitting in git master looked like what he was
+> alluding to.
+>
+>> Now to respond to your main inquiry. I find the tone of above message
+>> unacceptable. It reads accusational to me, rather than inquisitive.
+>>
+>> It would have been much better to state:
+>> "I notice that a call to dh_makeshlibs does not pass the -V flag as it
+>> is custom for many libraries. Why have you not specified a minimum
+>> required version in this case?"
+>
+> I suppose that's a fair way to word it. But I did mean to point out that
+> packages having an impact on the installer should be reviewed by the
+> installer team, at least for their initial addition; as I tried to make
+> people aware a few times already (dda@, talks, replies to threads where
+> udeb additions were mentioned, etc.); since that simple and natural
+> process wasn't followed here, I did point that out.
+>
+>From my point of view, this is confusing... cause I regard myself as
+being part of the installer team myself.
+I guess you are advocating for general code review, more than two
+pairs of eyes on things?
+>> It also feels like you (or others who were made aware of this lack of
+>> -V) possibly wanted to make this a bug report, and follow-on out of
+>> band events made it seem like it was felt that it is RC buggy and
+>> shouldn't clear NEW and/or migrate to testing if passed NEW. In that
+>> case  a new bug report should have been opened, with above request at
+>> an RC priority.
+>
+> I didn't comment on the fact it should get accepted or rejected from
+> NEW. People pointed me to the udeb addition that probably get some input
+> from me, so I've briefly looked at it and spotted that issue.
+>
+Ok, fair enough.
+I am still confused under what authority, assessment or criticality
+previous upload was rejected by ftp-master. I shall pursue this with
+them further.
+@waldi - have you recently become an FTP-Master and I have missed the
+announcement?
+E.g. even if shlibs were completely wrong, it is not something we are
+unable to fix with regular follow-up uploads.
+>> However, it is good to point out at this time, that udeb version of
+>> libraries do not currently ship or use symbols files at all to
+>> generate dependencies.
+>> But also note that since libzstd1-udeb is a brand new package, any
+>> version of thereof would correctly and strictly satisfy any udeb
+>> package that gains a dependency on it. There are no linking or
+>> dependency bugs in above libzstd1, nor udeb edition of the binary
+>> packages.
+>
+> I'm not sure why stashing a -V there once and for all to be future-proof
+> wouldn't be adequate or desireable. People can argue all they like about
+> whether the package is RC buggy in this specific revision, but it seems
+> rather pointless, I really do care about mid/long-term maintenance. I
+> have enough on my plate to not want to monitor such packages closely,
+> and open a specific bug report in their next revision…
+>
+In absolute terms, it simply isn't, for debs. And only marginally
+better for udebs.
+>> This is no different to some other library udebs, e.g. liblzo2-2-udeb
+>
+> That's another perfect example why udeb additions should get reviewed:
+> we would have noticed another buggy package, and its bugginess might not
+> have been copied over to another package.
+>
+>> Personally, I find it odd to have minimum -V arg version dependencies
+>> for udebs only, when symbols are present for the deb edition of the
+>> library. For example, btrfs-progs depends on libc6 (>= 2.8), yet
+>> btrfs-progs-udeb depends on libc6-udeb (>= 2.27). This causes an
+>> immense amount of pain, when rebuilding packages locally, mixing &
+>> matching packages when debugging issues in d-i, and does not at all
+>> correctly generate private dependencies for udebs that use e.g.
+>> @GLIBC_PRIVATE and thus require libc6-udeb (>> 2.27), libc6-udeb (<<
+>> 2.28) style dependency instead. I'm not sure where/how .symbols should
+>> be used or shipped, to start generate genuinely correct version
+>> dependencies for udebs across the board. Debhelper? Dpkg?
+>
+> I have done my share part of performing local builds and various
+> combinations of udebs, and I never experienced this “immense amount of
+> pain”.
+>
+The pain is specifically with pulling udeb builds of packages that
+were done against newer glibc (e.g. in sid) into d-i that is based on
+stable/testing. Whilst the builds of those packages do not require
+newer glibc, they gain an artificially high dependency on glibc from
+sid.
+> Are you volunteering to introduce separate symbols support for udebs to
+> all the required components and to maintain it over time?
+>
+I see that there might be a mapping issue between deb library names
+and udeb library names. And i'm hoping a simple extension of the
+.symbols file syntax should make it all work fine.
+>> Based on all of the above, I believe libzstd1, and libzstd1-udeb are
+>> both policy complaint as previously uploaded.
+>
+> I like the typo.
+Ha.
+>
+>> If you are still concerned about minimum version dependencies which
+>> are generated by packages that build/link/gain dependency on libzstd1
+>> and/or libzstd1-udeb, I welcome you, ftp masters, or anybody else to
+>> open a new (or clone this) bug report against libzstd for
+>> consideration. I also welcome references from the Debian Policy to
+>> educate myself further about library dependencies, and if and how,
+>> this package is not policy complaint and pointers on how to best fix
+>> it.
+>
+> I'm not sure what the issue is with talking to the debian installer team
+> when you're touching udeb packages and trusting their assessment?
+>
+The issue being, is that I regard myself as being part of the debian
+installer team..... I am delusional?
+Unless what you are in fact saying is actually "talk to Kibi".
+> If someone wants to drive an effort to make -V a must for udebs in
+> policy, that's probably fine. It doesn't strike me as ultimately needed
+> (we've lived without it for quite some time because maintainers tend to
+> just do the right thing), but if people have spare time, go for it.
+>
+-V a must for udebs would be bad, as that will never generate correct
+dependencies. It at best can only set an inflated minimum version,
+without a correct upper bound.
+symbols support should be there for udebs
+and -V should just die.
+-- 
+Regards,
+Dimitri.

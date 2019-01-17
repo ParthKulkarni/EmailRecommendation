@@ -1,0 +1,45 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#853927: debian-installer: Hang in os-prober in "dmsetup create -r osprober-linux-sda1"
+From : Scott Leggett <scott@sl.id.au>
+Date : Sat, 4 Feb 2017 12:23:03 +1100
+Message-id : 20170204012303.ocafqxvppw2kyhbx@mail.sl.id.au
+Reply-to : Scott Leggett <scott@sl.id.au>, 853927@bugs.debian.org
+In-reply-to : <[🔎] 20170203124216.GA24574@mraw.org>
+References : <[🔎] 148598352830.29157.16885692808004372139.reportbug@paver.krastavac> <[🔎] 20170202120414.GB9976@einval.com> <[🔎] 20170202160010.GF14512@mraw.org> <[🔎] 20170203111010.c4ia6ai7b7cwat5j@mail.sl.id.au> <[🔎] 20170203124216.GA24574@mraw.org>
+
+
+On 2017-02-03.13:42, Cyril Brulebois wrote:
+> 
+> This is rather strange. Are you sure it was hanging on the *sda1* partition?
+> 
+Yep - at least, the title of the bug shows the command that was blocking
+(I waited 5 min or so for it before killing it..)
+> The LVM fix was about adding this codepath:
+> | elif [ "$types" = LVM2_member ]; then
+> |         debug "$1 is an LVM member; skipping"
+> |         exit 0
+> 
+> right after this one:
+> | elif [ "$types" = crypto_LUKS ]; then
+> |         debug "$1 is a LUKS partition; skipping"
+> |         exit 0
+> 
+> and we seem to have a crypto_LUKS partition as sda1, so I'm not sure why
+> the dmsetup create thing was even attempted. Adding Colin & Ivo to cc,
+> maybe they'll have an answer.
+> 
+> Direct crypto_LUKS looks like something we should be supporting, even if
+> that's not something one can achieve with a guided setup; so I'd
+> consider this less urgent than the LVM fix we needed to release Stretch
+> RC 2, yet nice to fix.
+A couple more data points:
+I've used the Stretch RC1 installer without issue on another workstation
+with a somewhat similar disk layout - the difference being that it had
+only one physical drive (one LVM physical volume on a single crypto_LUKS
+device).
+I've also installed Jessie on several machines with a very similar
+partitioning layout as in this bug report (two drives) without issue.
+-- 
+Regards,
+Scott.
+signature.asc

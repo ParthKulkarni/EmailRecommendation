@@ -1,0 +1,445 @@
+To : Ben Hutchings <ben@decadent.org.uk>, 817236@bugs.debian.org
+Subject : Bug#817236: schroot: no access to pseudo-terminals in new chroots
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 5 Mar 2017 13:56:14 +0000
+Message-id : 20170305135614.2boothzezjjh3lev@perpetual.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 817236@bugs.debian.org
+In-reply-to : <20170226143131.w7rfkfazjzyuzk2t@perpetual.pseudorandom.co.uk>
+References : <145751413473.6331.1324267589463806688.reportbug@deep-thought.43-1.org> <1478529616.1727.13.camel@decadent.org.uk> <20161120070325.GL21968@mraw.org> <20161125175431.df7uxctimmdfuw6p@bongo.bofh.it> <1480156058.16599.52.camel@decadent.org.uk> <20170215105556.e6bewv3afshgn3es@perpetual.pseudorandom.co.uk> <20170226143131.w7rfkfazjzyuzk2t@perpetual.pseudorandom.co.uk>
+
+
+On Sun, 26 Feb 2017 at 14:31:31 +0000, Simon McVittie wrote:
+> On Wed, 15 Feb 2017 at 11:13:39 +0000, Simon McVittie wrote:
+> > If debootstrap inside a container is meant to work, then this would seem
+> > like a job for an autopkgtest. I'll try to write one if someone can tell me
+> > which containerization technologies (systemd-nspawn? lxc? both? others?)
+> > are the ones of interest here.
+> 
+> I've had some trouble making a working autopkgtest that runs under qemu
+> and runs debootstrap under an additional layer of systemd-nspawn, so the
+> next best thing for now is manual testing.
+Here is an updated version of my earlier patches. The actual RC bug fix is
+the same (I think). The autopkgtest is a rewrite in a not-/bin/sh language
+(Perl) for better robustness/error handling/etc., with better coverage,
+including use of systemd-nspawn to exercise the code path where mknod is
+restricted (which I believe was Marco's use case for the symlink) if the
+autopkgtest is run under autopkgtest-virt-qemu.
+Tested locally under autopkgtest-virt-lxc, autopkgtest-virt-qemu and
+autopkgtest-virt-schroot, with the following results:
+* My patch lets simplified fake versions of current pbuilder, and
+  current schroot with the default profile, access /dev/ptmx in
+  debootstrap-created chroots again, if debootstrap was not run with
+  mknod restricted (systemd-nspawn). I think that's good enough to
+  close the RC bug.
+* If running in lxc on a jessie kernel, schroot with profile=sbuild
+  will not be allowed to access /dev/ptmx. This does not appear to be
+  a regression, or debootstrap's fault. lxc on a stretch kernel is fine.
+* If mknod is restricted (systemd-nspawn), debootstrap prints a warning,
+  and current schroot and pbuilder will fail to access /dev/ptmx. I
+  think this can only be addressed by patching schroot and pbuilder.
+Any thoughts on this from the debootstrap maintainers?
+    S
+>From 3926ec16fbbcea6b9fd1699f0be3e99a3bf346f8 Mon Sep 17 00:00:00 2001
+From: Simon McVittie <smcv@debian.org>
+Date: Fri, 24 Feb 2017 09:45:33 +0000
+Subject: [PATCH 2/2] Add an autopkgtest covering #817236 and various other
+ sanity checks
+Because debootstrap is relatively slow, I've named the test according
+to what is being bootstrapped (Debian testing) rather than the checks
+that are performed, with the intention that additional checks can
+be added to it.
+Signed-off-by: Simon McVittie <smcv@debian.org>
+---
+ debian/tests/control                 |  10 ++
+ debian/tests/debian-testing          | 270 +++++++++++++++++++++++++++++++++++
+ debian/tests/fake/pbuilder-0.228.4-1 |  31 ++++
+ debian/tests/fake/schroot-1.6.10-3   |  47 ++++++
+ 4 files changed, 358 insertions(+)
+ create mode 100644 debian/tests/control
+ create mode 100755 debian/tests/debian-testing
+ create mode 100755 debian/tests/fake/pbuilder-0.228.4-1
+ create mode 100755 debian/tests/fake/schroot-1.6.10-3
+diff --git a/debian/tests/control b/debian/tests/control
+new file mode 100644
+index 0000000..12d78c7
+--- /dev/null
++++ b/debian/tests/control
+@@ -0,0 +1,10 @@
++Tests: debian-testing
++Depends:
++ debootstrap,
++ libdistro-info-perl,
++ libdpkg-perl,
++ libipc-run-perl,
++ perl,
++ systemd [linux-any],
++ systemd-container [linux-any],
++Restrictions: allow-stderr, needs-root
+diff --git a/debian/tests/debian-testing b/debian/tests/debian-testing
+new file mode 100755
+index 0000000..fb7da66
+--- /dev/null
++++ b/debian/tests/debian-testing
+@@ -0,0 +1,270 @@
++#!/usr/bin/perl
++# Verify that debootstrap'ing Debian testing produces a usable chroot,
++# and in particular that using it with early 2017 versions of schroot and
++# pbuilder results in working pseudo-terminals (#817236)
++#
++# Copyright © 2017 Simon McVittie
++# SPDX-License-Identifier: MIT
++# (see debian/copyright)
++
++use strict;
++use warnings;
++
++use Cwd qw(getcwd);
++use Debian::DistroInfo;
++use Dpkg::Version;
++use IPC::Run qw(run);
++use Test::More;
++
++my $srcdir = getcwd;
++
++sub verbose_run {
++    my $argv = shift;
++    diag("Running: @{$argv}");
++    return run($argv, @_);
++}
++
++sub capture {
++    my $output;
++    my $argv = shift;
++    ok(verbose_run($argv, '>', \$output), "@{$argv}");
++    chomp $output;
++    return $output;
++}
++
++sub check_fake_schroot {
++    my %params = @_;
++    my $reference = $params{reference};
++    my $extra_argv = $params{extra_argv} || [];
++
++    my $response = capture([qw(unshare -m),
++        "$srcdir/debian/tests/fake/schroot-1.6.10-3", @{$extra_argv},
++            $params{chroot},
++        qw(runuser -u nobody --),
++        qw(script -q -c), 'cat /etc/debian_version', '/dev/null']);
++    $response =~ s/\r//g;
++    is($response, $reference, 'script(1) should work under (fake) schroot');
++}
++
++sub check_fake_pbuilder {
++    my %params = @_;
++    my $reference = $params{reference};
++
++    my $response = capture([qw(unshare -m),
++        "$srcdir/debian/tests/fake/pbuilder-0.228.4-1", $params{chroot},
++        qw(runuser -u nobody --),
++        qw(script -q -c), 'cat /etc/debian_version', '/dev/null']);
++    $response =~ s/\r//g;
++    is($response, $reference,
++        'script(1) should work under (fake) pbuilder');
++}
++
++sub check_chroot {
++    my %params = @_;
++    my $chroot = $params{chroot};
++    my $response;
++
++    ok(-f "$chroot/etc/debian_version",
++        'chroot should have /etc/debian_version');
++    ok(-x "$chroot/usr/bin/env",
++        'chroot should have /usr/bin/env which is Essential');
++    ok(-x "$chroot/usr/bin/hello", 'chroot should have /usr/bin/hello due to --include');
++    ok(-d "$chroot/usr/share/doc", 'chroot should have /usr/share/doc');
++
++    ok(-c "$chroot/dev/full", '/dev/full should be a character device');
++    is(capture(['/usr/bin/stat', '--printf=%t %T %a', "$chroot/dev/full"]),
++        '1 7 666', '/dev/full should be device 1,7 with 0666 permissions');
++    ok(-c "$chroot/dev/null");
++    is(capture(['/usr/bin/stat', '--printf=%t %T %a', "$chroot/dev/null"]),
++        '1 3 666', '/dev/null should be device 1,3 with 0666 permissions');
++
++    my $did_mknod_ptmx;
++
++    if (-l "$chroot/dev/ptmx") {
++        # Necessary if debootstrap is run inside some containers, see
++        # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=817236#77
++        diag("/dev/ptmx is a symbolic link");
++        like(readlink("$chroot/dev/ptmx"), qr{(?:/dev/)?pts/ptmx},
++            'if /dev/ptmx is a symlink it should be to /dev/pts/ptmx');
++        $did_mknod_ptmx = 0;
++    }
++    else {
++        diag("/dev/ptmx is not a symbolic link");
++        ok(-c "$chroot/dev/ptmx",
++            'if /dev/pts is not a symlink it should be a character device');
++        is(capture(['/usr/bin/stat', '--printf=%t %T %a',
++                    "$chroot/dev/ptmx"]), '5 2 666',
++            'if /dev/pts is a device node it should be 5,2 with 0666 permissions');
++        $did_mknod_ptmx = 1;
++    }
++
++    if ($params{can_mknod_ptmx}) {
++        ok($did_mknod_ptmx, 'able to mknod ptmx so should have done so');
++    }
++
++    my $reference = capture(['cat', "$chroot/etc/debian_version"]);
++
++    is(capture([qw(chroot chroot.d runuser -u nobody --
++                cat /etc/debian_version)]),
++        $reference);
++
++    # Use unshare -m to make sure the /dev mount gets cleaned up on exit, even
++    # on failures
++    check_fake_schroot(%params, reference => $reference);
++
++    # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=817236
++    if (Dpkg::Version->new($params{kernel}) < Dpkg::Version->new('4.7') &&
++            defined $params{container} && $params{container} eq 'lxc') {
++        TODO: {
++            local $TODO = "schroot --sbuild doesn't work in lxc on older ".
++                "kernels";
++            check_fake_schroot(%params, reference => $reference,
++                extra_argv => ['--sbuild']);
++        }
++    }
++    elsif (! $params{can_mknod_ptmx}) {
++        TODO: {
++            local $TODO = "schroot --sbuild doesn't work when /dev/ptmx is ".
++                "a symlink to /dev/pts/ptmx";
++            check_fake_schroot(%params, reference => $reference,
++                extra_argv => ['--sbuild']);
++        }
++    }
++    else {
++        check_fake_schroot(%params, reference => $reference,
++            extra_argv => ['--sbuild']);
++    }
++
++    # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=817236
++    if (! $params{can_mknod_ptmx}) {
++        TODO: {
++            local $TODO = "schroot --sbuild doesn't work when /dev/ptmx is ".
++                "a symlink to /dev/pts/ptmx";
++            check_fake_pbuilder(%params, reference => $reference);
++        }
++    }
++    else {
++        check_fake_pbuilder(%params, reference => $reference);
++    }
++}
++
++my $mirror = 'http://deb.debian.org/debian';
++my $tmp = $ENV{AUTOPKGTEST_TMP} || $ENV{ADTTMP};
++die "no autopkgtest temporary directory specified" unless $tmp;
++chdir $tmp or die "chdir $tmp: $!";
++
++$ENV{LC_ALL} = 'C.UTF-8';
++
++# Try to inherit a Debian mirror from the host
++foreach my $file ('/etc/apt/sources.list',
++        glob('/etc/apt/sources.list.d/*.list')) {
++    open(my $fh, '<', $file);
++    while (<$fh>) {
++        if (m{^deb\s+(http://[-a-zA-Z0-9.:]+/debian)\s}) {
++            $mirror = $1;
++            last;
++        }
++    }
++    close $fh;
++}
++
++if (run(['ischroot'], '>&2')) {
++    diag("In a chroot according to ischroot(1)");
++}
++else {
++    diag("Not in a chroot according to ischroot(1)");
++}
++
++my $virtualization;
++if ($^O ne 'linux') {
++    diag("Cannot use systemd-detect-virt on non-Linux");
++}
++elsif (run(['systemd-detect-virt', '--vm'], '>', \$virtualization)) {
++    chomp $virtualization;
++    diag("Virtualization: $virtualization");
++}
++else {
++    $virtualization = undef;
++    diag("Virtualization: (not in a virtual machine)");
++}
++
++my $in_container = 0;
++my $container;
++if ($^O ne 'linux') {
++    diag("Cannot use systemd-detect-virt on non-Linux");
++}
++elsif (run(['systemd-detect-virt', '--container'], '>', \$container)) {
++    $in_container = 1;
++    chomp $container;
++    diag("Container: $container");
++}
++else {
++    $container = undef;
++    diag("Container: (not in a container)");
++}
++
++my $kernel = capture([qw(uname -r)]);
++chomp $kernel;
++
++open(my $fh, '<', '/proc/self/mountinfo');
++while (<$fh>) {
++    chomp;
++    diag("mountinfo: $_");
++}
++close $fh;
++
++my $can_mknod_ptmx;
++if (run([qw(mknod -m000 ptmx c 5 2)], '&>', '/dev/null')) {
++    diag("mknod ptmx succeeded");
++    $can_mknod_ptmx = 1;
++}
++else {
++    diag("mknod ptmx failed, are we in a container?");
++    $can_mknod_ptmx = 0;
++}
++
++my $distro_info = DebianDistroInfo->new;
++my $testing = $distro_info->testing;
++
++if (!verbose_run(['debootstrap',
++            '--include=debootstrap,debian-archive-keyring,gnupg,hello',
++            '--variant=minbase',
++            $testing, 'chroot.d', $mirror], '>&2')) {
++    BAIL_OUT("debootstrap failed: $?");
++}
++
++check_chroot(chroot => 'chroot.d', can_mknod_ptmx => $can_mknod_ptmx,
++    kernel => $kernel, container => $container);
++
++if ($^O ne 'linux') {
++    diag("Cannot use systemd-nspawn on non-Linux");
++}
++elsif ($in_container) {
++    diag('in a container according to systemd --container, not trying to '.
++        'use systemd-nspawn');
++}
++elsif (! -d '/run/systemd/system') {
++    diag('systemd not booted, not trying to use systemd-nspawn');
++}
++else {
++    if (!verbose_run(['systemd-nspawn', '-D', 'chroot.d',
++            "--bind=$ENV{ADTTMP}:/mnt",
++            '--bind-ro=/usr/sbin/debootstrap',
++            '--bind-ro=/usr/share/debootstrap',
++            '--',
++            'debootstrap', '--include=hello', '--variant=minbase',
++            $testing, '/mnt/from-nspawn.d', $mirror], '>&2')) {
++        BAIL_OUT("debootstrap wrapped in systemd-nspawn failed: $?");
++    }
++
++    check_chroot(chroot => 'from-nspawn.d', can_mknod_ptmx => 0,
++        kernel => $kernel, container => "nspawn");
++}
++
++if (!run([qw(rm -fr --one-file-system chroot.d)], '>&2')) {
++    BAIL_OUT('Unable to remove chroot.d');
++}
++
++done_testing;
++
++# vim:set sw=4 sts=4 et:
+diff --git a/debian/tests/fake/pbuilder-0.228.4-1 b/debian/tests/fake/pbuilder-0.228.4-1
+new file mode 100755
+index 0000000..308ed34
+--- /dev/null
++++ b/debian/tests/fake/pbuilder-0.228.4-1
+@@ -0,0 +1,31 @@
++#!/bin/sh
++# fake/pbuilder-0.228.4-1 -- emulate how pbuilder/0.228.4-1 would chroot.
++# It mounts /dev/pts, without explicitly requesting a new instance or a
++# usable /dev/pts/ptmx.
++# (There is of course a lot more that it does, but these are the parts that
++# affect pty users like script(1).)
++#
++# Copyright © 2017 Simon McVittie
++# SPDX-License-Identifier: MIT
++# (see debian/copyright)
++
++set -e
++
++chroot="$1"
++shift
++if test -z "$chroot" || test -z "$1"; then
++	echo "Usage: $0 CHROOT COMMAND...">&2
++	exit 2
++fi
++
++mkdir -p "$chroot/dev/pts"
++mount -t devpts none "$chroot/dev/pts" -onoexec,nosuid,gid=5,mode=620
++
++ls -l "$chroot/dev/ptmx" | sed -e 's/^/# fake-pbuilder: /' >&2
++ls -l "$chroot/dev/pts/ptmx" | sed -e 's/^/# fake-pbuilder: /' >&2
++
++e=0
++chroot "$chroot" "$@" || e=$?
++
++umount "$chroot/dev/pts"
++exit "$e"
+diff --git a/debian/tests/fake/schroot-1.6.10-3 b/debian/tests/fake/schroot-1.6.10-3
+new file mode 100755
+index 0000000..d6e0bbe
+--- /dev/null
++++ b/debian/tests/fake/schroot-1.6.10-3
+@@ -0,0 +1,47 @@
++#!/bin/sh
++# fake/schroot-1.6.10-3 -- emulate how schroot/1.6.10-3 would chroot.
++# It bind-mounts /dev/pts and maybe /dev from the host system.
++# (There is of course a lot more that it does, but these are the parts that
++# affect pty users like script(1).)
++#
++# Copyright © 2017 Simon McVittie
++# SPDX-License-Identifier: MIT
++# (see debian/copyright)
++
++set -e
++
++# /etc/schroot/default/fstab
++bind_dev=yes
++
++while true; do
++	case "$1" in
++		(--sbuild)
++			shift
++			# /etc/schroot/sbuild/fstab
++			bind_dev=no
++			;;
++		(*)
++			break
++	esac
++done
++
++chroot="$1"
++shift
++if test -z "$chroot" || test -z "$1"; then
++	echo "Usage: $0 CHROOT COMMAND...">&2
++	exit 2
++fi
++
++[ "$bind_dev" = no ] || mount --bind /dev "$chroot/dev"
++mount --bind /dev/pts "$chroot/dev/pts"
++
++ls -l "$chroot/dev/ptmx" | sed -e 's/^/# fake-schroot: /' >&2
++ls -l "$chroot/dev/pts/ptmx" | sed -e 's/^/# fake-schroot: /' >&2
++
++e=0
++chroot "$chroot" "$@" || e=$?
++
++umount "$chroot/dev/pts"
++[ "$bind_dev" = no ] || umount "$chroot/dev"
++
++exit "$e"
+-- 
+2.11.0

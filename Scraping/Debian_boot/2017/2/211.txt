@@ -1,0 +1,107 @@
+To : submit@bugs.debian.org
+Subject : Bug#854454: D-I RC2 under KVM; some wishlist items included.
+From : Toomas Tamm <tt-fai@kky.ttu.ee>
+Date : Tue, 07 Feb 2017 13:08:52 +0200
+Message-id : 1486465732.6827.130.camel@agricola.yki.ttu.ee
+Reply-to : Toomas Tamm <tt-fai@kky.ttu.ee>, 854454@bugs.debian.org
+
+
+Package: installation-reports
+Boot method: KVM (virt-install) boot from ISO image
+Image version: debian-stretch-DI-rc2-amd64-netinst.iso
+Date: Tue Feb  7 12:49:26 EET 2017
+Machine: KVM virtual host, with virtio, running under Debian 7.11 (stretch)
+Processor: virtual, single core
+Memory: 1 GB
+Partitions: 
+Filesystem     Type     1K-blocks   Used Available Use% Mounted on
+udev           devtmpfs    505680      0    505680   0% /dev
+tmpfs          tmpfs       102048   1668    100380   2% /run
+/dev/vda1      ext4      23898960 549604  22112316   3% /
+tmpfs          tmpfs       510224      0    510224   0% /dev/shm
+tmpfs          tmpfs         5120      0      5120   0% /run/lock
+tmpfs          tmpfs       510224      0    510224   0% /sys/fs/cgroup
+/dev/vda5      ext4       9545920 193768   8847528   3% /var
+/dev/vda8      ext4     128014556  61464 121407224   1% /home
+/dev/vda7      ext4       1888268   5748   1768552   1% /tmp
+tmpfs          tmpfs       102044      0    102044   0% /run/user/0
+Output of lspci -knn (or lspci -nn):
+00:00.0 Host bridge [0600]: Intel Corporation 440FX - 82441FX PMC [Natoma] [8086:1237] (rev 02)
+	Subsystem: Red Hat, Inc Qemu virtual machine [1af4:1100]
+00:01.0 ISA bridge [0601]: Intel Corporation 82371SB PIIX3 ISA [Natoma/Triton II] [8086:7000]
+	Subsystem: Red Hat, Inc Qemu virtual machine [1af4:1100]
+00:01.1 IDE interface [0101]: Intel Corporation 82371SB PIIX3 IDE [Natoma/Triton II] [8086:7010]
+	Subsystem: Red Hat, Inc Qemu virtual machine [1af4:1100]
+	Kernel driver in use: ata_piix
+	Kernel modules: ata_piix, ata_generic
+00:01.2 USB controller [0c03]: Intel Corporation 82371SB PIIX3 USB [Natoma/Triton II] [8086:7020] (rev 01)
+	Subsystem: Red Hat, Inc QEMU Virtual Machine [1af4:1100]
+	Kernel driver in use: uhci_hcd
+	Kernel modules: uhci_hcd
+00:01.3 Bridge [0680]: Intel Corporation 82371AB/EB/MB PIIX4 ACPI [8086:7113] (rev 03)
+	Subsystem: Red Hat, Inc Qemu virtual machine [1af4:1100]
+	Kernel driver in use: piix4_smbus
+	Kernel modules: i2c_piix4
+00:02.0 VGA compatible controller [0300]: Cirrus Logic GD 5446 [1013:00b8]
+	Subsystem: Red Hat, Inc QEMU Virtual Machine [1af4:1100]
+	Kernel driver in use: cirrus
+	Kernel modules: cirrusfb, cirrus
+00:03.0 Ethernet controller [0200]: Red Hat, Inc Virtio network device [1af4:1000]
+	Subsystem: Red Hat, Inc Virtio network device [1af4:0001]
+	Kernel driver in use: virtio-pci
+	Kernel modules: virtio_pci
+00:04.0 SCSI storage controller [0100]: Red Hat, Inc Virtio block device [1af4:1001]
+	Subsystem: Red Hat, Inc Virtio block device [1af4:0002]
+	Kernel driver in use: virtio-pci
+	Kernel modules: virtio_pci
+00:05.0 Unclassified device [00ff]: Red Hat, Inc Virtio memory balloon [1af4:1002]
+	Subsystem: Red Hat, Inc Virtio memory balloon [1af4:0005]
+	Kernel driver in use: virtio-pci
+	Kernel modules: virtio_pci
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [O]
+Load installer modules: [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Clock/timezone setup:   [wishlist]
+User/password setup:    [O]
+Install tasks:          [wishlist]
+Install boot loader:    [O]
+Overall install:        [O]
+Comments/Problems:
+I normally use FAI to install Debian. In order to prepare a stretch
+system for forthcoming upgrades, I installed a stretch instance under
+a KVM virtual machine. I used the non-graphical advanced mode.
+I did not initially realize that the timezone selection list is a hard
+dependence on my location and had to go back to configure the locale.
+While everything turned out smooth eventually, I recommend an extra
+option in the timezone list which would lead to all available timezones.
+This may be especially relevant when installing virtual machines in
+remote locations via networking.
+The bigger problem came when I got to the tasksel step. By accident
+I selected "continue" before I had made my selections and the installer
+proceeded to downloading 1500+ packages which I did not intend to install.
+I have two suggestions here:
+1) The system should ask for extra confirmation just like apt-get does:
+"You are about to install 1508 packages, taking 345 megabytes of disk
+space. Do you want to continue?"
+Remember, we are in "advanced" mode, so the user should know what this 
+means.
+2) The software installation screen should include an interrupt option, 
+at least for the initial time when packages are being downloaded and 
+interruption would not result in a half-installed unconfigured system. 
+I tried the normal keys (Esc, ctrl-C, ctrl-G) but they were ignored.
+It would also be nice (given we are in "advanced" mode) if the lists
+of packages behind, eg "standard system utilities" were available for
+review before the user commits to the install.
+In my situation, I just killed the virtual host and started all over.
+The second time around, everything was very smooth and I got a bootable
+minimal system (no options selected in tasksel) just fine.
+-- 
+Toomas Tamm
+Estonia

@@ -1,0 +1,66 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#886016: debootstrap: add support for Acquire-By-Hash for downloading indices
+From : Julien Cristau <jcristau@debian.org>
+Date : Mon, 1 Jan 2018 17:01:38 +0100
+Message-id : 20180101160138.dq3k3izccqhnuf6t@betterave.cristau.org
+Reply-to : Julien Cristau <jcristau@debian.org>, 886016@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.89
+Severity: wishlist
+Tags: patch
+Hi,
+following patch looks at the Acquire-By-Hash field in (In)Release to get
+Packages from the by-hash directory if available and avoid races.  I
+thought we already had a bug about this, but can't find one now.
+Cheers,
+Julien
+>From 1555d75078a200bfadb05e7cd30942fd050934ca Mon Sep 17 00:00:00 2001
+From: Julien Cristau <jcristau@debian.org>
+Date: Tue, 1 Nov 2016 12:24:44 +0100
+Subject: [PATCH] Add Acquire-By-Hash support.
+---
+ debian/changelog | 6 ++++++
+ functions        | 6 ++++++
+ 2 files changed, 12 insertions(+)
+diff --git a/debian/changelog b/debian/changelog
+index b1ef82b..4d7531a 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,9 @@
++debootstrap (1.0.94) UNRELEASED; urgency=medium
++
++  * Add Acquire-By-Hash support.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 01 Nov 2016 12:08:54 +0100
++
+ debootstrap (1.0.93) unstable; urgency=medium
+ 
+   [ Mattia Rizzolo ]
+diff --git a/functions b/functions
+index 3cfa0d4..b9efce0 100644
+--- a/functions
++++ b/functions
+@@ -347,6 +347,10 @@ get () {
+ 
+ 		while [ "$iters" -lt 10 ]; do
+ 			info RETRIEVING "Retrieving %s %s" "$displayname" "$versionname"
++			if [ "$checksum" != "" ] && [ -n "$ACQUIREBYHASH" ]; then
++				# assume we don't mix acquire-by-hash and md5
++				from="$(dirname "$from")/by-hash/SHA${SHA_SIZE}/$checksum"
++			fi
+ 			if ! just_get "$from" "$dest2"; then continue 2; fi
+ 			if [ "$checksum" != "" ]; then
+ 				info VALIDATING "Validating %s %s" "$displayname" "$versionname"
+@@ -616,6 +620,8 @@ download_release_indices () {
+ 
+ 	extract_release_components $reldest
+ 
++	ACQUIREBYHASH=$(grep "^Acquire-By-Hash: yes$" "$reldest" || true)
++
+ 	local totalpkgs=0
+ 	for c in $COMPONENTS; do
+ 		local subpath="$c/binary-$ARCH/Packages"
+-- 
+2.11.0

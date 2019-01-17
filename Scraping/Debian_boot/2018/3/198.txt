@@ -1,0 +1,37 @@
+To : Vagrant Cascadian <vagrant@debian.org>
+Subject : Build regression on armhf
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 21 Mar 2018 08:34:24 +0100
+Message-id : 20180321073424.b4yw7qwyjogqmzqw@mraw.org
+
+
+Hi Vagrant,
+We're getting an FTBFS on armhf following your recent changes:
+| > ./tmp/netboot/cd_tree/.disk/info
+| if [ "y" = y ]; then \
+| 	set -e; \
+| 	mkdir -p ./tmp/netboot/cd_tree/boot/grub/arm-efi; \
+| 	cp -a ./tmp/netboot/grub_efi/efi.img ./tmp/netboot/cd_tree/boot/grub/; \
+| 	grub-gencfg \
+| 		KERNEL /linux \
+| 		INITRD /initrd.gz \
+| 		HEADER boot/armhf/grub/grub-efi.cfg \
+| 	> ./tmp/netboot/cd_tree/boot/grub/grub.cfg; \
+| 	cp -a /usr/share/grub/ascii.pf2 ./tmp/netboot/cd_tree/boot/grub/font.pf2; \
+| 	cp -a ./tmp/netboot/grub_efi/boot/grub/arm-efi/* \
+| 		./tmp/netboot/cd_tree/boot/grub/arm-efi/; \
+| fi
+| open header: No such file or directory at util/grub-gencfg line 175.
+| config/arm.cfg:35: recipe for target 'arch_miniiso' failed
+| make[2]: *** [arch_miniiso] Error 2
+| Makefile:288: recipe for target '_build' failed
+| make[1]: *** [_build] Error 2
+| Makefile:282: recipe for target 'build_netboot' failed
+| make: *** [build_netboot] Error 2
+As a wild guess, you should have added something like
+build/boot/armhf/grub/grub-efi.cfg for grub-gencfg to work?
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

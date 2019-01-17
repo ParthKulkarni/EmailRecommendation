@@ -1,0 +1,84 @@
+To : Axel Beckert <abe@debian.org>
+Subject : Re: Bug#858403: unblock: screen/4.5.0-4 (pre-approval)
+From : Ivo De Decker <ivodd@debian.org>
+Date : Sat, 25 Mar 2017 19:16:29 +0100
+Message-id : 20170325181627.GA13473@ugent.be
+In-reply-to : <20170322223752.GA6510@sym.noone.org>
+References : <149014244329.25359.17423456016024847178.reportbug@c6.deuxchevaux.org> <f32cd72e-3949-985f-15b2-b611e03f4960@thykier.net> <20170322223752.GA6510@sym.noone.org>
+
+
+Control: tags -1 d-i
+Hi,
+On Wed, Mar 22, 2017 at 11:37:52PM +0100, Axel Beckert wrote:
+> Uploaded. Full final debdiff attached.
+Unblocked. This needs an unblock-udeb as well. Cc'ing Kibi for that. Full diff
+quoted below.
+Cheers,
+Ivo
+> diff -Nru screen-4.5.0/debian/changelog screen-4.5.0/debian/changelog
+> --- screen-4.5.0/debian/changelog	2017-01-24 22:57:44.000000000 +0100
+> +++ screen-4.5.0/debian/changelog	2017-03-22 01:13:07.000000000 +0100
+> @@ -1,8 +1,17 @@
+> +screen (4.5.0-4) unstable; urgency=low
+> +
+> +  * Add CVE-ID to previous changelog entry and
+> +    62-reverse-cherry-pick-5460f5d2-to-fix-privilege-escalation.patch.
+> +  * Apply patch by Samuel Thibault to fix terminal garbage in Debian
+> +    Installer over serial line. (Closes: #857808)
+> +
+> + -- Axel Beckert <abe@debian.org>  Wed, 22 Mar 2017 01:13:07 +0100
+> +
+>  screen (4.5.0-3) unstable; urgency=medium
+>  
+>    * Add patch to revert upstream commit 5460f5d2 ("adding permissions
+>      check for the logfile name") which caused a privilege escalation.
+> -    (Closes: #852484)
+> +    (CVE-2017-5618, Closes: #852484)
+>  
+>   -- Axel Beckert <abe@debian.org>  Tue, 24 Jan 2017 22:57:44 +0100
+>  
+> diff -Nru screen-4.5.0/debian/patches/62-reverse-cherry-pick-5460f5d2-to-fix-privilege-escalation.patch screen-4.5.0/debian/patches/62-reverse-cherry-pick-5460f5d2-to-fix-privilege-escalation.patch
+> --- screen-4.5.0/debian/patches/62-reverse-cherry-pick-5460f5d2-to-fix-privilege-escalation.patch	2017-01-24 22:48:04.000000000 +0100
+> +++ screen-4.5.0/debian/patches/62-reverse-cherry-pick-5460f5d2-to-fix-privilege-escalation.patch	2017-03-22 01:13:07.000000000 +0100
+> @@ -1,7 +1,7 @@
+> -Description: Fix privilege escalation by reverting upstream commit 5460f5d2
+> +Description: [CVE-2017-5618] Fix privilege escalation by reverting upstream commit 5460f5d2
+>  Author: Axel Beckert <abe@debian.org>
+>  Bug-Debian: https://bugs.debian.org/852484
+> -Bug-CVE: http://www.openwall.com/lists/oss-security/2017/01/24/10
+> +Bug-CVE: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-5618
+>  Bug: https://savannah.gnu.org/bugs/?50142
+>       https://lists.gnu.org/archive/html/screen-devel/2017-01/msg00025.html
+>  
+> diff -Nru screen-4.5.0/debian/patches/63-fix-garbage-on-serial-terminal.patch screen-4.5.0/debian/patches/63-fix-garbage-on-serial-terminal.patch
+> --- screen-4.5.0/debian/patches/63-fix-garbage-on-serial-terminal.patch	1970-01-01 01:00:00.000000000 +0100
+> +++ screen-4.5.0/debian/patches/63-fix-garbage-on-serial-terminal.patch	2017-03-22 01:13:07.000000000 +0100
+> @@ -0,0 +1,17 @@
+> +Description: Fix terminal garbage in Debian Installer over serial line
+> +Author: Samuel Thibault <sthibault@debian.org>
+> +Reviewed-By: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+> +Bug-Debian: https://bugs.debian.org/857808
+> +Bug: https://savannah.gnu.org/bugs/?50588
+> +
+> +--- a/termcap.c
+> ++++ b/termcap.c
+> +@@ -486,6 +486,8 @@
+> + 
+> +   D_tcinited = 1;
+> +   MakeTermcap(0);
+> ++  /* Make sure libterm uses external term properties for our tputs() calls.  */
+> ++  e_tgetent(tbuf, D_termname);
+> + #ifdef MAPKEYS
+> +   CheckEscape();
+> + #endif
+> diff -Nru screen-4.5.0/debian/patches/series screen-4.5.0/debian/patches/series
+> --- screen-4.5.0/debian/patches/series	2017-01-24 22:46:11.000000000 +0100
+> +++ screen-4.5.0/debian/patches/series	2017-03-22 01:13:07.000000000 +0100
+> @@ -11,6 +11,7 @@
+>  60-screen-4.2.1-debian4.1.0-compatibility.patch
+>  61-default-PATH_MAX-if-undefined-for-hurd.patch
+>  62-reverse-cherry-pick-5460f5d2-to-fix-privilege-escalation.patch
+> +63-fix-garbage-on-serial-terminal.patch
+>  # 80-99: experimental patches, new features etc.
+>  80_session_creation_docs.patch
+>  81_session_creation_util.patch

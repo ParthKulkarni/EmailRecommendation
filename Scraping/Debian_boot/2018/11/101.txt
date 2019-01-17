@@ -1,0 +1,83 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#914208: debootstrap: consider disabling merged /usr by default for --variant=buildd?
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 20 Nov 2018 16:50:36 +0000
+Message-id : 20181120165036.GA4021@espresso.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 914208@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.110
+Severity: wishlist
+Tags: patch
+User: md@linux.it
+Usertags: usrmerge
+As discussed in <https://bugs.debian.org/913229> and the debian-devel
+thread starting at <https://lists.debian.org/debian-devel/2018/11/msg00299.html>,
+buildd chroots should not be generated with merged /usr. However, this
+is now the default in stretch-backports' debootstrap, which buildds
+apparently use.
+Avoiding merged /usr for buildds mitigates a frequently-seen class of
+bugs in which packages end up with wrong executable paths hard-coded,
+for example /usr/bin/bash or /bin/apt-get (which would both work fine
+on a merged-/usr system, but not on an unmerged-/usr system).
+I've proposed a patch to dsa-puppet that explicitly disables merged /usr
+for buildd chroots (#914204) and I already had a similar patch accepted
+into sbuild-createchroot, but I think it might also be wise to make
+--variant=buildd default to --no-merged-usr? That would avoid having to
+patch everything that creates a buildd chroot.
+In the attached patch, --variant=buildd produces an unmerged-/usr chroot,
+but --variant=buildd --merged-usr still produces a merged-/usr chroot.
+    smcv
+>From d062ce0f8511f3f25ed57b8467f20a4eb1be3df9 Mon Sep 17 00:00:00 2001
+From: Simon McVittie <smcv@debian.org>
+Date: Tue, 20 Nov 2018 16:32:43 +0000
+Subject: [PATCH] Disable merged /usr by default when making a buildd chroot
+Merged /usr is known to cause multiple packages to be misbuilt. As long
+as we support unmerged /usr for user systems, we should mitigate
+this class of bugs by using unmerged-/usr chroots on official buildds,
+resulting in binary packages that work equally well on merged- or
+unmerged-/usr user systems.
+See:
+https://bugs.debian.org/913229
+https://udd.debian.org/cgi-bin/bts-usertags.cgi?user=md@linux.it&tag=usrmerge
+thread at https://lists.debian.org/debian-devel/2018/11/msg00299.html
+Signed-off-by: Simon McVittie <smcv@debian.org>
+---
+ debootstrap.8 | 3 ++-
+ functions     | 4 ++++
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+diff --git a/debootstrap.8 b/debootstrap.8
+index f68a710..a77c5bc 100644
+--- a/debootstrap.8
++++ b/debootstrap.8
+@@ -86,10 +86,11 @@ base Debian installation with all packages of priority \fIrequired\fR and
+ .IP
+ .IP "\fB\-\-merged-usr\fP"
+ Create /{bin,sbin,lib}/ symlinks pointing to their counterparts in /usr/.
+-(Default.)
++(Default for most variants.)
+ .IP
+ .IP "\fB\-\-no-merged-usr\fP"
+ Do not create /{bin,sbin,lib}/ symlinks pointing to their counterparts in /usr/.
++(Default for the buildd variant.)
+ .IP
+ .IP "\fB\-\-keyring=KEYRING\fP"
+ Override the default keyring for the distribution being bootstrapped,
+diff --git a/functions b/functions
+index b204b04..51f0186 100644
+--- a/functions
++++ b/functions
+@@ -1319,6 +1319,10 @@ setup_dselect_method () {
+ # either installs the RTLD in a directory different from /lib or builds
+ # multilib library packages.
+ setup_merged_usr() {
++	if doing_variant buildd && [ -z "$MERGED_USR" ]; then
++		MERGED_USR="no"
++	fi
++
+ 	if [ "$MERGED_USR" = "no" ]; then return 0; fi
+ 
+ 	local link_dir
+-- 
+2.19.1

@@ -1,0 +1,70 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#872181: debootstrap: error processing argument #4
+From : Douglas Guptill <dguptill@accesswave.ca>
+Date : Wed, 16 Aug 2017 21:23:40 -0300
+Message-id : 20170817002340.GA25140@blackscram.eastlink.ca
+Reply-to : Douglas Guptill <dguptill@accesswave.ca>, 872181@bugs.debian.org
+In-reply-to : <[🔎] 20170816233744.GA8821@mraw.org>
+References : <[🔎] 20170814221513.3481.16783.reportbug@blackpad.eastlink.ca> <[🔎] 20170816233744.GA8821@mraw.org> <[🔎] 20170814221513.3481.16783.reportbug@blackpad.eastlink.ca>
+
+
+Hello Kibi:
+On Thu, Aug 17, 2017 at 01:37:44AM +0200, Cyril Brulebois wrote:
+> Control: tag -1 moreinfo
+...<snip>...
+> I'm not sure what you're suggesting. 1.0.91 has SCRIPT="$4" AFAICT.
+> Ditto for 1.0.67+deb8u1.
+Agreed.
+Perhaps the 'diff' arguments were in an unusual order?
+My suggestion is to change the one line:
+  SCRIPT="$4"
+to this:
+  SCRIPT="$DEBOOTSTRAP_DIR/scripts/$4"
+> Also, you want to sending unified diffs.
+> Please clarify what you meant.
+Sorry about the absence of -u.  I had been checking the more recent
+source code, and opted to send a minimal amount of 'diff' output.
+Here is a diff from my system - devuan-jessie.
+The diff is between the distributed 'debootstrap' and my editted
+'debootstrap'.  (The paste below is much butchered by my attempts to
+undo the effect of the electric indents of emacs, which I tried, and
+failed, to turn off.)
+Please let me know if there is anything lacking, and thank you for
+looking at the bug report.
+Regards,
+Douglas.
+================= (start) diff output =============================
+dguptill@blackscram:/usr/sbin$ diff -u debootstrap.dist debootstrap
+--- debootstrap.dist           2017-01-13 02:03:13.000000000 -0400
++++ debootstrap                2017-08-14 16:41:53.159463091 -0300
+@@ -1,7 +1,9 @@
+ #!/bin/sh
+ set -e
+ 
+-VERSION='1.0.86+devuan1.0'
++# VERSION='1.0.86+devuan1.0'
++# changing SCRIPT; Douglas Guptill
++VERSION='1.0.86+devuan1.1'
+ 
+ unset TMP TEMP TMPDIR || true
+ 
+@@ -408,13 +410,16 @@
+                fi
+        fi
+ 
+-       SCRIPT="$DEBOOTSTRAP_DIR/scripts/$1"
++       # SCRIPT="$DEBOOTSTRAP_DIR/scripts/$1"
++       # equivalent, but possibly better esthetically, is:
++       SCRIPT="$DEBOOTSTRAP_DIR/scripts/${SUITE}"
+        if [ -n "$VARIANT" ] && [ -e "${SCRIPT}.${VARIANT}" ]; then
+           SCRIPT="${SCRIPT}.${VARIANT}"
+           SUPPORTED_VARIANTS="$VARIANT"
+        fi
+        if [ "$4" != "" ]; then
+-           SCRIPT="$4"
++           # SCRIPT="$4"
++           SCRIPT="$DEBOOTSTRAP_DIR/scripts/$4"
+        fi
+ fi
+ 
+================= (end) diff output =============================

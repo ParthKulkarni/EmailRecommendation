@@ -1,0 +1,45 @@
+To : Olliver Schinagl <oliver+debian@schinagl.nl>, 860545@bugs.debian.org
+Subject : Bug#860545: debootstrap fails to locate xzcat if the default shell is set to posh
+From : Steve McIntyre <steve@einval.com>
+Date : Tue, 18 Apr 2017 14:52:00 +0100
+Message-id : 20170418135200.GV8529@einval.com
+Reply-to : Steve McIntyre <steve@einval.com>, 860545@bugs.debian.org
+In-reply-to : <[🔎] 149251589238.30263.17360723432367270873.reportbug@um-mbp-306.ultimaker.com>
+References : <[🔎] 149251589238.30263.17360723432367270873.reportbug@um-mbp-306.ultimaker.com>
+
+
+On Tue, Apr 18, 2017 at 01:44:52PM +0200, Olliver Schinagl wrote:
+>Package: debootstrap
+>Version: 1.0.89
+>Severity: normal
+>
+>Dear Maintainer,
+>
+>Trying to run debootstrap with just acl (the first package in the list) fails
+>at unpacking due to a missing xzcat
+>
+>sudo debootstrap  --merged-usr  --variant=minbase --components=main,non-free
+>--include=acl jessie /tmp/debtest http://deb.debian.org/debian
+>
+>I: Chosen extractor for .deb packages: ar
+>I: Extracting acl...
+>E: Extracting .//var/cache/apt/archives/acl_2.2.52-2_amd64.deb requires the
+>xzcat command, which is not available
+>$ which xzcat
+>/usr/bin/xzcat
+>
+>
+>changing /bin/sh -> dash fixes it, but I would have figued that if debootstrap
+>has its shebang set to /bin/sh, it would work with any posix shell, including
+>posh.
+>
+>(I read the warning:
+>WARNING: Since many of Debian's /bin/sh scripts are not actually policy-
+>compliant, using posh as your /bin/sh may reveal breakage.)
+Just tested this - it appears that posh doesn't include "type", which
+is what debootstrap is using to check what's available. I don't
+personally know if "type" is a hard requirement in a posix shell here.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"We're the technical experts.  We were hired so that management could
+ ignore our recommendations and tell us how to do our jobs."  -- Mike Andrews

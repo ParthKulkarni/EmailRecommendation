@@ -1,0 +1,42 @@
+To : debian-boot@lists.debian.org
+Subject : Problem: UUIDs not being used everywhere for disks in stretch
+From : Steve McIntyre <steve@einval.com>
+Date : Tue, 25 Jul 2017 23:33:36 +0100
+Message-id : 20170725223336.5pqkc2wyxch4diw6@tack.einval.com
+
+
+Hey folks,
+Leif (in CC) pointed this out to me after he did a fresh Stretch
+installation over the weekend. I've just verified the problem
+myself. Our initial thought was that this might be specific to
+installations onto NVME, but I've tested and it's not, it's generic.
+Right at the end of a simple installation to a single disk device,
+when we run grub-installer, the generated grub.cfg is using
+root=/dev/XXXX for the kernel command line rather than what it should
+be (root=UUID=YYYY). This bug has managed to slip through our
+installation testing as the resulting system will still boot fine for
+simple single-disk cases...
+I've compared this to a jessie installation using the same setup, and
+that did the right thing (i.e. the final grub.cfg used
+root=UUID=YYYY).  I've spent some time tracking down what's going on,
+and I can see the *first* level of problem at least.
+In grub-mkconfig, it looks for entries in /dev/disk/by-uuid/ to match
+the UUID for /. If it can't find one, it falls back to using the
+direct /dev/ disk device for the rootfs. Checking back, I can see:
+ * in jessie, the entries in /dev/disk/by-uuid/ are refreshed after
+   we're finished in partman
+ * in stretch, they are not. You can see this most obviously - start
+   with a blank disk and the only entry that will show up in there
+   throughout the installation is for the installation medium
+Does anybody have any insights as to how this might have
+changed/broken? I'm too tired to dig much further tonight, but I'll
+carry on looking tomorrow.
+*Finally* - this is not a critical problem in the long run AFAICS. As
+soon as people update their grub.cfg in their new system (so a new
+kernel, or a new grub, or new versions of various other packages),
+the installed system should generate a fixed UUID-style grub.cfg.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+< Aardvark> I dislike C++ to start with. C++11 just seems to be
+            handing rope-creating factories for users to hang multiple
+            instances of themselves.

@@ -1,0 +1,46 @@
+To : intrigeri@debian.org, 854429@bugs.debian.org
+Subject : Bug#854429: task-desktop: Please allow Wayland systems without X.Org
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 31 Jan 2018 10:24:49 +0000
+Message-id : 20180131102449.GA29054@perpetual.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 854429@bugs.debian.org
+In-reply-to : <85k292wxd1.fsf@boum.org>
+References : <85k292wxd1.fsf@boum.org> <85k292wxd1.fsf@boum.org>
+
+
+On Tue, 07 Feb 2017 at 03:25:30 +0100, intrigeri@debian.org wrote:
+> I see:
+> 
+>   $ aptitude why xorg
+>   i   task-gnome-desktop Depends task-desktop
+>   i A task-desktop       Depends xorg   
+> 
+> What can possibly go wrong™ if we replaced:
+> 
+>   Depends: tasksel (= 3.39), xorg, xserver-xorg-video-all, xserver-xorg-input-all, desktop-base
+> 
+> with something like:
+> 
+>   Depends: tasksel (= 3.39), xorg | wayland, xserver-xorg-video-all | wayland, xserver-xorg-input-all | wayland, desktop-base
+> 
+> ?
+There is no such thing as the "wayland" package: that's not how Wayland
+works. In the X11 protocol, you run an X11 display server, then run a
+window manager (and perhaps a separate or integrated compositor) inside
+that; but in Wayland, you just run a Wayland compositor (like GNOME Shell
+or Weston), and it provides the equivalent of both the display server
+and the window manager/compositor. The Wayland compositors mostly share
+code via libraries rather than by running an external binary, apart from
+Xwayland (an X11 server that is also a Wayland client, similar to Xming
+on Windows and XQuartz on macOS) as a compatibility layer for X11 apps.
+xorg isn't particularly huge, and it gives the desktop session the
+opportunity to fall back to X11 if Wayland doesn't work on your
+hardware/drivers (gdm/GNOME can do this) or if you specifically choose
+to run an X11 session as a workaround for apps that don't work under
+XWayland (gdm in buster offers "GNOME on Xorg" in the list of desktop
+environments for this reason). I think task-desktop should probably
+continue to pull in Xorg for buster, at least at a Recommends level.
+(task-gnome-desktop Depends gnome-core Depends gdm3 Recommends
+xserver-xorg, so GNOME desktops get Xwayland as a hard dependency and
+Xorg in transitive Recommends already.)
+    smcv

@@ -1,0 +1,34 @@
+To : 895237@bugs.debian.org, Harlan Lieberman-Berg <hlieberman@debian.org>
+Subject : Bug#895237: apache2: apachectl does not use systemd for restarts
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Sat, 14 Apr 2018 11:50:17 +0200
+Message-id : 1626229.q8V5VFdcH1@k
+Reply-to : Stefan Fritsch <sf@sfritsch.de>, 895237@bugs.debian.org
+In-reply-to : <[🔎] 20180412095603.GG28806@sym.noone.org>
+References : <152320627314.25713.4008837136041031360.reportbug@wolke.in.heitkoetter.net> <[🔎] 20180412095603.GG28806@sym.noone.org> <152320627314.25713.4008837136041031360.reportbug@wolke.in.heitkoetter.net>
+
+
+On Thursday, 12 April 2018 11:56:04 CEST Axel Beckert wrote:
+> Jan Heitkötter wrote:
+> > Default behaviour is do stop/start Apache using apachectl which fails in
+> > installations running systemd. Apache will stop, but not start again.
+Using apachectl stop / start / restart works fine for me with systemd. The 
+issue is somewhere else.
+To debug this, error output would be useful. Like what happens when you try to 
+start apache again? what does systemctl status apache2.service say afterwards? 
+Is there anything in the apache error log? Maybe change apache2ctl to do "set 
+-x" at the beginning and show the output.
+Harlan Lieberman-Berg wrote:
+> Hm, looks like this is actually a bug over in apache-land.  We do the right
+> thing for `apachectl start` in terms of wrapping to use systemd, but we
+> don't do that during `apachectl restart`.
+This is correct behavior: apachectl restart is different from stop+start. 
+"apachectl restart" only restarts the child processes, the parent process 
+keeps running.
+This is different from what init scripts do for "restart", but nobody claims 
+that apachectl works the same as init scripts.
+But I wonder why certbot needs to do stop+start? Would an "apachectl graceful" 
+not be the better option?
+> Apache folx, can we potentially just turn restart into a shim that calls
+> `apachectl stop` and `apachectl start`?  That will solve the problem with
+> the least amount of fuss.

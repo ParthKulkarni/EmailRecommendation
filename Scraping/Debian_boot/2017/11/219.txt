@@ -1,0 +1,51 @@
+To : Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>
+Subject : Re: Busybox 1.27 breaks kernel cmdline preseeding
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Mon, 27 Nov 2017 22:22:04 +0100
+Message-id : 20171127212204.GB31142@x260-buxy
+Mail-followup-to : Raphael Hertzog <hertzog@debian.org>,	Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>,	Cyril Brulebois <kibi@debian.org>, debian-boot@lists.debian.org,	debian-bsd@lists.debian.org
+In-reply-to : <[🔎] CAF_rnBTH1Vk97Mibnsn-Vbng1o9MMKEyhM5YDUv+VzkwpY5hYA@mail.gmail.com>
+References : <[🔎] CACfMzvqcj_Hfwoe0YizaV4NzsA153R0r24MDFNriocSDiw+Jfw@mail.gmail.com> <[🔎] 20171124114027.x4bx4nfgrpaau6gp@mraw.org> <[🔎] 20171124143309.bkjumhm75j3bjcru@home.ouaza.com> <[🔎] 20171127200846.GA29062@x260-buxy> <[🔎] CAF_rnBTH1Vk97Mibnsn-Vbng1o9MMKEyhM5YDUv+VzkwpY5hYA@mail.gmail.com>
+
+
+Hi,
+On Mon, 27 Nov 2017, Mathieu Trudel-Lapierre wrote:
+> On Mon, Nov 27, 2017 at 3:08 PM, Raphael Hertzog <hertzog@debian.org> wrote:
+> [...]
+> > I pushed a pu/kernel-cmdline-preseed branch implementing the preseeding
+> > out of /proc/cmdline. It's more elaborate than Mathieu's patch
+> > (https://paste.ubuntu.com/26034695/) in that it is able to handle
+> > multi-word values.
+> >
+> > I tested it locally and it fixes the rescue mode for me. For
+> > consistency, I renamed the command and the udeb, but the only place
+> > where it matters is in "debian-installer" itself where we have to update
+> > the package name.
+> 
+> That will work on most arches, but not on kfreebsd/*. That said, the
+> easy fix would be to look at both environment and /proc/cmdline.
+We wants to stop using the environment because busybox hides it from us...
+I don't see the point of continuing to use it.
+Can you elaborate on what's wrong with /proc/cmdline on kfreebsd? We know
+that it exists. Are you saying that it doesn't contain the actual
+parameters passed on the kernel command line at boot time?
+I put debian-bsd@lists.debian.org in copy to have their feedback/advice.
+Is there any other way to get the parameters passed on the kernel
+command line?
+> I *think* you only really need -e 's/\([^ =]*=[^ "]\)/\n\1/g'  -e
+> "s/\([^ =]*=[^ ']\)/\n\1/g" to multiline the entries and appropriately
+> handle any multiword. With my limited testing it seemed to work well,
+> and would be less complex than your solution ;)
+> 
+> Did I miss some important corner-case?
+At least it does not cope well with parameters without any "=". Try adding
+words like "quiet" in the middle of your parameter list. They do not end
+up on a line of their own.
+I freely admit that my solution is complex but I was not able to find a
+simpler one that works well enough with my test case:
+language=fr_FR long?='1 2 3' rescue/enable="true" my/description="un message" --- quiet
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

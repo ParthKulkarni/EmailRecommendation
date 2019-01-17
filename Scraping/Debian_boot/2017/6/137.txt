@@ -1,0 +1,120 @@
+To : 864457@bugs.debian.org
+Subject : Bug#864457: [d-i daily hd-media 20170608] kernel doesn't initialize USB ports inside d-i on a sunxi-based system
+From : Karsten Merker <merker@debian.org>
+Date : Sat, 10 Jun 2017 15:50:27 +0200
+Message-id : 20170610135027.GA16403@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 864457@bugs.debian.org
+In-reply-to : <[🔎] 20170608205057.GA6252@excalibur.cnev.de>
+References : <[🔎] 20170608205057.GA6252@excalibur.cnev.de>
+
+
+On Thu, Jun 08, 2017 at 10:50:57PM +0200, Karsten Merker wrote:
+> Package: installation-reports
+> 
+> Boot method: hd-media tarball from USB stick
+> Image version: https://d-i.debian.org/daily-images/armhf/daily/hd-media/hd-media.tar.gz
+> Date: 2017-06-08
+> 
+> Machine: LeMaker Banana Pi
+> Processor: Allwinner A20 (2x Cortex A7)
+> Memory: 1GB
+[...]
+> Comments/Problems: 
+> Installation method is a d-i hd-media tarball and a Debian CD/DVD
+> ISO image on a USB stick.  Booting d-i from the stick works fine,
+> but inside the installer the USB ports are dead and no USB
+> devices get recognized by the kernel.
+> 
+> In an installed system on the same hardware (installed with the
+> netboot image), the USB ports work normally.  In the d-i
+> environment, the ehci platform driver gets loaded, but for some
+> reason doesn't initialize the actual host controller. All
+> relevant USB host driver modules appear to be there:
+> 
+> Module                  Size  Used by
+> usb_storage            45835  0
+> phy_generic             4686  1 sunxi
+> musb_hdrc             113325  1 sunxi
+> udc_core               26444  1 musb_hdrc
+> ohci_platform           4786  0
+> ohci_hcd               37898  1 ohci_platform
+> ehci_platform           5462  0
+> ehci_hcd               64996  1 ehci_platform
+> phy_sun4i_usb           8637  1 sunxi
+> extcon_core            13223  2 sunxi,phy_sun4i_usb
+> usbcore               196310  6 usb_storage,ehci_hcd,musb_hdrc,ohci_hcd,ehci_platform,ohci_platform
+> usb_common              3659  5 udc_core,sunxi,musb_hdrc,phy_sun4i_usb,usbcore
+> 
+> In the d-i environment:
+> [    2.694030] usbcore: registered new interface driver usbfs
+> [    2.699958] usbcore: registered new interface driver hub
+> [    2.703305] SCSI subsystem initialized
+> [    2.716192] usbcore: registered new device driver usb
+> [    2.724836] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+> [    2.736947] sunxi-mmc 1c0f000.mmc: base:0xf08f4000 irq:28 
+> [    2.750665] ehci-platform: EHCI generic platform driver   
+> [    2.751130] ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+> [    2.752551] ohci-platform: OHCI generic platform driver
+> 
+> While on the installed system:
+> [    2.162185] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver  
+> [    2.168314] ehci-platform: EHCI generic platform driver
+> [    6.187194] ehci-platform 1c14000.usb: EHCI Host Controller
+> [    6.187256] ehci-platform 1c14000.usb: new USB bus registered, assigned bus number 2
+> [    6.192414] ehci-platform 1c14000.usb: irq 30, io mem 0x01c14000
+> [    6.205562] ehci-platform 1c14000.usb: USB 2.0 started, EHCI 1.00
+> [    6.206170] usb usb2: New USB device found, idVendor=1d6b, idProduct=0002
+> [    6.206184] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+> [    6.206191] usb usb2: Product: EHCI Host Controller
+> [    6.206198] usb usb2: Manufacturer: Linux 4.9.0-3-armmp-lpae ehci_hcd
+> [    6.206204] usb usb2: SerialNumber: 1c14000.usb
+> [    6.207443] hub 2-0:1.0: USB hub found
+> [    6.207557] hub 2-0:1.0: 1 port detected
+> [    6.209230] ehci-platform 1c1c000.usb: EHCI Host Controller
+> [    6.209289] ehci-platform 1c1c000.usb: new USB bus registered, assigned bus number 3
+> [    6.216403] ehci-platform 1c1c000.usb: irq 34, io mem 0x01c1c000
+> [    6.230524] ehci-platform 1c1c000.usb: USB 2.0 started, EHCI 1.00
+> [    6.231044] usb usb3: New USB device found, idVendor=1d6b, idProduct=0002
+> [    6.231058] usb usb3: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+> [    6.231066] usb usb3: Product: EHCI Host Controller
+> [    6.231072] usb usb3: Manufacturer: Linux 4.9.0-3-armmp-lpae ehci_hcd
+> [    6.231079] usb usb3: SerialNumber: 1c1c000.usb
+> 
+> We might have a problem with the USB port power supply here. 
+> Comparing the available modules between the installed system and
+> the d-i environment (full list below) and looking for possibly
+> related modules shows that the "axp20x_regulator" and
+> "axp20x_usb_power" modules are available in the installed system,
+> but not in the d-i environment.  I am not sure whether
+> axp20x_usb_power is really responsible for providing power _to_
+> the USB hosts ports, though.  It could be that it is responsible
+> for powering the system _from_ a USB-OTG port, so it might be
+> unrelated to the problem at hand.  "axp20x_regulator" would
+> possibly be a candidate for a power-supply problem.  I have also
+> tried using a powered USB hub between the USB stick and the host
+> port, but even then no USB device gets recognized, which kind of
+> speaks against the theory of only a missing 5V-supply on the USB
+> port as the sole source of the problem.  Possibly the ehci/ohci
+> platform drivers depend on the axp20x PMIC modules for full
+> initialization, but that is at the moment only a wild guess. 
+> Perhaps somebody at debian-kernel (CCed) can provide further
+> insight into this.
+It looks like neither axp20x_regulator nor axp20x_usb_power is
+the sole source of the problem.  I have built new kernel udebs
+including these modules and have tested d-i with them - adding
+them doesn't change anything.  They can be modprobed successfully
+and show up in lsmod, but nothing new shows up in the kernel log
+after loading them.
+ 
+While checking the list of modules again, I found that these
+modules themselves use the i2c subsystem to communicate with the
+powermanagement controller, but we don't seem to have an
+appropriate i2c controller driver (i2c_mv64xxx) inside d-i. I'll
+try building kernel udebs with i2c_mv64xxx included and see
+whether that changes anything.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

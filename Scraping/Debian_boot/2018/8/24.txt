@@ -1,0 +1,260 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: Status and open questions for debian-installer with backports support
+From : Steve McIntyre <steve@einval.com>
+Date : Mon, 13 Aug 2018 00:57:07 +0100
+Message-id : 20180812235707.acure6xrefck5ehp@tack.einval.com
+In-reply-to : <[🔎] 20180802085659.dzzpxzq4jxgnrgkh@mraw.org>
+References : <[🔎] 20180802085659.dzzpxzq4jxgnrgkh@mraw.org>
+
+
+Apologies for taking a while to get back to you here... :-/
+Also adding a CC to the -kernel list.
+On Thu, Aug 02, 2018 at 10:56:59AM +0200, Cyril Brulebois wrote:
+>
+>This is a long read… I've highlighted “to do”-like items with an arrow
+>(=>).
+ACK!
+>debian-installer
+>================
+>
+>First things first, we needed a debian-installer build that knew about a
+>backported linux kernel, so I hacked my way in debian-installer.git; it
+>wasn't too hard since we can count on apt to resolve dependencies, and
+>after all, we only needed the kernel-image udeb and its modules.
+>
+>The latest branch is stretch-backports-v2, which combines both a number
+>of commits that are aimed at the master branch, and a couple others that
+>want to only be used in a stretch-backports branch:
+>
+>  https://salsa.debian.org/installer-team/debian-installer/commits/stretch-backports-v2
+All looks sane enough...
+>net-retriever
+>-------------
+>
+>As usual, I've tested the resulting installer with the netboot(-gtk)
+>image and of course it failed to load additional udebs. These netboot*
+>images are aimed at booting from the network, and they also need to
+>fetch additional udebs from a mirror. Since net-retriever only knows
+>about a single source of udebs, it needed to be told about multiple
+>sources (stretch and stretch-backports) and also how to merge entries.
+>I've detailed my choices in this commit in particular:
+>
+>  https://salsa.debian.org/installer-team/net-retriever/commit/09535b0613a85e02d511b92b60683b20405b6d42
+>
+>For more details, see the whole stretch-backports-v2 branch for
+>net-retriever:
+>
+>  https://salsa.debian.org/installer-team/net-retriever/commits/stretch-backports-v2
+>
+>Now, it doesn't matter too much, since the stretch-backports repository
+>will evolve over time, and udebs for the specific kernel used during the
+>d-i build will disappear. I think this is too much of a volatile (no
+>pun intended) target to support. It's still a very nice way to test d-i
+>without having to build an ISO with debian-cd, so I'd like to merge
+>these changes in net-retriever anyway.
+ACK. Agreed with the "inefficient" comments here, but if it works...
+>base-installer
+>--------------
+>
+>Second, it makes quite some sense to not only run d-i with a newer
+>kernel, but to also install it, so that users can boot from their brand
+>new hardware that wasn't supported by d-i with stable components only.
+Of course, yeah.
+>The kernel selection and installation is implemented in base-installer
+>(see library.sh), and that happens to run before apt-setup. Since I
+>didn't want to butcher sources.list manually to install the kernel
+>directly at this stage, I've decided to implement installing the latest
+>kernel from backports in a finish-install script (also shipped in the
+>base-installer package, for consistency), running at the very end of the
+>installation process.
+Ah, OK. More on this later.
+>This only happens when backports support was enabled (this is detected
+>through the presence of /etc/udebs-backports-source).
+>
+>At first, using the linux-image-$arch metapackage looked easy enough but
+>of course that works for amd64, but not for i386 (one would need to pick
+>686 or 686-pae). I've still pushed a branch with this implementation as
+>it can be useful as is:
+>
+>  https://salsa.debian.org/installer-team/base-installer/commits/stretch-backports-v0
+>
+>We could probably modify library.sh to reuse it, but I'd like to have
+>minimal changes (for reasons explained in the very last section). We
+>could probably just iterate over all installed linux-image-'*' packages,
+>pick the one from the src:linux package, and upgrade it from the
+>backports repository.
+>
+>=> I'll look into that later on.
+OK.
+>apt-setup
+>---------
+>
+>Also only when /etc/udebs-backports-source is present, the backports
+>service gets automatically enabled, which makes the later installation
+>of linux-image packages possible.
+>
+>Single commit for this:
+>
+>  https://salsa.debian.org/installer-team/apt-setup/commit/6133bdcd5a7903105ad967ab087f2f12f9d1c59d
+Absolutely, yeah.
+>debian-cd
+>=========
+>
+>As mentioned above, tricks were needed in net-retriever for the netboot*
+>images, to make it possible to load linux kernel modules udebs. Those
+>tricks aren't needed when generating an ISO image. As a reminder, on the
+>d-i side, a cdrom_isolinux image is generated, and the debian-cd tool
+>needs to be configured to use that image instead of the official image
+>available on the configured mirror.
+>
+>I didn't make this dynamic yet, but I've modified my local configuration
+>to set BACKPORTS=backports-list, to include a number of packages from
+>the stretch-backports suite. This file was generating by listing all
+>udebs produced by the linux source package (as done in the d-i build
+>system):
+>
+>    USE_UDEBS_BACKPORTS_FROM=stretch-backports
+>    ...
+>    source=linux
+>    ...
+>    binaries=$(grep-dctrl -s Package -F Source $source $APTDIR/state/lists/*${USE_UDEBS_BACKPORTS_FROM}*Packages | awk '{print $2}')
+Right.
+>=> This needs to become dynamic, probably through a helper tool that
+>   can be called automatically if backports are enabled in debian-cd.
+Nod, we can work that out.
+>=> It might be nice to have some kind of consistency check, at least
+>   to make sure the ABI is the same for the linux kernel produced by
+>   the d-i build, and for the modules available in the backports
+>   suite. [Note: this might be true for weekly builds too, see recent
+>   complaints/bug reports.] Bonus points if the source version is
+>   checked too, for extra caution.
+Also agreeing with Ben, we need this checked to be right.
+>As a consequence, all those were included in the ISO, in the following
+>file:
+>
+>    debian/dists/stretch/main/debian-installer/binary-amd64/Packages.gz
+>
+>This means no extra tweak is needed there, all udebs are available in a
+>single place: easy!
+Nod. That was what I was aiming for in the debian-cd code, as it was
+obvious anna wouldn't cope otherwise.
+>Of course we still need the modified apt-setup and base-installer
+>binaries. I've made them available as local packages (LOCALDEBS) and
+>they were automatically used.
+OK.
+>The finish-install script ran as expected, but I ended up with a 4.16
+>kernel from backports in the installed system, as the linux-latest
+>binaries still point to it rather than to 4.17 (presumably because
+>linux/stretch-backports is still Needs-Build on mipsel at the moment).
+>It was downloaded from the network mirror.
+>
+>=> It would be nice if we could include the linux-image-* packages from
+>   backports (and their dependencies) directly on the installation image,
+>   so as to be independent of what's happening in the stretch-backports
+>   suite on online mirrors. Users would have reproducible results over
+>   time, instead of a jumpy target. I don't know debian-cd enough to
+>   determine how feasible it would be. I'm also not sure what would happen
+>   if we had “old” linux-image packages on the ISO, and “newer” ones on
+>   mirrors.
+Listing the linux-image-* package in the BACKPORTS file should
+accomplish this already. The code in check_backports_packages is
+designed to work this way, anyway - pulling in the specified packages
+from backports, and any specific dependencies that are newer than
+what's in stable. But it's been nearly 2 years since I wrote this
+code. :-)
+>Open questions
+>==============
+>
+>Now that I've explained (in length…) how it works, I think it's high
+>time we define what our target is.
+>
+>Due to the volatility of a backports suite, I would tend to not even try
+>to support netboot.
+Holy crap, no! :-)
+>Aiming for a least a netinst image would look good to me. If we can
+>manage that, we can probably also produce a CD1 for those who want to
+>have more packages than just what's on a netinst (I've had at least
+>one such request). I'm not going to debate how many desktops we
+>should have CD1 for, that's really not my call. I'll just mention
+>that size constraints might be tricky since we'll have both the
+>linux-image packages for the base suite and those from the backports
+>suite. The whole DVD/BR thing is probably entirely overkill.
+Agreed. CD#1 is basically dead, as Ben commented. I also have no
+desire to support a full range of media here. I'm thinking a netinst
+and a DVD#1, and *that's all*. If you want more packages, use the
+normal set in addition if you don't have network. To be honest, I'd
+alwo want to put warnings out saying "ONLY use these if you're going
+to be updating regularly!". Being stuck on an old -backport kernel or
+X that's not getting security updates is not a great service for
+users.
+>=> Choice to make: netinst and maybe CD1(s)? Something else?
+netinst and DVD#1.
+>It's probably a good idea to consider building matching unofficial
+>image(s) with firmwares embedded. I'm not an expert regarding debian-cd
+>so help is much welcome. Tweaks might be needed to get firmwares
+>installed and/or upgraded from the backports repository, be it to embed
+>them on the image, or to make them available to the installed system.
+Ah, good catch. The code to force firmware inclusion will also need an
+update to also use backports firmware when a backports kernel is
+included. That should be really easy. In terms of config, we're
+already building netinst and DVD#1 versions with firmware. We'll keep
+that same config.
+>=> Choice: support unofficial firmware-enabled image(s)?
+Yes, people will need them.
+>=> Question: how to ensure firmwares from backports are available in d-i
+>   and in the installed system?
+>
+>Finally, what architectures are we supporting? I can't speak for
+>debian-cd, but at least for the d-i part, we'll likely fork master into
+>stretch-backports and merge there. So we should keep track of any arch-
+>specific changes and debian-installer is likely to be buildable/built on
+>all architectures for no extra cost. If there are other bits that users
+>need to rely on, like flash-kernel and other components, I think they
+>should just consider installing testing instead. We can't reasonably be
+>expected to backport all the things.
+Sure.
+>=> Question: should we restrict architectures we build images for?
+Probably. I'm only thinking x86, arm64 and maybe armhf. Wait for
+people to ask for others and add on a case-by-case basis.
+>Last question: how often do we produce such an image? I don't think it's
+>reasonable to do that every time a new major version of linux is made
+>available in the backports repository. Doing that once around the middle
+>of the release cycle would look good to me. This would kind of mimic the
+>“and a half” thing we had in the past. Once we get the process right, we
+>might think about doing so another time or two, but we already have limited
+>humanpower to deal with stable point releases and alphas for testing
+>(at least oldstable is gone now)…
+>
+>=> Question: what to advertise/communicate on? One-shot only is probably
+>   a good rule of thumb?
+Let's try to do one first, and then work out what to do if it
+succeeds. :-)
+In the long run, I'm thinking I'd like to do a smallish number in the
+lifetime of a stable release. Maybe (roughly!) following the point
+release schedule? Every 2-3 months?
+>What to do with modified components
+>===================================
+>
+>My current approach would be to get net-retriever, apt-setup, and
+>base-installer (once this last one is ready of course) updated in
+>stable. This would greatly help building, testing, and running
+>debian-installer without having to special-case everything in various
+>places. Of course this is subject to a green light from the release
+>team, but I might be trusted to get things right (and/or to get the
+>pieces working again if anything breaks).
+Nod.
+>We would be able to rely on their having built-in support for backports
+>(remember, it's only enabled when a specific file is present). We could
+>then just upload src:debian-installer to stretch-backports (after dak's
+>been patched to allow that), and point debian-cd to the resulting
+>images.
+Sounds cool. I'll probably need to tweak on my end for that to work,
+but it should be straighforward.
+In terms of *my* code changes for debian-cd, all the changes so far
+are already in stable (not that it matters all that much). So long as
+the changes are not too intrusive, I'll also be taking any changes
+onto the buildd/stretch branch too.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"We're the technical experts.  We were hired so that management could
+ ignore our recommendations and tell us how to do our jobs."  -- Mike Andrews

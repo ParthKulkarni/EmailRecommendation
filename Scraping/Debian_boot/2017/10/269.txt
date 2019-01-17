@@ -1,0 +1,36 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#879478: debhelper: dh_testroot regression: relies on debian/control
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 22 Oct 2017 04:46:43 +0200
+Message-id : 150864040341.32114.8464148918814030365.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 879478@bugs.debian.org
+
+
+Package: debhelper
+Version: 10.10
+Severity: serious
+Tags: d-i
+Justification: triggers FTBFS
+[ Please keep both debian-boot@ and myself in the loop, thanks. ]
+Hi,
+debian-installer uses compat 7, a build/ directory, and its daily-build
+script is started from this directory. Makefiles use dh_testroot from
+that directory, and starting with 10.10, the build is broken because of:
+| dh_testroot: "debian/control" not found. Are you sure you are in the correct directory?
+The changes were obvious since 10.9.2 (known good), but I've confirmed
+anyway (through bisection) that it's caused by:
+| commit 087be1a300581b989aa38227693a8a6f112408f9 (refs/bisect/bad)
+| Author: Niels Thykier <niels@thykier.net>
+| Date:   Sat Sep 16 14:51:53 2017 +0000
+| 
+|     Add minimal R³ support for debhelper
+|     
+|     Signed-off-by: Niels Thykier <niels@thykier.net>
+It seems to me that's due to the getpackages call addition, but I don't
+think it's reasonable for debhelper to break compat 7 this way. Also,
+even if one might object d-i is abusing dh_testroot (or using it
+incorrectly), its documented purpose is:
+| dh_testroot simply checks to see if you are root. If not, it exits
+| with an error. Debian packages must be built as root, though you can
+| use fakeroot(1)
+KiBi.

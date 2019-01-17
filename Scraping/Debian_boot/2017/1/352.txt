@@ -1,0 +1,77 @@
+To : Colin Watson <cjwatson@debian.org>, 476388@bugs.debian.org,	Jérémy Bobbio <lunar@debian.org>
+Subject : Bug#476388: partman-auto-crypto: Allow preseeding of the skip_erase flag
+From : Philipp Kern <pkern@debian.org>
+Date : Sun, 29 Jan 2017 19:12:57 +0100
+Message-id : 20170129181257.5a7vs4av6hvx73j6@desktop.kern.pm
+Reply-to : Philipp Kern <pkern@debian.org>, 476388@bugs.debian.org
+In-reply-to : <20080417141829.GA3707@qamar>
+References : <20080416112211.GA27462@qamar> <20080417132529.GA10884@riva.ucam.org> <20080417141829.GA3707@qamar>
+
+
+On Thu, Apr 17, 2008 at 04:18:29PM +0200, Jérémy Bobbio wrote:
+> No actual recipes are actually used when using LVM or crypto auto
+> partitioning: an "enveloppe" is created by auto_lvm_prepare() which
+> contains enough space to hold every partitions tagged "lvmok" in the
+> recipe.
+> 
+> Its this enveloppe partition that is turned, when using crypto, into an
+> encrypted partition and that is erased.  So there is no user accessible
+> recipes where one could actually specify such flag…
+Please find attached a patch that's the minimum necessary to preseed away
+the disk erase choice. While you could argue that it could be a full-blown
+prompt, it is still possible to cancel the erase during interactive
+installations as instructed by the wipe process by hitting [Cancel].
+As the wiping occurs directly after selecting the encrypted LVM receipe
+I think that should be fine for now.
+Optimally this would also be made conditional on the fact if the device
+is rotational or not, to avoid the expensive wiping step on SSDs. Note
+that Ubuntu already defaults to skip the wipe in this case, although
+without a way to preseed otherwise.
+The patch does not introduce a translatable string, so I'd be hopeful
+that we could still merge this for stretch. I tested the possible paths
+through this in qemu and the patch only triggers if the option is
+explicitly set to false.
+Kind regards
+Philipp Kern
+signature.ascdiff --git a/autopartition-crypto b/autopartition-crypto
+index 279af3f..3ee8342 100755
+--- a/autopartition-crypto
++++ b/autopartition-crypto
+@@ -32,6 +32,9 @@ for dev in $DEVICES/*; do
+ 
+ 		echo dm-crypt > $id/crypto_type
+ 		crypto_prepare_method "$dev/$id" dm-crypt || exit 1
++		if [ "$(debconf-get partman-auto-crypto/erase_disks)" = "false" ]; then
++			touch $id/skip_erase
++		fi
+ 		found=yes
+ 		break
+ 	done
+diff --git a/debian/changelog b/debian/changelog
+index 42324a7..489fd33 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,9 @@
++partman-auto-crypto (25) UNRELEASED; urgency=medium
++
++  * Implement a preseedable way to skip disk erase. (Closes: #476388)
++
++ -- Philipp Kern <pkern@debian.org>  Sun, 29 Jan 2017 15:19:08 +0100
++
+ partman-auto-crypto (24) unstable; urgency=medium
+ 
+   [ Colin Watson ]
+diff --git a/debian/partman-auto-crypto.templates b/debian/partman-auto-crypto.templates
+index 316755a..ed6421a 100644
+--- a/debian/partman-auto-crypto.templates
++++ b/debian/partman-auto-crypto.templates
+@@ -3,3 +3,9 @@ Type: text
+ # :sl3:
+ # TRANSLATORS: This is a menu entry. Keep in under 55 columns/characters
+ _Description: Guided - use entire disk and set up encrypted LVM
++
++Template: partman-auto-crypto/erase_disks
++Type: boolean
++Default: true
++Description: for internal use; can be preseeded
++ Set to false if you want to skip disk erase.

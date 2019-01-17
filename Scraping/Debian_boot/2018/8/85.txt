@@ -1,0 +1,41 @@
+To : <debian-boot@lists.debian.org>
+Subject : Creating my own Preseeded ISO with partman replaced by a ZFS step
+From : Bailey Parker <bailey@jhu.edu>
+Date : Fri, 10 Aug 2018 18:51:45 -0400
+Message-id : CAKcfFNrUBkR-xwi9BSr9JuMURJD1wmvXc=b++0AesTFk8g+TiQ@mail.gmail.com
+
+
+Hello,
+I'm looking to preseed an installer for a cluster, but I'd like all machines to
+boot from ZFS roots. [The best recommendation I've found][1] wants me to boot a
+LiveCD, install ZFS, setup the zpool, and the `chroot` in and repeat the
+installation manually. This seems really tedious and error-prone, and somewhat
+defeats the purpose of the preseeded installer.
+I'd like to somehow modify the installer ISO that I create when preseeding to
+include ZFS (so that before the package manager is configured, a ZFS pool can
+be created), replace the partman step with some custom scripting that [creates
+a zpool and sets up the datasets][2], and finally install zfs-dkms (also
+zfsutils-linux and zfs-initramfs).
+Looking at [an example stretch preseed file][3] (and I must confess, a friend
+who is capable of scrolling to the end of a file found this--why
+partman/early_command is at the end and not with the other partman stuff is
+beyond me!), it seems like if I was able to add the compiled ZFS kernel module
+and utils to initrd (along with my preseed file), I could run my zpool stuff
+from partman/early_command. However, I'd still need a way to skip the default
+partman stuff so that it couldn't overwrite all my work and somehow inform the
+rest of the install process to use my ZFS root.
+I also came across [partman-zfs][4], but apparently this is only for a FreeBSD
+port. Could that be useful in any way?
+In digging through mail archives, I also came across [this script][5], but it's
+unclear to me how exactly that would fit into my desired workflow. This sounds
+like you'd need to manually drop to a shell to install/setup ZFS.
+Is there a sane way to go about adding ZFS root support to my preseeded install
+or should I abandon this and wait for better support?  If the latter, are there
+steps I could take to add better support given my limited knowledge of d-i?
+Thanks,
+Bailey Parker
+  [1]: https://github.com/zfsonlinux/zfs/wiki/Debian-Stretch-Root-on-ZFS
+  [2]: https://github.com/zfsonlinux/zfs/wiki/Debian-Stretch-Root-on-ZFS#step-3-system-installation
+  [3]: https://www.debian.org/releases/stable/example-preseed.txt
+  [4]: https://packages.debian.org/sid/partman-zfs
+  [5]: https://lists.debian.org/debian-boot/2018/01/msg00334.html

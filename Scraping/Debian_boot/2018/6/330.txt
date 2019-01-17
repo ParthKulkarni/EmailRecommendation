@@ -1,0 +1,49 @@
+To : debian-boot@lists.debian.org, Cyril Brulebois <kibi@debian.org>, 902226@bugs.debian.org
+Subject : Re: Bug#902226: debian-installer-netboot-images: FTBFS in stretch, even when allowing network access
+From : Didier 'OdyX' Raboud <odyx@debian.org>
+Date : Wed, 27 Jun 2018 22:39:44 +0200
+Message-id : 19129369.N4hQR3SU8Y@odyx.org
+In-reply-to : <[🔎] 20180624233238.fxfaec5gptincfkv@mraw.org>
+References : <[🔎] alpine.DEB.2.20.1806231631270.14257@tulipan.isla-invisible.es> <[🔎] 20180624233238.fxfaec5gptincfkv@mraw.org>
+
+
+Hi theres,
+Le lundi, 25 juin 2018, 01.33:38 h CEST Cyril Brulebois a écrit :
+> Cyril Brulebois <kibi@debian.org> (2018-06-24):
+> > At first glance, it seems to me this bug could be addressed in two
+> > different ways, which don't seem to be too convoluted. The first way
+> > would be to try the s-p-u download and fall back to s download, for each
+> > and every download. But this could (probably only theoretically) lead to
+> > inconsistent downloads, mixing bits and pieces from s-p-u and from s.
+> > Plus plenty of errors when the default location isn't the right one.
+Exactly. If a pure s-p-u build fails, it's because the s-p-u debian-installer 
+isn't built on all architectures, so the d-i-n-i s-p-u build should really 
+fail. (acronyms ftw)
+> > I suppose a better way would be to figure out with an early test if the
+> > target version is available in s-p-u or in s, and then pick the right
+> > suite for all downloads. Patches for this second approach are welcome.
+That seems more fool-proof and consistent: download from a single suite: 
+either from s-p-u or from stretch only, and for all archs.
+> I've pushed a prospective branch (pu/fix-ftbfs-in-stretch) with two commits:
+> https://salsa.debian.org/installer-team/debian-installer-netboot-images/com
+> mit/86f910f8e1e60e308747a7f53045862705b0a132
+> https://salsa.debian.org/installer-team/debian-installer-netboot-images/com
+> mit/eb2e5b3fb437b288c4c83427fb1c0d213f7b5a5e
+Looks good to me, given that strategy.
+> Only checked with the first few architectures (still on limited bandwidth),
+> but that seems to do the trick. Slightly not happy about having that check
+> and fallback done for each and every architecture (instead of once and for
+> all), which could again lead to bits and pieces from both sources mixed
+> together); but I guess that's a reasonable compromise (no big changes needed
+> in the code).
+I've tried for some time to (ab)use make targets to modify DISTRIBUTION 
+depending on partial calls to get_images, but failed.
+Given my failed attempts, I suspect your patches are the lesser evil	for 
+solving this. But I'm not convinced that solving this is better than ensuring 
+we only ever build "pure-stretch" or "pure-stretch-proposed-updates" d-i-n-
+i's.
+> I'll let others comment on this bug report plus proposed solution; Didier
+> maybe?
+Thanks for the explicit ping; I'm not on top of Debian things these days.
+Cheers,
+    OdyX

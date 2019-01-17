@@ -1,0 +1,53 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#855399: debian-installer: EXTRAFILES copies all parent directories and does not copy directories
+From : Tshepang Lekhonkhobe <tshepang@gmail.com>
+Date : Sun, 19 Feb 2017 17:52:15 +0200
+Message-id : CAA77j2DNhF39zqVBqPQbnyU-E+k25VUKnn2g1aNQQwkFzzqvfg@mail.gmail.com
+Reply-to : Tshepang Lekhonkhobe <tshepang@gmail.com>, 855399@bugs.debian.org
+In-reply-to : <[🔎] 20170218232631.GB30768@mraw.org>
+References : <[🔎] CAA77j2CFZGq=sOtf+V32Gknwu-Ep0PrveR4M=xA1SQoPyvUhpg@mail.gmail.com> <[🔎] 20170218232631.GB30768@mraw.org>
+
+
+On Sun, Feb 19, 2017 at 1:26 AM, Cyril Brulebois <kibi@debian.org> wrote:
+> Hi,
+>
+> Tshepang Lekhonkhobe <tshepang@gmail.com> (2017-02-17):
+>> Adding 'EXTRAFILES = ~/foo/bar/baz' to config/local resulted in
+>> /home/tshepang/foo/bar directory initrd.
+>> Also, if 'baz' is a directory, it did not get copied.
+>
+> Please note it's called EXTRA*FILES* so I'm not really surprised that it
+> works on files instead of on directories… Anyway, you could just put the
+> files you need in the build/ directory, that works well with:
+>
+>     EXTRA_FILES = foo/bar/baz/*
+I would like to avoid copying those files into the build/ directory if
+I can simply specify their location in a variable.
+> If you have several levels, you can use this instead:
+>
+>     EXTRAFILES = `find foo -type f`
+>
+> If anything, I think we should improve (as in: write) documentations in
+> build/README instead of changing a long standing behaviour which might
+> be relied on.
+I am more interested in being able to specify a directory tree. Should
+I create a new variable to avoid breaking existing setups?
+> By the way, this patch seems to be reversed:
+Sorry, I don't know what happened there.
+>> diff --git a/build/Makefile b/build/Makefile
+>> index 88ccad9fd..8f87b1559 100644
+>> --- a/build/Makefile
+>> +++ b/build/Makefile
+>> @@ -400,8 +400,8 @@ ifdef EXTRAFILES
+>>       # Copy in any extra files.
+>>       set -e; \
+>>       for file in $(EXTRAFILES); do \
+>> -             mkdir --parents $(TREE); \
+>> -             cp --archive --recursive $$file $(TREE); \
+>> +             mkdir -p $(TREE)/`dirname $$file`; \
+>> +             cp -a $$file $(TREE)/$$file; \
+>>       done
+>>  endif
+>
+>
+> KiBi.

@@ -1,0 +1,56 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#884375: flash-kernel: ubootenv.d dropins silently ignored on Wandboard
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Thu, 14 Dec 2017 17:22:37 +0100
+Message-id : 151326852018.14536.15246308571408484683.reportbug@nyera.fatal.se
+Reply-to : Andreas Henriksson <andreas@fatal.se>, 884375@bugs.debian.org
+
+
+Package: flash-kernel
+Version: 3.88
+Severity: normal
+Dear Maintainer,
+Please consider applying the attached patch to make it possible
+to extend the boot.scr on Wandboard.
+(Adding 'cma=256M' to bootargs is the only remaining thing needed
+for GNOME to work in Buster on Wandboard.)
+Regards,
+Andreas Henriksson
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'testing-debug'), (500, 'unstable'), (1, 'experimental-debug'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.13.0-1-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US:en (charmap=UTF-8)
+Shell: /bin/sh linked to /usr/bin/dash
+Init: systemd (via /run/systemd/system)
+>From bfb0e84c3f3259b10a4f9abb4bfd155daea30ee6 Mon Sep 17 00:00:00 2001
+From: Andreas Henriksson <andreas@fatal.se>
+Date: Thu, 14 Dec 2017 17:15:25 +0100
+Subject: [PATCH] Make ubootenv.d work on Wandboard
+To enable graphics on wandboard you need to have contiguous memory
+available, eg. pass cma=256M on the kernel command line.
+Unfortunately dropping 'setenv bootargs ${bootargs} cma=256M'
+into /etc/flash-kernel/ubootenv.d/cma currently doesn't work
+because the bootscr.wandboard template doesn't contain the
+needed @@UBOOT_ENV_EXTRA@@ marker for where to insert...
+This change fixes the template so we can use ubootenv.d dropins
+for wandboard.
+---
+ bootscript/armhf/bootscr.wandboard | 1 +
+ 1 file changed, 1 insertion(+)
+diff --git a/bootscript/armhf/bootscr.wandboard b/bootscript/armhf/bootscr.wandboard
+index 334610a..c6abd9c 100644
+--- a/bootscript/armhf/bootscr.wandboard
++++ b/bootscript/armhf/bootscr.wandboard
+@@ -33,6 +33,7 @@ if test -n "${console}"; then
+ fi
+ 
+ setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} @@LINUX_KERNEL_CMDLINE@@
++@@UBOOT_ENV_EXTRA@@
+ 
+ if test -z "${prefix}" ; then
+   setenv image_locations '/boot/ /'
+-- 
+2.15.1

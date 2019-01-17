@@ -1,0 +1,39 @@
+To : Philipp Kern <pkern@debian.org>
+Subject : Bug#886473: apt-setup lacks a dependency on gnupg
+From : David Kalnischkies <david@kalnischkies.de>
+Date : Fri, 25 May 2018 21:55:12 +0200
+Message-id : 20180525195512.GA12408@crossbow
+Reply-to : David Kalnischkies <david@kalnischkies.de>, 886473@bugs.debian.org
+In-reply-to : <[🔎] fe06fe70-5861-9cc0-2b03-f388647f7e61@debian.org>
+References : <20180106142241.GE22024@ch.lugn.nu> <20180106142241.GE22024@ch.lugn.nu> <20180115015306.4fto23lb7rumbxcj@mraw.org> <[🔎] 642be77f-3c4d-674b-dca9-25d7acf7ae45@debian.org> <[🔎] 20180521130609.beknfeaphlgnoh5h@mraw.org> <[🔎] fe06fe70-5861-9cc0-2b03-f388647f7e61@debian.org> <20180106142241.GE22024@ch.lugn.nu>
+
+
+On Mon, May 21, 2018 at 04:07:42PM +0200, Philipp Kern wrote:
+> I think in the latter two cases it's necessary to name the key fragments
+> .asc or .gpg depending on the content, correct? Right now we do not have
+> this distinction, so we'd need to somehow detect which one it is. Worst
+> case using grep for the ASCII armored preamble. Neither sources.list(5)
+> nor apt-secure(8) describe what the contract for /etc/apt/trusted.gpg.d
+> or other fragments actually is.
+apt-key(8) has some scattered hints.
+Beware of the keybox format which apt does not support. apt-key checks
+the first byte of a (supposed to be) binary file and if its unexpected
+skips with a warning (see is_supported_keyring). You could potentially
+use a similar logic. It also includes code to convert asc to gpg format.
+Both was suggested/vetted by the gpg maintainer(s).
+If I could be wishing for something, I would go with ASCII armored files
+(as that avoids problems with binary conffiles, keybox and other vanity
+formats, …) and Signed-By in sources rather than /etc/apt/trusted.gpg.d.
+If I had a djinni instead it would be something more along the lines of
+the various alternatives which are proposed every so often, but never
+actually materialize.
+> We also use fetch-url from debian-installer-utils at the moment, which
+> discards the source file name. I suppose we could use something like
+> ${url%%://*} to strip the protocol (which fetch-url already does) and
+> then use basename somehow to figure out the name, but I feel that this
+> would be a little surprising.
+We haven't figured out a sensible scheme for file naming either which
+was one more reason to not try to make 'apt-key add' work without gpg.
+Best regards
+David Kalnischkies
+signature.asc

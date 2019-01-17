@@ -1,0 +1,499 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#861510: unblock (pre-approval): systemd/232-23
+From : Michael Biebl <biebl@debian.org>
+Date : Sat, 29 Apr 2017 22:09:38 +0200
+Message-id : 149349657893.20783.14499786355494648161.reportbug@pluto.milchstrasse.xx
+Reply-to : Michael Biebl <biebl@debian.org>, 861510@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+User: release.debian.org@packages.debian.org
+Usertags: unblock
+Hi,
+I'd like to make another upload of systemd.
+An annotated debdiff follows. None of those changes touches udev, so
+this should not affect debian-installer. That said, I've CCed KiBi for
+his ack.
+systemd (232-23) unstable; urgency=medium
+  [ Michael Biebl ]
+  * journal: fix up syslog facility when forwarding native messages.
+    Native journal messages (_TRANSPORT=journal) typically don't have a
+    syslog facility attached to it. As a result when forwarding the
+    messages to syslog they ended up with facility 0 (LOG_KERN).
+    Apply syslog_fixup_facility() so we use LOG_USER instead. (Closes: #837893)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch&id=fc4d0e3e41dd0c22c4928a3265bd7cefd8074ef6
+This is probably the bug with the widest impact, as it at least affects
+all users of gdm/GNOME, where user log messages end up in kern.log. I
+would definitely like to see this fix in stretch.
+This patch has already been applied to the package in experimental
+  * nspawn: Support ephemeral boots from images (Closes: #858149)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch&id=59b525375fe98618d7cd487c0e8d38f5472a52b4
+This fix was requested by a user. It's a backport of a fix which is
+already in v233 (experimental) and limited to systemd-nspawn, so has
+very low regression potential.
+  * Exclude test binaries from dh_shlibdeps.
+    The test binaries in libsystemd-dev require libsystemd-shared which is
+    shipped in the systemd package. Those test binaries are primarily meant
+    to be run via autopkgtest. As the libsystemd-dev package is not supposed
+    to depend on systemd, exclude the tests from dh_shlibdeps and instead
+    update the autopkgtest dependencies to pull in the systemd package.
+    (Closes: #859152)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch&id=cf16a5ad620bfd9ab26e1a47d3e074e6286d3f90
+I'm a bit unsure about this one and would like the input of the release
+team. The proper fix for this bug report is to split of the tests into a
+separate package. This has been done in experimental. But I assume it is
+to late to do that for stretch. The test binaries require
+libsystemd-shared, which is provided by systemd. By not enforcing the
+installation of systemd, we potentially have a policy violation. That
+said, those test binaries are primarily meant to be run via autopkgtest,
+and debian/tests/control has been updated to explicitly pull in systemd.
+So we can either
+a/ do nothing, ie. keep the status quo, which probably makes the
+sysvinit users unhappy
+b/ split the tests into the systemd-tests package as done in
+experimental
+c/ apply the compromise to exclude the tests from dh_shlibdeps.
+Please let me know what you'd prefer.
+  [ Felipe Sateler ]
+  * Backport patch to make inability to get OS version nonfatal in machinectl.
+    Otherwise machinectl list breaks when there are libvirt machines
+    (Closes: #849316)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch&id=b396e05f2d451070c085e121230f693dcf1c2079
+We decided to pull this patch into stretch, as otherwise the combination
+of libvirt and machinectl would be broken. I expect libvirt/virt-manager
+to become more popular during the life-time of stretch with virtualbox
+being removed from stretch.
+  [ Sjoerd Simons ]
+  * init-functions: Only call daemon-reload when planning to redirect.
+    systemctl daemon-reload is a quite a heavy operation, it will re-parse
+    all configuration and re-run all generators. This should only be done
+    when strictly needed. (Closes: #861158)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch&id=57439b82c28e684faaec7773ea54eb3acd97ab1c
+We were calling daemon-reload a bit too aggressively unnecessarily which
+could lead to nasty side-effects, like in #861157. The change is
+straightforward.
+Please let me know if I can proceed with the upload.
+Regards,
+Michael
+unblock systemd/232-23
+-- System Information:
+Debian Release: 9.0
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'unstable'), (200, 'experimental')
+Architecture: amd64
+ (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=de_DE.utf8, LC_CTYPE=de_DE.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+diff --git a/debian/changelog b/debian/changelog
+index 4af7f8a..2c670e7 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,33 @@
++systemd (232-23) unstable; urgency=medium
++
++  [ Michael Biebl ]
++  * journal: fix up syslog facility when forwarding native messages.
++    Native journal messages (_TRANSPORT=journal) typically don't have a
++    syslog facility attached to it. As a result when forwarding the
++    messages to syslog they ended up with facility 0 (LOG_KERN).
++    Apply syslog_fixup_facility() so we use LOG_USER instead. (Closes: #837893)
++  * nspawn: Support ephemeral boots from images (Closes: #858149)
++  * Exclude test binaries from dh_shlibdeps.
++    The test binaries in libsystemd-dev require libsystemd-shared which is
++    shipped in the systemd package. Those test binaries are primarily meant
++    to be run via autopkgtest. As the libsystemd-dev package is not supposed
++    to depend on systemd, exclude the tests from dh_shlibdeps and instead
++    update the autopkgtest dependencies to pull in the systemd package.
++    (Closes: #859152)
++
++  [ Felipe Sateler ]
++  * Backport patch to make inability to get OS version nonfatal in machinectl.
++    Otherwise machinectl list breaks when there are libvirt machines
++    (Closes: #849316)
++
++  [ Sjoerd Simons ]
++  * init-functions: Only call daemon-reload when planning to redirect.
++    systemctl daemon-reload is a quite a heavy operation, it will re-parse
++    all configuration and re-run all generators. This should only be done
++    when strictly needed. (Closes: #861158)
++
++ -- Michael Biebl <biebl@debian.org>  Sat, 29 Apr 2017 21:47:47 +0200
++
+ systemd (232-22) unstable; urgency=medium
+ 
+   [ Martin Pitt ]
+diff --git a/debian/extra/init-functions.d/40-systemd b/debian/extra/init-functions.d/40-systemd
+index e4b170a..94ae696 100644
+--- a/debian/extra/init-functions.d/40-systemd
++++ b/debian/extra/init-functions.d/40-systemd
+@@ -12,14 +12,14 @@ if [ -d /run/systemd/system ]; then
+     state=$(systemctl -p LoadState --value show $service 2>/dev/null) || state="not-found"
+     [ "$state" = "masked" ] && exit 0
+ 
+-    # If the state is not-found, this might be a newly installed SysV init
+-    # script where systemd-sysv-generator has not been run yet.
+-    [ "$state" != "not-found" ] || [ "$(id -u)" != 0 ] || systemctl --no-ask-password daemon-reload
+-
+     # Redirect SysV init scripts when executed by the user
+     if [ $PPID -ne 1 ] && [ -z "${SYSTEMCTL_SKIP_REDIRECT:-}" ]; then
+         case $(readlink -f "$0") in
+             /etc/init.d/*)
++                # If the state is not-found, this might be a newly installed SysV init
++                # script where systemd-sysv-generator has not been run yet.
++                [ "$state" != "not-found" ] || [ "$(id -u)" != 0 ] || systemctl --no-ask-password daemon-reload
++
+                 _use_systemctl=1
+                 # Some services can't reload through the .service file,
+                 # but can through the init script.
+diff --git a/debian/patches/journal-fix-up-syslog-facility-when-forwarding-native-mes.patch b/debian/patches/journal-fix-up-syslog-facility-when-forwarding-native-mes.patch
+new file mode 100644
+index 0000000..ab882cb
+--- /dev/null
++++ b/debian/patches/journal-fix-up-syslog-facility-when-forwarding-native-mes.patch
+@@ -0,0 +1,29 @@
++From: Michael Biebl <mbiebl@gmail.com>
++Date: Thu, 30 Mar 2017 11:56:25 +0200
++Subject: journal: fix up syslog facility when forwarding native messages
++ (#5667)
++
++Native journal messages (_TRANSPORT=journal) typically don't have a
++syslog facility attached to it. As a result when forwarding the messages
++to syslog they ended up with facility 0 (LOG_KERN).
++Apply syslog_fixup_facility() so we use LOG_USER instead.
++
++Fixes: #5640
++(cherry picked from commit b6a20306fa5dbb8129dd09e07efeacfcfc57363f)
++---
++ src/journal/journald-native.c | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/src/journal/journald-native.c b/src/journal/journald-native.c
++index 0a1ce20..bba75b6 100644
++--- a/src/journal/journald-native.c
+++++ b/src/journal/journald-native.c
++@@ -278,7 +278,7 @@ void server_process_native_message(
++ 
++         if (message) {
++                 if (s->forward_to_syslog)
++-                        server_forward_syslog(s, priority, identifier, message, ucred, tv);
+++                        server_forward_syslog(s, syslog_fixup_facility(priority), identifier, message, ucred, tv);
++ 
++                 if (s->forward_to_kmsg)
++                         server_forward_kmsg(s, priority, identifier, message, ucred);
+diff --git a/debian/patches/machinectl-make-sure-that-inability-to-get-OS-version-isn.patch b/debian/patches/machinectl-make-sure-that-inability-to-get-OS-version-isn.patch
+new file mode 100644
+index 0000000..b88a898
+--- /dev/null
++++ b/debian/patches/machinectl-make-sure-that-inability-to-get-OS-version-isn.patch
+@@ -0,0 +1,43 @@
++From: Felipe Sateler <fsateler@debian.org>
++Date: Thu, 13 Apr 2017 19:33:59 -0300
++Subject: machinectl: make sure that inability to get OS version isn't
++ consider fatal for machine list (#4972)
++
++Fixes: #4918
++(cherry picked from commit 4b2419165ce409ee55ce96a926302f89685f2293)
++---
++ src/machine/machinectl.c | 13 ++++---------
++ 1 file changed, 4 insertions(+), 9 deletions(-)
++
++diff --git a/src/machine/machinectl.c b/src/machine/machinectl.c
++index 7b9be3b..c2ab202 100644
++--- a/src/machine/machinectl.c
+++++ b/src/machine/machinectl.c
++@@ -242,23 +242,18 @@ static int list_machines(int argc, char *argv[], void *userdata) {
++                 if (name[0] == '.' && !arg_all)
++                         continue;
++ 
++-                if (!GREEDY_REALLOC(machines, n_allocated, n_machines + 1)) {
+++                if (!GREEDY_REALLOC0(machines, n_allocated, n_machines + 1)) {
++                         r = log_oom();
++                         goto out;
++                 }
++ 
++-                machines[n_machines].os = NULL;
++-                machines[n_machines].version_id = NULL;
+++                machines[n_machines].name = name;
+++                machines[n_machines].class = class;
+++                machines[n_machines].service = service;
++                 r = get_os_release_property(bus, name,
++                                 "ID\0" "VERSION_ID\0",
++                                 &machines[n_machines].os,
++                                 &machines[n_machines].version_id);
++-                if (r < 0)
++-                        goto out;
++-
++-                machines[n_machines].name = name;
++-                machines[n_machines].class = class;
++-                machines[n_machines].service = service;
++ 
++                 l = strlen(name);
++                 if (l > max_name)
+diff --git a/debian/patches/nspawn-support-ephemeral-boots-from-images.patch b/debian/patches/nspawn-support-ephemeral-boots-from-images.patch
+new file mode 100644
+index 0000000..10e5b9c
+--- /dev/null
++++ b/debian/patches/nspawn-support-ephemeral-boots-from-images.patch
+@@ -0,0 +1,220 @@
++From: Lennart Poettering <lennart@poettering.net>
++Date: Fri, 18 Nov 2016 18:38:06 +0100
++Subject: nspawn: support ephemeral boots from images
++
++Previously --ephemeral was only supported with container trees in btrfs
++subvolumes (i.e. in combination with --directory=). This adds support for
++--ephemeral in conjunction with disk images (i.e. --image=) too.
++
++As side effect this fixes that --ephemeral was accepted but ignored when using
++-M on a container that turned out to be an image.
++
++Fixes: #4664
++(cherry picked from commit 0f3be6ca4dbbac8350cd8f10a8968d31f7bc13b6)
++---
++ man/systemd-nspawn.xml | 20 ++++++--------
++ src/basic/missing.h    |  4 +++
++ src/nspawn/nspawn.c    | 72 +++++++++++++++++++++++++++++++++++---------------
++ 3 files changed, 63 insertions(+), 33 deletions(-)
++
++diff --git a/man/systemd-nspawn.xml b/man/systemd-nspawn.xml
++index f153034..c295422 100644
++--- a/man/systemd-nspawn.xml
+++++ b/man/systemd-nspawn.xml
++@@ -211,13 +211,8 @@
++         <term><option>-x</option></term>
++         <term><option>--ephemeral</option></term>
++ 
++-        <listitem><para>If specified, the container is run with a
++-        temporary <literal>btrfs</literal> snapshot of its root
++-        directory (as configured with <option>--directory=</option>),
++-        that is removed immediately when the container terminates.
++-        This option is only supported if the root file system is
++-        <literal>btrfs</literal>. May not be specified together with
++-        <option>--image=</option> or
+++        <listitem><para>If specified, the container is run with a temporary snapshot of its file system that is removed
+++        immediately when the container terminates. May not be specified together with
++         <option>--template=</option>.</para>
++         <para>Note that this switch leaves host name, machine ID and
++         all other settings that could identify the instance
++@@ -252,11 +247,12 @@
++           Partitions Specification</ulink>.</para></listitem>
++         </itemizedlist>
++ 
++-        <para>Any other partitions, such as foreign partitions, swap
++-        partitions or EFI system partitions are not mounted. May not
++-        be specified together with <option>--directory=</option>,
++-        <option>--template=</option> or
++-        <option>--ephemeral</option>.</para></listitem>
+++        <para>On GPT images, if an EFI System Partition (ESP) is discovered, it is automatically mounted to
+++        <filename>/efi</filename> (or <filename>/boot</filename> as fallback) in case a directory by this name exists
+++        and is empty.</para>
+++
+++        <para>Any other partitions, such as foreign partitions or swap partitions are not mounted. May not be specified
+++        together with <option>--directory=</option>, <option>--template=</option>.</para></listitem>
++       </varlistentry>
++ 
++       <varlistentry>
++diff --git a/src/basic/missing.h b/src/basic/missing.h
++index 4c013be..508eb0e 100644
++--- a/src/basic/missing.h
+++++ b/src/basic/missing.h
++@@ -143,6 +143,10 @@
++ #define GRND_RANDOM 0x0002
++ #endif
++ 
+++#ifndef FS_NOCOW_FL
+++#define FS_NOCOW_FL 0x00800000
+++#endif
+++
++ #ifndef BTRFS_IOCTL_MAGIC
++ #define BTRFS_IOCTL_MAGIC 0x94
++ #endif
++diff --git a/src/nspawn/nspawn.c b/src/nspawn/nspawn.c
++index 1563644..9bafe9b 100644
++--- a/src/nspawn/nspawn.c
+++++ b/src/nspawn/nspawn.c
++@@ -1107,11 +1107,6 @@ static int parse_argv(int argc, char *argv[]) {
++                 return -EINVAL;
++         }
++ 
++-        if (arg_ephemeral && arg_image) {
++-                log_error("--ephemeral and --image= may not be combined.");
++-                return -EINVAL;
++-        }
++-
++         if (arg_ephemeral && !IN_SET(arg_link_journal, LINK_NO, LINK_AUTO)) {
++                 log_error("--ephemeral and --link-journal= may not be combined.");
++                 return -EINVAL;
++@@ -2559,7 +2554,7 @@ static int determine_names(void) {
++                         r = image_find(arg_machine, &i);
++                         if (r < 0)
++                                 return log_error_errno(r, "Failed to find image for machine '%s': %m", arg_machine);
++-                        else if (r == 0) {
+++                        if (r == 0) {
++                                 log_error("No image for machine '%s': %m", arg_machine);
++                                 return -ENOENT;
++                         }
++@@ -2569,14 +2564,14 @@ static int determine_names(void) {
++                         else
++                                 r = free_and_strdup(&arg_directory, i->path);
++                         if (r < 0)
++-                                return log_error_errno(r, "Invalid image directory: %m");
+++                                return log_oom();
++ 
++                         if (!arg_ephemeral)
++                                 arg_read_only = arg_read_only || i->read_only;
++                 } else
++                         arg_directory = get_current_dir_name();
++ 
++-                if (!arg_directory && !arg_machine) {
+++                if (!arg_directory && !arg_image) {
++                         log_error("Failed to determine path, please use -D or -i.");
++                         return -EINVAL;
++                 }
++@@ -2587,7 +2582,6 @@ static int determine_names(void) {
++                         arg_machine = gethostname_malloc();
++                 else
++                         arg_machine = strdup(basename(arg_image ?: arg_directory));
++-
++                 if (!arg_machine)
++                         return log_oom();
++ 
++@@ -4035,7 +4029,7 @@ int main(int argc, char *argv[]) {
++         _cleanup_fdset_free_ FDSet *fds = NULL;
++         int r, n_fd_passed, loop_nr = -1, ret = EXIT_SUCCESS;
++         char veth_name[IFNAMSIZ] = "";
++-        bool secondary = false, remove_subvol = false;
+++        bool secondary = false, remove_subvol = false, remove_image = false;
++         pid_t pid = 0;
++         union in_addr_union exposed = {};
++         _cleanup_release_lock_file_ LockFile tree_global_lock = LOCK_FILE_INIT, tree_local_lock = LOCK_FILE_INIT;
++@@ -4106,7 +4100,7 @@ int main(int argc, char *argv[]) {
++                         else
++                                 r = tempfn_random(arg_directory, "machine.", &np);
++                         if (r < 0) {
++-                                log_error_errno(r, "Failed to generate name for snapshot: %m");
+++                                log_error_errno(r, "Failed to generate name for directory snapshot: %m");
++                                 goto finish;
++                         }
++ 
++@@ -4177,19 +4171,46 @@ int main(int argc, char *argv[]) {
++                 assert(arg_image);
++                 assert(!arg_template);
++ 
++-                r = image_path_lock(arg_image, (arg_read_only ? LOCK_SH : LOCK_EX) | LOCK_NB, &tree_global_lock, &tree_local_lock);
++-                if (r == -EBUSY) {
++-                        r = log_error_errno(r, "Disk image %s is currently busy.", arg_image);
++-                        goto finish;
++-                }
++-                if (r < 0) {
++-                        r = log_error_errno(r, "Failed to create image lock: %m");
++-                        goto finish;
+++                if (arg_ephemeral)  {
+++                        _cleanup_free_ char *np = NULL;
+++
+++                        r = tempfn_random(arg_image, "machine.", &np);
+++                        if (r < 0) {
+++                                log_error_errno(r, "Failed to generate name for image snapshot: %m");
+++                                goto finish;
+++                        }
+++
+++                        r = image_path_lock(np, (arg_read_only ? LOCK_SH : LOCK_EX) | LOCK_NB, &tree_global_lock, &tree_local_lock);
+++                        if (r < 0) {
+++                                r = log_error_errno(r, "Failed to create image lock: %m");
+++                                goto finish;
+++                        }
+++
+++                        r = copy_file(arg_image, np, O_EXCL, arg_read_only ? 0400 : 0600, FS_NOCOW_FL);
+++                        if (r < 0) {
+++                                r = log_error_errno(r, "Failed to copy image file: %m");
+++                                goto finish;
+++                        }
+++
+++                        free(arg_image);
+++                        arg_image = np;
+++                        np = NULL;
+++
+++                        remove_image = true;
+++                } else {
+++                        r = image_path_lock(arg_image, (arg_read_only ? LOCK_SH : LOCK_EX) | LOCK_NB, &tree_global_lock, &tree_local_lock);
+++                        if (r == -EBUSY) {
+++                                r = log_error_errno(r, "Disk image %s is currently busy.", arg_image);
+++                                goto finish;
+++                        }
+++                        if (r < 0) {
+++                                r = log_error_errno(r, "Failed to create image lock: %m");
+++                                goto finish;
+++                        }
++                 }
++ 
++                 if (!mkdtemp(template)) {
++-                        log_error_errno(errno, "Failed to create temporary directory: %m");
++-                        r = -errno;
+++                        r = log_error_errno(errno, "Failed to create temporary directory: %m");
++                         goto finish;
++                 }
++ 
++@@ -4213,6 +4234,10 @@ int main(int argc, char *argv[]) {
++                                   &secondary);
++                 if (r < 0)
++                         goto finish;
+++
+++                /* Now that we mounted the image, let's try to remove it again, if it is ephemeral */
+++                if (remove_image && unlink(arg_image) >= 0)
+++                        remove_image = false;
++         }
++ 
++         r = custom_mounts_prepare();
++@@ -4295,6 +4320,11 @@ finish:
++                         log_warning_errno(k, "Cannot remove subvolume '%s', ignoring: %m", arg_directory);
++         }
++ 
+++        if (remove_image && arg_image) {
+++                if (unlink(arg_image) < 0)
+++                        log_warning_errno(errno, "Can't remove image file '%s', ignoring: %m", arg_image);
+++        }
+++
++         if (arg_machine) {
++                 const char *p;
++ 
+diff --git a/debian/patches/series b/debian/patches/series
+index 7c301cd..44daef3 100644
+--- a/debian/patches/series
++++ b/debian/patches/series
+@@ -59,6 +59,9 @@ units-do-not-throw-a-warning-in-emergency-mode-if-plymout.patch
+ units-apply-plymouth-warning-fix-to-in-rescue-mode-as-wel.patch
+ rules-allow-SPARC-vdisk-devices-when-identifying-CD-drive.patch
+ Adjust-pkgconfig-files-to-point-at-rootlibdir-4584.patch
++journal-fix-up-syslog-facility-when-forwarding-native-mes.patch
++machinectl-make-sure-that-inability-to-get-OS-version-isn.patch
++nspawn-support-ephemeral-boots-from-images.patch
+ debian/Use-Debian-specific-config-files.patch
+ debian/don-t-try-to-start-autovt-units-when-not-running-wit.patch
+ debian/Make-logind-hostnamed-localed-timedated-D-Bus-activa.patch
+diff --git a/debian/rules b/debian/rules
+index f49f71e..016fc51 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -333,6 +333,7 @@ override_dh_installinit:
+ # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=753589
+ override_dh_shlibdeps:
+ 	dh_shlibdeps -psystemd -- -dPre-Depends -edebian/systemd/bin/systemctl -dDepends
++	dh_shlibdeps -plibsystemd-dev -Xtests
+ 	dh_shlibdeps --remaining-packages -Lsystemd
+ 
+ override_dh_makeshlibs:
+diff --git a/debian/tests/control b/debian/tests/control
+index 60da5f4..22ffeeb 100644
+--- a/debian/tests/control
++++ b/debian/tests/control
+@@ -91,6 +91,7 @@ Restrictions: needs-root, allow-stderr, isolation-machine
+ 
+ Tests: root-unittests
+ Depends: libsystemd-dev,
++  systemd,
+   tree,
+   perl,
+   xz-utils,

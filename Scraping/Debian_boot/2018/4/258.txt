@@ -1,0 +1,153 @@
+To : 621118@bugs.debian.org
+Subject : Bug#621118: patch provided
+From : Garinot Pierre <garinot.pierre@errlock.org>
+Date : Sat, 28 Apr 2018 18:59:48 +0200
+Message-id : 20180428185948.1c5748f1@laptop.domovoy
+Reply-to : Garinot Pierre <garinot.pierre@errlock.org>, 621118@bugs.debian.org
+In-reply-to : <handler.896826.B896826.15249330914092.ackinfo@bugs.debian.org>
+References : <[🔎] 20180428183120.1744fa70@laptop.domovoy> <handler.896826.B896826.15249330914092.ackinfo@bugs.debian.org> <20110406161541.783.20440.reportbug@tinchowork.usharesoft>
+
+
+I also encountered this bug.
+The attached patches fixes it for me.
+They also should allow using multiple PV for the same VG (not tested).
+WARNING:
+_ partman-auto.diff applies on top of the one i provided in #896826
+_ I have no idea how to get the device in reuse_partitions(), so my
+patch set it to 'reuse', that's wrong, but i don't use $reuse{ and
+don't even know what it is used for, so i can't test.
+What they do:
+	_ when calling setup_partition() we also give it the device
+	(/dev/...) associated to it, setup_partition() writes it in
+	$id/device
+	_ auto_lvm_create_vg_map() use the previous information to find
+	the PVs associated to a VG (by checking $id/vg_name)
+pgpY7Sjk3VcQo.pgpdiff -Nru partman-auto-lvm-59/debian/changelog partman-auto-lvm-59+arcadia1/debian/changelog
+--- partman-auto-lvm-59/debian/changelog	2016-02-07 18:21:59.000000000 +0100
++++ partman-auto-lvm-59+arcadia1/debian/changelog	2018-04-28 18:20:56.000000000 +0200
+@@ -1,3 +1,9 @@
++partman-auto-lvm (59+arcadia1) unstable; urgency=medium
++
++  * Fix PV finding
++
++ -- Garinot Pierre <garinot.pierre@errlock.org>  Sat, 28 Apr 2018 18:20:56 +0200
++
+ partman-auto-lvm (59) unstable; urgency=medium
+ 
+   [ Colin Watson ]
+diff -Nru partman-auto-lvm-59/lib/auto-lvm.sh partman-auto-lvm-59+arcadia1/lib/auto-lvm.sh
+--- partman-auto-lvm-59/lib/auto-lvm.sh	2013-07-13 10:51:51.000000000 +0200
++++ partman-auto-lvm-59+arcadia1/lib/auto-lvm.sh	2018-04-28 18:20:56.000000000 +0200
+@@ -45,6 +45,8 @@
+ # temporary name is stored into $DEFAULT_VG.
+ auto_lvm_create_vg_map() {
+ 	local pv_device line recipe_device vg_name vg_file pv_device pv_found
++	local dev part_file
++	dev=$1
+ 
+ 	rm -rf $VG_MAP_DIR
+ 	mkdir -p $VG_MAP_DIR
+@@ -66,43 +68,22 @@
+ 		recipe_device=$(echo "$line" | sed -n -e 's!.*device{ *\([^ }]*\) *}.*!\1!p')
+ 		# If no VG has been specified, use default VG
+ 		[ "$vg_name" ] || vg_name="$DEFAULT_VG"
+-		# If no PV has been specified, use main device
+-		[ "$recipe_device" ] || recipe_device="$main_pv"
+ 
+-		# Find the device for this PV from the list of known PVs
+-		pv_found=
+-		for pv_device in $pv_devices; do
+-			if echo $pv_device | grep -q "$recipe_device[[:digit:]]*"; then
+-				pv_found=1
+-				break
++		# Find the devices for this PV from the list of known PVs
++		for part_file in $dev/*; do
++			if [ -d $part_file ] && [ -f $part_file/vg_name ] && 
++				[ $(cat $part_file/vg_name) = $vg_name ]; then
++				pv_device=$(cat $part_file/device)
++				echo "$pv_device" >> $VG_MAP_DIR/$vg_name
+ 			fi
+ 		done
+-		if [ "$pv_found" ]; then
+-			echo $pv_device >> $VG_MAP_DIR/$vg_name
+-		else
+-			bail_out no_such_pv
+-		fi
+ 	done
+ 	restore_ifs
+-
+-	# Add unused devices to default VG
+-	for pv_device in $pv_devices; do
+-		if ! grep -q "^$pv_device$" $VG_MAP_DIR/*; then
+-			echo $pv_device >> $VG_MAP_DIR/$DEFAULT_VG
+-		fi
+-	done
+-
+-	# Ensure that all VG have at least one PV
+-	for vg_file in $VG_MAP_DIR/*; do
+-		if ! [ -s $vg_file ]; then
+-			bail_out no_pv_in_vg
+-		fi
+-	done
+ }
+ 
+ auto_lvm_prepare() {
+ 	local devs main_device extra_devices method size free_size normalscheme
+-	local pvscheme lvmscheme target dev devdir main_pv physdev
++	local pvscheme lvmscheme target dev devdir main_pv physdev vg_file
+ 	devs="$1"
+ 	method=$2
+ 
+@@ -178,7 +159,6 @@
+ 	# This variable will be used to store the partitions that will be LVM
+ 	# by create_partitions; zero it to be sure it's not cluttered.
+ 	# It will be used later to provide real paths to partitions to LVM.
+-	# (still one atm)
+ 	pv_devices=''
+ 
+ 	### Situation
+@@ -232,6 +212,8 @@
+ 		scheme="$(add_envelope "$scheme")"
+ 	fi
+ 	auto_lvm_create_partitions $main_device
++	# Extract the mapping of which VG goes onto which PV
++	auto_lvm_create_vg_map $main_device
+ 
+ 	# Create partitions for PVs on extra devices
+ 	for dev in $extra_devices; do
+@@ -241,10 +223,22 @@
+ 			scheme="$(add_envelope "")"
+ 		fi
+ 		auto_lvm_create_partitions $dev
++		auto_lvm_create_vg_map $dev
+ 	done
+ 
+-	# Extract the mapping of which VG goes onto which PV
+-	auto_lvm_create_vg_map
++	# Add unused devices to default VG
++	for dev in $pv_devices; do
++		if ! grep -q "^$dev$" $VG_MAP_DIR/*; then
++			echo $dev >> $VG_MAP_DIR/$DEFAULT_VG
++		fi
++	done
++
++	# Ensure that all VG have at least one PV
++	for vg_file in $VG_MAP_DIR/*; do
++		if ! [ -s $vg_file ]; then
++			bail_out no_pv_in_vg
++		fi
++	done
+ 
+ 	if ! confirm_changes partman-lvm; then
+ 		return 255
+diff -Nru partman-auto-lvm-59/perform_recipe_by_lvm partman-auto-lvm-59+arcadia1/perform_recipe_by_lvm
+--- partman-auto-lvm-59/perform_recipe_by_lvm	2014-09-20 12:44:05.000000000 +0200
++++ partman-auto-lvm-59+arcadia1/perform_recipe_by_lvm	2018-04-28 16:55:46.000000000 +0200
+@@ -150,7 +150,7 @@
+ 	fi
+ 
+ 	shift; shift; shift; shift
+-	setup_partition $id $*
++	setup_partition $id $path $*
+ 	db_progress STEP 1
+ '

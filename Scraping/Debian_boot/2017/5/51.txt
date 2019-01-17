@@ -1,0 +1,89 @@
+To : Ben Hutchings <ben@decadent.org.uk>
+Subject : Re: Bug#861263: debian-installer: zfs support
+From : Sam Kuper <sam.kuper@uclmail.net>
+Date : Sat, 6 May 2017 05:07:36 +0100
+Message-id : CAD-JurLNkT=fUfeYmV+kLAt9-nwwy-n=nLRrsrtGHxir_2xVtA@mail.gmail.com
+In-reply-to : <[🔎] 1493991213.2564.55.camel@decadent.org.uk>
+References : <[🔎] CAD-JurKcL-mrvrCDQtS54XeujOQq_X83=b7G_PNYRbLLRMu4aw@mail.gmail.com> <[🔎] 1493991213.2564.55.camel@decadent.org.uk>
+
+
+On 06/05/2017, Nicholas D Steeves <nsteeves@gmail.com> wrote:
+> I would recommend the second of the following options:
+>
+> 1. Install using the non-free media with "Advanced options" -> "Expert
+> install"
+> 2. Install using the non-free media, then cleanup [...]
+>
+> It's faster than an "Advanced
+> options" -> "Expert install", where I believe it is also possible to
+> install a system which pulls uniquely from main and contrib.
+Thank you for reminding me of the existence of the "Expert install"
+option in the Debian Installer! :)
+My understanding of this feature request (#861263) is that it would be
+satisfied when a Debian Installer exists in which: the user can
+install Debian by simply click through the ncurses interface pretty
+much as usual, but in addition to the current guided[1] and manual[2]
+partitioning options, the user would have the option to select guided
+or manual partitioning with ZFS. Ideally, that would also include the
+option for encrypted ZFS using either a LUKS container or native ZFS
+encryption.[3]
+So, between your two options, I think the "Expert install" would
+probably be a better fit for resolving this feature request. However,
+although "Expert install" would be appropriate, it might not be
+necessary to use an unofficial installer. See below.
+On 05/05/2017, Ben Hutchings <ben@decadent.org.uk> wrote:
+> On Fri, 2017-05-05 at 14:26 +0100, Sam Kuper wrote:
+>> If the Debian Installer were instead to ship with, or to download at
+>> runtime, the ZFS on Linux source code, would that be acceptable from a
+>> licensing standpoint?
+>
+> I imagine this would be acceptable (though not in the default
+> installer, which only uses and installs packages from main).
+>
+> [...] there is already an (officially unofficial) installer that
+> includes non-free firmware.
+I have just run an *official* Jessie NetInst CD, using "Expert
+install" mode. Fairly late in the process, there is a step titled
+"Configure the package manager".[4] This step asks the user if they
+want software from "non-free" and/or "contrib" to be available to the
+system.
+So, it seems that there is no need in principle to use an unofficial
+installer just to be presented with the option to enable "contrib".
+One piece of work that would need to be done to the Debian Installer
+to enable it to download, compile and run ZFS before partitioning the
+HDD/SSD, is for the "Configure the package manager" step to be moved
+to an earlier point in the installation process. Let me explain. In my
+Jessie NetInst CD, the "Configure the package manager" step occurs
+*after* the Debian Installer has partitioned the drive and installed
+Debian to it: too late to make a difference, from the perspective of
+enabling ZFS root!
+I would suggest that the "Configure the package manager" step should
+be placed immediately *before* the "Detect disks" step. This means the
+"Configure the package manager" step would have to be modified. Rather
+than straight away writing to /etc/apt/sources.list and handing over
+to the following step (as it currently seems to do), it would instead:
+- record the user's selections to memory;
+- enable guided and manual ZFS options to become available in the
+"Partition disks" step (but only if the user chose to enable
+"contrib"); and
+- write the user's selections to /etc/apt/sources.list *after* the
+target drive has been formatted and populated.
+Additionally, of course, the Debian Installer would need to have code
+incorporated to perform the download-compile-run steps for ZFS.
+I can see that these are not trivial changes, but I also can see no
+reason in principle why they should not be made to the Debian
+Installer at some point during the Stretch lifecycle. Even if they end
+up taking many months to bring up to release quality, they would be
+very valuable additions to the Debian Installer.
+I would be very grateful if the "wontfix" label could be removed from
+this feature request.
+Thanks again to both of you; and Ben, I really did mean no offence to
+you by mentioning Moglen. I'm sorry if that came across as
+supercilious. I really was just trying to explain the basis of my
+understanding.
+[1] https://www.debian.org/releases/stable/amd64/ch06s03.html.en#partman-auto
+[2] https://www.debian.org/releases/stable/amd64/ch06s03.html.en#partman-manual
+[3] AFAIK, native ZFS encryption with Linux is not stable enough to
+make sense for a stable distribution. Until it is, ZFS-on-LUKS seems
+to be the best substitute.
+[4] https://www.debian.org/releases/stable/amd64/ch06s03.html.en#apt-setup

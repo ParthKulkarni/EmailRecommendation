@@ -1,0 +1,151 @@
+To : debian-lts@lists.debian.org
+Subject : Re: testing and review requested for Wheezy update of apache2
+From : Jonas Meurer <jonas@freesources.org>
+Date : Wed, 22 Feb 2017 17:23:31 +0100
+Message-id : 43286601-99cb-4526-bcfb-8ef044cea68f@freesources.org
+In-reply-to : <[🔎] 87r32sy5ec.fsf@curie.anarc.at>
+References : <20161223225643.GA24261@inguza.net> <87wpdlr0t5.fsf@curie.anarc.at> <87r33tqvqs.fsf@curie.anarc.at> <[🔎] 148730694.snktysjLZW@k> <[🔎] 87r32sy5ec.fsf@curie.anarc.at>
+
+
+Hi Antoine, hi LTS list,
+first, thanks to Antoine for doing the backport. After digging into the
+details myself I quite understand why he requested a second (and ideally
+a third) opinion!
+Am 20.02.2017 um 21:27 schrieb Antoine Beaupré:
+> With a fresh mind (and 30 days delay!) I am looking at this again...
+as discussed with Antoine on IRC, I looked into this during the last two
+days ...
+>>> 2: [ "GET / HTTP/1.0\n\n"                          => 400],
+>>> 8: [ "GET / HTTP/1.0\0\r\n\r\n"                    => 400],
+>>> 26: [ "GET / HTTP/1.0\r\nFoo: b\0ar\r\n\r\n"        => 400],
+>>>
+>>> #2 is weird - it just returns nothing now:
+>>>
+>>> $ printf "GET / HTTP/1.0\n\n" | nc localhost 80
+>>> $
+>>
+>> This works better in 2.4.10 with the backport and in 2.4.25: There,
+>>
+>> printf "GET / HTTP/1.0\n\n" | nc localhost 80
+>>
+>> gives a 400 Bad request, as expected.
+> 
+> Hm... I tried the packages I uploaded last month to people.d.o, and they
+> do not fail those tests anymore. At least,
+> 
+> # printf "GET / HTTP/1.0\n\n" | nc localhost 80
+> HTTP/1.1 400 Bad Request
+> # printf "GET / HTTP/1.0\r\nFoo: b\0ar\r\n\r\n" | nc localhost 80 
+> HTTP/1.1 400 Bad Request
+> # printf "GET / HTTP/1.0\0\r\n\r\n" | nc localhost 80            
+> HTTP/1.1 400 Bad Request
+> 
+> This all looks good...
+Unfortunately not that good ...
+"GET / HTTP/1.0\0\r\n\r\n" is a valid request and apparently pretty
+similar to what most web browsers do (except that they do send more
+headers).
+While doing a basic smoke test I discovered that requests from firefox
+and wget both got a "400 Bad Request" response, which isn't the expected
+behaviour.
+The following debug log lines confirmed that there's something broken:
+[debug] protocol.c(959): [client 127.0.0.1] (22)Invalid argument: Failed
+to read request header line
+[debug] protocol.c(1302): [client 127.0.0.1] request failed: error
+reading the headers
+Apparently, the last empty line triggered the error while it should not
+do so.
+So I started digging into the code and finally found out that the
+following patch was missing in Antoine's packages:
+https://svn.apache.org/viewvc?view=revision&revision=1775232
+It's a bit mean as the patch got applied to the httpd 2.2 branch way
+earlier than the CVE-2016-8743 related patches. Seems like the bug just
+wasn't triggered until the CVE-2016-8743 related patches came in.
+After applying the patch (attached), the basic things worked as expected:
+>> Have you tried if that diff helps with
+>>
+>>   printf "GET / HTTP/1.0\n\n" | nc localhost 80
+>>
+>> returning nothing? I don't see how the change would help, but I haven't tried 
+>> it or looked at the code in total.
+> 
+> Well, it's rather strange but things all seem to work here.. .The above
+> now returns the 400 error as expected.
+Looks better now:
+(request and corresponding error log)
+$ printf "GET / HTTP/1.0\n\n" | nc localhost 80
+HTTP/1.1 400 Bad Request
+[debug] protocol.c(1258): [client 127.0.0.1] request failed: malformed
+request line
+$ printf "GET / HTTP/1.0\r\nFoo: b\0ar\r\n\r\n" | nc localhost 80
+HTTP/1.1 400 Bad Request
+[debug] protocol.c(953): [client 127.0.0.1] (22)Invalid argument: Failed
+to read request header line Foo: b
+[debug] protocol.c(1296): [client 127.0.0.1] request failed: error
+reading the headers
+$ printf "GET / HTTP/1.0\r\n\r\n" | nc localhost 80
+HTTP/1.1 200 OK
+[no error log, valid request]
+>>> It does mean that "echo GET / | nc localhost 80" now fails, but that
+>>> seems to be the design of the Apache team, unfortunately. :( No more
+>>> "telnet into port 80" it seems?
+>>
+>> Note that telnet does LF -> CRLF conversion, so telnet still works for 
+>> debugging. But nc does not.
+> 
+> That should be acceptable. I am not sure it does it correctly, however:
+> 
+> # printf "GET / HTTP/1.0\r\n\r\n" | nc localhost 80
+> HTTP/1.1 400 Bad Request
+> 
+> That doesn't look right, actually - shouldn't this return a 200?
+Yep, and it does now. Also a test with 'telnet localhost 80' worked as
+expected now.
+> # printf "GET /\r\n\r\n" | nc localhost 80
+> 
+> returns a correct 200, however.
+If I got the code right, that's because for protocol version HTTP/0.9,
+no header checks are done.
+>>> I am really wondering why we shouldn't just package 2.2.32 after
+>>> all. the change is kind of massive, but it would make me feel much
+>>> better than the current patch set:
+>>>
+>>>  136 files changed, 1738 insertions(+), 4409 deletions(-)
+>>
+>> I am not sure either. For 2.4.10/jessie  the changes are a bit less intrusive 
+>> and I intend to use the backported version:
+>>
+>>  9 files changed, 1064 insertions(+), 303 deletions(-)
+>>
+>> But for 2.2/wheezy it's a difficult decision.
+> 
+> The problem with wheezy is that it would require reviewing years of
+> patches to see which one have been factored upstream:
+> 
+> apache2-2.2.22$ diffstat debian/patches/* | tail -1
+>  92 files changed, 3687 insertions(+), 1533 deletions(-)
+> 
+> It's interesting that this is similar to the diff between the two
+> versions. ;) In other words, the diff between upstream 2.2.22 and
+> debian's is about as big as the diff between debian's 2.2.22 and
+> 2.2.32....
+Not sure about that either. After reviewing parts of Antoines patch and
+comparing it with upstream 2.2 branch I understand him quite well that
+it's very painfull work to backport the CVE-2016-8743 fix to Debian's
+apache2 2.2.22 package.
+I don't have a clear possition here as I don't know at all which other
+changes were introduced between upstream 2.2.22 and 2.2.32 that didn't
+make it into the Debian package and that might be backwards-incompatible
+in one way or the other.
+I think that Antoine should go with his upload for now and let's hope
+that there's no other apache2 security fix in Wheezy LTS lifetime that
+is as invasive as this one was.
+>> Maybe explicitly encourage testers who use 
+>> mod_proxy. If you get some feedback and no unexpected issues are found, I 
+>> would tend towards using the backported patches.
+I finally did some further testing on a production system with apache2
+and mod_proxy usage and didn't find any further regressions.
+So +1 for the upload from my side.
+Cheers,
+ jonas
+signature.asc

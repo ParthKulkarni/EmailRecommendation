@@ -1,0 +1,68 @@
+To : Joey Hess <id@joeyh.name>
+Subject : Bug#881969: making bootable SD cards
+From : Karsten Merker <merker@debian.org>
+Date : Fri, 17 Nov 2017 22:07:10 +0100
+Message-id : 20171117210710.bwncbv4jy5s2jd3p@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 881969@bugs.debian.org
+In-reply-to : <[🔎] 20171117192634.mcj6e4kdkh42m63d@kitenet.net>
+References : <[🔎] 20171116235442.h4xrhqax7blbf57t@kitenet.net> <[🔎] 20171117190042.ofefqqh5xl7rlob3@excalibur.cnev.de> <[🔎] 20171117192634.mcj6e4kdkh42m63d@kitenet.net> <[🔎] 20171116235442.h4xrhqax7blbf57t@kitenet.net>
+
+
+On Fri, Nov 17, 2017 at 03:26:34PM -0400, Joey Hess wrote:
+> Karsten Merker wrote:
+> > to use d-i/flash-kernel on the target device, one obviously needs
+> > to already have put a u-boot onto the device in some form (such
+> > as preinstalled in the d-i SD card images), otherwise one
+> > couldn't have booted it
+> 
+> Not necessarily, see for example /target in d-i when the machine has
+> been booted from other media than the target disk.
+Hello,
+maybe we are misunderstanding each other: it doesn't matter to
+which medium/partition d-i installs Debian.  To actually start
+d-i on the device, u-boot has to already have been put onto the
+device (device as in "computer", not as in "/dev/sdxy")
+beforehand by some means, otherwise you couldn't have started d-i
+in the first place.
+> As noted in my initial message, d-i does not handle this in all cases,
+> requiring clumsy warnings on wiki pages to warn the user about its
+> deficiencies. If flash-kernel provided a way to do it, d-i could easily
+> to it for at least cases where u-boot is installed on a safe media like
+> a SD card.
+Again, at the point in time where d-i (which then runs
+flash-kernel) is executed, there already is (i.e. has to
+be) a u-boot on the device, otherwise d-i couldn't be running on
+it.  This isn't anything that d-i could change without a
+time-machine ;-).
+The only case where d-i could reasonably handle u-boot
+installation is installing an additional u-boot instance to
+_another_ storage location than the one that the system has
+already been brought up from, e.g. for the case where u-boot has
+been loaded from SD card initially, d-i installs Debian onto a
+harddisk, the SD card slot shall be used otherwise and the system
+has another possible location for u-boot besides the SD card,
+like eMMC or SPI flash.  That's exactly the case that I had been
+targeting with the u-boot-installer udeb mentioned in my previous
+post, but again this isn't a job for flash-kernel but for a
+separate tool.  This tool may well use flash-kernel's hardware
+database, but it doesn't make sense to integrate this
+functionality into flash-kernel.  Flash-kernel is designed to be
+automatically run via callbacks without any user interaction, and
+installing u-boot under these preconditions simply isn't possible
+as I have laid out in my previous mail.
+> > As a result of these issues, it was deemed unsuitable for
+> > flash-kernel to attempt installing u-boot.
+> 
+> A separate program included in flash-kernel that looks at the machine
+> database to determine how to install u-boot and installs it to a
+> specified device would avoid all of those issues.
+> That is what I am suggesting.
+Ok, so we actually aren't talking about flash-kernel here but
+about a new separate tool that just happens to live in the
+flash-kernel package?
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

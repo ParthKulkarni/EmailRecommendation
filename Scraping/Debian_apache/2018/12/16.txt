@@ -1,0 +1,174 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#916264: apache2: stopping or restarting apache often causes segfault when fcgid is enabled
+From : Mark Buranyi <diab@diab.org>
+Date : Wed, 12 Dec 2018 11:59:52 +0100
+Message-id : 154461239293.4621.673474008026247015.reportbug@lampdev
+Reply-to : Mark Buranyi <diab@diab.org>, 916264@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3+deb9u6
+Severity: normal
+Hi,
+When apache2 is stopped (or restarted) using systemd it segfaults on stop. It doesn't "break" apache, it restarts happily but the kernel log is filled with lines like this:
+[   83.576692] apache2[899]: segfault at 7f9474f207a0 ip 00007f9474f207a0 sp 00007ffcfee9d8c8 error 14 in libexpat.so.1.6.2[7f94771a2000+27000]
+[  120.753963] apache2[1160]: segfault at 7f5464e317a0 ip 00007f5464e317a0 sp 00007fff18fdc988 error 14 in libexpat.so.1.6.2[7f54670b3000+27000]
+[  137.910455] apache2[1470]: segfault at 7fbde4ec17a0 ip 00007fbde4ec17a0 sp 00007ffd6b1707c8 error 14 in libexpat.so.1.6.2[7fbde7143000+27000]
+[  323.749818] apache2[2283]: segfault at 7f39dcf3d7a0 ip 00007f39dcf3d7a0 sp 00007ffe9fd89fc8 error 14 in libexpat.so.1.6.2[7f39df1bf000+27000]
+[  495.645108] apache2[2655]: segfault at 7fd732ac37a0 ip 00007fd732ac37a0 sp 00007fff67f2aa08 error 14 in libexpat.so.1.6.2[7fd734d45000+27000]
+[  533.366032] apache2[3182]: segfault at 7f86f97dc7a0 ip 00007f86f97dc7a0 sp 00007ffe87db5848 error 14 in libexpat.so.1.6.2[7f86fba5e000+27000]
+[  597.376546] apache2[3503]: segfault at 7fe2a4c657a0 ip 00007fe2a4c657a0 sp 00007ffd60d77d48 error 14 in libexpat.so.1.6.2[7fe2a6ee7000+27000]
+[  634.959089] apache2[3611]: segfault at 7fdfc830d7a0 ip 00007fdfc830d7a0 sp 00007ffc10a50588 error 14 in libexpat.so.1.6.2[7fdfca58f000+27000]
+[  669.017042] apache2[3905]: segfault at 7fa1ecfe07a0 ip 00007fa1ecfe07a0 sp 00007ffe3828cb48 error 14 in libexpat.so.1.6.2[7fa1ef262000+27000]
+[  672.555998] apache2[4060]: segfault at 7f70965ca7a0 ip 00007f70965ca7a0 sp 00007ffd9b8ace08 error 14 in libexpat.so.1.6.2[7f709884c000+27000]
+[  710.488092] apache2[4159]: segfault at 7fa0157817a0 ip 00007fa0157817a0 sp 00007fffadadd588 error 14 in libexpat.so.1.6.2[7fa017a03000+27000]
+[  725.332089] apache2[4417]: segfault at 7f1bd74587a0 ip 00007f1bd74587a0 sp 00007ffcb3b57288 error 14 in libexpat.so.1.6.2[7f1bd96da000+27000]
+[  862.356568] apache2[4515]: segfault at 7fd5fc4297a0 ip 00007fd5fc4297a0 sp 00007ffd15457d48 error 14 in libexpat.so.1.6.2[7fd5fe6ab000+27000]
+(this happens once on each stop or restart)
+It segfaulted differently once but I couldn't trigger it again:
+[ 1925.829637] apache2[7364]: segfault at 7fc3e0c40bf0 ip 00007fc3e0c40bf0 sp 00007ffd5c9660c8 error 14 in libz.so.1.2.8[7fc3e165b000+19000]
+Core dump backtrace is as follows:
+-----
+(gdb) bt full
+#0  0x00007f1bd74587a0 in ?? ()
+No symbol table info available.
+#1  0x0000561179fae15e in ap_run_mpm_query (query_code=query_code@entry=2, result=result@entry=0x7ffcb3b572ec, _rv=_rv@entry=0x7ffcb3b572c4) at mpm_common.c:97
+        pHook = <optimized out>
+        n = 0
+        rv = -1
+#2  0x0000561179faeeee in ap_mpm_query (query_code=query_code@entry=2, result=result@entry=0x7ffcb3b572ec) at mpm_common.c:419
+        rv = 0
+#3  0x0000561179fceeb4 in log_tid (info=<optimized out>, arg=<optimized out>, buf=0x7ffcb3b5743e "", buflen=8130) at log.c:612
+        result = 22033
+#4  0x0000561179fcfdd6 in do_errorlog_default (buflen=8192, args=0x7ffcb3b5b480, errstr_fmt=0x561179ff67d8 "AH00060: seg fault or similar nasty error detected in the parent process", 
+    errstr_end=<synthetic pointer>, errstr_start=<synthetic pointer>, buf=0x7ffcb3b57400 "[Wed Dec 12 11:15:35.532750 2018] [core:notice] [pid 4417:tid ", info=0x7ffcb3b573b0) at log.c:944
+        len = 62
+        field_start = 57
+        item_len = <optimized out>
+        scratch = '\000' <repeats 560 times>...
+#5  log_error_core (file=0x561179ff66ac "mpm_unix.c", line=989, module_index=0, level=<optimized out>, status=0, s=<optimized out>, c=<optimized out>, r=0x0, pool=0x0, 
+    fmt=0x561179ff67d8 "AH00060: seg fault or similar nasty error detected in the parent process", args=0x7ffcb3b5b480) at log.c:1270
+        log_format = <optimized out>
+        len = 0
+        errstr_start = 0
+        errstr_end = 0
+        errstr = "[Wed Dec 12 11:15:35.532750 2018] [core:notice] [pid 4417:tid ", '\000' <repeats 98 times>, "\253\000\000\000\000\000\000\000\300\236\377\332\033\177\000\000?\000\000\000\000\000\000\000\360+r\332\033\177\000\000\000\000\000\000\000\000\000\000"...
+        logf = 0x7f1bdafed0a0
+        level_and_mask = 5
+        rmain = 0x0
+        sconf = 0x0
+        info = {s = 0x0, c = 0x0, r = 0x0, rmain = 0x0, pool = 0x0, file = 0x561179ff66ac "mpm_unix.c", line = 989, module_index = 0, level = 5, status = 0, using_syslog = 0, startup = 0, 
+          format = 0x561179ff67d8 "AH00060: seg fault or similar nasty error detected in the parent process"}
+        log_conn_info = <optimized out>
+        log_req_info = 0
+        lines = 0x0
+        done = <optimized out>
+        line_number = 0
+#6  0x0000561179fd02b7 in ap_log_error_ (file=file@entry=0x561179ff66ac "mpm_unix.c", line=line@entry=989, module_index=module_index@entry=0, level=level@entry=5, status=status@entry=0, 
+    s=<optimized out>, fmt=0x561179ff67d8 "AH00060: seg fault or similar nasty error detected in the parent process") at log.c:1319
+        args = {{gp_offset = 48, fp_offset = 48, overflow_arg_area = 0x7ffcb3b5b568, reg_save_area = 0x7ffcb3b5b4a0}}
+#7  0x0000561179fd7080 in sig_coredump (sig=11) at mpm_unix.c:986
+No locals.
+#8  <signal handler called>
+No locals.
+#9  0x00007f1bd74588d0 in ?? ()
+No symbol table info available.
+#10 <signal handler called>
+No locals.
+#11 0x00007f1bda22e3a3 in __select_nocancel () at ../sysdeps/unix/syscall-template.S:84
+No locals.
+#12 0x00007f1bda731245 in apr_sleep (t=t@entry=46875) at ./time/unix/time.c:246
+---Type <return> to continue, or q <return> to quit---
+        tv = {tv_sec = 0, tv_usec = 32787}
+#13 0x00007f1bda724ea3 in free_proc_chain (procs=0x7f1bdaf250b8) at ./memory/unix/apr_pools.c:2483
+        pc = 0x0
+        need_timeout = 1
+        timeout_interval = 46875
+#14 0x00007f1bda725b90 in apr_pool_destroy (pool=0x7f1bdafeb028) at ./memory/unix/apr_pools.c:817
+        active = <optimized out>
+        allocator = <optimized out>
+#15 0x00007f1bda725b55 in apr_pool_destroy (pool=0x7f1bdafed028) at ./memory/unix/apr_pools.c:811
+        active = <optimized out>
+        allocator = <optimized out>
+#16 0x0000561179fa6ed8 in destroy_and_exit_process (process_exit_value=0, process=<optimized out>) at main.c:264
+No locals.
+#17 0x0000561179fa6c97 in main (argc=<optimized out>, argv=<optimized out>) at main.c:796
+        c = 0 '\000'
+        showcompile = 0
+        showdirectives = 0
+        confname = 0x561179fed03f "apache2.conf"
+        def_server_root = 0x561179fed032 "/etc/apache2"
+        temp_error_log = <optimized out>
+        error = <optimized out>
+        pconf = 0x7f1bdafeb028
+        plog = 0x7f1bdafbf028
+        ptemp = 0x7f1bdafc1028
+        pcommands = 0x7f1bdafc9028
+        opt = 0x7f1bdafc9118
+        rv = <optimized out>
+        mod = <optimized out>
+        opt_arg = 0x7f1bdafed028 "(`\377\332\033\177"
+        signal_server = <optimized out>
+        rc = 0
+-------
+I have tried stripping down configuration, removing virtual hosts, removing modules and mod fcgid seems to be the trigger.
+It does NOT happen every time (as annoying as it is) but when it does, it consistently does segfault on every successive stop/restart. Maybe it depends on process alignment in memory or solar flares.
+I have also tried switching MPMs, it happens with event/worker/prefork
+I could reproduce this consistently on two machines (both latest debian stretch), one bare metal and one VM.
+To reproduce, please enable mod-fcgid on a stock apache install and try restarting apache using /etc/init.d/apache2 restart or systemctl restart apache2
+Directly calling apache2ctl never causes segfaults.
+Sometimes it does not happen until stars align, basically disabling-enabling modules or switching mpms and restarting apache in various ways eventually triggers it 
+My only custom configuration is CoreDumpDirectory in apache2.conf and a "ulimit -c unlimited" in envvars to enable core dumps - these make no difference otherwise.
+thanks,
+Mark
+-- Package-specific info:
+-- System Information:
+Debian Release: 9.6
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-8-amd64 (SMP w/2 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages apache2 depends on:
+ii  apache2-bin          2.4.25-3+deb9u6
+ii  apache2-data         2.4.25-3+deb9u6
+ii  apache2-utils        2.4.25-3+deb9u6
+ii  dpkg                 1.18.25
+ii  init-system-helpers  1.48
+ii  lsb-base             9.20161125
+ii  mime-support         3.60
+ii  perl                 5.24.1-3+deb9u5
+ii  procps               2:3.3.12-3+deb9u1
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.39
+Versions of packages apache2 suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+pn  www-browser                                      <none>
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.5.2-5
+ii  libaprutil1              1.5.4-3
+ii  libaprutil1-dbd-sqlite3  1.5.4-3
+ii  libaprutil1-ldap         1.5.4-3
+ii  libc6                    2.24-11+deb9u3
+ii  libldap-2.4-2            2.4.44+dfsg-5+deb9u2
+ii  liblua5.2-0              5.2.4-1.1+b2
+ii  libnghttp2-14            1.18.1-1
+ii  libpcre3                 2:8.39-3
+ii  libssl1.0.2              1.0.2l-2+deb9u3
+ii  libxml2                  2.9.4+dfsg1-2.2+deb9u2
+ii  perl                     5.24.1-3+deb9u5
+ii  zlib1g                   1:1.2.8.dfsg-5
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+pn  www-browser                                      <none>
+Versions of packages apache2 is related to:
+ii  apache2      2.4.25-3+deb9u6
+ii  apache2-bin  2.4.25-3+deb9u6
+-- Configuration Files:
+/etc/apache2/apache2.conf changed [not included]
+/etc/apache2/envvars changed [not included]
+-- no debconf information

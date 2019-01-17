@@ -1,0 +1,77 @@
+To : Steven Chamberlain <stevenc@debian.org>, 893886@bugs.debian.org
+Subject : Bug#893886: partman-auto: increase max size of /boot on amd64+i386?
+From : Steve Langasek <vorlon@debian.org>
+Date : Fri, 23 Mar 2018 12:15:16 -0700
+Message-id : 20180323191516.GA20242@virgil.dodds.net
+Reply-to : Steve Langasek <vorlon@debian.org>, 893886@bugs.debian.org
+In-reply-to : <[🔎] 20180323142415.GC32800@pyro.eu.org>
+References : <[🔎] 20180323142415.GC32800@pyro.eu.org> <[🔎] 20180323142415.GC32800@pyro.eu.org>
+
+
+Hi Steven,
+On Fri, Mar 23, 2018 at 02:24:15PM +0000, Steven Chamberlain wrote:
+> I get lots of user feedback from Ubuntu users that /boot is "too small"
+> and quickly becomes full.  That's been the case for at least 3 years.
+> https://bugs.launchpad.net/ubuntu/+source/unattended-upgrades/+bug/1357093
+Note that there are various bugs relating to failures in Ubuntu to
+automatically clean up old kernels as part of the upgrade.  Making /boot
+larger by default doesn't help at all with this, it only defers the pain.
+The upcoming 18.04 release is the first release where I expect Ubuntu to get
+this entirely right.
+> There are a few aspects to this:
+>  1. if a user chooses full-disk encryption, the size of /boot is not
+>     adjustable;  only by manually creating that, dm-crypt and LVM
+>     instead, but that's not easy.
+>  2. it's really painful to enlarge /boot once a dm-crypt partition is
+>     created alongside it and filled with user data.
+>  3. users of Software Center / Synaptic install kernel upgrades, but
+>     usually aren't that aware that old, unneeded kernels remain
+>     installed;  the GUIs have no autoremove function, and autoremove can
+>     sometimes remove things a novice user didn't intend.
+> Some aspects are Ubuntu-specific:
+>  4. they bump the ABI number in every kernel update, IIRC something
+>     related to the signing machinery for Secure Boot.  (vorlon@ in Cc
+>     can maybe explain?)
+When running under a full Secure Boot regime, users want to ensure that
+all code loaded by the kernel is signed.  This is achieved by signing all
+the kernel modules shipped as part of the package with an ephemeral key
+whose private half is discarded at the end of the build and whose public
+half is embedded in vmlinux.  Thus, under Secure Boot enforcement, each
+kernel is only able to load kernel modules from its own build and not from
+any other; and an in-place upgrade of a kernel package breaks module loading
+until reboot.
+In Ubuntu it was already common practice to bump the ABI with nearly every
+kernel update.  Secure Boot just means it's now enforced (s/nearly //).
+>  5. they store both signed and unsigned kernel images in /boot,
+>     so each installed kernel ABI version requires more disk space.
+That is a bug which we expect to resolve in Ubuntu for the 18.04 release.
+> Thinking ahead, the latter two points might also apply to Debian
+> someday.  The kernel itself and initrds may also become bigger over the
+> next years.
+> If that happens, and users have an installed system with full-disk
+> encryption, they may be unable to increase the size of /boot, and so be
+> obstructed from upgrading to the next Debian (or Ubuntu) release, or the
+> one after.
+> That the actual, root causes persist in Ubuntu after 3 years, despite a
+> huge install base, good user support channels and paid developers, is
+> slightly sad, but makes me think it merits working around (or preemptive
+> action in the case of Debian), even at the expense of 256MB disk space.
+> So in recipes-amd64-efi, is it feasible we double the max. size of /boot
+> from 256MB to 512MB?
+>     "640K ought to be enough for everyone."
+Note that the answer to this question does not impact Ubuntu at all, because
+as of Ubuntu 17.10, Ubuntu's partman-auto already uses 512MiB as the
+*minimum* size for /boot (max: 768MiB).  So if you're looking to bugginess
+in the behavior of Ubuntu as a justification for bumping the size of /boot
+in Debian, it doesn't provide much.
+The particular rationale for the current Ubuntu /boot sizing is given here:
+  https://bugs.launchpad.net/ubuntu/+source/partman-auto/+bug/1716999
+The formula used would sensibly apply in Debian as well, but the exact
+values of kernel/bootloader/initramfs sizes should be checked in Debian and
+plugged in.
+-- 
+Steve Langasek                   Give me a lever long enough and a Free OS
+Debian Developer                   to set it on, and I can move the world.
+Ubuntu Developer                                    http://www.debian.org/
+slangasek@ubuntu.com                                     vorlon@debian.org
+signature.asc

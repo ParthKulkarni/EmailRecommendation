@@ -1,0 +1,58 @@
+To : Michael Gebhard <michael.gebhard@fau.de>, 875308@bugs.debian.org
+Subject : Bug#875308: linklocal ipv6 addresses in debian-installer netcfg
+From : Philipp Kern <pkern@debian.org>
+Date : Sun, 10 Sep 2017 18:48:44 +0200
+Message-id : b7f23728-8447-db03-1982-1b14e662869a@debian.org
+Reply-to : Philipp Kern <pkern@debian.org>, 875308@bugs.debian.org
+In-reply-to : <[🔎] 20170910150229.wfxrmosvhtcljelt@fau.de>
+References : <[🔎] 20170910150229.wfxrmosvhtcljelt@fau.de> <[🔎] 20170910150229.wfxrmosvhtcljelt@fau.de>
+
+
+On 09/10/2017 05:02 PM, Michael Gebhard wrote:
+> Package: debian-installer
+> Version: 20170615+deb9u1
+> 
+> When entering link local ipv6 addresses with interface suffixes
+> as gateway during the network configuration in the debian installer,
+> the installer detects the address to be malformed.
+> 
+> Error message:
+> "The IP address you provided is malformed. It should be in the form
+> x.x.x.x where each 'x' is no larger than 255 (an IPv4 address), or a
+> sequence of blocks of hexadecimal digits separated by colons (an IPv6
+> address). Please try again."
+> 
+> Preseed file from attempting to use the debian installer with
+> its network console to reproduce the error:
+> 
+> d-i debian-installer/locale string en_US
+> d-i keyboard-configuration/xkb-keymap select us
+> d-i debconf/priority select critical
+> d-i auto-install/enabled boolean true
+> d-i netcfg/choose_interface select eth0
+> d-i netcfg/disable_dhcp boolean true
+> d-i netcfg/get_nameservers string dead:beef:aaaa:aaaa::2
+> d-i netcfg/get_ipaddress string dead:beef:aaaa:aaaa::1
+> d-i netcfg/get_netmask string ffff:ffff:ffff:ffff::
+> d-i netcfg/get_gateway string fe80::1%eth0
+> d-i netcfg/confirm_static boolean true
+> d-i netcfg/get_hostname string somehostname
+> d-i netcfg/get_domain string somedomain
+> d-i network-console/password password <password>
+> d-i network-console/password-again password <password>
+> 
+> Entering the same ip address netmask and gateway manually produces the same error.
+> 
+> Configuring the same from a shell in the installer with:
+> ip a add dead:beef:aaaa:aaaa::1 dev eth0
+> ip l set dev eth0 up
+> ip r add default via fe80::1 dev eth0
+> Produces a functioning network configuration.
+> 
+> I suggest the debian installer should be able to deal with link local ipv6 addresses.
+You redacted your link-local address to be dead:beef::. I suppose what
+you actually mean is one with a fe80:: prefix? (I.e. it'd have been more
+helpful to redact the MAC/actual address.)
+Kind regards
+Philipp Kern
+signature.asc

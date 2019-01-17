@@ -1,0 +1,93 @@
+To : Cyril Brulebois <kibi@debian.org>, 879591@bugs.debian.org
+Subject : Re: Bug#879591: apt: warns about main/debian-installer/i18n/Translation-en
+From : David Kalnischkies <david@kalnischkies.de>
+Date : Mon, 23 Oct 2017 13:26:45 +0200
+Message-id : 20171023112645.vtrtnvdcqskbvqvq@crossbow
+Mail-followup-to : David Kalnischkies <david@kalnischkies.de>,	Cyril Brulebois <kibi@debian.org>, 879591@bugs.debian.org,	debian-boot@lists.debian.org, jrtc27@debian.org
+In-reply-to : <[🔎] 150874663383.11901.11190430804623508942.reportbug@armor.home>
+References : <[🔎] 150874663383.11901.11190430804623508942.reportbug@armor.home>
+
+
+Hi,
+On Mon, Oct 23, 2017 at 10:17:13AM +0200, Cyril Brulebois wrote:
+> [ X-D-Cc: debian-boot@ and jrtc27@debian.org ]
+If you say so :)
+> Finally reporting this, which started a while ago:
+> | root@wodi:/# apt-get update
+> | Get:1 http://localhost/debian buster InRelease [136 kB]
+> | Get:2 http://localhost/debian buster/main Translation-en [5530 kB]
+> | Get:3 http://localhost/debian buster/main/debian-installer amd64
+> | Packages [50.5 kB]
+> | Fetched 5716 kB in 1s (5065 kB/s)                                
+> | Reading package lists... Done
+> | W: Skipping acquire of configured file 'main/debian-installer/i18n/Translation-en' as repository 'http://localhost/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+> 
+> which is obtained by adding main/debian-installer to sources.list:
+> | deb http://localhost/debian buster main main/debian-installer
+The reason for apt complaining here now is that the Release file says:
+| Components: main contrib non-free
+The later of the two components mentioned in the sources.list is hence
+not officially supported by the repository (at least as far as apt is
+reasoning now – the same guess it makes for Architectures and co).
+So, what we could do is asking ftpmasters to change that field to:
+Components: main contrib non-free main/debian-installer contrib/debian-installer non-free/debian-installer
+and be done.
+Then this was mentioned last week on IRC I got the impression that it
+might make sense to not do this through as these d-i components, while
+they are part of the release, are not really for human consumption, so
+that keeping them on a needs-to-know basis might be better – but I am
+not sure how that should be implemented and what the point would be in
+the end as the Release isn't for human consumption either…
+> There's no reason for translations to be present in the archive for the
+> main/debian-installer component, so it's perfectly OK not to find this
+> file.
+[Does the installer need Translation-en for "main"? If not perhaps write:
+| deb [lang=none] http://localhost/debian buster main main/debian-installer
+Which is supported for a few releases now (and previously silently ignored).]
+> It seems buggy anyway: installing apt-file in a clean buster chroot,
+> enabling the Contents-udeb stanza in /etc/apt/apt.conf.d/50apt-file.conf
+> then running apt-get update leads to:
+> | root@wodi:/# apt-get update
+> | Hit:1 http://localhost/debian buster InRelease
+> | Get:2 http://localhost/debian buster/main amd64 Contents (deb) [32.2 MB]
+> | Get:3 http://localhost/debian buster/main amd64 Contents (udeb) [38.0 kB]
+> | Fetched 32.2 MB in 4s (6659 kB/s)                                           
+> | Reading package lists... Done
+> | W: Skipping acquire of configured file 'main/debian-installer/i18n/Translation-en' as repository 'http://localhost/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+> | W: Skipping acquire of configured file 'main/debian-installer/Contents-amd64' as repository 'http://localhost/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+> | W: Skipping acquire of configured file 'main/debian-installer/Contents-udeb-amd64' as repository 'http://localhost/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+> 
+> so Contents files were fetched anyway, from the correct locations.
+Yes, the Contents files for 'main' where fetched, but apt couldn't get
+them for 'main/debian-installer'. The same logic applies to all files
+apt is told to download – it doesn't discriminate between files it needs
+itself and files others have told them to get as well all too much.
+> I'm not sure what could be done. Handling debian-installer specifically
+> doesn't sound too good. Maybe you could look whether a matching Packages
+> or Sources file (depending on what you're fetching) exists, and disable
+> warnings for extra files (Translations, Contents) if files were found in
+> the first place. You would still catch obvious typos without generating
+> noise when those extra files aren't found?
+The thing is that apt suspects a misconfiguration with these warnings;
+if it wouldn't suspect it, it would be as silent as before (as those
+files are "optional" in indextarget-config speak). That it isn't
+complaining about Packages/Sources is just because it happens to look
+for the files in the Release file first and finds them, so it never
+wonders why it couldn't find them identifying a misconfiguration as
+potential reason. It isn't really guaranteed that apt is configured to
+fetch Packages/Sources for all sources.list entries through and even if
+it is the files might be empty (and hence allowed to be missing from the
+Release file, which apt supports e.g. for Packages files if the arch is
+mentioned in Architectures. Debian doesn't make use of this yet through
+and I don't know how other tools might react if it would).
+So we can't really go with a logic of "if any file from this component
+can be downloaded" as that set might very well be empty. We also can't
+look if the Release file contains any file for this component as we
+don't really know what is the component in the filepath:
+"main/debian-installer/some/file" might be from the component "main",
+"main/debian-installer" or "main/debian-installer/some".
+As said, I am not sure. In the end reassigning to ftpmaster might be the
+best option, but I am open for other opinions.
+Best regards
+David Kalnischkies
+signature.asc

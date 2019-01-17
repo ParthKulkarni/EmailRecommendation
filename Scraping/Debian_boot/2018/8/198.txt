@@ -1,0 +1,63 @@
+To : 875989@bugs.debian.org
+Subject : Bug#875989: Bug exists in stretch, too
+From : Holger Mickler <holger.mickler@gmail.com>
+Date : Mon, 13 Aug 2018 23:08:07 +0200
+Message-id : 1a436c3c-41df-93b6-2238-0756a94695c5@gmail.com
+Reply-to : Holger Mickler <holger.mickler@gmail.com>, 875989@bugs.debian.org
+References : <20170917001512.5ufczparcaqvxxsw@fortress.battleship>
+
+
+Hi there,
+the bug also exists in current stable release stretch (console-setup ver 1.164).
+$ dpkg -l console-setup
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+||/ Name                                      Version 
+Architecture              Description
+ii  console-setup                             1.164                     all 
+                 console font and keymap setup program
+It will be triggered by running "dpkg-reconfigure console-setup":
+$ cat /etc/console-setup/cached_setup_keyboard.sh
+#!/bin/sh
+if [ -f /run/console-setup/keymap_loaded ]; then
+    rm /run/console-setup/keymap_loaded
+    exit 0
+fi
+kbd_mode '-u' < '/dev/tty1'
+kbd_mode '-u' < '/dev/tty2'
+kbd_mode '-u' < '/dev/tty3'
+kbd_mode '-u' < '/dev/tty4'
+kbd_mode '-u' < '/dev/tty5'
+kbd_mode '-u' < '/dev/tty6'
+loadkeys '/etc/console-setup/cached_UTF-8_del.kmap.gz' > '/dev/null'
+$ dpkg-reconfigure console-setup
+$ cat /etc/console-setup/cached_setup_keyboard.sh
+#!/bin/sh
+if [ -f /run/console-setup/keymap_loaded ]; then
+    rm /run/console-setup/keymap_loaded
+    exit 0
+fi
+kbd_mode '-u' < '/dev/tty1'
+kbd_mode '-u' < '/dev/tty2'
+kbd_mode '-u' < '/dev/tty3'
+kbd_mode '-u' < '/dev/tty4'
+kbd_mode '-u' < '/dev/tty5'
+kbd_mode '-u' < '/dev/tty6'
+loadkeys '/tmp/tmpkbd.mIOxhT' > '/dev/null'
+$ setupcon --save-only
+$ cat /etc/console-setup/cached_setup_keyboard.sh
+#!/bin/sh
+if [ -f /run/console-setup/keymap_loaded ]; then
+    rm /run/console-setup/keymap_loaded
+    exit 0
+fi
+kbd_mode '-u' < '/dev/tty1'
+kbd_mode '-u' < '/dev/tty2'
+kbd_mode '-u' < '/dev/tty3'
+kbd_mode '-u' < '/dev/tty4'
+kbd_mode '-u' < '/dev/tty5'
+kbd_mode '-u' < '/dev/tty6'
+loadkeys '/etc/console-setup/cached_UTF-8_del.kmap.gz' > '/dev/null'
+Regards,
+Holger

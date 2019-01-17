@@ -1,0 +1,57 @@
+To : <submit@bugs.debian.org>
+Subject : Bug#866401: Please print proper error message when download fails
+From : Ian Jackson <ian.jackson@eu.citrix.com>
+Date : Thu, 29 Jun 2017 15:29:13 +0100
+Message-id : 22869.3769.148675.804802@mariner.uk.xensource.com
+Reply-to : Ian Jackson <ian.jackson@eu.citrix.com>, 866401@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.67
+I run an automated test system.  Recently we had a test fail, because
+an invocation of "xt-install-image" from the xen-tools package failed.
+xt-install-image printed this:
+ Installation method: debootstrap
+ Running command 'xt-install-image --hostname=debian.guest.osstest
+ --location=/tmp/enTikPkbpQ --dist=jessie --install-method=debootstrap
+ --mirror=http://ftp.debian.org/debian --cache=yes
+ --cachedir=/var/cache/apt/archives/ --arch=armhf 2>&1' failed with
+ exit code 32512.
+ Aborting
+ See /var/log/xen-tools/debian.guest.osstest.log for details
+In that logfile (which was nominated by xt-install-image) there is only
+this:
+ I: Retrieving Release
+ I: Retrieving Release.gpg
+ I: Checking Release signature
+ I: Valid Release signature (key id 75DDC3C4A499F1A18CB5F3C8CBF8D6FD518E17E1)
+ I: Retrieving Packages
+ I: Retrieving Packages
+ E: Couldn't download dists/jessie/main/binary-armhf/Packages
+ Running command '/usr/sbin/debootstrap  --arch armhf jessie
+ /tmp/enTikPkbpQ http://ftp.debian.org/debian 2>&1' failed with exit
+ code 256.
+I think the final message was printed by xt-install-image, and the
+previous messages by debootstrap.
+My complaint is about this message:
+  E: Couldn't download dists/jessie/main/binary-armhf/Packages
+I would like to know:
+ * What URL (or other downlaod technique) was being used
+ * What IPv4 or IPv6 address was being communicated with
+ * Whether the error was due to
+    - a corrupted file
+        and if so please state the location of the corrupted
+        copy and the expected checksum so that the corrupted
+        file can be inspected to see what is wrong 
+    - an http error response
+        and if so please print at least the HTTP status line
+        and ideally log the error document somewhere
+    - an http protocol violation
+        and if so a description of what the violation was
+    - a networking system call failure
+        and if so which system call
+        and what the errno value was
+    - something else
+        including appropriate details
+Thanks,
+Ian.

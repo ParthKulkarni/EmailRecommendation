@@ -1,0 +1,38 @@
+To : Samuel Thibault <sthibault@debian.org>
+Subject : Bug#857808: debian-installer: Garbage on terminal with default TERM setting over serial console
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Sun, 19 Mar 2017 20:17:09 +0100
+Message-id : ba6feffb-3a43-d0a0-342a-057d2b8df2eb@physik.fu-berlin.de
+Reply-to : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 857808@bugs.debian.org
+In-reply-to : <[🔎] 20170319162536.ygfjlhiux7fprtdc@var.youpi.perso.aquilenet.fr>
+References : <[🔎] 148957595659.20922.15170771628360839878.reportbug@ikarus> <[🔎] 20170319162536.ygfjlhiux7fprtdc@var.youpi.perso.aquilenet.fr>
+
+
+Hi Samuel!
+On 03/19/2017 05:25 PM, Samuel Thibault wrote:
+> Well, what terminal are you actually using on the serial port?
+I am using telnet to connect to the LDOM virtual serial console on the
+SPARC T5.  I have also tested nc with the same result. Further tests have
+also shown that all ncurses applications are affected by this. Running
+htop inside screen over the serial console on the SPARC T5 also results
+in garbage.
+Michael Karcher (CC'ed) has debugged this issue and he says that the
+problem is that the LDOM serial console is eating away some characters
+after the "smacs" sequence is sent and "rmacs" is never received, hence
+the terminal stays in the alternate character set mode.
+> Is it really vt102-compatible? Perhaps we should ship a vt102 terminfo with
+> less capabilities or even another dumber term entry to be used by
+> default over serial?
+So far I have reproduced this issue on the SPARC T5 only and apparently
+other users of SPARC hardware have seen the problem as well. It can
+be easily reproduced by running any ncurses application inside screen
+over the SPARC serial console. I have tried reproducing it on an old
+SuperH embedded board with a serial console and a Tabor A1222 embedded
+PowerPC e500v2 board, in both cases the problem was not reproducible.
+So it seems to be a bug in the firmware of the affected SPARC boxes.
+Adrian
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

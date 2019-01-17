@@ -1,0 +1,114 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#879686: fails to install on hercules
+From : Wouter Verhelst <wouter@debian.org>
+Date : Tue, 24 Oct 2017 15:49:48 +0200
+Message-id : 150885298846.10982.8747672788503815377.reportbug@gangtai.grep.be
+Reply-to : Wouter Verhelst <wouter@debian.org>, 879686@bugs.debian.org
+
+
+Package: installation-reports
+Severity: important
+Tags: d-i
+-- Package-specific info:
+Boot method: hercules virtual card reader
+Image version: daily build from 2017-10-23
+Date: <Date and time of the install>
+Machine: Hercules
+Partitions: <df -Tl will do; the raw partition table is preferred>
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [E]
+Detect CD:              [ ]
+Load installer modules: [ ]
+Clock/timezone setup:   [ ]
+User/password setup:    [ ]
+Detect hard drives:     [ ]
+Partition hard drives:  [ ]
+Install base system:    [ ]
+Install tasks:          [ ]
+Install boot loader:    [ ]
+Overall install:        [ ]
+Comments/Problems:
+Based on the inwstructions at
+http://josefsipek.net/docs/s390-linux/hercules-s390.html (which really
+should find a home on the Debian wiki, but that as an aside) I created a
+file "debian.cnf" with the following contents:
+----------
+CPUSERIAL 000069        # CPU serial number
+CPUMODEL  9672          # CPU model number
+MAINSIZE  1024          # Main storage size in megabytes
+XPNDSIZE  0             # Expanded storage size in megabytes
+CNSLPORT  3270          # TCP port number to which consoles connect
+NUMCPU    4             # Number of CPUs
+LOADPARM  0120....      # IPL parameter
+OSTAILOR  LINUX         # OS tailoring
+PANRATE   SLOW          # Panel refresh rate (SLOW, FAST)
+ARCHMODE  ESAME         # Architecture mode ESA/390 or ESAME
+# console
+001F    3270
+# terminal
+0009    3215
+# reader
+000C    3505    ./rdr/kernel.debian ./rdr/parmfile.debian ./rdr/initrd.debian autopad eof
+# printer
+000E    1403    ./prt/print00e.txt crlf
+# dasd
+0120    3390    ./dasd/3390.LINUX.0120
+# tape
+0581    3420
+# network                               s390     realbox
+0A00,0A01  CTCI -n /dev/net/tun -t 1500 10.1.1.2 10.1.1.1                                                                                    
+----------
+Next, I created a file "dasd/3390.LINUX.0120" with the following command:
+  dasdinit -lfs -linux dasd/3390.LINUX.0120 3390-3 LIN120 8000
+Next, I downloaded the "initrd.debian", "kernel.debian", and
+"parmfile.debian" from the most recent successful d-i daily build.
+Finally, I started hercules like so:
+  sudo hercules -f debian.cnf
+and entered the (hercules) command "ipl c".
+When the initrd, kernel, and parmfile are from a jessie install, this
+works. When they are from stretch or later(!) however, it does not. The
+kernel boots, and it seems to be doing a bit of initialization, but then
+it stops at:
+[...]
+    34.263205! Key type asymmetric registered                                                                                                                  
+    35.059693! ctcm: CTCM driver initialized                                                                                                                   
+Starting system log daemon: syslogd, klogd.                                                                                                                    
+ 1;24r 4l(B)0 m 1;24r H J 24;1H m                                                                                                                              
+ 1;24r 4l(B)0 m 1;24r H J 24;1H m                                                                                                                              
+Configure the network device                                                                                                                                   
+After this "Configure the network device", d-i *should* show the
+template for me to select the network device type. It does not, however;
+it just sits at the "Configure the network device" line.
+For comparison, on jessie that looks like this:
+[...]
+     5.108239! ctcm: CTCM driver initialized                                                                                                                   
+     5.115620! lcs: Loading LCS driver                                                                                                                         
+Starting system log daemon: syslogd, klogd.                                                                                                                    
+ 1;24r 4l(B)0 m 1;24r H J 24;1H m                                                                                                                              
+                                                                                                                                                               
+Configure the network device                                                                                                                                   
+----------------------------                                                                                                                                   
+                                                                                                                                                               
+Please choose the type of your primary network interface that you will need for
+installing the Debian system (via NFS or HTTP). Only the listed devices are
+supported.
+Network device type:
+  1: ctc: Channel to Channel (CTC) or ESCON connection,
+  2: qeth: OSA-Express in QDIO mode / HiperSockets,
+  3: iucv: Inter-User Communication Vehicle - available for VM guests only,
+  4: virtio: KVM VirtIO,
+Prompt: '?' for help>
+Obviously something is going terribly wrong here.
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'unreleased'), (500, 'unstable'), (500, 'testing'), (500, 'stable'), (500, 'oldstable'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386, m68k, arm64
+Kernel: Linux 4.13.0-1-amd64 (SMP w/8 CPU cores)
+Locale: LANG=nl_BE.UTF-8, LC_CTYPE=nl_BE.UTF-8 (charmap=UTF-8), LANGUAGE=nl_BE.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

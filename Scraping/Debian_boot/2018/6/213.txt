@@ -1,0 +1,31 @@
+To : Paul Gevers <elbrus@debian.org>
+Subject : Re: debootstrap/1.0.102 appears to break debuerreotype autopkgtest
+From : Ansgar Burchardt <ansgar@debian.org>
+Date : Thu, 14 Jun 2018 10:19:06 +0200
+Message-id : 87fu1pbx1h.fsf@43-1.org
+In-reply-to : <[🔎] 5a86d902-de17-2baf-bb80-9bb018e06646@debian.org> (Paul Gevers's	message of "Thu, 14 Jun 2018 09:21:10 +0200")
+References : <[🔎] 5a86d902-de17-2baf-bb80-9bb018e06646@debian.org>
+
+
+Hi,
+Paul Gevers writes:
+> I looked at the test¹ and it compares the result of the current run of
+> debuerreotype with a stored hash. Luckily debuerreotype use diffoscope
+> to investigate the delta. It seems that debuerreotype is hit by this
+> change in debootstrap:
+>
+>   * Enable merged-/usr by default (Closes: #839046)
+>     This is applied for buster and later.
+>
+> I am not sure if this should NOT have let to a change in debuerreotype,
+> as I believe that is testing stretch.
+>From the test log:
+│ -lrwxrwxrwx   0        0        0        0 2017-01-01 00:00:00.000000 bin -> usr/bin
+│ +drwxr-xr-x   0        0        0        0 2017-01-01 00:00:00.000000 bin/
+│ +-rwxr-xr-x   0        0        0  1099016 2016-11-15 18:49:00.000000 bin/bash
+The patch for #839046 also disabled --merged-usr for stretch as stretch
+was added to the blacklist in first_stage_install().
+debootstrap should default to non-merged-usr for stretch, but it should
+be possible to enable merged-usr via the command-line parameter to avoid
+the regression in debuerreotype.
+Ansgar

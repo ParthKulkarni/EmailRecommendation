@@ -1,0 +1,39 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#883566: console-setup-linux: Add a font which is 9 pixel wide
+From : Mario Lang <mlang@tugraz.at>
+Date : Tue, 05 Dec 2017 10:57:13 +0100
+Message-id : 87tvx55wg6.fsf@fzidpc73.tugraz.at
+Reply-to : Mario Lang <mlang@tugraz.at>, 883566@bugs.debian.org
+
+
+Package: console-setup-linux
+Version: 1.160
+Severity: wishlist
+Tags: patch
+I am trying to configure a framebuffer with 720 pixel width to have
+exactly 80 columns in text mode.  The perfect font width would be 9
+pixels.
+Digging into console-setup, I found that it actually ships with 15x9
+BDFs.  Quoting Fonts/Makefile:
+Fixed15-BDFS := 9x15-IL2.bdf+9x15.bdf+9x15c.bdf
+However, all variants with Fixed15 face actually have a width of 8
+pixels:
+$ file Lat15-Fixed15.psf
+Lat15-Fixed15.psf: Linux/i386 PC Screen Font v1 data, 256 characters, Unicode directory, 8x15
+This is because Fixed15 is not in ALL_FB_FONT_NAMES and therefore,
+bdf2psf is *not* called with the --fb argument when generating the psf
+from the BDFs.
+I sort of wonder if this is actually a bug/oversight?
+Is Fixed15 supposed to have size 15x8?  If no, the fix would be to add
+it to the list of FB fonts.  However, such a "fix" would change the size
+of a font which is likely in use by users, and would result in their
+screen dimensions changing on them.
+Therefore, I suggest to add a new face called Fixed15x9.  The only
+difference to Fixed15 is, that --fb is passed to bdf2psf, which avoids
+cropping the width down to 8 pixels.
+https://github.com/mlang/brlpi/blob/master/package/console-setup/0001-Add-Fixed15x9.patch
+-- 
+AR Mario Lang                               Phone: +43 316 873 6897
+Graz University of Technology              Mobile: +43 664 60 873 6897
+IT-Services for research and teaching       Email: mlang@tugraz.at
+Steyrergasse 30/1, 8010 Graz, Austria            www.zid.tugraz.at

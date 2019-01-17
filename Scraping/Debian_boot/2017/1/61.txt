@@ -1,0 +1,108 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#850689: netcfg: Interface descriptions are "unknown" for systemd-udevd stable interface names
+From : Dimitri John Ledkov <xnox@ubuntu.com>
+Date : Mon, 09 Jan 2017 12:49:57 +0000
+Message-id : 148396619791.3024.5036234086191753320.reportbug@sochi
+Reply-to : Dimitri John Ledkov <xnox@ubuntu.com>, 850689@bugs.debian.org
+
+
+Package: netcfg
+Version: 1.140
+Severity: normal
+Tags: patch
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+Dear Maintainer,
+When multiple interfaces are detected and a question is presented as
+to which interface to use, the descriptions are Unknown for
+systemd-udevd stable interface names.
+This patch adds description for the common ethernet interface names,
+along with logic to attempt to query those from the templates
+database.
+This makes description appear for ethernet cards.
+Regards,
+Dimitri.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+iQEcBAEBCAAGBQJYc4b1AAoJEMrC2LnNLKX5FkgH/3h9MqX+NDWPZSQ7+vhuSIs5
+jnrdq/uJaWe4y3Sx9NAAZPfw9crLtL1zibr+XEmHnERH90KYCtjKhduU3E3SzmAE
+fNLubtIWi09AU3YihKMQ9utFgqjBaOQ3i3NPKQ0v61xEKx/fVmKHJ9MtK3UYH89Y
+CIpAS36xFSQXTbDaWZfHo324XLRNS2OIrUY4jIMZokfLKQ9y0ss+htnKlvBZU1u/
+6JD70Po7SpYmdiX1TaymNJpPVGJTgMvPXUVOhPqWXOwxon+XRccSYqgDdlEDzz2z
+2eq/6D4ZhyjHYxQ6Tt0Tm311LV/XzmMyosFd5wYighhLzJ3AvCBc8vI2ABvQyuE=
+=iOGi
+-----END PGP SIGNATURE-----
+>From aa7f987c20370c879f4371c98ab8e814d34a1a5b Mon Sep 17 00:00:00 2001
+From: Dimitri John Ledkov <xnox@ubuntu.com>
+Date: Mon, 9 Jan 2017 12:44:57 +0000
+Subject: [PATCH] Also use short stable systemd-udev names to discover
+ descriptions for the network interfaces. LP: #1572620
+---
+ debian/changelog               |  7 +++++++
+ debian/netcfg-common.templates | 15 +++++++++++++++
+ netcfg-common.c                | 10 ++++++++++
+ 3 files changed, 32 insertions(+)
+diff --git a/debian/changelog b/debian/changelog
+index 450214d..bd3c5b9 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,10 @@
++netcfg (1.141) UNRELEASED; urgency=medium
++
++  * Also use short stable systemd-udev names to discover descriptions for
++    the network interfaces. LP: #1572620
++
++ -- Dimitri John Ledkov <xnox@ubuntu.com>  Fri, 06 Jan 2017 15:58:32 +0000
++
+ netcfg (1.140) unstable; urgency=medium
+ 
+   [ Julien Cristau ]
+diff --git a/debian/netcfg-common.templates b/debian/netcfg-common.templates
+index 2b77936..4654399 100644
+--- a/debian/netcfg-common.templates
++++ b/debian/netcfg-common.templates
+@@ -257,6 +257,21 @@ Type: text
+ # :sl2:
+ _Description: Ethernet
+ 
++Template: netcfg/internal-enc
++Type: text
++# :sl2:
++_Description: Ethernet CCW bus
++
++Template: netcfg/internal-enP
++Type: text
++# :sl2:
++_Description: Ethernet PCI
++
++Template: netcfg/internal-enp
++Type: text
++# :sl2:
++_Description: Ethernet PCI
++
+ Template: netcfg/internal-tr
+ Type: text
+ # :sl2:
+diff --git a/netcfg-common.c b/netcfg-common.c
+index c6d1d8d..b827731 100644
+--- a/netcfg-common.c
++++ b/netcfg-common.c
+@@ -558,6 +558,16 @@ char *get_ifdsc(struct debconfclient *client, const char *if_name)
+                     CMD_SUCCESS && client->value != NULL) {
+                 return strdup(client->value);
+             }
++	    /* If using systemd-udevd stable names try that as well
++	       Those have two character prefix, then one character for
++	       subtype. */
++	    if (strlen(template) > 19) {
++		template[19] = '\0';
++		if (debconf_metaget(client, template, "description") ==
++                    CMD_SUCCESS && client->value != NULL) {
++		    return strdup(client->value);
++		}
++	    }
+         } else {
+             strcpy(template, "netcfg/internal-wifi");
+             debconf_metaget(client, template, "description");
+-- 
+2.7.4

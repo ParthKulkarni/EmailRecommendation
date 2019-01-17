@@ -1,0 +1,64 @@
+To : Karsten Merker <merker@debian.org>
+Subject : Bug#854822: installation-report: U-boot not correctly installed when partitioning with "Guided - use entire disk"
+From : Gunnar Wolf <gwolf@debian.org>
+Date : Fri, 10 Feb 2017 16:44:59 -0600
+Message-id : 20170210224459.GA18166@gwolf.org
+Reply-to : Gunnar Wolf <gwolf@debian.org>, 854822@bugs.debian.org
+In-reply-to : <[🔎] 20170210203633.GB1785@excalibur.cnev.de>
+References : <[🔎] 148674908031.1778.11582525461448935566.reportbug@mosca.iiec.unam.mx> <[🔎] 20170210203633.GB1785@excalibur.cnev.de>
+
+
+Thanks for the quick insight into this, Karsten!
+Karsten Merker dijo [Fri, Feb 10, 2017 at 09:36:33PM +0100]:
+> (...) but this doesn't work in your case as we currently
+> only disable the clobbering for /dev/mmcblk0 while your SD card
+> shows up as /dev/mmcblk1. I am not 100% sure about that, but IIRC
+> with older kernels the SD card in the cubox-i has shown up as
+> /dev/mmcblk0. 
+Hmmm, interesting! Yes, I had not noticed it is finding the card as
+mmcblk1. Checking the kernel boot messages, I see the following
+messages:
+# dmesg |grep mmc
+[    2.509702] sdhci-esdhc-imx 2190000.usdhc: allocated mmc-pwrseq
+[    2.771308] mmc0: SDHCI controller on 2190000.usdhc [2190000.usdhc] using ADMA
+[    2.808099] mmc0: queuing unknown CIS tuple 0x80 (50 bytes)
+[    2.816447] mmc1: SDHCI controller on 2194000.usdhc [2194000.usdhc] using ADMA
+[    2.818516] mmc0: queuing unknown CIS tuple 0x80 (7 bytes)
+[    2.827572] mmc0: queuing unknown CIS tuple 0x80 (4 bytes)
+[    2.868673] mmc0: queuing unknown CIS tuple 0x02 (1 bytes)
+[    2.872362] mmc1: host does not support reading read-only switch, assuming write-enable
+[    2.880622] mmc1: new high speed SDHC card at address aaaa
+[    2.884074] mmcblk1: mmc1:aaaa SL16G 14.8 GiB
+[    2.884808] mmc0: new SDIO card at address 0001
+[    2.889061]  mmcblk1: p1 p2 p3 p4 < p5 >
+[    3.609029] EXT4-fs (mmcblk1p3): mounted filesystem with ordered data mode. Opts: (null)
+[    4.715715] EXT4-fs (mmcblk1p3): re-mounted. Opts: errors=remount-ro
+[    6.173094] brcmfmac mmc0:0001:1: firmware: direct-loading firmware brcm/brcmfmac4329-sdio.bin
+[    6.179691] brcmfmac mmc0:0001:1: firmware: direct-loading firmware brcm/brcmfmac4329-sdio.txt
+[    6.181794] Adding 2016252k swap on /dev/mmcblk1p5.  Priority:-1 extents:1 across:2016252k SSFS
+[    7.313952] EXT4-fs (mmcblk1p2): mounting ext2 file system using the ext4 subsystem
+[    7.322217] EXT4-fs (mmcblk1p2): mounted filesystem without journal. Opts: (null)
+So... Well, mmcblk1 is mounted at mmc0 (don't know what mmc1 is), but
+other than that, I see nothing too suspicious.
+> The easiest solution would be to check for /dev/mmcblk instead of
+> /dev/mmcblk0. If nobody has objections against this change, I'll modify
+> partman-base accordingly and upload a new version (CCing the partman-base
+> uploaders Max Vozeler, Anton Zinoviev, Colin Watson and Christian Perrier
+> and Kibi as the d-i release manager).
+I would say this makes sense. Even if I had multiple MMC units in my
+system, installing on a MMC card should not clobber a preexisting
+U-boot image; an option would be for d-i to install the matching right
+flavor of the pre-boot environment for the current Debian release, but
+of course, that would not enter in Stretch (if it was deemed desirable
+at all)
+> > As a very minor issue, even in the second case, after the install
+> > notifies «Requesting system reboot», it just hangs. I disconnected and
+> > reconnected power to get the system to boot — But it booted correctly
+> > after that.
+> 
+> I have similar experiences with systems based on other ARM-SoCs,
+> but I have not been able to pinpoint the cause. The hang happens
+> only when rebooting from the d-i environment; rebooting the
+> installed system with exactly the same kernel works without
+> problems.
+Yes, I have rebooted the machine several times over from other environments.

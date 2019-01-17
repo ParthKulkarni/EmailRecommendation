@@ -1,0 +1,135 @@
+To : sysadmin@dogsbodytechnology.com
+Subject : Bug#894827: apache2: Apache workers are hanging after reload
+From : Rob Hooper <rob@dogsbodytechnology.com>
+Date : Thu, 05 Apr 2018 08:25:44 +0000
+Message-id : 5ac5dd884b80b_36f43faeb469b0d465598@blue.dogsbodyhosting.net.mail
+Reply-to : "Dogsbody Technology Ltd." <sysadmin@dogsbodytechnology.com>, 894827@bugs.debian.org
+In-reply-to : <[🔎] 20180404155600.3878.20080.reportbug@ct1.customerthermometer.com>
+References : <[🔎] alpine.DEB.2.20.1804050916430.17837@manul.sfritsch.de> <handler.894827.B.15228585596389.ack@bugs.debian.org> <[🔎] 20180404155600.3878.20080.reportbug@ct1.customerthermometer.com> <[🔎] 20180404155600.3878.20080.reportbug@ct1.customerthermometer.com>
+
+
+Hello,
+No this is not a new bug. We have been investigating this since January.
+Rob (Dan's colleague).
+--------------------------------------------------------------------------------
+On April 05, 2018 08:18 Stefan Fritsch wrote:
+Hi Dan,
+--------------------------------------------------------------------------------
+On April 04, 2018 17:18 Debian Bug Tracking System wrote:
+Thank you for filing a new Bug report with Debian.
+You can follow progress on this Bug here: 894827: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=894827.
+This is an automatically generated reply to let you know your message
+has been received.
+Your message is being forwarded to the package maintainers and other
+interested parties for their attention; they will reply in due course.
+Your message has been sent to the package maintainer(s):
+ Debian Apache Maintainers <debian-apache@lists.debian.org>
+If you wish to submit further information on this problem, please
+send it to 894827@bugs.debian.org.
+Please do not send mail to owner@bugs.debian.org unless you wish
+to report a problem with the Bug-tracking system.
+--------------------------------------------------------------------------------
+On April 04, 2018 16:56 Dogsbody Technology Support wrote:
+Package: apache2
+Version: 2.4.10-10+deb8u12
+Severity: normal
+Dear Maintainer,
+I am finding some Apache processes stuck in a gracefully finishing state after an Apache reload. The only way to clear these processes down is to restart Apache or killing the individual processes.
+The way these processes are being left the stuck thread 100% CPU and eventually crashing the server. 
+I have seen these hung processes stay running for over 12 hours before I manually kill them. 
+This seems to only be when the reload catches a large request to my website. Unfortunately I have been unsuccessful to replicate this issue anywhere outside of my production environment.
+We are using Apache to process PHP behind a NGINX proxy.
+-- Package-specific info:
+-- System Information:
+Debian Release: 8.10
+  APT prefers oldstable
+  APT policy: (500, 'oldstable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 3.16.0-4-amd64 (SMP w/8 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages apache2 depends on:
+ii  apache2-bin    2.4.10-10+deb8u12
+ii  apache2-data   2.4.10-10+deb8u12
+ii  apache2-utils  2.4.10-10+deb8u12
+ii  dpkg           1.17.27
+ii  lsb-base       4.1+Debian13+nmu1
+ii  mime-support   3.58
+ii  perl           5.20.2-3+deb8u9
+ii  procps         2:3.3.9-9
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.35
+Versions of packages apache2 suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  w3m [www-browser]                                0.5.3-19+deb8u2
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.5.1-3
+ii  libaprutil1              1.5.4-1
+ii  libaprutil1-dbd-sqlite3  1.5.4-1
+ii  libaprutil1-ldap         1.5.4-1
+ii  libc6                    2.19-18+deb8u10
+ii  libldap-2.4-2            2.4.40+dfsg-1+deb8u3
+ii  liblua5.1-0              5.1.5-7.1
+ii  libpcre3                 2:8.35-3.3+deb8u4
+ii  libssl1.0.0              1.0.1t-1+deb8u8
+ii  libxml2                  2.9.1+dfsg1-5+deb8u6
+ii  perl                     5.20.2-3+deb8u9
+ii  zlib1g                   1:1.2.8.dfsg-2+b1
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  w3m [www-browser]                                0.5.3-19+deb8u2
+Versions of packages apache2 is related to:
+ii  apache2      2.4.10-10+deb8u12
+ii  apache2-bin  2.4.10-10+deb8u12
+-- Configuration Files:
+/etc/apache2/mods-available/mpm_prefork.conf changed:
+<IfModule mpm_prefork_module>
+	StartServers			 5
+	MinSpareServers		  5
+	MaxSpareServers		 10
+        MaxRequestWorkers         110
+        MaxConnectionsPerChild   30000
+	GracefulShutdownTimeout 60
+</IfModule>
+/etc/apache2/mods-available/mpm_worker.conf changed:
+<IfModule mpm_worker_module>
+	StartServers			 2
+	MinSpareThreads		 25
+	MaxSpareThreads		 75
+	ThreadLimit			 64
+	ThreadsPerChild		 25
+	MaxRequestWorkers	  300
+	MaxConnectionsPerChild   0
+</IfModule>
+/etc/apache2/mods-available/status.conf changed:
+<IfModule mod_status.c>
+	# Allow server status reports generated by mod_status,
+	# with the URL of http://servername/server-status
+	# Uncomment and change the "192.0.2.0/24" to allow access from other hosts.
+	<Location /server-status>
+		SetHandler server-status
+		Require local
+		#Require ip 192.0.2.0/24
+	</Location>
+	# Keep track of extended status information for each request
+	ExtendedStatus On
+	# Determine if mod_status displays the first 63 characters of a request or
+	# the last 63, assuming the request itself is greater than 63 chars.
+	# Default: Off
+	#SeeRequestTail On
+	SeeRequestTail On
+	<IfModule mod_proxy.c>
+		# Show Proxy LoadBalancer status in mod_status
+		ProxyStatus On
+	</IfModule>
+</IfModule>
+/etc/apache2/ports.conf changed:
+NameVirtualHost *:81
+Listen 81
+-- no debconf information
+--
+Dogsbody Technology Ltd : http://www.dogsbodytechnology.com/
+Dogsbody Hosting : http://www.dogsbodyhosting.net/

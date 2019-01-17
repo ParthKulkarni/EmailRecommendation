@@ -1,0 +1,85 @@
+To : Bob Proulx <bob@proulx.com>, Phillip Susi <psusi@ubuntu.com>
+Subject : Bug#700633: Debootstrap is very slow.  Please use eatmydata to fix this.
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sun, 8 Apr 2018 22:35:52 +0900
+Message-id : 20180408223552.9846111bee92a718c75fe955@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 700633@bugs.debian.org
+In-reply-to : <20130216235452.GB10110@hysteria.proulx.com>
+References : <511E5485.90101@ubuntu.com> <20130216235452.GB10110@hysteria.proulx.com> <511E5485.90101@ubuntu.com>
+
+
+Hi,
+On Sat, 16 Feb 2013 16:54:52 -0700 Bob Proulx <bob@proulx.com> wrote:
+> I have also been suffering with the much slower dpkg on Sid.  Today I
+> performed a test of a default debootstrap chroot and had this
+> benchmark data.  I am using a local full mirror so that network
+> performance is not significant in the measurement.  This is using the
+> stock Sid version of everything up to date as of today operating on an
+> ext3 filesystem.
+> 
+>   # time debootstrap wheezy testinstall http://localmirror/ftp.us.debian.org/debian
+>   ...
+>   real    2m58.577s
+>   user    0m49.639s
+>   sys     0m8.749s
+> 
+> And then using the patched debootstrap script Phillip Susi suggested I
+> get this result:
+> 
+>   # time debootstrap wheezy testinstall http://localmirror/ftp.us.debian.org/debian
+>   ...
+>   real    1m17.680s
+>   user    0m49.879s
+>   sys     0m7.988s
+> 
+> Wall clock time is more than 2x faster for me when avoiding the
+> unnecessary fsync() calls.  Ideally I would like to see dpkg handle
+> this issue.  But since that doesn't seem to be happening it would be
+> nice if the rest of the ecosystem could work around it.
+> 
+> Here is the same test again on an ext4 filesystem on the same system
+> and the stock scripts.
+> 
+>   # time debootstrap wheezy testinstall http://localmirror/ftp.us.debian.org/debian
+>   ...
+>   real    2m55.402s
+>   user    0m52.107s
+>   sys     0m7.888s
+> 
+> And again with the eatmydata patched script:
+> 
+>   # time debootstrap wheezy testinstall http://localmirror/ftp.us.debian.org/debian
+>   ...
+>   real    1m4.819s
+>   user    0m48.455s
+>   sys     0m6.752s
+> 
+> That is 2.7x faster on ext4.
+ I've tested it but could not get good result as yours.
+ - Use SSD and USB2.0 connected HDD
+ - both ext4 formatted
+ - debootstrap is patched with https://bugs.debian.org/844118
+Without eatmydata on SSD
+---------------------------
+real    2m10.057s
+user    1m47.776s
+sys     0m8.060s
+With eatmydata on SSD
+---------------------------
+real    2m8.640s                    
+user    1m47.546s                       
+sys     0m8.049s  
+Without eatmydata on HDD
+---------------------------
+real    2m25.136s
+user    1m47.758s
+sys     0m8.603s
+With eatmydata on HDD
+---------------------------
+real    2m26.790s
+user    1m48.699s
+sys     0m8.470s
+ So I doubt using eatmydata.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp

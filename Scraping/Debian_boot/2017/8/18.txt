@@ -1,0 +1,43 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#870615: debian-installer: FTBFS on armhf: missing firefly-rk3288/u-boot.img
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 03 Aug 2017 13:57:27 +0200
+Message-id : 20170803115727.23809.1193.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 870615@bugs.debian.org
+
+
+Source: debian-installer
+Severity: serious
+Justification: FTBFS
+[vagrant@ in x-d-cc]
+Hi,
+d-i now FTBFSes on armhf, due to:
+,---[ hd-media ]---
+| gen-hd-image: Installing /usr/lib/u-boot/firefly-rk3288/u-boot-spl.rksd at sector 64 ...
+| gen-hd-image: Installing /usr/lib/u-boot/firefly-rk3288/u-boot.img at sector 256 ...
+| config/armhf//hd-media.cfg:33: recipe for target 'hd-media_images_concatenateable' failed
+| make[2]: *** [hd-media_images_concatenateable] Error 1
+`---
+,---[ netboot ]---
+| gen-hd-image: Installing /usr/lib/u-boot/firefly-rk3288/u-boot-spl.rksd at sector 64 ...
+| gen-hd-image: Installing /usr/lib/u-boot/firefly-rk3288/u-boot.img at sector 256 ...
+| config/armhf//netboot.cfg:40: recipe for target 'netboot_images_concatenateable' failed
+| make[2]: *** [netboot_images_concatenateable] Error 1
+`---
+,---[ u-boot ]---
+| Providing u-boot binaries for Firefly-RK3288 ...
+| cp: cannot stat '/usr/lib/u-boot/firefly-rk3288/u-boot.img': No such file or directory
+| config/armhf//u-boot.cfg:8: recipe for target 'u-boot-binaries' failed
+`---
+I suppose this is due to this change in u-boot on 2017-08-01:
+|  u-boot (2017.07+dfsg1-2) unstable; urgency=medium
+|  .
+|    * u-boot-rockchip:
+|      - Ship u-boot.bin in firefly-rk3288 instead of u-boot.img.
+|      - Add NEWS file explaining the change for firefly-rk3288.
+See https://tracker.debian.org/news/860117
+It'd be nice if someone could double check what new path is needed, and
+push a commit to master after a test build. Otherwise I'll do so in a
+couple of days.
+Thanks already!
+KiBi.

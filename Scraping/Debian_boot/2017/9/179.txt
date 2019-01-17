@@ -1,0 +1,48 @@
+To : GSR <gsr.bugs@infernal-iceberg.com>, 875989@bugs.debian.org
+Subject : Bug#875989: console-setup: generated cached_setup_keyboard.sh references /tmp/ file
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 17 Sep 2017 07:32:32 +0200
+Message-id : 20170917053232.2u5m3yaezpd7ed7l@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 875989@bugs.debian.org
+In-reply-to : <[🔎] 20170917001512.5ufczparcaqvxxsw@fortress.battleship>
+References : <[🔎] 20170917001512.5ufczparcaqvxxsw@fortress.battleship> <[🔎] 20170917001512.5ufczparcaqvxxsw@fortress.battleship>
+
+
+Hi,
+GSR <gsr.bugs@infernal-iceberg.com> (2017-09-17):
+> Package: console-setup
+> Version: 1.167
+> Severity: normal
+> 
+> Updated from 166 to 167 and when verifying changes in /etc/ noticed
+> there was only one change, in console-setup/cached_setup_keyboard.sh:
+> 
+> ---8<---
+> -loadkeys '/etc/console-setup/cached_UTF-8_del.kmap.gz' > '/dev/null' 
+> +loadkeys '/tmp/tmpkbd.31u83e' > '/dev/null'
+> --->8---
+> 
+> File in /tmp/, named tmpkbd and with (random) extension that looks
+> like one from mktemp? And before it was a file in /etc/ with
+> understable name? Suspicious.
+> 
+> Running the script by hand returns the obvious "cannot open file
+> /tmp/tmpkbd.31u83e" while calling the other version of loadkeys
+> invocation works fine.
+> 
+> Prediction is that in next boot it will complain too and require
+> manually calling with the proper kmap file.
+> 
+> Also while tracking the calls for boot sequence, found that usage line
+> for /etc/init.d/keyboard-setup.sh and console-setup.sh forgot the .sh
+> extension (two mount*.sh forgot the extension too, but that would be
+> for another report). Most scripts properly report their name with .sh
+> and one even just uses $0 so it reacts automatically to however it was
+> called. Minor cosmetic details.
+It seems there were no functional changes between both versions, only
+translation updates plus an extra CHANGES file (which looks like the
+last changelog entry). BTW, Christian, a git push seems to be missing.
+If you want to check the behaviour, see $savekbdfile and $TMPFILE in the
+setupcon script.
+KiBi.
+signature.asc

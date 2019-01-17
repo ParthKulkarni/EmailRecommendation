@@ -1,0 +1,55 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>, 896071@bugs.debian.org
+Subject : Bug#896071: debootstrap fails to retrive Release file over https
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Tue, 24 Apr 2018 15:29:23 +0200
+Message-id : 20180424132923.GA7883@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 896071@bugs.debian.org
+In-reply-to : <[🔎] 20180423222814.b6ab8c6e718c308b932595f7@iijmio-mail.jp>
+References : <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <[🔎] 20180421203259.de45ed6e95bef4e354d00be4@iijmio-mail.jp> <[🔎] CAMPXz=p9ZzCh235PpJKDR7_UJ+Pjih=RwCEK229O06HyvnPm0w@mail.gmail.com> <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <[🔎] 20180423222814.b6ab8c6e718c308b932595f7@iijmio-mail.jp> <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org>
+
+
+On Mon, 23 Apr 2018, Hideki Yamane wrote:
+> Hi,
+> 
+> On Sun, 22 Apr 2018 09:40:54 +1000
+> David Margerison <deltam@electrosonics.com.au> wrote:
+> > >  "$@" is extracted as '' and wget tries to fetch it and fails,
+> > >  then returns 1.
+> > 
+> > Regarding the proposed fix, in general using $@ without quotes is fragile.
+> 
+>  Most of the case, quotes is better. But in this case, "$@" is extracted like
+> >> wget '' '' '' https://deb.debian.org/debian/dist/unstable/InRelease
+>  Then, it outputs
+> >>    http://: Invalid host name.
+> >>    http://: Invalid host name.
+> >>    http://: Invalid host name.
+>  and returns 1.
+I agree with David that using $@ without quotes is not a good idea.
+What you want is to not pass empty arguments to wgetprogress. So you should
+likely drop the quotes around the first 3 parameters on this line:
+                if wgetprogress "$CHECKCERTIF" "$CERTIFICATE" "$PRIVATEKEY" -O "$dest" "$from"; then
+I'm suggesting only the first 3 since those are the variables that can be
+empty. And we want to keep the quote on "$dest" to be able to use path
+containing spaces (which you likely lost with your fix).
+But even here it's not perfect since we loose the possibility to handle
+arguments containing spaces in the first 3 parameters. A complete fix would
+involve setting up the argument list manually:
+set -- -O "$dest" "$from"
+if [ -n "$PRIVATEKEY" ]; then
+        set -- "$PRIVATEKEY" "$@"
+fi
+if [ -n "$CERTIFICATE" ]; then
+        set -- "$CERTIFICATE" "$@"
+fi
+if [ -n "$CHECKCERTIF" ]; then
+        set -- "$CHECKCERTIF" "$@"
+fi
+if wgetprogress "$@"; then
+[...]
+Here we should be safe even if those 3 variables do contain spaces.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

@@ -1,0 +1,38 @@
+To : Stefan Fritsch <sf@sfritsch.de>
+Subject : Re: testing and review requested for Wheezy update of apache2
+From : Antoine Beaupré <anarcat@orangeseeds.org>
+Date : Mon, 23 Jan 2017 15:14:30 -0500
+Message-id : 87wpdlr0t5.fsf@curie.anarc.at
+In-reply-to : <[🔎] 1671189.9cX05MgSZt@k>
+References : <20161223225643.GA24261@inguza.net> <[🔎] 87fukh7hcq.fsf@curie.anarc.at> <[🔎] 1894087.UjISrH0e0J@k> <[🔎] 1671189.9cX05MgSZt@k>
+
+
+On 2017-01-22 11:25:08, Stefan Fritsch wrote:
+>  Test Summary Report
+>  -------------------
+>  t/apache/chunkinput.t             (Wstat: 0 Tests: 37 Failed: 1)
+>    Failed test:  3
+>  t/apache/contentlength.t          (Wstat: 0 Tests: 24 Failed: 8)
+>    Failed tests:  2, 4, 14, 16, 18, 20, 22, 24
+> +t/apache/http_strict.t            (Wstat: 0 Tests: 85 Failed: 3)
+> +  Failed tests:  2, 8, 26
+here are those tests:
+2: [ "GET / HTTP/1.0\n\n"                          => 400],
+8: [ "GET / HTTP/1.0\0\r\n\r\n"                    => 400],
+26: [ "GET / HTTP/1.0\r\nFoo: b\0ar\r\n\r\n"        => 400],
+#2 is weird - it just returns nothing now:
+$ printf "GET / HTTP/1.0\n\n" | nc localhost 80
+$
+which is a major WTF for someone used to "telnet into port 80", as UNIX
+line endings now fail - which is unexpected of course, but actually
+respecting RFC, iirc.
+nothing in the logs, and nothing i could find in GDB. the apache2
+process just seems to close the socket and leave it at that.
+#8 is a plain failure - it actually works and returns 200 instead of
+400. same with #26.
+so definitely more work to be done there... sigh. i'll review the final
+diff to figure out what's going on here.
+a.
+-- 
+During times of universal deceit, telling the truth becomes a
+revolutionary act.        - Georges Orwell

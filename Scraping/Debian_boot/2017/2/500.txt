@@ -1,0 +1,138 @@
+To : 261929@bugs.debian.org
+Subject : Bug#261929: Can't use tasksel to install multi l10n tasks
+From : Anthony Wong <anthony.wong@ubuntu.com>
+Date : Sat, 25 Feb 2017 15:22:41 +0800
+Message-id : CABEYXf9vkt1U0995XyjCUAwPtKEeUoDZoZ=HAadujf_38-SD=Q@mail.gmail.com
+Reply-to : Anthony Wong <anthony.wong@ubuntu.com>, 261929@bugs.debian.org
+
+
+Hi all,
+This is my first attempt to implement this feature. The attached patch
+adds a second screen and lists all l10n tasks in a flat list. Any
+comments welcome!
+Currently the patch does not take into account additional locales
+chosen at localechooser. I haven't looked into how to do this yet but
+can add it later.
+Besides, if the system does not have the locales for the chosen l10n
+tasks, or the user has not selected these locales in localechooser,
+should we generate these locales for them?
+Thanks,
+Anthony
+From 827842491bbef166e46a7d0e898477b974c22484 Mon Sep 17 00:00:00 2001
+From: Anthony Wong <anthony.wong@ubuntu.com>
+Date: Sat, 25 Feb 2017 01:30:56 -0500
+Subject: [PATCH] Add a second screen for choosing language tasks.
+This is a first stab on bug#261929.
+Signed-off-by: Anthony Wong <anthony.wong@ubuntu.com>
+---
+ debian/templates |  7 +++++++
+ tasksel.pl       | 28 ++++++++++++++++++++++++----
+ tests/lang       |  6 +++---
+ 3 files changed, 34 insertions(+), 7 deletions(-)
+diff --git a/debian/templates b/debian/templates
+index afb6efa0..1344a2cc 100644
+--- a/debian/templates
++++ b/debian/templates
+@@ -23,3 +23,10 @@ Description: This can be preseeded to override the default desktop.
+ Template: tasksel/title
+ Type: title
+ _Description: Software selection
++
++Template: tasksel/l10n
++Type: multiselect
++Choices-C: ${CHOICES_C}
++Choices: ${CHOICES}
++_Description: Choose languages to install:
++ You can choose to install one or more of the following languages.
+diff --git a/tasksel.pl b/tasksel.pl
+index 799c0417..f7d4e3ff 100755
+--- a/tasksel.pl
++++ b/tasksel.pl
+@@ -457,6 +457,7 @@ sub getopts {
+ 
+ sub interactive {
+ 	my $options = shift;
++	my $page = shift;
+ 	my @tasks = @_;
+ 
+ 	if (! $options->{"new-install"}) {
+@@ -464,6 +465,13 @@ sub interactive {
+ 		map { $_->{_install} = 0 } grep { $_->{_display} == 0 } @tasks;
+ 	}
+ 
++	if ($page == 0) {
++		map { $_->{_display} = 0 } grep { $_->{section} eq "l10n" } @tasks;
++	} elsif ($page == 1) {
++		map { $_->{_display} = 1 } grep { $_->{section} eq "l10n" } @tasks;
++		map { $_->{_display} = 0 } grep { $_->{section} ne "l10n" } @tasks;
++	}
++
+ 	my @list = order_for_display(grep { $_->{_display} == 1 } @tasks);
+ 	if (@list) {
+ 		if (! $options->{"new-install"}) {
+@@ -478,7 +486,12 @@ sub interactive {
+ 			# installs.
+ 			map { $_->{_installed} = 0 } @list;
+ 		}
+-		my $question="tasksel/tasks";
++		my $question;
++		if ($page == 0) {
++			$question="tasksel/tasks";
++		} elsif ($page == 1) {
++			$question="tasksel/l10n";
++		}
+ 		if ($options->{"new-install"}) {
+ 			$question="tasksel/first";
+ 		}
+@@ -609,8 +622,7 @@ sub main {
+ 
+ 	# This is relatively expensive, get the full list of available tasks and
+ 	# mark them.
+-	my @tasks=map { hide_enhancing_tasks($_) } map { task_test($_, $options{"new-install"}, 1, 0) }
+-	          grep { task_avail($_) } all_tasks();
++	my @tasks = map { hide_enhancing_tasks($_) } map { task_test($_, $options{"new-install"}, 1, 0) } grep { task_avail($_) } all_tasks();
+ 	
+ 	if ($options{"list-tasks"}) {
+ 		map { $_->{_installed} = task_installed($_) } @tasks;
+@@ -627,12 +639,20 @@ sub main {
+ 		@tasks_remove = map { name_to_task($_, @tasks) } @{$options{cmd_remove}};
+ 	}
+ 	else {
+-		interactive(\%options, @tasks);
++		my @tasks_copy = @tasks;
++		interactive(\%options, 0, @tasks);
+ 
+ 		# Add tasks to install
+ 		@tasks_install = grep { $_->{_install} } @tasks;
+ 		# Add tasks to remove
+ 		@tasks_remove = grep { $_->{_remove} } @tasks;
++
++		@tasks = @tasks_copy;
++		interactive(\%options, 1, @tasks);
++		# Add tasks to install
++		@tasks_install = (grep { $_->{_install} } @tasks, @tasks_install);
++		# Add tasks to remove
++		@tasks_remove = (grep { $_->{_remove} } @tasks, @tasks_remove);
+ 	}
+ 
+ 	my @cmd;
+diff --git a/tests/lang b/tests/lang
+index 243b9cc0..20b96edb 100755
+--- a/tests/lang
++++ b/tests/lang
+@@ -10,10 +10,10 @@ if [ "$NEW_INSTALL" ]; then
+ 		if ( [ -n "$LANG" ] && [ "$LANG" = "$locale" ] ) || \
+ 		   ( [ -n "$fulllang" ] && [ "$fulllang" = "$locale" ] ) || \
+ 		   ( [ -n "$baselang" ] && [ "$baselang" = "$locale" ] ); then
+-		   exit 0 # install without display
++		   exit 2 # always display
+ 		fi
+ 	done
+-	exit 1 # do not display
++	exit 3 # always display
+ else
+-	exit 1
++	exit 3 # always display
+ fi
+-- 
+2.11.0

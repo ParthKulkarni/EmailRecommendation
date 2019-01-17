@@ -1,0 +1,65 @@
+To : 843943@bugs.debian.org
+Subject : Re: Bug#843943: debian-cd: please mention the dinstall serial in a trace file
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 13 Apr 2017 14:43:24 +0200
+Message-id : 20170413124324.GD16486@mraw.org
+In-reply-to : <20161111023109.4043.12723.reportbug@armor.home>
+References : <20161111023109.4043.12723.reportbug@armor.home>
+
+
+Cyril Brulebois <kibi@debian.org> (2016-11-11):
+> Since pettersson has a mirror with project/trace, which gives us access
+> to archive serial, it would be nice to have a look when the build starts
+> and to report this, maybe in a trace file alongside cdimage.debian.org?
+Here's a prospective and untested patch.
+ISTR we (ab)use cronjob.weekly for release builds, but feel free to
+test/adjust before pushing to the repository.
+> Also, as as side question, do we prevent the mirror from being updated
+> during the n-hours build of all images?
+Answer welcome. :)
+KiBi.
+signature.ascFrom 07ad313e6d7ff5948c0ceed8b066687a580751b9 Mon Sep 17 00:00:00 2001
+From: Cyril Brulebois <kibi@debian.org>
+Date: Thu, 13 Apr 2017 14:40:50 +0200
+Subject: [PATCH] Store archive serial in trace directory.
+Mostly useful for the Debian Installer release manager.
+Closes: #843943
+---
+ contrib/common.sh      | 9 +++++++++
+ contrib/cronjob.weekly | 5 +++++
+ 2 files changed, 14 insertions(+)
+diff --git a/contrib/common.sh b/contrib/common.sh
+index 9190a37..3ce712e 100644
+--- a/contrib/common.sh
++++ b/contrib/common.sh
+@@ -147,3 +147,12 @@ arch_has_firmware () {
+     done
+     return 1
+ }
++
++get_archive_serial () {
++    trace_file="$MIRROR/project/trace/ftp-master.debian.org"
++    if [ -f "$trace_file" ]; then
++        awk '/^Archive serial: / {print $3}' "$trace_file"
++    else
++        echo 'unknown'
++    fi
++}
+diff --git a/contrib/cronjob.weekly b/contrib/cronjob.weekly
+index 5019508..f16e19e 100755
+--- a/contrib/cronjob.weekly
++++ b/contrib/cronjob.weekly
+@@ -64,6 +64,11 @@ if lockfile -r0 $BUILDLOCK ; then
+     echo "git update debian-cd"
+     cd debian-cd && git pull ; cd ..
+ 
++    # Keep track of the serial for the archive we're building against,
++    # for later archive diffing for release announce preparation:
++    serial=$(get_archive_serial)
++    echo "$serial" > $PUBDIRJIG/trace/archive-serial
++
+     # Work out the default desktop, and do *not* build a CD1 for that
+     # desktop - it'll be done in the full set anyway
+     TASKSEL_DEB=$(./debian-cd/tools/which_deb ${MIRROR} testing task-desktop binary)
+-- 
+2.1.4

@@ -1,0 +1,110 @@
+To : debian-boot@lists.debian.org
+Subject : Re: LVM partitioning preseed.cfg / kickstart question
+From : Vincent McIntyre <vincent.mcintyre@csiro.au>
+Date : Fri, 16 Mar 2018 13:48:58 +1100
+Message-id : 20180316024858.GJ312@mayhem.atnf.CSIRO.AU
+
+
+Below is a known-good partitioning recipe similar to your use case.
+It puts all of /, not just /boot, in a real partition.
+I think the main difference is the start of the second stanza
+61440    1000   100000000 lvm
+while you have
+100 1000 -1 xfs
+There may be a bug in handling -1 as the upper limit;
+hopefully you will be able to flush it out if so.
+To simplify things, I'd stick with d-i alone for the moment
+and then introduce kickstart if it is helpful.
+Kind regards
+Vince
+d-i partman-md/device_remove_md        boolean true
+d-i partman-md/confirm_nooverwrite     boolean true
+d-i partman-md/confirm                 boolean true
+d-i partman-lvm/device_remove_lvm      boolean true
+d-i partman-lvm/confirm_nooverwrite    boolean true
+d-i partman-lvm/confirm                boolean true
+d-i partman-lvm/vgdelete_confirm       boolean true
+d-i partman-auto-lvm/no_boot           boolean true
+d-i partman-auto-lvm/new_vg_name  string linux
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition           select  finish
+d-i partman/confirm                    boolean true
+d-i partman-basicfilesystems/no_swap boolean false
+d-i partman/mount_style select uuid
+d-i partman/confirm_nooverwrite boolean true
+d-i partman-auto/method string lvm
+d-i partman-auto/expert_recipe      string workstation : \
+                1024    50000   1024 ext4               \
+                        $primary{ }                     \
+                        $bootable{ }                    \
+                        method{ format }                \
+                        format{ }                       \
+                        use_filesystem{ }               \
+                        filesystem{ ext4 }              \
+                        mountpoint{ / }                 \
+                .                                       \
+                61440    1000   100000000 lvm           \
+                        $defaultignore{ }               \
+                        $primary{ }                     \
+                        method{ lvm }                   \
+                .                                       \
+                2048    300%  65536 linux-swap         \
+                        $defaultignore{ }               \
+                        $lvmok{ }                       \
+                        method{ swap }                  \
+                        format{ }                       \
+                .                                       \
+                20480   50000   20480 ext4              \
+                        $defaultignore{ }               \
+                        $lvmok{ }                       \
+                        method{ format }                \
+                        format{ }                       \
+                        use_filesystem{ }               \
+                        filesystem{ ext4 }              \
+                        mountpoint{ /usr }              \
+                .                                       \
+                4096    50000   4096 ext4               \
+                        $defaultignore{ }               \
+                        $lvmok{ }                       \
+                        method{ format }                \
+                        format{ }                       \
+                        use_filesystem{ }               \
+                        filesystem{ ext4 }              \
+                        mountpoint{ /var }              \
+                .                                       \
+                2048    50000   2048  ext4              \
+                        $defaultignore{ }               \
+                        $lvmok{ }                       \
+                        method{ format }                \
+                        format{ }                       \
+                        use_filesystem{ }               \
+                        filesystem{ ext4 }              \
+                        mountpoint{ /var/log }          \
+                .                                       \
+                2048    50000    2048 ext4              \
+                        $defaultignore{ }               \
+                        $lvmok{ }                       \
+                        method{ format }                \
+                        format{ }                       \
+                        use_filesystem{ }               \
+                        filesystem{ ext4 }              \
+                        mountpoint{ /tmp }              \
+                .                                       \
+                4096    50000    4096 ext4              \
+                        $defaultignore{ }               \
+                        $lvmok{ }                       \
+                        method{ format }                \
+                        format{ }                       \
+                        use_filesystem{ }               \
+                        filesystem{ ext4 }              \
+                        mountpoint{ /opt }              \
+                .                                       \
+                10240   20000   100000000 xfs           \
+                        $defaultignore{ }               \
+                        $lvmok{ }                       \
+                        method{ format }                \
+                        format{ }                       \
+                        use_filesystem{ }               \
+                        filesystem{ xfs }               \
+                        mountpoint{ /data }             \
+                .

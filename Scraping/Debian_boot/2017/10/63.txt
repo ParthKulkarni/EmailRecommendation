@@ -1,0 +1,35 @@
+To : submit@bugs.debian.org
+Subject : Bug#877956: busybox: Not all testsuite failures are fatal
+From : James Clarke <jrtc27@debian.org>
+Date : Sat, 7 Oct 2017 23:01:28 +0100
+Message-id : 20171007220128.GA30834@Jamess-MacBook.local
+Reply-to : James Clarke <jrtc27@debian.org>, 877956@bugs.debian.org
+
+
+Source: busybox
+Version: 1:1.27.2-1
+Tags: upstream patch
+Forwarded: http://lists.busybox.net/pipermail/busybox/2017-October/085868.html
+Hi,
+Currently there is a bug in the testsuite driver where running an
+old-style test resets the current failure flag to 0, so not all failures
+become fatal. The above patch forwarded upstream fixes this.
+Note: Some of the `du` tests seem to be dependent on the filesystem in
+use (or other system-specific configuration). Builds on abel.debian.org,
+exodar.debian.net and {falla,fischer}.debian.org all fail the
+"du-m-works" test, which seems to be because any indirect blocks used
+are counted towards the number of blocks reported in use by stat (abel
+uses ext3, exodar uses ext2 and falla/fischer use UFS), pushing the
+total number of bytes on disk over 1 MiB for the 1 MiB file. Presumably
+the others are all fine because they are using ext4 and require no more
+than 4 extents, all of which fit in the inode. Additionally, grepping
+the build logs for the latest upload shows some issues with "du-k-works"
+and "du-l-works" on powerpc and ppc64el which I could not reproduce on
+the porterboxes:
+> jrtc27@wuiet:~$ bzgrep FAIL: /srv/buildd.debian.org/db/b/busybox/1\:1.27.2-1/*.bz2
+> /srv/buildd.debian.org/db/b/busybox/1:1.27.2-1/powerpc_1505669728_log.bz2:FAIL: du-k-works
+> /srv/buildd.debian.org/db/b/busybox/1:1.27.2-1/powerpc_1505669728_log.bz2:FAIL: du-l-works
+> /srv/buildd.debian.org/db/b/busybox/1:1.27.2-1/ppc64el_1505669547_log.bz2:FAIL: du-k-works
+> /srv/buildd.debian.org/db/b/busybox/1:1.27.2-1/ppc64el_1505669547_log.bz2:FAIL: du-l-works
+Regards,
+James

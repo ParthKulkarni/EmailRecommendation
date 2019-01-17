@@ -1,0 +1,1225 @@
+To : 858943@bugs.debian.org, debian-boot@lists.debian.org, Debian systemd Maintainers <Pkg-systemd-maintainers@lists.alioth.debian.org>
+Subject : Re: Bug#858943: unblock: systemd/232-22
+From : Michael Biebl <biebl@debian.org>
+Date : Wed, 29 Mar 2017 00:08:34 +0200
+Message-id : 06659a26-2540-e6d8-8cd4-a99d98ff1f34@debian.org
+In-reply-to : <[🔎] 149073432580.15714.7002773787076498768.reportbug@pluto.milchstrasse.xx>
+References : <[🔎] 149073432580.15714.7002773787076498768.reportbug@pluto.milchstrasse.xx>
+
+
+Am 28.03.2017 um 22:52 schrieb Michael Biebl:
+> A complete debdiff is attached.
+Hm, somehow that got lost. Attaching it now.
+Regards,
+Michael
+-- 
+Why is it that all of the instruments seeking intelligent life in the
+universe are pointed away from Earth?
+signature.ascdiff --git a/debian/changelog b/debian/changelog
+index 0774f4d..4af7f8a 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,79 @@
++systemd (232-22) unstable; urgency=medium
++
++  [ Martin Pitt ]
++  * resolved: Disable DNSSEC by default on stretch and zesty.
++    Both Debian stretch and Ubuntu zesty are close to releasing, switch to
++    DNSSEC=off by default for those. Users can still turn it back on with
++    DNSSEC=allow-downgrade (or even "yes").
++
++  [ Michael Biebl ]
++  * Add Conflicts against hal.
++    Since v183, udev no longer supports RUN+="socket:". This feature is
++    still used by hal, but now generates vast amounts of errors in the
++    journal. Thus force the removal of hal by adding a Conflicts to the udev
++    package. This is safe, as hal is long dead and no package depends on it
++    anymore.
++
++  [ Dimitri John Ledkov ]
++  * Adjust pkgconfig files to point at rootlibdir.
++    The .so symlinks got moved to rootlibdir in v232 so the .pc files for
++    libudev and libsystemd need to be adjusted accordingly. Otherwise we
++    break cross compilation. (LP: #1674201)
++
++ -- Michael Biebl <biebl@debian.org>  Tue, 28 Mar 2017 21:23:30 +0200
++
++systemd (232-21) unstable; urgency=medium
++
++  * resolved: Downgrade "processing query..." message to debug.
++    It doesn't really add much value in normal operation and just spams the
++    log. (Closes: #858197)
++  * Do not throw a warning in emergency and rescue mode if plymouth is not
++    installed.
++    Ideally, plymouth should only be referenced via dependencies, not
++    ExecStartPre. This at least avoids the confusing error message on
++    minimal installations that do not carry plymouth.
++  * rules: Allow SPARC vdisk devices when identifying CD drives
++    (Closes: #858014)
++
++ -- Michael Biebl <biebl@debian.org>  Tue, 21 Mar 2017 19:52:17 +0100
++
++systemd (232-20) unstable; urgency=medium
++
++  [ Martin Pitt ]
++  * debian/gbp.conf: Switch to "stretch" branch
++  * udev: Fix /dev/disk/by-path aliases for virtio disks. (Closes: #856558)
++  * udev: Create persistent net names for virtio CCW devices.
++    This only affects s390x as only this has CCW devices. This provides
++    stable network interface names for those and avoids changing the names
++    on updating Stretch to Buster. (Closes: #856559)
++  * Move systemd.link(5) to udev package.
++    .link files are being handled by udev, so it should ship the
++    corresponding manpage. Bump Breaks/Replaces accordingly. (Closes: #857270)
++
++  [ Michael Biebl ]
++  * Avoid strict DM API versioning.
++    Compiling against the dm-ioctl.h header as provided by the Linux kernel
++    will embed the DM interface version number. Running an older kernel can
++    lead to errors on shutdown when trying to detach DM devices.
++    As a workaround, build against a local copy of dm-ioctl.h based on 3.13,
++    which is the minimum required version to support DM_DEFERRED_REMOVE.
++    (Closes: #856337)
++  * cryptsetup-generator: Run cryptsetup service before swap unit.
++    Otherwise if the cryptsetup service unit and swap unit for a swap
++    device are not strictly ordered, it might happen that the swap unit
++    activates/mounts the swap device before its cryptsetup service unit has
++    a chance to run the 'mkswap' command. (Closes: #787028)
++  * Override package-name-doesnt-match-sonames lintian warning for libnss-*
++  * networkd: Fix size of MTUBytes so that it does not overwrite ARP
++
++  [ Felipe Sateler ]
++  * git-cherry-pick: Actually use cherry-pick for picking.
++    Use git cherry-pick for picking instead of rebase.
++    This allows using -x flag and thus record the upstream commit that is
++    being picked.
++
++ -- Michael Biebl <biebl@debian.org>  Thu, 16 Mar 2017 17:38:24 +0100
++
+ systemd (232-19) unstable; urgency=medium
+ 
+   [ Martin Pitt ]
+diff --git a/debian/control b/debian/control
+index 65365e9..b48a50a 100644
+--- a/debian/control
++++ b/debian/control
+@@ -328,17 +328,18 @@ Depends: ${shlibs:Depends},
+          util-linux (>= 2.27.1),
+          s390-tools (>> 1.6.2) [s390],
+          procps
++Conflicts: hal
+ Breaks: consolekit (<< 0.4.6-1),
+         kmod (<< 14),
+         plymouth (<< 0.9.0-7),
+         bash-completion (<< 1:2.1),
+-        systemd (<< 232-11),
++        systemd (<< 232-20),
+         ifupdown (<< 0.8.5~),
+         ifplugd (<< 0.28-19.1~),
+         joystick (<< 1:1.4.9-1~),
+         ${Breaks:usb-modeswitch},
+ Replaces: bash-completion (<< 1:2.1),
+-          systemd (<< 224-2)
++          systemd (<< 232-20)
+ Description: /dev/ and hotplug management daemon
+  udev is a daemon which dynamically creates and removes device nodes from
+  /dev/, handles hotplug events and loads drivers at boot time.
+diff --git a/debian/gbp.conf b/debian/gbp.conf
+index 6dc3643..ab50bd4 100644
+--- a/debian/gbp.conf
++++ b/debian/gbp.conf
+@@ -1,7 +1,7 @@
+ [DEFAULT]
+ pristine-tar = True
+ patch-numbers = False
+-debian-branch = master
++debian-branch = stretch
+ 
+ [dch]
+ full = True
+diff --git a/debian/git-cherry-pick b/debian/git-cherry-pick
+index 9d0197c..bb39ce8 100755
+--- a/debian/git-cherry-pick
++++ b/debian/git-cherry-pick
+@@ -43,7 +43,7 @@ gbp pq import --force
+ echo "Cherry-picking the following commits:"
+ echo "$commits"
+ 
+-picks=$(echo "$commits" | sed -e 's/^/pick /' -e 's/$/\\n/' | tr --delete '\n' )
++picks=$(echo "$commits" | xargs echo exec git cherry-pick -x --no-edit --commit)
+ 
+ # find the first debian commit
+ firstdebian=$(git log -i --grep "topic.*debian" --pretty=%h --reverse $debbranch..$pqbranch | head -1)
+diff --git a/debian/libnss-myhostname.lintian-overrides b/debian/libnss-myhostname.lintian-overrides
+new file mode 100644
+index 0000000..ff4d266
+--- /dev/null
++++ b/debian/libnss-myhostname.lintian-overrides
+@@ -0,0 +1,2 @@
++# package is a NSS module, not a system library
++libnss-myhostname: package-name-doesnt-match-sonames
+diff --git a/debian/libnss-mymachines.lintian-overrides b/debian/libnss-mymachines.lintian-overrides
+new file mode 100644
+index 0000000..c9661e8
+--- /dev/null
++++ b/debian/libnss-mymachines.lintian-overrides
+@@ -0,0 +1,2 @@
++# package is a NSS module, not a system library
++libnss-mymachines: package-name-doesnt-match-sonames
+diff --git a/debian/libnss-resolve.lintian-overrides b/debian/libnss-resolve.lintian-overrides
+new file mode 100644
+index 0000000..dfd9ec4
+--- /dev/null
++++ b/debian/libnss-resolve.lintian-overrides
+@@ -0,0 +1,2 @@
++# package is a NSS module, not a system library
++libnss-resolve: package-name-doesnt-match-sonames
+diff --git a/debian/libnss-systemd.lintian-overrides b/debian/libnss-systemd.lintian-overrides
+new file mode 100644
+index 0000000..8e9c4cb
+--- /dev/null
++++ b/debian/libnss-systemd.lintian-overrides
+@@ -0,0 +1,2 @@
++# package is a NSS module, not a system library
++libnss-systemd: package-name-doesnt-match-sonames
+diff --git a/debian/patches/Adjust-pkgconfig-files-to-point-at-rootlibdir-4584.patch b/debian/patches/Adjust-pkgconfig-files-to-point-at-rootlibdir-4584.patch
+new file mode 100644
+index 0000000..6e62a4c
+--- /dev/null
++++ b/debian/patches/Adjust-pkgconfig-files-to-point-at-rootlibdir-4584.patch
+@@ -0,0 +1,50 @@
++From: Mike Gilbert <floppymaster@gmail.com>
++Date: Tue, 8 Nov 2016 03:36:41 -0500
++Subject: Adjust pkgconfig files to point at rootlibdir (#4584)
++
++The .so symlinks got moved to rootlibdir in 082210c7.
++(cherry picked from commit d07903848f7b3b96487e0968f25d88167cc65ded)
++---
++ Makefile.am                     | 1 +
++ src/libsystemd/libsystemd.pc.in | 2 +-
++ src/libudev/libudev.pc.in       | 2 +-
++ 3 files changed, 3 insertions(+), 2 deletions(-)
++
++diff --git a/Makefile.am b/Makefile.am
++index 41c7cfc..ecd8bc1 100644
++--- a/Makefile.am
+++++ b/Makefile.am
++@@ -6056,6 +6056,7 @@ EXTRA_DIST += \
++ 
++ # ------------------------------------------------------------------------------
++ substitutions = \
+++       '|rootlibdir=$(rootlibdir)|' \
++        '|rootlibexecdir=$(rootlibexecdir)|' \
++        '|rootbindir=$(rootbindir)|' \
++        '|bindir=$(bindir)|' \
++diff --git a/src/libsystemd/libsystemd.pc.in b/src/libsystemd/libsystemd.pc.in
++index e8f7950..7e6d499 100644
++--- a/src/libsystemd/libsystemd.pc.in
+++++ b/src/libsystemd/libsystemd.pc.in
++@@ -7,7 +7,7 @@
++ 
++ prefix=@prefix@
++ exec_prefix=@exec_prefix@
++-libdir=@libdir@
+++libdir=@rootlibdir@
++ includedir=@includedir@
++ 
++ Name: systemd
++diff --git a/src/libudev/libudev.pc.in b/src/libudev/libudev.pc.in
++index a0f3f52..770c922 100644
++--- a/src/libudev/libudev.pc.in
+++++ b/src/libudev/libudev.pc.in
++@@ -7,7 +7,7 @@
++ 
++ prefix=@prefix@
++ exec_prefix=@exec_prefix@
++-libdir=@libdir@
+++libdir=@rootlibdir@
++ includedir=@includedir@
++ 
++ Name: libudev
+diff --git a/debian/patches/Avoid-strict-DM-interface-version-dependencies-5519.patch b/debian/patches/Avoid-strict-DM-interface-version-dependencies-5519.patch
+new file mode 100644
+index 0000000..df78452
+--- /dev/null
++++ b/debian/patches/Avoid-strict-DM-interface-version-dependencies-5519.patch
+@@ -0,0 +1,432 @@
++From: Michael Biebl <mbiebl@gmail.com>
++Date: Thu, 2 Mar 2017 19:11:37 +0100
++Subject: Avoid strict DM interface version dependencies (#5519)
++
++Compiling against the dm-ioctl.h header as provided by the Linux kernel
++will embed the DM interface version number. Running an older kernel can
++result in an error like this on shutdown:
++
++Could not detach DM dm-11: ioctl mismatch, kernel(4.34.4), user(4.35.4)
++
++Work around this by shipping a local copy of dm-ioctl.h. We need at
++least the version from 3.13 for DM_DEFERRED_REMOVE [1], so bump the
++requirements in README accordingly.
++
++[1] https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=2c140a246dc0bc085b98eddde978060fcec1080c
++
++Fixes: #5492
++(cherry picked from commit dcce98a4bdc302a5efeb3a5c35b6cbf6d16a3efc)
++---
++ Makefile.am                      |   1 +
++ README                           |   2 +-
++ src/core/umount.c                |   2 +-
++ src/shared/linux-3.13/dm-ioctl.h | 355 +++++++++++++++++++++++++++++++++++++++
++ 4 files changed, 358 insertions(+), 2 deletions(-)
++ create mode 100644 src/shared/linux-3.13/dm-ioctl.h
++
++diff --git a/Makefile.am b/Makefile.am
++index 67d41dc..41c7cfc 100644
++--- a/Makefile.am
+++++ b/Makefile.am
++@@ -966,6 +966,7 @@ libshared_la_SOURCES = \
++ 	src/shared/gpt.h \
++ 	src/shared/udev-util.h \
++ 	src/shared/linux/auto_dev-ioctl.h \
+++	src/shared/linux-3.13/dm-ioctl.h \
++ 	src/shared/initreq.h \
++ 	src/shared/dns-domain.c \
++ 	src/shared/dns-domain.h \
++diff --git a/README b/README
++index 9f5bc93..838a9e8 100644
++--- a/README
+++++ b/README
++@@ -35,7 +35,7 @@ LICENSE:
++         - except src/udev/* which is (currently still) GPLv2, GPLv2+
++ 
++ REQUIREMENTS:
++-        Linux kernel >= 3.12
+++        Linux kernel >= 3.13
++         Linux kernel >= 4.2 for unified cgroup hierarchy support
++ 
++         Kernel Config Options:
++diff --git a/src/core/umount.c b/src/core/umount.c
++index 1e5459e..f3823d7 100644
++--- a/src/core/umount.c
+++++ b/src/core/umount.c
++@@ -19,7 +19,6 @@
++ 
++ #include <errno.h>
++ #include <fcntl.h>
++-#include <linux/dm-ioctl.h>
++ #include <linux/loop.h>
++ #include <string.h>
++ #include <sys/mount.h>
++@@ -31,6 +30,7 @@
++ #include "escape.h"
++ #include "fd-util.h"
++ #include "fstab-util.h"
+++#include "linux-3.13/dm-ioctl.h"
++ #include "list.h"
++ #include "mount-setup.h"
++ #include "path-util.h"
++diff --git a/src/shared/linux-3.13/dm-ioctl.h b/src/shared/linux-3.13/dm-ioctl.h
++new file mode 100644
++index 0000000..c8a4302
++--- /dev/null
+++++ b/src/shared/linux-3.13/dm-ioctl.h
++@@ -0,0 +1,355 @@
+++/*
+++ * Copyright (C) 2001 - 2003 Sistina Software (UK) Limited.
+++ * Copyright (C) 2004 - 2009 Red Hat, Inc. All rights reserved.
+++ *
+++ * This file is released under the LGPL.
+++ */
+++
+++#ifndef _LINUX_DM_IOCTL_V4_H
+++#define _LINUX_DM_IOCTL_V4_H
+++
+++#include <linux/types.h>
+++
+++#define DM_DIR "mapper"		/* Slashes not supported */
+++#define DM_CONTROL_NODE "control"
+++#define DM_MAX_TYPE_NAME 16
+++#define DM_NAME_LEN 128
+++#define DM_UUID_LEN 129
+++
+++/*
+++ * A traditional ioctl interface for the device mapper.
+++ *
+++ * Each device can have two tables associated with it, an
+++ * 'active' table which is the one currently used by io passing
+++ * through the device, and an 'inactive' one which is a table
+++ * that is being prepared as a replacement for the 'active' one.
+++ *
+++ * DM_VERSION:
+++ * Just get the version information for the ioctl interface.
+++ *
+++ * DM_REMOVE_ALL:
+++ * Remove all dm devices, destroy all tables.  Only really used
+++ * for debug.
+++ *
+++ * DM_LIST_DEVICES:
+++ * Get a list of all the dm device names.
+++ *
+++ * DM_DEV_CREATE:
+++ * Create a new device, neither the 'active' or 'inactive' table
+++ * slots will be filled.  The device will be in suspended state
+++ * after creation, however any io to the device will get errored
+++ * since it will be out-of-bounds.
+++ *
+++ * DM_DEV_REMOVE:
+++ * Remove a device, destroy any tables.
+++ *
+++ * DM_DEV_RENAME:
+++ * Rename a device or set its uuid if none was previously supplied.
+++ *
+++ * DM_SUSPEND:
+++ * This performs both suspend and resume, depending which flag is
+++ * passed in.
+++ * Suspend: This command will not return until all pending io to
+++ * the device has completed.  Further io will be deferred until
+++ * the device is resumed.
+++ * Resume: It is no longer an error to issue this command on an
+++ * unsuspended device.  If a table is present in the 'inactive'
+++ * slot, it will be moved to the active slot, then the old table
+++ * from the active slot will be _destroyed_.  Finally the device
+++ * is resumed.
+++ *
+++ * DM_DEV_STATUS:
+++ * Retrieves the status for the table in the 'active' slot.
+++ *
+++ * DM_DEV_WAIT:
+++ * Wait for a significant event to occur to the device.  This
+++ * could either be caused by an event triggered by one of the
+++ * targets of the table in the 'active' slot, or a table change.
+++ *
+++ * DM_TABLE_LOAD:
+++ * Load a table into the 'inactive' slot for the device.  The
+++ * device does _not_ need to be suspended prior to this command.
+++ *
+++ * DM_TABLE_CLEAR:
+++ * Destroy any table in the 'inactive' slot (ie. abort).
+++ *
+++ * DM_TABLE_DEPS:
+++ * Return a set of device dependencies for the 'active' table.
+++ *
+++ * DM_TABLE_STATUS:
+++ * Return the targets status for the 'active' table.
+++ *
+++ * DM_TARGET_MSG:
+++ * Pass a message string to the target at a specific offset of a device.
+++ *
+++ * DM_DEV_SET_GEOMETRY:
+++ * Set the geometry of a device by passing in a string in this format:
+++ *
+++ * "cylinders heads sectors_per_track start_sector"
+++ *
+++ * Beware that CHS geometry is nearly obsolete and only provided
+++ * for compatibility with dm devices that can be booted by a PC
+++ * BIOS.  See struct hd_geometry for range limits.  Also note that
+++ * the geometry is erased if the device size changes.
+++ */
+++
+++/*
+++ * All ioctl arguments consist of a single chunk of memory, with
+++ * this structure at the start.  If a uuid is specified any
+++ * lookup (eg. for a DM_INFO) will be done on that, *not* the
+++ * name.
+++ */
+++struct dm_ioctl {
+++	/*
+++	 * The version number is made up of three parts:
+++	 * major - no backward or forward compatibility,
+++	 * minor - only backwards compatible,
+++	 * patch - both backwards and forwards compatible.
+++	 *
+++	 * All clients of the ioctl interface should fill in the
+++	 * version number of the interface that they were
+++	 * compiled with.
+++	 *
+++	 * All recognised ioctl commands (ie. those that don't
+++	 * return -ENOTTY) fill out this field, even if the
+++	 * command failed.
+++	 */
+++	__u32 version[3];	/* in/out */
+++	__u32 data_size;	/* total size of data passed in
+++				 * including this struct */
+++
+++	__u32 data_start;	/* offset to start of data
+++				 * relative to start of this struct */
+++
+++	__u32 target_count;	/* in/out */
+++	__s32 open_count;	/* out */
+++	__u32 flags;		/* in/out */
+++
+++	/*
+++	 * event_nr holds either the event number (input and output) or the
+++	 * udev cookie value (input only).
+++	 * The DM_DEV_WAIT ioctl takes an event number as input.
+++	 * The DM_SUSPEND, DM_DEV_REMOVE and DM_DEV_RENAME ioctls
+++	 * use the field as a cookie to return in the DM_COOKIE
+++	 * variable with the uevents they issue.
+++	 * For output, the ioctls return the event number, not the cookie.
+++	 */
+++	__u32 event_nr;      	/* in/out */
+++	__u32 padding;
+++
+++	__u64 dev;		/* in/out */
+++
+++	char name[DM_NAME_LEN];	/* device name */
+++	char uuid[DM_UUID_LEN];	/* unique identifier for
+++				 * the block device */
+++	char data[7];		/* padding or data */
+++};
+++
+++/*
+++ * Used to specify tables.  These structures appear after the
+++ * dm_ioctl.
+++ */
+++struct dm_target_spec {
+++	__u64 sector_start;
+++	__u64 length;
+++	__s32 status;		/* used when reading from kernel only */
+++
+++	/*
+++	 * Location of the next dm_target_spec.
+++	 * - When specifying targets on a DM_TABLE_LOAD command, this value is
+++	 *   the number of bytes from the start of the "current" dm_target_spec
+++	 *   to the start of the "next" dm_target_spec.
+++	 * - When retrieving targets on a DM_TABLE_STATUS command, this value
+++	 *   is the number of bytes from the start of the first dm_target_spec
+++	 *   (that follows the dm_ioctl struct) to the start of the "next"
+++	 *   dm_target_spec.
+++	 */
+++	__u32 next;
+++
+++	char target_type[DM_MAX_TYPE_NAME];
+++
+++	/*
+++	 * Parameter string starts immediately after this object.
+++	 * Be careful to add padding after string to ensure correct
+++	 * alignment of subsequent dm_target_spec.
+++	 */
+++};
+++
+++/*
+++ * Used to retrieve the target dependencies.
+++ */
+++struct dm_target_deps {
+++	__u32 count;	/* Array size */
+++	__u32 padding;	/* unused */
+++	__u64 dev[0];	/* out */
+++};
+++
+++/*
+++ * Used to get a list of all dm devices.
+++ */
+++struct dm_name_list {
+++	__u64 dev;
+++	__u32 next;		/* offset to the next record from
+++				   the _start_ of this */
+++	char name[0];
+++};
+++
+++/*
+++ * Used to retrieve the target versions
+++ */
+++struct dm_target_versions {
+++        __u32 next;
+++        __u32 version[3];
+++
+++        char name[0];
+++};
+++
+++/*
+++ * Used to pass message to a target
+++ */
+++struct dm_target_msg {
+++	__u64 sector;	/* Device sector */
+++
+++	char message[0];
+++};
+++
+++/*
+++ * If you change this make sure you make the corresponding change
+++ * to dm-ioctl.c:lookup_ioctl()
+++ */
+++enum {
+++	/* Top level cmds */
+++	DM_VERSION_CMD = 0,
+++	DM_REMOVE_ALL_CMD,
+++	DM_LIST_DEVICES_CMD,
+++
+++	/* device level cmds */
+++	DM_DEV_CREATE_CMD,
+++	DM_DEV_REMOVE_CMD,
+++	DM_DEV_RENAME_CMD,
+++	DM_DEV_SUSPEND_CMD,
+++	DM_DEV_STATUS_CMD,
+++	DM_DEV_WAIT_CMD,
+++
+++	/* Table level cmds */
+++	DM_TABLE_LOAD_CMD,
+++	DM_TABLE_CLEAR_CMD,
+++	DM_TABLE_DEPS_CMD,
+++	DM_TABLE_STATUS_CMD,
+++
+++	/* Added later */
+++	DM_LIST_VERSIONS_CMD,
+++	DM_TARGET_MSG_CMD,
+++	DM_DEV_SET_GEOMETRY_CMD
+++};
+++
+++#define DM_IOCTL 0xfd
+++
+++#define DM_VERSION       _IOWR(DM_IOCTL, DM_VERSION_CMD, struct dm_ioctl)
+++#define DM_REMOVE_ALL    _IOWR(DM_IOCTL, DM_REMOVE_ALL_CMD, struct dm_ioctl)
+++#define DM_LIST_DEVICES  _IOWR(DM_IOCTL, DM_LIST_DEVICES_CMD, struct dm_ioctl)
+++
+++#define DM_DEV_CREATE    _IOWR(DM_IOCTL, DM_DEV_CREATE_CMD, struct dm_ioctl)
+++#define DM_DEV_REMOVE    _IOWR(DM_IOCTL, DM_DEV_REMOVE_CMD, struct dm_ioctl)
+++#define DM_DEV_RENAME    _IOWR(DM_IOCTL, DM_DEV_RENAME_CMD, struct dm_ioctl)
+++#define DM_DEV_SUSPEND   _IOWR(DM_IOCTL, DM_DEV_SUSPEND_CMD, struct dm_ioctl)
+++#define DM_DEV_STATUS    _IOWR(DM_IOCTL, DM_DEV_STATUS_CMD, struct dm_ioctl)
+++#define DM_DEV_WAIT      _IOWR(DM_IOCTL, DM_DEV_WAIT_CMD, struct dm_ioctl)
+++
+++#define DM_TABLE_LOAD    _IOWR(DM_IOCTL, DM_TABLE_LOAD_CMD, struct dm_ioctl)
+++#define DM_TABLE_CLEAR   _IOWR(DM_IOCTL, DM_TABLE_CLEAR_CMD, struct dm_ioctl)
+++#define DM_TABLE_DEPS    _IOWR(DM_IOCTL, DM_TABLE_DEPS_CMD, struct dm_ioctl)
+++#define DM_TABLE_STATUS  _IOWR(DM_IOCTL, DM_TABLE_STATUS_CMD, struct dm_ioctl)
+++
+++#define DM_LIST_VERSIONS _IOWR(DM_IOCTL, DM_LIST_VERSIONS_CMD, struct dm_ioctl)
+++
+++#define DM_TARGET_MSG	 _IOWR(DM_IOCTL, DM_TARGET_MSG_CMD, struct dm_ioctl)
+++#define DM_DEV_SET_GEOMETRY	_IOWR(DM_IOCTL, DM_DEV_SET_GEOMETRY_CMD, struct dm_ioctl)
+++
+++#define DM_VERSION_MAJOR	4
+++#define DM_VERSION_MINOR	27
+++#define DM_VERSION_PATCHLEVEL	0
+++#define DM_VERSION_EXTRA	"-ioctl (2013-10-30)"
+++
+++/* Status bits */
+++#define DM_READONLY_FLAG	(1 << 0) /* In/Out */
+++#define DM_SUSPEND_FLAG		(1 << 1) /* In/Out */
+++#define DM_PERSISTENT_DEV_FLAG	(1 << 3) /* In */
+++
+++/*
+++ * Flag passed into ioctl STATUS command to get table information
+++ * rather than current status.
+++ */
+++#define DM_STATUS_TABLE_FLAG	(1 << 4) /* In */
+++
+++/*
+++ * Flags that indicate whether a table is present in either of
+++ * the two table slots that a device has.
+++ */
+++#define DM_ACTIVE_PRESENT_FLAG   (1 << 5) /* Out */
+++#define DM_INACTIVE_PRESENT_FLAG (1 << 6) /* Out */
+++
+++/*
+++ * Indicates that the buffer passed in wasn't big enough for the
+++ * results.
+++ */
+++#define DM_BUFFER_FULL_FLAG	(1 << 8) /* Out */
+++
+++/*
+++ * This flag is now ignored.
+++ */
+++#define DM_SKIP_BDGET_FLAG	(1 << 9) /* In */
+++
+++/*
+++ * Set this to avoid attempting to freeze any filesystem when suspending.
+++ */
+++#define DM_SKIP_LOCKFS_FLAG	(1 << 10) /* In */
+++
+++/*
+++ * Set this to suspend without flushing queued ios.
+++ * Also disables flushing uncommitted changes in the thin target before
+++ * generating statistics for DM_TABLE_STATUS and DM_DEV_WAIT.
+++ */
+++#define DM_NOFLUSH_FLAG		(1 << 11) /* In */
+++
+++/*
+++ * If set, any table information returned will relate to the inactive
+++ * table instead of the live one.  Always check DM_INACTIVE_PRESENT_FLAG
+++ * is set before using the data returned.
+++ */
+++#define DM_QUERY_INACTIVE_TABLE_FLAG	(1 << 12) /* In */
+++
+++/*
+++ * If set, a uevent was generated for which the caller may need to wait.
+++ */
+++#define DM_UEVENT_GENERATED_FLAG	(1 << 13) /* Out */
+++
+++/*
+++ * If set, rename changes the uuid not the name.  Only permitted
+++ * if no uuid was previously supplied: an existing uuid cannot be changed.
+++ */
+++#define DM_UUID_FLAG			(1 << 14) /* In */
+++
+++/*
+++ * If set, all buffers are wiped after use. Use when sending
+++ * or requesting sensitive data such as an encryption key.
+++ */
+++#define DM_SECURE_DATA_FLAG		(1 << 15) /* In */
+++
+++/*
+++ * If set, a message generated output data.
+++ */
+++#define DM_DATA_OUT_FLAG		(1 << 16) /* Out */
+++
+++/*
+++ * If set with DM_DEV_REMOVE or DM_REMOVE_ALL this indicates that if
+++ * the device cannot be removed immediately because it is still in use
+++ * it should instead be scheduled for removal when it gets closed.
+++ *
+++ * On return from DM_DEV_REMOVE, DM_DEV_STATUS or other ioctls, this
+++ * flag indicates that the device is scheduled to be removed when it
+++ * gets closed.
+++ */
+++#define DM_DEFERRED_REMOVE		(1 << 17) /* In/Out */
+++
+++#endif				/* _LINUX_DM_IOCTL_H */
+diff --git a/debian/patches/cryptsetup-generator-run-cryptsetup-service-before-swap-u.patch b/debian/patches/cryptsetup-generator-run-cryptsetup-service-before-swap-u.patch
+new file mode 100644
+index 0000000..ce3bfd3
+--- /dev/null
++++ b/debian/patches/cryptsetup-generator-run-cryptsetup-service-before-swap-u.patch
+@@ -0,0 +1,75 @@
++From: Mauricio Faria de Oliveira <mauricio.foliveira@gmail.com>
++Date: Tue, 28 Feb 2017 17:30:22 -0300
++Subject: cryptsetup-generator: run cryptsetup service before swap unit (#5480)
++
++If the cryptsetup service unit and swap unit for a swap device
++are not strictly ordered, it might happen that the swap unit
++activates/mounts the swap device before its cryptsetup service unit
++has a chance to run the 'mkswap' command (that it is programmed to).
++
++This leads to the following error:
++
++             Starting Cryptography Setup for sda3_crypt...
++    [  OK  ] Found device /dev/mapper/sda3_crypt.
++             Activating swap /dev/mapper/sda3_crypt...
++    [  OK  ] Activated swap /dev/mapper/sda3_crypt.
++    [  OK  ] Reached target Swap.
++    [FAILED] Failed to start Cryptography Setup for sda3_crypt.
++    See 'systemctl status systemd-cryptsetup@sda3_crypt.service' for
++    details.
++    [DEPEND] Dependency failed for Encrypted Volumes.
++
++Which happens because the swap device is already mounted:
++
++    # systemctl status systemd-cryptsetup@sda3_crypt.service
++    <...>
++       Active: failed (Result: exit-code) since Mon 2017-02-27 14:21:43 CST;
++    54s ago
++    <...>
++
++    <...> systemd[1]: Starting Cryptography Setup for sda3_crypt...
++    <...> mkswap[2420]: mkswap: error: /dev/mapper/sda3_crypt is mounted;
++    will not make swapspace
++    <...>
++
++So, modify cryptsetup-generator to include a 'Before=' option for the
++respective 'dev-mapper-%i.swap' device in the cryptsetup service unit.
++
++Now, correct ordering is ensured, and the error no longer occurs:
++
++             Starting Cryptography Setup for sda3_crypt...
++    [  OK  ] Found device /dev/mapper/sda3_crypt.
++    [  OK  ] Started Cryptography Setup for sda3_crypt.
++             Activating swap /dev/mapper/sda3_crypt...
++    [  OK  ] Reached target Encrypted Volumes.
++    [  OK  ] Activated swap /dev/mapper/sda3_crypt.
++    [  OK  ] Reached target Swap.
++(cherry picked from commit a6f8786a56c0acba5997e2c58d0df6c80ffde7f1)
++---
++ src/cryptsetup/cryptsetup-generator.c | 8 ++++++--
++ 1 file changed, 6 insertions(+), 2 deletions(-)
++
++diff --git a/src/cryptsetup/cryptsetup-generator.c b/src/cryptsetup/cryptsetup-generator.c
++index 6802986..2d00bcf 100644
++--- a/src/cryptsetup/cryptsetup-generator.c
+++++ b/src/cryptsetup/cryptsetup-generator.c
++@@ -145,13 +145,17 @@ static int create_disk(
++                 }
++         }
++ 
++-        if (is_device_path(u))
+++        if (is_device_path(u)) {
++                 fprintf(f,
++                         "BindsTo=%s\n"
++                         "After=%s\n"
++                         "Before=umount.target\n",
++                         d, d);
++-        else
+++
+++                if (swap)
+++                        fputs("Before=dev-mapper-%i.swap\n",
+++                              f);
+++        } else
++                 fprintf(f,
++                         "RequiresMountsFor=%s\n",
++                         u);
+diff --git a/debian/patches/debian/fsckd-daemon-for-inter-fsckd-communication.patch b/debian/patches/debian/fsckd-daemon-for-inter-fsckd-communication.patch
+index 74bb1db..022e1ed 100644
+--- a/debian/patches/debian/fsckd-daemon-for-inter-fsckd-communication.patch
++++ b/debian/patches/debian/fsckd-daemon-for-inter-fsckd-communication.patch
+@@ -109,7 +109,7 @@ index 013e0d7..a20cb25 100644
+  	man/systemd-getty-generator.xml \
+  	man/systemd-gpt-auto-generator.xml \
+ diff --git a/Makefile.am b/Makefile.am
+-index 67d41dc..10d5799 100644
++index ecd8bc1..882f8b2 100644
+ --- a/Makefile.am
+ +++ b/Makefile.am
+ @@ -394,6 +394,7 @@ rootlibexec_PROGRAMS = \
+@@ -144,7 +144,7 @@ index 67d41dc..10d5799 100644
+  	units/systemd-machine-id-commit.service.in \
+  	units/user@.service.m4.in \
+  	units/debug-shell.service.in \
+-@@ -2686,6 +2690,14 @@ systemd_fsck_LDADD = \
++@@ -2687,6 +2691,14 @@ systemd_fsck_LDADD = \
+  	libsystemd-shared.la
+  
+  # ------------------------------------------------------------------------------
+diff --git a/debian/patches/networkd-fix-size-of-MTUBytes-so-that-it-does-not-overwri.patch b/debian/patches/networkd-fix-size-of-MTUBytes-so-that-it-does-not-overwri.patch
+new file mode 100644
+index 0000000..b961367
+--- /dev/null
++++ b/debian/patches/networkd-fix-size-of-MTUBytes-so-that-it-does-not-overwri.patch
+@@ -0,0 +1,27 @@
++From: Susant Sahani <ssahani@users.noreply.github.com>
++Date: Wed, 23 Nov 2016 21:03:01 +0530
++Subject: networkd: fix size of MTUBytes so that it does not overwrites ARP
++ (#4707)
++
++config_parse_iec_size overwrites the next varible that is ARP.
++Now the mtu is unsigned . Make it size_t .
++
++Fixes #4644
++(cherry picked from commit b8b40317d0355bc70bb23a6240a36f3630c4952b)
++---
++ src/network/networkd-network.h | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/src/network/networkd-network.h b/src/network/networkd-network.h
++index 42fc82d..11ff34b 100644
++--- a/src/network/networkd-network.h
+++++ b/src/network/networkd-network.h
++@@ -173,7 +173,7 @@ struct Network {
++         IPv6PrivacyExtensions ipv6_privacy_extensions;
++ 
++         struct ether_addr *mac;
++-        unsigned mtu;
+++        size_t mtu;
++         int arp;
++         uint32_t iaid;
++         DUID duid;
+diff --git a/debian/patches/resolved-downgrade-processing-query.-message-to-debug-523.patch b/debian/patches/resolved-downgrade-processing-query.-message-to-debug-523.patch
+new file mode 100644
+index 0000000..54edbc5
+--- /dev/null
++++ b/debian/patches/resolved-downgrade-processing-query.-message-to-debug-523.patch
+@@ -0,0 +1,23 @@
++From: Felipe Sateler <fsateler@users.noreply.github.com>
++Date: Sun, 5 Feb 2017 19:17:50 -0300
++Subject: resolved: downgrade "processing query..." message to debug (#5233)
++
++It doesn't really add much value in normal operation and just spams the log.
++(cherry picked from commit 52e634271fe96ec23a22705ffb87df59a09d1618)
++---
++ src/resolve/resolved-dns-stub.c | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/src/resolve/resolved-dns-stub.c b/src/resolve/resolved-dns-stub.c
++index 29c8d2b..77ee7e9 100644
++--- a/src/resolve/resolved-dns-stub.c
+++++ b/src/resolve/resolved-dns-stub.c
++@@ -360,7 +360,7 @@ static void dns_stub_process_query(Manager *m, DnsStream *s, DnsPacket *p) {
++                 goto fail;
++         }
++ 
++-        log_info("Processing query...");
+++        log_debug("Processing query...");
++         return;
++ 
++ fail:
+diff --git a/debian/patches/rules-allow-SPARC-vdisk-devices-when-identifying-CD-drive.patch b/debian/patches/rules-allow-SPARC-vdisk-devices-when-identifying-CD-drive.patch
+new file mode 100644
+index 0000000..d0b5fd9
+--- /dev/null
++++ b/debian/patches/rules-allow-SPARC-vdisk-devices-when-identifying-CD-drive.patch
+@@ -0,0 +1,22 @@
++From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
++Date: Mon, 20 Mar 2017 11:22:54 +0100
++Subject: rules: allow SPARC vdisk devices when identifying CD drives (#5599)
++
++(cherry picked from commit 7c1ebe99b68ef232bc50e99f2350ebf5f4e846e7)
++---
++ rules/60-cdrom_id.rules | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/rules/60-cdrom_id.rules b/rules/60-cdrom_id.rules
++index 5c3b52e..56fe7c9 100644
++--- a/rules/60-cdrom_id.rules
+++++ b/rules/60-cdrom_id.rules
++@@ -2,7 +2,7 @@
++ 
++ ACTION=="remove", GOTO="cdrom_end"
++ SUBSYSTEM!="block", GOTO="cdrom_end"
++-KERNEL!="sr[0-9]*|xvd*", GOTO="cdrom_end"
+++KERNEL!="sr[0-9]*|vdisk*|xvd*", GOTO="cdrom_end"
++ ENV{DEVTYPE}!="disk", GOTO="cdrom_end"
++ 
++ # unconditionally tag device as CDROM
+diff --git a/debian/patches/series b/debian/patches/series
+index 76c744f..7c301cd 100644
+--- a/debian/patches/series
++++ b/debian/patches/series
+@@ -50,6 +50,15 @@ resolved-fix-NSEC-proofs-for-missing-TLDs.patch
+ automount-if-an-automount-unit-is-masked-don-t-react-to-a.patch
+ resolved-add-the-new-KSK-to-the-built-in-resolved-trust-a.patch
+ zsh-completion-_journalctl-fixes-5165.patch
++udev-Use-parent-bus-id-for-virtio-disk-builtin-path-id-55.patch
++udev-fix-id_net_name_path-for-virtio-ccw-interfaces-5357.patch
++Avoid-strict-DM-interface-version-dependencies-5519.patch
++networkd-fix-size-of-MTUBytes-so-that-it-does-not-overwri.patch
++resolved-downgrade-processing-query.-message-to-debug-523.patch
++units-do-not-throw-a-warning-in-emergency-mode-if-plymout.patch
++units-apply-plymouth-warning-fix-to-in-rescue-mode-as-wel.patch
++rules-allow-SPARC-vdisk-devices-when-identifying-CD-drive.patch
++Adjust-pkgconfig-files-to-point-at-rootlibdir-4584.patch
+ debian/Use-Debian-specific-config-files.patch
+ debian/don-t-try-to-start-autovt-units-when-not-running-wit.patch
+ debian/Make-logind-hostnamed-localed-timedated-D-Bus-activa.patch
+@@ -73,3 +82,4 @@ debian/Revert-core-set-RLIMIT_CORE-to-unlimited-by-default.patch
+ debian/Revert-core-enable-TasksMax-for-all-services-by-default-a.patch
+ debian/Let-graphical-session-pre.target-be-manually-started.patch
+ debian/Add-env-variable-for-machine-ID-path.patch
++cryptsetup-generator-run-cryptsetup-service-before-swap-u.patch
+diff --git a/debian/patches/udev-Use-parent-bus-id-for-virtio-disk-builtin-path-id-55.patch b/debian/patches/udev-Use-parent-bus-id-for-virtio-disk-builtin-path-id-55.patch
+new file mode 100644
+index 0000000..bc608d5
+--- /dev/null
++++ b/debian/patches/udev-Use-parent-bus-id-for-virtio-disk-builtin-path-id-55.patch
+@@ -0,0 +1,62 @@
++From: Viktor Mihajlovski <mihajlov@linux.vnet.ibm.com>
++Date: Wed, 1 Mar 2017 21:30:17 +0100
++Subject: udev: Use parent bus id for virtio disk builtin path-id (#5500)
++
++The builtin path id for virtio block devices has been changed
++to use the bus id without a prefix "virtio-pci" to be
++compatible with all virtio transport types.
++
++In order to not break existing setups, the by-path symlinks for
++virtio block devices on the PCI bus are reintroduced by udev rules.
++The virtio-pci symlinks are considered to be deprecated and
++should be replaced by the native PCI symlinks.
++
++Example output for a virtio disk in PCI slot 7:
++ $ ls  /dev/disk/by-path
++ pci-0000:00:07.0
++ pci-0000:00:07.0-part1
++ virtio-pci-0000:00:07.0
++ virtio-pci-0000:00:07.0-part1
++
++See also
++[1] https://lists.freedesktop.org/archives/systemd-devel/2017-February/038326.html
++[2] https://lists.freedesktop.org/archives/systemd-devel/2017-March/038397.html
++
++This reverts f073b1b but keeps the same symlinks for compatibility.
++---
++ rules/60-persistent-storage.rules | 4 ++++
++ src/udev/udev-builtin-path_id.c   | 5 +----
++ 2 files changed, 5 insertions(+), 4 deletions(-)
++
++diff --git a/rules/60-persistent-storage.rules b/rules/60-persistent-storage.rules
++index a93a342..baf341d 100644
++--- a/rules/60-persistent-storage.rules
+++++ b/rules/60-persistent-storage.rules
++@@ -66,6 +66,10 @@ ENV{DEVTYPE}=="disk", DEVPATH!="*/virtual/*", IMPORT{builtin}="path_id"
++ ENV{DEVTYPE}=="disk", ENV{ID_PATH}=="?*", SYMLINK+="disk/by-path/$env{ID_PATH}"
++ ENV{DEVTYPE}=="partition", ENV{ID_PATH}=="?*", SYMLINK+="disk/by-path/$env{ID_PATH}-part%n"
++ 
+++# legacy virtio-pci by-path links (deprecated)
+++KERNEL=="vd*[!0-9]", ENV{ID_PATH}=="pci-*", SYMLINK+="disk/by-path/virtio-$env{ID_PATH}"
+++KERNEL=="vd*[0-9]", ENV{ID_PATH}=="pci-*", SYMLINK+="disk/by-path/virtio-$env{ID_PATH}-part%n"
+++
++ # probe filesystem metadata of optical drives which have a media inserted
++ KERNEL=="sr*", ENV{DISK_EJECT_REQUEST}!="?*", ENV{ID_CDROM_MEDIA_TRACK_COUNT_DATA}=="?*", ENV{ID_CDROM_MEDIA_SESSION_LAST_OFFSET}=="?*", \
++   IMPORT{builtin}="blkid --offset=$env{ID_CDROM_MEDIA_SESSION_LAST_OFFSET}"
++diff --git a/src/udev/udev-builtin-path_id.c b/src/udev/udev-builtin-path_id.c
++index 1825ee7..e55b468 100644
++--- a/src/udev/udev-builtin-path_id.c
+++++ b/src/udev/udev-builtin-path_id.c
++@@ -664,11 +664,8 @@ static int builtin_path_id(struct udev_device *dev, int argc, char *argv[], bool
++                         parent = skip_subsystem(parent, "xen");
++                         supported_parent = true;
++                 } else if (streq(subsys, "virtio")) {
++-                        while (parent && streq_ptr("virtio", udev_device_get_subsystem(parent)))
++-                                parent = udev_device_get_parent(parent);
++-                        path_prepend(&path, "virtio-pci-%s", udev_device_get_sysname(parent));
+++                        parent = skip_subsystem(parent, "virtio");
++                         supported_transport = true;
++-                        supported_parent = true;
++                 } else if (streq(subsys, "scm")) {
++                         path_prepend(&path, "scm-%s", udev_device_get_sysname(parent));
++                         parent = skip_subsystem(parent, "scm");
+diff --git a/debian/patches/udev-fix-id_net_name_path-for-virtio-ccw-interfaces-5357.patch b/debian/patches/udev-fix-id_net_name_path-for-virtio-ccw-interfaces-5357.patch
+new file mode 100644
+index 0000000..225774b
+--- /dev/null
++++ b/debian/patches/udev-fix-id_net_name_path-for-virtio-ccw-interfaces-5357.patch
+@@ -0,0 +1,165 @@
++From: Viktor Mihajlovski <mihajlov@linux.vnet.ibm.com>
++Date: Fri, 17 Feb 2017 16:18:01 +0100
++Subject: udev: fix id_net_name_path for virtio-ccw interfaces (#5357)
++
++The CCW id_net_name_path detection didn't account for virtio
++interfaces on the CCW bus. As a result the default interface
++names for virtio-ccw interfaces would use the old eth<x>
++format instead of enc<busid>.
++
++Since virtio-pci interface naming follows the naming rules
++of the parent bus, the names_ccw() logic was changed to apply
++the CCW interface naming rules to virtio interfaces as well,
++e.g. enc2000 for an interface with a CCW bus id 0.0.2000.
++As virtio interfaces are apt to get the otherwise unusual
++CCW bus id 0.0.0000, the last '0' is now preserved in this
++case.
++
++The virtio subsystem skipping loop has been moved from
++names_pci() into a function skip_virtio() that can be reused
++for all bus types with virtio network devices.
++
++Since virtio-ccw interfaces use single CCW addresses the ccwgroup
++requirement was relaxed and the C definitions were changed
++accordingly.
++---
++ src/udev/udev-builtin-net_id.c | 58 ++++++++++++++++++++++++++++--------------
++ 1 file changed, 39 insertions(+), 19 deletions(-)
++
++diff --git a/src/udev/udev-builtin-net_id.c b/src/udev/udev-builtin-net_id.c
++index fe9d6f4..9d6c6aa 100644
++--- a/src/udev/udev-builtin-net_id.c
+++++ b/src/udev/udev-builtin-net_id.c
++@@ -34,7 +34,8 @@
++  *
++  * Type of names:
++  *   b<number>                             — BCMA bus core number
++- *   c<bus_id>                             — CCW bus group name, without leading zeros [s390]
+++ *   c<bus_id>                             — bus id of a grouped CCW or CCW device,
+++ *                                           with all leading zeros stripped [s390]
++  *   o<index>[n<phys_port_name>|d<dev_port>]
++  *                                         — on-board device index number
++  *   s<slot>[f<function>][n<phys_port_name>|d<dev_port>]
++@@ -87,6 +88,11 @@
++  *   /sys/devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1.2/2-1.2:1.0/net/enp0s29u1u2
++  *   ID_NET_NAME_MAC=enxd626b3450fb5
++  *   ID_NET_NAME_PATH=enp0s29u1u2
+++ *
+++ * s390 grouped CCW interface:
+++ *  /sys/devices/css0/0.0.0007/0.0.f5f0/group_device/net/encf5f0
+++ *  ID_NET_NAME_MAC=enx026d3c00000a
+++ *  ID_NET_NAME_PATH=encf5f0
++  */
++ 
++ #include <errno.h>
++@@ -114,7 +120,7 @@ enum netname_type{
++         NET_USB,
++         NET_BCMA,
++         NET_VIRTIO,
++-        NET_CCWGROUP,
+++        NET_CCW,
++ };
++ 
++ struct netnames {
++@@ -131,9 +137,21 @@ struct netnames {
++ 
++         char usb_ports[IFNAMSIZ];
++         char bcma_core[IFNAMSIZ];
++-        char ccw_group[IFNAMSIZ];
+++        char ccw_busid[IFNAMSIZ];
++ };
++ 
+++/* skip intermediate virtio devices */
+++static struct udev_device *skip_virtio(struct udev_device *dev) {
+++        struct udev_device *parent = dev;
+++
+++        /* there can only ever be one virtio bus per parent device, so we can
+++           safely ignore any virtio buses. see
+++           <http://lists.linuxfoundation.org/pipermail/virtualization/2015-August/030331.html> */
+++        while (parent && streq_ptr("virtio", udev_device_get_subsystem(parent)))
+++                parent = udev_device_get_parent(parent);
+++        return parent;
+++}
+++
++ /* retrieve on-board index number and label from firmware */
++ static int dev_pci_onboard(struct udev_device *dev, struct netnames *names) {
++         unsigned dev_port = 0;
++@@ -307,12 +325,8 @@ static int names_pci(struct udev_device *dev, struct netnames *names) {
++         assert(names);
++ 
++         parent = udev_device_get_parent(dev);
++-
++-        /* there can only ever be one virtio bus per parent device, so we can
++-           safely ignore any virtio buses. see
++-           <http://lists.linuxfoundation.org/pipermail/virtualization/2015-August/030331.html> */
++-        while (parent && streq_ptr("virtio", udev_device_get_subsystem(parent)))
++-                parent = udev_device_get_parent(parent);
+++        /* skip virtio subsystem if present */
+++        parent = skip_virtio(parent);
++ 
++         if (!parent)
++                 return -ENOENT;
++@@ -413,21 +427,26 @@ static int names_ccw(struct  udev_device *dev, struct netnames *names) {
++         struct udev_device *cdev;
++         const char *bus_id;
++         size_t bus_id_len;
+++        size_t bus_id_start;
++         int rc;
+++        char *subsys;
++ 
++         assert(dev);
++         assert(names);
++ 
++         /* Retrieve the associated CCW device */
++         cdev = udev_device_get_parent(dev);
+++        /* skip virtio subsystem if present */
+++        cdev = skip_virtio(cdev);
++         if (!cdev)
++                 return -ENOENT;
++ 
++-        /* Network devices are always grouped CCW devices */
++-        if (!streq_ptr("ccwgroup", udev_device_get_subsystem(cdev)))
+++        /* Network devices are either single or grouped CCW devices */
+++        subsys = udev_device_get_subsystem(cdev);
+++        if (!STRPTR_IN_SET(subsys, "ccwgroup", "ccw"))
++                 return -ENOENT;
++ 
++-        /* Retrieve bus-ID of the grouped CCW device.  The bus-ID uniquely
+++        /* Retrieve bus-ID of the CCW device.  The bus-ID uniquely
++          * identifies the network device on the Linux on System z channel
++          * subsystem.  Note that the bus-ID contains lowercase characters.
++          */
++@@ -446,14 +465,15 @@ static int names_ccw(struct  udev_device *dev, struct netnames *names) {
++         /* Strip leading zeros from the bus id for aesthetic purposes. This
++          * keeps the ccw names stable, yet much shorter in general case of
++          * bus_id 0.0.0600 -> 600. This is similar to e.g. how PCI domain is
++-         * not prepended when it is zero.
+++         * not prepended when it is zero. Preserve the last 0 for 0.0.0000.
++          */
++-        bus_id += strspn(bus_id, ".0");
+++        bus_id_start = strspn(bus_id, ".0");
+++        bus_id += bus_id_start < bus_id_len ? bus_id_start : bus_id_len - 1;
++ 
++         /* Store the CCW bus-ID for use as network device name */
++-        rc = snprintf(names->ccw_group, sizeof(names->ccw_group), "c%s", bus_id);
++-        if (rc >= 0 && rc < (int)sizeof(names->ccw_group))
++-                names->type = NET_CCWGROUP;
+++        rc = snprintf(names->ccw_busid, sizeof(names->ccw_busid), "c%s", bus_id);
+++        if (rc >= 0 && rc < (int)sizeof(names->ccw_busid))
+++                names->type = NET_CCW;
++         return 0;
++ }
++ 
++@@ -563,10 +583,10 @@ static int builtin_net_id(struct udev_device *dev, int argc, char *argv[], bool
++ 
++         /* get path names for Linux on System z network devices */
++         err = names_ccw(dev, &names);
++-        if (err >= 0 && names.type == NET_CCWGROUP) {
+++        if (err >= 0 && names.type == NET_CCW) {
++                 char str[IFNAMSIZ];
++ 
++-                if (snprintf(str, sizeof(str), "%s%s", prefix, names.ccw_group) < (int)sizeof(str))
+++                if (snprintf(str, sizeof(str), "%s%s", prefix, names.ccw_busid) < (int)sizeof(str))
++                         udev_builtin_add_property(dev, test, "ID_NET_NAME_PATH", str);
++                 goto out;
++         }
+diff --git a/debian/patches/units-apply-plymouth-warning-fix-to-in-rescue-mode-as-wel.patch b/debian/patches/units-apply-plymouth-warning-fix-to-in-rescue-mode-as-wel.patch
+new file mode 100644
+index 0000000..c20ee90
+--- /dev/null
++++ b/debian/patches/units-apply-plymouth-warning-fix-to-in-rescue-mode-as-wel.patch
+@@ -0,0 +1,23 @@
++From: Daniel Molkentin <daniel@molkentin.de>
++Date: Tue, 21 Mar 2017 03:26:05 +0100
++Subject: units: apply plymouth warning fix to in rescue mode as well (#5615)
++
++Follow up for #5528.
++(cherry picked from commit 03bf096ba283bfcba0725375f152a823e998cdbc)
++---
++ units/rescue.service.in | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/units/rescue.service.in b/units/rescue.service.in
++index 5feff69..dc6d14b 100644
++--- a/units/rescue.service.in
+++++ b/units/rescue.service.in
++@@ -16,7 +16,7 @@ Before=shutdown.target
++ [Service]
++ Environment=HOME=/root
++ WorkingDirectory=-/root
++-ExecStartPre=-/bin/plymouth --wait quit
+++ExecStartPre=-/bin/sh -c "[ -x /bin/plymouth ] && /bin/plymouth --wait quit"
++ ExecStartPre=-/bin/echo -e 'You are in rescue mode. After logging in, type "journalctl -xb" to view\\nsystem logs, "systemctl reboot" to reboot, "systemctl default" or ^D to\\nboot into default mode.'
++ ExecStart=-/bin/sh -c "@SULOGIN@; @SYSTEMCTL@ --job-mode=fail --no-block default"
++ Type=idle
+diff --git a/debian/patches/units-do-not-throw-a-warning-in-emergency-mode-if-plymout.patch b/debian/patches/units-do-not-throw-a-warning-in-emergency-mode-if-plymout.patch
+new file mode 100644
+index 0000000..7cffac5
+--- /dev/null
++++ b/debian/patches/units-do-not-throw-a-warning-in-emergency-mode-if-plymout.patch
+@@ -0,0 +1,26 @@
++From: Daniel Molkentin <daniel@molkentin.de>
++Date: Fri, 17 Mar 2017 12:13:19 +0100
++Subject: units: do not throw a warning in emergency mode if plymouth is not
++ installed (#5528)
++
++Ideally, plymouth should only be referenced via dependencies,
++not ExecStartPre's. This at least avoids the confusing error message
++on minimal installations that do not carry plymouth.
++(cherry picked from commit 7e3ba389191dbc241e05f4d134460bbb832ed60c)
++---
++ units/emergency.service.in | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/units/emergency.service.in b/units/emergency.service.in
++index da68eb8..9f60931 100644
++--- a/units/emergency.service.in
+++++ b/units/emergency.service.in
++@@ -17,7 +17,7 @@ Before=shutdown.target
++ [Service]
++ Environment=HOME=/root
++ WorkingDirectory=-/root
++-ExecStartPre=-/bin/plymouth --wait quit
+++ExecStartPre=-/bin/sh -c "[ -x /bin/plymouth ] && /bin/plymouth --wait quit"
++ ExecStartPre=-/bin/echo -e 'You are in emergency mode. After logging in, type "journalctl -xb" to view\\nsystem logs, "systemctl reboot" to reboot, "systemctl default" or ^D to\\ntry again to boot into default mode.'
++ ExecStart=-/bin/sh -c "@SULOGIN@; @SYSTEMCTL@ --job-mode=fail --no-block default"
++ Type=idle
+diff --git a/debian/rules b/debian/rules
+index 21108ae..f49f71e 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -128,9 +128,9 @@ CONFFLAGS = \
+ 	--with-system-uid-max=999 \
+ 	--with-system-gid-max=999
+ 
+-# resolved's DNSSEC support is still not mature enough, disable for stable
+-# Debian/Ubuntu releases
+-CONFFLAGS += $(shell grep -q yakkety /etc/os-release && echo --with-default-dnssec=no)
++# resolved's DNSSEC support is still not mature enough, don't enable it by
++# default on stable Debian/Ubuntu releases
++CONFFLAGS += $(shell grep -qE 'stretch|yakkety|zesty' /etc/os-release && echo --with-default-dnssec=no)
+ 
+ CONFFLAGS_deb = \
+ 	--enable-selinux \
+diff --git a/debian/udev.install b/debian/udev.install
+index e859b97..b0ab649 100644
+--- a/debian/udev.install
++++ b/debian/udev.install
+@@ -9,6 +9,7 @@ lib/systemd/systemd-udevd
+ bin/udevadm
+ bin/systemd-hwdb
+ usr/share/man/man5/udev.conf.5
++usr/share/man/man5/systemd.link.5
+ usr/share/man/man7/hwdb.7
+ usr/share/man/man7/udev.7
+ usr/share/man/man8/systemd-hwdb*

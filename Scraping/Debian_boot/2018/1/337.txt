@@ -1,0 +1,73 @@
+To : 824954@bugs.debian.org
+Subject : Bug#824954: Fwd: [bug #52939] [PATCH] 10_linux: support loading device trees
+From : Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date : Sat, 20 Jan 2018 12:05:21 +0100
+Message-id : a577fec2-41fd-cb5d-e727-4ed078beee40@gmx.de
+Reply-to : Heinrich Schuchardt <xypron.glpk@gmx.de>, 824954@bugs.debian.org
+In-reply-to : <20180120-115856.sv80395.3588@savannah.gnu.org>
+References : <20180120-115856.sv80395.3588@savannah.gnu.org> <146385916142.18757.4814776675993610445.reportbug@soldroid>
+
+
+-------- Forwarded Message --------
+URL:
+  <http://savannah.gnu.org/bugs/?52939>
+                 Summary: [PATCH] 10_linux: support loading device trees
+                 Project: GNU GRUB
+            Submitted by: xypron
+            Submitted on: Sat 20 Jan 2018 11:58:56 AM CET
+                Category: Booting
+                Severity: Major
+                Priority: 5 - Normal
+              Item Group: Feature Request
+                  Status: None
+                 Privacy: Public
+             Assigned to: None
+         Originator Name: Heinrich Schuchardt
+        Originator Email: xypron.glpk@gmx.de
+             Open/Closed: Open
+         Discussion Lock: Any
+                 Release:                  Release: Git master
+         Reproducibility: Every Time
+         Planned Release: None
+    _______________________________________________________
+Details:
+Currently grub only loads the Linux kernel and the initial file system
+before booting.
+On the arm and arm64 architectures the device tree is also needed for
+booting. The device tree is Linux kernel version dependent. So we can
+not rely on the initial bootloader to provide the correct device tree
+when calling grub.
+For example I am using U-Boot to load iPXE. In iPXE I choose an iSCSI
+target. iPXE connects to the target and starts grubaa64.efi. The device
+tree that has to be used depends on the Linux kernel installed on the
+chosen iSCSI target.
+Luckily the device tree to be loaded can be specified in grub with the
+devicetree command.
+The patch changes the 10_linux script to look in sequence for files
+* ${dirname}/dtb-${version} and * ${dirname}/dtb.
+If one of the files is present an entry
+    devicetreee ${rel_dirname}/${dtb}
+is added to the Linux boot entry.
+== Distro suppport ==
+Debian maintains a symbolic link /boot/dtb to the most current device
+tree and another symbolic link /boot/dtb-${version} for the version
+specific devicetree if package flash-kernel is installed.
+On Suse a symbolic link /boot/dtb points to the current
+/boot/dtb-${version}.
+== Caveats ==
+The EFI bootloader will still have to supply a dummy device tree which
+will be replaced by the devicetree command.
+As of U-Boot version v2018.01 U-Boot this dummy device tree has to be
+passed explicitely to the bootefi command.
+    _______________________________________________________
+File Attachments:
+-------------------------------------------------------
+Date: Sat 20 Jan 2018 11:58:56 AM CET  Name:
+0001-10_linux-support-loading-device-trees.patch  Size: 3KiB   By: xypron
+<http://savannah.gnu.org/bugs/download.php?file_id=42983>
+    _______________________________________________________
+Reply to this item at:
+  <http://savannah.gnu.org/bugs/?52939>
+_______________________________________________
+  Message sent via/by Savannah
+  http://savannah.gnu.org/

@@ -1,0 +1,281 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#892405: installation-reports: Theobroma Systems RK3399-Q7 SoM, partial success
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Thu, 08 Mar 2018 10:20:38 -0800
+Message-id : 876066sa2x.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 892405@bugs.debian.org
+
+
+Package: installation-reports
+Severity: normal
+Install required manual installation of firmware, boot loader,
+device-tree and initial boot configuration, but otherwise went mostly
+ok. Some of that will be fixed in upcoming u-boot and flash-kernel
+uploads.
+The install ran very slow, as cpu frequency scaling was not enabled, and
+the default processor speeds on this board are very slow.
+More specific details in the Comments/Problems section below.
+live well,
+  vagrant
+-- Package-specific info:
+Boot method: network
+Image version: https://d-i.debian.org/daily-images/arm64/20180307-02:05/netboot/debian-installer/arm64/
+Date: 2018-03-07
+Machine: Theobroma Systems RK3399-Q7 SoM
+Partitions:
+Filesystem     Type     1K-blocks    Used Available Use% Mounted on
+udev           devtmpfs    979508       0    979508   0% /dev
+tmpfs          tmpfs       204784    5356    199428   3% /run
+/dev/mmcblk1p3 ext4       4740224 1460868   3018852  33% /
+tmpfs          tmpfs      1023912       0   1023912   0% /dev/shm
+tmpfs          tmpfs         5120       0      5120   0% /run/lock
+tmpfs          tmpfs      1023912       0   1023912   0% /sys/fs/cgroup
+tmpfs          tmpfs       204780       0    204780   0% /run/user/1000
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [E]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [ ]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [E]
+Overall install:        [O]
+Comments/Problems:
+For arm64, debian-installer does not include the device-tree files from
+the linux-image package, so I had to manually download the appropriate
+linux-image package and extract the correct .dtb file. This works for
+boards where the firmware provides a device-tree, but not all boards do.
+U-boot and flash-kernel didn't include support; both will be fixed in
+next uploads.
+In order to load u-boot, this board requires building
+arm-trusted-firmware and m0 firmware from theobroma's git repositories,
+so until that is present in Debian it may not be possible for
+debian-installer to provide initial boot images out of the box.
+The daily installer was running a 4.15.x kernel, and I saw that the
+4.15.x kernels had landed in buster, so was surprised on initial boot
+that it installed the 4.14.x kernel. Linux 4.14.x had some instabilities
+that seem to be fixed in 4.15.x.
+Enabling cpu frequency scaling from debian-installer would significantly
+speed up the install process for this board, as the default CPU speeds
+are quite slow. Ironically, the faster A72 cores do not support CPU
+frequency scaling in the kernel, and the board appears to run faster
+with those cores disabled.
+-- 
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="10 (buster) - installer build 20180307-02:03"
+X_INSTALLATION_MEDIUM=netboot
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux rk3399pma 4.15.0-1-arm64 #1 SMP Debian 4.15.4-1 (2018-02-18) aarch64 GNU/Linux
+lsmod: Module                  Size  Used by
+lsmod: dm_mod                143360  0
+lsmod: md_mod                159744  0
+lsmod: xfs                  1241088  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   196608  0
+lsmod: btrfs                1257472  0
+lsmod: xor                    20480  1 btrfs
+lsmod: zstd_decompress        77824  1 btrfs
+lsmod: zstd_compress         163840  1 btrfs
+lsmod: xxhash                 16384  2 zstd_compress,zstd_decompress
+lsmod: raid6_pq              102400  1 btrfs
+lsmod: vfat                   24576  0
+lsmod: fat                    81920  1 vfat
+lsmod: ext4                  667648  1
+lsmod: crc16                  16384  1 ext4
+lsmod: mbcache                16384  1 ext4
+lsmod: jbd2                  114688  1 ext4
+lsmod: crc32c_generic         16384  0
+lsmod: fscrypto               32768  1 ext4
+lsmod: ecb                    16384  0
+lsmod: usb_storage            73728  0
+lsmod: scsi_mod              241664  1 usb_storage
+lsmod: dwc3                  135168  0
+lsmod: udc_core               49152  1 dwc3
+lsmod: micrel                 24576  1
+lsmod: dwc3_of_simple         16384  0
+lsmod: dwmac_rk               32768  0
+lsmod: ehci_platform          16384  0
+lsmod: ohci_platform          16384  0
+lsmod: stmmac_platform        20480  1 dwmac_rk
+lsmod: ohci_hcd               61440  1 ohci_platform
+lsmod: stmmac                131072  3 stmmac_platform,dwmac_rk
+lsmod: ehci_hcd               90112  1 ehci_platform
+lsmod: ptp                    24576  1 stmmac
+lsmod: pps_core               20480  1 ptp
+lsmod: usbcore               274432  5 usb_storage,ehci_hcd,ohci_hcd,ehci_platform,ohci_platform
+lsmod: dw_mmc_rockchip        16384  0
+lsmod: dw_mmc_pltfm           16384  1 dw_mmc_rockchip
+lsmod: of_mdio                16384  2 stmmac,stmmac_platform
+lsmod: fixed_phy              16384  1 of_mdio
+lsmod: sdhci_of_arasan        16384  0
+lsmod: dw_mmc                 45056  2 dw_mmc_pltfm,dw_mmc_rockchip
+lsmod: sdhci_pltfm            16384  1 sdhci_of_arasan
+lsmod: libphy                 65536  4 of_mdio,stmmac,micrel,fixed_phy
+lsmod: sdhci                  61440  2 sdhci_pltfm,sdhci_of_arasan
+lsmod: fixed                  16384  6
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                    204784        36    204748   0% /run
+df: devtmpfs                977696         0    977696   0% /dev
+df: /dev/mmcblk0p3         4740224    777508   3702212  17% /target
+df: /dev/mmcblk0p3         4740224    777508   3702212  17% /dev/.static/dev
+df: devtmpfs                977696         0    977696   0% /target/dev
+free:              total       used       free     shared    buffers     cached
+free: Mem:       2047832    1101908     945924     125440      67324     871980
+free: -/+ buffers/cache:     162604    1885228
+free: Swap:            0          0          0
+/proc/cmdline: 
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 4
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd08
+/proc/cpuinfo: CPU revision	: 2
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 5
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd08
+/proc/cpuinfo: CPU revision	: 2
+/proc/cpuinfo: 
+/proc/device-tree/model: Theobroma Systems RK3399-Q7 SoM./proc/iomem: 00200000-7fffffff : System RAM
+/proc/iomem:   02080000-02baffff : Kernel code
+/proc/iomem:   03020000-03227fff : Kernel data
+/proc/iomem: fe300000-fe30ffff : ethernet@fe300000
+/proc/iomem: fe320000-fe323fff : dwmmc@fe320000
+/proc/iomem: ff180000-ff18001f : serial
+/proc/iomem: ff1a0000-ff1a001f : serial
+/proc/iomem: ff6d0000-ff6d3fff : dma-controller@ff6d0000
+/proc/iomem: ff6e0000-ff6e3fff : dma-controller@ff6e0000
+/proc/iomem: ff720000-ff7200ff : gpio0@ff720000
+/proc/iomem: ff730000-ff7300ff : gpio1@ff730000
+/proc/iomem: ff780000-ff7800ff : gpio2@ff780000
+/proc/iomem: ff788000-ff7880ff : gpio3@ff788000
+/proc/iomem: ff790000-ff7900ff : gpio4@ff790000
+/proc/interrupts:            CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       
+/proc/interrupts:  10:          0          0          0          0          0          0     GICv3  25 Level     vgic
+/proc/interrupts:  12:          0          0          0          0          0          0     GICv3  27 Level     kvm guest timer
+/proc/interrupts:  15:     453545     427179     340670     307422     787157     650015     GICv3  30 Level     arch_timer
+/proc/interrupts:  17:          0          0          0          0          0          0     GICv3 113 Level     rk_timer
+/proc/interrupts:  18:          0          0          0          0          0          0  GICv3-23   0 Level     arm-pmu
+/proc/interrupts:  19:          0          0          0          0          0          0  GICv3-23   1 Level     arm-pmu
+/proc/interrupts:  27:      47557          0          0          0          0          0     GICv3  44 Level     eth0
+/proc/interrupts:  28:    5327205          0          0          0          0          0     GICv3  97 Level     dw-mci
+/proc/interrupts:  39:      13576          0          0          0          0          0     GICv3 131 Level     ttyS0
+/proc/interrupts:  61:          0          0          0          0          0          0  rockchip_gpio_irq   7 Edge      fe320000.dwmmc cd
+/proc/interrupts: IPI0:    170213     434584     333641     195788      61858      58528       Rescheduling interrupts
+/proc/interrupts: IPI1:        23        423        424        434        436        435       Function call interrupts
+/proc/interrupts: IPI2:         0          0          0          0          0          0       CPU stop interrupts
+/proc/interrupts: IPI3:         0          0          0          0          0          0       CPU stop (for crash dump) interrupts
+/proc/interrupts: IPI4:         0          0          0          0          0          0       Timer broadcast interrupts
+/proc/interrupts: IPI5:         1          0          0          0          0          0       IRQ work interrupts
+/proc/interrupts: IPI6:         0          0          0          0          0          0       CPU wake-up interrupts
+/proc/interrupts: Err:          0
+/proc/meminfo: MemTotal:        2047832 kB
+/proc/meminfo: MemFree:          945924 kB
+/proc/meminfo: MemAvailable:    1760240 kB
+/proc/meminfo: Buffers:           67324 kB
+/proc/meminfo: Cached:           871980 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           359936 kB
+/proc/meminfo: Inactive:         603416 kB
+/proc/meminfo: Active(anon):     103672 kB
+/proc/meminfo: Inactive(anon):    45812 kB
+/proc/meminfo: Active(file):     256264 kB
+/proc/meminfo: Inactive(file):   557604 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:             0 kB
+/proc/meminfo: SwapFree:              0 kB
+/proc/meminfo: Dirty:               708 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         24080 kB
+/proc/meminfo: Mapped:             4352 kB
+/proc/meminfo: Shmem:            125440 kB
+/proc/meminfo: Slab:             107448 kB
+/proc/meminfo: SReclaimable:      90560 kB
+/proc/meminfo: SUnreclaim:        16888 kB
+/proc/meminfo: KernelStack:        1856 kB
+/proc/meminfo: PageTables:          804 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:     1023916 kB
+/proc/meminfo: Committed_AS:     157296 kB
+/proc/meminfo: VmallocTotal:   135290290112 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:     18432 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: CmaTotal:          65536 kB
+/proc/meminfo: CmaFree:           65260 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: arm64 (aarch64)
+Kernel: Linux 4.15.0-1-arm64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled
+signature.asc

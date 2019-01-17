@@ -1,0 +1,88 @@
+To : Ben Hutchings <ben@decadent.org.uk>, debian-boot@lists.debian.org
+Subject : Re: [PATCH 2/7] Add ppc64 support based on powerpc configuration.
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Fri, 31 Mar 2017 16:14:55 +0200
+Message-id : 538bdb82-1892-462d-c772-a2d7cc0502c0@physik.fu-berlin.de
+In-reply-to : <[🔎] 1490914606.2677.20.camel@decadent.org.uk>
+References : <[🔎] 20170320181721.9779-1-glaubitz@physik.fu-berlin.de> <[🔎] 20170320181721.9779-3-glaubitz@physik.fu-berlin.de> <[🔎] 1490044792.4770.2.camel@decadent.org.uk> <[🔎] 277993cb-aff8-dea7-2f5e-7f74c0e53c99@physik.fu-berlin.de> <[🔎] 1490045632.4770.4.camel@decadent.org.uk> <[🔎] 7f2a5cb1-3b30-291b-bbcb-cd2e88c1ae3b@physik.fu-berlin.de> <[🔎] 1490910234.2677.16.camel@decadent.org.uk> <[🔎] 23484248-3b8d-32b8-cec3-a24ddf39390e@physik.fu-berlin.de> <[🔎] 1490914606.2677.20.camel@decadent.org.uk>
+
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+On 03/31/2017 12:56 AM, Ben Hutchings wrote:
+> So to get rid of KERNELMAJOR you would first need to delete this feature and parameter from build/util/pkg-list, and check that it behaves the same with
+> current package lists.
+Ok, thanks.
+So, for the time being would the attached patch for ppc64 and powerpc
+be sufficient?
+Cheers,
+Adrian
+- -- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+-----BEGIN PGP SIGNATURE-----
+iQIzBAEBCAAdFiEEYv+KdYTgKVaVRgAGdCY7N/W1+RMFAljeZFsACgkQdCY7N/W1
++RNT/w//UEsvHH4dHmSWlo/7/J4nJKxkh+iMPa/mhf63BMXtUZlJ9x/5YvbJmpZF
+K6rqn+3c/vwUgvSIB9WpmqDNog0rs2ywZp6iPxwGxxhDgfy/e2JiozJopQu18afV
+Qhjuq+zNcQfYBU/37OwXAq4YzLUD5OQzi/1kwCKXisMHN5XVvQyZYVsq+5MAMlux
+ekDl9Uur02eE5oSN7tQ2RULtegaw0xWkWlqAme1i+C2chfNdeed0Hz+SjzDkUUci
+7+Ia5rNdCu3y11EOKIPfrgd49660eTzkzANZiHuzQz8jSbHNAHMtvLXbtRAVAlpY
+lOjJMPlpF4ftrDTLOR7FbNFJh8HRdUA1cVCCS9TgRabN/1DztUBmwBF+HPa/paU2
+I3dn3+wNLo5qBpO4J4JgBEpC+NIyWE3VFKPFlLFgEyu4fZ9AcZkx7xKSmQy9vSG2
+kHeBKmAhArlKtm0xvVTmVyekd8DdXV2OpZ8vRX4kYNOwg726s4H81LQY1oZ/qJ5E
+liIdRAK3Bg9vC/och8gfblsypjjX1uh4j9Bk69hUkPjEptGlKTgAg4+cTFlE9zk5
+JGMJayplHq4uh8FXvm7V3Kz/xqOY4lZbf7Jw+DMn17qPwA876prlUCp6dFd9/e0t
+EepkbLLrRCwLfwk07wW8iSYBqr1yngqcZnJWtN9DcpFfclWXfoc=
+=+6Ff
+-----END PGP SIGNATURE-----
+>From c21064f01774b65c5f32510b852b6659867dcf83 Mon Sep 17 00:00:00 2001
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date: Fri, 31 Mar 2017 15:52:15 +0200
+Subject: [PATCH] powerpc: Remove useless kernel version check in
+ builtin_initrd.
+---
+ build/config/powerpc.cfg | 28 ++++++++++------------------
+ 1 file changed, 10 insertions(+), 18 deletions(-)
+diff --git a/build/config/powerpc.cfg b/build/config/powerpc.cfg
+index f1565c38c..18d8c8fe9 100644
+--- a/build/config/powerpc.cfg
++++ b/build/config/powerpc.cfg
+@@ -5,24 +5,16 @@ BASEVERSION = $(LINUX_KERNEL_ABI)
+ 
+ # create the kernels with builtin initrd.
+ builtin_initrd: $(TEMP_KERNEL) $(TEMP_INITRD)
+-	# temporary hack
+-	case $(KERNELMAJOR) in \
+-		2.6)	\
+-			for subarch in $(SUBARCHES); do	\
+-				rm -f $(DEST)/vmlinuz-$$subarch.initrd;	\
+-				mkvmlinuz -v				\
+-					-a $$subarch			\
+-					-r $(KERNELVERSION)		\
+-					-k $(TEMP_KERNEL)		\
+-					-z -i $(TEMP_INITRD)		\
+-					-d $(TEMP)/lib			\
+-					-o $(DEST)/vmlinuz-$$subarch.initrd;	\
+-			done	\
+-			;;	\
+-		*)	\
+-			echo "Kernel $(KERNELMAJOR) not supported"	\
+-			;;\
+-	esac
++	for subarch in $(SUBARCHES); do	\
++		rm -f $(DEST)/vmlinuz-$$subarch.initrd;	\
++		mkvmlinuz -v				\
++			-a $$subarch			\
++			-r $(KERNELVERSION)		\
++			-k $(TEMP_KERNEL)		\
++			-z -i $(TEMP_INITRD)		\
++			-d $(TEMP)/lib			\
++			-o $(DEST)/vmlinuz-$$subarch.initrd;	\
++	done
+ 
+ # cd content for powerpc, includes yaboot for booting 
+ # apple powerpc (newworld) computers
+-- 
+2.11.0

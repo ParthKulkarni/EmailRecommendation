@@ -1,0 +1,31 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#916001: partconf FTBFS with glibc 2.28
+From : Adrian Bunk <bunk@debian.org>
+Date : Sun, 09 Dec 2018 13:08:08 +0200
+Message-id : 154435368859.17057.11145944427847735015.reportbug@localhost
+Reply-to : Adrian Bunk <bunk@debian.org>, 916001@bugs.debian.org
+
+
+Source: partconf
+Version: 1.51
+Severity: serious
+Tags: ftbfs
+https://tests.reproducible-builds.org/debian/rb-pkg/unstable/amd64/partconf.html
+...
+cc -W -Wall -Os -o find-partitions -DFIND_PARTS_MAIN find-parts.c util.o xasprintf.o -lparted
+find-parts.c: In function 'is_cdrom':
+find-parts.c:129:13: warning: implicit declaration of function 'major' [-Wimplicit-function-declaration]
+     switch (major(st.st_rdev)) {
+             ^~~~~
+find-parts.c:137:9: warning: implicit declaration of function 'minor'; did you mean 'mknod'? [-Wimplicit-function-declaration]
+     if (minor(st.st_rdev) == 0) {
+         ^~~~~
+         mknod
+/usr/bin/ld: /tmp/cc3JcWrE.o: in function `is_cdrom':
+find-parts.c:(.text+0x25): undefined reference to `major'
+/usr/bin/ld: find-parts.c:(.text+0x3b): undefined reference to `minor'
+/usr/bin/ld: find-parts.c:(.text+0x4b): undefined reference to `minor'
+/usr/bin/ld: find-parts.c:(.text+0x5e): undefined reference to `major'
+/usr/bin/ld: find-parts.c:(.text+0x80): undefined reference to `major'
+collect2: error: ld returned 1 exit status
+make[2]: *** [Makefile:12: find-partitions] Error 1

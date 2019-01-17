@@ -1,0 +1,275 @@
+To : submit@bugs.debian.org
+Subject : Bug#857839: installation-reports: ppc64el fails to boot after installation on JFS partition
+From : Erwan Prioul <erwan@linux.vnet.ibm.com>
+Date : Wed, 15 Mar 2017 15:54:03 +0100
+Message-id : cfda9cbf-e40c-c0a6-a612-860f949cf909@linux.vnet.ibm.com
+Reply-to : Erwan Prioul <erwan@linux.vnet.ibm.com>, 857839@bugs.debian.org
+
+
+Package: installation-reports
+Boot method: ISO image
+Image version: http://cdimage.debian.org/mirror/cdimage/daily-builds/daily/current/ppc64el/iso-cd/debian-testing-ppc64el-netinst.iso
+Date: Tue Mar 15 2017 14:36:17
+Machine: qemu VM / powerVM
+Processor: ppc64el
+Memory: 4Gb
+Partitions: 
+    /dev/sda1 7.3 MB    PowerPC PReP boot partition
+    /dev/sda2 6.6 GB    jfs
+    /dev/sda3 4.2 GB    swap
+ 
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [O]
+Load installer modules: [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [O]
+Comments/Problems:
+Using qemu, I created a ppc64el virtual machine.
+I selected the guided partitioning to use the entire disk. I changed the root partition
+(partition 2) from ext4 to JFS.
+The installation went well but it failed to boot some times.
+I got the same on P8 PowerVM.
+Here what I got on boot:
+Loading Linux 4.9.0-2-powerpc64le ...
+Loading initial ramdisk ...
+OF stdout device is: /vdevice/vty@71000000
+Preparing to boot Linux version 4.9.0-2-powerpc64le (debian-kernel@lists.debian.org) (gcc version 6.3.0 20170221 (Debian 6.3.0-8) ) #1 SMP Debian 4.9.13-1 (2017-02-27)
+Detected machine type: 0000000000000101
+Max number of cores passed to firmware: 512 (NR_CPUS = 2048)
+Calling ibm,client-architecture-support... done
+command line: BOOT_IMAGE=/boot/vmlinux-4.9.0-2-powerpc64le root=/dev/sda2 ro quiet
+memory layout at init:
+  memory_limit : 0000000000000000 (16 MB aligned)
+  alloc_bottom : 00000000041c0000
+  alloc_top    : 0000000030000000
+  alloc_top_hi : 0000000100000000
+  rmo_top      : 0000000030000000
+  ram_top      : 0000000100000000
+instantiating rtas at 0x000000002fff0000... done
+prom_hold_cpus: skipped
+copying OF device tree...
+Building dt strings...
+Building dt structure...
+Device tree strings 0x00000000041d0000 -> 0x00000000041d0a2f
+Device tree struct  0x00000000041e0000 -> 0x00000000041f0000
+Quiescing Open Firmware ...
+Booting Linux via __start() @ 0x0000000002000000 ...
+ -> smp_release_cpus()
+spinning_secondaries = 3
+ <- smp_release_cpus()
+Linux ppc64le
+#1 SMP Debian 4.fsck.jfs version 1.1.15, 04-Mar-2011
+processing started: 3/15/2017 14:36:17
+The current device is:  /dev/sda2
+Block size in bytes:  4096
+Filesystem size in blocks:  1600000
+**Phase 0 - Replay Journal Log
+Filesystem is clean.
+[    1.213186] Unable to handle kernel paging request for data at address 0x00000000
+[    1.213483] Faulting instruction address: 0xd000000000bce14c
+[    1.213691] Oops: Kernel access of bad area, sig: 11 [#1]
+[    1.213908] SMP NR_CPUS=2048 
+[    1.214039] NUMA 
+[    1.214144] pSeries
+[    1.214246] Modules linked in: ip_tables x_tables autofs4 jfs sd_mod virtio_net ibmvscsi scsi_transport_srp virtio_pci virtio_ring virtio
+[    1.215059] CPU: 1 PID: 933 Comm: (journald) Not tainted 4.9.0-2-powerpc64le #1 Debian 4.9.13-1
+[    1.215394] task: c00000000341d000 task.stack: c0000000034ec000
+[    1.215639] NIP: d000000000bce14c LR: d000000000bce080 CTR: c00000000012df80
+[    1.215923] REGS: c0000000034eef10 TRAP: 0300   Not tainted  (4.9.0-2-powerpc64le Debian 4.9.13-1)
+[    1.216249] MSR: 800000010280b033 <SF,VEC,VSX,EE,FP,ME,IR,DR,RI,LE,TM[E]>
+[    1.217196]   CR: 28242822  XER: 20000000
+[    1.217343] CFAR: c00000000012f9fc DAR: 0000000000000000 DSISR: 40000000 SOFTE: 1 
+GPR00: d000000000bce080 c0000000034ef190 d000000000be8d08 c0000000f6f67a00 
+GPR04: 0000000000000001 0000000000000001 0000000000000000 0000000000000000 
+GPR08: 0000000000000000 00000000000201d4 0000000000000000 d000000000bdb680 
+GPR12: c00000000012df80 c00000000fb80900 0000000000000000 0000000000000020 
+GPR16: 0000000000000010 c0000000034ef3e0 c0000000034ef8b0 0000000000000000 
+GPR20: 00000000024213ca 0000000000000000 c0000000034ef918 c0000000fc796868 
+GPR24: 0000000000000020 c0000000034ef38c c0000000034ef380 c0000000034ef388 
+GPR28: 0000000000000020 c0000000fb6f8c48 f0000000003da600 c0000000fb6f8c28 
+NIP [d000000000bce14c] release_metapage+0x174/0x340 [jfs]
+[    1.221512] LR [d000000000bce080] release_metapage+0xa8/0x340 [jfs]
+[    1.221585] Unable to handle kernel paging request for data at address 0x00000000
+[    1.221586] Faulting instruction address: 0xd000000000bce518
+[    1.222342] Call Trace:
+[    1.222458] [c0000000034ef190] [d000000000bce080] release_metapage+0xa8/0x340 [jfs] (unreliable)
+[    1.222897] [c0000000034ef210] [d000000000bb843c] xtLookup+0x1b4/0x200 [jfs]
+[    1.223223] [c0000000034ef350] [d000000000bb23c4] jfs_get_block+0x2fc/0x320 [jfs]
+[    1.223605] [c0000000034ef3c0] [c00000000036b77c] do_mpage_readpage+0x54c/0x780
+[    1.223986] [c0000000034ef890] [c00000000036bad0] mpage_readpages+0x120/0x1e0
+[    1.224312] [c0000000034ef970] [d000000000bb2494] jfs_readpages+0x4c/0x80 [jfs]
+[    1.224757] [c0000000034ef9b0] [c000000000254eb8] __do_page_cache_readahead+0x1b8/0x310
+[    1.225234] [c0000000034efa90] [c0000000002551e0] ondemand_readahead+0x1d0/0x2c0
+[    1.225718] [c0000000034efaf0] [c000000000241878] generic_file_read_iter+0x838/0xaa0
+[    1.226208] [c0000000034efbe0] [c00000000030820c] new_sync_read+0xfc/0x160
+[    1.226628] [c0000000034efc80] [c00000000030985c] vfs_read+0xbc/0x1b0
+[    1.227097] [c0000000034efcd0] [c000000000315024] prepare_binprm+0xf4/0x1d0
+[    1.227521] [c0000000034efd20] [c000000000315d6c] do_execveat_common.isra.14+0x53c/0x870
+[    1.228007] [c0000000034efdf0] [c00000000031646c] SyS_execve+0x5c/0x80
+[    1.228414] [c0000000034efe30] [c00000000000bd60] system_call+0x38/0xfc
+[    1.228828] Instruction dump:
+[    1.229035] 813f0008 2f890000 409e00bc e93f0020 71280004 4082ff7c e93f0020 712a0040 
+[    1.229740] 4082ff70 e95e0008 e93f0038 e87e0030 <e94a0000> 814a0090 214a000c 7d295436 
+[    1.230440] ---[ end trace 60f05a1af4fed930 ]---
+[    1.238299] 
+[    1.238403] Oops: Kernel access of bad area, sig: 11 [#2]
+[    1.238604] SMP NR_CPUS=2048 
+[    1.238678] NUMA 
+[    1.238764] pSeries
+[    1.238849] Modules linked in: ip_tables x_tables autofs4 jfs sd_mod virtio_net ibmvscsi scsi_transport_srp virtio_pci virtio_ring virtio
+[    1.239427] CPU: 0 PID: 934 Comm: cached_setup_ke Tainted: G      D         4.9.0-2-powerpc64le #1 Debian 4.9.13-1
+[    1.239734] task: c0000000f6ab5b80 task.stack: c0000000f6ac8000
+[    1.239925] NIP: d000000000bce518 LR: d000000000bce4a8 CTR: c00000000012de30
+[    1.240149] REGS: c0000000f6acb4d0 TRAP: 0300   Tainted: G      D          (4.9.0-2-powerpc64le Debian 4.9.13-1)
+[    1.240443] MSR: 800000010280b033 <SF,VEC,VSX,EE,FP,ME,IR,DR[    1.240595]   CR: 48228844  XER: 00000000
+[    1.240596] CFAR: c00000000012da84 DAR: 0000000000000000 DSISR: 40000000 SOFTE: 1 
+[    1.240597] GPR00: d000000000bce4a8 c0000000f6acb750 d000000000be8d08 c0000000f6b00478 
+[    1.240599] GPR04: d000000000bdfa08 d000000000be26b0 c0000000ffe2d350 0000000000000000 
+[    1.240600] GPR08: 0000000000000000 003ffff80000082d 00000000000b005d d000000000bdaa50 
+[    1.240602] GPR12: c00000000012de30 c00000000fb80000 c0000000fc4e3600 0000000000000000 
+[    1.240604] GPR16: c0000000fc4fafd0 c0000000fc4faeb8 c0000000f6e75200 c0000000f6e751fe 
+[    1.240606] GPR20: c0000000f6acba60 c0000000fc4fb0f8 c00000000305e000 c0000000f6acb980 
+[    1.240607] GPR24: 00000000000b005d 0000000000001000 0000000000000000 d000000000be26a0 
+[    1.240609] GPR28: 00000000000b005d f0000000003e8ac0 c0000000f6e4bf00 c0000000f6b00438 NIP [d000000000bce518] __get_metapage+0x200/0x6b0 [jfs]
+[    1.240615] LR [d000000000bce4a8] __get_metapage+0x190/0x6b0 [jfs]
+[    1.240616] Call Trace:
+[    1.240619] [c0000000f6acb750] [d000000000bce4a8] __get_metapage+0x190/0x6b0 [jfs]
+[    1.240619]  (unreliable)[c0000000f6acb840] [d000000000bc96b0] dtSearch+0x4d8/0xa20 [jfs]
+[    1.240642] [c0000000f6acb960] [d000000000bb3ca8] jfs_lookup+0x80/0x100 [jfs]
+[    1.240644] [c0000000f6acba90] [c000000000320ba4] path_openat+0x12d4/0x14c0
+[    1.240646] [c0000000f6acbb90] [c0000000003227fc] do_filp_open+0xfc/0x170
+[    1.240647] [c0000000f6acbcc0] [c000000000313514] do_open_execat+0x94/0x220
+[    1.240648] [c0000000f6acbd20] [c000000000315a54] do_execveat_common.isra.14+0x224/0x870
+[    1.240650] [c0000000f6acbdf0] [c00000000031646c] SyS_execve+0x5c/0x80
+[    1.240652] [c0000000f6acbe30] [c00000000000bd60] system_call+0x38/0xfc
+[    1.240654] Instruction dump:
+[    1.240672] 7fc9f214 39200001 fbdf0030 f93f0028 e93d0000 712a0800 41820428 ebdd0030 41920034 e8fd0008 811e0000 e95f0038 <e8c70000> 38e80001 81060090 90fe0000 
+[    1.240679] ---[ end trace 60f05a1af4fed931 ]---
+[    1.247649] ,RI,LE,TM[E]>
+[FAILED] Failed to start Journal Service.
+See 'systemctl status systemd-journald.service' for details.
+[DEPEND] Dependency failed for Flush Journal to Persistent Storage.
+[  OK  ] Stopped Journal Service.
+         Starting Journal Service...
+[    1.279637] Unable to handle kernel paging request for data at address 0x00000000
+[    1.280170] Faulting instruction address: 0xd000000000bce518
+[    1.280457] Oops: Kernel access of bad area, sig: 11 [#3]
+[    1.280688] SMP NR_CPUS=2048 
+[    1.280806] NUMA 
+[    1.280924] pSeries
+[    1.281046] Modules linked in: ip_tables x_tables autofs4 jfs sd_mod virtio_net ibmvscsi scsi_transport_srp virtio_pci virtio_ring virtio
+[    1.281968] CPU: 0 PID: 937 Comm: systemd-sysctl Tainted: G      D         4.9.0-2-powerpc64le #1 Debian 4.9.13-1
+[    1.282422] task: c000000003416200 task.stack: c0000000034e0000
+[    1.282706] NIP: d000000000bce518 LR: d000000000bce96c CTR: c00000000082c330
+[    1.283042] REGS: c0000000034e3530 TRAP: 0300   Tainted: G      D          (4.9.0-2-powerpc64le Debian 4.9.13-1)
+[    1.283500] MSR: 800000010280b033 <SF,VEC,VSX,EE,FP,ME,IR,DR,RI,LE,TM[E]>
+[    1.284571]   CR: 24008822  XER: 00000000
+[    1.284745] CFAR: c00000000043b71c DAR: 0000000000000000 DSISR: 40000000 SOFTE: 1 
+GPR00: d000000000bce96c c0000000034e37b0 d000000000be8d08 0000000000000000 
+GPR04: 0000000000000000 0000000000000000 c0000000f6c3e900 0000000000000000 
+GPR08: 0000000000000000 0000000000000000 000000000000816a d000000000bdad48 
+GPR12: c00000000082c330 c00000000fb80000 0000000000000000 0000000000000000 
+GPR16: 0000000000000000 0000000000000000 0000010011730160 0000010011730160 
+GPR20: 0000000000000000 0000000000000000 0000000000000000 000000000000002f 
+GPR24: 000000000000a000 0000000000001000 0000000000000000 d000000000be26a0 
+GPR28: 000000000000816a f0000000003dbd00 c0000000f6c3e800 c0000000030e0a50 
+NIP [d000000000bce518] __get_metapage+0x200/0x6b0 [jfs]
+[    1.289603] LR [d000000000bce96c] __get_metapage+0x654/0x6b0 [jfs]
+[    1.289887] Call Trace:
+[    1.290008] [c0000000034e37b0] [d000000000bce96c] __get_metapage+0x654/0x6b0 [jfs] (unreliable)
+[    1.290464] [c0000000034e38a0] [d000000000bbc6c8] diRead+0x130/0x260 [jfs]
+[    1.290808] [c0000000034e3950] [d000000000bb2664] jfs_iget+0x7c/0x1f0 [jfs]
+[    1.291153] [c0000000034e3990] [d000000000bb3d0c] jfs_lookup+0xe4/0x100 [jfs]
+[    1.291503] [c0000000034e3ac0] [c000000000319de0] lookup_slow+0xe0/0x240
+[    1.291846] [c0000000034e3b40] [c00000000031e648] walk_component+0x2d8/0x3e0
+[    1.292183] [c0000000034e3bb0] [c00000000031eed0] path_lookupat+0xb0/0x1a0
+[    1.292529] [c0000000034e3c00] [c0000000003215b4] filename_lookup+0xa4/0x1d0
+[    1.292872] [c0000000034e3d30] [c000000000312038] vfs_fstatat+0x88/0x140
+[    1.293213] [c0000000034e3d90] [c000000000312780] SyS_newlstat+0x40/0x70
+[    1.293553] [c0000000034e3e30] [c00000000000bd60] system_call+0x38/0xfc
+[    1.293890] Instruction dump:
+[    1.294067] 7fc9f214 39200001 fbdf0030 f93f0028 e93d0000 712a0800 41820428 ebdd0030 
+[    1.294650] 41920034 e8fd0008 811e0000 e95f0038 <e8c70000> 38e80001 81060090 90fe0000 
+[    1.295205] ---[ end trace 60f05a1af4fed932 ]---
+[    1.301852] 
+[FAILED] Failed to start Apply Kernel Variables.
+See 'systemctl status systemd-sysctl.service' for details.
+[  OK  ] Started Remount Root and Kernel File Systems.
+         Starting udev Coldplug all Devices...
+         Starting Load/Save Random Seed...
+[  OK  ] Started Load/Save Random Seed.
+[  OK  ] Started Create Static Device Nodes in /dev.
+         Starting udev Kernel Device Manager...
+[  OK  ] Started udev Kernel Device Manager.
+[[    1.488887] Using 'aes-generic' as fallback implementation.
+[    1.489167] crypto_register_alg 'aes' = 0
+[    1.489379] crypto_register_alg 'cbc(aes)' = 0
+[    1.489614] crypto_register_alg 'ctr(aes)' = 0
+[    1.491395] crypto_register_alg 'xts(aes)' = 0
+  OK  ] Started udev Coldplug all Devices.
+[    1.523739] Using 'ghash-generic' as fallback implementation.
+[    1.540098] sd 0:0:0:0: Attached scsi generic sg0 type 0
+[    1.548577] pseries_rng: Registering IBM pSeries RNG driver
+[  OK  ] Found device /dev/hvc0.
+[  OK  ] Found device QEMU_HARDDISK 3.
+[  OK  ] Found device QEMU_HARDDISK 3.
+         Activating swap Swap Partition...
+[    1.654869] Adding 4076480k swap on /dev/sda3.  Priority:-1 extents:1 across:4076480k FS
+[  OK  ] Activated swap Swap Partition.
+[  OK  ] Activated swap /dev/disk/by-uuid/8311d964-d0f3-4a54-b90f-5b7371effb7b.
+[  OK  ] Reached target Swap.
+[***   ] (3 of 3) A start job is running for Journal Service (20s / 1min 30s)
+[   22.544038] INFO: rcu_sched self-detected stall on CPU
+[   22.544281] 	3-...: (5249 ticks this GP) idle=b99/140000000000001/0 softirq=559/559 fqs=2366 
+[   22.544582] 	 (t=5251 jiffies g=-146 c=-147 q=4377)
+[   22.544748] Task dump for CPU 3:
+[   22.544870] systemd-sysctl  R  running task        0   994    972 0x00040404
+[   22.545115] Call Trace:
+[   22.545205] [c00000000316f210] [c00000000010f1f4] sched_show_task+0xe4/0x150 (unreliable)
+[   22.545491] [c00000000316f280] [c00000000083a6e0] rcu_dump_cpu_stacks+0xf4/0x140
+[   22.545774] [c00000000316f2d0] [c00000000015bde4] rcu_check_callbacks+0x9f4/0xb40
+[   22.546054] [c00000000316f400] [c000000000164004] update_process_times+0x44/0x90
+[   22.546336] [c00000000316f430] [c00000000017b678] tick_sched_handle.isra.4+0x48/0xe0
+[   22.546623] [c00000000316f470] [c00000000017b774] tick_sched_timer+0x64/0xd0
+[   22.546869] [c00000000316f4b0] [c000000000165018] __hrtimer_run_queues+0x108/0x390
+[   22.547154] [c00000000316f530] [c000000000165bfc] hrtimer_interrupt+0xec/0x2b0
+[   22.547439] [c00000000316f5f0] [c000000000026c0c] __timer_interrupt+0x8c/0x270
+[   22.547726] [c00000000316f640] [c00000000002723c] timer_interrupt+0x9c/0xe0
+[   22.547972] [c00000000316f670] [c000000000009550] decrementer_common+0x150/0x180
+[   22.548271] --- interrupt: 901 at _raw_spin_lock_irqsave+0xa4/0x130
+[   22.548271]     LR = _raw_spin_lock_irqsave+0x128/0x130
+[   22.548653] [c00000000316f9a0] [c00000000012e204] add_wait_queue+0x44/0x90
+[   22.548872] [c00000000316f9e0] [c00000000032fda0] d_alloc_parallel+0x460/0x5b0
+[   22.549132] [c00000000316fac0] [c000000000319da0] lookup_slow+0xa0/0x240
+[   22.549355] [c00000000316fb40] [c00000000031e648] walk_component+0x2d8/0x3e0
+[   22.549682] [c00000000316fbb0] [c00000000031eed0] path_lookupat+0xb0/0x1a0
+[   22.550011] [c00000000316fc00] [c0000000003215b4] filename_lookup+0xa4/0x1d0
+[   22.550387] [c00000000316fd30] [c000000000312038] vfs_fstatat+0x88/0x140
+[   22.550783] [c00000000316fd90] [c000000000312780] SyS_newlstat+0x40/0x70
+[   22.551081] [c00000000316fe30] [c00000000000bd60] system_call+0x38/0xfc
+[   22.551389] INFO: rcu_sched detected stalls on CPUs/tasks:
+[   22.551624] 	3-...: (5250 ticks this GP) idle=b99/140000000000000/0 softirq=559/559 fqs=2367 
+[   22.552017] 	(detected by 0, t=5253 jiffies, g=-146, c=-147, q=4377)
+[   22.552256] Task dump for CPU 3:
+[   22.552442] systemd-sysctl  R  running task        0   994    972 0x00040404
+[   22.552781] Call Trace:
+[   22.552920] [c00000000316f900] [c0000000002d4ac4] kmem_cache_alloc+0x2c4/0x300 (unreliable)
+[   22.553396] [c00000000316f960] [c000000000831bf8] _raw_spin_lock_irqsave+0x128/0x130
+[   22.553795] [c00000000316f9a0] [c00000000012e204] add_wait_queue+0x44/0x90
+[   22.554203] [c00000000316f9e0] [c00000000032fda0] d_alloc_parallel+0x460/0x5b0
+[   22.554623] [c00000000316fac0] [c000000000319da0] lookup_slow+0xa0/0x240
+[   22.554985] [c00000000316fb40] [c00000000031e648] walk_component+0x2d8/0x3e0
+[   22.555350] [c00000000316fbb0] [c00000000031eed0] path_lookupat+0xb0/0x1a0
+[   22.555710] [c00000000316fc00] [c0000000003215b4] filename_lookup+0xa4/0x1d0
+[   22.556064] [c00000000316fd30] [c000000000312038] vfs_fstatat+0x88/0x140
+[   22.556430] [c00000000316fd90] [c000000000312780] SyS_newlstat+0x40/0x70
+[   22.556794] [c00000000316fe30] [c00000000000bd60] system_call+0x38/0xfc
+...

@@ -1,0 +1,72 @@
+To : Frank Scheiner <frank.scheiner@web.de>, debian-sparc <debian-sparc@lists.debian.org>
+Subject : Re: Fixing the missing serial console after installation issue
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Sat, 30 Sep 2017 22:47:42 +0200
+Message-id : 04ee39a2-ac98-45c6-9e2d-a6f83c70688a@physik.fu-berlin.de
+In-reply-to : <[🔎] 8d87fb52-7844-5211-9792-0f5291795247@web.de>
+References : <[🔎] 81d62440-b275-7183-81ec-003408cbe800@physik.fu-berlin.de> <[🔎] 726d91f6-c6bb-0e06-d85d-e85ec7fee030@web.de> <[🔎] 57d1e036-add0-bf58-6392-2c049381d921@physik.fu-berlin.de> <[🔎] 8d87fb52-7844-5211-9792-0f5291795247@web.de>
+
+
+On 09/30/2017 10:37 PM, Frank Scheiner wrote:
+>> Yes, I'm aware of that and that's what people usually use to enable the serial
+>> console post installation. However, it's most likely not what we would want to
+>> use as adding it to the kernel command line assumes that you know what type
+>> of bootloader is being used and you would have to add case-matching for the
+>> various bootloader types.
+> 
+> But how does the kernel then know which serial device to use as console if it's not selected via the kernel's command line?
+We know the serial console during installation and can pass this information
+to systemd. The kernel will use the firmware-provided console until systemd
+takes over during boot. The first kernel messages you are seeing are always
+printed using the firmware and not drivers in the kernel.
+Again, please note that this is how the installation images set up the serial
+console in the past. I merely updated the code to be able to set up the serial
+console for systemd systems as well. Neither for SysVInit nor for Upstart is
+there any code to pass anything on the kernel command line.
+> [1] mentions that the parameters (baud rate, etc.) for the getty tool - agetty in this case - can be modified in the system unit:
+> 
+> ```
+> [...]
+> # cp /usr/lib/systemd/system/serial-getty@.service /etc/systemd/system/serial-getty@ttyS2.service
+> # vi /etc/systemd/system/serial-getty@ttyS2.service
+>  .... now make your changes to the agetty command line ...
+> # ln -s /etc/systemd/system/serial-getty@ttyS2.service /etc/systemd/system/getty.target.wants/
+> # systemctl daemon-reload
+> # systemctl start serial-getty@ttyS2.service
+> [...]
+> ```
+> 
+> Isn't that what you're looking for?
+> 
+> UPDATE: Just saw that you solved it, but the info above might be still useful.
+We might not need to adjust the baud rate as systemd calls agetty with:
+ExecStart=-/sbin/agetty --keep-baud 115200,38400,9600 %I $TERM
+and from the agetty manpage:
+       baud_rate,...
+              A comma-separated list of one or more baud rates.  Each time agetty receives a  BREAK  character
+              it advances through the list, which is treated as if it were circular.
+So, I guess this is fine as is. If some particular hardware needs adjustment, we
+can make such adjustments later.
+>>> Or does systemd not enable a serial console for the mentioned users despite
+>>> using a serial console configuration in the kernel command line?
+>>
+>> What users? As you have explained yourself, systemd recognizes the console=$dev
+>> setting from the kernel command line and uses that to spawn a getty on this
+>> particular console.
+> 
+> Yes, sure, but I didn't know if what I proposed and what worked in the past also
+> worked for the mentioned users, i.e. these users:
+> 
+> On 09/30/2017 10:54 AM, John Paul Adrian Glaubitz wrote:
+>> Some users of Linux on sparc64 have noticed that the serial console is not working
+>> directly after installation.
+It worked until Wheezy because it still used SysVInit as the default init system for
+which the code to set up the serial console was already in place. It was just missing
+for systemd which is why it didn't work with the newer sparc64 images anymore. This
+has now been fixed.
+Adrian
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

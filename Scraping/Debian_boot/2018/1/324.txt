@@ -1,0 +1,40 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#887803: flash-kernel: Machines without Kernel-Flavors do not generate boot.scr
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Fri, 19 Jan 2018 19:18:52 -0800
+Message-id : 873731w737.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 887803@bugs.debian.org
+
+
+Package: flash-kernel
+Severity: important
+Version: 3.90
+Version 3.90 of flash-kernel does not generate a boot.scr:
+  $ sudo flash-kernel
+  Using DTB: armada-3720-espressobin.dtb
+  Installing
+  /usr/lib/linux-image-4.14.0-2-arm64/marvell/armada-3720-espressobin.dtb
+  into /boot/dtbs/4.14.0-2-arm64/armada-3720-espressobin.dtb
+  Taking backup of armada-3720-espressobin.dtb.
+  Installing new armada-3720-espressobin.dtb.
+Even though it's supposed to:
+  $ grep -A 4 -i espressobin /usr/share/flash-kernel/db/all.db
+  Machine: Globalscale Marvell ESPRESSOBin Board
+  DTB-Id: armada-3720-espressobin.dtb
+  Boot-Script-Path: /boot/boot.scr
+  U-Boot-Script-Name: bootscr.uboot-generic
+  Required-Packages: u-boot-tools
+Setting Kernel-Flavors in /etc/flash-kernel/db works around the issue:
+  Machine: Globalscale Marvell ESPRESSOBin Board
+  Kernel-Flavors: any
+  
+Apparently the code I added to attempt to allow the ability to specify
+"any" kernel flavor to fix #883547 ... broke machines that do not
+specify Kernel-Flavors. Many (most?) boards do specify Kernel-Flavors,
+so this is only triggered on some boards.
+The code handling kernel flavors is a bit rough to work with, so the
+best thing might be to just revert my commits adding support for "any"
+kernel... though it would be nice to fix this properly, of course!
+live well,
+  vagrant
+signature.asc

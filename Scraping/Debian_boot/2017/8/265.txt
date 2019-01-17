@@ -1,0 +1,37 @@
+To : submit <submit@bugs.debian.org>
+Subject : Bug#873041: libxcursor1-udeb: Broken dpkg-shlibdeps rule
+From : Jeremy Bicha <jbicha@ubuntu.com>
+Date : Wed, 23 Aug 2017 20:50:28 -0400
+Message-id : CAAajCMbLh8e3JM2osaB3tazk0g93X6kSbEW8DHMbPkd1mKaS4g@mail.gmail.com
+Reply-to : Jeremy Bicha <jbicha@ubuntu.com>, 873041@bugs.debian.org
+
+
+Package: libxcursor1-udeb
+Version: 1:1.1.14-2
+Severity: serious
+X-Debbugs-CC: debian-boot@lists.debian.org
+When libxcursor was converted to dh's rules, the line defining PACKAGE
+was accidentally removed.
+So this line:
+dh_makeshlibs -V "libxcursor1 (>> 1.1.2)" --add-udeb=$(PACKAGE)-udeb
+gets interpreted as:
+dh_makeshlibs -V "libxcursor1 (>> 1.1.2)" --add-udeb=-udeb
+Which leads to packages like gtk+3.0 failing to build from source:
+=========
+dpkg-shlibdeps: warning: can't parse dependency -udeb (>> 1.1.2)
+dpkg-shlibdeps: error: invalid dependency got generated:
+libepoxy0-udeb (>= 1.3), libx11-6-udeb (>= 2:1.6.0), -udeb (>> 1.1.2),
+libgtk-3-0-udeb (>= 3.22.19), libxinerama1-udeb,
+libgdk-pixbuf2.0-0-udeb (>= 2.36.5), libxi6-udeb (>= 2:1.6.99.1),
+libatk-bridge-2.0-0-udeb, libglib2.0-udeb (>= 2.53.4), fontconfig-udeb
+(>= 2.11.94), libxext6-udeb (>= 2:1.3.0), libc6-udeb (>= 2.24),
+libatk1.0-udeb (>= 2.24.0), libcairo2-udeb (>= 1.14.0),
+libpango1.0-udeb (>= 1.40.11), libcairo2-udeb (>= 1.10.0)
+dh_shlibdeps: dpkg-shlibdeps -Tdebian/libgtk-3-0-udeb.substvars -tudeb
+debian/libgtk-3-0-udeb/usr/lib/x86_64-linux-gnu/libgtk-3.so.0.2200.19
+debian/libgtk-3-0-udeb/usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.19
+returned exit code 255
+dh_shlibdeps: Aborting due to earlier error
+=========
+Thanks,
+Jeremy Bicha

@@ -1,0 +1,49 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#864981: debootstrap: cannot unpack into "preseeded" directory
+From : Marc Haber <mh+debian-packages@zugschlus.de>
+Date : Sun, 18 Jun 2017 12:51:04 +0200
+Message-id : 149778306452.1353.16108122227858426753.reportbug@swivel.zugschlus.de
+Reply-to : Marc Haber <mh+debian-packages@zugschlus.de>, 864981@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.90
+Severity: normal
+Dear Maintainer,
+I am observing this when debootstrapping stretch from grml 2017.05,
+which includes 1.0.89 and is rather similiar to Debian stretch.
+I am regularly debootstrapping Debian into a directory wehich has
+already pre-filled with conffiles that should already be in place for
+the freshly-installed packages. This does not work in stretch any more:
+[pid 13542] write(2, "tar: ", 5)        = 5
+[pid 13542] write(2, "./etc/logrotate.d/dpkg: Cannot open", 35) = 35
+[pid 13542] write(2, ": File exists", 13) = 13
+The cause for this is that tar is invoked with -k, which results in this
+error message when a file does already exist. I am not sure what's the
+intention in using -k, but I think that it was there to leave files
+intact that were put there prior to debootstrapping.
+Instead of that intention, it makes debootstrap fail. To make things
+worse, #728344 (from 2013, with no maintainer reaction at all) makes
+debootstrap fail _silently_, without any diagnostit message whatsoever,
+leaving the user in the dark about _why_ it failed.
+removing the -k from the tar call in EXTRACT_DEB_TAR_OPTIONS in
+/usr/share/debootstrap/scripts/stretch fixes things for me.
+Greetings
+Marc
+-- System Information:
+Debian Release: 9.0
+  APT prefers unstable
+  APT policy: (500, 'unstable')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.11.5-zgws1 (SMP w/4 CPU cores)
+Locale: LANG=en_DK.utf8, LC_CTYPE=en_DK.utf8 (charmap=UTF-8), LANGUAGE=en_US (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages debootstrap depends on:
+ii  wget  1.19.1-3
+Versions of packages debootstrap recommends:
+ii  debian-archive-keyring  2017.5
+ii  gnupg                   2.1.18-8
+debootstrap suggests no packages.
+-- no debconf information

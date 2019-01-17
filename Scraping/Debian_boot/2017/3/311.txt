@@ -1,0 +1,141 @@
+To : 857132@bugs.debian.org
+Subject : Bug#857132: console-setup: additional info needed ?
+From : Karsten Hilbert <Karsten.Hilbert@gmx.net>
+Date : Wed, 22 Mar 2017 13:00:17 +0100
+Message-id : 20170322120016.xigufsgrjq36z4zb@hermes.hilbert.loc
+Reply-to : Karsten Hilbert <Karsten.Hilbert@gmx.net>, 857132@bugs.debian.org
+In-reply-to : <[🔎] 20170322111851.GA1617@debian.lan>
+References : <[🔎] 149017858840.23048.7220154904975481356.reportbug@hermes.hilbert.loc> <[🔎] 20170322111851.GA1617@debian.lan>
+
+
+On Wed, Mar 22, 2017 at 02:18:51PM +0300, Anton Zinoviev wrote:
+> > is there anything I can do/provide to help get this resolved ?
+> 
+> Yes, thanks!  The output of the following commands:
+Here you go:
+> ls -l /etc/console-setup/
+	total 164
+	drwxr-xr-x   2 root root  4096 Mar  7 09:26 .
+	drwxr-xr-x 194 root root 12288 Mar 22 11:16 ..
+	-rw-r--r--   1 root root  2417 Mar  2  2011 Lat15-Fixed16.psf.gz
+	-rw-r--r--   1 root root  2328 Mar 11  2011 Lat15-Terminus16.psf.gz
+	-rw-r--r--   1 root root  2351 Nov 12  2010 Lat15-TerminusBold16.psf.gz
+	-rw-r--r--   1 root root  4086 Mar 11  2011 cached.kmap.gz
+	-rw-r--r--   1 root root  4377 Mar  7 09:26 cached_UTF-8_del.kmap.gz
+	-rwxr-xr-x   1 root root   465 Mar 22 11:20 cached_setup_font.sh
+	-rwxr-xr-x   1 root root   358 Mar 22 11:20 cached_setup_keyboard.sh
+	-rwxr-xr-x   1 root root    73 Mar 22 11:20 cached_setup_terminal.sh
+	-rw-r--r--   1 root root    34 Jan 11  2011 compose.ARMSCII-8.inc
+	-rw-r--r--   1 root root    31 Jan 11  2011 compose.CP1251.inc
+	-rw-r--r--   1 root root    31 Jan 11  2011 compose.CP1255.inc
+	-rw-r--r--   1 root root    31 Jan 11  2011 compose.CP1256.inc
+	-rw-r--r--   1 root root    41 Jan 11  2011 compose.GEORGIAN-ACADEMY.inc
+	-rw-r--r--   1 root root    36 Jan 11  2011 compose.GEORGIAN-PS.inc
+	-rw-r--r--   1 root root    32 Jan 11  2011 compose.IBM1133.inc
+	-rw-r--r--   1 root root    35 Jan 11  2011 compose.ISIRI-3342.inc
+	-rw-r--r--   1 root root  3596 May 22  2016 compose.ISO-8859-1.inc
+	-rw-r--r--   1 root root    36 Jan 11  2011 compose.ISO-8859-10.inc
+	-rw-r--r--   1 root root    36 Jan 11  2011 compose.ISO-8859-11.inc
+	-rw-r--r--   1 root root  3737 May 22  2016 compose.ISO-8859-13.inc
+	-rw-r--r--   1 root root  3020 Mar  2  2016 compose.ISO-8859-14.inc
+	-rw-r--r--   1 root root  3552 May 22  2016 compose.ISO-8859-15.inc
+	-rw-r--r--   1 root root    36 Jan 11  2011 compose.ISO-8859-16.inc
+	-rw-r--r--   1 root root  2893 May 22  2016 compose.ISO-8859-2.inc
+	-rw-r--r--   1 root root  3387 May 22  2016 compose.ISO-8859-3.inc
+	-rw-r--r--   1 root root  2805 May 22  2016 compose.ISO-8859-4.inc
+	-rw-r--r--   1 root root    35 Jan 11  2011 compose.ISO-8859-5.inc
+	-rw-r--r--   1 root root    35 Jan 11  2011 compose.ISO-8859-6.inc
+	-rw-r--r--   1 root root  1217 May 22  2016 compose.ISO-8859-7.inc
+	-rw-r--r--   1 root root    35 Jan 11  2011 compose.ISO-8859-8.inc
+	-rw-r--r--   1 root root  3617 May 22  2016 compose.ISO-8859-9.inc
+	-rw-r--r--   1 root root    31 Jan 11  2011 compose.KOI8-R.inc
+	-rw-r--r--   1 root root    31 Jan 11  2011 compose.KOI8-U.inc
+	-rw-r--r--   1 root root    32 Jan 11  2011 compose.TIS-620.inc
+	-rw-r--r--   1 root root    31 Dec  5  2011 compose.VISCII.inc
+	-rw-r--r--   1 root root  1359 Dec  5  2011 remap.inc
+> cat /etc/console-setup/cached_setup_font.sh
+	#!/bin/sh
+	setfont '/etc/console-setup/Lat15-Terminus16.psf.gz' 
+	if ls /dev/fb* >/dev/null 2>/dev/null; then
+	    for i in /dev/vcs[0-9]*; do
+	        { :
+	            setfont '/etc/console-setup/Lat15-Terminus16.psf.gz' 
+	        } < /dev/tty${i#/dev/vcs} > /dev/tty${i#/dev/vcs}
+	    done
+	fi
+	mkdir -p /run/console-setup
+	> /run/console-setup/font-loaded
+	for i in /dev/vcs[0-9]*; do
+	    { :
+	printf '\033%%G' 
+	    } < /dev/tty${i#/dev/vcs} > /dev/tty${i#/dev/vcs}
+	done
+(the line starting with ">" strikes me as odd - should it not
+ be on the "mkdir -p" line ?)
+> cat /etc/console-setup/cached_setup_terminal.sh
+	#!/bin/sh
+	{ :
+	printf '\033%%G' 
+	} < /dev/tty${1#vcs} > /dev/tty${1#vcs}
+> cat /etc/default/console-setup
+	# Change to "yes" and setupcon will explain what is being doing
+	VERBOSE_OUTPUT="no"
+	# Setup these consoles.  Most people do not need to change this.
+	ACTIVE_CONSOLES="/dev/tty[1-6]"
+	# Put here your encoding.  Valid charmaps are: UTF-8 ARMSCII-8 CP1251
+	# CP1255 CP1256 GEORGIAN-ACADEMY GEORGIAN-PS IBM1133 ISIRI-3342
+	# ISO-8859-1 ISO-8859-2 ISO-8859-3 ISO-8859-4 ISO-8859-5 ISO-8859-6
+	# ISO-8859-7 ISO-8859-8 ISO-8859-9 ISO-8859-10 ISO-8859-11 ISO-8859-13
+	# ISO-8859-14 ISO-8859-15 ISO-8859-16 KOI8-R KOI8-U TIS-620 VISCII
+	CHARMAP="UTF-8"
+	# The codeset determines which symbols are supported by the font.
+	# Valid codesets are: Arabic Armenian CyrAsia CyrKoi CyrSlav Ethiopian
+	# Georgian Greek Hebrew Lao Lat15 Lat2 Lat38 Lat7 Thai Uni1 Uni2 Uni3
+	# Vietnamese.  Read README.fonts for explanation.
+	CODESET="Lat15"
+	# Valid font faces are: VGA (sizes 8, 14 and 16), Terminus (sizes
+	# 12x6, 14, 16, 20x10, 24x12, 28x14 and 32x16), TerminusBold (sizes
+	# 14, 16, 20x10, 24x12, 28x14 and 32x16), TerminusBoldVGA (sizes 14
+	# and 16) and Fixed (sizes 13, 14, 15, 16 and 18).  Only when
+	# CODESET=Ethiopian: Goha (sizes 12, 14 and 16) and 
+	# GohaClassic (sizes 12, 14 and 16).
+	# Set FONTFACE and FONTSIZE to empty strings if you want setupcon to
+	# set up the keyboard but to leave the console font unchanged.
+	FONTFACE="Terminus"
+	FONTSIZE="8x16"
+	# You can also directly specify nonstandard font or console map to load.
+	# Use space as separator if you want to load more than one font.
+	# You can use FONT_MAP in order to specify the Unicode map of the font
+	# in case the font doesn't have it embedded.
+	# FONT='lat9w-08.psf.gz /usr/local/share/braillefonts/brl-08.psf'
+	# FONT_MAP=/usr/share/consoletrans/lat9u.uni
+	# CONSOLE_MAP=/usr/local/share/consoletrans/my_special_encoding.acm
+	# You can also specify a screen size that setupcon will enforce.  This can not
+	# exceed what the current screen resolution can display according to the size of
+	# the loaded font.
+	#
+	# SCREEN_WIDTH=80
+	# SCREEN_HEIGHT=25
+	if [ -f /etc/default/keyboard ]; then
+	    . /etc/default/keyboard
+	fi
+> cat /etc/default/keyboard
+	# Check /usr/share/doc/keyboard-configuration/README.Debian for
+	# documentation on what to do after having modified this file.
+	# The following variables describe your keyboard and can have the same
+	# values as the XkbModel, XkbLayout, XkbVariant and XkbOptions options
+	# in /etc/X11/xorg.conf.
+	XKBMODEL="pc105"
+	XKBLAYOUT="de"
+	XKBVARIANT="nodeadkeys"
+	XKBOPTIONS=""
+	# If you don't want to use the XKB layout on the console, you can
+	# specify an alternative keymap.  Make sure it will be accessible
+	# before /usr is mounted.
+	# KMAP=/etc/console-setup/defkeymap.kmap.gz
+	BACKSPACE="guess"
+HTH,
+Karsten
+-- 
+GPG key ID E4071346 @ eu.pool.sks-keyservers.net
+E167 67FD A291 2BEA 73BD  4537 78B9 A9F9 E407 1346

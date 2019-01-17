@@ -1,0 +1,97 @@
+To : Martin Pitt <mpitt@debian.org>, 857539@bugs.debian.org, Debian systemd Maintainers <pkg-systemd-maintainers@lists.alioth.debian.org>, debian-boot@lists.debian.org, Cyril Brulebois <kibi@debian.org>
+Subject : Re: Bug#857539: unblock: systemd/231-19
+From : Emilio Pozuelo Monfort <pochu@debian.org>
+Date : Sun, 12 Mar 2017 11:30:00 +0100
+Message-id : b81f9fa0-2e78-2e86-7502-f50c21e38c16@debian.org
+In-reply-to : <20170312094721.GB1114@donald>
+References : <20170312094721.GB1114@donald>
+
+
+On 12/03/17 10:47, Martin Pitt wrote:
+> Package: release.debian.org
+> User: release.debian.org@packages.debian.org
+> Usertags: unblock
+> 
+> Hello release team,
+> 
+> The current systemd in unstable (232-19) fixes a bunch of bugs, mostly in
+> resolved (which we don't enable by default), but also in bits which do run by
+> default. Also some testing improvements.
+> 
+> The package has been in unstable for 10 days now without any regression
+> reports, and of course passes upstream tests and our downstream autopkgtests.
+> 
+> debdiff between -18 (in testing) and current -19 attached. I also put the
+> changelog and some annotations to it below.
+Ack from me, but needs a d-i ack. Cyril?
+Cheers,
+Emilio
+> 
+> | systemd (232-19) unstable; urgency=medium
+> | 
+> |   [ Martin Pitt ]
+> |   * debian/README.source: Update patch and changelog handling to current
+> |     reality.
+> 
+> Documentation only.
+> 
+> |   * root-unittests autopkgtest: Blacklist test-journal-importer.
+> |     This got added in a recent PR, but running this requires using "make
+> |     install-tests" which hasn't landed yet.
+> 
+> Not relevant for stretch, just for upstream CI. No-op at runtime.
+> 
+> |   * fsckd: Fix format specifiers on 32 bit architectures.
+> 
+> Should be mostly harmles at runtime, but fixes a warning and using correct
+> types is always good.
+> 
+> |   * resolved: Fix NSEC proofs for missing TLDs (Closes: #855479)
+> 
+> Quite an important bug fix if you use resolved with DNSSEC. Not RC overall as
+> neither resolved as a whole nor the DNSSEC option is enabled by default, but
+> both become increasingly popular.
+> 
+> |   * boot-and-services autopkgtest: Skip CgroupsTest on unified hierarchy.
+> |   * boot-smoke autopkgtest: Run in containers, too.
+> |   * logind autopkgtest: Adjust to work in containers.
+> 
+> Test fixes only.
+> 
+> |   [ Dimitri John Ledkov ]
+> |   * Fix resolved failing to follow CNAMES for DNS stub replies (LP: #1647031)
+> 
+> Similarly to above, this is an even more important fix for resolved as it
+> affects quite a number of hosts out there (like resolving freedesktop.org
+> machines).
+> 
+> |   * Fix emitting change signals with a sessions property in logind
+> |     (LP: #1661568)
+> 
+> This doesn't affect systemd itself, but desktop clients which use libsystemd to
+> track the active session. Not particularly urgent, but a nice and
+> straightforward fix.
+> 
+> |   [ Michael Biebl ]
+> |   * If an automount unit is masked, don't react to activation anymore.
+> |     Otherwise we'll hit an assert sooner or later. (Closes: #856035)
+> 
+> This fixes  a nasty crash of the entire system with automount units, so this is
+> rather important.
+> 
+> |   [ Felipe Sateler ]
+> |   * resolved: add the new KSK to the built-in resolved trust anchor.
+> |     The old root key will be discarded in early 2018, so get this into
+> |     stretch.
+> 
+> We have to update the key at some point anyway, so let's rather do it now
+> before the release.
+> 
+> |   * Backport some zsh completion fixes from upstream (Closes: #847203)
+> 
+> Low-risk, and nice for zsh users.
+> 
+> Thanks for considering,
+> 
+> Martin
+>

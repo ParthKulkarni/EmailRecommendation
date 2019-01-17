@@ -1,0 +1,57 @@
+To : debian-boot@lists.debian.org
+Subject : console-setup upload?
+From : Christian PERRIER <bubulle@debian.org>
+Date : Wed, 8 Feb 2017 06:53:05 +0100
+Message-id : 20170208055305.dsmzfrm4ryep6xiw@mykerinos.kheops.frmug.org
+
+
+Hello all,
+console-setup currently has two translation updates pending (Catalan
+and Spanish) which should make me build/upload it but also has the
+change below.
+Ideally in this pre-release time, I shouldn't be uploading as is. May
+I suggest that the relevant commit is moved to a "post-release" branch
+or are there advices that this change should be in the released
+package.
+Seeking for advice, then.....
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,12 @@
++console-setup (1.159) UNRELEASED; urgency=medium
++
++  [ Anton Zinoviev ]
++  * keyboard-configuration.preinst: run update-rc.d only after the
++    obsoleted configuration files have been removed. Thanks to
++    sacrificial-spam-address@ and Mateusz Łukasik, closes: #817232.
++
++ -- Anton Zinoviev <zinoviev@debian.org>  Sun, 22 Jan 2017 22:07:38 +0300
++
+ console-setup (1.158) unstable; urgency=medium
+ 
+   [ Updated translations ]
+diff --git a/debian/keyboard-configuration.preinst b/debian/keyboard-configuration.preinst
+index 9bf83a7..3fb91bd 100644
+--- a/debian/keyboard-configuration.preinst
++++ b/debian/keyboard-configuration.preinst
+@@ -2,13 +2,11 @@
+ 
+ set -e
+ 
+-if [ -x "/etc/init.d/keyboard-setup" ]; then
+-    update-rc.d keyboard-setup remove >/dev/null
+-fi
+-if [ -x "/etc/init.d/console-setup" ]; then
+-    update-rc.d console-setup remove >/dev/null
+-fi
+-dpkg-maintscript-helper rm_conffile /etc/init.d/keyboard-setup 1.138~ -- "$@"
+-dpkg-maintscript-helper rm_conffile /etc/init.d/console-setup 1.138~ -- "$@"
++for file in keyboard-setup console-setup; do
++    dpkg-maintscript-helper rm_conffile /etc/init.d/$file 1.138~ -- "$@"
++    if [ -x /etc/init.d/$file ]; then
++        update-rc.d $file remove >/dev/null
++    fi
++done
+ 
+ #DEBHELPER#
+-- 
+signature.asc

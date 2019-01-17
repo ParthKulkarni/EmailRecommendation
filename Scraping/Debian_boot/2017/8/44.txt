@@ -1,0 +1,75 @@
+To : <debian-boot@lists.debian.org>
+Subject : Re: Problem: UUIDs not being used everywhere for disks in stretch
+From : Vincent McIntyre <vincent.mcintyre@csiro.au>
+Date : Fri, 4 Aug 2017 18:03:15 +1000
+Message-id : 20170804080314.GN23525@mayhem.atnf.CSIRO.AU
+In-reply-to : <20170728024617.GH24191@mayhem.atnf.CSIRO.AU>
+References : <20170728022657.GF24191@mayhem.atnf.CSIRO.AU> <20170728022858.GG24191@mayhem.atnf.CSIRO.AU> <20170728024617.GH24191@mayhem.atnf.CSIRO.AU>
+
+
+A discussion with Steve suggested looking at when udev updates
+/dev/disk/by-uuid - has something changed that stops that directory
+being refreshed after partman-base is done (or at least before
+bootstrap-base starts)?
+I ran some stretch/jessie comparison installs on the following VM system:
+  amd64, 1cpu, 1G memory
+  sata port 0 - 2G ssd
+  sata port 1 - 64M hot-pluggable device
+  sata port 2 - 128G hard disk
+  netinst preseeded install
+None of the disk devices have partition tables at the start.
+The partitioning recipe is:
+  1 real partition of size 1G for /
+  1 real partition of size 127G for an LVM physical volume
+  containing all the other partitions.
+(It's important to make sure the hard disk is large enough for
+ the expert recipe to fit; otherwise the installer defaults to
+  1 real partition for /boot
+  1 lvm volume named 'root' for everything else
+)
+What seems to happen on stretch is /dev/disk/by-uuid NEVER EXISTS
+during installation in this circumstance. I did see it in other
+installation paths I tried.
+Right after all the partitioning is complete and debootstrap
+is running, /dev/sd* and /dev/disk looks like this:
+# ls -l /dev/sd* /dev/disk /dev/disk/by-uuid 2>/dev/null
+brw-------    1 root     root        8,   0 Aug  4 07:08 /dev/sda
+brw-------    1 root     root        8,  16 Aug  4 07:08 /dev/sdb
+brw-------    1 root     root        8,  32 Aug  4 07:08 /dev/sdc
+brw-------    1 root     root        8,  33 Aug  4 07:08 /dev/sdc1
+brw-------    1 root     root        8,  34 Aug  4 07:08 /dev/sdc2
+/dev/disk:
+drwxr-xr-x    2 root     root           140 Aug  4 07:08 by-id
+drwxr-xr-x    2 root     root            80 Aug  4 07:08 by-partuuid
+drwxr-xr-x    2 root     root           140 Aug  4 07:08 by-path
+/dev/disk/by-partuuid:
+lrwxrwxrwx    1 root     root            10 Aug  4 07:08 d7e0b3f5-01 -> ../../sdc1
+lrwxrwxrwx    1 root     root            10 Aug  4 07:08 d7e0b3f5-02 -> ../../sdc2
+After installation the system is unbootable because it specifies
+  root=/dev/sdc1
+in the boot line rather root=UUID=<some-uuid>
+The system can be made to boot by and editing the boot line in grub to be
+  root=/dev/sda1
+In /etc/fstab the / partition is correctly mounted by UUID;
+so after hacking the boot line, the system boots correctly.
+So it seems that somewhere in grub-installer, the conversion between
+device file and UUID is failing and the code is falling back to the
+device file.
+Strangely, the fstab comment about which device / was on during
+installation correctly says it was /dev/sdc1.
+Doing the same install with jessie, the boot line is written correctly
+using the root=UUID form. I checked and /dev/disk/by-uuid exists by
+the time debootstrap is running, but /dev/disk/by-partuuid is never seen.
+# ls -l /dev/sd* /dev/disk /dev/disk/by-uuid 2>/dev/null             
+brw-------    1 root     root        8,   0 Aug  4 07:54 /dev/sda
+brw-------    1 root     root        8,  16 Aug  4 07:54 /dev/sdb
+brw-------    1 root     root        8,  32 Aug  4 07:54 /dev/sdc
+brw-------    1 root     root        8,  33 Aug  4 07:54 /dev/sdc1
+brw-------    1 root     root        8,  34 Aug  4 07:54 /dev/sdc2
+/dev/disk:
+drwxr-xr-x    2 root     root           140 Aug  4 07:54 by-id
+drwxr-xr-x    2 root     root            60 Aug  4 07:54 by-uuid
+/dev/disk/by-uuid:
+lrwxrwxrwx    1 root     root            10 Aug  4 07:54 dc5e366d-94f3-4d8b-82df-df40962bb889 -> ../../sdc1
+I hope this is some help with moving this problem forward
+Vince

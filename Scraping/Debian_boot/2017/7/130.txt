@@ -1,0 +1,47 @@
+To : 867402@bugs.debian.org
+Subject : Bug#867402: Debootstrap Error Couldn't retrieve dists/stretch/main/binary-amd64/Packages
+From : jg@wn.de
+Date : Thu, 6 Jul 2017 17:31:56 +0200
+Message-id : 20170706173156.1ca11b88@itlap007
+Reply-to : jg@wn.de, 867402@bugs.debian.org
+
+
+Additional information to reproduce the problem:
+1) stretch install is started with pxelinux with this parameters:
+        LABEL   v
+        MENU LABEL (^v) vga console amd64
+        kernel linux/debian/stretch/9.0/amd64/linux
+        append initrd=linux/debian/stretch/9.0/amd64/initrd.gz patchlevel=20170618T160104Z BOOT_DEBUG=2 DEBCONF_DEBUG=5 log_host=192.168.120.22 log_port=554 ipv6.disable=1 language=en country=DE locale=en_GB.UTF
+-8 keymap=de url=http://preseed.company.tld/linux/debian/preseed/stretch/x.cfg --- ipv6.disable=1
+2) the preseed file x.cfg looks like this
+# time/zone
+d-i		time/zone		select	Europe/Berlin
+tzsetup-udeb	time/zone		select	Europe/Berlin
+tzsetup-udeb	tzsetup/country/DE	select	Europe/Berlin
+# Participate in the package usage survey?
+popularity-contest popularity-contest/participate boolean false
+# skip creation of a normal user account.
+d-i passwd/make-user boolean false
+# lang & keyboard
+d-i debian-installer/language string en
+d-i debian-installer/country string DE
+d-i debian-installer/locale string en_GB.UTF-8  
+d-i localechooser/supported-locales multiselect en_US.UTF-8, de_DE.UTF-8
+d-i keyboard-configuration/xkb-keymap select de
+### Mirror settings
+d-i mirror/protocol string http
+d-i mirror/country string manual
+d-i mirror/http/hostname string snapshot.debian.org
+d-i mirror/http/directory string /archive/debian/20170618T160104Z
+d-i mirror/http/proxy string http://proxy.company.tld:8000
+3) The syslog output of the installer with DEBCONF_DEBUG=5 kernel command line
+   Here are the last lines just before failing
+Jul  6 14:21:44;debian-stretch.company.tld;user.debug;debconf:; --> METAGET base-installer/debootstrap/error/couldntdl description
+Jul  6 14:21:44;debian-stretch.company.tld;user.debug;debconf:; <-- 0 Debootstrap Error
+Jul  6 14:21:44;debian-stretch.company.tld;user.debug;debconf:; --> SUBST base-installer/debootstrap/error/couldntdl SUBST0 dists/stretch/main/binary-amd64/Packages
+Jul  6 14:21:44;debian-stretch.company.tld;user.debug;debconf:; Adding [SUBST0] -> [dists/stretch/main/binary-amd64/Packages]
+Jul  6 14:21:44;debian-stretch.company.tld;user.debug;debconf:; <-- 0
+Jul  6 14:21:44;debian-stretch.company.tld;user.debug;debconf:; --> INPUT critical base-installer/debootstrap/error/couldntdl
+Jul  6 14:21:44;debian-stretch.company.tld;user.debug;debconf:; <-- 0 question will be asked
+Jul  6 14:21:44;debian-stretch.company.tld;user.debug;debconf:; --> GO
+The complete syslog output can be found here https://cloud.aschendorff.de/s/QrEBjzW8txqHFwN

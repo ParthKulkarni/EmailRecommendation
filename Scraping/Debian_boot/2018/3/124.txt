@@ -1,0 +1,74 @@
+To : Matt Taggart <taggart@debian.org>
+Subject : Bug#892803: di-netboot-assistant: unsigned daily images
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 14 Mar 2018 19:19:03 +0100
+Message-id : 20180314181903.vdisueh3ffweijyi@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 892803@bugs.debian.org
+In-reply-to : <[🔎] ed45782d-613c-7b20-ca20-08f96d1e6969@debian.org>
+References : <[🔎] 0a9b6a36-c0d0-3acf-346c-dcac179113cb@lackof.org> <[🔎] 20180314052825.qwamba2utfqx2wtf@mraw.org> <[🔎] ed45782d-613c-7b20-ca20-08f96d1e6969@debian.org> <[🔎] 0a9b6a36-c0d0-3acf-346c-dcac179113cb@lackof.org>
+
+
+Matt Taggart <taggart@debian.org> (2018-03-14):
+> On 03/13/2018 10:28 PM, Cyril Brulebois wrote:
+> 
+> > What extra security would signing images bring here?
+> 
+> For me, assurance that nobody had interfered with the daily image that
+> I will use to install a system. Many systems I install with a daily
+> are for testing and get thrown away rather quickly (although often I
+> don't know in advance which ones will end up sticking around longer).
+Signing images on dillon doesn't bring you much security since files are
+already served over HTTPS. That brings you no guarantee regarding a
+possible interference on the porterbox it was built on, or regarding
+other users on dillon.
+> One reason in the past I have installed systems with a daily build
+> that I know will stick around is due to needing support for new
+> hardware at install time, where I couldn't just get an older install
+> on the system with a stable d-i and then upgrade the kernel
+> post-install. Usually things like drivers for a disk controller,
+> newish filesystem features, or network drivers for doing a network
+> install.
+That's a well known use case. Official stable-backports d-i is being
+worked on, even if irregularly because of other hard commitments.
+> The testing alpha/beta/rc releases _do_ get signed right? Maybe that's
+> a better solution for the above case where I need something newer than
+> stable, but testing would in most cases be "new enough".
+All releases (Alphas and RCs, Betas are gone) are the results of an
+upload to the Debian archive, do get built on buildds, which are
+restricted. That's rather different compared to the porterbox/dillon
+setup mentioned above.
+> But still thinking about daily...
+> d-i.d.o does use https and has it's own Let's Encrypt issued cert, I
+> think I could verify the cert and then check that the netboot.tar.gz
+> matches the one published in
+>   https://d-i.debian.org/daily-images/amd64/daily/SHA256SUMS
+> Looking at the code, it looks like d-n-a already does the latter part
+> I guess to prevent cases of download corruption, broken mirrors, etc.
+Yes, HTTPS should do the trick.
+> The default di-sources.list uses https for the daily images. And the
+> code uses either wget or curl, both of which default to verifying
+> certs via the normal system ca list. So it's already doing quite a bit
+> to verify even the daily image sources. That's good, but if I was an
+> attacker trying to mitm, I'd just need to find the weakest link in the
+> CA cartel to issue me a d-i.d.o cert I could use for my mitm mirror.
+> 
+> This is a corner case for sure and if there is no reasonable way to
+> solve it I think that's OK.
+> 
+> I think if I wanted to prove to myself the daily image came from
+> debian, I could verify the cert used for d-i.d.o was indeed the known
+> debian owned one, download the netboot.tar.gz/SHA256SUMS and stick
+> them in the cache, and then use the --offline flag.
+Which makes me wonder: If you're going to have so many concerns about
+the trust chain, why don't you just build d-i locally?
+    (sid-amd64-devel)kibi@wodi:~/debian-installer/installer$ time make -C build build_netboot USE_UDEBS_FROM=sid
+    […]
+    real	0m28.284s
+    user	0m39.592s
+    sys	0m3.532s
+Probably quicker/easier than doing cert pinning or so?
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc
