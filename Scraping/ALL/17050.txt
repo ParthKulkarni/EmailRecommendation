@@ -1,0 +1,57 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 21 Nov 2018 12:38:53 -0800
+Message-id : 874lcaupwi.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20181121184048.GA29334@bongo.bofh.it> (Marco d'Itri's message of	"Wed, 21 Nov 2018 19:40:48 +0100")
+References : <[🔎] 20181120211617.gxnuwxpx2hy445ps@angband.pl>	<[🔎] 6FEC5C58-827A-42EF-B7F4-F9603AFBB60D@gmail.com>	<[🔎] 20181121092346.umhv45iy2vhvpljv@angband.pl>	<[🔎] 87in0quxab.fsf@hope.eyrie.org> <[🔎] 20181121184048.GA29334@bongo.bofh.it>
+
+
+Marco d'Itri <md@Linux.IT> writes:
+> On Nov 21, Russ Allbery <rra@debian.org> wrote:
+>> I think there are some arguments to be made for just force-merging and
+>> moving on, but they're mostly "tidiness" arguments (letting everyone
+> No, they are not that at all. I have never argued about "tidiness", nor
+> did anybody else that is working to support merged-/usr.  A merged-/usr
+> is an enabler for new features, like stateless systems, clones,
+> appliances and better containers.  Simon McVittie today was patient
+> enough to explain some of them.
+I read all of Simon's message, which was excellent and which I greatly
+appreciate.  The arguments he listed there are, however, the arguments I
+was classifying as "tidiness" arguments.
+We shouldn't get caught up on terminology, since whether or not my
+adjective is correct isn't really the point.  The point is that every use
+case he describes is possible without usrmerge.  It's just more
+complicated because it requires manipulating multiple paths instead of
+one, which requires a bit more ingenuity and fragility (via symlink
+redirections and the like) to make atomic.
+I completely understand why merged /usr makes it easier, and removes a lot
+of avoidable bugs.  But it is not a *requirement* for doing any of the
+things that he spells out in that message.  There is still a tradeoff
+here.
+>> strategy of (for example) moving each binary out of /bin manually, but
+> As I explained, this cannot really work.
+Of course it can work.  It will just take forever and produce a bunch of
+minor bugs along the way and won't be something you'll be able to wait for
+before tackling other goals.
+In reality, it might well mean just giving up on merging entirely because
+people won't be willing to sustain the effort over that length of time.
+Personally, I consider separate /bin and /usr/bin to be a historic
+artifact whose remaining useful properties have become obsolete or been
+replaced with other, better techniques (such as mounting /usr in
+initramfs), and we'd all be better off following Red Hat and Arch, dealing
+with the pain of merging every system, and then saving ourselves the time
+and energy we spend on this separation.  It definitely makes some system
+design patterns simpler.  I also agree that this isn't a diversity
+question; so far as I know, there aren't any remaining viable use cases
+for split /bin and /usr/bin that work in Debian today or have any hope of
+working in a Debian of the future.  /bin is already useless without /usr
+mounted, and is basically certain to remain so.  The remaining argument is
+just that the transition is difficult and may not be worth the effort.
+But it's not just my opinion that matters.  I think we need to decide this
+somehow as a project, whether via the TC or via GR or something, because
+there's a real disagreement here over whether we can or should
+force-upgrade all Debian systems and I don't believe doing something short
+of that is going to be supportable.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

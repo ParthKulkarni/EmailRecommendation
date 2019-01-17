@@ -1,0 +1,107 @@
+To : Heinrich Schuchardt <xypron.glpk@gmx.de>, 899118@bugs.debian.org
+Subject : Bug#899118: flash-kernel: add missing arm64 boards
+From : Karsten Merker <merker@debian.org>
+Date : Mon, 21 May 2018 21:04:18 +0200
+Message-id : 20180521190418.s3y5rn5rqiqqkajr@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 899118@bugs.debian.org
+In-reply-to : <[🔎] 2b3fcfe2-d919-e557-97cf-455ba0cf94f6@gmx.de>
+References : <[🔎] 20180519125741.5291-1-xypron.glpk@gmx.de> <[🔎] 20180520191538.wcb4tanpxbrsadn3@excalibur.cnev.de> <[🔎] 2b3fcfe2-d919-e557-97cf-455ba0cf94f6@gmx.de> <[🔎] 20180519125741.5291-1-xypron.glpk@gmx.de>
+
+
+On Mon, May 21, 2018 at 01:01:56AM +0200, Heinrich Schuchardt wrote:
+> On 05/20/2018 09:15 PM, Karsten Merker wrote:
+> > On Sat, May 19, 2018 at 02:57:41PM +0200, Heinrich Schuchardt wrote:
+> > 
+> >> Package: flash-kernel
+> >> Version: 3.94
+> >> Severity: normal
+> >> Tags: patch
+> >>
+> >> Add 60 missing database entries for arm64 boards
+> >> supported both by U-Boot and by Linux:
+[...]
+> > many thanks for the patch.  Just to make sure that we don't run
+> > into problems later on: do all these boards really use u-boot's
+> > config_distro_bootcmd.h and thereby work properly with
+> > bootscr.uboot-generic?
+> > 
+> > When looking at the defconfigs for several of these systems, I
+> > see e.g. CONFIG_BOOTARGS settings that don't really match what I
+> > would expect for systems using config_distro_bootcmd.h.
+> > Three random examples:
+> > 
+> > - r8a77995_draak_defconfig:
+> >   CONFIG_BOOTARGS="console=ttySC0,115200 rw root=/dev/nfs nfsroot=192.168.0.1:/export/rfs ip=192.168.0.20"
+> > 
+> > - ls1088ardb_sdcard_qspi_defconfig:
+> >   CONFIG_BOOTARGS="console=ttyS0,115200 root=/dev/ram0 earlycon=uart8250,mmio,0x21c0500 ramdisk_size=0x3000000 default_hugepagesz=2m hugepagesz=2m hugepages=256"
+> > 
+> > - hikey_defconfig:
+> >   CONFIG_BOOTARGS="console=ttyAMA0,115200n8 root=/dev/mmcblk0p9 rw"
+[,,,]
+> For a board to be able to benefit from flash-kernel U-Boot must:
+> 
+> - be capable to load and execute boot.scr
+> - provide the booti command
+> - allow the definition of the following environment variables:
+>   - devtype, devnum, partition
+>   - fdtfile
+>   - kernel_addr_r
+>   - fdt_addr_r
+>   - ramdisk_addr_r
+> 
+> In your examples above I could not find any evidence that U-Boot cannot
+> be configured and built to fulfill these requirements.
+> 
+> For instance build
+> 
+> make r8a77995_draak_defconfig
+> make menuconfig
+> CONFIG_DISTRO_DEFAULTS=y
+> CONFIG_BOOTARGS="console=ttySC0,115200"
+> CONFIG_ENV_IS_IN_MMC=y (this is a default value)
+> make -j6
+> 
+> Setup missing environment variables interactively and save them to MMC
+> and you can rely on flash-kernel for booting.
+> 
+> ls1088ardb_sdcard_qspi_defconfig and hikey_defconfig select
+> CONFIG_DISTRO_DEFAULTS=y. CONFIG_BOOTARGS has to be reconfigured.
+> 
+> This patch is only about providing flash-kernel for the boards. It is
+> not about providing U-Boot configured to match flash-kernel's requirements.
+> 
+> I think that even for boards for which we do not provide U-Boot as a
+> Debian package we should allow the usage of flash-kernel without setting
+> up a local override for the machine database (/etc/flash-kernel/db).
+Hello,
+our policy has always been to only add an entry for an
+armhf/arm64 system to the flash-kernel database if this entry
+works out of the box with the default mainline u-boot
+configuration for the respective device.  Users usually expect
+that a system boots out of the box without having to build a
+non-standard u-boot configuration and modify the default
+environment if the system is listed in the flash-kernel machine
+db.
+I'm open to arguments to the contrary, but for now I believe that
+is makes sense to keep this policy.
+Having to build u-boot with an undocumented non-standard
+configuration and having to modify various non-obvious parts of
+the default environment (which possibly includes having to find
+out the platform-specific kernel_addr_r, fdt_addr_r and
+ramdisk_addr_r values for systems where they are not already
+defined in the default environment) to make the system boot is an
+extremely high and completely unexpected hurdle for a "normal"
+user, and I believe that we would do a large part of our userbase
+a misservice by including entries that do not work out of the
+box.
+For somebody who has the knowledge to perform all the
+aforementioned steps on the u-boot side, it's usually easy to
+also add a corresponding local entry to /etc/flash-kernel/db.
+I'm CCing debian-arm for further opinions on the matter.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

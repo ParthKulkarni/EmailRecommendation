@@ -1,0 +1,51 @@
+To : Vagrant Cascadian <vagrant@debian.org>, debian-arm@lists.debian.org
+Subject : Re: Summary of the Arm ports BoF at DC17
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Sun, 17 Sep 2017 22:13:37 +0100
+Message-id : 1505682817.2847.27.camel@decadent.org.uk
+In-reply-to : <[🔎] 87k20xaygn.fsf@aikidev.net>
+References : <[🔎] 20170914024001.kitowt4moob5hyso@tack.einval.com>	 <[🔎] 1505499098.2825.46.camel@decadent.org.uk> <[🔎] 87k20xaygn.fsf@aikidev.net>
+
+
+On Sun, 2017-09-17 at 12:59 -0700, Vagrant Cascadian wrote:
+> On 2017-09-15, Ben Hutchings wrote:
+> > On Thu, 2017-09-14 at 03:40 +0100, Steve McIntyre wrote:
+> > [...]
+> > > There is optional kernel support to trap the exceptions here
+> > > and emulate the instructions, but it's really not recommended for
+> > > serious use (e.g. on a build machine!).
+> > 
+> > [...]
+> > 
+> > Why is it not recommended?  Terrible performance, or known bugs?
+> 
+> On arm64 kernels building armhf packages for the reproducible builds
+> builders, I'm seeing hundreds or even thousands of kernel log warnings
+> per second when building anything that makes use of
+> CP15_BARRIER_EMULATION (e.g. anything using ghc):
+> 
+>   [85740.553537] cp15barrier_handler: 115316 callbacks suppressed
+>   [85740.559358] "ghc-pkg" (29572) uses deprecated CP15 Barrier instruction at 0xf5beaa7c
+>   [85740.567344] "ghc-pkg" (29572) uses deprecated CP15 Barrier instruction at 0xf5beaa9c
+>
+> That *might* be sufficient to actually impact performance; it certainly
+> makes it hard to read other kernel log messages on those machines...
+The log rate-limiting is done in the kernel, so the log daemon doesn't
+have to process all those messages.  However, the rate-limiting state
+is protected with a mutex (actually a spin-lock) so even when the log
+message is suppressed it involves an additional two memory barriers.
+And I agree that this kind of rate-limiting isn't really sufficient. 
+Warning once per process might be more reasonable, but there's
+currently no mechanism for that in the kernel.
+Ben.
+> There was a bug reported on ghc related to this:
+> 
+>   https://bugs.debian.org/864847
+> 
+> 
+> live well,
+>   vagrant
+-- 
+Ben Hutchings
+friends: People who know you well, but like you anyway.
+signature.asc

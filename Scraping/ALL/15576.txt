@@ -1,0 +1,159 @@
+To : <reiserfs-devel@vger.kernel.org>,<debian-devel@lists.debian.org>
+Subject : MariaDB 10.x will not install in Debian Stretch if Reiser4 rootfs has a separate non-reiser4 /tmp partition
+From : jose.r.r@metztli.com (Metztli Information Technology)
+Date : Sat,  9 Jun 2018 11:03:57 -0700 (PDT)
+Message-id : 20180609180357.BA03B1B948FD@huitzilopochtli.metztli-it.com
+
+
+Niltze all-
+I have verified issue in subject of this email in a Google Compute Engine (GCE) instance running Debian Stretch.
+Back when I successfully installed Metztli Reiser4 on a ServerPronto remote dedicated server:
+< https://metztli.it/blog/index.php/amatl/reiser-nahui/successful-metztli-reiser4-sfrn-4 >,
+I went crazy trying to figure out why neither MariaDB nor Percona installed in server on referenced link above.
+< https://www.percona.com/forums/questions-discussions/mysql-and-percona-server/50590-unable-to-install-percona-server-in-debian-stretch-kernel-4-14-13-1 >
+And I ended up incorrectly blaming the memory in the server and terminating the service. This is typical of what happens
+ -- as logged in /var/log/syslog:
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 2018-06-04  6:55:44 0 [Warning] InnoDB: Failed to set O_DIRECT on file./ibdata1; CREATE: Invalid argument, continuing anyway. O_DIRECT is known to result in 'Invalid argument' on Linux on tmpfs, see MySQL Bug#26662.
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 2018-06-04  6:55:44 0 [ERROR] InnoDB: Operating system error number 22 in a file operation.
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 2018-06-04  6:55:44 0 [ERROR] InnoDB: Error number 22 means 'Invalid argument'
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 2018-06-04  6:55:44 0 [ERROR] InnoDB: File ./ib_logfile101: 'aio write' returned OS error 222. Cannot continue operation
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 180604  6:55:44 [ERROR] mysqld got signal 6 ;
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: This could be because you hit a bug. It is also possible that this binary
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: or one of the libraries it was linked against is corrupt, improperly built,
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: or misconfigured. This error can also be caused by malfunctioning hardware.
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: To report this bug, see https://mariadb.com/kb/en/reporting-bugs
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: We will try our best to scrape up some info that will hopefully help
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: diagnose the problem, but since we have already crashed,
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: something is definitely wrong and this may fail.
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: Server version: 10.3.7-MariaDB-1:10.3.7+maria~stretch
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: key_buffer_size=134217728
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: read_buffer_size=2097152
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: max_used_connections=0
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: max_threads=102
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: thread_count=0
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: It is possible that mysqld could use up to
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: key_buffer_size + (read_buffer_size + sort_buffer_size)*max_threads = 760011 K  bytes of memory
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: Hope that's ok; if not, decrease some variables in the equation.
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: Thread pointer: 0x0
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: Attempting backtrace. You can use the following information to find out
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: where mysqld died. If you see no messages after this, something went
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: terribly wrong...
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: stack_bottom = 0x0 thread_stack 0x49000
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(my_print_stacktrace+0x2e)[0x56333c5b8c5e]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(handle_fatal_signal+0x41f)[0x56333c069abf]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /lib/x86_64-linux-gnu/libpthread.so.0(+0x110c0)[0x7f7c642c70c0]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /lib/x86_64-linux-gnu/libc.so.6(gsignal+0xcf)[0x7f7c624d9fff]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /lib/x86_64-linux-gnu/libc.so.6(abort+0x16a)[0x7f7c624db42a]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x93adf4)[0x56333c256df4]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x942f2b)[0x56333c25ef2b]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0xaccbf8)[0x56333c3e8bf8]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x921587)[0x56333c23d587]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x9221c1)[0x56333c23e1c1]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x92288d)[0x56333c23e88d]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x9285ad)[0x56333c2445ad]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x49df68)[0x56333bdb9f68]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x9dd9d5)[0x56333c2f99d5]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x8cf431)[0x56333c1eb431]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(_Z24ha_initialize_handlertonP13st_plugin_int+0x62)[0x56333c06c162]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x58a129)[0x56333bea6129]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(_Z11plugin_initPiPPci+0x7fa)[0x56333bea71ca]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(+0x4bfe1c)[0x56333bddbe1c]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(_Z11mysqld_mainiPPc+0x4cb)[0x56333bde1e4b]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf1)[0x7f7c624c72e1]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/sbin/mysqld(_start+0x2a)[0x56333bdd4daa]
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: The manual page at http://dev.mysql.com/doc/mysql/en/crashing.html contains
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: information that should help you find out what is causing the crash.
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /usr/bin/mysql_install_db: line 461: 21424 Aborted                 "$mysqld_bootstrap" $defaults $defaults_group_suffix "$mysqld_opt" --bootstrap $silent_startup "--basedir=$basedir" "--datadir=$ldata" --log-warnings=0 --enforce-storage-engine="" $args --max_allowed_packet=8M --net_buffer_length=16K
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: Installation of system tables failed!  Examine the logs in
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: /var/lib/mysql for more information.
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: The problem could be conflicting information in an external
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: my.cnf files. You can ignore these by doing:
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]:     shell> /usr/bin/mysql_install_db --defaults-file=~/.my.cnf
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: You can also try to start the mysqld daemon with:
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]:     shell> /usr/sbin/mysqld --skip-grant-tables --general-log &
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: and use the command line tool /usr/bin/mysql
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: to connect to the mysql database and look at the grant tables:
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]:     shell> /usr/bin/mysql -u root mysql
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]:     mysql> show tables;
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: Try 'mysqld --help' if you have problems with paths.  Using
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: --general-log gives you a log in /var/lib/mysql that may be helpful.
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: The latest information about mysql_install_db is available at
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: https://mariadb.com/kb/en/installing-system-tables-mysql_install_db
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: You can find the latest source at https://downloads.mariadb.org and
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: the maria-discuss email list at https://launchpad.net/~maria-discuss
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: Please check all of the above before submitting a bug report
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: at http://mariadb.org/jira
+Jun  4 06:55:44 host-june2018 mysqld_safe[21395]: 
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] /usr/sbin/mysqld (mysqld 10.3.7-MariaDB-1:10.3.7+maria~stretch) starting as process 21476 ...
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: Using Linux native AIO
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: Mutexes and rw_locks use GCC atomic builtins
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: Uses event mutexes
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: Compressed tables use zlib 1.2.8
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: Number of pools: 1
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: Using SSE2 crc32 instructions
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: Initializing buffer pool, total size = 256M, instances = 1, chunk size = 128M
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: Completed initialization of buffer pool
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Note] InnoDB: If the mysqld execution user is authorized, page cleaner thread priority can be changed. See the man page of setpriority().
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [Warning] InnoDB: Failed to set O_DIRECT on file./ibdata1; OPEN: Invalid argument, continuing anyway. O_DIRECT is known to result in 'Invalid argument' on Linux on tmpfs, see MySQL Bug#26662.
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [ERROR] InnoDB: Header page consists of zero bytes in datafile: ./ibdata1, Space ID:0, Flags: 0. Please refer to http://dev.mysql.com/doc/refman/5.7/en/innodb-troubleshooting-datadict.html for how to resolve the issue.
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [ERROR] InnoDB: Corrupted page [page id: space=0, page number=0] of datafile './ibdata1' could not be found in the doublewrite buffer.
+Jun  4 06:55:54 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:54 0 [ERROR] InnoDB: Plugin initialization aborted with error Data structure corruption
+Jun  4 06:55:55 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:55 0 [Note] InnoDB: Starting shutdown...
+Jun  4 06:55:55 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:55 0 [ERROR] Plugin 'InnoDB' init function returned error.
+Jun  4 06:55:55 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:55 0 [ERROR] Plugin 'InnoDB' registration as a STORAGE ENGINE failed.
+Jun  4 06:55:55 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:55 0 [Note] Plugin 'FEEDBACK' is disabled.
+Jun  4 06:55:55 host-june2018 mysqld_safe[21477]: ERROR: 1146  Table 'mysql.user' doesn't exist
+Jun  4 06:55:55 host-june2018 mysqld_safe[21477]: 2018-06-04  6:55:55 0 [ERROR] Aborting
+Jun  4 06:55:55 host-june2018 mysqld_safe[21477]: 
+Jun  4 06:55:55 host-june2018 systemd[1]: Reloading.
+Jun  4 06:55:56 host-june2018 systemd[1]: Reloading.
+Jun  4 06:55:56 host-june2018 systemd[1]: Reloading.
+Jun  4 06:55:56 host-june2018 systemd[1]: Starting MariaDB 10.3.7 database server...
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] /usr/sbin/mysqld (mysqld 10.3.7-MariaDB-1:10.3.7+maria~stretch-log) starting as process 21920 ...
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: Using Linux native AIO
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: Mutexes and rw_locks use GCC atomic builtins
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: Uses event mutexes
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: Compressed tables use zlib 1.2.8
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: Number of pools: 1
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: Using SSE2 crc32 instructions
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: Initializing buffer pool, total size = 256M, instances = 1, chunk size = 128M
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: Completed initialization of buffer pool
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Note] InnoDB: If the mysqld execution user is authorized, page cleaner thread priority can be changed. See the man page of setpriority().
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [Warning] InnoDB: Failed to set O_DIRECT on file./ibdata1; OPEN: Invalid argument, continuing anyway. O_DIRECT is known to result in 'Invalid argument' on Linux on tmpfs, see MySQL Bug#26662.
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [ERROR] InnoDB: Header page consists of zero bytes in datafile: ./ibdata1, Space ID:0, Flags: 0. Please refer to http://dev.mysql.com/doc/refman/5.7/en/innodb-troubleshooting-datadict.html for how to resolve the issue.
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [ERROR] InnoDB: Corrupted page [page id: space=0, page number=0] of datafile './ibdata1' could not be found in the doublewrite buffer.
+Jun  4 06:55:56 host-june2018 mysqld[21920]: 2018-06-04  6:55:56 0 [ERROR] InnoDB: Plugin initialization aborted with error Data structure corruption
+Jun  4 06:55:57 host-june2018 mysqld[21920]: 2018-06-04  6:55:57 0 [Note] InnoDB: Starting shutdown...
+Jun  4 06:55:57 host-june2018 mysqld[21920]: 2018-06-04  6:55:57 0 [ERROR] Plugin 'InnoDB' init function returned error.
+Jun  4 06:55:57 host-june2018 mysqld[21920]: 2018-06-04  6:55:57 0 [ERROR] Plugin 'InnoDB' registration as a STORAGE ENGINE failed.
+Jun  4 06:55:57 host-june2018 mysqld[21920]: 2018-06-04  6:55:57 0 [Note] Plugin 'FEEDBACK' is disabled.
+Jun  4 06:55:57 host-june2018 mysqld[21920]: 2018-06-04  6:55:57 0 [ERROR] Could not open mysql.plugin table. Some plugins may be not loaded
+Jun  4 06:55:57 host-june2018 mysqld[21920]: 2018-06-04  6:55:57 0 [ERROR] Unknown/unsupported storage engine: InnoDB
+Jun  4 06:55:57 host-june2018 mysqld[21920]: 2018-06-04  6:55:57 0 [ERROR] Aborting
+Jun  4 06:55:57 host-june2018 systemd[1]: mariadb.service: Main process exited, code=exited, status=1/FAILURE
+Jun  4 06:55:57 host-june2018 systemd[1]: mariadb.service: Failed with result 'exit-code'.
+Jun  4 06:55:57 host-june2018 systemd[1]: Failed to start MariaDB 10.3.7 database server.
+Best Professional Regards.
+-- 
+Jose R R
+http://metztli.it
+---------------------------------------------------------------------------------------------
+Download Metztli Reiser4: Debian Stretch w/ Linux 4.15 AMD64
+---------------------------------------------------------------------------------------------
+feats ZSTD compression https://sf.net/projects/metztli-reiser4/
+-------------------------------------------------------------------------------------------
+Official current Reiser4 resources: https://reiser4.wiki.kernel.org/

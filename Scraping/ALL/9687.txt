@@ -1,0 +1,213 @@
+To : Adam Borowski <kilobyte@angband.pl>
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Wouter Verhelst <wouter@debian.org>
+Date : Wed, 7 Jun 2017 10:36:17 +0200
+Message-id : 20170607083617.xirzoqjbiwvdcne6@grep.be
+In-reply-to : <[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl>
+References : <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk> <[🔎] 20170606000242.333F97C6433@relay.mailchannels.net> <[🔎] 871sqyueya.fsf@hope.eyrie.org> <[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl>
+
+
+On Tue, Jun 06, 2017 at 03:55:48PM +0200, Adam Borowski wrote:
+> On Mon, Jun 05, 2017 at 05:39:41PM -0700, Russ Allbery wrote:
+> > Maybe someone has a list of things they view as Recommends inflation that
+> > have (a) been reported as bugs to the appropriate package maintainers, and
+> > (b) have been rejected by those package maintainers?  Those are the
+> > controversial ones that we'd need to talk about.
+> 
+> Here's something even better: an automated way to list bad Recommends that
+> personally affect you -- ones that made you take steps to ignore them when
+> installing a package you actually use:
+> 
+> ..--==[ list-unsatisfied-recommends ]
+> #!/usr/bin/python
+> import apt
+> c = apt.Cache()
+> for pkg in c:
+>     if pkg.installed is not None:
+>         for rd in pkg.candidate.get_dependencies("Recommends"):
+>             if not rd.installed_target_versions:
+>                 print pkg, rd
+> `----
+> 
+> Forgot whom to credit for this tool; alas, it's written in a language that
+> itself is bloat[1].
+> 
+> More seriously, though, let's go through the list of 94 unsatisfied ones on
+> my desktop; the list below is transposed to collate recommendees.
+> 
+> 
+> Categories:
+> OK: "Recommends:" looks warranted
+> DEBATABLE: duh.
+> BLOAT: potentially useful but I wouldn't make it a Recommends
+> BAD: downgrade please
+> TRANSITIVELY BAD: useful for a direct user but not when pulled via a
+>     dependency -or- causes this lower in the chain
+> 
+> <ton of Java crap>: libreoffice-base
+> * BLOAT: they're no longer owned by Sun, what's the reason to keep Java
+>   scripting?
+Actually, there's significant functionality for some part of
+libreoffice-base (this is not the "core" of libreoffice, but the
+database component) that's implemented in Java. You can still use
+libreoffice-base without java, but that functionality won't be available
+then.
+I think that's a perfect match for "all but unusual" here.
+> dnsmasq-base: lxc
+> * BAD: how often are you on a network without a DNS server?
+This is about lxc being able to resolve the other containers and the
+host system, not about other machines on the network.
+You may not be interested in that, but it seems as a perfectly
+reasonable thing for a recommends to me.
+[...]
+> fonts-cantarell: fontforge-common
+> * BAD: FontForge works perfectly without it
+Yes, but isn't there missing functionality then? If so, that makes
+perfect sense.
+> fonts-noto-cjk: fonts-noto
+> * BLOAT: unlike greek/runes/etc, you can't learn Chinese hieroglyphs on a
+>   whim, thus it's useless for most users.  You may want a _single_ CJK font
+>   so you can tell whether a text is in C, J or K but that's it.
+I think this is something that can only reasonably be decided by someone
+who actually speaks the languages in question.
+> freedoom | game-data-packager: prboom-plus
+> * DEBATABLE: freedoom is too ugly to live, shareware Doom has assets missing
+>   for running pretty much anything Doom-related (and AFAIK its license
+>   forbids add-ons).  On the other hand, this is an excuse for Doom engines
+>   in main.
+freedoom is quite fun, actually, IMHO. I think this should be a Depends
+rather than a Recommends, but perhaps there's a way to use a doom engine
+without wads? Dunno.
+[...]
+> ghostscript: gimp imagemagick-6.q16 libmagickcore-6.q16-3 netpbm
+> * BAD: why would editing images care about a grossly obsolete _document_
+>   format?
+PostScript is often used to store images, too. All these tools use
+ghostscript as an import filter for opening those files.
+It makes perfect sense to me?
+[...]
+> gnupg-l10n: gnupg
+> * DEBATABLE: I don't think anyone tech skilled enough to use GPG would have
+>   problems with English, but localization is important.  On the other hand,
+>   this is 4.5MB in the default install.
+No. Just, no. i18n is not a "feature" that we should disable by default.
+It should be on by default. Users should not have to check every time
+they use a program whether there's i18n files.
+There is no stronger example than this to show the "all but unusual"
+argument, IMO.
+[...]
+> libaacs0: libbluray1
+> * BLOAT: useful only if you rip optical media
+Yes, but essential if you do.
+> libclass-xsaccessor-perl: libmoo-perl
+> * BLOAT: wut?
+They make things go much faster ("The XS accessor methods were between
+1.6 and 2.5 times faster than typical pure-perl accessors in some simple
+benchmarking.", the description says). However, since it's written in C,
+it's not guaranteed to work everywhere. If they're not available or
+buggy on your architecture, you might still want to be able to say "use
+Moo;" without running into issues, but the normal way of using
+libmoo-perl is to have libclass-xsaccessor-perl installed, too.
+How is that in any way "bloat"?
+> libgit-wrapper-perl: devscripts
+> * ????: I've never used git-deborig, is it actually useful?  Tiny package,
+>   though.
+devscripts has an "interesting" way to categorize recommends and
+depends. Some of them are debateable, but they are internally
+consistent.
+> libgnomeui-0: xscreensaver
+> * BAD: Gnome users won't run xscreensaver
+Actually, gnome-screensaver has the ability to run xscreensaver hacks.
+> libgpm2: libncurses5:i386
+> * OK: or rather, not doable with current tools: we do want mouse support
+>   in curses programs (libgpm2 handles X terminals too, right?) but in this
+>   case it's a multiarch copy of an otherwise important package
+Read up on multiarch, then. Depends/recommends/suggests can only be
+satisfied by packages from their own architecture.
+[...]
+> libgtk2-perl: tablet-encode
+> * out of archive
+libgtk2-perl:
+  Geïnstalleerd: 2:1.2499-1
+  Kandidaat:     2:1.2499-1
+  Versietabel:
+ *** 2:1.2499-1 500
+        500 http://ftp.be.debian.org/debian sid/main amd64 Packages
+        500 http://ftp.be.debian.org/debian testing/main amd64 Packages
+        100 /var/lib/dpkg/status
+Nope.
+> libhtml-format-perl: libhtml-tree-perl libwww-perl
+> * ????: wut?
+libwww-perl has the ability to parse HTML forms, so that you can do
+something like "download a form, get the unique nonce from the form, add
+username and password, continue".
+Whether that's worth a dependency is debateable.
+> libhttp-daemon-perl: libwww-perl
+> * TRANSITIVELY BAD: dependency comes from a client package; if I want to run
+>   a http server I know where to find it
+> 
+> libimage-magick-perl: inkscape
+> * ????: wut?
+Inkscape can import raster images to use in the vector images. Almost
+any vector image will want to do that at some point, and for many of
+those files you'll need to use an import filter.
+How is that anything but "all but unusual"?
+[...]
+> libmail-sendmail-perl: po-debconf
+> * BAD: why would po stuff want to send mail?
+po-debconf has a tool to automatically email translators with
+out-of-date translations to request an updated tranlation. It's called
+"podebconf-report-po" and is extremely helpful! You should use it! And
+yes, it requires to send out email.
+Perfectly within the "all but unusual" description, IMO.
+> libpackage-stash-xs-perl: libpackage-stash-perl
+> * TRANSITIVELY BAD: dependencies pulling more dependencies, why?
+As with other "xs vs no xs" options in perl, "makes things go faster",
+but there's still basic functionality when the dependency is absent.
+> libpam-cap: libcap2-bin
+> * ????: no idea.
+Read up on capabilities, what they're useful for, and why you would want
+to use them.
+Suddenly you'll understand why you might want to assign some of them at
+login time.
+[...]
+> libpam-systemd: xfce4-power-manager xfce4-session
+> * BAD: Depends:systemd, utterly pointless without it.
+I believe this was because libpam-systemd uses libsystemd-shared, which
+is found in the systemd binary package.
+However, installing the systemd binary package does in no way require
+that systemd is used as pid1.
+[...]
+> libpurple-bin: libpurple0
+> * BAD: a library has no reason to install programs
+Except if those are things that the library might want to system().
+Like, say,
+/usr/bin/purple-url-handler
+... which is found in libpurple-bin.
+[...]
+> libsoap-lite-perl: devscripts
+> * ????: apparently some obscure option of dch, I don't know.
+probably used by the "bts" script to query (you guessed it) the bts.
+[...]
+> libunicode-utf8-perl: libpath-tiny-perl
+> * ????: isn't Perl's built-in UTF-8 decoding good enough?
+The description says:
+ Performs between 600% and 1200% faster than Encode.
+so apparently not.
+[...]
+> pavucontrol: xfce4-pulseaudio-plugin
+> * BAD: PulseAudio means no working sound, until you fix it, sorry no.
+So why do you have xfce4-pulseaudio-plugin installed, then?
+[... bored now ...]
+it feels to me like you've just looked at the package names and gone
+"meh, wtf, don't need that". While that may seem "obviously correct" to
+you, a short amount of investigation into most of those things you think
+need to be thrown out (I haven't given any of those packages more than a
+minute each) shows that there usually *are* good reasons to add a
+Recommends.
+Yes, sometimes there are too many of them; but no, that does not (and
+should not) mean that we're Doing It Wrong(TM). It just means that
+occasionally, you might want to file a bug, rather than rant on -devel
+;-)
+-- 
+Help me, off-by-one kenobi. You're my only nought.

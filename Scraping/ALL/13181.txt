@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: sse{2,3,4.2}, altivec, neon, ...
+From : Adrian Bunk <bunk@debian.org>
+Date : Tue, 8 Aug 2017 19:23:19 +0300
+Message-id : 20170808162319.wno2mltiw7vbos74@localhost
+In-reply-to : <[🔎] 20170808024726.6tv4fz7cbmax5dj2@angband.pl>
+References : <[🔎] 20170805175302.ewj5jks7sbl6ukyl@angband.pl> <[🔎] debc4db7-4b37-eb36-b542-dddea5f6056e@debian.org> <[🔎] 20170805202836.tmrt2dzpiawkwdxe@angband.pl> <[🔎] 20170808024726.6tv4fz7cbmax5dj2@angband.pl>
+
+
+On Tue, Aug 08, 2017 at 04:47:26AM +0200, Adam Borowski wrote:
+> On Sat, Aug 05, 2017 at 10:28:36PM +0200, Adam Borowski wrote:
+> > It's easy to quite reliably detect the presence of such instructions
+> > (probably no one JITs such code).  There's no real way to check if it's
+> > executed unconditionally, though -- a lot of software has optimized code
+> > paths that are chosen at runtime.
+> > 
+> > I guess we could apply such check to the archive: for example, if any of
+> > these instructions are present in a code section: [snip]
+> > then the program may need sse2.  But there's no good way to weed out false
+> > positives automatically, so all we'd get is a list of candidates to check.
+> 
+> I went through the whole archive and disassembled all binaries in unstable
+> in amd64 and i386 (not sure where to get a good list of neon instructions
+> for armhf) -- results attached, and so is the script for analyzing a
+> package[1].
+Thanks, that's a really useful effort.
+> Alas, there's way too many false positives to turn this into a lintian
+> check.  There's 254 amd64 and 409 i386 sources which produce executables
+> that include those instructions (I ignored other ISA extensions for now),
+> most of them use proper runtime detection.  So unless someone can propose
+> a better check, they'd need to be tested by hand.
+>...
+There are groups of packages (Go, gcl, haskell) that are either buggy 
+due to one bug or can be whitelisted together.
+The majority of packages in the amd64 list seem to be binaries built by Go.
+I checked one case in a package, and that was code with proper runtime 
+detection copied from golang-1.8 (Go doesn't have shared libraries).
+Something like skipping binaries based on "objdump -t --section=.gosymtab" 
+could whitelist these.
+cu
+Adrian
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

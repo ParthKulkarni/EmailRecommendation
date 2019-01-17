@@ -1,0 +1,75 @@
+To : debian-boot@lists.debian.org
+Subject : Re: Easier installer?
+From : Wouter Verhelst <wouter@debian.org>
+Date : Sun, 19 Nov 2017 15:03:03 +0100
+Message-id : 20171119140303.jazletaojvcdz6e2@grep.be
+In-reply-to : <[🔎] 20171116121747.fvmnektgtyjpvjh5@var.youpi.perso.aquilenet.fr>
+References : <[🔎] 20171116115316.spxh5omwpaloaiky@grep.be> <[🔎] 20171116121747.fvmnektgtyjpvjh5@var.youpi.perso.aquilenet.fr>
+
+
+On Thu, Nov 16, 2017 at 01:17:47PM +0100, Samuel Thibault wrote:
+> Wouter Verhelst, on jeu. 16 nov. 2017 12:53:16 +0100, wrote:
+[...]
+> > since, in essence, we'd just be providing an alternate UI to the same
+> > installer, people who need some of the more advanced options can ditch
+> > the hand-holding UI and switch to the advanced UI. We could add a
+> > button "skip this screen" to make that easier, if needs be.
+> 
+> That actually triggers me another thought: the installers you are
+> talking about ask basically the same set of questions, not so much
+> less. The main difference is that they are asked together in a dialog
+> box. I can understand that this can be less stressing for inexperienced
+> users: it's easier to leave things as defaults when it's all preset in a
+> dialog box and you just click "ok" than when one has to answer questions
+> one after the other, which can be stressing.
+> 
+> I can understand that *that* can make a difference, and that could be
+> implemented indeed, to preseed the rest of questions. The difficult part
+> is to make sure that all such questions will be preseeded.
+So, I've been thinking about how we could implement something like this
+without requiring what in essense would be a rewrite of d-i, and this is
+what I came up with:
+- Create a new udeb for an overview screen, and make it show up early in
+  main-menu so it gets run "fairly early"[1].
+- In that overview screen, show the status of the "most important"[1]
+  settings. Make these populated by files that are written by the
+  particular udebs, similar to how partman populates its main menu.
+- Allow those udebs that are shown in the overview screen to also set a
+  flag file which causes their option in that screen to be marked as
+  "confirmation required". You cannot confirm the overview screen until
+  none of its options have the "confirmation required" flag set.
+- Selecting a particular option in the overview screen causes the
+  installer to configure the selected udeb, as though it was selected
+  from the main menu.
+- Once the user confirms the overview screen, set the debconf priority
+  to critical and quit successfully. The installation is handed over to
+  main-menu, which will now run normally without asking any questions
+  (unless an error occurs).
+- If the user selects the option "skip this screen", do not touch the
+  debconf priority and quit successfully. The installation is handed
+  over to main-menu, which will now run normally, asking questions as
+  before.
+[1] what consists "fairly early" and "most important" are
+    implementational details that can be fine-tuned later on and are not
+    important for this discussion.
+With that plan, the only changes that would be required would be to:
+- Implement the required logic behind the overview screen. Much of this
+  could be copied from main-menu
+- Make sure that the "skip this screen" option can be easily preseeded,
+  so that preseeding still works.
+- Modify the relevant udebs so they write their status and optionally an
+  "update required" flag file in the right location for the overview
+  screen
+Everything else would function as before. In a first implementation,
+this would already be quite some improvement I think.
+In addition, I also think it would be beneficial if we were to add
+another type of debconf template that could be used by that overview
+screen instead of the "select" template that we use now for main-menu
+and partman-base, and which would allow for a more modern and shinier
+type of user interface. It could also be used by partman, then.
+This can be implemented later, however.
+Thoughts?
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

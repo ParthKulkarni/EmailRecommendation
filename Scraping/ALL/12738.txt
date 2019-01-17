@@ -1,0 +1,386 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Removal of upstart integration
+From : Dimitri John Ledkov <xnox@debian.org>
+Date : Wed, 30 Aug 2017 14:39:16 +0100
+Message-id : CANBHLUh_ZhEfbkVnOp8iM-j+4xVo5rzORvknVptyUna+b6B-EA@mail.gmail.com
+
+
+upstart - event-based init daemon has been removed from debian and is
+currently only present in oldstable.
+Many packages however still ship upstart integration. Please consider
+removing /etc/init/* conffiles from your packages. Do note, that
+typically this will require a debian/pkg.maintscript snippet to
+rm_conffile these files.
+For straight forwarded cases where simply debian/*.upstart files
+exist, this can be resolved using this script:
+---- 8< ----
+#!/bin/bash
+set -e
+set -x
+drop_upstart() {
+    ver=$1
+    pkg=$2
+    job=$2
+    if [ -n "$4" ]
+    then
+          job=$3
+    fi
+    echo "rm_conffile /etc/init/$job.conf $ver~ $pkg" >> $pkg.maintscript
+}
+dch -i 'Drop upstart system jobs.'
+ver=$(parsechangelog | sed -n 's/Version: //p')
+pushd debian
+for f in *.upstart
+do
+    drop_upstart $ver $(echo $f | sed 's/\./ /g')
+    rm $f
+done
+popd
+---- 8< ----
+or something similar.
+Please test that /etc/init/* jobs are not shipped by the new package
+and are removed from disk upon upgrades.
+dd-list of packages shipping etc/init files:
+Adnan Hodzic <adnan@hodzic.org>
+   lxcfs (U)
+Adrian Vondendriesch <adrian.vondendriesch@credativ.de>
+   corosync (U)
+Andreas Tille <andreas@an3as.eu>
+   manila (U)
+Andriy Senkovych <jolly_roger@itblog.org.ua>
+   salt (U)
+Anibal Monsalve Salazar <anibal@debian.org>
+   conmux
+   irqbalance
+   rpcbind
+Antonio Radici <antonio@dyne.org>
+   anacron (U)
+Apollon Oikonomopoulos <apoikos@debian.org>
+   mongodb (U)
+Aron Xu <aron@debian.org>
+   bumblebee (U)
+Axel Beckert <abe@debian.org>
+   aptitude-robot (U)
+Balint Reczey <rbalint@ubuntu.com>
+   forked-daapd (U)
+Benjamin Drung <benjamin.drung@profitbricks.com>
+   salt (U)
+Bernd Zeimetz <bzed@debian.org>
+   carbon-c-relay (U)
+   mod-gearman
+Chris Boot <bootc@debian.org>
+   ulogd2
+Christoph Berg <myon@debian.org>
+   corosync (U)
+Clint Byrum <clint@ubuntu.com>
+   mysql-5.7 (U)
+Colin King <colin.king@canonical.com>
+   thermald
+Corey Bryant <corey.bryant@canonical.com>
+   murano (U)
+   python-oslo.messaging (U)
+Dara Adib <daradib@ocf.berkeley.edu>
+   sidedoor
+Dariusz Dwornikowski <dariusz.dwornikowski@cs.put.poznan.pl>
+   ryu (U)
+David Della Vecchia <ddv@canonical.com>
+   python-oslo.messaging (U)
+David Douard <david.douard@logilab.fr>
+   circus
+Debian Cryptsetup Team <pkg-cryptsetup-devel@lists.alioth.debian.org>
+   cryptsetup
+Debian DNS Packaging <pkg-dns-devel@lists.alioth.debian.org>
+   nsd
+Debian FreeIPA Team <pkg-freeipa-devel@lists.alioth.debian.org>
+   certmonger
+Debian FreeRADIUS Packaging Team
+<pkg-freeradius-maintainers@lists.alioth.debian.org>
+   freeradius
+Debian Go Packaging Team <pkg-go-maintainers@lists.alioth.debian.org>
+   golang-github-hashicorp-serf
+   rawdns
+Debian HA Maintainers <debian-ha-maintainers@lists.alioth.debian.org>
+   corosync
+Debian Java Maintainers <pkg-java-maintainers@lists.alioth.debian.org>
+   zookeeper
+Debian MongoDB Maintainers <pkg-mongodb-maintainers@lists.alioth.debian.org>
+   mongodb
+Debian Multimedia Maintainers
+<pkg-multimedia-maintainers@lists.alioth.debian.org>
+   forked-daapd
+Debian MySQL Maintainers <pkg-mysql-maint@lists.alioth.debian.org>
+   mysql-5.7
+Debian NVIDIA Maintainers <pkg-nvidia-devel@lists.alioth.debian.org>
+   bumblebee
+Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
+   lemonldap-ng
+Debian PHP Maintainers <pkg-php-maint@lists.alioth.debian.org>
+   php7.0
+   php7.1
+Debian QA Group <packages@qa.debian.org>
+   fwknop
+Debian Salt Team <pkg-salt-team@lists.alioth.debian.org>
+   salt
+Debian sysvinit maintainers <pkg-sysvinit-devel@lists.alioth.debian.org>
+   startpar
+Debian/Kubuntu Qt/KDE Maintainers <debian-qt-kde@lists.debian.org>
+   sddm
+Dmitry Smirnov <onlyjob@debian.org>
+   docker-registry (U)
+Docker Packaging Team <docker-maint@lists.alioth.debian.org>
+   docker.io (U)
+Elmar S. Heeb <elmar@heebs.ch>
+   aptitude-robot
+Evgeni Golov <evgeni@debian.org>
+   lxcfs (U)
+Ferenc Wágner <wferi@debian.org>
+   corosync (U)
+Filippo Giunchedi <filippo@debian.org>
+   carbon-c-relay
+Franklin G Mendoza <franklin.g.mendoza@gmail.com>
+   salt (U)
+Frédéric Bonnard <frediz@linux.vnet.ibm.com>
+   rear
+Guido Guenther <agx@sigxcpu.org>
+   lbcd (U)
+Guilhem Moulin <guilhem@guilhem.org>
+   cryptsetup (U)
+gustavo panizzo <gfa@zumbi.com.ar>
+   nova (U)
+Gustavo Panizzo <gfa@zumbi.com.ar>
+   neutron (U)
+Guus Sliepen <guus@debian.org>
+   ifupdown
+Henrique de Moraes Holschuh <hmh@debian.org>
+   startpar (U)
+Holger Levsen <holger@debian.org>
+   munin (U)
+Ivan Udovichenko <iudovichenko@mirantis.com>
+   glare (U)
+   murano (U)
+   neutron (U)
+James McCoy <jamessan@debian.org>
+   serf
+James Page <james.page@ubuntu.com>
+   networking-l2gw (U)
+   python-oslo.messaging (U)
+   zookeeper (U)
+James Page <jamespage@debian.org>
+   mysql-5.7 (U)
+Jens Peter Secher <jps@debian.org>
+   slim (U)
+Joe Healy <joehealy@gmail.com>
+   salt (U)
+Jon Bernard <jbernard@debian.org>
+   ltt-control
+Jonas Meurer <mejo@debian.org>
+   cryptsetup (U)
+Josip Rodin <joy-packages@debian.org>
+   freeradius (U)
+Jérémy Lal <kapouer@melix.org>
+   mongodb (U)
+Jörg Frings-Fürst <debian@jff-webhosting.net>
+   bitz-server
+   downtimed
+Kel Modderman <kel@otaku42.de>
+   startpar (U)
+Kouhei Maeda <mkouhei@palmtb.net>
+   yrmcds
+Lars Tangvald <lars.tangvald@oracle.com>
+   mysql-5.7 (U)
+Laszlo Boszormenyi (GCS) <gcs@debian.org>
+   mongodb (U)
+   ovirt-guest-agent
+   paxctld
+   syslog-ng (U)
+Lenny Verkhovsky <lennyb@mellanox.com>
+   networking-mlnx (U)
+Leo Costela <costela@debian.org>
+   transmission (U)
+Lior Kaplan <kaplan@debian.org>
+   php7.0 (U)
+   php7.1 (U)
+Louis Bouchard <louis.bouchard@ubuntu.com>
+   makedumpfile
+LTSP Debian Maintainers <pkg-ltsp-devel@lists.alioth.debian.org>
+   ltsp
+Luca Boccassi <luca.boccassi@gmail.com>
+   bumblebee (U)
+Malihe Asemani <ml.asemani@gmail.com>
+   manila (U)
+Marco Nenciarini <mnencia@debian.org>
+   resolvconf (U)
+Mark Hymers <mhy@debian.org>
+   freeradius (U)
+Mateusz Łukasik <mati75@linuxmint.pl>
+   slim (U)
+Maximiliano Curia <maxy@debian.org>
+   sddm (U)
+Michael Jeanson <mjeanson@ubuntu.com>
+   ltt-control (U)
+Michael Prokop <mika@debian.org>
+   fai (U)
+Michael Stapelberg <stapelberg@debian.org>
+   freeradius (U)
+Michael Vogt <mvo@debian.org>
+   squid-deb-proxy
+Michał Zając <quintasan@kubuntu.org>
+   sddm (U)
+Munin Debian Maintainers <packaging@munin-monitoring.org>
+   munin
+Nobuhiro Iwamatsu <iwamatsu@debian.org>
+   slim
+Norbert Tretkowski <norbert@tretkowski.de>
+   mysql-5.7 (U)
+Ondřej Surý <ondrej@debian.org>
+   bird
+   nsd (U)
+   php7.0 (U)
+   php7.1 (U)
+Oxan van Leeuwen <oxan@oxanvanleeuwen.nl>
+   postsrsd
+Paul Tagliamonte <paultag@debian.org>
+   docker.io (U)
+Peter Eisentraut <petere@debian.org>
+   anacron
+Petter Reinholdtsen <pere@debian.org>
+   startpar (U)
+PKG OpenStack <openstack-devel@lists.alioth.debian.org>
+   aodh
+   barbican
+   ceilometer
+   cinder
+   cobbler
+   congress
+   designate
+   glance
+   glare
+   gnocchi
+   heat
+   ironic
+   ironic-inspector
+   magnum
+   manila
+   mistral
+   murano
+   murano-agent
+   networking-l2gw
+   networking-mlnx
+   neutron
+   neutron-dynamic-routing
+   neutron-lbaas
+   neutron-vpnaas
+   nova
+   openstack-trove
+   python-oslo.messaging
+   ryu
+   sahara
+   senlin
+   watcher
+   zaqar
+pkg-go <pkg-go-maintainers@lists.alioth.debian.org>
+   docker-registry
+pkg-lxc <pkg-lxc-devel@lists.alioth.debian.org>
+   lxcfs
+Python Applications Packaging Team <python-apps-team@lists.alioth.debian.org>
+   diamond (U)
+resolvconf maintainers <resolvconf-devel@lists.alioth.debian.org>
+   resolvconf
+Richard B Winters <rik@mmogp.com>
+   corosync (U)
+Robie Basak <robie@justgohome.co.uk>
+   mysql-5.7 (U)
+Roger A. Light <roger@atchoo.org>
+   mosquitto
+Roger Leigh <rleigh@debian.org>
+   startpar (U)
+Roman Fiedler <roman.fiedler@ait.ac.at>
+   logdata-anomaly-miner
+Ron Lee <ron@debian.org>
+   tftp-hpa
+Russ Allbery <rra@debian.org>
+   lbcd
+Sam Hartman <hartmans@debian.org>
+   freeradius (U)
+Sandro Tosi <morph@debian.org>
+   diamond
+   transmission
+Serge Hallyn <serge.hallyn@ubuntu.com>
+   cgmanager
+Stephen Gran <sgran@debian.org>
+   freeradius (U)
+Stig Sandbeck Mathisen <ssm@debian.org>
+   munin (U)
+syslog-ng maintainers <syslog-ng-maintainers@lists.alioth.debian.org>
+   syslog-ng
+SZALAY Attila <sasa@debian.org>
+   syslog-ng (U)
+Thomas Goirand <zigo@debian.org>
+   aodh (U)
+   barbican (U)
+   ceilometer (U)
+   cinder (U)
+   cobbler (U)
+   congress (U)
+   designate (U)
+   fuel-nailgun-agent
+   glance (U)
+   glare (U)
+   gnocchi (U)
+   heat (U)
+   ironic (U)
+   ironic-inspector (U)
+   magnum (U)
+   manila (U)
+   mistral (U)
+   murano (U)
+   murano-agent (U)
+   networking-l2gw (U)
+   networking-mlnx (U)
+   neutron (U)
+   neutron-dynamic-routing (U)
+   neutron-lbaas (U)
+   neutron-vpnaas (U)
+   nova (U)
+   openstack-trove (U)
+   python-oslo.messaging (U)
+   ryu (U)
+   sahara (U)
+   senlin (U)
+   startpar (U)
+   watcher (U)
+   zaqar (U)
+Thomas Hood <jdthood@gmail.com>
+   resolvconf (U)
+Thomas Lange <lange@debian.org>
+   fai
+Tianon Gravi <tianon@debian.org>
+   docker-registry (U)
+   docker.io (U)
+   golang-github-hashicorp-serf (U)
+   rawdns (U)
+Tim Potter <tpot@hpe.com>
+   docker-registry (U)
+   docker.io
+   golang-github-hashicorp-serf (U)
+Timo Aaltonen <tjaalton@debian.org>
+   certmonger (U)
+tony mancill <tmancill@debian.org>
+   zookeeper (U)
+Uditha Atukorala <ua@nuked.zone>
+   bitz-server (U)
+Vagrant Cascadian <vagrant@debian.org>
+   ltsp (U)
+Vincent Bernat <bernat@debian.org>
+   exabgp
+Vincent Cheng <vcheng@debian.org>
+   bumblebee (U)
+Wolodja Wentland <debian@babilen5.org>
+   salt (U)
+Xavier Guimard <x.guimard@free.fr>
+   lemonldap-ng (U)
+Yunqiang Su <wzssyqa@gmail.com>
+   bumblebee (U)
+-- 
+Regards,
+Dimitri.

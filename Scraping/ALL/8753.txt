@@ -1,0 +1,31 @@
+To : 886506@bugs.debian.org, debian-boot@lists.debian.org,	Chris Boot <bootc@debian.org>, debian-glibc@lists.debian.org
+Subject : Re: busybox sh broken on i386 with glibc 2.26, leads to kernel panic
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Wed, 17 Jan 2018 12:53:36 +0100
+Message-id : 20180117115336.GA20541@home.ouaza.com
+Mail-followup-to : Raphael Hertzog <hertzog@debian.org>,	886506@bugs.debian.org, debian-boot@lists.debian.org,	Chris Boot <bootc@debian.org>, debian-glibc@lists.debian.org
+In-reply-to : <[🔎] 20180117113106.GC7966@aurel32.net>
+References : <[🔎] 20180117110832.GA3203@home.ouaza.com> <[🔎] 20180117113106.GC7966@aurel32.net>
+
+
+Hello,
+On Wed, 17 Jan 2018, Aurelien Jarno wrote:
+> busybox is compiled with -mpreferred-stack-boundary=2 on i386 which has
+> the same effect of reducing the default stack alignment from 16 bytes to
+> 2 bytes. This comes from arch/i386/Makefile:
+> 
+> |  # -mpreferred-stack-boundary=2 is essential in preventing gcc 4.2.x
+> |  # from aligning stack to 16 bytes. (Which is gcc's way of supporting SSE).
+> |  CFLAGS += $(call cc-option,-march=i386 -mpreferred-stack-boundary=2,)
+> 
+> I don't really get why it is essential to prevent gcc from aligning
+> stack to 16 bytes, anyway this is a bad idea. Removing this option just
+> fixes the issue.
+I confirm that rebuilding busybox with this option dropped fixed the issue
+for me. I uploaded a fixed busybox to Kali. I'm happy to do the same for
+Debian if it can help the current maintainers.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

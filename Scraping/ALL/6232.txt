@@ -1,0 +1,66 @@
+To : 402491@bugs.debian.org
+Subject : Bug#402491: debootstrap: missing check in x_feign_install
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Tue, 27 Feb 2018 21:35:01 +0900
+Message-id : 20180227213501.d7d0965122ae4f817f7c9e10@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 402491@bugs.debian.org
+In-reply-to : <200612102102.25464.elendil@planet.nl>
+References : <200612102102.25464.elendil@planet.nl>
+
+
+On Sun, 10 Dec 2006 21:02:25 +0100 Frans Pop <elendil@planet.nl> wrote:
+> Package: debootstrap
+> Version: 0.3.3.1
+> 
+> The suite scripts (e.g. scripts/sid) contain the following function:
+>     x_feign_install () {
+>         local pkg="$1"
+>         local deb="$(debfor $pkg)"
+>         local ver="$(
+>             ar -p "$TARGET/$deb" control.tar.gz | zcat |
+>                 tar -O -xf - control ./control 2>/dev/null |
+>                 sed -ne 's/^Version: *//Ip' | head -n 1
+>         )"
+> 
+>         // Some code deleted
+>     }
+ Now its code is changed as below, and perhaps dpkg-deb works better
+ than old one.
+> x_feign_install () {
+> local pkg="$1"
+> local deb="$(debfor $pkg)"
+> local ver="$(in_target dpkg-deb -f "$deb" Version)"
+> I'm aware that this is not supposed to happen, but as installs seem to 
+> quite regularly fail at this point, it would be nice if a check could be 
+> added here and debootstrap could bail out with a clearer error.
+ And in functions,
+> in_target_failmsg () {
+> local code="$1"
+> local msg="$2"
+> local arg="$3"
+> shift; shift; shift
+> if ! $CHROOT_CMD "$@"; then
+> warning "$code" "$msg" "$arg"
+> # Try to point user at actual failing package.
+> msg="See %s for details"
+> if [ -e "$TARGET/debootstrap/debootstrap.log" ]; then
+> arg="$TARGET/debootstrap/debootstrap.log"
+> local pkg="$(grep '^dpkg: error processing ' "$TARGET/debootstrap/debootstrap.log" | head -n 1 | sed 's/\(error processing \)\(package \|archive \)/\1/' | cut -d ' ' -f 4)"
+> if [ -n "$pkg" ]; then
+> msg="$msg (possibly the package $pkg is at fault)"
+> fi
+> else
+> arg="the log"
+> fi
+> warning "$code" "$msg" "$arg"
+> return 1
+> fi
+> return 0
+> }
+> 
+> in_target () {
+> in_target_failmsg IN_TARGET_FAIL "Failure trying to run: %s" "$CHROOT_CMD $*" "$@"
+ It would try to report error, so it'd be okay to close this bug.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp

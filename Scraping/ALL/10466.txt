@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Re: systemd, ntp, kernel and hwclock
+From : Russ Allbery <rra@debian.org>
+Date : Mon, 27 Feb 2017 11:18:57 -0800
+Message-id : 8737ezl9we.fsf@hope.eyrie.org
+In-reply-to : <[🔎] afac576b-b2f3-ab27-124f-e58e1ac14561@pocock.pro> (Daniel	Pocock's message of "Mon, 27 Feb 2017 17:59:53 +0100")
+References : <[🔎] afac576b-b2f3-ab27-124f-e58e1ac14561@pocock.pro>
+
+
+Daniel Pocock <daniel@pocock.pro> writes:
+> I've observed a system that had a wildly incorrect hardware clock (when
+> it was first unboxed), I ran ntpdate to sync the kernel clock but after
+> a shutdown and startup again it had a wacky time again.
+> I came across the discussion about how the hardware clock is no longer
+> set at shutdown[1]
+> The system has ntpd running
+> Looking at the output of
+>    adjtimex --print | grep status
+> the bit corresponding to 64 / STA_UNSYNC is 0
+> There is a time and date page on the wiki[2] and in the manual[3],
+> neither of them appears to have up to date information about the way it
+> works with systemd or how to troubleshoot issues like this.
+My understanding from reading a bit about this just now is that the short
+version is "install ntpd if you want this to happen."
+My impression is that ntpdate has been obsolete for years and upstream has
+been slowly trying to kill it.  ntpd is the upstream-supported daemon, and
+it periodically asks the kernel to set the hardware clock.  (And it
+supports various command-line options to make it act like ntpdate if you
+really want.)
+The much simpler systemd-timesyncd doesn't set the hardware clock for
+reasons that one may or may not agree with (I honestly haven't researched
+it in any depth), but you can just run ntpd instead if you care.
+Alternately, if you really want to use a clock setting mechanism that
+doesn't ask the kernel to sync the hardware clock but you still want to
+set the hardware clock, you can add your own shutdown init script / unit
+to run hwclock --systohc (or even a cron job if you want).
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

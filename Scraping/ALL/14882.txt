@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: [RFC] The PIE unholy mess
+From : Matthias Klose <doko@debian.org>
+Date : Wed, 18 Jan 2017 18:23:54 +0100
+Message-id : 39b87dfc-5e6d-269a-9a78-170cdd89c304@debian.org
+In-reply-to : <[🔎] 20170118083416.fkt2r7zp6ndny6mn@gaara.hadrons.org>
+References : <[🔎] 20170118033424.k2yzdyihedyafmxc@gaara.hadrons.org> <[🔎] CAK0Odpxiy5_AacoXa946TycSkiGFCCUFGNocyEHu0i0uYzjRgg@mail.gmail.com> <[🔎] 20170118083416.fkt2r7zp6ndny6mn@gaara.hadrons.org>
+
+
+On 18.01.2017 09:34, Guillem Jover wrote:
+> On Wed, 2017-01-18 at 08:10:53 +0100, Bálint Réczey wrote:
+>> 2017-01-18 4:34 GMT+01:00 Guillem Jover <guillem@debian.org>:
+>>> So, I'd like to know how people feel about the requested interface
+>>> (i.e. not enabling PIE globally from dpkg-buildflags). If there's
+>>> consensus that porters and maintainers want that, I'll just change
+>>> dpkg-buildflags to do this, even though I think it's a very
+>>> suboptiomal behavior.
+>>
+>> To detail the requested interface (requested originally in #835149 and
+>> then in #848129 currently) is:
+>>
+>> * Enable PIE in GCC on a set of architectures (GCC-PIE-ARCH-es)
+>> * On every GCC-PIE-ARCH make dpkg-buildflags' "-pie" a noop, "+pie"
+>>   still adds pie flag to compiler flags
+>>   ("hardening=+all,-pie" would pass no PIE related flag to compiler)
+>> * On every non GCC-PIE-ARCH leave dpkg-buildflags work as they did
+>> before changing GCC's defaults
+>> * Don't pass -specs from dpkg in any case
+> 
+> Err, pretty much *no*. You have requested this several times now, and
+> as I've also mentioned several times, this is not going to happen,
+> otherwise I'd just declare PIE unsupportable and request for it to be
+> reverted. Not using specs files will just break lots of stuff. Making
+> it extremely hard for maintainers to disable PIE is just antisocial. :/
+> 
+> The requested interface is to make dpkg-buildflags:
+> 
+>  * Only emit PIE options when requested by the builder or the package
+>    via DEB_BUILD_OPTIONS or DEB_BUILD_MAINT_OPTIONS.
+>  * Only emit PIE options when needed, depending on whether gcc has PIE
+>    enabled by default on that arch or not.
+> 
+> So on release arches with -all or -pie, -specs options would be
+> emitted to disable PIE. And on non-release arches with +all or +pie,
+> -specs options would be emitted to enable PIE. Otherwise nothing would
+> be emitted.
+> 
+> And to reiterate I think this is suboptimal and inconsistent and
+> IMO ideally (which is what would have happened if this would have
+> been enabled via dpkg-buildflags from the beginning), gcc should
+> enable this globally, and then dpkg-buildflags would only emit -specs
+> files to disable PIE on -all or -pie.
+So it looks that Balint was also surprised by the extent of the changes to
+support PIE in dpkg.  And afaics at the time of the dpkg upload, they were not
+discussed or documented, same for the spec file changes.  Instead you seem to
+prefer to accuse others for "childish behavior" after over a month staying quiet
+... not sure if that is the right thing to start the discussion.
+At this point, I would prefer to revert the PIE changes for the release and
+discuss these after the release with all parties involved.
+Matthias

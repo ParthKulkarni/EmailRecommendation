@@ -1,0 +1,59 @@
+To : Josh Triplett <josh@joshtriplett.org>, 852158@bugs.debian.org
+Subject : Bug#852158: Preseeding debconf/priority causes main menu to display
+From : Philip Hands <phil@hands.com>
+Date : Mon, 23 Jan 2017 20:16:02 +0100
+Message-id : 874m0pvb7x.fsf@whist.hands.com
+Reply-to : Philip Hands <phil@hands.com>, 852158@bugs.debian.org
+In-reply-to : <[🔎] 20170123133651.tohodhkijnqmftlh@x>
+References : <[🔎] 148506542740.31831.15904817651219726117.reportbug@x> <[🔎] 87lgu3f0nt.fsf@whist.hands.com> <[🔎] 20170123133651.tohodhkijnqmftlh@x>
+
+
+Josh Triplett <josh@joshtriplett.org> writes:
+> On Sun, Jan 22, 2017 at 06:46:14PM +0100, Philip Hands wrote:
+>> Josh Triplett <josh@joshtriplett.org> writes:
+>> > Package: main-menu
+>> > Severity: normal
+>> >
+>> > I'd like to use preseeding to pre-answer some questions in the
+>> > installer, while leaving others for the user to answer, including
+>> > questions asked with priority "high".  Using "auto url=..." sets the
+>> > priority to critical, so I tried including the following in my preseed
+>> > file:
+>> >
+>> > d-i debconf/priority high
+>> 
+>> Not a direct answer to the question you're asking, but you can get what
+>> you want without having to preseed the priority back down again.
+>> 
+>> The 'auto' target is a shortcut that adds priority=critical and
+>> auto=true so if you don't want the priority setting just add 'auto=true'
+>> as well as the url setting to the normal target (IIRC 'install'), so:
+>> 
+>>   install auto=true url=...
+>
+> Yes, I managed to get that working in a VM.  It's longer to type,
+> though. :)
+>
+> More importantly, leaving the priority at "high" for the initial run of
+> netcfg causes it to prompt for hostname and domain before it obtains and
+> loads the preseed file.  Hence wanting to start out at "critical" and
+> then lower the priority after processing the preseed file.
+Good point -- does this perhaps point towards needing to make the
+setting of auto=true delay the asking of the hostname and domain until
+after preseeding, as with the keyboard/locale questions?
+I know it's a bit odd to ask those questions after the network comes up,
+but if one has set auto=true then you either need to set those on the
+command line or in an initrd preseed say, or you need the network to
+come up without them being set, so it makes sense to delay the
+processing of those settings until later -- IIRC this is something that
+is a bit broken anyway, since preseeding the hostname doesn't do what
+one might hope some of the time (unless that's been fixed while I wasn't
+paying attention -- I'm pretty sure it used to be the case that the
+hostname on the target would not be changed if one set these during
+network preseeding).
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

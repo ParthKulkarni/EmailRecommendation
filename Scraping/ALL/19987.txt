@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian Buster release to partially drop non-systemd support
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 17 Oct 2018 20:33:47 -0700
+Message-id : 87y3awc4is.fsf@hope.eyrie.org
+In-reply-to : <[🔎] CAKTje6GYv1pxazgywWdBRzYeomP1GBYKsR+n5sazS5dLJn-2xQ@mail.gmail.com>	(Paul Wise's message of "Thu, 18 Oct 2018 09:07:30 +0800")
+References : <[🔎] alpine.DEB.2.21.1810141807300.8797@tglase-nb.lan.tarent.de>	<[🔎] 20181016043141.noeso3zzr7cdqoek@katolaz.homeunix.net>	<[🔎] CAMHuwozB-xHMEuCauJmYz3v1Mo-ZunAnBpY6AaeY1N+JtcwErg@mail.gmail.com>	<[🔎] 2121328.4g3pHNYEz9@merkaba>	<[🔎] 23493.46990.39272.903723@chiark.greenend.org.uk>	<[🔎] 5bd0saf7xh.fsf@chiark.greenend.org.uk>	<[🔎] d326e3b6989e4983d3f008b526410832@debian.org>	<[🔎] 23493.56138.975964.150850@chiark.greenend.org.uk>	<[🔎] dfa56350e10abd5de5b23628a841b7d6@debian.org>	<[🔎] 874ldlcgyp.fsf@hope.eyrie.org>	<[🔎] fa4b45ae-eb2d-f566-02ad-74e605f61dda@debian.org>	<[🔎] 87pnw8e10v.fsf@hope.eyrie.org>	<[🔎] CAKTje6GYv1pxazgywWdBRzYeomP1GBYKsR+n5sazS5dLJn-2xQ@mail.gmail.com>
+
+
+Paul Wise <pabs@debian.org> writes:
+> On Thu, Oct 18, 2018 at 5:24 AM Russ Allbery wrote:
+>> Timer units are also a more complicated problem since they're not a
+>> superset of cron behavior.  They do some things better than cron jobs;
+>> they do other things much *worse* than cron jobs.  I have cron jobs
+>> that I wanted to convert to timer units and discovered I couldn't
+>> because timers simply wouldn't work for what I was trying to do.
+> Could you give some examples of the issues you discovered with systemd
+> timers?
+> BTW, we have in systemd-cron a tool for generating systemd units from
+> crontab/etc.
+MAILTO was the main thing that I remember missing in terms of pure
+functionality.
+The other problem I can recall wasn't functionality, but was ease of use:
+a timer unit can only trigger a service unit, and service units aren't
+suitable for doing arbitrary shell scripting.  Here, this wasn't for
+packaging but was instead as a local system administrator.  I have a lot
+of cases where I drop a simple 20-line shell script into /etc/cron.daily
+that has some logic intermixed with variables that list things like, say,
+directories to back up to another host.  I looked at replacing that with a
+timer unit, just as an experiment, but I would have had to write the timer
+unit to control the timing, a separate exec unit that specifies what
+command to run, and then put the shell script into yet a third file (with
+no particularly obvious location for the local system administrator).
+Since I don't like using /usr/local/bin for such things, I'd probably end
+up extracting configuration from the script, sticking the script in a
+local Debian package, and installing the configuration separately.  I now
+have four different files just to replace a single file dropped into a
+directory.
+Admittedly, this was to replace something run from cron.daily, and maybe
+the solution there (if one is considering a system that doesn't need a
+separate cron daemon, which in theory should be possible if one wanted to
+do it although not necessary of course) would be to have a single timer
+unit that uses run-parts the way that cron runs cron.daily.  Timer units
+were a closer match for cron.d, although I'm still missing MAILTO.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

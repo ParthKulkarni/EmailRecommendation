@@ -1,0 +1,182 @@
+To : debian-www@lists.debian.org
+Subject : [Delayed] Summary of the web team BoF at DC18
+From : Steve McIntyre <steve@einval.com>
+Date : Thu, 13 Sep 2018 04:02:15 +0100
+Message-id : 20180913030215.5zlbldt34khdlg22@tack.einval.com
+Reply-to : debian-www@lists.debian.org
+
+
+[ Please note the cross-post and Reply-To ]
+Hey folks,
+As promised, here's a quick summary of what was discussed at the web
+team BoF session in Hsinchu. Apologies for the delay in posting...
+Thanks to the awesome efforts of our video team, the session is
+already online [1]. I've taken a copy of the Gobby notes too,
+alongside my small set of slides for the session. [2]
+DebConf18 Web team BoF
+3th August 2018, Hsinchu, Taiwan
+Migration to git
+----------------
+Since the BoF last year, we finally managed to migrate away from CVS
+to git. We managed it *just* before alioth went away. There was quite
+a lot of work involved:
+ * Actual migration of the data and code from CVS to git, very slow
+   due to the huge repository we have full of many thousand small
+   files
+ * Changes to the translation helper and tracking scripts to use git
+ * Changes to the wml itself - some of the template pages contain
+   quite a lot of embedded perl which needed updating too. Also needed
+   updating to use git.
+ * Lots of work needed to make the new git-related code work with
+   acceptable performance. Builds a cache of git revisions to allow
+   for version comparisons that we used to do by directly comparing
+   CVS versions. In the end, website rebuilds are now much faster than
+   we were using CVS. \o/ Still not fast enough, but we have a very
+   large site...
+ * The workflow afterwards is *almost* the same, but had to change how
+   smart_change.pl works due to the way git works
+ * On the translation dashboards, we've had to drop the direct diff
+   links that we used to have. Instead we now have cut and paste
+   command lines for git diff commands. Needed as otherwise this
+   causes too much load on salsa and it times out on the links often.
+Main point to take away: the migration has happened! It should now
+allow us to work on more intrusive changes to our website that would
+never have been feasible before. Hopefully it might now also encourage
+more people to contribute, who were put off previously.
+We already have merge requests coming in via salsa to make small
+improvements to the website, which is a good sign! We can now be more
+agile / more daring with rapid website changes.
+Design work
+-----------
+There was already another session earlier during DebConf, run by
+Thomas Lange [3], focussing on the www.d.o front page and top-level
+pages. We could do with making these easier for *new* people to use,
+to find out more about Debian and how to get involved. Most DDs rarely
+use these pages, so we have a lot of content that is not actually
+useful for any audience. We should improve this. See
+  https://informatik.uni-koeln.de/public/lange/debian-homepage/
+as an example look from Thomas.
+Steve's own pet project here is a clean new "download" page group to
+replace the huge, scattered set of conflicting, out of date pages we
+have now.
+What else should we do with design? A new look?
+Content
+-------
+We have too much content on the website. Good content is great, but
+very old stuff that hasn't been updated in a decade and is now
+clearly out of date is really not helpful. Really old information for
+users about how to use Debian isn't valuable, and is more likely to
+put people off or maybe even be dangerous.
+With too much content, it's also likely to put people off when they
+want to change things. Which pages need changing? Which ones are users
+actually finding? It's difficult to know, and demotivating.
+Should we maybe split the website into multiple repos? We spoke about
+this last year...
+Suggested workflow for layout / page look changes:
+  * Go and work on a branch and make the changes
+  * Send a MR, and post screenshots alongside to show what the new
+    pages look like
+That way, people can see what's proposed. Merging changes are easy,
+even if we need to tweak translations afterwards.
+We now (again!) have https://www-staging.debian.org/ available, thanks
+to work from pabs. Maybe we could use that to compare before=and-after
+changes.
+Other points
+------------
+ * Build using GitLab CI?  (this looks quite difficult! proposals welcome :-))
+ * More discussion with Thomas about changes to the front page
+   + Why Debian? - add some simple points
+   + Too much information in sentences - just remove lots of that, and
+     switch to links to further pages for more info
+   + Remove the security updates links - just link to the security
+     tracker once, or a top-level /security/ page? The level of detail
+     on the front page right now is both too detailed and not detailed
+     enough, depending on POV
+   + Remove the duplicated sets of links, in particular the blocks at
+     the top of the front page.
+   + The "News" section is not great, just lists our stable and
+     oldstable updates. Is that really News? What about DebConf? Talks
+     by prominent DDs? Links to other people talking about Debian?
+   + Make things more visual and welcoming
+ * Remove duplication - far too much of our information is found in
+   multiple places (web, security, wiki, etc.) and doesn't match up
+   and doesn't get updated. Let's make things more relevant and more
+   sustainable
+ * Remove lots of the "developers" links as they're out of date and
+   not used? Or move to subsidiary sites? Move policy and devref to
+   separate sites? Simplify what we're pushing at end users.
+ * Why not split https://www.debian.org/doc/ out? sth like
+   https://docs.debian.org/
+ * Time for a fresh start? Maybe competition for students? Will it
+   work on all devices? Is our information relevant now? We have many
+   years of cruft that's been building up.
+   + Move stuff to an archive if we care, with clear warning "this is
+     historical information"
+Top-level design
+----------------
+If people are working on a new user-facing site, there are three
+simple questions that jmw mentioned earlier for a good
+website. Answer these questions:
+ 1. am I in the right place?
+ 2. does it feel good?
+ 3. where do I go next?
+Work out clean requirements for what we want *before* we just hack
+and slash things. We *could* even send out tenders for commercial
+people to work on stuff then if we wanted, although as Debian we'd
+more likely prefer to encourage new Free Software / free design people
+to work on this.
+If we can do this, get a new clean design and the fit in
+content. Let's plan properly.
+Misc
+----
+ * Is javascript still considered bad? Not necessarily, no. Lots of
+   people do bad things with it, but that doesn't mean we should. If
+   there are useful things where it will assist but the site still
+   works without then we're happy. Graceful fallback, etc...
+ * Integration with security-tracker.debian.org
+   + We have 28.000 dsa-*.wml files (more than 50%), let's lose them
+     or move most of them to an archive. Old security advisories are
+     no use to anybody.
+ * Removing lots of content will also make rebuilds etc. massively
+   quicker!
+ * What content is needed in what language? Probably not all. We
+   expect most people caring about security advisories will understand
+   enough English, for example. But making the Debian front pages and
+   high-level information *absolutely* needs to be well translated to
+   make it more accessible to many people. Lots of the "translated"
+   security advisories are done mostly mechanically already - are they
+   actually useful? Let's please spend valuable translator time on
+   things like the installation guide instead!
+ * The target is to have quality docs, not just quantity!
+ * Should we take steps to move away from wml, perhaps? It's very
+   difficult for translators. Is gettext and po a much better way to
+   go? Maybe use it with another markup language? rst like the policy
+   folks? wml development stopped a long time ago and it's getting
+   stale. Macros etc. are great as an idea, but it's also very
+   difficult to learn. If we're simplifying the website already and
+   removing lots of the duplicated content, maybe we don't need wml's
+   features any more? Let's investigate options. A new VCS with good
+   branch support will help us to try more things out.
+ * Somebody(?) highly recommends the use of Hugo
+   (https://gohugoio.io/) to replace WML. Hugo is already in Debian.
+   ;-)
+Sprint
+------
+Is it time for a sprint? Definitely! Let's visit Laura in Madrid. :-)
+Getting together to work on specifying, re-designing and
+re-architecting things is probably the best way to make things
+work. We have general agreement for removing lots of content and
+shrinking our website a lot. Shout now if you disagree!
+Things to think about for a sprint:
+ 1. Let's work out what is wanted from an end-user perspective. Can we
+    find a volunteer to help?
+ 2. New design ideas - can we get some suggestions together?
+ 3. What would we use for a new backend if starting from scratch?
+Any other ideas? Please share... :-)
+[1] http://meetings-archive.debian.net/pub/debian-meetings/2018/DebConf18/2018-08-03/web-team-bof.webm
+[2] https://www.einval.com/~steve/talks/Debconf18-webteam-BoF/
+[3] https://debconf18.debconf.org/talks/156-making-debian-more-user-friendly-by-changing-the-web-start-page-wwwdebianorg/
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+Is there anybody out there?
+signature.asc

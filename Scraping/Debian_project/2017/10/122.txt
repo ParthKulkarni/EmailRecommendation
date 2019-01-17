@@ -1,0 +1,75 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : intrigeri <intrigeri@debian.org>
+Date : Thu, 26 Oct 2017 17:02:57 +0200
+Message-id : 857evij6ji.fsf@boum.org
+In-reply-to : <857eyij4fb.fsf@boum.org> (intrigeri@debian.org's message of	"Fri, 04 Aug 2017 19:31:36 -0400")
+References : <857eyij4fb.fsf@boum.org>
+
+
+Hi,
+intrigeri:
+> tl;dr: I hereby propose we enable AppArmor by default in testing/sid,
+> and decide one year later if we want to keep it this way in the
+> Buster release.
+Thanks a lot to everyone who participated on this thread, tried
+AppArmor and reported bugs, or expressed support/interest privately!
+Summary of the discussion: no strong objection was raised; quite a few
+potential issues were mentioned; the most serious ones were either
+resolved already, or in good way to be resolved in the next 2 weeks.
+So, my understanding is that we have a broad consensus and can start
+the proposed experiment.
+I need advice from you folks on one specific matter, see below.
+> 1. Enable AppArmor by default in testing/sid as soon as feasible in
+>    the Buster cycle.
+>    I can think of several possible ways to do it but for now I'd
+>    rather focus on the "do we want to do it at all" conversation.
+It's now time to discuss the "how" aspect.
+Enabling AppArmor by default requires two changes:
+1. enabling the LSM in Linux: problem solved, Ben Hutchings agreed
+   we should do this in src:linux, at least for the time being;
+2. installing the apparmor package by default: it ships the bits of
+   code that load AppArmor policy during boot and some shared bits of
+   policy that most other AppArmor profiles rely upon.
+This email is about (2). There are two aspects to it.
+For new installations, it seems that making the apparmor package
+"Priority: standard" is the way to go. I've asked debian-boot@'s
+opinion about it [priority:standard?] but the rest of our developers
+community is of course welcome to comment as well.
+For upgrades it seems much more complicated. Ideally I would like the
+apparmor package to be installed automatically:
+ - on testing/sid upgrades, during the Buster dev cycle: this would
+   greatly increase the value of the "enable AppArmor by default for
+   a while" experiment as we would get lots more data to reason about
+   when the time comes;
+ - during Stretch to Buster upgrades: this seems necessary so every
+   user gets the AppArmor benefits, regardless of when they installed
+   their system initially.
+I also want to provide easy means for users to opt-out from
+the experiment.
+I've requested advice on this topic from a few fellow Debian people
+and the conclusion seems to be:
+ - I was told essentially "we generally don't do that in Debian" by
+   a few people who suggested me asking this mailing list.
+   I don't understand the rationale though — during system upgrades we
+   do change the distro behavior in many ways: we add new features, we
+   enable new security measures, we switch init systems, we switch
+   from MySQL to MariaDB and all sort of things — so it's not obvious
+   to me why doing the same to enable a security system like AppArmor
+   would be a Bad Thing™.
+   Is the concern specifically about doing so by pulling a new
+   package in?
+   Or is it specifically about enabling a LSM that was previously
+   disabled? (Any such big change brings a risk of introducing
+   regressions, so the underlying questions seem to be "is the risk
+   worth it? is the risk well managed?")
+ - We have no better option to achieve that than having another
+   package, that's already installed by default, add a "Recommends:
+   apparmor". This feels artificial and rather ugly, but it might be
+   the only option. I don't know which other package would be the most
+   suitable to add this dependency. Any suggestion? Any other idea?
+I'd love to read your thoughts about this. Let's discuss it.
+[priority:standard?] https://bugs.debian.org/879590#25
+Cheers,
+-- 
+intrigeri

@@ -1,0 +1,29 @@
+To : submit@bugs.debian.org
+Subject : Bug#913740: fetch-url does not use --no-check-certificate on HTTP to HTTPS redirects
+From : Mauricio Oliveira <mauricio.oliveira@canonical.com>
+Date : Wed, 14 Nov 2018 12:48:45 -0200
+Message-id : CAO9xwp2uUQgS0CUhPss=qqUJtHqP6vmLmvmpJ+Vb79uKnjcyWw@mail.gmail.com
+Reply-to : Mauricio Oliveira <mauricio.oliveira@canonical.com>, 913740@bugs.debian.org
+
+
+Package: src:debian-installer-utils
+Version: 1.129
+Tags: patch
+In fetch-url the --no-check-certificate option is conditioned to HTTPS.
+In case of HTTP to HTTPS redirect, that option is not enabled, and may
+cause fetch-url to fail if the certificate cannot be verified.
+Since that option/functionality must be explicitly requested with the
+debian-installer/allow_unauthenticated_ssl preseed option (i.e., user
+is aware of SSL/HTTPS context and agrees w/ non-verified certificates)
+we can just check for this in the HTTP protocol too, and assume HTTPS
+may potentially be used, as the user specified this option.
+An alternative/obvious solution in the _user_ side is to specify HTTPS
+URLs upfront, but there are cases when an user does not know for sure
+whether the server uses/supports that, or the server might change its
+behavior and start HTTP to HTTPS redirect after URLs have spread over
+(e.g., scripts and infrastructure) - thus a fix in the installer side
+is a simpler and more complete approach.
+Thanks,
+-- 
+Mauricio Faria de Oliveira
+sid_di-utils_httpsredir.debdiff

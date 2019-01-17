@@ -1,0 +1,38 @@
+To : Michael Biebl <biebl@debian.org>, 856630@bugs.debian.org
+Subject : Bug#856630: Creates empty /etc/default/rcS
+From : Philip Hands <phil@hands.com>
+Date : Fri, 03 Mar 2017 16:28:54 +0100
+Message-id : 878tomjs5l.fsf@whist.hands.com
+Reply-to : Philip Hands <phil@hands.com>, 856630@bugs.debian.org
+In-reply-to : <[🔎] 148851159677.11429.16417817277256345384.reportbug@pluto.milchstrasse.xx>
+References : <[🔎] 148851159677.11429.16417817277256345384.reportbug@pluto.milchstrasse.xx>
+
+
+Michael Biebl <biebl@debian.org> writes:
+> Package: installation-reports
+> Severity: normal
+>
+> I've installed a Stretch system using the rc2 installer.
+>
+> After a successful installation I had an empty /etc/default/rcS.
+> Since initscripts (which owns that file) is no longer essential and
+> installed by default, I guess there is a component in the installer
+> which doesn't deal with that properly and instead of doing nothing if
+> the file does not exist, it creates an empty one.
+Well, a quick grep of the d-i source reveals that we mention rcS in:
+  clock-setup/finish-install.d/10clock-setup
+and
+  flash-kernel/debian/flash-kernel-installer.postinst.in
+and that in both cases, each mention is guarded by first checking for
+the existence of the file.
+My next guess would be that some postinst of another package that was
+installed is doing it.  However, looking at sources.debian.net didn't
+show that up -- I might have missed it, or the thing doing it might not
+contain the full path, say.
+BTW Is this reproducible?
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

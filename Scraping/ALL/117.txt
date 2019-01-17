@@ -1,0 +1,42 @@
+To : Thorsten Glaser <tg@mirbsd.de>, 856570@bugs.debian.org
+Subject : Bug#856570: apache2: does not send any Content-Type for plaintext files
+From : Dominik George <d.george@tarent.de>
+Date : Fri, 3 Mar 2017 11:54:16 +0100
+Message-id : 20170303105415.f2zafrls6cxsexg6@portux.lan.naturalnet.de
+Reply-to : Dominik George <d.george@tarent.de>, 856570@bugs.debian.org
+In-reply-to : <[🔎] 20170302151545.25117.45578.reportbug@1u1-dev-04.lan.tarent.de>
+References : <[🔎] 20170302151545.25117.45578.reportbug@1u1-dev-04.lan.tarent.de>
+
+
+> Apache 2 does not send *any* Content-Type header for plaintext files
+> any more, so I cannot tell it to send “text/plain; charset="UTF-8"”
+> to work around at least TWO bugs in Firefox (which likes to interpret
+> those files, unlike Lynx, Chromium and Safari, as windows-1252).
+This is not entirely true. Let me add an important part of your problem
+description you sent me over another channel:
+This holds for plain text files that have no filename extension, e.g.
+“foo”. A file named “foo.txt” undergoes mime-type mapping and is served
+with “Content-Type: text/plain” just fine.
+> Even if I add…
+> 	DefaultType text/plain  
+> 	AddDefaultCharset UTF-8
+> … to the Directory, it does not cause the presence of a Content-Type header.
+Apache uses /etc/mime.types to translate extensions into mime types,
+which, in my eyes, is a design flaw, because it is a 1:n mapping used by
+Apache for reverse lookups. Every time an extension maps to more than
+one mime type, Apache seems to drop the Content-Type header. As “no
+extension” is mapped in mime.types to many mime types (mind you: not to
+*no* mime type), the DefaultType doesn't kick in.
+What you are probably looking for is this:
+http://serverfault.com/a/88449
+HTH,
+Nik
+-- 
+Dominik George
+tarent solutions GmbH
+Projekt „Security Watch“
+Rochusstraße 2-4, D-53123 Bonn • http://www.tarent.de/
+Tel: +49 228 54881-319 • Fax: +49 228 54881-235
+HRB AG Bonn 5168 • USt-ID (VAT): DE122264941
+Geschäftsführer: Dr. Stefan Barth, Kai Ebenrett, Boris Esser, Alexander Steeg
+signature.asc

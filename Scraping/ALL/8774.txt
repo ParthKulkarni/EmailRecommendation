@@ -1,0 +1,31 @@
+To : Ben Hutchings <ben@decadent.org.uk>, Raphael Hertzog <hertzog@debian.org>, 886506@bugs.debian.org, 	Debian Install System Team <debian-boot@lists.debian.org>, Chris Boot <bootc@debian.org>, 	debian-glibc@lists.debian.org, Denys Vlasenko <vda.linux@googlemail.com>
+Subject : Bug#886506: busybox sh broken on i386 with glibc 2.26, leads to kernel panic
+From : Denys Vlasenko <vda.linux@googlemail.com>
+Date : Mon, 22 Jan 2018 15:32:46 +0100
+Message-id : CAK1hOcMftT3jVo3i5=oAs3EJHM_7mNq-TUi0ZmdHMJuZzcBWkA@mail.gmail.com
+Reply-to : Denys Vlasenko <vda.linux@googlemail.com>, 886506@bugs.debian.org
+In-reply-to : <[🔎] 20180121111841.GA17926@aurel32.net>
+References : <[🔎] 20180117110832.GA3203@home.ouaza.com> <[🔎] 20180117113106.GC7966@aurel32.net> <[🔎] 1516495659.5097.73.camel@decadent.org.uk> <[🔎] 20180121111841.GA17926@aurel32.net> <151528297240.6441.6155186572490299535.reportbug@planet.jerri.home>
+
+
+On Sun, Jan 21, 2018 at 12:18 PM, Aurelien Jarno <aurel32@debian.org> wrote:
+> On 2018-01-21 00:47, Ben Hutchings wrote:
+>> On Wed, 17 Jan 2018 12:31:06 +0100 Aurelien Jarno <aurel32@debian.org> wrote:
+>> [...]
+>> > busybox is compiled with -mpreferred-stack-boundary=2 on i386 which has
+>> > the same effect of reducing the default stack alignment from 16 bytes to
+>> > 2 bytes. This comes from arch/i386/Makefile:
+>>
+>> The argument is the log2 of the alignment, so this sets alignment to 4
+>> bytes - which is compliant with the System V psABI for i386.
+>
+> This is correct, but it is not compliant with the i386 GCC ABI which
+> assumes the stack is 16-byte aligned (not just 4-byte aligned) when the
+> call instruction in the caller was executed.
+gcc people simply broke ABI just because they could. There were other ways
+to accomodate SSE alignment restrictions, such as aligning stack
+only in functions which spill vector temporaries to stack,
+but gcc chose a disruptive one.
+The breakage appears *now* because SSE vector usage inside glibc is increasing.
+If your libc is careful to not use SSE needlessly, it would work fine.
+As to how to fix this for busybox, let's have a config option to disable it.

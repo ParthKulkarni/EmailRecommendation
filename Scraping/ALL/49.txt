@@ -1,0 +1,99 @@
+To : Antoine Beaupré <anarcat@orangeseeds.org>
+Subject : Re: testing and review requested for Wheezy update of apache2
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Mon, 13 Feb 2017 21:48:45 +0100
+Message-id : 148730694.snktysjLZW@k
+In-reply-to : <87r33tqvqs.fsf@curie.anarc.at>
+References : <20161223225643.GA24261@inguza.net> <87wpdlr0t5.fsf@curie.anarc.at> <87r33tqvqs.fsf@curie.anarc.at>
+
+
+Hi Antoine,
+> here are those tests:
+> 
+> 2: [ "GET / HTTP/1.0\n\n"                          => 400],
+> 8: [ "GET / HTTP/1.0\0\r\n\r\n"                    => 400],
+> 26: [ "GET / HTTP/1.0\r\nFoo: b\0ar\r\n\r\n"        => 400],
+> 
+> #2 is weird - it just returns nothing now:
+> 
+> $ printf "GET / HTTP/1.0\n\n" | nc localhost 80
+> $
+This works better in 2.4.10 with the backport and in 2.4.25: There,
+printf "GET / HTTP/1.0\n\n" | nc localhost 80
+gives a 400 Bad request, as expected.
+On Monday, 23 January 2017 17:03:55 CET Antoine Beaupré wrote:
+> On 2017-01-23 15:14:30, Antoine Beaupré wrote:
+> > On 2017-01-22 11:25:08, Stefan Fritsch wrote:
+> >>  Test Summary Report
+> >>  -------------------
+> >>  t/apache/chunkinput.t             (Wstat: 0 Tests: 37 Failed: 1)
+> >>  
+> >>    Failed test:  3
+> >>  
+> >>  t/apache/contentlength.t          (Wstat: 0 Tests: 24 Failed: 8)
+> >>  
+> >>    Failed tests:  2, 4, 14, 16, 18, 20, 22, 24
+> >> 
+> >> +t/apache/http_strict.t            (Wstat: 0 Tests: 85 Failed: 3)
+> >> +  Failed tests:  2, 8, 26
+> > 
+> > here are those tests:
+> > 
+> > 2: [ "GET / HTTP/1.0\n\n"                          => 400],
+> > 8: [ "GET / HTTP/1.0\0\r\n\r\n"                    => 400],
+> > 26: [ "GET / HTTP/1.0\r\nFoo: b\0ar\r\n\r\n"        => 400],
+> 
+> turns out the latter two here are unrelated issues. 2.2.32 includes this
+> code:
+> 
+>     /* PR#43039: We shouldn't accept NULL bytes within the line */
+>     if (strlen(*s) < bytes_handled) {
+>         return APR_EINVAL;
+>     }
+> 
+> which is fair, but not directly part of this rewrite, as far as I know
+> - this seems more related to this patch:
+> 
+> http://svn.apache.org/viewvc?view=revision&revision=1758671
+> http://svn.apache.org/viewvc/httpd/httpd/branches/2.2.x/server/protocol.c?r1
+> =1757394&r2=1758671&pathrev=1758671&diff_format=h
+> 
+> I am not sure we should factor this into the package, but without it,
+> test case #2 is so broken that I am worried it introduces other
+> regressions, so I bundled it in.
+Have you tried if that diff helps with
+  printf "GET / HTTP/1.0\n\n" | nc localhost 80
+returning nothing? I don't see how the change would help, but I haven't tried 
+it or looked at the code in total.
+> It does mean that "echo GET / | nc localhost 80" now fails, but that
+> seems to be the design of the Apache team, unfortunately. :( No more
+> "telnet into port 80" it seems?
+Note that telnet does LF -> CRLF conversion, so telnet still works for 
+debugging. But nc does not.
+> I am really wondering why we shouldn't just package 2.2.32 after
+> all. the change is kind of massive, but it would make me feel much
+> better than the current patch set:
+> 
+>  136 files changed, 1738 insertions(+), 4409 deletions(-)
+I am not sure either. For 2.4.10/jessie  the changes are a bit less intrusive 
+and I intend to use the backported version:
+ 9 files changed, 1064 insertions(+), 303 deletions(-)
+But for 2.2/wheezy it's a difficult decision.
+> I'm running out of hours for this month, unfortunately. I will be able
+> to continue the work in february, but it would probably be better for
+> others to pick that up before that.
+> 
+> I have reuploaded a new version of the package with the extra above
+> patch, and I believe it passes the test suite correctly now.
+> 
+> I am not confident enough to upload the result as is, so I would like
+> another LTS worker to look into this before a final upload.
+Probably a good idea is to put the packages somewhere and ask for testers on 
+security@lists.debian.org . Maybe explicitly encourage testers who use 
+mod_proxy. If you get some feedback and no unexpected issues are found, I 
+would tend towards using the backported patches.
+BTW, I have included this patch to allow underscores in hostnames:
+https://anonscm.debian.org/cgit/pkg-apache/apache2.git/tree/debian/patches/
+hostnames_with_underscores.diff?h=jessie
+Cheers,
+Stefan

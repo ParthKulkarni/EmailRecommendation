@@ -1,0 +1,82 @@
+To : debian-arm@lists.debian.org, pkg-kde-talk@lists.alioth.debian.org,	debian-devel@lists.debian.org
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Steve Langasek <vorlon@debian.org>
+Date : Tue, 27 Nov 2018 14:06:27 -0800
+Message-id : 20181127220627.GC6167@virgil.dodds.net
+Mail-followup-to : debian-arm@lists.debian.org,	pkg-kde-talk@lists.alioth.debian.org, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 1978113.NGEtsr0Vo0@tonks>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] CALT56yNFWS9RdpheG4WnVtfLnOKJk_ukA-3ka-YXsJnp+M=nMQ@mail.gmail.com> <[🔎] 20181123095813.soyytbs4nxrolheu@tack.einval.com> <[🔎] 1978113.NGEtsr0Vo0@tonks>
+
+
+Hi Lisandro,
+On Fri, Nov 23, 2018 at 11:05:11PM -0300, Lisandro Damián Nicanor Pérez Meyer wrote:
+> Andy: explicitly CCing you because I think it answers part of a question you 
+> did but in another part of the thread.
+> El viernes, 23 de noviembre de 2018 06:58:13 -03 Steve McIntyre escribió:
+> > On Fri, Nov 23, 2018 at 03:27:57AM +0300, Dmitry Eremin-Solenikov wrote:
+> [snip]
+> > >Can you build two packages and allow user to select, which one he wants to
+> > >install? Or those packages will be binary incompatible?
+> > That's a good question, yes. It'w ahst I was wondering too.
+> And that's a perfectly valid question, one we did in 2015, Ubuntu tried out 
+> (as Dmitry pointed out) and did not work.
+> Why?
+> Short story: really *too* complicated and error prone.
+> Long story:
+> Please first check this image:
+> <https://qt-kde-team.pages.debian.net/images/qt5_build_deps.png>
+> That's almost all of Qt for 5.10 (we have now new submodules, so I need to 
+> update it).
+> The Desktop/GLES decision is done at the root of the graph, qtbase. This 
+> decision changes the API/ABI of libqt5gui5, one of the libraries provided by 
+> qtbase.
+> So, as the API/ABI changes then we would need to (probably) ship two set of 
+> headers and (for sure) two different libraries, let's say libqt5gui5 for 
+> Desktop and libqt5gui5gles for GLES.
+> But it doesn't ends there. The whole graph you saw is actually the *entire* 
+> Qt. Upstream provides it either as a big fat tarball or as submodules. We took 
+> the submodules route because building the whole tarball as one would take 
+> literally days in slow arches. And a single mistake could be disastrous.
+> Now whatever switch is applied to qtbase it's "inherited" by the rest of the 
+> submodules. So if we ship two versions of libqt5gui5 then we would probably 
+> need to ship two versions of the libs provided by qtdeclarative, which is 
+> affected by this switch.
+> This waterfall schema means *multiple* libraries would have to start doing 
+> this two-binaries thing, as Ubuntu devs discovered. But remember that Qt is 
+> really a set of submodules, so in any later version any submodule could start 
+> using this switch for something. So whatever change could mean yet another set 
+> of binaries with a transition with multiple rebuilds of the big part of rdeps 
+> of Qt... no, we don't want to enter that mess.
+Hmm, so I'm not sure this reflects the actual state of the art wrt dual Qt
+stacks as it existed in Ubuntu at the time Ubuntu Touch was sunsetted.
+Yes, GL vs. GLES impacts the ABI of libqt5gui5; HOWEVER, the set of
+reverse-dependencies that are actually impacted by the GL-specific ABI
+difference is actually quite small; and by using clever symbols files, the
+impact on the dependency tree can be minimized.
+If anyone wants to dig into this further, perhaps for proof-of-concept, here
+is packaging that could be used as a starting point for the symbols files:
+  https://launchpad.net/ubuntu/+source/qtbase-opensource-src-gles/5.7.1+dfsg-2ubuntu4~1
+And here is the list of all packages that required dual-stack at least as of
+2017, when Ubuntu stopped development on this:
+$ wget -O - -q http://old-releases.ubuntu.com/ubuntu/dists/zesty/universe/source/Sources.gz \
+    zcat | grep-dctrl -FPackage -r qt.*gles -sPackage
+Package: qt3d-opensource-src-gles
+Package: qtbase-opensource-src-gles
+Package: qtdeclarative-opensource-src-gles
+Package: qtlocation-opensource-src-gles
+Package: qtmir-gles
+Package: qtmultimedia-opensource-src-gles
+Package: qtubuntu-gles
+$
+i.e. 7 source packages total, and 2 of them Ubuntu-Touch-specific (qtmir,
+qtubuntu).
+Maybe you were already aware of this, but it didn't come across to me in
+your mail, sorry.  If you still think it is too much maintenance overhead to
+provide a dual stack for these 5 libraries (plus any others that later start
+to use GL-dependant ABIs), I think you're absolutely entitled to that view.
+-- 
+Steve Langasek                   Give me a lever long enough and a Free OS
+Debian Developer                   to set it on, and I can move the world.
+Ubuntu Developer                                   https://www.debian.org/
+slangasek@ubuntu.com                                     vorlon@debian.org
+signature.asc

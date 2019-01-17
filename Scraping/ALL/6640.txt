@@ -1,0 +1,79 @@
+To : 913740@bugs.debian.org
+Subject : Bug#913740: Testing with daily netboot image
+From : Mauricio Oliveira <mauricio.oliveira@canonical.com>
+Date : Wed, 14 Nov 2018 13:37:31 -0200
+Message-id : CAO9xwp2xofe10VFOrf7zxXkd8hgP4+bkOfNF0etRCeztQ489bA@mail.gmail.com
+Reply-to : Mauricio Oliveira <mauricio.oliveira@canonical.com>, 913740@bugs.debian.org
+References : <[🔎] CAO9xwp2uUQgS0CUhPss=qqUJtHqP6vmLmvmpJ+Vb79uKnjcyWw@mail.gmail.com>
+
+
+Logs from testing with the daily netboot image.
+(web-server http/https setup not included)
+Start KVM guest for Debian's daily netboot image:
+---
+Options: url=http://192.168.122.1/preseed
+debian-installer/allow_unauthenticated_ssl=true
+$ wget https://d-i.debian.org/daily-images/amd64/daily/netboot/debian-installer/amd64/{linux,initrd.gz}
+$ GUEST=debian-daily
+$ virt-install \
+  --name $GUEST \
+  --vcpus 2 \
+  --memory 1024 \
+  --disk $GUEST.qcow2,bus=virtio,format=qcow2,size=8 \
+  --network bridge=virbr0,model=virtio \
+  --graphics none  \
+  --import \
+  --boot \
+kernel=linux,\
+initrd=initrd.gz,\
+kernel_args='console=ttyS0 url=http://192.168.122.1/preseed
+debian-installer/allow_unauthenticated_ssl=true'
+The installer hits an error to download the preseed file.
+     ┌──────────┤ [!!] Download debconf preconfiguration file ├──────────┐
+     │                                                                   │
+     │           Failed to retrieve the preconfiguration file            │
+     │ The file needed for preconfiguration could not be retrieved from  │
+     │ http://192.168.122.1/preseed. The installation will proceed in    │
+     │ non-automated mode.                                               │
+     │                                                                   │
+     │                            <Continue>                             │
+     │                                                                   │
+     └───────────────────────────────────────────────────────────────────┘
+In the installer shell, for a synthetic test with fetch-url:
+===
+Without the patch:
+---
+~ # cat /proc/cmdline
+console=ttyS0 url=http://192.168.122.1/preseed
+debian-installer/allow_unauthenticated_ssl=true
+~ # cat /etc/default-release
+buster
+~ # fetch-url http://192.168.122.1/preseed preseed
+ERROR: cannot verify 192.168.122.1's certificate, ...
+...
+To connect to 192.168.122.1 insecurely, use `--no-check-certificate'.
+~ # echo $?
+1
+With the patch:
+---
+~ # wget --no-check-certificate
+http://192.168.122.1/di-utils_1.129+httpsredir_amd64.udeb
+~ # udpkg -i di-utils_1.129+httpsredir_amd64.udeb
+~ # fetch-url http://192.168.122.1/preseed preseed
+WARNING: cannot verify 192.168.122.1's certificate, ...
+...
+2018-11-14 12:36:33 URL:https://192.168.122.1//preseed [11/11] ->
+"./_fetch-url_preseed.1102" [1]
+~ # echo $?
+0
+With the patch and NO d-i/allow_unauthenticated_ssl=true (another boot)
+---
+~ # cat /proc/cmdline
+console=ttyS0 url=http://192.168.122.1/preseed
+~ # fetch-url http://192.168.122.1/preseed preseed
+ERROR: cannot verify 192.168.122.1's certificate, ...
+...
+To connect to 192.168.122.1 insecurely, use `--no-check-certificate'.
+Thanks,
+-- 
+Mauricio Faria de Oliveira

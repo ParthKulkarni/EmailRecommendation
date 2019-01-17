@@ -1,0 +1,48 @@
+To : Debian BTS <submit@bugs.debian.org>
+Subject : Bug#902226: debian-installer-netboot-images: FTBFS in stretch, even when allowing network access
+From : Santiago Vila <sanvila@unex.es>
+Date : Sat, 23 Jun 2018 17:20:17 +0200 (CEST)
+Message-id : alpine.DEB.2.20.1806231631270.14257@tulipan.isla-invisible.es
+Reply-to : Santiago Vila <sanvila@unex.es>, 902226@bugs.debian.org
+
+
+Package: src:debian-installer-netboot-images
+Version: 20170615+deb9u3
+Tags: ftbfs
+Dear Debian Installer people:
+Even when we allow network access in the autobuilder, building this
+package no longer works since version 20170615+deb9u1.
+-------------------------------------------------------------------
+Connecting to cdn-fastly.deb.debian.org
+(cdn-fastly.deb.debian.org)|151.101.132.204|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 20 [application/x-gzip]
+Saving to: 'amd64.Packages.gz'
+     0K                                                       100% 7.00M=0s
+2017-07-22 15:38:16 (7.00 MB/s) - 'amd64.Packages.gz' saved [20/20]
+amd64.Packages.gz: OK
+Building 20170615+deb9u1, but stretch-proposed-updates has , failing the build
+debian/rules:19: recipe for target 'get-images-amd64' failed
+make[1]: *** [get-images-amd64] Error 1
+-------------------------------------------------------------------
+Without using any special flag or environment variable, what I would
+expect is that it downloads things from stretch as well, as every
+point release of stretch should ideally be "self-contained" for
+building purposes.
+I see this line in debian/rules:
+export DISTRIBUTION?=stretch-proposed-updates
+Maybe that's the problem.
+I'm putting all my build logs here for you to see:
+https://people.debian.org/~sanvila/build-logs/debian-installer-netboot-images/
+You will see that version 20170615 of this package used to build ok in
+the past.
+[ Note: I fear that this could be another wontfix bug, like the one
+  complaining about network access, so I will not bother to set a
+  severity, but I still believe that for consistency, packages in
+  stretch should be buildable in stretch by default, even when they
+  need network access ].
+  If, after all, you consider that the cure is worse than the disease,
+  then please consider this as a documentation bug and if possible
+  explain somewhere why we are not expected to build this package
+  without failures ].
+Thanks.

@@ -1,0 +1,55 @@
+To : debian-devel@lists.debian.org
+Subject : Re: recommends for apparmor in newest linux-image-4.13
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 29 Nov 2017 12:08:04 +0000
+Message-id : 20171129120804.GA13303@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20171129111003.aujgmyw4y2gjc3eg@mail.sl.id.au>
+References : <[🔎] 20171123131846.GA27575@lst.de> <[🔎] 1511445349.14687.63.camel@decadent.org.uk> <[🔎] 20171123135822.GA28776@lst.de> <[🔎] 1511445584.14687.64.camel@decadent.org.uk> <[🔎] 20171123140109.GA28885@lst.de> <[🔎] 20171123144310.gac6zwqysfzdsh3i@exolobe3> <[🔎] 20171128185445.GA5602@lst.de> <[🔎] 20171129111003.aujgmyw4y2gjc3eg@mail.sl.id.au>
+
+
+On Wed, 29 Nov 2017 at 22:10:03 +1100, Scott Leggett wrote:
+> > It's just a bad idea of a security model that implements ad-hoc
+> > and mostly path based restrictions instead of an actually verified
+> > security model.  Using that by default makes it much harder to actually
+> > use a real MAC based security model
+> 
+> I am not an expert, but I thought that AppArmor was also considered a
+> MAC implementation.
+I don't see why it isn't a MAC implementation. However, the comment about
+not having a "real" security model seems valid. The way AppArmor is used
+in practice is often more like hardening than a coherent security model:
+when an app was not designed to be sandboxed, and an AppArmor profile
+was added later without modifying app code, the profile rules that are
+necessary to make it work are often loose enough to allow privilege
+escalation, particularly for desktop apps that are typically written to
+assume they have full desktop privileges.
+One rebuttal to that is that hardening is better than nothing, and what
+most Debian users have in this department at the moment is nothing.
+One very likely route for privilege escalation is that when a desktop app
+has been written with the expectation that it can run other programs as
+subprocesses, if those programs have higher privilege than the desktop app
+itself, the desktop app can probably subvert them - the security issues
+around setuid are well-known, but switching to a more-privileged AppArmor
+profile is basically a weaker form of setuid, and we can't really expect
+the author of every program that might be used as a subprocess to write
+in the same defensive/paranoid style that we expect for setuid programs.
+I think we have to assume that if any descendant of an app (in terms of
+the process tree) can do something, then so can that app.
+Controlled privilege escalation without the pitfalls of executing a
+subprocess is often done via D-Bus or similar. However, until the kernel
+support necessary for finer-grained D-Bus AppArmor mediation lands
+upstream (which it hopefully will soon), another route for privilege
+escalation is that if you can get access to the session bus at all,
+then you can interact with services that expect that everything on the
+session bus is equally-privileged, and in particular ask dbus-daemon,
+gnome-session, systemd --user, etc. to run arbitrary code on your behalf.
+If you have a patched kernel that adds this feature (like Ubuntu has for
+many years), Debian's dbus-daemon is already set up to make use of it.
+Flatpak's "portals" concept is an attempt to avoid those privilege
+escalation opportunities. In some ways, the portal work is more important
+than Flatpak itself.
+Outside desktops, in the more limited scope (but higher privilege level)
+of system services, is probably where AppArmor is most useful in the
+short term. In that space it overlaps fairly heavily with what you can
+do with the various "hardening" options available in systemd units.
+    smcv

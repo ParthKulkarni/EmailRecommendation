@@ -1,0 +1,56 @@
+To : <reiserfs-devel@vger.kernel.org>,<debian-devel@lists.debian.org>
+Subject : Reiser4 Kernel 4.15.15 and Upgraded wireless-regdb for Debian AMD64
+From : jose.r.r@metztli.com (Metztli Information Technology)
+Date : Tue,  3 Apr 2018 23:52:26 -0700 (PDT)
+Message-id : 20180404065226.96F141683BC3@huitzilopochtli.metztli-it.com
+
+
+Niltze-
+Built reiser4 enhanced Linux 4.15.15 wrapped by Debian packaging for kernel 4.15.11 (last I found) modified for GCC6 stretch-backports AMD64.
+Upon booting kernel in wireless maching, it complained about:
+platform regulatory.0: firmware: failed to load regulatory.db (-2)
+[   12.134223] firmware_class: See https://wiki.debian.org/Firmware for information about missing firmware
+[   12.134281] platform regulatory.0: Direct firmware load for regulatory.db failed with error -2
+[   12.134283] cfg80211: failed to load regulatory.db
+Doing an online search it seems this is a 'feature' of kernels 4.15.x, i.e., below is for Slackware:
+< https://www.linuxquestions.org/questions/linux-kernel-70/kernel-platform-regulatory-0-direct-firmware-load-for-regulatory-db-failed-with-error-2-a-4175622954/ >
+Notwithstanding, Debian seems to be lacking relevant files in ~2016 (last/latest) wireless-regdb package.
+Although I created a repo at Github
+< https://metztli.github.io/wireless-regdb-metztli/ .
+there is only a small hack to debian-example in git source for wireless-regdb, from upstream, thus created attached patch for
+git clone git://git.kernel.org/pub/scm/linux/kernel/git/sforshee/wireless-regdb.git
+cd wireless-regdb
+cat debian-upgraded-regulatory-regdb-for-4.15x.patch | patch -p1
+dpkg-buildpackage -F -us -uc -j2 -T binary
+Generates upgraded wireless-regdb_2018.04.02-1_all.deb
+./lib/firmware/
+./lib/firmware/regulatory.db      #1} Specifically
+./lib/firmware/regulatory.db.p7s  #2} Linux 4.15.x needs
+./usr/
+./usr/lib/
+./usr/lib/crda/
+./usr/lib/crda/regulatory.bin     #3} these upgraded files.
+./usr/share/
+./usr/share/doc/
+./usr/share/doc/wireless-regdb/
+./usr/share/doc/wireless-regdb/README
+./usr/share/doc/wireless-regdb/changelog.Debian.gz
+./usr/share/doc/wireless-regdb/copyright
+Of course, also
+apt-get install crda
+as it is recent from Debian repositories.
+I built *both* packages (nmu .1 and -1) and made available *without* guarantee to solve your particular relevant issue:
+https://metztli.it/readOnlyEphemeral/wireless-regdb_2018.04.02-1_all.deb
+https://metztli.it/readOnlyEphemeral/crda_3.18-1.1_amd64.deb
+They fix the above wireless regulatory.db issue(s) in my machine.
+Best Professional Regards.
+-- 
+Jose R R
+http://metztli.it
+---------------------------------------------------------------------------------------------
+Download Metztli Reiser4: Debian Stretch w/ Linux 4.14 AMD64
+---------------------------------------------------------------------------------------------
+feats ZSTD compression https://sf.net/projects/metztli-reiser4/
+-------------------------------------------------------------------------------------------
+Official current Reiser4 resources: https://reiser4.wiki.kernel.org/
+debian-upgraded-regulatory-regdb-for-4.15x.patch

@@ -1,0 +1,35 @@
+To : Alf Gaida <agaida@siduction.org>, 896071@bugs.debian.org
+Subject : Bug#896071: debootstrap fails to retrive Release file over https
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sat, 21 Apr 2018 20:32:59 +0900
+Message-id : 20180421203259.de45ed6e95bef4e354d00be4@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 896071@bugs.debian.org
+In-reply-to : <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org>
+References : <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <[🔎] 152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org>
+
+
+control: tags -1 +confirmed
+control: tags -1 +patch
+On Thu, 19 Apr 2018 09:56:30 +0200
+Alf Gaida <agaida@siduction.org> wrote:
+> there was a change in behaviour with the latest upload:
+ Thanks for the report, and here's a proposal fix.
+ "$@" is extracted as '' and wget tries to fetch it and fails, 
+ then returns 1.
+diff --git a/functions b/functions
+index 1e41862..bad37dc 100644
+--- a/functions
++++ b/functions
+@@ -80,10 +80,10 @@ wgetprogress () {
+        [ ! "$VERBOSE" ] && NVSWITCH="-nv"
+        local ret=0
+        if [ "$USE_DEBIANINSTALLER_INTERACTION" ] && [ "$PROGRESS_NEXT" ]; then
+-               wget "$@" 2>&1 >/dev/null | "$PKGDETAILS" "WGET%" "$PROGRESS_NOW" "$PROGRESS_NEXT" "$PROGRESS_END" >&3
++               wget $@ 2>&1 >/dev/null | "$PKGDETAILS" "WGET%" "$PROGRESS_NOW" "$PROGRESS_NEXT" "$PROGRESS_END" >&3
+                ret=$?
+        else
+-               wget $NVSWITCH "$@"
++               wget $NVSWITCH $@
+                ret=$?
+        fi
+        return $ret

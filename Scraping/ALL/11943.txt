@@ -1,0 +1,29 @@
+To : submit@bugs.debian.org
+Subject : Bug#858563: efl: invoking debian/rules directly does not work as intended
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 23 Mar 2017 14:55:55 +0000
+Message-id : 20170323145555.t5puvnuf6lb6tdc5@perpetual.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 858563@bugs.debian.org
+In-reply-to : <[🔎] 20170323125510.3w5ov7rr226662m4@vanvanmojo.kallisti.us>
+References : <CAM12Q5SCMgk=W0C-==XKzF4bo8CFh-y3QJWfXGcTAD2tV1mJAw@mail.gmail.com> <[🔎] 20170320201511.lbmu27zod7buhbcg@vanvanmojo.kallisti.us> <[🔎] CAM12Q5TZqe2WiZXQniYQy_zTArGDsbUgaDujaKTaiYyYMskT9Q@mail.gmail.com> <[🔎] 20170321235542.bz3kyjs6fvl5yyrg@stgulik> <CAM12Q5QJUfF+sLdL6-hipQi610jAHfqY_dNsBG7POFVteqRh5A@mail.gmail.com> <[🔎] 20170323125510.3w5ov7rr226662m4@vanvanmojo.kallisti.us>
+
+
+Source: efl
+Version: 1.8.6-2.5
+On Thu, 23 Mar 2017 at 08:55:10 -0400, Ross Vandegrift wrote:
+> You only need [to pass --enable-fb explicitly] because you're calling
+> debian/rules directly. If you use dpkg-buildpackage then
+> DEB_HOST_ARCH_OS will be set, and the Makefile will automatically
+> add --enable-fb.
+This is *technically* a bug in the packaging: invoking debian/rules
+directly is *meant* to work. efl's debian/rules should either
+`include /usr/share/dpkg/default.mk` (or at least architecture.mk),
+or arrange for DEB_HOST_ARCH_OS to be set correctly by invoking
+dpkg-buildflags itself.
+(But I'm sure lots of other packages have the same bug: no infrastructure
+in Debian systematically checks for it, and for a user of Debian packages,
+building with dpkg-buildpackage or debuild is always preferred.)
+I'm filing this as a normal-severity bug, because although it's a
+Policy violation, it isn't a serious one IMO. Please adjust the severity
+up or down according to the maintainer's opinion.
+    S

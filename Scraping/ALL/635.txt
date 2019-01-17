@@ -1,0 +1,260 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#896090: AH02611: create: apr_shm_create failed (No space left on device)
+From : Kai Storbeck <kai@xs4all.net>
+Date : Thu, 19 Apr 2018 13:53:56 +0200
+Message-id : 152413883621.9717.1762500599470837223.reportbug@xswebfront7.xs4all.net
+Reply-to : Kai Storbeck <kai@xs4all.net>, 896090@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3+deb9u4
+Severity: normal
+Dear Maintainers,
+We're running into a problem on a graceful restart in combination with a
+front proxy and mod_balancer:
+[Mon Apr 09 09:10:17.169139 2018] [slotmem_shm:error] [pid 9268:tid
+140349331453824] (28)No space left on device: AH02611: create:
+apr_shm_create(/var/run/apache2/slotmem-shm-pe0653d6a_apidocs_cluster.shm)
+failed
+I found the No Space error bizarre, so I have verified if there is room in the limits:
+> $ ipcs -lm
+> ------ Semaphore Limits --------
+> max number of arrays = 32000
+> max semaphores per array = 32000
+> max semaphores system wide = 1024000000
+> max ops per semop call = 500
+> semaphore max value = 32767
+The amount of semaphores in use while running is around 2118.
+I can reliably reproduce it with:
+ - 45 vhosts that use mod_balancer, with in total 138 BalancerMembers.
+ - a long running connection (keep alive) over one of the configured
+   vhosts.
+ - both on jessie and stretch
+I observed that:
+ - Disabling "a few" vhosts makes the problem go away
+ - Stopping the long lived connection makes the problem go away
+While browsing the apache mailinglist for this error, I found a
+similar bug report which was fixed in 2.4.30 [1].
+[1]: https://bz.apache.org/bugzilla/show_bug.cgi?id=62044
+Let me know if I provided enough details.
+Kai
+-- Package-specific info:
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-4-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages apache2 depends on:
+ii  apache2-bin          2.4.25-3+deb9u4
+ii  apache2-data         2.4.25-3+deb9u4
+ii  apache2-utils        2.4.25-3+deb9u4
+ii  dpkg                 1.18.24
+ii  init-system-helpers  1.48
+ii  lsb-base             9.20161125
+ii  mime-support         3.60
+ii  perl                 5.24.1-3+deb9u3
+ii  procps               2:3.3.12-3
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.39
+Versions of packages apache2 suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+pn  www-browser                                      <none>
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.5.2-5
+ii  libaprutil1              1.5.4-3
+ii  libaprutil1-dbd-sqlite3  1.5.4-3
+ii  libaprutil1-ldap         1.5.4-3
+ii  libc6                    2.24-11+deb9u3
+ii  libldap-2.4-2            2.4.44+dfsg-5+deb9u1
+ii  liblua5.2-0              5.2.4-1.1+b2
+ii  libnghttp2-14            1.18.1-1
+ii  libpcre3                 2:8.39-3
+ii  libssl1.0.2              1.0.2l-2+deb9u3
+ii  libxml2                  2.9.4+dfsg1-2.2+deb9u2
+ii  perl                     5.24.1-3+deb9u3
+ii  zlib1g                   1:1.2.8.dfsg-5
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+pn  www-browser                                      <none>
+Versions of packages apache2 is related to:
+ii  apache2      2.4.25-3+deb9u4
+ii  apache2-bin  2.4.25-3+deb9u4
+-- Configuration Files:
+/etc/apache2/apache2.conf changed:
+ServerTokens Prod
+ServerSignature Off
+TraceEnable On
+ServerName "xswebfront7.xs4all.net"
+ServerRoot "/etc/apache2"
+PidFile ${APACHE_PID_FILE}
+Timeout 120
+KeepAlive On
+MaxKeepAliveRequests 100
+KeepAliveTimeout 5
+LimitRequestFieldSize 8190
+User www-data
+Group www-data
+AccessFileName .htaccess
+<FilesMatch "^\.ht">
+    Require all denied
+</FilesMatch>
+<Directory />
+  Options FollowSymLinks
+  AllowOverride None
+</Directory>
+HostnameLookups Off
+ErrorLog "/var/log/apache2/error.log"
+LogLevel warn 
+EnableSendfile On
+Include "/etc/apache2/mods-enabled/*.load"
+Include "/etc/apache2/mods-enabled/*.conf"
+Include "/etc/apache2/ports.conf"
+LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+LogFormat "%h %l %u %t \"%r\" %>s %b" common
+LogFormat "%{Referer}i -> %U" referer
+LogFormat "%{User-agent}i" agent
+LogFormat "%{X-Forwarded-For}i %l %u %t \"%r\" %s %b \"%{Referer}i\" \"%{User-agent}i\"" forwarded
+IncludeOptional "/etc/apache2/conf.d/*.conf"
+IncludeOptional "/etc/apache2/sites-enabled/*"
+/etc/apache2/mods-available/access_compat.load changed:
+LoadModule access_compat_module /usr/lib/apache2/modules/mod_access_compat.so
+/etc/apache2/mods-available/alias.conf changed:
+<IfModule alias_module>
+Alias /icons/ "/usr/share/apache2/icons/"
+<Directory "/usr/share/apache2/icons">
+    Options Indexes MultiViews
+    AllowOverride None
+    Require all granted
+</Directory>
+</IfModule>
+/etc/apache2/mods-available/authz_host.load changed:
+LoadModule authz_host_module /usr/lib/apache2/modules/mod_authz_host.so
+/etc/apache2/mods-available/deflate.conf changed:
+AddOutputFilterByType DEFLATE application/json
+AddOutputFilterByType DEFLATE application/rss+xml
+AddOutputFilterByType DEFLATE application/x-javascript application/javascript application/ecmascript
+AddOutputFilterByType DEFLATE text/css
+AddOutputFilterByType DEFLATE text/html text/plain text/xml
+DeflateFilterNote Input instream
+DeflateFilterNote Output outstream
+DeflateFilterNote Ratio ratio
+/etc/apache2/mods-available/deflate.load changed:
+LoadModule deflate_module /usr/lib/apache2/modules/mod_deflate.so
+/etc/apache2/mods-available/lbmethod_byrequests.load changed:
+LoadModule lbmethod_byrequests_module /usr/lib/apache2/modules/mod_lbmethod_byrequests.so
+/etc/apache2/mods-available/mime.conf changed:
+TypesConfig /etc/mime.types
+AddType application/x-compress .Z
+AddType application/x-gzip .gz .tgz
+AddType application/x-bzip2 .bz2
+AddLanguage ca .ca
+AddLanguage cs .cz .cs
+AddLanguage da .dk
+AddLanguage de .de
+AddLanguage el .el
+AddLanguage en .en
+AddLanguage eo .eo
+AddLanguage es .es
+AddLanguage et .et
+AddLanguage fr .fr
+AddLanguage he .he
+AddLanguage hr .hr
+AddLanguage it .it
+AddLanguage ja .ja
+AddLanguage ko .ko
+AddLanguage ltz .ltz
+AddLanguage nl .nl
+AddLanguage nn .nn
+AddLanguage no .no
+AddLanguage pl .po
+AddLanguage pt .pt
+AddLanguage pt-BR .pt-br
+AddLanguage ru .ru
+AddLanguage sv .sv
+AddLanguage zh-CN .zh-cn
+AddLanguage zh-TW .zh-tw
+AddHandler type-map var
+AddOutputFilter INCLUDES .shtml
+AddType text/html .shtml
+/etc/apache2/mods-available/proxy.conf changed:
+<IfModule mod_proxy.c>
+  # Do not enable proxying with ProxyRequests until you have secured your
+  # server.  Open proxy servers are dangerous both to your network and to the
+  # Internet at large.
+  ProxyRequests Off
+  
+  # Enable/disable the handling of HTTP/1.1 "Via:" headers.
+  # ("Full" adds the server version; "Block" removes all outgoing Via: headers)
+  # Set to one of: Off | On | Full | Block
+  ProxyVia On
+</IfModule>
+/etc/apache2/mods-available/proxy_balancer.load changed:
+LoadModule proxy_balancer_module /usr/lib/apache2/modules/mod_proxy_balancer.so
+/etc/apache2/mods-available/proxy_http.load changed:
+LoadModule proxy_http_module /usr/lib/apache2/modules/mod_proxy_http.so
+/etc/apache2/mods-available/setenvif.conf changed:
+BrowserMatch "Mozilla/2" nokeepalive
+BrowserMatch "MSIE 4\.0b2;" nokeepalive downgrade-1.0 force-response-1.0
+BrowserMatch "RealPlayer 4\.0" force-response-1.0
+BrowserMatch "Java/1\.0" force-response-1.0
+BrowserMatch "JDK/1\.0" force-response-1.0
+BrowserMatch "Microsoft Data Access Internet Publishing Provider" redirect-carefully
+BrowserMatch "MS FrontPage" redirect-carefully
+BrowserMatch "^WebDrive" redirect-carefully
+BrowserMatch "^WebDAVFS/1.[0123]" redirect-carefully
+BrowserMatch "^gnome-vfs/1.0" redirect-carefully
+BrowserMatch "^gvfs/1" redirect-carefully
+BrowserMatch "^XML Spy" redirect-carefully
+BrowserMatch "^Dreamweaver-WebDAV-SCM1" redirect-carefully
+BrowserMatch " Konqueror/4" redirect-carefully
+<IfModule mod_ssl.c>
+  BrowserMatch "MSIE [2-6]" \
+    nokeepalive ssl-unclean-shutdown \
+    downgrade-1.0 force-response-1.0
+  # MSIE 7 and newer should be able to use keepalive
+  BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
+</IfModule>
+/etc/apache2/mods-available/ssl.conf changed:
+<IfModule mod_ssl.c>
+  SSLRandomSeed startup builtin
+  SSLRandomSeed startup file:/dev/urandom 512
+  SSLRandomSeed connect builtin
+  SSLRandomSeed connect file:/dev/urandom 512
+  AddType application/x-x509-ca-cert .crt
+  AddType application/x-pkcs7-crl    .crl
+  SSLPassPhraseDialog builtin
+  SSLSessionCache "shmcb:${APACHE_RUN_DIR}/ssl_scache(512000)"
+  SSLSessionCacheTimeout 300
+  Mutex default
+  SSLCryptoDevice builtin
+  SSLHonorCipherOrder On
+  SSLUseStapling Off
+  SSLStaplingCache "shmcb:${APACHE_RUN_DIR}/ocsp(32768)"
+  SSLCipherSuite EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH
+  SSLProtocol all -SSLv2 -SSLv3
+  SSLOptions StdEnvVars
+</IfModule>
+/etc/apache2/mods-available/ssl.load changed:
+LoadModule ssl_module /usr/lib/apache2/modules/mod_ssl.so
+/etc/apache2/mods-available/status.conf changed:
+<Location /server-status>
+    SetHandler server-status
+    Require ip 127.0.0.1 ::1
+</Location>
+ExtendedStatus On
+<IfModule mod_proxy.c>
+    # Show Proxy LoadBalancer status in mod_status
+    ProxyStatus On
+</IfModule>
+/etc/apache2/ports.conf changed:
+Listen 443
+Listen 80
+/etc/apache2/sites-available/000-default.conf [Errno 2] No such file or directory: '/etc/apache2/sites-available/000-default.conf'
+/etc/apache2/sites-available/default-ssl.conf [Errno 2] No such file or directory: '/etc/apache2/sites-available/default-ssl.conf'
+-- no debconf information

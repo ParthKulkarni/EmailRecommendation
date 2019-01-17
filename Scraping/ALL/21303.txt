@@ -1,0 +1,120 @@
+To : Theodore Ts'o <tytso@mit.edu>
+Subject : Re: [PATCH] Fix parallel FTBFS
+From : Philipp Hahn <hahn@univention.de>
+Date : Mon, 13 Feb 2017 08:51:19 +0100
+Message-id : 117b-a916-2563-bf46-aea3194758ea@univention.de
+In-reply-to : <20170210210234.q6gmgmw6oitgoogq@thunk.org>
+References : <abe0986af2ab6be015d8b669cb7f1a3289241e76.1486656027.git.hahn@univention.de> <20170210210234.q6gmgmw6oitgoogq@thunk.org>
+
+
+Hello fellows,
+we (Univention GmbH) rebuild packages (from Debian-Jessie or newer)
+using "-j8". Several builds failed, but work when I use "-j1":
+* gcc-4.7
+> mv: cannot stat 'stamps/07-install-stamp': No such file or directory
+> debian/rules.d/binary-libgcc.mk:362: recipe for target 'stamps/08-binary-stamp-libgcc-dev' failed
+> make[1]: *** [stamps/08-binary-stamp-libgcc-dev] Error 1
+> make[1]: *** Waiting for unfinished jobs....
+> mv: cannot stat 'stamps/07-install-stamp': No such file or directory
+* perl-5.20.2-3+deb8u9
+* systemd-215-17+deb8u7
+* exim-4.84.2-2+deb8u4
+> cp: cannot stat './EDITME.eximon.oOCpeNf': No such file or directory
+> debian/rules:116: recipe for target 'b-exim4-daemon-heavy/Makefile' failed
+> make: *** [b-exim4-daemon-heavy/Makefile] Error 123
+* freeradius-2.2.5+dfsg-0.2+deb8u1
+* mysql-5.5.58-0+deb8u1: Bug#857059
+* libpaper: Bug#857058
+* isc-dhcp: Bug#651922
+* e2fsprogs: (attachment)
+IMHO with todays multi-core CPUs -jX is a must:
+- If I rebuild the full distribution, building multiple packages each
+with -j1 is okay.
+- But if I need a single package not being able to use -jX is a NO-GO:
+For Spectre I re-build gcc-4.9 and it took 13h15m with -j1, because -j8
+failed with the above error.
+What do you thing: If parallel build a worthy goal?
+With all the reproducible build stuff going on, I think it would be nice
+if someone™ can also donate CPU time to check that -j`nproc` works.
+Philipp
+Hello Theodore,
+Am 10.02.2017 um 22:02 schrieb Theodore Ts'o:
+> On Thu, Feb 09, 2017 at 05:03:30PM +0100, Philipp Hahn wrote:
+>>  install-std: DH_OPTIONS=
+>> -install-std: build
+>> +install-std: build cleanup
+> 
+> I don't think this works.  The clean target *must* be done before the
+> build target.  In fact, it must be completed before the build target
+> starts --- and the way the depedencies are specified above, dh_prep's
+> deletion of the build directory would be racing with the build
+> target's trying to populate them.
+> 
+> No?
+I think "No" ;-)
+Notice the difference between "clean" and "clean*up*":
+> $ sed -ne '/^clean/,/^$/p' debian/rules
+> clean:
+>         dh_testdir
+>         rm -rf ${STAMPSDIR}
+>         [ ! -f ${stdbuilddir}/Makefile ] || $(MAKE) -C ${stdbuilddir} V=1 distclean
+>         [ ! -f ${bfbuilddir}/Makefile ] || $(MAKE) -C ${bfbuilddir} V=1 distclean
+>         [ ! -f ${staticbuilddir}/Makefile ] || $(MAKE) -C ${staticbuilddir} V=1 distclean
+>         rm -rf ${stdbuilddir} ${bfbuilddir} ${staticbuilddir} ${mipsbuilddir} ${mipsbuilddir64}
+>         rm -f debian/*.substvars
+>         dh_clean
+> 
+> cleanup:
+>         dh_testdir
+>         dh_testroot
+>         dh_prep
+When "dh_prep" is called, it only removed the files belonging to Debian
+packages, e.g. the debhelper fragments, package specific directories,
+substvars and tmp/. - all the things that must be removed before
+"binary" builds the Debian packages:
+> $ ls -1 debian > ../before
+> $ dh_prep
+> $ ls -1 debian > ../after
+> $ diff ../before ../after |grep ^\<
+> < comerr-dev
+> < comerr-dev.substvars
+> < e2fsck-static
+> < e2fsck-static.substvars
+> < e2fslibs
+> < e2fslibs-dbg
+> < e2fslibs-dbg.substvars
+> < e2fslibs-dev
+> < e2fslibs-dev.substvars
+> < e2fslibs.postinst.debhelper
+> < e2fslibs.postrm.debhelper
+> < e2fslibs.substvars
+> < e2fsprogs
+> < e2fsprogs-dbg
+> < e2fsprogs-dbg.substvars
+> < e2fsprogs-udeb
+> < e2fsprogs-udeb.substvars
+> < e2fsprogs.substvars
+> < libcomerr2
+> < libcomerr2-dbg
+> < libcomerr2-dbg.substvars
+> < libcomerr2.postinst.debhelper
+> < libcomerr2.postrm.debhelper
+> < libcomerr2.substvars
+> < libss2
+> < libss2-dbg
+> < libss2-dbg.substvars
+> < libss2.postinst.debhelper
+> < libss2.postrm.debhelper
+> < libss2.substvars
+> < ss-dev
+> < ss-dev.substvars
+> < tmp
+So "cleanup" must be called fore "binary" or "binary-arch" or
+"binary-indep".
+FYI: First calling "make binary-arch" and then "make binary-indep" is
+not equivalent to "make binary", as the state would be purged in between
+then.
+I've tested the build multiple times on a 4 CPU KVM: without the patch
+most builds fail with the quoted error or with some other race-condition
+error; since the patch every built (~6) went fine.
+Philipp "pmhahn@debian.org" Hahn

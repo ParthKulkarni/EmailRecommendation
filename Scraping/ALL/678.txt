@@ -1,0 +1,99 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#888593: apr: FTBFS with debhelper/11.1 due to empty build target
+From : Niels Thykier <niels@thykier.net>
+Date : Sat, 27 Jan 2018 16:12:54 +0100
+Message-id : 151706597446.5420.14477331674985025544.reportbug@mangetsu.thykier.net
+Reply-to : Niels Thykier <niels@thykier.net>, 888593@bugs.debian.org
+
+
+Source: apr
+Version: 1.6.3-1
+Severity: serious
+Tags: patch
+Hi,
+The apr package FTBFS with debhelper/11.1 as it has an empty build
+target.  This is caused by debhelper had a bug in its handling of
+"explicitly defined rules targets" that has now been fixed.
+Previously, this happened to work because dpkg-buildpackage would
+invoke "debian/rules build" (which would be a no-op) followed by
+"fakeroot debian/rules binary".  During the binary target, dh's
+suboptimal handling would run the build commands.
+The solution is trivial but less pretty; explicitly define "build"
+with the same content as the "%:" target (or rename the "build" folder
+and drop the ".PHONY" target).  I have attached a patch for this.
+I have also added two optional patches (0002 + 0003) to remove some
+redundancy by reducing the number of options passed to dh.  When apr
+in unstable was rebuilt, they produced bit-for-bit identical output
+compared to apr in sid (with 0001; I could not built it without 0001,
+which is why I am filing the bug).
+  Both patches bumps the minimum debhelper version requriement for
+building apr.  Most likely, it will be a non-issue for you as the
+minimum requirements are satisfied in stable and oldstable-backports.
+More details can be found in:
+ * #886901 comment #35
+ * #887688 comment #37
+ * #880840
+Apologies for the inconvenience.
+Thanks,
+~Niels
+From b89fcf818bb466498d2abc9d3888bed5d862cd69 Mon Sep 17 00:00:00 2001
+From: Niels Thykier <niels@thykier.net>
+Date: Sat, 27 Jan 2018 15:06:36 +0000
+Subject: [PATCH 3/3] Bump debhelper compat to 10
+This enables us to ditch the --parallel option for dh as it is now the
+default.
+Signed-off-by: Niels Thykier <niels@thykier.net>
+---
+ debian/compat  |  2 +-
+ debian/control |  2 +-
+ debian/rules   | 15 +++++++++++++--
+ 3 files changed, 15 insertions(+), 4 deletions(-)
+diff --git a/debian/compat b/debian/compat
+index ec63514..f599e28 100644
+--- a/debian/compat
++++ b/debian/compat
+@@ -1 +1 @@
+-9
++10
+diff --git a/debian/control b/debian/control
+index e4038fb..e68a3ac 100644
+--- a/debian/control
++++ b/debian/control
+@@ -3,7 +3,7 @@ Section: libs
+ Priority: optional
+ Maintainer: Debian Apache Maintainers <debian-apache@lists.debian.org>
+ Uploaders: Stefan Fritsch <sf@debian.org>
+-Build-Depends: debhelper (>= 9), autoconf, mawk, uuid-dev, doxygen, netbase, net-tools, libtool (>= 2), python:any, libsctp-dev [linux-any]
++Build-Depends: debhelper (>= 10), autoconf, mawk, uuid-dev, doxygen, netbase, net-tools, libtool (>= 2), python:any, libsctp-dev [linux-any]
+ Standards-Version: 3.9.8
+ Vcs-Browser: https://anonscm.debian.org/cgit/pkg-apache/apr.git
+ Vcs-Git: git://anonscm.debian.org/pkg-apache/apr.git
+diff --git a/debian/rules b/debian/rules
+index 2f58066..d514a95 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -17,9 +17,20 @@ DEB_HOST_MULTIARCH  ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+ # The build target must not be empty.  Sadly because of how make
+ # works, we have do duplicate the target in this case.
+ build:
+-	dh $@ -B$(BUILDDIR) --parallel
++	dh $@ -B$(BUILDDIR)
+ %:
+-	dh $@ -B$(BUILDDIR) --parallel
++	dh $@ -B$(BUILDDIR)
++
++# Skip dh_autoreconf; it interacts with the "SAVE_FILES" (which could probably
++# be solved by doing it before dh_autoreconf) and it causes generated apr_rules.mk
++# to get a different LIBTOOL setting.  The effects of that has not been researched
++# and until it has, we skip dh_autoreconf.
++#
++# The difference being:
++#│ │ │ -LIBTOOL=$(SHELL) $(apr_builddir)/libtool
++#│ │ │ +LIBTOOL=$(SHELL) $(top_builddir)/libtool
++#
++override_dh_autoreconf:
+ 
+ #
+ # configure
+-- 
+2.15.1

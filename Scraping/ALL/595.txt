@@ -1,0 +1,31 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#904150: apache2: typo in maintainer script
+From : Andreas Hasenack <andreas@canonical.com>
+Date : Fri, 20 Jul 2018 14:46:33 -0300
+Message-id : CANYNYEEc+KNN+_LPYU+P8+zVyGLhME+7wtmk_benmFxLpQm2NQ@mail.gmail.com
+Reply-to : Andreas Hasenack <andreas@canonical.com>, 904150@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.33-3
+Severity: normal
+Dear Maintainer,
+Tim Bishop filed this bug in Ubuntu:
+https://bugs.launchpad.net/ubuntu/+source/apache2/+bug/1782806
+showing what appears to be a typo in a maintainer script:
+https://salsa.debian.org/apache-team/apache2/blob/master/debian/debhelper/apache2-maintscript-helper#L290
+a2query -m "$mpm_$MPM" > /dev/null 2>&1 || a2query_ret=$?
+The argument to -m was probably meant to be "mpm_$MPM", as the shell
+function where this statement lives explicitly requests that the mpm
+module name should not have a "mpm_" prefix.
+The fix should be as simple as this:
+--- a/debian/debhelper/apache2-maintscript-helper
++++ b/debian/debhelper/apache2-maintscript-helper
+@@ -287,7 +287,7 @@ apache2_switch_mpm()
+        fi
+        local a2query_ret=0
+-       a2query -m "$mpm_$MPM" > /dev/null 2>&1 || a2query_ret=$?
++       a2query -m "mpm_$MPM" > /dev/null 2>&1 || a2query_ret=$?
+        case $a2query_ret in
+        0)
+Thanks!

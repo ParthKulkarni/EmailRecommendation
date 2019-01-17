@@ -1,0 +1,513 @@
+To : Andreas Jellinghaus <andreas@ionisiert.de>, 880494@bugs.debian.org
+Subject : Bug#880494: D-I fails on odroid-hc1 devices: kernel doesn't find usb connected SATA and network card
+From : Jochen Sprickerhof <jspricke@debian.org>
+Date : Tue, 24 Apr 2018 06:59:37 +0200
+Message-id : 20180424045937.GA5754@vis
+Reply-to : Jochen Sprickerhof <jspricke@debian.org>, 880494@bugs.debian.org
+In-reply-to : <CAMoWHD9irvKES3ssznNGZ72Q_0eFvKt0C0T=dD1Q5pTTmF1duA@mail.gmail.com>
+References : <CAMoWHD9irvKES3ssznNGZ72Q_0eFvKt0C0T=dD1Q5pTTmF1duA@mail.gmail.com> <CAMoWHD9irvKES3ssznNGZ72Q_0eFvKt0C0T=dD1Q5pTTmF1duA@mail.gmail.com>
+
+
+Hi Andreas,
+I had a similar problem with the Odroid XU4 which was fixed 
+https://bugs.debian.org/895976. Given that both devices are really 
+similar, I suspect that it probably fixes your device as well. Can you 
+test it using the latest daily snapshot of the installer?
+signature.asc
+Package: debian-installer
+Version: 20171008
+To install Debian on Odroid-hc1 single board computer I managed to combine
+firmware.none and the armhf images and modify the result with the latest
+u-boot and network-console kernels and inject the vendor firmware blobs.
+But the network card is not found, it seems an issue with the kernel.
+Bypassing D-I with gparted/mkfs/multistrap/... the result is a fine booting
+debian system, the only extra binaries are the firmware blobs around
+u-boot, i.e. no modified debian packages were required.
+How can I analyze the system and provide the necessary info to get all
+required modules into the typical D-I powered install images?
+I'm told the list of modules in D-I might be manually configured, thus here
+is lsmod as a start:
+What other information would be useful?
+root@debian-odroid-h1:~# dpkg -l |grep linux-image
+ii  linux-image-4.13.0-1-armmp-lpae 4.13.4-2                   armhf
+Linux 4.13 for ARMv7 multiplatform compatible SoCs supporting LPAE
+ii  linux-image-armmp-lpae          4.13+86                    armhf
+Linux for ARMv7 multiplatform compatible SoCs supporting LPAE (meta-package)
+root@debian-odroid-h1:~# lsmod
+Module                  Size  Used by
+cdc_ether              16384  0
+usbnet                 32768  1 cdc_ether
+r8152                  57344  0
+mii                    16384  2 usbnet,r8152
+exynosdrm              86016  0
+analogix_dp            36864  1 exynosdrm
+drm_kms_helper        139264  2 exynosdrm,analogix_dp
+drm                   299008  4 exynosdrm,analogix_dp,drm_kms_helper
+exynos_adc             24576  0
+pwm_samsung            16384  2
+industrialio           57344  1 exynos_adc
+s3c2410_wdt            16384  0
+leds_pwm               16384  0
+cpufreq_dt             16384  0
+pwm_fan                16384  0
+ip_tables              24576  0
+x_tables               24576  1 ip_tables
+autofs4                40960  2
+ext4                  589824  2
+crc16                  16384  1 ext4
+mbcache                16384  1 ext4
+jbd2                  102400  1 ext4
+crc32c_generic         16384  4
+fscrypto               24576  1 ext4
+ecb                    16384  0
+xhci_plat_hcd          16384  0
+xhci_hcd              176128  1 xhci_plat_hcd
+dwc3                  102400  0
+udc_core               36864  1 dwc3
+phy_generic            16384  0
+s2mps11                57344  19
+clk_s2mps11            16384  0
+dwc3_exynos            16384  0
+phy_exynos_mipi_video    16384  0
+phy_exynos_dp_video    16384  0
+i2c_exynos5            16384  0
+ohci_exynos            16384  0
+ohci_hcd               45056  1 ohci_exynos
+ehci_exynos            16384  0
+ehci_hcd               77824  1 ehci_exynos
+usbcore               204800  9
+ehci_exynos,usbnet,ehci_hcd,cdc_ether,xhci_plat_hcd,ohci_hcd,ohci_exynos,r8152,xhci_hcd
+dw_mmc_exynos          16384  0
+dw_mmc_pltfm           16384  1 dw_mmc_exynos
+dw_mmc                 36864  2 dw_mmc_pltfm,dw_mmc_exynos
+usb_common             16384  3 udc_core,usbcore,dwc3
+phy_exynos_usb2        20480  2
+phy_exynos5_usbdrd     16384  4
+Some details frm the boot log:
+root@debian-odroid-h1:~# dmesg |grep -i -E "usb|hci|exynos|815|hub"
+[    0.010515] Exynos MCPM support installed
+[    0.109738] EXYNOS5420 PMU initialized
+[    5.478185] exynos5_usb3drd_phy 12100000.phy: 12100000.phy supply vbus
+not found, using dummy regulator
+[    5.492258] exynos5_usb3drd_phy 12100000.phy: 12100000.phy supply
+vbus-boost not found, using dummy regulator
+[    5.492315] usbcore: registered new interface driver usbfs
+[    5.492459] usbcore: registered new interface driver hub
+[    5.492769] usbcore: registered new device driver usb
+[    5.496834] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    5.498256] ehci-exynos: EHCI EXYNOS driver
+[    5.499238] ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+[    5.500351] ohci-exynos: OHCI EXYNOS driver
+[    5.540049] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.546324] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    5.552121] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    5.557500] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    5.567483] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.573999] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    5.579904] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    5.585305] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    5.594932] samsung-usb2-phy 12130000.phy: 12130000.phy supply vbus not
+found, using dummy regulator
+[    5.604806] exynos-ehci 12110000.usb: EHCI Host Controller
+[    5.608962] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.612294] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    5.612310] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    5.612344] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    5.616274] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.616517] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    5.616534] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    5.616566] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    5.680809] exynos-ehci 12110000.usb: new USB bus registered, assigned
+bus number 1
+[    5.689521] exynos-ehci 12110000.usb: irq 71, io mem 0x12110000
+[    5.709594] exynos-ehci 12110000.usb: USB 2.0 started, EHCI 1.00
+[    5.714486] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+[    5.720924] usb usb1: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    5.728100] usb usb1: Product: EHCI Host Controller
+[    5.732954] usb usb1: Manufacturer: Linux 4.13.0-1-armmp-lpae ehci_hcd
+[    5.739449] usb usb1: SerialNumber: 12110000.usb
+[    5.745084] hub 1-0:1.0: USB hub found
+[    5.747826] hub 1-0:1.0: 3 ports detected
+[    5.754380] exynos-ohci 12120000.usb: USB Host Controller
+[    5.757091] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.757482] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    5.757500] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    5.757607] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    5.758972] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.759368] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    5.759384] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    5.759421] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    5.819455] exynos-ohci 12120000.usb: new USB bus registered, assigned
+bus number 2
+[    5.827627] exynos-ohci 12120000.usb: irq 71, io mem 0x12120000
+[    5.893880] usb usb2: New USB device found, idVendor=1d6b, idProduct=0001
+[    5.899219] usb usb2: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    5.906410] usb usb2: Product: USB Host Controller
+[    5.911170] usb usb2: Manufacturer: Linux 4.13.0-1-armmp-lpae ohci_hcd
+[    5.917670] usb usb2: SerialNumber: 12120000.usb
+[    5.923324] hub 2-0:1.0: USB hub found
+[    5.926047] hub 2-0:1.0: 3 ports detected
+[    5.933478] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.939183] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    5.945366] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    5.950752] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    5.961704] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.972756] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    5.978872] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    5.984261] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    5.998198] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.020849] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    6.027052] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    6.032456] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    6.032665] exynos5_usb3drd_phy 12500000.phy: 12500000.phy supply vbus
+not found, using dummy regulator
+[    6.032821] exynos5_usb3drd_phy 12500000.phy: 12500000.phy supply
+vbus-boost not found, using dummy regulator
+[    6.062822] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.084341] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    6.090542] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    6.095939] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    6.111309] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.117430] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    6.123184] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    6.128568] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    6.233587] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.239586] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    6.245453] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    6.250858] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    6.315118] exynos-tmu 10060000.tmu: More trip points than supported by
+this TMU.
+[    6.321168] exynos-tmu 10060000.tmu: 2 trip points should be configured
+in polling mode.
+[    6.349434] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.349668] usb_phy_generic usb_phy_generic.0.auto:
+usb_phy_generic.0.auto supply vcc not found, using dummy regulator
+[    6.349924] usb_phy_generic usb_phy_generic.1.auto:
+usb_phy_generic.1.auto supply vcc not found, using dummy regulator
+[    6.350151] usb_phy_generic usb_phy_generic.2.auto:
+usb_phy_generic.2.auto supply vcc not found, using dummy regulator
+[    6.350379] usb_phy_generic usb_phy_generic.3.auto:
+usb_phy_generic.3.auto supply vcc not found, using dummy regulator
+[    6.398039] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    6.403949] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    6.409328] xhci-hcd xhci-hcd.4.auto: xHCI Host Controller
+[    6.409362] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    6.409841] dwmmc_exynos 12200000.mmc: allocated mmc-pwrseq
+[    6.429608] xhci-hcd xhci-hcd.4.auto: new USB bus registered, assigned
+bus number 3
+[    6.447606] xhci-hcd xhci-hcd.4.auto: hcc params 0x0220f04c hci version
+0x100 quirks 0x02010010
+[    6.455395] xhci-hcd root@debian-odroid-h1:~# dmesg |grep -i -E
+"usb|hci|exynos|815|hub"
+[    0.010515] Exynos MCPM support installed
+[    0.109738] EXYNOS5420 PMU initialized
+[    5.478185] exynos5_usb3drd_phy 12100000.phy: 12100000.phy supply vbus
+not found, using dummy regulator
+[    5.492258] exynos5_usb3drd_phy 12100000.phy: 12100000.phy supply
+vbus-boost not found, using dummy regulator
+[    5.492315] usbcore: registered new interface driver usbfs
+[    5.492459] usbcore: registered new interface driver hub
+[    5.492769] usbcore: registered new device driver usb
+[    5.496834] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    5.498256] ehci-exynos: EHCI EXYNOS driver
+[    5.499238] ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+[    5.500351] ohci-exynos: OHCI EXYNOS driver
+[    5.540049] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.546324] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    5.552121] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    5.557500] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    5.567483] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.573999] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    5.579904] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    5.585305] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    5.594932] samsung-usb2-phy 12130000.phy: 12130000.phy supply vbus not
+found, using dummy regulator
+[    5.604806] exynos-ehci 12110000.usb: EHCI Host Controller
+[    5.608962] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.612294] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    5.612310] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    5.612344] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    5.616274] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.616517] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    5.616534] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    5.616566] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    5.680809] exynos-ehci 12110000.usb: new USB bus registered, assigned
+bus number 1
+[    5.689521] exynos-ehci 12110000.usb: irq 71, io mem 0x12110000
+[    5.709594] exynos-ehci 12110000.usb: USB 2.0 started, EHCI 1.00
+[    5.714486] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+[    5.720924] usb usb1: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    5.728100] usb usb1: Product: EHCI Host Controller
+[    5.732954] usb usb1: Manufacturer: Linux 4.13.0-1-armmp-lpae ehci_hcd
+[    5.739449] usb usb1: SerialNumber: 12110000.usb
+[    5.745084] hub 1-0:1.0: USB hub found
+[    5.747826] hub 1-0:1.0: 3 ports detected
+[    5.754380] exynos-ohci 12120000.usb: USB Host Controller
+[    5.757091] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.757482] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    5.757500] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    5.757607] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    5.758972] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.759368] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    5.759384] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    5.759421] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    5.819455] exynos-ohci 12120000.usb: new USB bus registered, assigned
+bus number 2
+[    5.827627] exynos-ohci 12120000.usb: irq 71, io mem 0x12120000
+[    5.893880] usb usb2: New USB device found, idVendor=1d6b, idProduct=0001
+[    5.899219] usb usb2: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    5.906410] usb usb2: Product: USB Host Controller
+[    5.911170] usb usb2: Manufacturer: Linux 4.13.0-1-armmp-lpae ohci_hcd
+[    5.917670] usb usb2: SerialNumber: 12120000.usb
+[    5.923324] hub 2-0:1.0: USB hub found
+[    5.926047] hub 2-0:1.0: 3 ports detected
+[    5.933478] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.939183] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    5.945366] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    5.950752] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    5.961704] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    5.972756] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    5.978872] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    5.984261] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    5.998198] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.020849] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    6.027052] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    6.032456] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    6.032665] exynos5_usb3drd_phy 12500000.phy: 12500000.phy supply vbus
+not found, using dummy regulator
+[    6.032821] exynos5_usb3drd_phy 12500000.phy: 12500000.phy supply
+vbus-boost not found, using dummy regulator
+[    6.062822] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.084341] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    6.090542] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    6.095939] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    6.111309] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.117430] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    6.123184] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    6.128568] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    6.233587] dwmmc_exynos 12220000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.239586] dwmmc_exynos 12220000.mmc: Using internal DMA controller.
+[    6.245453] dwmmc_exynos 12220000.mmc: Version ID is 250a
+[    6.250858] dwmmc_exynos 12220000.mmc: DW MMC controller at irq 74,64
+bit host data width,64 deep fifo
+[    6.315118] exynos-tmu 10060000.tmu: More trip points than supported by
+this TMU.
+[    6.321168] exynos-tmu 10060000.tmu: 2 trip points should be configured
+in polling mode.
+[    6.349434] dwmmc_exynos 12200000.mmc: IDMAC supports 32-bit address
+mode.
+[    6.349668] usb_phy_generic usb_phy_generic.0.auto:
+usb_phy_generic.0.auto supply vcc not found, using dummy regulator
+[    6.349924] usb_phy_generic usb_phy_generic.1.auto:
+usb_phy_generic.1.auto supply vcc not found, using dummy regulator
+[    6.350151] usb_phy_generic usb_phy_generic.2.auto:
+usb_phy_generic.2.auto supply vcc not found, using dummy regulator
+[    6.350379] usb_phy_generic usb_phy_generic.3.auto:
+usb_phy_generic.3.auto supply vcc not found, using dummy regulator
+[    6.398039] dwmmc_exynos 12200000.mmc: Using internal DMA controller.
+[    6.403949] dwmmc_exynos 12200000.mmc: Version ID is 250a
+[    6.409328] xhci-hcd xhci-hcd.4.auto: xHCI Host Controller
+[    6.409362] dwmmc_exynos 12200000.mmc: DW MMC controller at irq 73,64
+bit host data width,64 deep fifo
+[    6.409841] dwmmc_exynos 12200000.mmc: allocated mmc-pwrseq
+[    6.429608] xhci-hcd xhci-hcd.4.auto: new USB bus registered, assigned
+bus number 3
+[    6.447606] xhci-hcd xhci-hcd.4.auto: hcc params 0x0220f04c hci version
+0x100 quirks 0x02010010
+[    6.455395] xhci-hcd xhci-hcd.4.auto: irq 135, io mem 0x12000000
+[    6.461684] usb usb3: New USB device found, idVendor=1d6b, idProduct=0002
+[    6.468067] usb usb3: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    6.497597] usb usb3: Product: xHCI Host Controller
+[    6.502436] usb usb3: Manufacturer: Linux 4.13.0-1-armmp-lpae xhci-hcd
+[    6.508933] usb usb3: SerialNumber: xhci-hcd.4.auto
+[    6.514667] hub 3-0:1.0: USB hub found
+[    6.517581] hub 3-0:1.0: 1 port detected
+[    6.521979] xhci-hcd xhci-hcd.4.auto: xHCI Host Controller
+[    6.526890] xhci-hcd xhci-hcd.4.auto: new USB bus registered, assigned
+bus number 4
+[    6.534614] usb usb4: We don't know the algorithms for LPM for this
+host, disabling LPM.
+[    6.542798] usb usb4: New USB device found, idVendor=1d6b, idProduct=0003
+[    6.549320] usb usb4: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    6.556509] usb usb4: Product: xHCI Host Controller
+[    6.561355] usb usb4: Manufacturer: Linux 4.13.0-1-armmp-lpae xhci-hcd
+[    6.567853] usb usb4: SerialNumber: xhci-hcd.4.auto
+[    6.573815] hub 4-0:1.0: USB hub found
+[    6.576449] hub 4-0:1.0: 1 port detected
+[    6.580997] xhci-hcd xhci-hcd.5.auto: xHCI Host Controller
+[    6.585865] xhci-hcd xhci-hcd.5.auto: new USB bus registered, assigned
+bus number 5
+[    6.594506] xhci-hcd xhci-hcd.5.auto: hcc params 0x0220f04c hci version
+0x100 quirks 0x02010010
+[    6.602204] xhci-hcd xhci-hcd.5.auto: irq 136, io mem 0x12400000
+[    6.608336] usb usb5: New USB device found, idVendor=1d6b, idProduct=0002
+[    6.614831] usb usb5: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    6.622024] usb usb5: Product: xHCI Host Controller
+[    6.626879] usb usb5: Manufacturer: Linux 4.13.0-1-armmp-lpae xhci-hcd
+[    6.633372] usb usb5: SerialNumber: xhci-hcd.5.auto
+[    6.639177] hub 5-0:1.0: USB hub found
+[    6.642003] hub 5-0:1.0: 1 port detected
+[    6.646407] xhci-hcd xhci-hcd.5.auto: xHCI Host Controller
+[    6.651325] xhci-hcd xhci-hcd.5.auto: new USB bus registered, assigned
+bus number 6
+[    6.659050] usb usb6: We don't know the algorithms for LPM for this
+host, disabling LPM.
+[    6.667193] usb usb6: New USB device found, idVendor=1d6b, idProduct=0003
+[    6.673754] usb usb6: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    6.680942] usb usb6: Product: xHCI Host Controller
+[    6.685793] usb usb6: Manufacturer: Linux 4.13.0-1-armmp-lpae xhci-hcd
+[    6.692290] usb usb6: SerialNumber: xhci-hcd.5.auto
+[    6.698051] hub 6-0:1.0: USB hub found
+[    6.700880] hub 6-0:1.0: 1 port detected
+[    7.157595] usb 5-1: new high-speed USB device number 3 using xhci-hcd
+[    7.302644] usb 5-1: New USB device found, idVendor=0bda, idProduct=8153
+[    7.307906] usb 5-1: New USB device strings: Mfr=1, Product=2,
+SerialNumber=6
+[    7.315007] usb 5-1: Product: USB 10/100/1000 LAN
+[    7.319689] usb 5-1: Manufacturer: Realtek
+[    7.323759] usb 5-1: SerialNumber: 000001000000
+[    7.973876] xhci-hcd xhci-hcd.5.auto: Cannot set link state.
+[    7.978179] usb usb6-port1: cannot disable (err = -32)
+[    9.983593] [drm] Exynos DRM: using 14450000.mixer device for DMA
+mapping operations
+[    9.996815] usbcore: registered new interface driver r8152
+[   10.003695] exynos-drm exynos-drm: bound 14450000.mixer (ops
+mixer_component_ops [exynosdrm])
+[   10.004882] usbcore: registered new interface driver cdc_ether
+[   10.017800] exynos-drm exynos-drm: bound 14530000.hdmi (ops
+hdmi_component_ops [exynosdrm])
+[   10.039079] [drm] Initialized exynos 1.0.0 20110530 for exynos-drm on
+minor 0
+[   10.147021] usb 5-1: reset high-speed USB device number 3 using xhci-hcd
+[   10.346640] r8152 5-1:1.0 eth0: v1.09.9
+[   10.380420] r8152 5-1:1.0 enx001e0630c922: renamed from eth0
+[   50.819847] r8152 5-1:1.0 enx001e0630c922: carrier on
+xhci-hcd.4.auto: irq 135, io mem 0x12000000
+[    6.461684] usb usb3: New USB device found, idVendor=1d6b, idProduct=0002
+[    6.468067] usb usb3: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    6.497597] usb usb3: Product: xHCI Host Controller
+[    6.502436] usb usb3: Manufacturer: Linux 4.13.0-1-armmp-lpae xhci-hcd
+[    6.508933] usb usb3: SerialNumber: xhci-hcd.4.auto
+[    6.514667] hub 3-0:1.0: USB hub found
+[    6.517581] hub 3-0:1.0: 1 port detected
+[    6.521979] xhci-hcd xhci-hcd.4.auto: xHCI Host Controller
+[    6.526890] xhci-hcd xhci-hcd.4.auto: new USB bus registered, assigned
+bus number 4
+[    6.534614] usb usb4: We don't know the algorithms for LPM for this
+host, disabling LPM.
+[    6.542798] usb usb4: New USB device found, idVendor=1d6b, idProduct=0003
+[    6.549320] usb usb4: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    6.556509] usb usb4: Product: xHCI Host Controller
+[    6.561355] usb usb4: Manufacturer: Linux 4.13.0-1-armmp-lpae xhci-hcd
+[    6.567853] usb usb4: SerialNumber: xhci-hcd.4.auto
+[    6.573815] hub 4-0:1.0: USB hub found
+[    6.576449] hub 4-0:1.0: 1 port detected
+[    6.580997] xhci-hcd xhci-hcd.5.auto: xHCI Host Controller
+[    6.585865] xhci-hcd xhci-hcd.5.auto: new USB bus registered, assigned
+bus number 5
+[    6.594506] xhci-hcd xhci-hcd.5.auto: hcc params 0x0220f04c hci version
+0x100 quirks 0x02010010
+[    6.602204] xhci-hcd xhci-hcd.5.auto: irq 136, io mem 0x12400000
+[    6.608336] usb usb5: New USB device found, idVendor=1d6b, idProduct=0002
+[    6.614831] usb usb5: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    6.622024] usb usb5: Product: xHCI Host Controller
+[    6.626879] usb usb5: Manufacturer: Linux 4.13.0-1-armmp-lpae xhci-hcd
+[    6.633372] usb usb5: SerialNumber: xhci-hcd.5.auto
+[    6.639177] hub 5-0:1.0: USB hub found
+[    6.642003] hub 5-0:1.0: 1 port detected
+[    6.646407] xhci-hcd xhci-hcd.5.auto: xHCI Host Controller
+[    6.651325] xhci-hcd xhci-hcd.5.auto: new USB bus registered, assigned
+bus number 6
+[    6.659050] usb usb6: We don't know the algorithms for LPM for this
+host, disabling LPM.
+[    6.667193] usb usb6: New USB device found, idVendor=1d6b, idProduct=0003
+[    6.673754] usb usb6: New USB device strings: Mfr=3, Product=2,
+SerialNumber=1
+[    6.680942] usb usb6: Product: xHCI Host Controller
+[    6.685793] usb usb6: Manufacturer: Linux 4.13.0-1-armmp-lpae xhci-hcd
+[    6.692290] usb usb6: SerialNumber: xhci-hcd.5.auto
+[    6.698051] hub 6-0:1.0: USB hub found
+[    6.700880] hub 6-0:1.0: 1 port detected
+[    7.157595] usb 5-1: new high-speed USB device number 3 using xhci-hcd
+[    7.302644] usb 5-1: New USB device found, idVendor=0bda, idProduct=8153
+[    7.307906] usb 5-1: New USB device strings: Mfr=1, Product=2,
+SerialNumber=6
+[    7.315007] usb 5-1: Product: USB 10/100/1000 LAN
+[    7.319689] usb 5-1: Manufacturer: Realtek
+[    7.323759] usb 5-1: SerialNumber: 000001000000
+[    7.973876] xhci-hcd xhci-hcd.5.auto: Cannot set link state.
+[    7.978179] usb usb6-port1: cannot disable (err = -32)
+[    9.983593] [drm] Exynos DRM: using 14450000.mixer device for DMA
+mapping operations
+[    9.996815] usbcore: registered new interface driver r8152
+[   10.003695] exynos-drm exynos-drm: bound 14450000.mixer (ops
+mixer_component_ops [exynosdrm])
+[   10.004882] usbcore: registered new interface driver cdc_ether
+[   10.017800] exynos-drm exynos-drm: bound 14530000.hdmi (ops
+hdmi_component_ops [exynosdrm])
+[   10.039079] [drm] Initialized exynos 1.0.0 20110530 for exynos-drm on
+minor 0
+[   10.147021] usb 5-1: reset high-speed USB device number 3 using xhci-hcd
+[   10.346640] r8152 5-1:1.0 eth0: v1.09.9
+[   10.380420] r8152 5-1:1.0 enx001e0630c922: renamed from eth0
+[   50.819847] r8152 5-1:1.0 enx001e0630c922: carrier on

@@ -1,0 +1,52 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#884376: flash-kernel: ubootenv.d snippets silently ignored
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Thu, 14 Dec 2017 17:40:28 +0100
+Message-id : 151326956636.15026.3121719863660740831.reportbug@nyera.fatal.se
+Reply-to : Andreas Henriksson <andreas@fatal.se>, 884376@bugs.debian.org
+
+
+Package: flash-kernel
+Version: 3.88
+Severity: normal
+Tags: patch
+Dear Maintainer,
+Since most bootscr.* template still misses the @@UBOOT_ENV_EXTRA@@
+marker please consider applying the attached patch to warn the
+user about their snippet being ignored.
+Hopefully the message has enough details that the user can fix
+up the template without having to read flash-kernel code like
+I had to do to figure it out.
+Regards,
+Andreas Henriksson
+>From b86a051ee0a0c748d30eb455f39b5005ae6c29aa Mon Sep 17 00:00:00 2001
+From: Andreas Henriksson <andreas@fatal.se>
+Date: Thu, 14 Dec 2017 17:34:04 +0100
+Subject: [PATCH] Warn when ubootenv.d snippet will be ignored
+Previously if you dropped in an bootscript snippet in
+/etc/flash-kernel/ubootenv.d/ and the bootscr.* template
+did not contain @@UBOOT_ENV_EXTRA@@ (which most don't)
+the snippet would be silently ignored.
+Warn the user and give some hints on where to look for the
+solution in the warning message.
+---
+ functions | 5 +++++
+ 1 file changed, 5 insertions(+)
+diff --git a/functions b/functions
+index b2ae5be..6a2cde9 100644
+--- a/functions
++++ b/functions
+@@ -461,6 +461,11 @@ mkimage_script() {
+ 	local ubootenv="$(mktemp --tmpdir=$tmpdir)"
+ 	gen_ubootenv > $ubootenv
+ 
++	if [ "$(stat --printf='%s' $ubootenv)" -gt 0 ] && \
++           ! grep -q '@@UBOOT_ENV_EXTRA@@' "$sdata" ; then
++		echo "WARNING: ubootenv.d snippet used, but $sdata has no @@UBOOT_ENV_EXTRA@@ marker. Snippet will be ignored." >&2
++        fi
++
+ 	printf "Generating boot script u-boot image... " >&2
+ 	sed -e "s/@@KERNEL_VERSION@@/$kvers/g" \
+             -e "s!@@LINUX_KERNEL_CMDLINE@@!$(get_kernel_cmdline)!g" \
+-- 
+2.15.1

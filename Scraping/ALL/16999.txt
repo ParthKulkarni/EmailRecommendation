@@ -1,0 +1,63 @@
+To : Dmitry Shachnev <mitya57@debian.org>
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Steve Langasek <vorlon@debian.org>
+Date : Wed, 28 Nov 2018 12:32:51 -0800
+Message-id : 20181128203251.GA13322@virgil.dodds.net
+Mail-followup-to : Dmitry Shachnev <mitya57@debian.org>,	debian-devel@lists.debian.org, debian-arm@lists.debian.org,	pkg-kde-talk@alioth-lists.debian.net
+In-reply-to : <[🔎] 20181128140351.GA7571@mitya57.me>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] 2682712.gOydg1LB9R@tonks> <[🔎] 3005918.A3t91XcMaO@tonks> <[🔎] 1804155.CmlG43vXzp@tonks> <[🔎] 20181128070052.GA26398@virgil.dodds.net> <[🔎] 20181128140351.GA7571@mitya57.me>
+
+
+On Wed, Nov 28, 2018 at 05:03:51PM +0300, Dmitry Shachnev wrote:
+> On Tue, Nov 27, 2018 at 11:00:52PM -0800, Steve Langasek wrote:
+> The amount of packages will probably be larger in the current sid,
+> but it should not be more than 20 packages.
+> Plus there are packages which are using QT_OPENGL_ES macro for conditional
+> compilation (as I mentioned in my previous mail), but there are also not many
+> of them:
+> gammaray
+> goldendict
+> gst-plugins-good1.0
+> kamoso
+> krita
+> leocad
+> openclonk
+> phonon-backend-gstreamer
+> qtav
+> qt-gstreamer
+> qtwebkit-opensource-src
+> qtwayland-opensource-src
+> qtcharts-opensource-src
+Right, and the fact that they can conditionally compile differently with
+OPENGL_ES doesn't necessarily mean they would need to be.  E.g. looking at
+gammaray, it's not obvious to me that this should have two builds; it's
+possible the code should instead be fixed to not need to make this
+conditional at build-time, given that the package is binary-compatible with
+Qt built with or without GLES.
+> > So perhaps someone in this thread is willing to put in this effort to
+> > maintain 6 source packages, in order to avoid having to make a choice
+> > between GL and GLES on arm64.
+> I wonder if these can be new binaries in existing source packages, instead
+> of separate source packages. Otherwise we will have too much code duplication,
+> and also wasted time: for example, in qtbase-opensource-src, only src/gui
+> needs to be built twice, and there is no need to built other submodules twice.
+I would caution against prematurely optimizing for build-time.  Yes,
+building the entire source package twice is a waste of resources, but it's
+probably a drop in the bucket.
+The reason not to build the two stacks from a single source package is that
+the gl vs gles libraries are by design drop-in replacements for one another
+- i.e.: they must have the same soname in order for the symbols magic to
+work, which means they end up conflicting on the system.  You *could* design
+a system that allows them to be coinstallable via subdirectories and
+manually-managed symlinks, but I doubt this is actually worth it in practice
+for the number of packages affected.
+> We already have an example of double build inside the same source: on i386,
+> src/corelib is built twice, with and without sse2 support.
+> In any case, this task looks manageable.  Maybe if I have time someday I
+> will take care of it, but in the meantime volunteers are welcome.
+-- 
+Steve Langasek                   Give me a lever long enough and a Free OS
+Debian Developer                   to set it on, and I can move the world.
+Ubuntu Developer                                   https://www.debian.org/
+slangasek@ubuntu.com                                     vorlon@debian.org
+signature.asc

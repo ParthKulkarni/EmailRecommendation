@@ -1,0 +1,127 @@
+To : debian-devel@lists.debian.org
+Subject : Bash different behaviour in jessie versus stretch (maybe a regression?)
+From : "foo fighter" <lopiuh@gmx.net>
+Date : Mon, 9 Jan 2017 00:49:26 +0100
+Message-id : trinity-e8c3cbb2-5eab-4be0-a897-c9146deb768b-1483919366497@3capp-gmx-bs59
+References : <trinity-a48cd580-d34a-4150-8144-30ac7e599982-1483822474228@3capp-gmx-bs16>
+
+
+Hi,
+I could see different bash behaviour and do not know if these are regressions in jessie or fixes for jessie. I searched for bugrepots (bash jessie) but did not find something I could connect to it
+itemcoumt in "version 2" differs and especially "version 3" bothers me: error exit in jessie and NO error exit when running in stretch).
+Yours lopiuh
+===========================
+CODE:
+===========================
+#!/usr/bin/env bash
+set -o errexit  # (set -e)
+set -o nounset  # (set -u)
+set -o pipefail
+shopt -s nullglob # enable
+#shopt -s failglob
+#set -o noglob
+clear
+echo "===========================Version 1==========================="
+echo "Bash Version: $BASH_VERSION"
+echo -n "IFS:"; echo "$IFS" | cat -vte
+echo
+unset _array; declare -a _array
+_inputstring="$(echo -e "item01\nitem02\nitem03")"
+echo "inputstring:"
+echo -n "$_inputstring" | xxd; echo
+read -ra _array <<<$(echo $_inputstring) # <<< NO -"- around string
+echo "itemcount of array: ${#_array[@]}"
+for i in "${_array[@]}"; do
+	echo -n "element: "; echo -n "$i" | xxd; echo
+done
+#
+echo "===========================Version 2==========================="
+echo "Bash Version: $BASH_VERSION"
+echo -n "IFS:"; echo "$IFS" | cat -vte
+echo
+unset _array; declare -a _array
+_inputstring="$(echo -e "item01\nitem02\nitem03")"
+echo "inputstring:"
+echo -n "$_inputstring" | xxd; echo
+read -ra _array <<<$(echo "$_inputstring") # <<< WITH -"- around string
+echo "itemcount of array: ${#_array[@]}"
+for i in "${_array[@]}"; do
+	echo -n "element: "; echo -n "$i" | xxd; echo
+done
+echo "===========================Version 3==========================="
+echo "Bash Version: $BASH_VERSION"
+echo -n "IFS:"; echo "$IFS" | cat -vte
+echo
+unset _array; declare -a _array
+_inputstring="telnet*"
+echo "inputstring:"
+echo -n "$_inputstring" | xxd; echo
+read -ra _array <<<$(echo $_inputstring) # <<< NO -"- around string, 0 item due to globbing. errexit in jessie, no exit in stretch
+echo "itemcount of array: ${#_array[@]}"
+for i in "${_array[@]}"; do
+	echo -n "element: "; echo -n "$i" | xxd; echo
+done
+echo "Ende"
+exit
+OUTPUT in jessie:
+===========================Version 1===========================
+Bash Version: 4.3.30(1)-release
+IFS: ^I$
+$
+inputstring:
+0000000: 6974 656d 3031 0a69 7465 6d30 320a 6974  item01.item02.it
+0000010: 656d 3033                                em03
+itemcount of array: 3
+element: 0000000: 6974 656d 3031                           item01
+element: 0000000: 6974 656d 3032                           item02
+element: 0000000: 6974 656d 3033                           item03
+===========================Version 2===========================
+Bash Version: 4.3.30(1)-release
+IFS: ^I$
+$
+inputstring:
+0000000: 6974 656d 3031 0a69 7465 6d30 320a 6974  item01.item02.it
+0000010: 656d 3033                                em03
+itemcount of array: 3
+element: 0000000: 6974 656d 3031                           item01
+element: 0000000: 6974 656d 3032                           item02
+element: 0000000: 6974 656d 3033                           item03
+===========================Version 3===========================
+Bash Version: 4.3.30(1)-release
+IFS: ^I$
+$
+inputstring:
+0000000: 7465 6c6e 6574 2a                        telnet*
+itemcount of array: 0
+/mnt/data/sh/finalize_installation.sh: Zeile 91: _array[@] ist nicht gesetzt.
+===============================================================
+OUTPUT in stretch:
+===============================================================
+===========================Version 1===========================
+Bash Version: 4.4.5(1)-release
+IFS: ^I$
+$
+inputstring:
+00000000: 6974 656d 3031 0a69 7465 6d30 320a 6974  item01.item02.it
+00000010: 656d 3033                                em03
+itemcount of array: 3
+element: 00000000: 6974 656d 3031                           item01
+element: 00000000: 6974 656d 3032                           item02
+element: 00000000: 6974 656d 3033                           item03
+===========================Version 2===========================
+Bash Version: 4.4.5(1)-release
+IFS: ^I$
+$
+inputstring:
+00000000: 6974 656d 3031 0a69 7465 6d30 320a 6974  item01.item02.it
+00000010: 656d 3033                                em03
+itemcount of array: 1
+element: 00000000: 6974 656d 3031                           item01
+===========================Version 3===========================
+Bash Version: 4.4.5(1)-release
+IFS: ^I$
+$
+inputstring:
+00000000: 7465 6c6e 6574 2a                        telnet*
+itemcount of array: 0
+Ende

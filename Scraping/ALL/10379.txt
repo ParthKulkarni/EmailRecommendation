@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org
+Subject : Re: apt-get upgrade removing ifupdown on jessie→stretch upgrade
+From : David Kalnischkies <david@kalnischkies.de>
+Date : Wed, 22 Feb 2017 13:16:27 +0100
+Message-id : 20170222121627.qjbhg7bitu4le4b7@crossbow
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170222000624.cbhmff2kpyau5kfq@fishbowl.rw.madduck.net>
+References : <[🔎] 20170222000624.cbhmff2kpyau5kfq@fishbowl.rw.madduck.net>
+
+
+On Wed, Feb 22, 2017 at 01:06:24PM +1300, martin f krafft wrote:
+>   root@cymbaline:/etc/apt/sources.list.d# apt-get upgrade
+[…]
+>   The following packages will be REMOVED:
+>     ifupdown libasprintf0c2 libperl4-corelibs-perl libuuid-perl python-bson python-pymongo
+>
+> and indeed, it then went on to remove ifupdown.
+Outrageous! apt was always slow to adapt, so the new way of saying one
+thing and doing the other isn't fully implemented yet. I am sorry. SCNR
+> What am I not understanding right here? Shouldn't "apt-get upgrade"
+> NEVER EVER EVER EVER remove something?
+I am not opposed to the possibility of bugs in apt in general, but the
+amount of "upgrade with removal"-bugs which all turned out to be either
+scrollback-confusion, aliases or wrapper scripts is astonishing, so
+triple-double-check this first.
+Fun fact: We have a few reports which request "upgrade" to remove
+packages. You know, automatically installed packages, obsolete ones or
+obviously clear upgrades like exim4 to postfix (or the other way around,
+depending on who reports it). I tend to be against that, but in case of
+need we could still consider that a feature and close bugs… win-win :P
+> Can I find out in hindsight (can't reproduce this) what might have
+> happened?
+/var/log/apt/history.log* should be able to tell you which commands you
+have run and which solutions were applied due to it. That also includes
+dates, so you might be able to fish a /var/lib/dpkg/status file from
+before the "bad" interaction in /var/backups/dpkg.status.*. Pick the
+apt.extended_states* file from around the same date for good measure.
+A good idea might also be to write down the result of "grep ^Date
+/var/lib/apt/lists/*Release" somewhere to have an easier time of getting
+the same mirror state out of snapshot if we need that. Armed with that
+you can try debugging on your own as detailed in apts README (in the
+source) and/or I would suggest to report a bug with all the details you
+collected [and all those the bugscript wants to collect] as its hard to
+reproduce otherwise and in general: native tools are offtopic (by thread
+popularity) on d-d@ …
+… but let me help you to get the thread some replies: I don't have
+ifupdown installed anymore. systemd-networkd + wpa_supplicant FTW.
+(also: RC bugs for all node packages failing a cat-picture test!)
+Oh, and of course the standard reply: You know, apt does print
+a proposal not an EULA – so you don't have to press 'yes' without
+reading.
+Best regards
+David Kalnischkies
+signature.asc

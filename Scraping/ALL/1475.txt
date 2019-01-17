@@ -1,0 +1,43 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>, 820818@bugs.debian.org
+Subject : Bug#820818: partman is not able to resize nvme0n1p3 in d-i
+From : Philip Hands <phil@hands.com>
+Date : Tue, 07 Feb 2017 08:51:01 +0100
+Message-id : 87shnqwiai.fsf@whist.hands.com
+Reply-to : Philip Hands <phil@hands.com>, 820818@bugs.debian.org
+In-reply-to : <[🔎] 22680.39437.881471.462364@chiark.greenend.org.uk>
+References : <22285.14701.236967.803624@chiark.greenend.org.uk> <[🔎] 20170204035345.GK23551@mraw.org> <[🔎] 20170204041200.GA8024@mraw.org> <[🔎] 871svbxrcv.fsf@whist.hands.com> <[🔎] 22680.39437.881471.462364@chiark.greenend.org.uk>
+
+
+Ian Jackson <ijackson@chiark.greenend.org.uk> writes:
+> Philip Hands writes ("Re: Bug#820818: partman is not able to resize nvme0n1p3 in d-i"):
+>> BTW I just pushed Ben's alternative suggetion to the
+>> pu/resize-nvme-820818-benh branch:
+>> 
+>>   https://anonscm.debian.org/cgit/d-i/partman-partitioning.git/commit/?h=pu/resize-nvme-820818-benh&id=62c696450a206d7ee08d570fef4c2923a03042a8
+>> 
+>> (also untested)
+>
+> Is it easy for you to make an image to give to me to test that ?
+I just tried it with this image:
+  http://cdimage.debian.org/cdimage/stretch_di_rc2/amd64/iso-cd/debian-stretch-DI-rc2-amd64-netinst.iso
+adding this to the kernel command line (hit TAB at the boot menu):
+  url=hands.com/d-i/bug/820818/preseed.cfg
+and it drops the replacement resize.sh (now using Cyril's version) in
+place.
+BTW If you want to suggest somewhere to exit the script to avoid
+touching your disks, I can add that to save you the effort.
+Cheers, Phil.
+P.S. This kludge is totally over-engineered, as the file is ready to be
+replaced by the time the early command is run, so in this case the
+checks and background loop are superfluous.
+P.P.S. I think this is much less effort than building a new image, since a
+newly built netinst would download the old partman-partition udeb from
+the archive unless you start making more invasive changes.  You can
+check that it's done the right thing by the time you get to the root
+password prompts, flipping to a console and running:
+  head -40 /lib/partman/lib/resize.sh
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

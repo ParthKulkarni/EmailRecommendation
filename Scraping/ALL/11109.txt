@@ -1,0 +1,43 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#881943: libqt5opengl5-dev should provide libqt5opengl5-dev-full-opengl on !armel/armhf
+From : Adrian Bunk <bunk@debian.org>
+Date : Thu, 16 Nov 2017 22:38:43 +0200
+Message-id : 151086472335.27133.17365833560605782580.reportbug@localhost
+Reply-to : Adrian Bunk <bunk@debian.org>, 881943@bugs.debian.org
+
+
+Package: libqt5opengl5-dev
+Version: 5.9.2+dfsg-4
+Severity: normal
+Tags: patch
+Different from other architectures, on armel and armhf
+Qt in Debian is configured to use OpenGL ES instead
+of full OpenGL.
+Some OpenGL-related functionality in Qt is not available
+with OpenGL ES, and Qt also offers direct access to OpenGL.
+This causes some packages to not build with libqt5opengl5-dev
+on armel and armhf, and while making them build would obviously
+be the best solution that is not feasible in cases where
+upstream does not provide any way to disable this kind of
+OpenGL usage or has alternative OpenGL ES codepaths.
+A package that does FTBFS on armel+armhf buildds after every
+upload is not ideal - it wastes buildd resources and makes
+it harder to find bugs between the expected FTBFS.
+The Architecture: field does not support negative ! syntax,
+and maintaining a completely list of all architectures except
+armel and armhf in every affected package is fragile.
+Please apply the following patch:
+--- debian/control.old	2017-11-15 20:32:03.000000000 +0000
++++ debian/control	2017-11-15 20:32:59.000000000 +0000
+@@ -365,6 +365,7 @@
+          ${misc:Depends}
+ Breaks: qtbase5-dev (<< 5.4.0+dfsg-6~)
+ Replaces: qtbase5-dev (<< 5.4.0+dfsg-6~)
++Provides: libqt5opengl5-dev-full-opengl (= ${binary:Version}) [!armel !armhf]
+ Description: Qt 5 OpenGL library development files
+  Qt is a cross-platform C++ application framework. Qt's primary feature
+  is its rich set of widgets that provide standard GUI functionality.
+This allows packages that require Qt to use full OpenGL to
+change the build dependency from libqt5opengl5-dev to
+libqt5opengl5-dev-full-opengl, which will place them
+in BD-Uninstallable on armel and armhf.

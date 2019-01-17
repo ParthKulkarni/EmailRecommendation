@@ -1,0 +1,87 @@
+To : Ansgar Burchardt <ansgar@debian.org>, 839046@bugs.debian.org,	Guillem Jover <guillem@debian.org>
+Subject : Bug#839046: debootstrap: enable --merged-usr by default
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Tue, 13 Feb 2018 16:29:09 +0100
+Message-id : 20180213152909.GA32365@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 839046@bugs.debian.org
+In-reply-to : <[🔎] 20180212030048.GC24590@gaara.hadrons.org> <[🔎] 877erijw31.fsf@43-1.org>
+References : <87zimsjzba.fsf@deep-thought.43-1.org>
+
+
+On Mon, 12 Feb 2018, Ansgar Burchardt wrote:
+> Guillem Jover writes:
+> > In any case, I looked the other day into implementing the
+> > --map-pathname option for dpkg-query, and I've got most of the code
+> > ready. The problem is that this requires adding support for config
+> > files and config fragments to dpkg-query, which has the additional
+> > problem of making it possible to mess with the --showformat option
+> > and breaking the expectations from maintscripts, for example. The
+> > other problem is with the search behavior changing depending on the
+> > packages providing those mappings being installed (because dpkg would
+> > certainly not provide them).
+> 
+> So who should provide them?  debootstrap?  base-files?
+It certainly makes sense for debootstrap to create those files given it
+creates the symlinks in the first place.
+An alternative solution could be to reuse the usrmerge package and let
+debootstrap install this package if it exists. That way the usrmerge
+package would exist until Debian switched entirely to put everything into
+/usr/bin.
+> The correct long-term fix is probably for packages to eventually install
+> to the location in /usr anyway.  That doesn't work without some
+> transition period of 1-2 releases though.
+Ack.
+On Mon, 12 Feb 2018, Guillem Jover wrote about usrmerge:
+> This seems like a nice PoV for people to play with it, in the same way
+> local admins can use, to some extent, symlinks to redirect subtrees to
+> other mount points, but I don't see how this can be seen as a
+> production-ready solution shipped by default, TBH.
+Note that the change in debootstrap does not install usrmerge currently.
+It only creates the required symlinks.
+<reminder>
+But this is enough to confuse "dpkg -S". This used to break dpkg-shlibdeps
+and was the main reason for the initial revert. Fortunately dpkg-shlibdeps has
+been fixed to try multiple paths until it can find the package owning the
+library.
+</reminder>
+It might be that we will find other tools confused by "dpkg -S" non-answer
+on some /lib/* or /usr/lib/* paths and some end users will definitely be surprised by
+this.
+Obviously we can document the problem in release notes but it would be
+better to have a clean solution like suggested by Guillem:
+> In any case, I looked the other day into implementing the
+> --map-pathname option for dpkg-query, and I've got most of the code
+> ready.
+If this is forthcoming in the buster timeframe, it seems reasonable to
+go ahead and re-enable the merged-usr by default. However to be able to
+ship the new configuration files once their format is known, it would be
+better for debootstrap to install a package whose role will be to provide
+those configuration files ASAP after dpkg starts to support them.
+> The problem is that this requires adding support for config
+> files and config fragments to dpkg-query, which has the additional
+> problem of making it possible to mess with the --showformat option
+> and breaking the expectations from maintscripts, for example.
+Forbid those options there? Do not parse those files if you detect
+an environment variable DPKG_RUNNING_VERSION?
+> The other problem is with the search behavior changing depending on the
+> packages providing those mappings being installed (because dpkg would
+> certainly not provide them).
+That's the whole point of it so I would not consider this a problem.
+> So I'll eventually try to find a solution for the dpkg-query issue,
+> because it's a long-standing paper-cut in dpkg for local admins. But
+> I'd not be very amused if this hack is enabled by default again and
+> suddenly RC bugs start popping up in dpkg again, and people start
+> pressuring with RCness to get those fixed again because well, it's
+> obviously breaking people's systems…
+Are you considering both "usrmerge" and "debootstrap creating symlinks" as
+hacks even once they would provide mapping data for dpkg --search?
+I believe that we have had quite some testing already last time and I
+would be surprised if we got many more RC bugs on dpkg that had to be fixed
+on a short timeframe. I guess nobody can give you any assurance but
+I'm sure that you can downgrade those bugs pointing to this discussion
+and showing that this was part of the deal.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

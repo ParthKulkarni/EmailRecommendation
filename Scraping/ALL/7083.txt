@@ -1,0 +1,44 @@
+To : Cyril Brulebois <kibi@debian.org>, 892803@bugs.debian.org
+Subject : Bug#892803: di-netboot-assistant: unsigned daily images
+From : Matt Taggart <taggart@debian.org>
+Date : Wed, 14 Mar 2018 00:36:02 -0700
+Message-id : ed45782d-613c-7b20-ca20-08f96d1e6969@debian.org
+Reply-to : Matt Taggart <taggart@debian.org>, 892803@bugs.debian.org
+In-reply-to : <[🔎] 20180314052825.qwamba2utfqx2wtf@mraw.org>
+References : <[🔎] 0a9b6a36-c0d0-3acf-346c-dcac179113cb@lackof.org> <[🔎] 20180314052825.qwamba2utfqx2wtf@mraw.org> <[🔎] 0a9b6a36-c0d0-3acf-346c-dcac179113cb@lackof.org>
+
+
+On 03/13/2018 10:28 PM, Cyril Brulebois wrote:
+For me, assurance that nobody had interfered with the daily image that I 
+will use to install a system. Many systems I install with a daily are 
+for testing and get thrown away rather quickly (although often I don't 
+know in advance which ones will end up sticking around longer).
+One reason in the past I have installed systems with a daily build that 
+I know will stick around is due to needing support for new hardware at 
+install time, where I couldn't just get an older install on the system 
+with a stable d-i and then upgrade the kernel post-install. Usually 
+things like drivers for a disk controller, newish filesystem features, 
+or network drivers for doing a network install.
+The testing alpha/beta/rc releases _do_ get signed right? Maybe that's a 
+better solution for the above case where I need something newer than 
+stable, but testing would in most cases be "new enough".
+d-i.d.o does use https and has it's own Let's Encrypt issued cert, I 
+think I could verify the cert and then check that the netboot.tar.gz 
+matches the one published in
+Looking at the code, it looks like d-n-a already does the latter part I 
+guess to prevent cases of download corruption, broken mirrors, etc.
+The default di-sources.list uses https for the daily images. And the 
+code uses either wget or curl, both of which default to verifying certs 
+via the normal system ca list. So it's already doing quite a bit to 
+verify even the daily image sources. That's good, but if I was an 
+attacker trying to mitm, I'd just need to find the weakest link in the 
+CA cartel to issue me a d-i.d.o cert I could use for my mitm mirror.
+This is a corner case for sure and if there is no reasonable way to 
+solve it I think that's OK.
+I think if I wanted to prove to myself the daily image came from debian, 
+I could verify the cert used for d-i.d.o was indeed the known debian 
+owned one, download the netboot.tar.gz/SHA256SUMS and stick them in the 
+cache, and then use the --offline flag.
+--
+Matt Taggart
+taggart@debian.org

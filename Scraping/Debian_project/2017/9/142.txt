@@ -1,0 +1,349 @@
+To : debian-devel@lists.debian.org, deity@lists.debian.org
+Subject : Re: MBF: (Incorrect) use of /var/lib/apt/lists/
+From : Julian Andres Klode <jak@debian.org>
+Date : Sat, 9 Sep 2017 16:18:03 +0200
+Message-id : 20170909161340.GA22619@debian.org
+Mail-followup-to : debian-devel@lists.debian.org, deity@lists.debian.org
+In-reply-to : <20160111171230.GA17291@debian.org>
+References : <20160111171230.GA17291@debian.org>
+
+
+On Mon, Jan 11, 2016 at 05:25:40PM +0100, Julian Andres Klode wrote:
+> Hi everyone,
+> 
+> the following packages contain lines matching the
+> expression:
+> 	/var/lib/apt/lists/.*(Packages|Sources)
+> 
+> Those files may be compressed by any compressor
+> supported by APT and just hardcoding them is
+> wrong. 
+> 
+> Especially with lz4 support in 1.2, there
+> is almost no overhead setting Acquire::gzipIndexes
+> (bad name, I know), so I suspect we might see
+> more people moving to compressed indices, especially
+> on embedded devices.
+> 
+> So, I think it's time to clean up that mess.
+> 
+> Here is how:
+> 
+> To get the name of all Packages files (since 1.1), use:
+> 	apt-get indextargets --format '$(FILENAME)' "Created-By: Packages" 
+> for Sources:
+>         apt-get indextargets --format '$(FILENAME)' "Created-By: Sources"
+> for Contents (if apt-file 3 is installed):
+>         apt-get indextargets --format '$(FILENAME)' "Created-By: Contents-deb"
+> (or -dsc, -udeb)
+> 
+> To read the file, you can use (since APT 1.1.8)
+> 	/usr/lib/apt/apt-helper cat-file FILENAME...
+> - this will automatically handle any compressor. C++ code may wish
+> to use APT's FileFd code instead.
+I have now filed bugs with deity@lists.debian.org as the user and the
+"apt-internals" user tag:
+https://bugs.debian.org/cgi-bin/pkgreport.cgi?users=deity@lists.debian.org;tag=apt-internals
+Please everyone, turn on Acquire::gzipIndexes and report any other bugs
+with the same user tag.
+The initial batch of bug reports, found via codesearch was:
+Andreas Metzler <ametzler@debian.org>
+   exim4 (U)
+Axel Beckert <abe@debian.org>
+   debian-goodies (U)
+   pkg-perl-tools (U)
+CDBS Hackers <build-common-hackers@lists.alioth.debian.org>
+   cdbs
+Chris Lamb <lamby@debian.org>
+   aptfs
+Clint Adams <clint@debian.org>
+   pkg-haskell-tools (U)
+Damyan Ivanov <dmn@debian.org>
+   pkg-perl-tools (U)
+Daniel Baumann <daniel.baumann@progress-linux.org>
+   open-infrastructure-system-build
+Daniel Baumann <mail@daniel-baumann.ch>
+   open-infrastructure-system-build
+Debian Edu Developers <debian-edu@lists.debian.org>
+   debian-edu-config
+Debian Forensics <forensics-devel@lists.alioth.debian.org>
+   forensics-all
+Debian Go Packaging Team <pkg-go-maintainers@lists.alioth.debian.org>
+   ratt
+Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+   pkg-haskell-tools
+Debian Live <debian-live@lists.debian.org>
+   live-build
+Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
+   pkg-perl-tools
+Debian QA Group <packages@qa.debian.org>
+   apt-p2p
+   ara
+Debian Window Maker Team <pkg-wmaker-devel@lists.alioth.debian.org>
+   wmbiff
+Doug Torrance <dtorrance@piedmont.edu>
+   wmbiff (U)
+Exim4 Maintainers <pkg-exim4-maintainers@lists.alioth.debian.org>
+   exim4
+Giovani Augusto Ferreira <giovani@debian.org>
+   forensics-all (U)
+Graham Williams <Graham.Williams@togaware.com>
+   wajig
+gregor herrmann <gregoa@debian.org>
+   pkg-perl-tools (U)
+Holger Levsen <holger@debian.org>
+   debian-edu-config (U)
+Javier Fernández-Sanguino Peña <jfs@debian.org>
+   debian-goodies
+Joachim Breitner <nomeata@debian.org>
+   pkg-haskell-tools (U)
+Joao Eriberto Mota Filho <eriberto@debian.org>
+   forensics-all (U)
+Jonas Smedegaard <dr@jones.dk>
+   cdbs (U)
+Leo Iannacone <l3on@ubuntu.com>
+   apt-venv
+LTSP Debian Maintainers <pkg-ltsp-devel@lists.alioth.debian.org>
+   ltsp
+Marc Dequènes (Duck) <Duck@DuckCorp.org>
+   cdbs (U)
+Marc Haber <mh+debian-packages@zugschlus.de>
+   exim4 (U)
+Michael Stapelberg <stapelberg@debian.org>
+   ratt (U)
+Mike Gabriel <sunweaver@debian.org>
+   debian-edu-config (U)
+Niko Tyni <ntyni@debian.org>
+   pkg-perl-tools (U)
+Petter Reinholdtsen <pere@debian.org>
+   debian-edu-config (U)
+Raphaël Hertzog <hertzog@debian.org>
+   live-build (U)
+Rémi Thebault (RTbo) <remi.thebault@gmail.com>
+   cdbs (U)
+Salvatore Bonaccorso <carnil@debian.org>
+   pkg-perl-tools (U)
+Tshepang Lekhonkhobe <tshepang@gmail.com>
+   wajig (U)
+Vagrant Cascadian <vagrant@debian.org>
+   ltsp (U)
+Vasudev Kamath <kamathvasudev@gmail.com>
+   cdbs (U)
+Wolfgang Schweer <wschweer@arcor.de>
+   debian-edu-config (U)
+This is the original list:
+> -- List of affected packages.
+> 
+> Alessio Treglia <alessio@debian.org>
+>    apt-venv (U)
+> 
+> Alexander Alemayhu <alexander@bitraf.no>
+>    debian-edu-config (U)
+> 
+> Alexander Wirt <formorer@debian.org>
+>    grml-debootstrap (U)
+> 
+> Andreas B. Mundt <andi.mundt@web.de>
+>    debian-edu-config (U)
+> 
+> Andreas Hoenen <andreas@hoenen-terstappen.de>
+>    apt-show-versions (U)
+> 
+> Andreas Metzler <ametzler@debian.org>
+>    exim4 (U)
+> 
+> Axel Beckert <abe@debian.org>
+>    debian-goodies (U)
+>    pkg-perl-tools (U)
+> 
+> Benjamin Drung <bdrung@debian.org>
+>    devscripts (U)
+> 
+> CDBS Hackers <build-common-hackers@lists.alioth.debian.org>
+>    cdbs
+> 
+> Chris Lamb <lamby@debian.org>
+>    aptfs
+> 
+> Christian Hofstaedtler <christian@hofstaedtler.name>
+>    grml-debootstrap (U)
+> 
+> Christoph Martin <christoph.martin@uni-mainz.de>
+>    apt-show-versions
+> 
+> Clint Adams <clint@debian.org>
+>    cabal-debian (U)
+> 
+> Damyan Ivanov <dmn@debian.org>
+>    pkg-perl-tools (U)
+> 
+> dctrl-tools developers <dctrl-tools-devel@lists.alioth.debian.org>
+>    dctrl-tools
+> 
+> Debian Edu Developers <debian-edu@lists.debian.org>
+>    debian-edu-config
+> 
+> Debian Go Packaging Team <pkg-go-maintainers@lists.alioth.debian.org>
+>    ratt
+> 
+> Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+>    cabal-debian
+>    haskell-debian
+>    pkg-haskell-tools
+> 
+> Debian OCaml Maintainers <debian-ocaml-maint@lists.debian.org>
+>    coinst
+>    dh-ocaml
+>    dose3
+> 
+> Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
+>    pkg-perl-tools
+> 
+> Debian QA Group <packages@qa.debian.org>
+>    apt-p2p
+>    ara
+>    live-build
+> 
+> Debian Window Maker Team <pkg-wmaker-devel@lists.alioth.debian.org>
+>    wmbiff
+> 
+> Devscripts Devel Team <devscripts-devel@lists.alioth.debian.org>
+>    devscripts
+> 
+> Dmitry Bogatov <KAction@gnu.org>
+>    cabal-debian (U)
+>    haskell-debian (U)
+> 
+> Doug Torrance <dtorrance@piedmont.edu>
+>    wmbiff (U)
+> 
+> Exim4 Maintainers <pkg-exim4-maintainers@lists.alioth.debian.org>
+>    exim4
+> 
+> Georges Khaznadar <georgesk@debian.org>
+>    clonezilla
+> 
+> Graham Williams <Graham.Williams@togaware.com>
+>    wajig
+> 
+> gregor herrmann <gregoa@debian.org>
+>    pkg-perl-tools (U)
+> 
+> Grml Team <team@grml.org>
+>    grml-debootstrap
+> 
+> Holger Levsen <holger@debian.org>
+>    debian-edu-config (U)
+> 
+> James McCoy <jamessan@debian.org>
+>    devscripts (U)
+> 
+> Javier Fernández-Sanguino Peña <jfs@debian.org>
+>    debian-goodies
+> 
+> Jeff Breidenbach <jab@debian.org>
+>    jablicator
+> 
+> Joachim Breitner <nomeata@debian.org>
+>    haskell-debian (U)
+>    pkg-haskell-tools (U)
+> 
+> Johannes Schauer <josch@debian.org>
+>    dose3 (U)
+> 
+> Jonas Smedegaard <dr@jones.dk>
+>    cdbs (U)
+> 
+> Julian Andres Klode <jak@debian.org>
+>    aptdaemon
+> 
+> Leo Iannacone <l3on@ubuntu.com>
+>    apt-venv
+> 
+> LTSP Debian Maintainers <pkg-ltsp-devel@lists.alioth.debian.org>
+>    ltsp
+> 
+> Marc Dequènes (Duck) <Duck@DuckCorp.org>
+>    cdbs (U)
+> 
+> Marc Haber <mh+debian-packages@zugschlus.de>
+>    exim4 (U)
+> 
+> Martin Zobel-Helas <zobel@debian.org>
+>    devscripts (U)
+> 
+> Mehdi Dogguy <mehdi@debian.org>
+>    coinst (U)
+>    dh-ocaml (U)
+> 
+> Michael Prokop <mika@debian.org>
+>    grml-debootstrap (U)
+> 
+> Michael Stapelberg <stapelberg@debian.org>
+>    ratt (U)
+> 
+> Mike Gabriel <sunweaver@debian.org>
+>    debian-edu-config (U)
+> 
+> Niko Tyni <ntyni@debian.org>
+>    pkg-perl-tools (U)
+> 
+> Patrick Schoenfeld <schoenfeld@debian.org>
+>    devscripts (U)
+> 
+> Petter Reinholdtsen <pere@debian.org>
+>    debian-edu-config (U)
+> 
+> Ralf Treinen <treinen@debian.org>
+>    coinst (U)
+>    dh-ocaml (U)
+>    dose3 (U)
+> 
+> Rhonda D'Vine <rhonda@debian.org>
+>    dctrl-tools (U)
+> 
+> Romain Beauxis <toots@rastageeks.org>
+>    dh-ocaml (U)
+> 
+> Ryan Niebur <ryanryan52@gmail.com>
+>    devscripts (U)
+> 
+> Rémi Thebault (RTbo) <remi.thebault@gmail.com>
+>    cdbs (U)
+> 
+> Salvatore Bonaccorso <carnil@debian.org>
+>    pkg-perl-tools (U)
+> 
+> Samuel Mimram <smimram@debian.org>
+>    dh-ocaml (U)
+> 
+> Stefano Zacchiroli <zack@debian.org>
+>    dose3 (U)
+> 
+> Stéphane Glondu <glondu@debian.org>
+>    dh-ocaml (U)
+> 
+> Tshepang Lekhonkhobe <tshepang@gmail.com>
+>    wajig (U)
+> 
+> Ulrich Dangel <mru@spamt.net>
+>    grml-debootstrap (U)
+> 
+> Vagrant Cascadian <vagrant@debian.org>
+>    ltsp (U)
+> 
+> Wolfgang Schweer <wschweer@arcor.de>
+>    debian-edu-config (U)
+> 
+> -- 
+> Julian Andres Klode  - Debian Developer, Ubuntu Member
+> 
+> See http://wiki.debian.org/JulianAndresKlode and http://jak-linux.org/.
+> 
+> When replying, only quote what is necessary, and write each reply
+> directly below the part(s) it pertains to (`inline'). Thank you.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

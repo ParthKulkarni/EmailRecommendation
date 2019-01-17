@@ -1,0 +1,80 @@
+To : Bug 1754075 <1754075@bugs.launchpad.net>, 851774@bugs.debian.org
+Subject : Bug#851774: [Bug 1754075] Re: apt-setup uses apt-key but probably should not anymore
+From : Lars Kollstedt <lk@man-da.de>
+Date : Mon, 09 Apr 2018 12:56:12 +0200
+Message-id : 2042201.DI65dtXrNA@ws-kollstedt
+Reply-to : Lars Kollstedt <lk@man-da.de>, 851774@bugs.debian.org
+In-reply-to : <152296014996.30083.5953585673052880674.malone@gac.canonical.com>
+References : <152043805217.20736.10574496004286117524.malonedeb@chaenomeles.canonical.com> <152296014996.30083.5953585673052880674.malone@gac.canonical.com> <CAM+PWT0Yx4YK63J=84zA2dvhXwjGROxC72AhEE=7uGnOs+mbcg@mail.gmail.com>
+
+
+Hi,
+by the way apt-key belongs to the package apt:
+root@bionic-test:/home/kollstedt# apt-file search apt-key                                                          
+[...]
+apt: /usr/bin/apt-key
+[...]
+It is installed when the error occurs and is exitting with the error mentioned 
+above.
+But there is indeed another way to add the public key without using "apt-key 
+add".
+ 
+They can simply be copied to /etc/apt/trusted.gpg.d, with the ending *.gpg if 
+it's binary format. With the ending *.asc for ASCII-amored format.
+Please find a patch attached that use this way to add instead of the old way 
+with apt-key.
+The two following Debian Bugs for this lead me tho this:
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=851774
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=886473
+I also sent this message to the first one I considered to be the main one. 
+For the ones reading the debian bug, this was mainly send to 
+https://bugs.launchpad.net/ubuntu/+source/gnupg/+bug/1754075
+Since this also found it's way to Ubunut 18.4 bionic (unreleased LTS).
+But there is some (more or less) usefull disscussion but as far as I can see 
+no patch, yet. So I prepared one. Thanks to Marga Manterola and Philipp Kern 
+for the idea.
+One of the most important errors in stuff discussed there is IMHO the lack of 
+"-- " which is necessary to prevent grep from interpreding the leading --. I 
+also decided not to filter for things that are not relevant. Since comments 
+describing the Publickey or it's origin might be placed above the -----BEGIN 
+PGP PUBLIC KEY BLOCK----- (without hitting gpgv), and we would not be able to 
+prevent all possible syntax evil here, without having gpg to import and export 
+the public key to and from a temporary keyring.
+I'm also trying to assign a useful name to the key added this way. 
+This patch should IMHO work, but I have no opportunity to test it without your 
+help, since we're in udeb and testing preseed issues. ;-)
+Kind regards,
+	Lars
+-- 
+Lars Kollstedt
+Telefon: +49 6151 16-71027
+E-Mail:  lk@man-da.de
+man-da.de GmbH
+Dolivostraße 11
+64293 Darmstadt
+Sitz der man-da.de GmbH: Darmstadt
+Amtsgericht Darmstadt, HRB 9484
+Geschäftsführer: Andreas Ebert
+diff -rupNw apt-setup-0.104ubuntu5.orig/generators/60local apt-setup-0.104ubuntu5.fixed/generators/60local
+--- apt-setup-0.104ubuntu5.orig/generators/60local	2016-06-08 19:08:12.000000000 +0200
++++ apt-setup-0.104ubuntu5.fixed/generators/60local	2018-04-09 12:25:59.535772146 +0200
+@@ -35,8 +35,17 @@ while db_get "apt-setup/local$i/reposito
+ 		while :; do
+ 			if fetch-url "$key" "$ROOT/tmp/key$i.pub"; then
+ 				# add it to the keyring
+-				$chroot $ROOT apt-key add "/tmp/key$i.pub"
+-				rm -f "$ROOT/tmp/key$i.pub"
++				if [ -n "$comment" ]; then
++					name=$(echo "" | sed -E 's/[^0-9A-Za-z]+/_/g')
++				else
++					name="apt-setup_local$i"
++				fi
++				if grep -q -- '-----BEGIN PGP PUBLIC KEY BLOCK-----' $ROOT/tmp/key$i.pub 
++					then
++					mv "$ROOT/tmp/key$i.pub" "$ROOT/etc/apt/trusted.gpg.d/$name.asc"
++				else
++					mv "$ROOT/tmp/key$i.pub" "$ROOT/etc/apt/trusted.gpg.d/$name.gpg"
++				fi
+ 				break
+ 			else
+ 				db_subst apt-setup/local/key-error MIRROR "${repository%% *}"

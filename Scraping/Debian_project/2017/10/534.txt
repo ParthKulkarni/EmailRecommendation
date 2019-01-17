@@ -1,0 +1,212 @@
+To : debian-devel <debian-devel@lists.debian.org>
+Subject : RFC: Support for selective usage of (fake)root during package build (R³)
+From : Niels Thykier <niels@thykier.net>
+Date : Sat, 28 Oct 2017 15:59:00 +0000
+Message-id : 572f273d-06b6-14c1-b56d-3f0f45e7d5fa@thykier.net
+
+
+Hi
+We have written a new specification for supporting selective usage of
+(fake)root during package builds (see attached file).  The specification
+defines a new field called "Rules-Requires-Root" (R³ for short) that
+enables maintainers to define if and how their package requires root
+during package build.
+The specification is accompanied by an initial implementation in dpkg
+and debhelper (in unstable), so you can experiment with it already now.
+While dpkg and debhelper implement the entire specification, there are
+still some limitations in what we can support at the moment.  These
+limitations are listed in the "Limitations" section below.
+ * Please, review the specification plus implemenations and provide
+   feedback on the proposal.
+ * Deadline for feedback: 2 weeks from today (but we are happy to extend
+   it if people find this too short).
+   - if there are no major concerns with this proposal at that time
+     we will consider the specification as stable, and mark it as so.
+ * Even though we think the current specification is solid, as long
+   as it is not marked as stable, it might change its semantics, and
+   any early adopter should be prepared to adapt to new updates.
+Rationale behind the proposal
+=============================
+This specification was a response to several papercuts observed by the
+dpkg and debhelper maintainers:
+ * We have long desired the ability to build packages without having
+   to use (fake)root.  The primary use-case for (fake)root is to set
+   ownership information in binary package, as we have no other way
+   to do this.
+ * We were looking for ways to optimize out useless overhead in
+   the package builds.  Notably, we had some overhead because
+   dpkg-buildpackage has called "build" targets separately before
+   "binary" targets, to reduce the code paths that have needed
+   to be executed as (fake)root.
+ * We concluded that even if we added a declarative method for setting
+   ownership, we could not assume that all package builds would behave
+   correctly when no longer called under (fake)root.  I.e. we have
+   always to support some form of opt-in to avoid a flag day.
+ * Finally, we observed that the vast majority of all packages only
+   use "root:root" as ownership and we could devise a trivial way to
+   satisfy their requirements in our implementations.
+With these points in mind, we drafted the specification and
+implementations with the following goals:
+ * Both the specification and the implemention should be 100% backwards
+   compatible with packages and workflows.
+ * The vast majority of packages that only ship "root:root" owned paths
+   should be able to do so without using (fake)root at all already.
+ * Packages (that we can support now) should be able to opt-in already
+   with minimal effort on their part.
+ * Packages that cannot fully remove their requirements for using
+   (fake)root should be able to declare so and promote selected
+   commands to use root.
+ * Tools should be able to easily provide support for running parts
+   under (fake)root, where this is still useful.  This should be
+   decentralized to enable tool providers to support the specification.
+ * Since the change is opt-in, we took the liberty of requiring that
+   packages do not rely on certain deprecated features and fallback code
+   in dpkg and debhelper.
+Optimizations enabled by this specification
+=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-
+This specification enables the following optimizations:
+ * dpkg-buildpackage will directly call the binary targets, without
+   calling the build targets first, which removes up to 3 invocations
+   of make.  This will speed up small packages or packages that uses
+   a lot of $(shell ...) statements in make.  (Related bug #793404)
+ * Packages avoid the extra overhead of fakeroot and no longer have
+   to chown each and every file/directory shipped.  In some cases,
+   this becomes quite noticeable.
+The short-cut we introduce in dpkg-buildpackage is permitted by policy
+4.9§, which states that packages must be buildable by just using one of
+the binary targets.  However, in recent times this short-cut has been
+problematic as the binary targets previously had to be run as (fake)root
+and many build targets progressively stopped supporting being run as
+such.  In fact, there is a request to outright forbid the build targets
+to be run as (fake)root (#835451).
+With R³, we can leverage this short-cut with the above advantages while
+avoiding the use of (fake)root in the debian/rules.
+Related work
+============
+ * There is ongoing work for adding support for declarative ownership
+   (among other) in dpkg and debhelper.
+ * We believe this proposal will support the work for discouraging
+   the use of (fake)root during the build targets (#835451).
+Limitiations of this proposal
+=============================
+The specification deliberately does not attempt to solve how to
+declaratively set the ownership of paths in binary packages.  However,
+the implementations uses the specification to assume that all ownership
+should default to "root:root".
+When we have a solution for declarative ownership, packages can adopt
+that in their own phase and use R³ to declare that they no longer need
+(fake)root.
+Known issues
+============
+If you are working on a perl package that is using ExtUtils::Install
+(MakeMaker) to install png files or ar files, please be aware that
+building without (fake)root may lead to change "permission denied"
+issues during built as observed by Axel Beckert.  This is because
+ExtUtils::Install appears to install files without any write permissions
+(i.e. 0444 or 0555).  While these are eventually fixed by dh_fixperms,
+dh_strip_nondeterminism is run prior to dh_fixperms and may therefore
+trigger an error due to this.
+We are still discussing how to best solve this in the following mail thread:
+https://lists.alioth.debian.org/pipermail/debhelper-devel/2017-October/007241.html
+Deprecated Features / Fallbacks affected
+========================================
+To enable all the optimizations we mentioned earlier, there were some
+deprecated features / fallbacks that we can no longer support:
+ * dh before compat 9 will *not* properly recurse into the debian/rules
+   file to call any of "build" targets.  The minimal rules "%:\n\tdh $@"
+   is unaffected (as dh just inlines the build sequence), but not all
+   dh-using packages consistenly use that rule for all mandatory targets
+   in debian/rules.
+   - If you are using dh, please consider to bump the compat level to
+     a non-deprecated compat level (i.e. 9 or later).
+ * Packages that do not have a proper dependency path between the binary
+   targets and the related build target (e.g. binary-arch -> build-arch)
+   may see issues when migrating to R³.  This is because
+   dpkg-buildpackage skips the explicit call to the build targets and
+   now relies on the  binary targets to depend (directly or
+   transitively) on them.
+How to use (for package maintainers)
+====================================
+The following is a very short guide depending on whether:
+Using debhelper (possibly via cdbs)
+=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-
+ * Please check out the limitations and known issues to determine if you
+   can use R³ with the current level of support.
+ * Add "Rules-Requires-Root: no" to the source stanza of your
+   debian/control file and try to see if it works. For reproducible
+   packages the output should be the same before and after.
+If this is sufficient for your package, then you generally do not need
+to bump any build-dependencies as debhelper and dpkg internally ensures
+that the necessary support is available.
+Without any debhelper support
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+ * Please check out the limitations and known issues to determine if you
+   can use R³ with the current level of support.
+ * Pass --root-owner-group to the dpkg-deb calls.
+   - This requires dpkg (>= 1.19.0.3~)
+ * Remove all chown "root:root" calls in your rules.
+   - Be advised; if you want to support backports, you have to do this
+     part conditionally on a recent enough version of dpkg-dev.
+ * Add "Rules-Requires-Root: no" to the source stanza of your
+   debian/control file and try to see if it works. For reproducible
+   packages the output should be the same before and after.
+When the above is not enough
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+In either case, it may be necessary to do additional changes.  If you
+find that there are parts that still need (fake)root but they can be
+trivially isolated, consider setting R³ to "dpkg/target-subcommand" and
+use the "Gain Root API" from the spec to run that part as (fake)root.
+Backport-safety
+=-=-=-=-=-=-=-=
+The dpkg-dev and debhelper tools from stretch-backports will ignore the
+R³-field.  If your package relies on debhelper to support building
+without (fake)root, there is a very high probability your package can
+still safely be backported to stretch-backports with
+"Rules-Requires-Root" set to "no".
+How to add support in your packaging tool
+=========================================
+If you have a packaging tool and want to adopt R³, here is a short intro:
+ * Please check out limitations below to determine if you can use
+   R³ with the current level of support.
+ * If your package only uses root for "chown" to set "root:root"
+   ownership, then please skip those calls when the R³ field is
+   not set to "binary-targets".
+   - Dh_Lib users can rely on the "use_should_root()" function in
+     debhelper (>= 10.10).
+ * If your tool occasionally needs (fake)root for a small isolated
+   part, consider adding a R³ keyword that your consumers can use to
+   request root for that part.  Please see the "Gain Root API" from
+   the specification to see how to leverage this.
+   - Dh_Lib users can rely on the "use_should_root('ns/kw')" and
+     "my @gain_root = gain_root_cmd(); doit(@gain_root, 'tool', ...);"
+ * You might need to request the addition of a Breaks from dpkg-dev
+   to the version your packaging tool added support for R³.
+   Alternatively, your users will have to add a versioned Build-Depends
+   on your package.
+How to use as a package builder
+===============================
+If you use dpkg-buildpackage (possibly indirectly via a *-buildpackage
+wrapper), your workflow will automatically support this new feature once
+you upgrade to a new enough dpkg{,-dev}.
+Otherwise, the specification is entirely backwards compatible with any
+current builder workflow.  This is because packages are required to
+still build successfully when their binary-targets are called with
+(fake)root even when "Rules-Requires-Root" is set to "no".
+Builders can obviously choose to support Rules-Requires-Root by parsing
+the field and handle the three different cases.  When
+Rules-Requires-Root is:
+ * Omitted or set to "binary-tagets": Preserve the current behaviour.
+ * Set to "no": Omit the root command and just call the binary target as
+   the user used for the "build" target.
+ * Otherwise: Ideally expose a "gain-root-command" via the "Gain Root
+   API" from the specification.  Alternatively, handle the field as-if
+   it had been set to "binary-targets".
+If you want to assert that a package still builds with
+Rules-Requires-Root set to "no" even when it is called as (fake)root,
+then the next version of dpkg-dev will have an option for
+dpkg-buildpackage to pretend that the value of the Rules-Requires-Root
+field is "binary-targets".  We believe this will also be useful for
+reproducible builds testing.
+Thanks,
+Guillem and Niels
+rootless-builds.txt.gzsignature.asc

@@ -1,0 +1,29 @@
+To : Karsten Merker <merker@debian.org>
+Subject : Bug#864260: Missing kernel in debian-installer sd-card images for armhf (stretch)
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 7 Jun 2017 03:29:04 +0200
+Message-id : 20170607012904.GB8889@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 864260@bugs.debian.org
+In-reply-to : <[🔎] 20170606214851.GB6789@excalibur.cnev.de>
+References : <[🔎] 20170605215159.d06d9afb2f75a763fa82760a@tiscali.it> <[🔎] 20170606002441.GE24136@mraw.org> <[🔎] 20170606204755.GA6789@excalibur.cnev.de> <[🔎] 20170606214851.GB6789@excalibur.cnev.de>
+
+
+Karsten Merker <merker@debian.org> (2017-06-06):
+> I guess I have found the problem: the images have a fixed size
+> (~40MB uncompressed) and the netboot build has grown a few kBytes
+> larger than that while the hd-media build still fits (although
+> tightly). Increasing the image size should solve the problem.
+I've added a patch to detect such issues and bail out when they happen,
+tested in asachi's armhf sid chroot:
+  https://anonscm.debian.org/cgit/d-i/debian-installer.git/commit/?id=3313d94
+[ It's a little sad to have missed the “Disk full” message in the logs
+for months. ;) ]
+As far as I can tell, only this needed an update:
+  https://anonscm.debian.org/cgit/d-i/debian-installer.git/commit/?id=199fe0b
+And I've also checked that bumping from 40k to 50k is sufficient to have
+a successful build of src:debian-installer (in release build mode: with
+unstable in debian/changelog, so building against udebs from testing).
+I'll leave you or vagrant push an updated value once you agree on
+something.
+KiBi.
+signature.asc

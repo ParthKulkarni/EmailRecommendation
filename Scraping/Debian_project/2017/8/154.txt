@@ -1,0 +1,43 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 09 Aug 2017 13:11:21 -0700
+Message-id : 87fud0jyc6.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 85o9roqzz1.fsf@boum.org> (intrigeri@debian.org's message of	"Wed, 09 Aug 2017 15:54:10 -0400")
+References : <[🔎] 857eyij4fb.fsf@boum.org>	<[🔎] 1502284223.3595759.1068013368.2A4DA774@webmail.messagingengine.com>	<[🔎] 85o9roqzz1.fsf@boum.org>
+
+
+intrigeri <intrigeri@debian.org> writes:
+> You surely could, but reimplementing exactly the same protections is
+> probably not the best use of your time.
+> Now, each of systemd and AppArmor can do hardening stuff that the
+> other doesn't support (at all or nicely), so sometimes it's good to do
+> a little bit of both.
+> What I would do these days:
+> 1. Use the simplest of systemd's hardening features (e.g.
+>    Protect{Home,System}=, Private{Devices,Tmp,Network}=,
+>    CapabilityBoundingSet=) to their full extend.
+>    Not many unit files we ship do that yet. Generally these
+>    improvements can be implemented upstream and benefit users of
+>    systemd on other distros :)
+To this, I would add SystemCallFilters, which is immensely powerful and
+much easier to use now than it was originally.  I think a lot of the
+benefit of hardening for a lot of network daemons would come from tested
+use of SystemCallFilters (probably only using the @group syntax).  This
+blocks so many local privilege escalation bugs in random Linux syscalls,
+making an RCE in a daemon running as a non-root user much less scary.
+(For those not familiar, this is seccomp filtering, except about as easy
+to use as seccomp can be.  It's not as good as a carefully crafted full
+seccomp policy, but you can get quite a bit of mileage out of some fairly
+simple rules.)
+Note that SystemCallFilters was very difficult to use in jessie since the
+syscall groups weren't implemented yet.  I would not recommend trying to
+use it if targeting anything older than stretch.
+> 2. For finer-grained mediation of filesystem access, I will use
+>    AppArmor that I find much nicer to implement, use and debug:
+Agreed -- AppArmor seems to offer much more granular control over file
+system access in a way that's quite a bit easier to configure.
+ProtectSystem is great, but the bits that list specific files or paths are
+somewhat harder to use and less useful.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

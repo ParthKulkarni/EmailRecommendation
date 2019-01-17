@@ -1,0 +1,87 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Why do we list individual copyright holders?
+From : Stuart Prescott <stuart@debian.org>
+Date : Mon, 01 Jan 2018 13:42:29 +1100
+Message-id : p2c72u$bjc$1@blaine.gmane.org
+References : <E1eJbkQ-000BA1-QA@fasolo.debian.org> <3153927.WHzoAGL0a1@riemann> <47273342.0MW322WrEm@riemann> <4c6fa2ec-bf79-6826-0bea-81b95eb94cb1@debian.org> <CAAajCMaBNBnX+Usgo3n62KRoUCMGW4g=0Qg2sNR1SztMO_+ExA@mail.gmail.com> <E1eREM3-0004fA-8k@swivel.zugschlus.de> <85efnrnj6y.fsf@benfinney.id.au> <59daaa4a-c023-bf50-b2da-a380a12eac76@debian.org> <20171219163323.GS13067@yuggoth.org> <f9ef2082-1fd3-3f11-4807-f605c183bfab@debian.org> <CAKTje6F2qa1FVppSXz40UkBpq=7qk4S0unS2YSaEWKQ+07mPzQ@mail.gmail.com> <87a7yam6x2.fsf@hope.eyrie.org> <87tvwh2wio.fsf@luffy.cx> <1514121842.2929057.1214902584.48CD67AA@webmail.messagingengine.com> <87d1322cnl.fsf@luffy.cx> <CAKTje6HovBag3hc7RUbmpLxZJzkmLfdfiWyuUZEn3qVgVWgqbA@mail.gmail.com> <m3y3ljvwv6.fsf@luffy.cx>
+
+
+Vincent Bernat wrote:
+> As I have said previously, the problem also appears with warnings. I
+> would never dare running Lintian in pedantic mode.
+> 
+> Lintian is full of opinions. For example, I often get:
+> 
+> W: python-pysnmp4-doc: extra-license-file
+> usr/share/doc/python-pysnmp4-doc/html/_sources/license.txt
+That is not an opinion, it is a statement of fact that there is an 
+additional licence file in the package, that all license information should 
+be collected in the debian/copyright file and that this usually makes it 
+unnecessary for the package to install this information in other places as 
+well.
+However, it's also not a useful fact to be telling you because sphinx-
+generated documentation will always have this file and while lintian is 
+correct about this being a potential problem, it isn't actually a problem 
+right now.
+Perhaps extra-license-file should be of lower severity (#740118), although 
+if this extra licence file is one that you have genuinely missed, then it 
+would be an RC bug or a NEW queue REJECT. (There is perhaps some irony in 
+complaining about tools that are helping ensure that you've not forgotten a 
+licence file in the context of complaining about getting REJECTs for not 
+having a complete d/copyright file.)
+Lintian should probably learn to skip sphinx sources for this tag to improve 
+the signal:noise on it (#885968).
+> Each time, more warnings appear. Just today, I get:
+> 
+> W: python3-pysnmp4:
+> python-package-depends-on-package-from-other-python-variant (Suggests:
+> python-pysnmp4-doc)
+> 
+> My solution? Removing the Sugggests and pray someone doesn't open a bug
+> to request suggesting the documentation.
+As noted already, that's entirely the wrong solution.
+It's too easy to copy+paste in debian/control and get dependencies wrong 
+such that python3-foo accidentally depends on the module package python-bar 
+not python3-bar. python3-foo depending on python-bar is an RC bug and 
+*should* be flagged by lintian as such. Lintian spotting RC bugs prior to 
+upload is a good thing.
+The -doc package is pretty much the only place where this cross-variant 
+relationship is correct but that wasn't realised when that new check was 
+written. Remember that lintian is written by humans and humans write code 
+with bugs... they can also fix bugs when they are reported and then the tool 
+gets better. (#885693; already fixed in git)
+> W: python-pysmi: new-package-should-not-package-python2-module
+> 
+> This is the translation of a group of people's opinion.
+First, check:
+    https://lists.debian.org/debian-python/2017/12/msg00017.html
+When it is the opinion of the maintainers of the Python 2 interpreter, then 
+that's an opinion that counts. I always find that it's worth paying 
+attention to the future intentions of the maintainers of my rdeps since what 
+they intend to do can have an impact on my work. When the Qt4 maintainers 
+say that Qt4 will go away, I need to do something about that; when the 
+Python 2 maintainer says that Python 2 will go away, I need to do something 
+about that too. I also try to avoid shooting the messenger.
+In adding a python 2 module package today, you're making work for your 
+future self and for other people (python maintainers, QA team and ftp-
+masters at least) so it's entirely appropriate to point out that it might 
+not be a useful thing to do. At this stage of python 2->3,  new python-foo 
+is most likely only ever going to be a leaf package with no application 
+depending on it. The question needs to be asked: is that python 2 module 
+actually useful for Debian to have? For the time being there's still 
+unported code that needs Python 2 packages so one might choose to ignore 
+new-package-should-not-package-python2-module in some carefully thought 
+through circumstances. Lintian saying "Have you thought about this 
+carefully" sounds pretty good. I recently had the same discussion with 
+comaintainers of some other package and we concluded that we did need the 
+python 2 package right now because there were going to be rdeps.
+python-foo-but-no-python3-foo is a much more important problem that really 
+does need addressing *right* *now*. If it's easy to do then just do it; if 
+it's hard to do, then now is past the time to start talking to upstream 
+about it to make it happen.
+https://lintian.debian.org/tags/dependency-on-python-version-marked-for-end-of-life.html
+https://lintian.debian.org/tags/python-foo-but-no-python3-foo.html
+-- 
+Stuart Prescott    http://www.nanonanonano.net/   stuart@nanonanonano.net
+Debian Developer   http://www.debian.org/         stuart@debian.org
+GPG fingerprint    90E2 D2C1 AD14 6A1B 7EBB 891D BBC1 7EBB 1396 F2F7

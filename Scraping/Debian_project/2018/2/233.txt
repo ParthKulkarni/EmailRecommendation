@@ -1,0 +1,45 @@
+To : Lumin <cdluminate@gmail.com>, debian-devel <debian-devel@lists.debian.org>
+Subject : Re: Conditions for testing migration
+From : "Adam D. Barratt" <adam@adam-barratt.org.uk>
+Date : Sun, 11 Feb 2018 13:51:37 +0000
+Message-id : 1518357097.2168.13.camel@adam-barratt.org.uk
+In-reply-to : <[🔎] CAGX5NrYKJ3s+QWJpHYez9bih6eFkAjFTBM7YHvDXf4OSbVdtUA@mail.gmail.com>
+References : 	<[🔎] CAGX5NrYKJ3s+QWJpHYez9bih6eFkAjFTBM7YHvDXf4OSbVdtUA@mail.gmail.com>
+
+
+On Sun, 2018-02-11 at 12:25 +0000, Lumin wrote:
+> For instance, package lua-torch-xlua[3]
+> (= 0~20160719-g41308fe-4) is an Arch=all
+> package which depends on lua-torch-torch7
+> (arch=any). lua-torch-torch7 is shipped by
+> testing, but lua-torch-xlua doesn't migrate[4].
+> I tried to change Arch to any in the
+> 0~20160719-g41308fe-5 upload to figure out
+> whether the missing of dependency in some
+> release architectures such as i386 caused
+> this situation, but the answer is no.
+The answer was "yes", in fact.
+$ grep-excuses lua-torch-xlua
+lua-torch-xlua (- to 0~20160719-g41308fe-5)
+    Migration status: BLOCKED: Maybe temporary, maybe blocked but Britney is missing information (check below or the buildds)
+    Maintainer: Debian Science Maintainers
+    22 days old (needed 5 days)
+    lua-torch-xlua/i386 unsatisfiable Depends: lua-torch-torch7
+    lua-torch-xlua/arm64 unsatisfiable Depends: lua-torch-torch7
+    lua-torch-xlua/mips unsatisfiable Depends: lua-torch-torch7
+    lua-torch-xlua/mips64el unsatisfiable Depends: lua-torch-torch7
+    lua-torch-xlua/mipsel unsatisfiable Depends: lua-torch-torch7
+    lua-torch-xlua/s390x unsatisfiable Depends: lua-torch-torch7
+    missing build on all: lua-torch-xlua, lua-torch-xlua, lua-torch-xlua, lua-torch-xlua, lua-torch-xlua, lua-torch-xlua (from 0~20160719-g41308fe-4)
+    Piuparts tested OK - https://piuparts.debian.org/sid/source/l/lua-torch-xlua.html
+    Not considered
+I'm unsure how you've deduced "i386 wasn't a problem" when the above
+clearly shows that the lack of a lua-torch-torch7 package on several
+architectures is a current blocker for the migration.
+The lack of lua-torch-torch7 on i386 would also have been the cause of
+your original issue - arch:all packages must be installable on both
+amd64 and i386 currently; if they are not, you need to ask the Release
+Team to consider adding a hint to force the testing migration scripts
+to ignore the issue.
+Regards,
+Adam

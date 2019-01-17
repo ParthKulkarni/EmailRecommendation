@@ -1,0 +1,117 @@
+To : 837004@bugs.debian.org
+Subject : Bug#837004: installation-locale: FTBFS: no output file produced because warnings were issued
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 4 Feb 2017 23:45:40 +0100
+Message-id : 20170204224540.GH25704@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 837004@bugs.debian.org
+In-reply-to : <20160907215955.4gaten5p76l5y27x@xanadu.blop.info>
+References : <20160907215955.4gaten5p76l5y27x@xanadu.blop.info>
+
+
+Hi,
+Lucas Nussbaum <lucas@debian.org> (2016-09-07):
+> Source: installation-locale
+> Version: 1.6
+> Severity: serious
+> Tags: stretch sid
+> User: debian-qa@lists.debian.org
+> Usertags: qa-ftbfs-20160906 qa-ftbfs
+> Justification: FTBFS on amd64
+> 
+> Hi,
+> 
+> During a rebuild of all packages in sid, your package failed to build on
+> amd64.
+> 
+> Relevant part (hopefully):
+> > make[1]: Entering directory '/<<PKGBUILDDIR>>'
+> > localedef -i C.UTF-8.in -f "UTF-8" ./C.UTF-8
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_CTYPE'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_NUMERIC'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_TIME'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_COLLATE'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_MONETARY'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_MESSAGES'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_PAPER'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_NAME'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_ADDRESS'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_TELEPHONE'
+> > LC_IDENTIFICATION: unknown standard `C@utf-8:2000' for category `LC_IDENTIFICATION'
+> > no output file produced because warnings were issued
+> > Makefile:4: recipe for target 'C.UTF-8' failed
+> > make[1]: *** [C.UTF-8] Error 4
+I think this is due to the following commit, first released with 2.24:
+| commit 900f59f084bfe35cb389bbe0dc464413a1a38e90
+| Author: Mike Frysinger <vapier@gentoo.org>
+| Date:   Wed Apr 13 18:38:56 2016 -0400
+| 
+|     localedef: check LC_IDENTIFICATION.category values
+|     
+|     Currently localedef accepts any value for the category keyword.  This has
+|     allowed bad values to propagate to the vast majority of locales (~90%).
+|     Add some logic to only accept a few standards.
+I suppose it makes sense to add a Debian-specific patch to the glibc
+package to accept “our extra standard”. I've successfully tested the
+attached patch on top of glibc master, even if I had to disable the
+testsuite because of this:
+| FAIL: rt/tst-shm
+| original exit status 1
+| ----------
+| +---------------------------------------------------------------------+
+| |     Encountered regressions that don't match expected failures.     |
+| +---------------------------------------------------------------------+
+| FAIL: rt/tst-shm
+| debian/rules.d/build.mk:115: recipe for target '/home/kibi/hack/glibc/glibc-debian.git/stamp-dir/check_libc' failed
+With upgraded libc packages, installation-locale builds fine again.
+glibc maintainer: if you agree with this proposed path and patch, please
+steal this bug report awawy from src:installation-locale.
+KiBi.
+signature.ascFrom e9a91a6d4c17fa07fe8199c6abc026c7f65cee88 Mon Sep 17 00:00:00 2001
+From: Cyril Brulebois <kibi@debian.org>
+Date: Sat, 4 Feb 2017 21:44:52 +0100
+Subject: [PATCH] Accept D-I specific locale: C@utf-8:2000 (Closes: #837004).
+This fixes the installation-locale FTBFS with glibc >= 2.24
+---
+ .../locale/local-accept-debian-installer-locale.diff  | 19 +++++++++++++++++++
+ debian/patches/series                                 |  1 +
+ 2 files changed, 20 insertions(+)
+ create mode 100644 debian/patches/locale/local-accept-debian-installer-locale.diff
+diff --git a/debian/patches/locale/local-accept-debian-installer-locale.diff b/debian/patches/locale/local-accept-debian-installer-locale.diff
+new file mode 100644
+index 0000000..8ce8e18
+--- /dev/null
++++ b/debian/patches/locale/local-accept-debian-installer-locale.diff
+@@ -0,0 +1,19 @@
++The installation-locale component of the Debian Installer uses the
++“C@utf-8:2000” category, while glibc only accepts a small number of
++categories (starting with 2.24). Add the D-I specific category to
++this list accordingly.
++
++ locale/programs/ld-identification.c | 2 ++
++ 1 file changed, 2 insertions(+)
++
++--- a/locale/programs/ld-identification.c
+++++ b/locale/programs/ld-identification.c
++@@ -187,6 +187,8 @@ No definition for %s category found"), "LC_IDENTIFICATION"));
++ 	      "posix:1993",
++ 	      "i18n:2004",
++ 	      "i18n:2012",
+++	      /* Debian Installer -- installation-locale, #837004 */
+++	      "C@utf-8:2000",
++ 	    };
++ 	  size_t i;
++ 	  bool matched = false;
+diff --git a/debian/patches/series b/debian/patches/series
+index 2f9d247..087f331 100644
+--- a/debian/patches/series
++++ b/debian/patches/series
+@@ -4,6 +4,7 @@ locale/check-unknown-symbols.diff
+ locale/fix-LC_COLLATE-rules.diff
+ locale/preprocessor-collate-uli-sucks.diff
+ locale/preprocessor-collate.diff  # should not be needed anymore, but keep it anyways.
++locale/local-accept-debian-installer-locale.diff
+ locale/locale-print-LANGUAGE.diff
+ locale/LC_IDENTIFICATION-optional-fields.diff
+ locale/LC_COLLATE-keywords-ordering.diff
+-- 
+2.1.4

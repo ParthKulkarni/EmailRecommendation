@@ -1,0 +1,412 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#883395: stretch-pu: package systemd/232-25+deb9u2
+From : Michael Biebl <biebl@debian.org>
+Date : Sun, 03 Dec 2017 15:17:53 +0100
+Message-id : 151231067328.17501.16594412553183435651.reportbug@pluto.milchstrasse.xx
+Reply-to : Michael Biebl <biebl@debian.org>, 883395@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+Tags: stretch
+User: release.debian.org@packages.debian.org
+Usertags: pu
+Hi,
+I'd like to make a stable upload for systemd fixing a couple of issues.
+An annotated changelog follows.
+Full debdiff is attached.
+systemd (232-25+deb9u2) stretch; urgency=medium
+  * networkd: Handle MTU field in IPv6 RA (Closes: #878162)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch-proposed&id=9f134218fa5ed60a4d7b0a2282d86ab56f52a3e9
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=878162
+It's a cherry-pick of an upstream commit which is already in
+unstable/testing.
+This change was requested by Julien Cristau who already confirmed that it
+fixes the issue for stretch.
+  * shared: Add a linker script so that all functions are tagged @SD_SHARED
+    instead of @Base.
+    This helps prevent symbol collisions with other programs and libraries.
+    In particular, because PAM modules are loaded into the process that is
+    creating the session, and systemd creates PAM sessions, the potential
+    for collisions is high. (Closes: #873708)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch-proposed&id=bd33312f7fcf660f568bf2bac288b5ceec6981ab
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=873708
+It's a backport of an upstream commit which is already in
+unstable/testing.
+I'd consider this the most important fix, as we have seen segfaults in
+systemd when e.g. libpam-heimdal was used.
+  * resolved: Fix loop on packets with pseudo dns types.
+    CVE-2017-15908 (Closes: #880026)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch-proposed&id=5a469751160af8334ca4748ee00ee9b7e1a3efe3
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=880026
+It's a cherry-pick of an upstream commit which is already in
+unstable/testing.
+The security team suggested to fix this via a stable upload, as the
+issue was not considered severe enough for a security upload (resolved
+is not enabled by default in Debian)
+  * machinectl: Don't output "No machines." with --no-legend option
+    (Closes: #880158)
+https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch-proposed&id=2ae041894e0a4e221902a86e0d8834801783441f
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=880158
+It's a cherry-pick of an upstream commit which is already in
+unstable/testing.
+The fix is trivial and has very low regression potential, so I decided
+to include this patch as well. I'm fine with dropping it though, if you
+have concerns.
+The changes don't affect the installer. That said I've CCed debian-boot
+(and kibi) for their ack.
+Please let me know if I can proceed with the upload.
+Regards,
+Michael
+ -- Michael Biebl <biebl@debian.org>  Sun, 03 Dec 2017 15:03:50 +0100
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable
+  APT policy: (500, 'unstable'), (200, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.13.0-1-amd64 (SMP w/4 CPU cores)
+Locale: LANG=de_DE.utf8, LC_CTYPE=de_DE.utf8 (charmap=UTF-8), LANGUAGE=de_DE.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+diff --git a/debian/changelog b/debian/changelog
+index fe1e79f..e7b7ff1 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,19 @@
++systemd (232-25+deb9u2) stretch; urgency=medium
++
++  * networkd: Handle MTU field in IPv6 RA (Closes: #878162)
++  * shared: Add a linker script so that all functions are tagged @SD_SHARED
++    instead of @Base.
++    This helps prevent symbol collisions with other programs and libraries.
++    In particular, because PAM modules are loaded into the process that is
++    creating the session, and systemd creates PAM sessions, the potential
++    for collisions is high. (Closes: #873708)
++  * resolved: Fix loop on packets with pseudo dns types.
++    CVE-2017-15908 (Closes: #880026)
++  * machinectl: Don't output "No machines." with --no-legend option
++    (Closes: #880158)
++
++ -- Michael Biebl <biebl@debian.org>  Sun, 03 Dec 2017 15:03:50 +0100
++
+ systemd (232-25+deb9u1) stretch; urgency=medium
+ 
+   [ Dimitri John Ledkov ]
+diff --git a/debian/patches/machinectl-don-t-output-No-machines.-with-no-legend-optio.patch b/debian/patches/machinectl-don-t-output-No-machines.-with-no-legend-optio.patch
+new file mode 100644
+index 0000000..b8bdf66
+--- /dev/null
++++ b/debian/patches/machinectl-don-t-output-No-machines.-with-no-legend-optio.patch
+@@ -0,0 +1,65 @@
++From: =?utf-8?q?Viktar_Va=C5=AD=C4=8Dkievi=C4=8D?= <victorenator@gmail.com>
++Date: Sun, 6 Nov 2016 17:19:57 +0300
++Subject: machinectl: don't output "No machines." with --no-legend option
++ (#4593)
++
++(cherry picked from commit f9b1947f9b9bcdf2b28953a40b1c537038c2a958)
++---
++ src/machine/machinectl.c | 30 ++++++++++++++++++------------
++ 1 file changed, 18 insertions(+), 12 deletions(-)
++
++diff --git a/src/machine/machinectl.c b/src/machine/machinectl.c
++index c2ab202..5b2e18c 100644
++--- a/src/machine/machinectl.c
+++++ b/src/machine/machinectl.c
++@@ -325,10 +325,12 @@ static int list_machines(int argc, char *argv[], void *userdata) {
++                         printf("-\n");
++         }
++ 
++-        if (arg_legend && n_machines > 0)
++-                printf("\n%zu machines listed.\n", n_machines);
++-        else
++-                printf("No machines.\n");
+++        if (arg_legend) {
+++                if (n_machines > 0)
+++                        printf("\n%zu machines listed.\n", n_machines);
+++                else
+++                        printf("No machines.\n");
+++        }
++ 
++ out:
++         clean_machine_info(machines, n_machines);
++@@ -458,10 +460,12 @@ static int list_images(int argc, char *argv[], void *userdata) {
++                        (int) max_mtime, strna(format_timestamp(mtime_buf, sizeof(mtime_buf), images[j].mtime)));
++         }
++ 
++-        if (arg_legend && n_images > 0)
++-                printf("\n%zu images listed.\n", n_images);
++-        else
++-                printf("No images.\n");
+++        if (arg_legend) {
+++                if (n_images > 0)
+++                        printf("\n%zu images listed.\n", n_images);
+++                else
+++                        printf("No images.\n");
+++        }
++ 
++         return 0;
++ }
++@@ -2484,10 +2488,12 @@ static int list_transfers(int argc, char *argv[], void *userdata) {
++                        (int) max_local, transfers[j].local,
++                        (int) max_remote, transfers[j].remote);
++ 
++-        if (arg_legend && n_transfers > 0)
++-                printf("\n%zu transfers listed.\n", n_transfers);
++-        else
++-                printf("No transfers.\n");
+++        if (arg_legend) {
+++                if (n_transfers > 0)
+++                        printf("\n%zu transfers listed.\n", n_transfers);
+++                else
+++                        printf("No transfers.\n");
+++        }
++ 
++         return 0;
++ }
+diff --git a/debian/patches/networkd-handle-MTU-field-in-IPv6-RA-4719.patch b/debian/patches/networkd-handle-MTU-field-in-IPv6-RA-4719.patch
+new file mode 100644
+index 0000000..f8fc7f1
+--- /dev/null
++++ b/debian/patches/networkd-handle-MTU-field-in-IPv6-RA-4719.patch
+@@ -0,0 +1,131 @@
++From: Susant Sahani <ssahani@users.noreply.github.com>
++Date: Thu, 24 Nov 2016 03:02:19 +0530
++Subject: networkd: handle MTU field in IPv6 RA (#4719)
++
++This patch handles the custom MTU field in IPv6 RA.
++
++fixes RFE #4464
++
++(cherry picked from commit d6fceaf1f7ff765bdc3b135f3d3676ec689da312)
++---
++ src/libsystemd/sd-netlink/netlink-types.c | 27 ++++++++++++++++++++++++---
++ src/network/networkd-ndisc.c              |  8 ++++++++
++ src/network/networkd-route.c              | 14 ++++++++++++++
++ src/network/networkd-route.h              |  1 +
++ 4 files changed, 47 insertions(+), 3 deletions(-)
++
++diff --git a/src/libsystemd/sd-netlink/netlink-types.c b/src/libsystemd/sd-netlink/netlink-types.c
++index 1c10dd5..0f8b0cc 100644
++--- a/src/libsystemd/sd-netlink/netlink-types.c
+++++ b/src/libsystemd/sd-netlink/netlink-types.c
++@@ -500,6 +500,28 @@ static const NLTypeSystem rtnl_address_type_system = {
++         .types = rtnl_address_types,
++ };
++ 
+++/* RTM_METRICS --- array of struct rtattr with types of RTAX_* */
+++
+++static const NLType rtnl_route_metrics_types[] = {
+++        [RTAX_MTU]               = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_WINDOW]            = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_RTT]               = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_RTTVAR]            = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_SSTHRESH]          = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_CWND]              = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_ADVMSS]            = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_REORDERING]        = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_HOPLIMIT]          = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_INITCWND]          = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_FEATURES]          = { .type = NETLINK_TYPE_U32 },
+++        [RTAX_RTO_MIN]           = { .type = NETLINK_TYPE_U32 },
+++};
+++
+++static const NLTypeSystem rtnl_route_metrics_type_system = {
+++        .count = ELEMENTSOF(rtnl_route_metrics_types),
+++        .types = rtnl_route_metrics_types,
+++};
+++
++ static const NLType rtnl_route_types[] = {
++         [RTA_DST]               = { .type = NETLINK_TYPE_IN_ADDR }, /* 6? */
++         [RTA_SRC]               = { .type = NETLINK_TYPE_IN_ADDR }, /* 6? */
++@@ -508,9 +530,8 @@ static const NLType rtnl_route_types[] = {
++         [RTA_GATEWAY]           = { .type = NETLINK_TYPE_IN_ADDR },
++         [RTA_PRIORITY]          = { .type = NETLINK_TYPE_U32 },
++         [RTA_PREFSRC]           = { .type = NETLINK_TYPE_IN_ADDR }, /* 6? */
++-/*
++-        [RTA_METRICS]           = { .type = NETLINK_TYPE_NESTED },
++-        [RTA_MULTIPATH]         = { .len = sizeof(struct rtnexthop) },
+++        [RTA_METRICS]           = { .type = NETLINK_TYPE_NESTED, .type_system = &rtnl_route_metrics_type_system},
+++/*      [RTA_MULTIPATH]         = { .len = sizeof(struct rtnexthop) },
++ */
++         [RTA_FLOW]              = { .type = NETLINK_TYPE_U32 }, /* 6? */
++ /*
++diff --git a/src/network/networkd-ndisc.c b/src/network/networkd-ndisc.c
++index 4853791..9cfdf01 100644
++--- a/src/network/networkd-ndisc.c
+++++ b/src/network/networkd-ndisc.c
++@@ -55,6 +55,7 @@ static void ndisc_router_process_default(Link *link, sd_ndisc_router *rt) {
++         struct in6_addr gateway;
++         uint16_t lifetime;
++         unsigned preference;
+++        uint32_t mtu;
++         usec_t time_now;
++         int r;
++         Address *address;
++@@ -115,6 +116,12 @@ static void ndisc_router_process_default(Link *link, sd_ndisc_router *rt) {
++                 return;
++         }
++ 
+++        r = sd_ndisc_router_get_mtu(rt, &mtu);
+++        if (r < 0) {
+++                log_link_warning_errno(link, r, "Failed to get default router MTU from RA: %m");
+++                return;
+++        }
+++
++         r = route_new(&route);
++         if (r < 0) {
++                 log_link_error_errno(link, r, "Could not allocate route: %m");
++@@ -127,6 +134,7 @@ static void ndisc_router_process_default(Link *link, sd_ndisc_router *rt) {
++         route->pref = preference;
++         route->gw.in6 = gateway;
++         route->lifetime = time_now + lifetime * USEC_PER_SEC;
+++        route->mtu = mtu;
++ 
++         r = route_configure(route, link, ndisc_netlink_handler);
++         if (r < 0) {
++diff --git a/src/network/networkd-route.c b/src/network/networkd-route.c
++index 6f60ee5..6693b1f 100644
++--- a/src/network/networkd-route.c
+++++ b/src/network/networkd-route.c
++@@ -605,6 +605,20 @@ int route_configure(
++         if (r < 0)
++                 return log_error_errno(r, "Could not append RTA_OIF attribute: %m");
++ 
+++        r = sd_netlink_message_open_container(req, RTA_METRICS);
+++        if (r < 0)
+++                return log_error_errno(r, "Could not append RTA_METRICS attribute: %m");
+++
+++        if (route->mtu > 0) {
+++                r = sd_netlink_message_append_u32(req, RTAX_MTU, route->mtu);
+++                if (r < 0)
+++                        return log_error_errno(r, "Could not append RTAX_MTU attribute: %m");
+++        }
+++
+++        r = sd_netlink_message_close_container(req);
+++        if (r < 0)
+++                return log_error_errno(r, "Could not append RTA_METRICS attribute: %m");
+++
++         r = sd_netlink_call_async(link->manager->rtnl, req, callback, link, 0, NULL);
++         if (r < 0)
++                 return log_error_errno(r, "Could not send rtnetlink message: %m");
++diff --git a/src/network/networkd-route.h b/src/network/networkd-route.h
++index d4e4dba..02f0b27 100644
++--- a/src/network/networkd-route.h
+++++ b/src/network/networkd-route.h
++@@ -37,6 +37,7 @@ struct Route {
++         unsigned char tos;
++         uint32_t priority; /* note that ip(8) calls this 'metric' */
++         uint32_t table;
+++        uint32_t mtu;
++         unsigned char pref;
++         unsigned flags;
++ 
+diff --git a/debian/patches/resolved-fix-loop-on-packets-with-pseudo-dns-types.patch b/debian/patches/resolved-fix-loop-on-packets-with-pseudo-dns-types.patch
+new file mode 100644
+index 0000000..061ef4d
+--- /dev/null
++++ b/debian/patches/resolved-fix-loop-on-packets-with-pseudo-dns-types.patch
+@@ -0,0 +1,36 @@
++From: =?utf-8?q?Zbigniew_J=C4=99drzejewski-Szmek?= <zbyszek@in.waw.pl>
++Date: Wed, 25 Oct 2017 11:19:19 +0200
++Subject: resolved: fix loop on packets with pseudo dns types
++
++Reported by Karim Hossen & Thomas Imbert from Sogeti ESEC R&D.
++
++https://bugs.launchpad.net/ubuntu/+source/systemd/+bug/1725351
++(cherry picked from commit 9f939335a07085aa9a9663efd1dca06ef6405d62)
++---
++ src/resolve/resolved-dns-packet.c | 6 +-----
++ 1 file changed, 1 insertion(+), 5 deletions(-)
++
++diff --git a/src/resolve/resolved-dns-packet.c b/src/resolve/resolved-dns-packet.c
++index f10eafe..9de9347 100644
++--- a/src/resolve/resolved-dns-packet.c
+++++ b/src/resolve/resolved-dns-packet.c
++@@ -1490,7 +1490,7 @@ static int dns_packet_read_type_window(DnsPacket *p, Bitmap **types, size_t *sta
++ 
++                 found = true;
++ 
++-                while (bitmask) {
+++                for (; bitmask; bit++, bitmask >>= 1)
++                         if (bitmap[i] & bitmask) {
++                                 uint16_t n;
++ 
++@@ -1504,10 +1504,6 @@ static int dns_packet_read_type_window(DnsPacket *p, Bitmap **types, size_t *sta
++                                 if (r < 0)
++                                         return r;
++                         }
++-
++-                        bit++;
++-                        bitmask >>= 1;
++-                }
++         }
++ 
++         if (!found)
+diff --git a/debian/patches/series b/debian/patches/series
+index b01371c..e528f11 100644
+--- a/debian/patches/series
++++ b/debian/patches/series
+@@ -73,6 +73,10 @@ resolved-do-not-allocate-packets-with-minimum-size.patch
+ resolved-define-various-packet-sizes-as-unsigned.patch
+ systemctl-be-truly-quiet-in-systemctl-q-is-enabled.patch
+ main-improve-RLIMIT_NOFILE-handling-5795.patch
++cryptsetup-generator-run-cryptsetup-service-before-swap-u.patch
++networkd-handle-MTU-field-in-IPv6-RA-4719.patch
++shared-Add-a-linker-script-so-that-all-functions-are-tagg.patch
++resolved-fix-loop-on-packets-with-pseudo-dns-types.patch
+ debian/Use-Debian-specific-config-files.patch
+ debian/don-t-try-to-start-autovt-units-when-not-running-wit.patch
+ debian/Make-logind-hostnamed-localed-timedated-D-Bus-activa.patch
+@@ -96,4 +100,3 @@ debian/Revert-core-set-RLIMIT_CORE-to-unlimited-by-default.patch
+ debian/Revert-core-enable-TasksMax-for-all-services-by-default-a.patch
+ debian/Let-graphical-session-pre.target-be-manually-started.patch
+ debian/Add-env-variable-for-machine-ID-path.patch
+-cryptsetup-generator-run-cryptsetup-service-before-swap-u.patch
+diff --git a/debian/patches/shared-Add-a-linker-script-so-that-all-functions-are-tagg.patch b/debian/patches/shared-Add-a-linker-script-so-that-all-functions-are-tagg.patch
+new file mode 100644
+index 0000000..e8504ea
+--- /dev/null
++++ b/debian/patches/shared-Add-a-linker-script-so-that-all-functions-are-tagg.patch
+@@ -0,0 +1,41 @@
++From: Felipe Sateler <fsateler@users.noreply.github.com>
++Date: Mon, 28 Aug 2017 13:49:03 -0300
++Subject: shared: Add a linker script so that all functions are tagget
++ @SD_SHARED instead of @Base (#6669)
++
++This helps prevent symbol collisions with other programs and libraries. In particular,
++because PAM modules are loaded into the process that is creating the session, and
++systemd creates PAM sessions, the potential for collisions is high.
++
++Disambiguate all systemd calls by tagging a 'version' SD_SHARED.
++
++Fixes #6624
++
++(backported from commit 4f5993c3f48d6f5454f72aeb10b4642fde758076)
++---
++ Makefile.am              | 1 +
++ src/shared/libshared.sym | 3 +++
++ 2 files changed, 4 insertions(+)
++ create mode 100644 src/shared/libshared.sym
++
++diff --git a/Makefile.am b/Makefile.am
++index 13bbf21..5016d3b 100644
++--- a/Makefile.am
+++++ b/Makefile.am
++@@ -1117,6 +1117,7 @@ libsystemd_shared_la_LIBADD = \
++ 
++ libsystemd_shared_la_LDFLAGS = \
++ 	$(AM_LDFLAGS) \
+++	-Wl,--version-script=$(top_srcdir)/src/shared/libshared.sym \
++ 	-release $(PACKAGE_VERSION)
++ 
++ 
++diff --git a/src/shared/libshared.sym b/src/shared/libshared.sym
++new file mode 100644
++index 0000000..e4ae17e
++--- /dev/null
+++++ b/src/shared/libshared.sym
++@@ -0,0 +1,3 @@
+++SD_SHARED {
+++	global: *;
+++};

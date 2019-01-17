@@ -1,0 +1,72 @@
+To : 890262@bugs.debian.org
+Subject : Bug#890262: (no subject)
+From : Arthur <arthur@lutz.im>
+Date : Wed, 21 Feb 2018 23:03:08 +0100
+Message-id : e1438131-7b1a-2ed8-5fdd-68853901a5c0@lutz.im
+Reply-to : Arthur <arthur@lutz.im>, 890262@bugs.debian.org
+References : <[🔎] CAGBLoK=_GQhQHCJWxUSwhBmVe9vyq1O85SW+hqkFRPox88wdaQ@mail.gmail.com>
+
+
+Hi,
+I bumped into this problem too and got it fixed with
+echo "COMPRESS=xz" > /etc/initramfs-tools/conf.d/compress
+Running dpkg --configure -a ended up succeeding the flash-kernel part
+and I launched a reboot of the QNAP 109.
+I now have another problem (should I file another bugs?), openning up
+the serial console I get stuck on "Uncompressing Linux... done, booting
+the kernel." I don't know if it's stuck of if it's just that the serial
+console is down. The HDD led seems to be flickering but the HDD doesn't
+feel like it's churning at a fscheck (which can take forever with a 2TB
+disk). I'm going to leave it running overnight to see if it ends up
+being reachable via the network.
+Is there a way to tell uboot to boot on the previous kernel ? (idealy
+from disk, but even with tftp)
+Here is what I see on the console :
+Marvell>> env
+Unknown command 'env' - try 'help'
+Marvell>> print
+bootargs=console=ttyS0,115200
+baudrate=115200
+loads_echo=0
+ipaddr=172.17.21.244
+serverip=172.17.21.8
+rootpath=/mnt/ARM_FS/
+cpuName=926
+CASset=min
+MALLOC_len=4
+bootargs_root=root=/dev/nfs rw
+image_name=uImage
+standalone=fsload 0x400000 $(image_name);setenv bootargs $(bootargs)
+root=/dev/mtdblock0 rw ip=$(ipaddr):$(serverip)$(bootargs_end); bootm
+0x400000;
+ethaddr=00:00:00:00:51:81
+usb0Mode=host
+usb1Mode=host
+fsargs=setenv bootargs console=ttyS0,115200n8 root=/dev/ram rw
+initrd=0x800000,0x3fffff
+prefs=cp.b 0xff200000 0x800000 0x3fffff
+bootcmd=run prefs;run fsargs;bootm 0xff000000
+ethprime=eth0
+bootargs_end=:::DB88FXX81:eth0:none
+ethact=egiga0
+stdin=serial
+stdout=serial
+MonExt=norial
+enaFlashBuf=yes
+enaCpuStream=no
+bootdelay=1
+disaMvPnp=no
+overEthAddr=no
+Environment size: 775/131068 bytes
+Marvell>> boot
+## Booting image at ff000000 ...
+   Image Name:   kernel 4.9.0-5-marvell
+   Created:      2018-02-21  20:23:08 UTC
+   Image Type:   ARM Linux Kernel Image (uncompressed)
+   Data Size:    2050376 Bytes =  2 MB
+   Load Address: 00c08000
+   Entry Point:  00c08000
+   Verifying Checksum ... OK
+OK
+Starting kernel ...
+Uncompressing Linux... done, booting the kernel.

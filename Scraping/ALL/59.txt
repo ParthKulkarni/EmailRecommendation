@@ -1,0 +1,41 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#876384: [PATCH] apache2ctl: Fix passing arguments with spaces in them to apache2
+From : Ville Skyttä <ville.skytta@iki.fi>
+Date : Thu, 21 Sep 2017 18:07:27 +0300
+Message-id : CABr9L5CXcqO-X_1ptO85v-SL51x7c-DjoQA2q53dbYU=SQ4Pxw@mail.gmail.com
+Reply-to : Ville Skyttä <ville.skytta@iki.fi>, 876384@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3+deb9u3
+For example:
+# apachectl -D FOREGROUND -c "ErrorLog /dev/stderr"
+[...]
+Action '-D FOREGROUND -c ErrorLog /dev/stderr' failed.
+The Apache error log may have more information.
+'git am'able fix attached.
+From bc9076ec3f3e76a692e3985ff2e67633d749b608 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ville=20Skytt=C3=A4?= <ville.skytta@iki.fi>
+Date: Thu, 21 Sep 2017 17:54:50 +0300
+Subject: [PATCH] apache2ctl: Fix passing arguments with spaces in them to
+ apache2
+For example:
+apache2ctl -D FOREGROUND -c "ErrorLog /dev/stderr"
+---
+ debian/apache2ctl | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/debian/apache2ctl b/debian/apache2ctl
+index f31263b1..b03dc7e9 100755
+--- a/debian/apache2ctl
++++ b/debian/apache2ctl
+@@ -205,7 +205,7 @@ fullstatus)
+     get_status
+     ;;
+ *)
+-    $HTTPD ${APACHE_ARGUMENTS} $ARGV
++    $HTTPD ${APACHE_ARGUMENTS} "$@"
+     ERROR=$?
+ esac
+ 
+-- 
+2.13.5

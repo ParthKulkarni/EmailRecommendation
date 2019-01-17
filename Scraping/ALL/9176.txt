@@ -1,0 +1,49 @@
+To : Chris Lamb <lamby@debian.org>, 915830@bugs.debian.org
+Subject : Bug#915830: busybox: cp: failed to access '/var/tmp/mkinitramfs_h8da2B//usr/bin/busybox': Too many levels of symbolic links
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Sat, 08 Dec 2018 18:00:54 +0000
+Message-id : c37d265937896b716b56f6dc3d0aa9e3c6ea0f13.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 915830@bugs.debian.org
+In-reply-to : <[🔎] 1544172227.2493473.1601828248.12337754@webmail.messagingengine.com>
+References : <[🔎] 1544172227.2493473.1601828248.12337754@webmail.messagingengine.com> <[🔎] 1544172227.2493473.1601828248.12337754@webmail.messagingengine.com>
+
+
+On Fri, 2018-12-07 at 09:43 +0100, Chris Lamb wrote:
+[...]
+>   $ sudo update-initramfs -u -k all -v                   
+[...]
+>   Calling hook zz-busybox
+>   Adding binary-link /bin/busybox
+>   Adding binary /usr/bin/busybox
+>   cp: failed to access '/var/tmp/mkinitramfs_mSMoqa//usr/bin/busybox': Too many levels of symbolic links
+>   E: /usr/share/initramfs-tools/hooks/zz-busybox failed with return 1.
+>   Removing /boot/initrd.img-4.18.0-2-amd64.dpkg-bak
+>   update-initramfs: failed for /boot/initrd.img-4.18.0-2-amd64 with 1.
+> 
+> Adding a few debugging statements shows that:
+> 
+>   /var/tmp/mkinitramfs_mSMoqa/usr/bin/busybox -> busybox
+>
+> If it helps:
+>   
+>   $ ls -l /usr/bin | grep busybox     
+>   -rwxr-xr-x 1 root root       654,048 2018-07-13 05:19 busybox
+> 
+>   $ ls -l /bin | grep busybox                        
+>   lrwxrwxrwx 1 root root      16 2018-11-26 17:23 busybox -> /usr/bin/busybox
+> 
+> Any ideas? Sounds very usrmerge related...  Setting severity to
+> "important" as I'm a little worried to reboot. :)
+Note that initramfs-tools started building usr-merged filesystems in
+version 0.132.  Thus, /bin/busybox and /usr/bin/busybox will always be
+the same thing in the initramfs.
+The file copying function it uses knows how to copy symlinks along with
+their targets, but can't cope with a situation like this where the host
+filesystem has a file symlink that parallels the directory symlink in
+the skeleton initramfs.  If necessary, I could probably change that.
+Ben.
+-- 
+Ben Hutchings
+Man invented language to satisfy his deep need to complain.
+                                                          - Lily Tomlin
+signature.asc

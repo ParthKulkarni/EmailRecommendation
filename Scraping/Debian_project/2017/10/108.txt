@@ -1,0 +1,34 @@
+To : debian-devel@lists.debian.org
+Subject : Is strip-nondeterminism causing performance regressions in your packages?
+From : Chris Lamb <lamby@debian.org>
+Date : Wed, 04 Oct 2017 12:43:59 +0100
+Message-id : 1507117439.1492646.1127472928.093EE013@webmail.messagingengine.com
+
+
+Hi -devel,
+In #877418 we discovered that strip-nondeterminism was degrading the
+performance of clojure applications.
+This turned out it was because strip-nondeterminism was normalising the
+timestamps of both the source and compiled files (in this case, .clj and
+.class files respectfully) to the same time. 
+Clojure was then, at runtime, inferring that the .class files were out-of-
+date with respect to the .clj's, resulting in a costly recompilation.
+At the time of writing, the fix for #877418 has yet to be decided — and
+please keep such discussions there! — I am writing this to -devel now in
+case there are any other languages in Debian that may be suffering a
+parallel problem.
+Any which we do not ship compiled files cannot be affected (eg. we do not
+ship Python's .pyc files; they are generated at installation-time), we
+should just have a think about what other package sets:
+ a) Ship both compiled & source in the .deb
+and
+ b) Do a *runtime* timestamp comparison between the two.
+(Curiously, this is not the first time Reproducible Builds have caused
+unintended side-effects; see, for example:)
+  http://lists.alioth.debian.org/pipermail/reproducible-builds/Week-of-Mon-20170508/008717.html
+Regards,
+-- 
+      ,''`.
+     : :'  :     Chris Lamb
+     `. `'`      lamby@debian.org / chris-lamb.co.uk
+       `-

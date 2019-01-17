@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : New: "cme run paste-license script" (was: Re: pasting license text into debian/copyright)
+From : Dominique Dumont <dod@debian.org>
+Date : Tue, 17 Oct 2017 13:20:15 +0200
+Message-id : 6296083.vGfjeKyVYu@ylum
+Reply-to : dod@debian.org
+In-reply-to : <3711685.j13fBtpGFk@ylum>
+References : <alpine.DEB.2.02.1709161746380.9827@jupiter.server.alteholz.net> <20170920092450.zjuqck5ft344cqvn@colleen.colgarra.priv.at> <3711685.j13fBtpGFk@ylum>
+
+
+Hi
+People have complained that adding license text in debian/copyright file is 
+tedious.
+To avoid this problem, libconfig-model-dpkg-perl 2.102 now ships a new cme 
+script to copy a license text in debian/copyright. This script is run with 
+"cme run" command [1]
+For instance:
+$ echo -e "blah\n\nblah\n\nblah"  > my-lic.txt
+$ cme run paste-license  --arg license=MyTest --arg file=my-lic.txt
+cme: using Dpkg::Copyright model
+License MyTest is not used in Files: section
+Changes applied to dpkg-copyright configuration:
+- License:MyTest text: 
+@@ -1 +1,5 @@
+-<undef>
++blah
++
++blah
++
++blah
+$ git diff
+diff --git a/debian/copyright b/debian/copyright
+index 60bf1722..6e85dadb 100644
+--- a/debian/copyright
++++ b/debian/copyright
+@@ -22,3 +22,10 @@ License: LGPL-2.1+
+     License, or (at your option) any later version.
+     On Debian GNU/Linux systems, the complete text of version 2.1 of the GNU
+     Lesser General Public License can be found in `/usr/share/common-
+licenses/LGPL-2.1'
++
++License: MyTest
++ blah
++ .
++ blah
++ .
++ blah
+The doc specific to this script is shown with -doc option:
+$ cme run paste-license --doc
+paste license text in License paragraph
+paste file: cme run paste-license --arg license=Expat --arg file=MIT.txt
+paste STDIN: cat MIT.txt | cme run paste-license --arg license=Expat
+Please ignore a warning message about missing initialisation of Log4Perl. This 
+is harmless and will be fixed soon.
+I hope this command will be useful to help you in your packaging activities.
+All the best
+[1] https://manpages.debian.org/testing/cme/App::Cme::Command::run.3pm.en.html
+-- 
+ https://github.com/dod38fr/   -o- http://search.cpan.org/~ddumont/
+http://ddumont.wordpress.com/  -o-   irc: dod at irc.debian.org

@@ -1,0 +1,273 @@
+To : Andreas Henriksson <andreas@fatal.se>
+Subject : Re: Bug#855203: hwclock-set: Synchronize from hwclock despite systemd presence
+From : Lukas Wunner <lukas@wunner.de>
+Date : Fri, 17 Mar 2017 19:55:31 +0100
+Message-id : 20170317185531.GA32580@h08.hostsharing.net
+In-reply-to : <20170228212024.GA1658@fatal.se>
+References : <20170215125530.GA16667@h08.hostsharing.net> <20170226185606.GA23012@fatal.se> <20170227133434.GA23735@h08.hostsharing.net> <20170228212024.GA1658@fatal.se>
+
+
+[cc += pkg-sysvinit-devel@lists.alioth.debian.org,
+       pkg-systemd-maintainers@lists.alioth.debian.org,
+       debian-kernel@lists.debian.org, debian-devel@lists.debian.org
+       (as requested by Andreas Henriksson)]
+[cc += #785445, #785419, Rick Thomas (bug reporter)]
+Hi Andreas,
+sorry for the delay.  Attached is a new patch to address your review
+comments.  (Thanks a lot for them!)
+The patch no longer merely fixes the issue relating to systemd presence,
+but seeks to tackle the problem more comprehensively by making hwclock-set
+behave identically to hwclock.sh.  That way, users can switch between
+sysvinit and systemd-udevd and get the same behavior without having to
+change their hwclock configuration or experiencing unpleasant surprises.
+On Tue, Feb 28, 2017 at 10:20:24PM +0100, Andreas Henriksson wrote:
+> On Mon, Feb 27, 2017 at 02:34:34PM +0100, Lukas Wunner wrote:
+> > Okay, let's define a policy first.  How about:
+> > 
+> > (1) Users can set HWCLOCKACCESS=no in /etc/default/hwclock to prohibit
+> >     setting the system time or time zone from any RTC.  (The parameter
+> >     is already defined in the config file, but it's not honored by
+> >     hwclock-set.)
+> > 
+> > (2) Users can set HCTOSYS_DEVICE in /etc/default/hwclock to constrain
+> >     setting the system time or time zone to a specific RTC.  (Same as
+> >     above, parameter is already defined but not honored by hwclock-set.
+> >     This will also fix #785445.)  If this parameter is not set,
+> >     hwclock-set will pick the first RTC that becomes available.
+I've changed (2) to pick rtc0 (instead of the first RTC that becomes
+available), otherwise I'd introduce a change of behavior (as you've
+correctly pointed out).
+> > (3) If the kernel has already set the system time from *any* hwclock,
+> >     we don't set it once more in hwclock-set.  (We only adjust the
+> >     timezone.)
+> 
+> (3. would unfix #785445 from 2. again though, right? Maybe also support
+> HWCLOCKACCESS=force which skips 3. would really offer a solution
+> option for #785445 ? Reminder: This might also need 'force' to be
+> converted to simply 'yes' (default) in /etc/init.d/hwclock.sh)
+Good catch.  I've changed (3) to not set the system time if the kernel
+has already done so AND the kernel used the same clock that was chosen
+by the user in HCTOSYS_DEVICE (or rtc0 if not set by the user).
+Thus, in a situation as described in #785445, the user would configure
+HCTOSYS_DEVICE=rtc1, thereby instructing hwclock-set to override the
+unreliable rtc0 used by the kernel.  This is actually just like hwclock.sh
+behaves (if udev is not used).
+@Rick Thomas: Could you verify if the attached patch solves this issue
+for you?
+> Targeting this at Debian (doesn't suffer from the problem you're trying
+> to fix in any officially supported system AFAIK) we'll need to be
+> careful to not introduce regressions for any currently existing
+> configuration. (There are unfortunately many (non-default) combinations
+> to consider, like sysvinit, etc.)
+The issue relating to systemd presence does affect Debian if the RTC's
+driver is compiled as a module, which is true for these arches:
+$ git clone https://anonscm.debian.org/git/kernel/linux.git
+$ egrep -rc 'CONFIG_RTC_DRV.*=m$' linux/debian/config | egrep -v ':0$'
+linux/debian/config/config:5
+linux/debian/config/kernelarch-mips/config.malta:11
+linux/debian/config/kernelarch-powerpc/config-arch-64-be:1
+linux/debian/config/arm64/config:1
+Agreed on being careful to avoid regressions though.
+> > diff --git a/debian/hwclock.rules b/debian/hwclock.rules
+> > index 972e4aa..8584deb 100644
+> > --- a/debian/hwclock.rules
+> > +++ b/debian/hwclock.rules
+> > @@ -1,4 +1,4 @@
+> >  # Set the System Time from the Hardware Clock and set the kernel's timezone
+> >  # value to the local timezone when the kernel clock module is loaded.
+> >  
+> > -KERNEL=="rtc0", RUN+="/lib/udev/hwclock-set $root/$name"
+> > +KERNEL=="rtc*", RUN+="/lib/udev/hwclock-set $root/$name $kernel"
+> 
+> In general taking the initial policy and inlining it as comments in the
+> sources would be useful for future generations trying to figure out what
+> the idea was when this was changes. Also rephrasing it as eg.
+> # Don't touch timezone when running systemd, because .....
+> The 'because ...' part makes it easy for future generations to evaluate
+> if the the check is still valid.
+I've added some code comments to hwclock-set to hopefully improve clarity,
+however I'm skeptical about keeping old code as comments, the git history
+should be sufficient for archeologists. :-)
+All your other comments make total sense to me and I've amended hwclock-set
+accordingly.  Let me know if there is something else you want changed or if
+I've missed anything.
+Thanks!
+Lukas
+>From aac97ffc67512182041715264a9b6559adec22f2 Mon Sep 17 00:00:00 2001
+From: Lukas Wunner <lukas@wunner.de>
+Date: Thu, 16 Mar 2017 19:50:39 +0100
+Subject: [PATCH] hwclock-set: Behave like hwclock.sh
+If udev is installed, "/etc/init.d/hwclock.sh start" becomes a no-op and
+the system clock is instead supposed to be set up by a udev rule which
+invokes the script /lib/udev/hwclock-set.
+Unfortunately this script contains bugs which lead to a behavior different
+from that of hwclock.sh and which may have the fatal consequence that
+the system clock stays set to the epoch despite presence of an RTC.
+Worse, this incorrect system time will then be synced back to the RTC
+by the kernel, overwriting the correct time that was stored there.
+Specifics:
+* The user may configure HWCLOCKACCESS=no in /etc/default/hwclock to
+  forbid usage of any RTC, e.g. if none is reliable.  While hwclock.sh
+  honors this, hwclock-set does not.  Same for HWCLOCKPARS.
+* The user may configure a different hwclock than rtc0 (the default),
+  e.g. if rtc0 is unreliable but another known-good hwclock is present.
+  Again, hwclock.sh honors this but hwclock-set does not.  (Because the
+  udev rule invoking the script has rtc0 hard-coded.)  See #785445.
+* If systemd is running, the system clock is not set from the hwclock at
+  all.  Thus, unless the kernel has set the system clock, it will stay
+  set to the epoch.  This is the case if the hwclock's driver was compiled
+  as a module or if the kernel was compiled with CONFIG_RTC_HCTOSYS
+  disabled.
+  This bug was introduced in 2011 while trying to fix #629811:  According
+  to the bug report, "systemd > 25 sets the hwclock itself, based on the
+  contents of /etc/adjtime, so /lib/udev/hwclock-set should not do
+  anything if running under systemd."  Unfortunately that assumption is
+  only half-correct:  systemd determines if the RTC runs at UTC or local
+  time, and warps the system clock accordingly.  It does *not* however
+  set the system clock from the RTC.
+  The bug particularly affects the Raspberry Pi because Raspbian ships
+  with a kernel which disables CONFIG_RTC_HCTOSYS and also compiles all
+  RTC drivers as a module.  This makes sense because the Raspberry Pi
+  does not possess an RTC.  Instead, people use add-on boards with
+  various types of clocks and it wouldn't be reasonable to link all of
+  their drivers into the kernel.  Googling for "systemd" "hwclock-set"
+  gets 1230 results, the vast majority are recipes for the Raspberry Pi
+  to manually remove the systemd condition from hwclock-set, cargo-culted
+  over and over again for the last 6 years.
+Fix these issues to make hwclock-set behave like hwclock.sh, thereby
+giving users the freedom to switch between sysvinit and systemd-udevd
+without having to adjust their configuration settings or hack scripts.
+Note that hwclock deliberately continues to differ from hwclock.sh in
+the following ways, which may be worth porting over to hwclock.sh in a
+separate step:
+* If the kernel has already initialized the system clock from the same
+  RTC that was configured by the user, hwclock-set does not pointlessly
+  do so again.  (The RTC may have drifted in the meantime.)
+* If the kernel has already initialized the system clock from an RTC
+  and the user has not chosen a specific RTC in /etc/default/hwclock,
+  hwclock-set will not set the system clock again.  This is useful if
+  the user has compiled a custom kernel and set CONFIG_RTC_HCTOSYS_DEVICE
+  to something else than rtc0 (the default).  By contrast, hwclock.sh
+  will just blindly overwrite the system clock with rtc0.
+This patch was developed for and tested successfully on a Revolution Pi
+by Kunbus GmbH.
+Cc: Mathias Duckeck <m.duckeck@kunbus.de>
+Cc: Phil Elwell <pelwell@raspberrypi.org>
+Cc: Andreas Henriksson <andreas@fatal.se>
+Signed-off-by: Lukas Wunner <lukas@wunner.de>
+---
+ debian/hwclock-set                | 40 ++++++++++++++++++++++++++++-----------
+ debian/hwclock.5                  |  7 ++++---
+ debian/hwclock.rules              |  2 +-
+ debian/util-linux.hwclock.default |  6 ++++--
+ 4 files changed, 38 insertions(+), 17 deletions(-)
+diff --git a/debian/hwclock-set b/debian/hwclock-set
+index eacf948df..c36137140 100755
+--- a/debian/hwclock-set
++++ b/debian/hwclock-set
+@@ -1,12 +1,13 @@
+ #!/bin/sh
+ # Reset the System Clock to UTC if the hardware clock from which it
+-# was copied by the kernel was in localtime.
++# was copied by the kernel was in localtime and systemd hasn't already
++# done so.
++# Set the System Clock from the hardware clock if the kernel hasn't already
++# done so or if the user has chosen a different hardware clock than the one
++# used by the kernel.
+ 
+ dev=$1
+-
+-if [ -e /run/systemd/system ] ; then
+-    exit 0
+-fi
++rtc=$2
+ 
+ if [ -e /run/udev/hwclock-set ]; then
+     exit 0
+@@ -20,17 +21,34 @@ fi
+ BADYEAR=no
+ HWCLOCKACCESS=yes
+ HWCLOCKPARS=
+-HCTOSYS_DEVICE=rtc0
++HCTOSYS_DEVICE= # defaults to rtc0 unless set by the user, see below
+ if [ -f /etc/default/hwclock ] ; then
+     . /etc/default/hwclock
+ fi
+ 
++# Bail out if the user has generally forbidden hwclock access or
++# has chosen a different rtc
++if [ "$HWCLOCKACCESS" != yes ] ||
++   ( [ -n "$HCTOSYS_DEVICE" ] && [ "$rtc" != "$HCTOSYS_DEVICE" ] ) ||
++   ( [ -z "$HCTOSYS_DEVICE" ] && [ "$rtc" != rtc0 ] ) ; then
++    exit 0
++fi
++
+ if [ yes = "$BADYEAR" ] ; then
+-    /sbin/hwclock --rtc=$dev --systz --badyear
+-    /sbin/hwclock --rtc=$dev --hctosys --badyear
+-else
+-    /sbin/hwclock --rtc=$dev --systz
+-    /sbin/hwclock --rtc=$dev --hctosys
++    badyear="--badyear"
++fi
++
++# Determine the hwclock used by the kernel, if any
++kernel_hctosys=$(grep -l '^1$' /sys/class/rtc/*/hctosys 2>/dev/null)
++kernel_hctosys=${kernel_hctosys#/sys/class/rtc/}
++kernel_hctosys=${kernel_hctosys%/hctosys}
++
++if [ ! -e /run/systemd/system ] ; then
++    /sbin/hwclock --rtc=$dev --systz $HWCLOCKPARS $badyear
++fi
++if [ -z "$kernel_hctosys" ] ||
++   ( [ -n "$HCTOSYS_DEVICE" ] && [ "$kernel_hctosys" != "$HCTOSYS_DEVICE" ] ) ; then
++    /sbin/hwclock --rtc=$dev --hctosys $HWCLOCKPARS $badyear
+ fi
+ 
+ # Note 'touch' may not be available in initramfs
+diff --git a/debian/hwclock.5 b/debian/hwclock.5
+index fb6355f27..51be5cc89 100644
+--- a/debian/hwclock.5
++++ b/debian/hwclock.5
+@@ -28,9 +28,10 @@ Additional options for hwclock.  Unset by default.  For example, this
+ may be use to specify the machine hardware clock type for Alphas.
+ 
+ .IP \fBHCTOSYS_DEVICE\fP
+-The hardware clock device you want to use.  Defaults to \fBrtc0\fP.
+-It should probably match the CONFIG_RTC_HCTOSYS_DEVICE kernel config
+-option.
++The hardware clock device you want to use.  The kernel tries to
++initialize the system clock from \fBrtc0\fP by default (subject to the
++CONFIG_RTC_HCTOSYS_DEVICE kernel config option).  If rtc0 is unreliable,
++you may override it with a different hardware clock here.
+ 
+ .SH AUTHOR
+ Roger Leigh <rleigh@debian.org>
+diff --git a/debian/hwclock.rules b/debian/hwclock.rules
+index 972e4aab3..8584deb48 100644
+--- a/debian/hwclock.rules
++++ b/debian/hwclock.rules
+@@ -1,4 +1,4 @@
+ # Set the System Time from the Hardware Clock and set the kernel's timezone
+ # value to the local timezone when the kernel clock module is loaded.
+ 
+-KERNEL=="rtc0", RUN+="/lib/udev/hwclock-set $root/$name"
++KERNEL=="rtc*", RUN+="/lib/udev/hwclock-set $root/$name $kernel"
+diff --git a/debian/util-linux.hwclock.default b/debian/util-linux.hwclock.default
+index dcf5451fe..0ccf3d53f 100644
+--- a/debian/util-linux.hwclock.default
++++ b/debian/util-linux.hwclock.default
+@@ -13,7 +13,9 @@
+ # as machine hardware clock type for Alphas.
+ #HWCLOCKPARS=
+ 
+-# Set this to the hardware clock device you want to use, it should
+-# probably match the CONFIG_RTC_HCTOSYS_DEVICE kernel config option.
++# Set this to the hardware clock device you want to use.  The kernel
++# tries to initialize the system clock from rtc0 by default (subject
++# to the CONFIG_RTC_HCTOSYS_DEVICE kernel config option).  If rtc0 is
++# unreliable, you may override it with a different hardware clock here.
+ #HCTOSYS_DEVICE=rtc0
+ 
+-- 
+2.11.0

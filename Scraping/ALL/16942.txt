@@ -1,0 +1,72 @@
+To : systemd@packages.debian.org,    debian-devel@lists.debian.org
+Subject : Re: Should libpam-elogind Provide libpam-systemd ?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Mon, 5 Nov 2018 13:32:40 +0000
+Message-id : 23520.18040.158396.933449@chiark.greenend.org.uk
+In-reply-to : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk>
+References : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk>
+
+
+So I promised that I would summarise.  I found that trying to write a
+summary involved me doing a bit of research, and that not everyone in
+the thread seemed to agree about everything.  To make a coherent
+picture I had to make some suppositions, which may well be wrong.
+So I'd appreciate a review of the draft summary/conclusions below.
+Clear recommendations from the thread:
+Don't provide libpam-systemd.
+Do provide a separate pam module, rather than pam_systemd.so.
+File bugs against packages whose dependencies must be updated.
+On Conflicts and/or switchability:
+There was a suggestion that libpam-elogind should Conflict
+libpam-systemd, to avoid complicating debugging or situations where
+they might interfere.  Conversely it was suggested that this might
+impede switching init systems by installing different sets of
+packages, although it's not clear to me whether this is actually a
+problem.  There was one suggestion to write yet another pam module
+which would switch between pam_elogind and pam_systemd according to
+whichever was available.
+I think experimentation will show which of these approaches is best.
+On the meaning of dependencies on libpam-systemd:
+Some people suggested that usually a dependency on libpamd-systemd
+would usually imply a dependency on systemd --user.  Having looked at
+the packages in question (searching sid for Depends or Recommends
+only) that seems to sometimes be the case, but only rarely.
+Looking at the list I think a manual review of the proposed MBF list
+would be sensible (and of course there would be a formal MBF proposal
+here on -devel) but in most cases testing would not be needed.
+On dbus-user-session:
+There was considerable discussion of this.  It provides a session dbus
+which is shared by all processes with the same uids.  So it differs
+from (eg) dbus-x11, which provides one per graphical session.
+This sharing of a single bus between different sessions is the purpose
+of dbus-user-session.  Its maintainer says that its use of
+libpam-systemd would not work with elogind and I see no reason to
+doubt that.
+When a package does not want, specifically, this sharing, the
+dependency should be on
+   default-dbus-session-bus | dbus-session-bus
+or maybe the older form which I found in some packages in sid:
+   dbus-user-session | dbus-x11
+(xdg-desktop-portal-gtk).
+The value of this feature is IMO questionable.  (As background, there
+were assertions on -devel that modern GNOME (eg dconf) does not work
+properly if the same user logs in twice in parallel.  I'm sure that
+contributors to debian-init-diversity would regard such a situation as
+a significant bug.  But that's out of scope right now.)
+I looked for dependencies on dbus-user-session in sid and found only
+these:
+  pinentry-gnome3 (src:pinentry)
+  pulseaudio
+  rygel
+Of these:
+pinentry-gnome3 and pulseaudio seem wrong to me.  PINs should not be
+shared between login sessions and sound control should be per-session,
+not per-uid.
+I'm not sure about rygel but it doesn't seem likely to me that this
+dependency on dbus-user-session is necessary.  Perhaps there is
+another way to implement this on non-systemd systems.
+So I think we should probably file bugs right away against these three
+(two at severity normal, one at severity wishlist inviting further
+discussion).  I think also I may file a bug against lintian asking for
+plain dependencies on dbus-user-session to get a warning.
+Ian.

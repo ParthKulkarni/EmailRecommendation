@@ -1,0 +1,67 @@
+To : Wouter Verhelst <wouter@debian.org>
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Evgeni Golov <evgeni@debian.org>
+Date : Mon, 24 Apr 2017 21:15:01 +0200
+Message-id : 20170424191501.nbcaybgyptfkkiu3@nana.phantasia.die-welt.net
+In-reply-to : <[🔎] 20170423190041.x6slcy7vpaqw245z@grep.be>
+References : <[🔎] 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net> <[🔎] 20170423190041.x6slcy7vpaqw245z@grep.be>
+
+
+On Sun, Apr 23, 2017 at 09:00:41PM +0200, Wouter Verhelst wrote:
+> On Sun, Apr 23, 2017 at 12:16:58PM +0200, Evgeni Golov wrote:
+> > Both, procps and systemd support (/usr)?/lib/sysctl.d/*.conf, however only
+> > one package (systemd-coredump) uses it, all others drop files in
+> > /etc/sysctl.d.
+> 
+> The "packages drop files in /usr/*, sysadmins override in /etc" way of
+> doing things is prevalent in the RPM world;
+Is it? All my Fedora, CentOS and RHEL systems have quite a full /etc ;)
+> in Debian, however, we
+> traditionally have packages drop files in /etc, and let the maintainer
+> change them in place. This is possible, because our package management
+> system deals better with changed files than does RPM (which must work
+> silently, rather than confirming things with the user).
+While I would agree that RPM sometimes has its difficulties to keep up
+with dpkg, I welcome the idea that neither the package manager nor the
+package itself tries to be "too smart". But that a whole different
+discussion than /etc vs /usr/lib.
+> The reason both procps and systemd support /usr/* files is presumably
+> because they're installed and shipped in both worlds, and it makes
+> little sense to patch software to *remove* a feature, even if we end up
+> not using it. However, that doesn't mean we should necessarily drop
+> files in /usr if we can avoid it.
+But there is no policy for either.
+And that is what I am looking for.
+> There are things to be said to have the whole default configuration live
+> in /etc; IMO, it makes it easier for a system administrator to figure
+> out what the current configuration is, rather than having to mentally
+> merge configuration files from several locations. Additionally, when a
+> configuration file that had been edited by a user is now also edited by
+> the package maintainer, on Debian the system will ask how to handle it,
+> rather than changing the defaults and not telling people (which can
+> break in some circumstances). In contrast, on an RPM system the system
+> will just create the new configuration file with a .rpmnew extension,
+> but will have it not active.
+To keep the rpm vs dpkg:
+RPM supports both: keeping the old config and storing the new one as .rpmnew
+and replacing the old config and saving the old one as .rpmsave.
+Super handy when the config actually changes so much that you don't want
+to keep the old one.
+And no, I don't think dpkg is always helpful when it comes to conffiles:
+% docker run -ti debian:wheezy /bin/bash
+# apt-get update
+# apt-get install apache2
+# echo "# a comment" >> /etc/apache2/apache2.conf
+# sed -i 's/wheezy/jessie/g' /etc/apt/sources.list
+# apt-get update
+# apt-get install apache2
+# diff -Nrwu /etc/apache2/apache2.conf /etc/apache2/apache2.conf.dpkg-dist |diffstat
+ apache2.conf |  220 +++++++++++++++++++++++------------------------------------
+ 1 file changed, 86 insertions(+), 134 deletions(-)
+bonus points: apache does not start anymore until I resolve the diff.
+Yes, this is an extreme example.
+Yes, there is /etc/apache2/conf-enabled/ (which changed from
+/etc/apache2/conf.d in wheezy).
+In the end, on both systems some config management will fix it for me.
+Cheers
+Evgeni

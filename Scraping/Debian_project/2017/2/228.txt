@@ -1,0 +1,149 @@
+To : debian-devel@lists.debian.org
+Subject : Re: changelog practice, unfinalised vs UNRELEASED vs ~version
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 12 Feb 2017 14:11:12 +0000
+Message-id : 20170212141112.ra6nwi3npojhkugc@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 22688.22947.749751.138991@chiark.greenend.org.uk>
+References : <[🔎] 22688.22947.749751.138991@chiark.greenend.org.uk>
+
+
+On Sun, 12 Feb 2017 at 12:48:35 +0000, Ian Jackson wrote:
+> What do people think ?
+I think you're the only person I've ever seen using unfinalized
+changelog entries for Debian packages.
+If I'm understanding correctly, your motivation to do so is that you
+have a strong belief that building a Debian source package with `debuild`
+or similar, directly from a VCS checkout, should always work and should
+always produce results that could be considered correct (in terms of not
+having the version number of a prior version, not having the version
+number of a future version either, not claiming to have been released
+by a person who did not in fact release it, and so on).
+These might be valid axioms for your particular workflow, but they do
+not fit all workflows, and I don't think they are necessarily the
+axioms that lead to the best practical results.
+Broadly, the two extremes of workflows for Debian packages' changelogs
+maintained in git seem to be:
+* Write the changelog as you go along: each commit includes its own
+  Debian changelog entry. The `debcommit` command assumes this model.
+  This works fine if every commit is final and immutable and is sent
+  directly to the master VCS immediately, but works very poorly if you
+  are proposing commits for someone else to merge at a later date -
+  a lot like how the GNU model of writing ChangeLog as you go along is
+  widely considered deprecated, because it guarantees that every git
+  cherry-pick or merge will have conflicts in ChangeLog.
+* Write the changelog later: each commit just has a commit message
+  in a normal git way, and its debian/changelog is out of date.
+  At release time, write a cumulative debian/changelog entry for
+  everything that happened since the last release, finalize it and
+  commit it. The `gbp dch` command assumes this model (and is very
+  useful when following it).
+with a middle ground that is less theoretically defensible than
+either, but pragmatically quite useful:
+* Mostly write the changelog later, as in the second model.
+  Periodically summarize the changelog so far (since the last
+  commit to the changelog) and commit it as an UNRELEASED
+  changelog entry, providing a reference point.
+  `gbp dch --since=1234567` is useful for this model.
+I'm concerned that the first model is optimized for people who know
+Debian as well as you do, and do not need pre-commit review because
+they get everything right first time. I don't think Debian would be as
+large or successful a project as it is if we restricted our contributor
+base to people who know the corner cases as well as Ian Jackson does :-)
+> Q2. Should the changelog entry be finalised ?  That is, should it
+>     have an uploader name and date ?
+While as an abstract model I agree that the uploader name and date
+are not meaningful in an unreleased version, I can't help thinking
+that this is a "boil the ocean" sort of change - a lot of tools follow
+and require Policy syntax, in which the uploader name and date are
+non-optional. Obviously, Policy only really applies to finished packages,
+and unfinished packages often violate the semantics of Policy (for
+instance by using UNRELEASED as a suite name); but it seems reasonable
+for a tool author to oppose changes that, as well as violating Policy
+semantics, also violate Poliy syntax.
+Allowing and ignoring an arbitrary and non-meaningful uploader and date,
+or possibly establishing a convention like Unreleased <nobody@localhost>
+for the unreleased uploader, seems more pragmatic.
+I should point out here that `dch`, which is commonly used for the "write
+the changelog as you go" model, preserves the uploader and date of the
+first commit after the previous release until the next `dch -r`. This is
+not theoretically defensible at all - using the most recent committer
+and date would be more correct - but in practice it works pretty well
+as a way to minimize conflicts, reducing them to an acceptable level
+(although still more than if you write the changelog at release time).
+> Q3. Should the version number be the intended next version number,
+>     or should it be decorated with ~something ?  If it should
+>     be decorated, what should it be decorated with ?
+The solution to this I used in build-snapshot[1], a continuous integration
+script for the Debian derivative Apertis, was to see whether the current
+version is tagged, and if not, use dch(1) to synthesize a changelog
+entry for a version number based on `git describe` (1.2-3+45+g1234567
+for commit 1234567, 45 commits later than 1.2-3) with a dummy uploader
+named Snapshot <snapshot@localhost>. In theory this pseudo-release
+could itself be committed to git, but in practice we don't either need
+or want to do so (and it would be easy to create an infinite loop
+where the new commit is subjected to continuous integration, generating
+a new pseudo-release and so on).
+In the project where this script originated, we mostly follow the
+"write the changelog later" workflow, because that's what is familiar
+to developers who are not Debian experts - it matches what you would do
+in a typical non-GNU upstream project, where ChangeLog is generated at
+`make dist` time from the git history. Many of my colleagues in that
+project are not Debian specialists; with some pre-commit code review they
+can update existing packaging without problems, but we can't (and don't)
+expect them to follow every Debian convention, particularly where Debian
+as a whole doesn't *have* a convention.
+When making packaging changes, we occasionally make a commit that is
+unreleased (UNRELEASED in the changelog) and summarizes the changes
+to date, using `gbp dch`. This makes build-snapshot switch to a mode
+where it generates versions like 1.2-4~1.2-3+45+g1234567 (commit 1234567,
+changelog says 1.2-4, last tag was 1.2-3 45 commits ago) which provides
+a point of reference that other unreleased packages can use in
+dependencies like foo (>= 1.2-4~). That puts us into the "middle ground"
+workflow.
+We rarely use the "write the changelog as you go" workflow because it
+works poorly with pre-commit review, which we use extensively (we use
+Phabricator and cherry-pick commits into a linear history, analogous
+to a workflow based on git-format-patch and git-am, but kernel- or
+Github-style merge/pull requests would also run into similar problems).
+Our experience with this script and workflow has mostly been very positive,
+and I intend to integrate similar functionality into Vectis[2] soon. The
+one thing I'm regretting is making it switch behaviour based on whether
+the current version is tagged; I think that's "too much magic", and it
+forces you to tag a version before you have built and tested it.
+In Vectis I'm aiming to turn it into two separate commands
+`vectis snapshot` and `vectis release`[3].
+Clearly, the down side of this approach is that it doesn't work as-is
+with debuild or similar, violating what I believe to be the axiom you're
+working from - the developer has to run a special script instead.
+One benefit you get for dropping that axiom is that you get a
+machine-generated version number that is unique to a commit[3]; as long
+as you don't rebase (a fast-forwarding branch), version numbers go up
+monotonically; and even if you rebase while preparing changes to propose
+for the next official release, the version number you get is less than
+any reasonable choice for the next official release's version. Another
+benefit is that this approach works fine with any of the models for
+changelog maintenance that I described above, whereas insisting on the
+contents of the packaging VCS being suitable for `debuild` at any time
+only works with the first one.
+> Q1. Should the suite in the changelog entry be UNRELEASED,
+>     or the suite at which the vcs branch is targeted ?
+If you're trying to change common practice (being prescriptive rather than
+descriptive) *anyway*, maybe something like experimental-UNRELEASED that
+contains both, with UNRELEASED being shorthand for unstable-UNRELEASED
+(or possibly ${current development suite}-UNRELEASED in Ubuntu
+and other derivatives)?
+That makes these special pseudo-suites look a lot like a partial suite
+(or a pocket in Ubuntu terminology, for example jessie-backports or
+stretch-proposed-updates), which I think they sort of are, if you
+look at them from the right angle.
+Vectis currently treats UNRELEASED as "use this vendor's development
+suite" unless overridden with a command-line option.
+Regards,
+    S
+[1] https://git.apertis.org/cgit/apertis-customizations.git/tree/development/build-snapshot
+    (maintained in the Apertis Debian derivative, but written to be
+    suitable for any Debian packaging that uses DEP-14 branches if invoked
+    with --packaging, or for any upstream project with an Autotools build
+    system, tags like v1.2, and in-tree Debian packaging otherwise)
+[2] https://github.com/smcv/vectis / https://bugs.debian.org/843486
+[3] https://github.com/smcv/vectis/issues/8

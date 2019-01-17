@@ -1,0 +1,133 @@
+To : 756859@bugs.debian.org
+Subject : Bug#756859: installation-guide: USB boot
+From : Holger Wansing <linux@wansing-online.de>
+Date : Sat, 28 Jul 2018 22:57:52 +0200
+Message-id : 20180728225752.a718b96f971377487b6d9b29@wansing-online.de
+Reply-to : Holger Wansing <linux@wansing-online.de>, 756859@bugs.debian.org
+References : <20140802192228.51b4ad750c4d513950c46cd3@mailbox.org>
+
+
+Osamu Aoki <osamu@debian.org> wrote:
+> Installation guide on USB boot is a bit outdated and may need some touch
+> up.  (I could not find package to file bug report.)
+> 
+> === USB-HDD and USB Legacy ===
+> 
+> http://d-i.debian.org/manual/en.i386/apas02.html#howto-getting-images-usb
+> A.2.2. USB memory stick
+> 
+> | Some BIOSes can boot USB storage directly, and some cannot. You may need
+> | to configure your BIOS to boot from a “removable drive” or even a
+> | “USB-ZIP” to get it to boot from the USB device. For helpful hints and
+> | details, see Section 5.1.5, “Booting from USB Memory Stick”.
+> 
+> I think this can be:
+> 
+> | Some BIOSes can boot USB storage directly, and some cannot. You may need
+> | to configure your BIOS to set "USB legacy support".  The boot device
+> | selection menu should show “removable drive”, "USB-HDD", or even
+> | “USB-ZIP” to get it to boot from the USB device.  For helpful hints and
+> | details, see Section 5.1.5, “Booting from USB Memory Stick”.
+> 
+> The rationale is:
+> Since current document focus is on iso image copied onto USB, this is
+> confusing to have USB-ZIP and not USB-HDD.  Many new BIOSs have USB-HDD
+> boot support if USB legacy support is enabled.  USB-HDD installation is
+> quite easy, it is usable and intuitive from the HDD image and documented
+> in:
+>  4.3.2. Manually copying files to the USB stick
+>  4.3.3. Manually copying files to the USB stick — the flexible way
+> These seems to be complete. 
+> 
+> === USB-ZIP ===
+> 
+> USB-ZIP is said to require special partition and use /de/sd?4 for the
+> data as documented in the syslinux documentation:
+> /usr/share/doc/syslinux-common/txt/usbkey.txt
+> 
+> So adding pointer to this is needed somewhere on the document is
+> desirable (Probably at the bottom of 4.3.)
+> 
+> === USB Legacy and interfarence ===
+> 
+> http://d-i.debian.org/manual/en.amd64/ch03s06.html#boot-dev-select
+> 3.6.2. Boot Device Selection
+> 
+> Here,  mention that you may need to enable "USB legacy support" to get
+> USB memory stick to become bootable.
+> 
+> (I have been bitten several times.  So I am sure on this.)
+> 
+> 3.6.4. Disabling the Windows 8 “fast boot” feature
+> 
+> Here, mention that enabling "USB legacy support" may interfare with
+> booting of Windows 8.
+> 
+> (This is what I saw on the net.)
+I have prepared a patch, to get this into the manual:
+diff --git a/en/howto/installation-howto.xml b/en/howto/installation-howto.xml
+index ff8a74184..1304b4c0d 100644
+--- a/en/howto/installation-howto.xml
++++ b/en/howto/installation-howto.xml
+@@ -162,8 +162,10 @@ sticks. For details, see <xref linkend="boot-usb-files" />.
+ </para><para arch="any-x86">
+ 
+ Some BIOSes can boot USB storage directly, and some cannot. You may need to
+-configure your BIOS to boot from a <quote>removable drive</quote> or even a
+-<quote>USB-ZIP</quote> to get it to boot from the USB device. For helpful
++configure your BIOS to enable <quote>USB legacy support</quote>. The boot device
++selection menu should show <quote>removable drive</quote>, <quote>USB-HDD</quote>,
++or even <quote>USB-ZIP</quote> to get it to boot from the USB device.
++For helpful
+ hints and details, see <xref linkend="usb-boot-x86" />.
+ 
+ </para><para arch="powerpc">
+diff --git a/en/install-methods/boot-usb-files.xml b/en/install-methods/boot-usb-files.xml
+index 7f59939d9..d85cf994b 100644
+--- a/en/install-methods/boot-usb-files.xml
++++ b/en/install-methods/boot-usb-files.xml
+@@ -2,7 +2,7 @@
+ <!-- $Id$ -->
+ 
+  <sect1 condition="bootable-usb" id="boot-usb-files">
+- <title>Preparing Files for USB Memory Stick Booting</title>
++ <title>Preparing files for USB device booting</title>
+ 
+ <para>
+ 
+@@ -185,4 +183,17 @@ ISO image, even a DVD image, to it.
+ 
+   </sect2>
+ 
++  <sect2 id="usb-zip">
++  <title>Using an USB-ZIP drive for installation</title>
++<para>
++
++The use of an USB-ZIP drive as installation medium requires some special
++partitioning, and the partition /dev/sdX4 has to be used for the data. Details
++can be found on <ulink
++url="https://www.syslinux.org/doc/usbkey.txt";>https://www.syslinux.org/doc/usbkey.txt</ulink>
++
++</para>
++
++  </sect2>
++
+  </sect1>
+diff --git a/en/preparing/bios-setup/i386.xml b/en/preparing/bios-setup/i386.xml
+index 4c50c1e2c..73f29271d 100644
+--- a/en/preparing/bios-setup/i386.xml
++++ b/en/preparing/bios-setup/i386.xml
+@@ -67,6 +67,7 @@ In particular if you use an isohybrid CD/DVD image on a USB stick
+ (see <xref linkend="usb-copy-isohybrid"/>), changing the device type to
+ <quote>USB CDROM</quote> helps on some BIOSes which will not boot from a USB stick in 
+ USB harddisk mode.</phrase>
++You may need to configure your BIOS to enable <quote>USB legacy support</quote>.
+ 
+ </para><para>
+ 
+-- 
+============================================================
+Created with Sylpheed 3.5.1 under 
+	D E B I A N   L I N U X   9   " S T R E T C H " .
+Registered Linux User #311290 - https://linuxcounter.net/
+============================================================

@@ -1,0 +1,73 @@
+To : Lisandro Damián Nicanor Pérez	Meyer <perezmeyer@gmail.com>, debian-devel@lists.debian.org
+Subject : Re: A message from CMake upstream: announcing dh-cmake
+From : Kyle Edwards <kyle.edwards@kitware.com>
+Date : Fri, 06 Jul 2018 11:59:58 -0400
+Message-id : 1530892798.30662.120.camel@kitware.com
+In-reply-to : <[🔎] 1631961.4oqYP2Pffo@tonks>
+References : <[🔎] 1530647802.30662.24.camel@kitware.com>	 <[🔎] 8469811.VszcyU8jI2@tonks> <[🔎] 1530796855.30662.67.camel@kitware.com>	 <[🔎] 1631961.4oqYP2Pffo@tonks>
+
+
+On Thu, 2018-07-05 at 14:04 -0300, Lisandro Damián Nicanor Pérez Meyer
+wrote:
+> From what you write above I tend to think that simply by not using
+> dh-cmake whatever upstream has defined as packaging it will be simply
+> ignored (ie, it will become a "standard" CMake project).
+Yes, this is true. dh-cmake only adds optional new functionality and
+doesn't take anything away from existing packages.
+> Now it turns out that you get a bug report where you need to split
+> the packaging. It's not an upstream issue per-se, but rather a
+> packaging one. Following normal Debian workflow that would mean
+> simply creating a new Debian revision.
+In our opinion, this actually *is* an upstream issue. To explain why, I
+think it would help if I give a brief explanation of the CMake
+philosophy.
+CMake is intended to be a high-level, cross-platform buildsystem that
+lets the end user use whatever tools they like most. Barring hard
+technical limitations (such as functionality that is highly specific to
+one operating system), if a CMake project is written properly, the
+developer and end user should be able to:
+* build and run the software on their operating system of choice,
+whether it be Windows, Mac, or Linux (among others),
+* generate build files for their favorite build tools (Makefiles, Ninja
+files, or project files for various IDEs), and
+* through the use of CPack, generate installers in whichever format
+they desire, including .deb, .rpm, WiX for Windows, and .dmg for Mac.
+Expanding on the third point, ideally, upstream would properly split
+the project output into components that have all the files in the right
+place. Then, the end user can generate well-formed packages in any
+format they want with CPack, or, in this case, with dh-cmake in
+cooperation with CPack.
+If any of these assumptions don't hold true, then the project isn't
+utilizing CMake to its full potential, and it can create a poor
+experience for the end user if they can't use the tools they feel most
+comfortable with. In this case, if a Debian developer can't generate a
+package from it using dh-cmake, then we consider it an upstream bug.
+> What would happen with dh-cmake? Would be a new upstream release
+> required? Would the package maintainer need to patch the packaging
+> editing a CMake file?
+In a word, yes. See my comment above about this being an upstream
+issue.
+Of course, many upstream projects won't do things correctly, and the
+Debian maintainer will have to do a lot of work no matter what tools
+they use. We realize this is unavoidable. In that case, the solution is
+to package it as a "traditional" Debian CMake package, without dh-
+cmake, the way it's always been done.
+This project is meant for the subset of cases where upstream DOES
+package it correctly, leaving almost no work for the Debian maintainer
+- just add configuration files for dh-cmake and it's ready to go right
+away, complete with upstream's dependency graph and project
+description.
+> [+dfsg] Maybe you can work out to fix this so a repackaging is not
+> needed? That would be *really* welcomed.
+I have a question about this (and I apologize if this is slightly off
+topic): VTK includes "convenience copies" of third-party libraries it
+uses to avoid "dependency hell", and also because we've made
+modifications to them that haven't yet been upstreamed. I know that on
+Debian it's not allowed to *use* these libraries (and we have flags to
+use the system versions instead), but do they have to be removed from
+the tarball entirely to comply with DFSG?
+If the DFSG modifications are because of a non-free file in VTK, we
+would certainly like to know about it, and possibly try to fix it. We
+don't intend to distribute anything with VTK that's under a non-free,
+restrictive license.
+Kyle

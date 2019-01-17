@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org, debian-arm@lists.debian.org,	pkg-kde-talk@alioth-lists.debian.net
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Dmitry Shachnev <mitya57@debian.org>
+Date : Wed, 28 Nov 2018 17:03:51 +0300
+Message-id : 20181128140351.GA7571@mitya57.me
+In-reply-to : <[🔎] 20181128070052.GA26398@virgil.dodds.net>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] 2682712.gOydg1LB9R@tonks> <[🔎] 3005918.A3t91XcMaO@tonks> <[🔎] 1804155.CmlG43vXzp@tonks> <[🔎] 20181128070052.GA26398@virgil.dodds.net>
+
+
+On Tue, Nov 27, 2018 at 11:00:52PM -0800, Steve Langasek wrote:
+> $ grep-dctrl -n -sSource:Package -FDepends \
+>         -e 'libqt5(gui|3drenderer|quick|quickparticles|quickwidgets|multimediawidgets)5[[:space:]]*(\(>= 5\.[0-9.]*\))(?|$),' \
+>         /var/lib/apt/lists/archive.ubuntu.com_ubuntu_dists_xenial_*binary-amd64_Packages | sort -u
+> maliit-plugins
+> ovito
+> pyqt5
+> qml-box2d
+> qt3d-opensource-src
+> qtbase-opensource-src
+> qtdeclarative-opensource-src
+> qtubuntu-cameraplugin-fake
+> stellarium
+> wallch
+> $
+>
+> Every single other binary package that depends on libqt5gui5 (etc) in Ubuntu
+> 16.04 has an ORed dependency on libqt5gui5 | libqt5gui5-gles.
+Ah, this is interesting.
+The amount of packages will probably be larger in the current sid,
+but it should not be more than 20 packages.
+Plus there are packages which are using QT_OPENGL_ES macro for conditional
+compilation (as I mentioned in my previous mail), but there are also not many
+of them:
+gammaray
+goldendict
+gst-plugins-good1.0
+kamoso
+krita
+leocad
+openclonk
+phonon-backend-gstreamer
+qtav
+qt-gstreamer
+qtwebkit-opensource-src
+qtwayland-opensource-src
+qtcharts-opensource-src
+> So perhaps someone in this thread is willing to put in this effort to
+> maintain 6 source packages, in order to avoid having to make a choice
+> between GL and GLES on arm64.
+I wonder if these can be new binaries in existing source packages, instead
+of separate source packages. Otherwise we will have too much code duplication,
+and also wasted time: for example, in qtbase-opensource-src, only src/gui
+needs to be built twice, and there is no need to built other submodules twice.
+We already have an example of double build inside the same source: on i386,
+src/corelib is built twice, with and without sse2 support.
+In any case, this task looks manageable. Maybe if I have time someday I will
+take care of it, but in the meantime volunteers are welcome.
+--
+Dmitry Shachnev
+signature.asc

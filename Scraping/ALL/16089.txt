@@ -1,0 +1,36 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Q: How to get build depends package from debian/control
+From : Raju Devidas <rajudev@disroot.org>
+Date : Mon, 12 Feb 2018 09:51:52 +0530
+Message-id : 644841cf-591b-339b-bd6a-58c4c0fceb93@disroot.org
+In-reply-to : <[🔎] 20180212075233.08f4e4cd0978ea84d6e0d122@iijmio-mail.jp>
+References : <[🔎] 20180212075233.08f4e4cd0978ea84d6e0d122@iijmio-mail.jp>
+
+
+Reply Inline
+On 02/12/2018 04:22 AM, Hideki Yamane wrote:
+> Hi,
+>
+>  I've imported some git repo to salsa and tried to use its CI via
+>  debian/.gitlab-ci.yml. As a harness, I want just get build dependency
+>  packages and build source. Then, what's the simple way to get it?
+>
+>  "apt-get build-dep" depends on uploaded package, not source in repo,
+>  so it'd fail if its dependency would be changed. Using dpkg-scanpackages
+>  is bit tough to parse output.
+I recently got this really neat hack from a Debian Developer
+Balasankar's .gitlab-ci.yml file.
+As I can see you have got an answer in the thread. just FYI, this is
+another way to do it.
+----------------------------------------------------------------------------------------
+- export BUILD_DEPENDS=`perl -ne 'next if /^#/;
+$p=(s/^Build-Depends:\s*/ / or (/^ / and $p)); s/,|\n|\([^)]+\)//mg;
+print if $p' < debian/control`
+- apt-get install -y --no-install-recommends$BUILD_DEPENDS
+-----------------------------------------------------------------------------------------
+The first is a neat perl hack to get the build-depends from the control
+file, and the second line installs them nicely.
+>
+>  Any suggestions?
+>
+>

@@ -1,0 +1,70 @@
+To : Steve McIntyre <steve@einval.com>
+Subject : Re: Summary of the 2038 BoF at DC17
+From : Guillem Jover <guillem@debian.org>
+Date : Thu, 21 Sep 2017 09:49:14 +0200
+Message-id : 20170921074914.qv7d2scepa5cp737@thunder.hadrons.org
+Mail-followup-to : Steve McIntyre <steve@einval.com>,	Ian Jackson <ijackson@chiark.greenend.org.uk>, plugwash@p10link.net,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170918173312.gc5j7ryhkh3zxn42@tack.einval.com>
+References : <[🔎] 20170901235854.ds4hffumd2ktggau@tack.einval.com> <[🔎] 10e4fa4a-433c-a43b-1136-984293497c50@p10link.net> <[🔎] E1dtwtV-0007o5-O1@mail.einval.com> <[🔎] 22975.63594.370909.535985@chiark.greenend.org.uk> <[🔎] 20170918173312.gc5j7ryhkh3zxn42@tack.einval.com>
+
+
+On Mon, 2017-09-18 at 18:33:12 +0100, Steve McIntyre wrote:
+> On Mon, Sep 18, 2017 at 05:46:34PM +0100, Ian Jackson wrote:
+> >Steve McIntyre writes ("Re: Summary of the 2038 BoF at DC17"):
+> >> It depends on how/where/why you're embedding 64-bit time,
+> >> basically. If you're embedding a time_t (or a struct including a
+> >> time_t) in your ABI and want to keep to something similar, it's worth
+> >> waiting to see what's going to be standardised then using that.
+> >
+> >Are you saying that if I am designing an API/ABI now I should write:
+> >
+> >  typedef struct {
+> >    blah blah;
+> >    time_t whenever;
+> >    blah blah;
+> >  } MyAPIThing;
+> >
+> >rather than
+> >
+> >  typedef struct {
+> >    blah blah;
+> >    uint64_t whenever;
+> >    blah blah;
+> >  } MyAPIThing;
+> >
+> >?  Really ?
+> >
+> >I think that's bad advice.
+I have to agree here. I was also suprised by that recommendation in the
+initial report.
+> Yes, really. You've now hidden that you're storing time data by using
+> another data type, which makes things much harder to find if anybody
+> else is scanning for time-handling code. And you've made assumptions
+> about how new time-handling APIs are likely to look in the near-ish
+> future when people have worked everything out and agreed new
+> standards. If the new stuff ends up using a different representation
+> with 96 or even 128 bits in total, I'd argue that it's cleaner to wait
+> for that and not gamble.
+While using more semantic types would be nicer, and more searchable,
+the reality is that we've got already systems out there with 64-bit
+time_t/clock_t (OpenBSD for example). If POSIX (say) standardized on a
+new time96_t or similar, code using 64-bit time would still be no worse
+off, it would actually still be in a better position compared to 32-bit
+time.
+In addition, for the same reason that exposing off_t directly as part
+of an API is a very bad idea, because you are then requiring the users
+to match your build LFS state, or they will break horribly. Doing the
+equivalent with time_t, assuming there cannot be a scorched-earth
+just-rebuild-the-world approach to transitioning to non 32-bit time,
+will be also a bad idea. (We still do not have 100% LFS coverage!)
+The alternative is to provide interfaces similar to glibc, for example
+one for off_t (32-bit) another for off64_t, etc, which is also horrible.
+> >I would do the latter.  Even though that means writing library code
+> >internally that checks whether the supplied value of `whenever' fits
+> >in whatever the system calls a time_t.
+> 
+> Your code, your choice...
+Well for public APIs, it's not just "your code", it's code that
+affects all its users.
+Thanks,
+Guillem

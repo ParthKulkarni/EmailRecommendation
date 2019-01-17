@@ -1,0 +1,49 @@
+To : 734324@bugs.debian.org
+Subject : Bug#734324: disable keyring in second stage
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Mon, 12 Mar 2018 21:35:02 +0900
+Message-id : 20180312213502.1d17928c058ee18ac7265de8@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 734324@bugs.debian.org
+In-reply-to : <20140315135217.GA18718@debirf-dominicain>
+References : <CANTw=MPTT_aoYihPhyKGsTCS4beuCZcY66xbE7kLSV=6T3sWfg@mail.gmail.com>
+
+
+control: severity -1 wishlist
+control: tags -1 +patch +pending
+On Sat, 15 Mar 2014 13:52:17 +0000 jhcha54008 <jhcha54008@free.fr> wrote:
+> Would the following patch suffice ?
+> 
+> Thanks for your comments or corrections !
+> 
+> Regards,
+> JH Chatenet
+> 
+> diff -Naur a/usr/share/debootstrap/scripts/sid b/usr/share/debootstrap/scripts/sid
+> --- a/usr/share/debootstrap/scripts/sid	2014-03-13 20:30:32.000000000 +0100
+> +++ b/usr/share/debootstrap/scripts/sid	2014-03-13 20:29:02.000000000 +0100
+> @@ -2,7 +2,9 @@
+>  download_style apt
+>  finddebs_style from-indices
+>  variants - buildd fakechroot minbase scratchbox
+> -keyring /usr/share/keyrings/debian-archive-keyring.gpg
+> +if [ "$SECOND_STAGE_ONLY" != "true" ] ; then
+> +	keyring /usr/share/keyrings/debian-archive-keyring.gpg
+> +fi
+>  
+>  if doing_variant fakechroot; then
+>  	test "$FAKECHROOT" = "true" || error 1 FAKECHROOTREQ "This variant requires fakechroot environment to be started"
+ It should be patched to each scripts, so another patch is here...
+diff --git a/functions b/functions
+index 7024fc9..599931b 100644
+--- a/functions
++++ b/functions
+@@ -196,7 +196,8 @@ download_style () {
+ }
+ 
+ keyring () {
+-       if [ -z "$KEYRING" ]; then
++       # avoid unnecessary warning with --second-stage
++       if [ -z "$KEYRING" ] && [ "$SECOND_STAGE_ONLY" != true ]; then
+                if [ -e "$1" ]; then
+                        KEYRING="$1"
+                elif [ -z "$DISABLE_KEYRING" ]; then

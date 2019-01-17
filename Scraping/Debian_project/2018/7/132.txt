@@ -1,0 +1,60 @@
+To : Debian Developers <debian-devel@lists.debian.org>
+Subject : Is Access to Salsa restricted to a certain number of queries per time and host?
+From : Andreas Tille <andreas@an3as.eu>
+Date : Wed, 11 Jul 2018 10:18:51 +0200
+Message-id : 20180711081851.umyripxk6xaymvqx@an3as.eu
+
+
+Hi,
+I'm running a daily cron job on host blends.debian.net to gather machine
+readable data from all blends packages.  The cron job fetches only the
+following files
+    debian/changelog
+    debian/control
+    debian/copyright
+    debian/README.Debian
+    debian/upstream/edam
+    debian/upstream/metadata
+(if the latter two exist) from about 2000 repositories.  These data are
+consumed in UDD from where they are used in the Blends web sentinel.  The
+script which is running can be found in Git[1].
+Unfortunately the cron job seems to stop with
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/gitlab/exceptions.py", line 251, in wrapped_f
+    return f(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/gitlab/mixins.py", line 48, in get
+    server_data = self.gitlab.http_get(path, **kwargs)
+  File "/usr/lib/python3/dist-packages/gitlab/__init__.py", line 728, in http_get
+    streamed=streamed, **kwargs)
+  File "/usr/lib/python3/dist-packages/gitlab/__init__.py", line 706, in http_request
+    response_body=result.content)
+gitlab.exceptions.GitlabHttpError: 429: b'Retry later\n'
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "/srv/blends.debian.org/misc/machine_readable/fetch-machine-readable_salsa.py", line 106, in <module>
+    project = gl.projects.get(pr.attributes['id']) # without this extra get repository_tree() fails
+  File "/usr/lib/python3/dist-packages/gitlab/exceptions.py", line 253, in wrapped_f
+    raise error(e.error_message, e.response_code, e.response_body)
+gitlab.exceptions.GitlabGetError: 429: b'Retry later\n'
+Once this has happened Git access to salsa seems to be completely
+blocked from this host since I can not even
+tille@blends:/tmp$ git clone https://salsa.debian.org/blends-team/website.git
+Cloning into 'website'...
+remote: Retry later
+fatal: unable to access 'https://salsa.debian.org/blends-team/website.git/': The requested URL returned error: 429
+(similar with git pull).  This problem seems to exist since 2018-05-27
+(when the last complete set of data was created.  I wonder whether some
+setting on Salsa was changed to prevent to frequent access to Salsa from
+some specific IP address (I can perfectly access that repository from
+other hosts) and what I can do to fetch these data instead.
+Kind regards
+        Andreas.
+PS: Yes, I'm aware that this might be a question for Salsa support
+tracker and I'll open a ticket there in case it turns out that there is
+no better way to fetch this data.  My motivation to post it on Debian
+devel is to get hints how to perform that query better and also give
+a hint to the problem for others who also might try to fetch data from
+Salsa (in replacement of other jobs running formerly on Alioth).
+[1] https://salsa.debian.org/blends-team/website/blob/master/misc/machine_readable/fetch-machine-readable_salsa.py
+-- 
+http://fam-tille.de

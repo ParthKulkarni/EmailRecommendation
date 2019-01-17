@@ -1,0 +1,167 @@
+To : debian-user@lists.debian.org
+Subject : Re: (solved) Re: wireless fail after stretch installation
+From : Brian <ad44@cityscape.co.uk>
+Date : Sat, 10 Mar 2018 18:17:43 +0000
+Message-id : 10032018170509.8ddd68334cb7@desktop.copernicus.org.uk
+In-reply-to : <20180310155358.GB7693@alum>
+References : <87606blnk5.fsf@hands.com> <m2n.s.1esyhq-514937@chiark.greenend.org.uk> <[🔎] 23198.44335.823580.650544@chiark.greenend.org.uk> <[🔎] 06032018165907.42c8b3de5579@desktop.copernicus.org.uk> <m2n.s.1etGYW-119232@chiark.greenend.org.uk> <[🔎] 23198.57139.220857.1680@chiark.greenend.org.uk> <[🔎] 06032018194752.4bf3296b2b7e@desktop.copernicus.org.uk> <m2n.s.1etJPj-443238@chiark.greenend.org.uk> <[🔎] 23199.59452.198656.637391@chiark.greenend.org.uk> <20180310155358.GB7693@alum>
+
+
+At some point Jude DaShiell Cc'ed -devel. This accounts for some of the
+traffic in this thread. I am also Cc'ing -devel. You didn't, but I am
+not trimming any of your post; nor am I replying to every portion in
+it.
+On Sat 10 Mar 2018 at 09:53:58 -0600, David Wright wrote:
+> On Wed 07 Mar 2018 at 13:25:16 (+0000), Ian Jackson wrote:
+> > bw writes ("Re: (solved) Re: wireless fail after stretch installation"):
+> > > On Tue, 6 Mar 2018, Brian wrote:
+> > > > One user calls it a "sick joke". After five years and with no attempt
+> > > > to rectify the situation, I'm beginning to have sympathy with that view.
+> > 
+> > Debian, like all ordinary software, is full of bugs.  Many bugs
+> > languish unfixed for years.  This is not malice, or a "sick joke".
+> > It's just that there is too much to do and too few people to do it.
+> 
+> I'm afraid I've been misquoted. The exchange was (my lines are marked ★):
+> 
+> --✄--------
+> 
+> > How connectivity is re-established on a machine with only a wireless
+> > interface is left as an exercise for the user.
+> 
+> This is some sort of sick joke. ★
+> 
+> --✄--------
+> 
+> https://lists.debian.org/debian-user/2018/02/msg00015.html
+Many apologies for quoting out of context.
+> > There are rare cases where horrible people deliberately sabotage
+> > things.  They are very high profile because they are so outrageous,
+> > but they are not the norm.  I see no evidence in relation to this bug
+> > that anyone is sabotaging anything.
+> 
+> I made no accusations of sabotage. Again:
+> 
+> --✄--------
+> 
+> > > > So this must be intentioal, wouldn't you say?
+> > > 
+> > > No. ★
+> 
+> […]
+> 
+> > > > And this is also clearly intentional.
+> > > 
+> > > Intended to do what? ★
+> > 
+> > To leave the user without network connectivity after first boot? There
+> > are at least three bug reports against netcfg on the matter. My
+> > recollection is that no deeper intention is revealed there.
+> 
+> […]
+The word "deliberately" was picked up and labelled as giving the message
+an unfortunate tone and then linked with "deliberately breaking stuff".
+A deliberate action need not be done with malice and there was nothing
+in what I said which put ill-intent forward as a reason.
+> Yes, I don't think the intentions are deeper, but just that simple ★
+> cases have been overlooked, and overlooked for several years. ★
+> 
+> --✄--------
+> 
+> The thing that seemed odd to me when I examined the log was that the
+> installer removed the wireless configuration right at the last moment,
+> with no method of circumventing it.
+> 
+> On discovering the udeb package called netcfg and looking through its
+> bugs, it seemed that the network connection was torn down (with good
+> reason, to do with DHCP leases perhaps) but then the configuration
+> itself was also torn down, and this was considered a good thing for
+> reasons I couldn't fathom, and which seemed to forget the case of a
+> wireless interface and its intended future use of ifupdown with /e/n/i
+> after rebooting.
+> 
+> > The correct approach to this bug is to figure out how to fix it, and
+> > send a patch.
+> > 
+> > > Brute forcing this thing with wifi to /e/n/i might not be the best 
+> > > approach?  What about people who want a different config than the 
+> > > installer?  What about people who don;t want to be UP (auto) on bootup?  
+> > > What about static configs?  Wifi is by nature a mobile environment, what 
+> > > about security or several devices?  Let's help the devs by hashing out the 
+> > > pros and cons and making a coherent proposal?
+> > 
+> > We are considering the situation where the user has installed a
+> > barebones system, with no GUI network management tools.
+> > 
+> > Such a user will probably *expect* to edit a configuration file when
+> > they want to change their network configuration, whether because their
+> > needs change, or because their needs are different to those of the
+> > majority of people.
+> > 
+> > Consequently, there is no problem in principle with setting up /e/n/i
+> > to have the wifi configuration from the install.  That is what most
+> > people who do this will want; and if it doesn't suit them, they can
+> > change it.  (It is easier to change it or delete it, than it is to set
+> > it up from scratch.)
+> 
+> Yes, that's just what I had originally expected, and would be great.
+> 
+> > AFAICT from reading #694068, the reason d-i currently strips this
+> > information out of the installed system is because it contains the
+> > wifi password in /e/n/i, a world-readable file.  That would obviously
+> > be wrong.
+> 
+> The odd thing about this reasoning was that I seem to recall several
+> generations ago (more than ten years?) finding that /e/n/i was not
+> world-readable upon installation. (If this was when I was using ppp/
+> mgetty/CHAPS etc, it would be pre-2004. I could be misremembering here.)
+> 
+> > Someone should implement and test the suggestion made by Trent Buck,
+> > here,
+> >   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=694068#47
+> > 
+> > Specifically:
+> > 
+> > |  If you don't want to udebify wpa_passphrase, you can do it by hand:
+> > |
+> > |      cat >"/etc/wpa_supplicant/wpa_supplicant-$iface.conf" <<EOF
+> > |      network={
+> > |	 ssid="$ssid"
+> > |	 psk="$passphrase"
+> > |      }
+> > |      EOF
+> > 
+> > This should be arranged in the appropriate bit of d-i, so that the
+> > installed system works the same way as the installer.
+> 
+> That would be a great improvement, and with least surprise.
+> 
+> BTW if you read right to the end of
+> https://lists.debian.org/debian-user/2018/02/msg00015.html
+> the last sentence is meant to be a reference to our
+> Great Leader's Orwellian press briefings.
+Trent W. Buck said in #694068:
+  > This issue's history seems to be bogged down on whether
+  > interfaces(5) can be mode 0600 (to hide the cleartext
+  > passphrase).
+As can be seen from
+ 
+ https://lists.debian.org/debian-boot/2012/09/msg00282.html
+having mode 0600 for /e/n/i was not given as a reason.
+Futher on in the thread is:
+ https://lists.debian.org/debian-boot/2012/09/msg00313.html
+  > IIRC we decided on this default before we added the code to
+  > change the access mode of /e/n/i if it contains a password.
+  > The main reason for defaulting to no configuration in
+  > this case was to avoid having passwords in there. If people
+  > think it should default to ifupdown in this case this can be
+  > changed.
+Nothing about mode 0600 as a reason for the design and there was a
+willingness to change the default.
+You said earlier:
+ > The thing that seemed odd to me when I examined the log was that the
+ > installer removed the wireless configuration right at the last moment,
+ > with no method of circumventing it.
+That is touched on in the same -boot thread.
+-- 
+Brian.

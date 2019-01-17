@@ -1,0 +1,53 @@
+To : rattusrattus@debian.org, debian-arm@lists.debian.org, 	pkg-kde-talk@lists.alioth.debian.org, debian-devel@lists.debian.org
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : bret curtis <psi29a@gmail.com>
+Date : Mon, 26 Nov 2018 11:40:44 +0100
+Message-id : CA+LhZ99nW-oeuiMHRGiwmpsLXaJ09z_rp_eC1QD+a5tjGx3i-Q@mail.gmail.com
+In-reply-to : <[🔎] 20181126100437.GA21264@home.ouaza.com>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] CALT56yNFWS9RdpheG4WnVtfLnOKJk_ukA-3ka-YXsJnp+M=nMQ@mail.gmail.com> <[🔎] 20181123095813.soyytbs4nxrolheu@tack.einval.com> <[🔎] 1978113.NGEtsr0Vo0@tonks> <[🔎] bf570128-29fe-3a56-f396-ee0e172d7880@debian.org> <[🔎] CA+LhZ9-A4VV-h8d8kU-oECtTRXz6-=EaxD=a047EnUFJUzc4cA@mail.gmail.com> <[🔎] 20181126100437.GA21264@home.ouaza.com>
+
+
+> On Sat, 24 Nov 2018, bret curtis wrote:
+> > This is a very wrong assumption, the OpenGL on a RPi (all of them) is
+> > hardware accelerated via the VC4 mesa driver by Eric Anholt which is
+> > shipped, by default, on by Raspbian. It supports up to OpenGL 2.1 and
+> > if you plan on having hardware accelerated X11 or Wayland, you need
+> > the VC4 driver. You'll need "Desktop" OpenGL otherwise nothing will
+> > work on a RPi system, which as of 2015 has over 5 million units
+> > shipped. This is not an insignificant user base.
+>
+> Can you back up this claim with some external documentation?
+> Or at least pointer the appropriate part of the code?
+>
+> https://github.com/anholt/mesa/wiki/VC4-OpenGL-support says that the
+> VC4 hardware is a GLES 2.0 renderer and it would seem strange that
+> the mesa driver for it would not support OpenGL ES.
+>
+If your hardware supports GLESv2 then by definition your hardware also
+supports at least OpenGL 2.1 so please correct me if I'm wrong but all
+open-source mesa drivers support both OpenGL and GLES to some degree
+and only proprietary drivers support only GLES. If you start only
+shipping packages with only GLES support then you're going to begin
+dropping packages that only support Desktop GL but would otherwise
+work perfectly fine on that architecture. The switch to GLES has the
+only benefit of supporting proprietary firmware/software which isn't
+exactly DFSG friendly.
+The VC4 is not an GLES exclusive renderer, it supports OpenGL up to
+2.1 and GLES 2.  That information comes from same link I have posted
+earlier in this thread that you have just posted now. What I'm saying
+is that without the VC4 mesa driver then you're stuck with llvmpipe
+making the RPi not very useful as a Desktop and then to only ship
+software with GLES only support then excludes other software that
+would otherwise work with VC4.
+I'm am admittedly biased because I'm also an upstream developer of
+such an application (OpenMW) that only works with Desktop GL, that
+being said, it is by far not the only one. There are others like
+openjk and opentesarena just off the top of my head. From our point of
+view, GLES isn't an option. For GLES only devices, we use a shim that
+does its best to translate GL2 calls to their equivalent in GLESv2,
+but that is really dodgy. From our point of view, the next step is
+Vulkan so we only want to target "Desktop" OpenGL and Vulkan for
+maximum coverage because it is a waste of time to _also_ support GLES
+when Vulkan can be used for both Desktop and Mobile.
+Cheers,
+Bret

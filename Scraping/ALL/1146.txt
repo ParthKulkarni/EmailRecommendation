@@ -1,0 +1,40 @@
+To : Cyril Brulebois <kibi@debian.org>, 841842@bugs.debian.org, Marcos Mobley <marcosmobley@dipconsultants.com>
+Subject : Bug#841842: debian-installer: should use EXT4's native file-system-level encryption
+From : Philipp Kern <pkern@debian.org>
+Date : Sun, 25 Jun 2017 13:01:58 +0200
+Message-id : 1d2e40d3-0abe-abfc-e19c-61c1fd800ca2@debian.org
+Reply-to : Philipp Kern <pkern@debian.org>, 841842@bugs.debian.org
+In-reply-to : <[🔎] 20170625021916.GA1560@mraw.org>
+References : <147724850705.16704.7850699475739212204.reportbug@bethany> <[🔎] 20170625021916.GA1560@mraw.org>
+
+
+On 6/25/2017 4:19 AM, Cyril Brulebois wrote:
+> Marcos Mobley <marcosmobley@dipconsultants.com> (2016-10-23):
+>> it would be nice to be able to use EXT4's native file-system-level
+>> encryption instead of LUKS.
+> 
+> As far as I understand it, this would only protect the contents of a
+> given directory instead of the whole filesystem, so that doesn't look
+> like a suitable replacement for LUKS?
+> 
+> If my quick research is correct (you didn't much information in your bug
+> report), then I think the admin is supposed to be setting this up; and
+> that's not really a job for the Debian Installer.
+To replace LUKS as an FDE mode we'd first need support in
+initramfs-tools to load a key into the kernel's keyring on boot.
+But in general ext4 fs-level encryption is "weird" in that the
+encryption secret is stored in the login keyring. That makes sense in
+the Android world for which it was designed but complicates matters
+somewhat on a plain Linux system and has "interesting" behavior
+depending if the file you're trying to access is already loaded into the
+page cache or not. (As there's a secret you need to have activated in
+addition to fs-level permission bits, which are actually separate.) I
+think something like pam_e4crypt for the encryption of the user's home
+directory would make more sense to support.
+I think that nested policies aren't actually supported. I'm also unsure
+if setting the policy at the root inode works or not. (And I tried to
+confirm both questions, but encryption didn't work with loop filesystems
+because of the blocksize, unfortunately.)
+Kind regards
+Philipp Kern
+signature.asc

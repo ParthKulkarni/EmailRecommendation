@@ -1,0 +1,152 @@
+To : Andrew Shadura <andrew@shadura.me>, 855143@bugs.debian.org
+Subject : Re: Bug#855143: unblock: wpa/2.5-2+v2.4-4stretch1
+From : Jonathan Wiltshire <jmw@debian.org>
+Date : Sun, 26 Feb 2017 19:03:15 +0000
+Message-id : 20170226190315.2zwxrasonnt7zwod@powdarrmonkey.net
+In-reply-to : <1123da2b-27a0-dd75-66c5-d1617dd11251@shadura.me>
+References : <148708954269.5711.13314399835355442417.reportbug@nuevo> <20170219220722.GA2802@ugent.be> <CACujMDPyca6BGm8o_JMpKL1LaNweSpyfOJRX1u=pUEPbrae74g@mail.gmail.com> <20170219230809.GA3789@ugent.be> <52120167-4fac-fe94-7c29-c89fcc7b085b@shadura.me> <1123da2b-27a0-dd75-66c5-d1617dd11251@shadura.me>
+
+
+On Mon, Feb 20, 2017 at 12:08:51PM +0100, Andrew Shadura wrote:
+> On 20/02/17 08:18, Andrew Shadura wrote:
+> >> Please upload a targeted fix to unstable.
+> 
+> I have thought about this a bit more. Even though I don't really like
+> the epoch idea, it's an opportunity to clean up the package version a
+> bit (1:2.4-1 instead of 2.5-2+v2.4-4stretch1, or even 2:2.4-1 to
+> accommodate an existing epoch in hostapd package). How about this debdiff?
+Needs approval from d-i RM. Debdiff:
+> diff -Nru wpa-2.5-2+v2.4/debian/changelog wpa-2.4/debian/changelog
+> --- wpa-2.5-2+v2.4/debian/changelog	2016-09-14 11:11:05.000000000 +0200
+> +++ wpa-2.4/debian/changelog	2017-02-20 11:55:12.000000000 +0100
+> @@ -1,3 +1,21 @@
+> +wpa (2:2.4-1) unstable; urgency=medium
+> +
+> +  [ Vincent Danjean ]
+> +  * Build with libssl1.0-dev (Closes: #828601).
+> +  * Add an upstream patch to fix hostapd in SMPS mode (Closes: #854719).
+> +
+> +  [ Andrew Shadura ]
+> +  * Don't install debian/system-sleep/wpasupplicant (originally introduced
+> +    to fix LP: #1422143), it doesn't improve the state of the things,
+> +    introduces regressions in some cases, and at all isn't supposed to
+> +    work with how wpa-supplicant is started these days (Closes: #835648).
+> +  * Bump the epoch to 2:, so that we can set the upstream version to
+> +    what we really mean. It also has to be higher than 2.6 in unstable
+> +    and 1:2.6 (what hostapd binary package in unstable has).
+> +  * Drop the binary package epoch override.
+> +
+> + -- Andrew Shadura <andrewsh@debian.org>  Mon, 20 Feb 2017 11:55:11 +0100
+> +
+>  wpa (2.5-2+v2.4-3) unstable; urgency=medium
+>  
+>    [ Helmut Grohne ]
+> diff -Nru wpa-2.5-2+v2.4/debian/control wpa-2.4/debian/control
+> --- wpa-2.5-2+v2.4/debian/control	2016-08-05 20:43:38.000000000 +0200
+> +++ wpa-2.4/debian/control	2017-02-14 17:02:28.000000000 +0100
+> @@ -8,7 +8,7 @@
+>  Priority: optional
+>  Build-Depends: debhelper (>> 9.20120115),
+>   libdbus-1-dev,
+> - libssl-dev,
+> + libssl1.0-dev,
+>   libqt4-dev,
+>   libncurses5-dev,
+>   libpcsclite-dev,
+> diff -Nru wpa-2.5-2+v2.4/debian/patches/from-upstream-hostapd-fix-SMPS-mode.patch wpa-2.4/debian/patches/from-upstream-hostapd-fix-SMPS-mode.patch
+> --- wpa-2.5-2+v2.4/debian/patches/from-upstream-hostapd-fix-SMPS-mode.patch	1970-01-01 01:00:00.000000000 +0100
+> +++ wpa-2.4/debian/patches/from-upstream-hostapd-fix-SMPS-mode.patch	2017-02-14 17:07:16.000000000 +0100
+> @@ -0,0 +1,56 @@
+> +From: Jouni Malinen <jouni@qca.qualcomm.com>
+> +Date: Fri Mar 18 16:16:40 2016 +0200
+> +Subject: nl80211: Do not add NL80211_ATTR_SMPS_MODE attribute if HT is disabled
+> +
+> +SMPS mode is applicable only for HT and including an attribute to
+> +configure it when HT is disabled could result in the AP start operation
+> +failing. Fix this by adding the attribute only in cases where HT is
+> +enabled.
+> +
+> +Upstream commit ee298f1b1f7efd7eb5fd510f36b25ff88208017c
+> +--- a/src/drivers/driver_nl80211.c
+> ++++ b/src/drivers/driver_nl80211.c
+> +@@ -3419,24 +3419,26 @@
+> + 	    nla_put_u32(msg, NL80211_ATTR_CIPHER_SUITE_GROUP, suite))
+> + 		goto fail;
+> + 
+> +-	switch (params->smps_mode) {
+> +-	case HT_CAP_INFO_SMPS_DYNAMIC:
+> +-		wpa_printf(MSG_DEBUG, "nl80211: SMPS mode - dynamic");
+> +-		smps_mode = NL80211_SMPS_DYNAMIC;
+> +-		break;
+> +-	case HT_CAP_INFO_SMPS_STATIC:
+> +-		wpa_printf(MSG_DEBUG, "nl80211: SMPS mode - static");
+> +-		smps_mode = NL80211_SMPS_STATIC;
+> +-		break;
+> +-	default:
+> +-		/* invalid - fallback to smps off */
+> +-	case HT_CAP_INFO_SMPS_DISABLED:
+> +-		wpa_printf(MSG_DEBUG, "nl80211: SMPS mode - off");
+> +-		smps_mode = NL80211_SMPS_OFF;
+> +-		break;
+> ++	if (params->ht_opmode != -1) {
+> ++		switch (params->smps_mode) {
+> ++		case HT_CAP_INFO_SMPS_DYNAMIC:
+> ++			wpa_printf(MSG_DEBUG, "nl80211: SMPS mode - dynamic");
+> ++			smps_mode = NL80211_SMPS_DYNAMIC;
+> ++			break;
+> ++		case HT_CAP_INFO_SMPS_STATIC:
+> ++			wpa_printf(MSG_DEBUG, "nl80211: SMPS mode - static");
+> ++			smps_mode = NL80211_SMPS_STATIC;
+> ++			break;
+> ++		default:
+> ++			/* invalid - fallback to smps off */
+> ++		case HT_CAP_INFO_SMPS_DISABLED:
+> ++			wpa_printf(MSG_DEBUG, "nl80211: SMPS mode - off");
+> ++			smps_mode = NL80211_SMPS_OFF;
+> ++			break;
+> ++		}
+> ++		if (nla_put_u32(msg, NL80211_ATTR_SMPS_MODE, smps_mode))
+> ++			goto fail;
+> + 	}
+> +-	if (nla_put_u32(msg, NL80211_ATTR_SMPS_MODE, smps_mode))
+> +-		goto fail;
+> + 
+> + 	if (params->beacon_ies) {
+> + 		wpa_hexdump_buf(MSG_DEBUG, "nl80211: beacon_ies",
+> diff -Nru wpa-2.5-2+v2.4/debian/patches/series wpa-2.4/debian/patches/series
+> --- wpa-2.5-2+v2.4/debian/patches/series	2016-08-09 20:48:10.000000000 +0200
+> +++ wpa-2.4/debian/patches/series	2017-02-14 17:02:28.000000000 +0100
+> @@ -31,3 +31,4 @@
+>  do_not_wait_for_monitor_to_attach_if_no_control_interface.patch
+>  wpa_supplicant_do_not_wait_for_monitor_on_p2p_device_interface.patch
+>  openssl-initialise-pkcs-11.patch
+> +from-upstream-hostapd-fix-SMPS-mode.patch
+> diff -Nru wpa-2.5-2+v2.4/debian/rules wpa-2.4/debian/rules
+> --- wpa-2.5-2+v2.4/debian/rules	2016-09-14 10:02:52.000000000 +0200
+> +++ wpa-2.4/debian/rules	2017-02-20 11:54:33.000000000 +0100
+> @@ -122,10 +122,6 @@
+>  	dh_installchangelogs --package=wpasupplicant wpa_supplicant/ChangeLog
+>  	dh_installchangelogs --package=wpagui wpa_supplicant/ChangeLog
+>  
+> -override_dh_gencontrol:
+> -	dh_gencontrol -phostapd -- '-v1:$(VERSION)'
+> -	dh_gencontrol --remaining-packages
+> -
+>  override_dh_builddeb:
+>  	dh_builddeb -- -Zxz -z6
+>  ### end dh overrides
+> diff -Nru wpa-2.5-2+v2.4/debian/wpasupplicant.install wpa-2.4/debian/wpasupplicant.install
+> --- wpa-2.5-2+v2.4/debian/wpasupplicant.install	2016-09-14 10:12:21.000000000 +0200
+> +++ wpa-2.4/debian/wpasupplicant.install	2017-02-14 17:09:16.000000000 +0100
+> @@ -1,5 +1,5 @@
+>  debian/ifupdown/wpa_action sbin/
+> -debian/system-sleep /lib/systemd/
+> +# debian/system-sleep /lib/systemd/
+>  wpa_supplicant/wpa_cli sbin/
+>  wpa_supplicant/wpa_passphrase usr/bin/
+>  wpa_supplicant/wpa_supplicant sbin/
+Thanks,
+-- 
+Jonathan Wiltshire                                      jmw@debian.org
+Debian Developer                         http://people.debian.org/~jmw
+4096R: 0xD3524C51 / 0A55 B7C5 1223 3942 86EC  74C3 5394 479D D352 4C51

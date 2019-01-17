@@ -1,0 +1,70 @@
+To : 659360@bugs.debian.org
+Subject : Bug#659360: debootstrap cannot build Ubuntu Edgy or earlier
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sun, 25 Feb 2018 19:16:49 +0900
+Message-id : 20180225191649.04cbc35d57d043aeb5419f87@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 659360@bugs.debian.org
+In-reply-to : <E7F6813D0B978743808D09B426ADFE670E80732CE9@SUK1EXB02.cmedgroup.local>
+References : <E7F6813D0B978743808D09B426ADFE670E80732CE9@SUK1EXB02.cmedgroup.local>
+
+
+control: tags -1 +patch
+On Fri, 10 Feb 2012 14:19:31 +0000 Carlos Corbacho <ccorbacho@cmedtechnology.com> wrote:
+> debootstrap cannot install Ubuntu Edgy or Ubuntu Breezy. It fails with:
+> 
+> I: Retrieving Release
+> E: Invalid Release file, no entry for main/binary-i386/Packages
+> 
+> The edgy and breezy scripts need the same fix as was applied for bug #627365 to fix Debian Sarge - adding 'force_md5' gets them building again.
+ Here's a patch for it.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp
+>From 3e77e6275fdda9b5919c70020192c58dfdf373df Mon Sep 17 00:00:00 2001
+From: Hideki Yamane <henrich@debian.org>
+Date: Sun, 25 Feb 2018 19:15:46 +0900
+Subject: [PATCH] use force_md5 for breezy dapper edgy
+Oldest Ubuntu releases needs to be specified to use force_md5
+---
+ scripts/breezy | 1 +
+ scripts/dapper | 1 +
+ scripts/edgy   | 1 +
+ 3 files changed, 3 insertions(+)
+diff --git a/scripts/breezy b/scripts/breezy
+index 2148cec..f15967a 100644
+--- a/scripts/breezy
++++ b/scripts/breezy
+@@ -3,6 +3,7 @@ mirror_style release
+ download_style apt
+ finddebs_style from-indices
+ variants - buildd
++force_md5
+ 
+ case $ARCH in
+   alpha|ia64) LIBC="libc6.1" ;;
+diff --git a/scripts/dapper b/scripts/dapper
+index af83c0c..b1e44d0 100644
+--- a/scripts/dapper
++++ b/scripts/dapper
+@@ -10,6 +10,7 @@ mirror_style release
+ download_style apt
+ finddebs_style from-indices
+ variants - buildd
++force_md5
+ 
+ case $ARCH in
+   alpha|ia64) LIBC="libc6.1" ;;
+diff --git a/scripts/edgy b/scripts/edgy
+index 01d6568..9f0dda4 100644
+--- a/scripts/edgy
++++ b/scripts/edgy
+@@ -10,6 +10,7 @@ mirror_style release
+ download_style apt
+ finddebs_style from-indices
+ variants - buildd fakechroot
++force_md5
+ 
+ if doing_variant fakechroot; then
+     test "$FAKECHROOT" = "true" || error 1 FAKECHROOTREQ "This variant requires fakechroot environment to be started"
+-- 
+2.16.2

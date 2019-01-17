@@ -1,0 +1,103 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Steve Langasek <vorlon@debian.org>
+Date : Sat, 14 Jan 2017 10:15:15 -0800
+Message-id : 20170114181515.krrpaifyaqjikkst@virgil.dodds.net
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 871sw60xdv.fsf@debian.org>
+References : <[🔎] 22649.6909.709941.18707@chiark.greenend.org.uk> <[🔎] 20170113193510.ygehzkrm7trmib2v@perpetual.pseudorandom.co.uk> <[🔎] 87a8au20ad.fsf@debian.org> <[🔎] 1854659a-b021-2382-6f3d-fd9390186e28@debian.org> <[🔎] 871sw60xdv.fsf@debian.org>
+
+
+Hi Ole,
+On Sat, Jan 14, 2017 at 11:05:48AM +0100, Ole Streicher wrote:
+> > One other thing that I can envision (but maybe to early to agree on or
+> > set in stone) is that we lower the NMU criteria for fixing (or
+> > temporarily disabling) autopkgtest in ones reverse dependencies. In
+> > the end, personally I don't think this is up to the "relevant
+> > maintainers" but up to the release team. And I assume that badly
+> > maintained autopkgtest will just be a good reason to kick a package
+> > out of testing.
+> I already brought an example where autopkgtest ist well maintained but
+> keeps failing.
+> And I think that it is the package maintainers who have the experience
+> of whether a CI test failure is critical or not.
+If the failure of the test is not critical, then it should not be used as a
+gate for CI.  Which means you, as the package maintainer who knows that this
+test failure is not critical, should fix your autopkgtest to not fail when
+the non-critical test case fails.
+Quite to the contrary of the claims in this thread that gating on
+autopkgtests will create a bottleneck in the release team for overriding
+test failures, this will have the effect of holding maintainers accountable
+for the state of their autopkgtest results.  CI tests are only useful if you
+have a known good baseline.  If your tests are flaky, or otherwise produce
+failures that you think don't matter, then those test results are not useful
+than anyone but yourself.  Please help us make the autopkgtests useful for
+the whole project.
+And the incentive for maintainers to keep their autopkgtests in place
+instead of removing them altogether is that packages with succeeding
+autopkgtests can have their testing transition time decreased from the
+default.  (The release team agreed to this policy once upon a time, but I'm
+not sure if this is wired up or if that will happen as part of Paul's work?)
+> BTW, in the moment the CI tests are done in unstable -- if you want to
+> kick out a package from *testing*, you need to test the new unstable
+> package against this, which would be some change in the logic of
+> autopkgtest.
+The autopkgtest policy in Ubuntu's britney deployment includes all the logic
+to do this.  Hopefully Paul can make good use of this when integrating into
+Debian.
+> >>> Possible autopkgtest extension: "Restrictions: unreliable"?
+> >> This is not specific enough. Often you have some tests that are
+> >> unreliable, and others that are important. Since one usually takes the
+> >> upstream test suite (which may be huge), one has to look manually first
+> >> to decide about the further processing.
+> > Than maybe change the wording: not-blocking, for-info, too-sensitive,
+> > ignore or ....
+> The problem is that a test suite is not that homogenious, and often one
+> doesn't knows that ahead. For example, the summary of one of my packages
+> (python-astropy) has almost 9000 individual tests. Some of them are
+> critical and influence the behaviour of the whole package, but others
+> are for a small subsystem an/or a very special case. I have no
+> documentation of the importance of each individual test; this I decide
+> on when I see a failure (in cooperation with upstream). But more: these
+> 9000 tests are combined into *one* autopkgtest result. What should I put
+> there?
+The result of the autopkgtest should be whatever you as the maintainer think
+is the appropriate level for gating.  Frankly, I think it's sophistry to
+argue both that you care about seeing the results of the tests, and that you
+don't want a failure of those tests to gate because they only apply to
+"special cases".  We should all strive to continually raise the quality of
+Debian releases, and using automated CI tests is an effective tool for this.
+Bear in mind that this is as much about preventing someone else's package
+from silently breaking yours in the release, as it is about your package
+being blocked in unstable.  This is a bidirectional contract, which works
+precisely if your autopkgtest is constructed to be a meaningful gate.
+Having a clear gate is the only way to meaningfully scale out CI for the
+number of components in Debian and have it actually drive quality of the
+distribution.
+I will say that looking at Ubuntu autopkgtest results for packages you're
+maintainer of, I see quite a few recent autopkgtest failures of packages
+that are reverse-dependencies of python-astropy.  From my POV, that's a good
+thing, and I'm happy that there were autopkgtests there that gated
+python-astropy rather than letting it into the Ubuntu release in a state
+that broke many of its reverse-dependencies (or at least, broke the tests).
+> > If you know your test suite needs investigation, you can have it not
+> > automatically block. But depending on the outcome of the
+> > investigation, you can still file (RC) bugs.
+> But then we are where we are already today: Almost all tests of my
+> packages are "a bit complex", so I would just all mark them as
+> non-blocking. But then I would need to file the bugs myself, and
+> especially then there is no formal sync between the test failure and the
+> bug.
+Why would you mark them non-blocking /before/ you know that the tests are
+flaky enough for this to matter?  Upstream put them in the test suite for a
+reason.  I'd suggest that it's much better to block by default, and if you
+find that a particular test is becoming a problem (for you or for another
+maintainer), you can upload to make that test non-blocking.  But in the
+meantime, deeper testing provides a lot of goodness - *if* we gate on the
+results of that testing.
+-- 
+Steve Langasek                   Give me a lever long enough and a Free OS
+Debian Developer                   to set it on, and I can move the world.
+Ubuntu Developer                                    http://www.debian.org/
+slangasek@ubuntu.com                                     vorlon@debian.org
+signature.asc

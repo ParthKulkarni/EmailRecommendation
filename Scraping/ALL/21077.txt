@@ -1,0 +1,90 @@
+To : debian-devel@lists.debian.org
+Subject : Re: e2fsprogs as Essential: yes?:  Maybe we should be separating l10n files first?
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 1 Jan 2018 23:43:23 +0000
+Message-id : 20180101234219.GA26669@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180101215145.GB2532@thunk.org>
+References : <2ebd4bae-a75c-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506941437.8204.22.camel@debian.org> <3cb53f2e-a760-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506942621.8204.25.camel@debian.org> <20171002113446.kazrk37bizfva7qe@angband.pl> <20171112191845.33rikhh3pay5fyot@thunk.org> <20171113142831.cleko3t7gkf6eeub@alf.mars> <20171113165946.wkwggt4ieeue5cvb@thunk.org> <20171113193508.ool6rpccmwgu2u6w@alf.mars> <[🔎] 20180101215145.GB2532@thunk.org>
+
+
+On Mon, 01 Jan 2018 at 16:51:45 -0500, Theodore Ts'o wrote:
+> This probably doesn't help much, but for people who are doing things
+> by hand, you can skip the dependency on fuse by unpacking the
+> e2fsprogs source packaging, adding the file debian/rules.custom which
+> contains the single line, "SKIP_FUSE2FS=yes", and building by hand.
+Perhaps you could convert this into a pkg.e2fsprogs.nofuse build profile?
+<https://wiki.debian.org/BuildProfileSpec>
+This would look something like the attached (untested!) patches.
+The intention seems to be that build profiles are how this is done
+automatically or near-automatically in future. dbus and glib2.0 are
+examples of packages where I've made use of build profiles to cut off
+non-essential functionality for bootstrapping (they're significantly
+further up the stack than e2fsprogs, but were involved in a cycle in
+the past).
+Having nodoc and noudeb build profiles (assuming the package has
+documentation and udebs) also makes local test-builds a lot faster for
+many packages, which is very convenient when testing functional changes.
+> It currently doesn't automatically fix up the control file
+You can skip binary packages on a per-build-profile basis without having
+to generate debian/control from debian/control.in. After doing that,
+it's often convenient to write build profile checks in debian/rules as
+a check for "are we building package foo?" rather than "are we using
+build profile foo?", like this in dbus:
+	binaries := $(shell dh_listpackages)
+	[...]
+	ifneq ($(filter dbus-udeb,$(binaries)),)
+		# udeb build
+		make -C debian/build-udeb install-exec DESTDIR=$(CURDIR)/debian/tmp-udeb
+	endif
+> (The rules.custom infrastructure in e2fsprogs's debian/rules file was
+> something I had put in a while ago to support building subsets of
+> e2fsprogs for certain specialized use cases at $WORK.  It was also
+> used way back when to support building new versions of e2fsprogs on
+> extremely ancient old-old-old-old-stable.)
+These sound like excellent use-cases for build profiles.
+> Yeah, it's horribly manual, but when you need to bootstrap a newn
+> architecture, it's all manual *anyway*.
+Less so these days - I believe there are tools being developed that can
+automatically break cycles by building cut-down packages (no documentation,
+no FUSE, etc.) and later replacing them with a fully-featured version.
+Regards,
+    smcv
+>From 9be2f6e9e61efa603e970fcd9167320068b9fb6c Mon Sep 17 00:00:00 2001
+From: Simon McVittie <smcv@debian.org>
+Date: Mon, 1 Jan 2018 23:24:03 +0000
+Subject: [PATCH 2/2] [UNTESTED] Add a build profile to skip the udeb
+This is a standard build profile. Not building udebs speeds up test
+builds if only the full-fat version is going to be tested anyway.
+---
+ debian/control | 1 +
+ debian/rules   | 4 ++++
+ 2 files changed, 5 insertions(+)
+diff --git a/debian/control b/debian/control
+index 6ab004f..c55bfa2 100644
+--- a/debian/control
++++ b/debian/control
+@@ -103,6 +103,7 @@ Description: command-line interface parsing library - headers and static librari
+ 
+ 
+ Package: e2fsprogs-udeb
++Build-Profiles: <!noudeb>
+ Package-Type: udeb
+ Section: debian-installer
+ Priority: optional
+diff --git a/debian/rules b/debian/rules
+index a6592dc..3eb65f1 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -35,6 +35,10 @@ ifneq ($(filter pkg.e2fsprogs.nofuse,$(DEB_BUILD_PROFILES)),)
+ SKIP_FUSE2FS=yes
+ endif
+ 
++ifneq ($(filter noudeb,$(DEB_BUILD_PROFILES)),)
++SKIP_UDEB=yes
++endif
++
+ DH_VERSION := $(shell dpkg-query -W -f '$${Version}' debhelper)
+ 
+ # USE_DBGSYM :=
+-- 
+2.15.1

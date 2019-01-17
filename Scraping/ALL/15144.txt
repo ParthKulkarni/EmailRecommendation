@@ -1,0 +1,33 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : Re: Bug#601455: Steps towards a patch to document disabling a daemon upon installation
+From : Russ Allbery <rra@debian.org>
+Date : Mon, 25 Dec 2017 18:27:21 -0800
+Message-id : 87zi66ql4m.fsf@hope.eyrie.org
+In-reply-to : <22966.37496.665485.820932@chiark.greenend.org.uk> (Ian Jackson's	message of "Mon, 11 Sep 2017 14:41:12 +0100")
+References : <87efrfvc5p.fsf@iris.silentflame.com>	<20101026131106.3791.46291.reportbug@i7>	<22966.37496.665485.820932@chiark.greenend.org.uk>
+
+
+Ian Jackson <ijackson@chiark.greenend.org.uk> writes:
+> Sean Whitton writes:
+>> 2. Do we need to include any text saying *why* the /etc/default practice
+>>    is a bad idea?  I couldn't come up with a succinct way to state it.
+>>    In general, I think we can err on the side of not including the text,
+>>    since we have policy bugs that document the reasons.
+> How about this text:
+>   Setting a value in /etc/default/PACKAGE is nowadays troublesome
+>   because supporting that pattern is very hard due to inflexibility in
+>   systemd, which is usually the default init system.
+> This also makes it clear that this pattern is perfectly fine if for
+> any reason the package does not support systemd.
+I don't really agree with this -- I've disliked this approach (and there
+were debian-devel threads against it) from long before systemd was
+written.  The explanation I'd give is that:
+    Setting a flag in /etc/default/PACKAGE hides from the init system
+    whether or not the daemon should actually be started, which leads to
+    inconsistent and confusing behavior: ``service <package> start`` may
+    return success but not start the service, services with a dependency
+    on this service will be started even though the service isn't running,
+    and init system status commands may incorrectly claim that the service
+    was started.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

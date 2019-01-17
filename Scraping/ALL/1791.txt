@@ -1,0 +1,137 @@
+To : Lennart Sorensen <lsorense@csclub.uwaterloo.ca>
+Subject : Re: Do I have to do anything to make sure ext4lazyinit works as being advertised ?
+From : shirish शिरीष <shirishag75@gmail.com>
+Date : Wed, 1 Feb 2017 14:27:39 +0530
+Message-id : CADdDZRk6_TccudrxVqkO=tDKBfNiXit7wnaVYm8vVLaCbFGUtg@mail.gmail.com
+In-reply-to : <CADdDZRkc0F7OcCJfa==z=NAh8b2zeK8_PTZALq1suBo124RD9A@mail.gmail.com>
+References : <CADdDZRmHxC+cjoOZT5Pw78xcwtHuQpLLX6W3ON2xxfLQexuj_A@mail.gmail.com> <20170131195610.GA17365@csclub.uwaterloo.ca> <CADdDZRkc0F7OcCJfa==z=NAh8b2zeK8_PTZALq1suBo124RD9A@mail.gmail.com>
+
+
+Hi all,
+Please see below -
+shirish शिरीष <shirishag75@gmail.com> writes:
+> Dear Dmitry,
+>
+> I saw your patch about regression testing for ext4lazyinit
+>
+> https://patchwork.kernel.org/patch/9285509/ - that is where I got your mail id.
+>
+>
+> I am a bit curious to know as to why the author/ess  chose to
+> keep 16 MB/S as the highest speed ?
+>
+> https://www.thomas-krenn.com/en/wiki/Ext4_Filesystem
+Basically the article's statement is wrong.
+There is no such thing as explicit itable initialization IO bandwidth
+restriction in MB/s. itable initialization rate is controlled by init_itable=N
+see: https://www.kernel.org/doc/Documentation/filesystems/ext4.txt
+"""
+The lazy itable init code will wait n times the
+number of milliseconds it took to zero out the
+previous block group's inode table.  This
+minimizes the impact on the system performance
+while file system's inode table is being initialized.
+"""
+By default init_itable=10, so it use 1/10th bandwidth of the disk.
+And if we back to original article this means author used generic
+HDD with 160Mb/s sequential write performance.
+My patch was fix for bug which was spotted on large disk arrays,
+36 in my case. So itable initialization was active all the time
+while holding global lock.
+>From this, it seems there aren't any limits except for 10% of whatever
+the link between
+On 01/02/2017, shirish शिरीष <shirishag75@gmail.com> wrote:
+> in-line :-
+>
+> On 01/02/2017, Lennart Sorensen <lsorense@csclub.uwaterloo.ca> wrote:
+>> On Wed, Feb 01, 2017 at 12:46:48AM +0530, shirish शिरीष wrote:
+>
+> <snipped>
+>
+>>> Now I have few queries -
+>>>
+>>> a. Are my assumptions wrong ?
+>>
+>> About the doing the init on a future boot, yes you are wrong.
+>
+> Ah...ok.
+>
+> <snipped>
+>
+>>
+>> 2.6.37 apparently.
+>
+> My bad ...
+>
+> <snipped>
+>
+>>
+>> I believe it is on by default.  However, the lazy init takes
+>> place in the background on first mount (so that means during
+>> the install), not some later boot.  It apparently will use
+>> up to 16MB/s for initializing in the background according to
+>> https://www.thomas-krenn.com/en/wiki/Ext4_Filesystem
+>>
+>> I suspect it is already doing the best you are going to get.
+>
+> hmm.... From what little I understand, it always the slowest interface
+> that needs to be supported.
+>
+> And IIUC , in ext4lazyinit's case it is probably some of the MMC cards
+> due to which the 16 MB/S transmission is kept - although some of them
+> are at 104 MB/S as well.
+>
+> https://en.wikipedia.org/wiki/MultiMediaCard#Table
+>
+> Whereas USB are at -
+>
+> https://en.wikipedia.org/wiki/USB_3.1
+>
+> USB 2.0 - 35 MB/S
+>
+> USB 3.0 - 400 MB/S
+>
+> USB 3.1 - Gen 1 - 400 MB/S
+>
+> USB 3.2 - Gen 2 - 1280 MB/S
+>
+> For HDD -
+>
+> https://en.wikipedia.org/wiki/Serial_ATA
+>
+> SATA 1 - starts at 150 MB/S
+>
+> Another query - if instead ext4lazyinit IF -
+>
+> mkfs.ext4 -E lazy_itable_init=0,lazy_journal_init=0 /dev/mapper/fc-root
+>
+> is applied then would it would start formatting and making inodes at a
+> much faster rate - i.e. slowest between the USB Drive and HDD in a
+> typical workstation - which probably would be a jump 3-4 times the
+> speed that ext4lazyinit would employ.
+>
+> WDYT ?
+>
+> If yes, how as a user could I apply/use the above command while using
+> debian-installer ?
+>
+>> --
+>> Len Sorensen
+>>
+>
+>
+> --
+>           Regards,
+>           Shirish Agarwal  शिरीष अग्रवाल
+>   My quotes in this email licensed under CC 3.0
+> http://creativecommons.org/licenses/by-nc/3.0/
+> http://flossexperiences.wordpress.com
+> EB80 462B 08E1 A0DE A73A  2C2F 9F3D C7A4 E1C4 D2D8
+>
+-- 
+          Regards,
+          Shirish Agarwal  शिरीष अग्रवाल
+  My quotes in this email licensed under CC 3.0
+http://creativecommons.org/licenses/by-nc/3.0/
+http://flossexperiences.wordpress.com
+EB80 462B 08E1 A0DE A73A  2C2F 9F3D C7A4 E1C4 D2D8

@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: pro-tip: preinstall debhelper in your sbuild
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 24 Mar 2017 15:25:59 +0100
+Message-id : 20170324142559.n6nfjuqpmf2p2ift@angband.pl
+In-reply-to : <[🔎] 20170324124952.p3w3yyjxxaxbux5a@belkar.wrar.name>
+References : <[🔎] 20170324124631.jetb2q6b6mzq4d54@angband.pl> <[🔎] 20170324124952.p3w3yyjxxaxbux5a@belkar.wrar.name>
+
+
+On Fri, Mar 24, 2017 at 05:49:52PM +0500, Andrey Rahmatullin wrote:
+> On Fri, Mar 24, 2017 at 01:46:31PM +0100, Adam Borowski wrote:
+> > Thought I'd share a trick I'm using: as debhelper's dependencies chain became
+> > really fat, you can gain a drastic speed-up (especially for small packages)
+> > by preinstalling debhelper into your base sbuild/pbuilder/etc image.
+> What if debhelper drops a dep?
+Well, then indeed you'd miss a missing B-D.  That's a concern as sbuild
+doesn't use debfoster anymore; autoremove will still usually catch this.
+On the other hand, debhelper getting slimmer as opposed to fatter is quite a
+rare occurence; you do refresh your chroots from time to time (don't you?);
+and as long as at least some buildds / rebuilds use the whole process the
+regression won't go unnoticed.  It's far more likely to make an existent
+package FTBFS than to affect a new upload.
+select sum(install_time),sum(build_time) from builds where status='successful';
+  13⎖586⎖617 53⎖261⎖306
+Over ¼!
+debootstrap --variant=buildd --include=eatmydata stretch . http://apt.angband.pl:3142/debian
+time chroot . eatmydata apt install --no-install-recommends -y debhelper
+real	1m13.545s
+user	0m30.420s
+sys	0m11.735s
+(for a realistic test, there were two running sbuild instances at the time,
+as usual for this box, both were compiling (pcre2 and llvm-toolchain-3.9))
+select count(*)*73.545 from builds where status='successful';
+  7⎖483⎖350
+That's massive.
+Obviously, the above comparison doesn't apply to running on tmpfs with gobs
+of memory, but you optimize cases that need help the most...
+<troll>
+Or use "goodbye" for debhelper-less speed. :þ
+</troll>
+-- 
+⢀⣴⠾⠻⢶⣦⠀ Meow!
+⣾⠁⢠⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ Collisions shmolisions, let's see them find a collision or second
+⠈⠳⣄⠀⠀⠀⠀ preimage for double rot13!

@@ -1,0 +1,48 @@
+To : Geert Stappers <stappers@stappers.nl>, 899118@bugs.debian.org
+Subject : Bug#899118: known good example request
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Sun, 20 May 2018 13:26:31 -0700
+Message-id : 87wovyrs3s.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 899118@bugs.debian.org
+In-reply-to : <[🔎] 20180520194712.GJ855@gpm.stappers.nl>
+References : <[🔎] 20180519125741.5291-1-xypron.glpk@gmx.de> <[🔎] 20180519125741.5291-1-xypron.glpk@gmx.de> <[🔎] 20180520191538.wcb4tanpxbrsadn3@excalibur.cnev.de> <[🔎] 20180519125741.5291-1-xypron.glpk@gmx.de> <[🔎] 20180520194712.GJ855@gpm.stappers.nl> <[🔎] 20180519125741.5291-1-xypron.glpk@gmx.de>
+
+
+On 2018-05-20, Geert Stappers wrote:
+> On Sun, May 20, 2018 at 09:15:38PM +0200, Karsten Merker wrote:
+>> 
+>> When looking at the defconfigs for several of these systems, I
+>> see e.g. CONFIG_BOOTARGS settings that don't really match what I
+>> would expect for systems using config_distro_bootcmd.h.
+>> Three random examples:
+>> 
+>> - r8a77995_draak_defconfig:
+>>   CONFIG_BOOTARGS="console=ttySC0,115200 rw root=/dev/nfs nfsroot=192.168.0.1:/export/rfs ip=192.168.0.20"
+>> 
+>> - ls1088ardb_sdcard_qspi_defconfig:
+>>   CONFIG_BOOTARGS="console=ttyS0,115200 root=/dev/ram0 earlycon=uart8250,mmio,0x21c0500 ramdisk_size=0x3000000 default_hugepagesz=2m hugepagesz=2m hugepages=256"
+>> 
+>> - hikey_defconfig:
+>>   CONFIG_BOOTARGS="console=ttyAMA0,115200n8 root=/dev/mmcblk0p9 rw"
+>> 
+>
+> Euh, an example of a "known good"   CONFIG_BOOTARGS
+Unfortunately, it's much easier to identify "likely bad" CONFIG_BOOTARGS
+than it is to identify "known good".
+Anything that hard-codes root= is likely to interfere with booting from
+an arbitrary root device, which is one of the things the distro_bootcmd
+specification allows.
+This is part of why I have uneasy feelings about globally enabling large
+batches of boards, instead of selectively enabling individual boards
+that have been tested and known to work with a particular flash-kernel +
+u-boot + kernel configuration.
+If you want to enable arbitrary boards without any testing, it would be
+much simpler to do that programmatically, rather than maintaining all.db
+in flash-kernel; parse all the .dtb files in the installed linux-image-*
+packages, and compare against /proc/device-tree/model ... might not be
+particularily fast... but certainly doable. Could use dpkg triggers or a
+kernel postinst hook or something, and update the database on
+installation of relevent packages.
+live well,
+  vagrant
+signature.asc

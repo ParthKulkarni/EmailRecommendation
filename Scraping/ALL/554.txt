@@ -1,0 +1,124 @@
+To : Debian Bug Tracking System <814980@bugs.debian.org>
+Subject : Bug#814980: apache2 using authnz_ldap: Infinite loop in find_block_of_size of authn_ldap_check_password - hanging processes hang whole server eventually
+From : Rafael David Tinoco <rafael.tinoco@canonical.com>
+Date : Tue, 27 Mar 2018 14:29:46 +0000
+Message-id : 152216098636.8109.14832981273681536318.reportbug@apachecrashbionic.celeiro.br
+Reply-to : Rafael David Tinoco <rafael.tinoco@canonical.com>, 814980@bugs.debian.org
+References : <20160217094310.27994.13293.reportbug@www09.dc1.boerse-go.de>
+
+
+Package: apache2
+Version: 2.4.29-1
+Followup-For: Bug #814980
+User: ubuntu-devel@lists.ubuntu.com
+Usertags: origin-ubuntu bionic ubuntu-patch
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+In Ubuntu, the attached patch was applied to achieve the following:
+  * Avoid crashes, hangs and loops by fixing mod_ldap locking: (LP: #1752683)
+    - added debian/patches/util_ldap_cache_lock_fix.patch
+Please read:
+https://bugs.launchpad.net/ubuntu/+source/apache2/+bug/1752683/comments/1
+For a summary on the issue and the resolution being proposed.
+Thanks for considering the patch.
+Rafael
+- -
+Rafael David Tinoco
+Canonical Sustaining Engineering
+rafael.tinoco@canonical.com
+- -- System Information:
+Debian Release: buster/sid
+  APT prefers bionic
+  APT policy: (500, 'bionic')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.4.0-116-generic (SMP w/8 CPU cores)
+Locale: LANG=C.UTF-8, LC_CTYPE=C.UTF-8 (charmap=UTF-8) (ignored: LC_ALL set to en_US.UTF-8), LANGUAGE=C.UTF-8 (charmap=UTF-8) (ignored: LC_ALL set to en_US.UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+-----BEGIN PGP SIGNATURE-----
+iQIzBAEBCgAdFiEEt3yr/H+0inj8YhPVHwL5sysVtJkFAlq6VVoACgkQHwL5sysV
+tJmNgBAAnfGHnmNZj7/BAvbv7lls7YrAEcgVYNI49ltHkh21n8z4OApY4dumMN1t
+ZmjxlIHdXVgBs8J5fltHf/4TMaTqtw1bSCFAcrnGW2QNtdScVx5QKB8wR0H8j610
+M/FiNwlhfQdN+EZicCCRf+H8A45TYIOs15McH59fWgv3aSlJLVYQdjvGRAdDEON0
+UEN9+DsDD1zC+RevVyYdJ6Q7PuEQCLsDZ5wMiMu7f0fPJ6ne9bGhCORtPUa8JIdS
+C4hEXhmuZ7r4lWCjC4Ibr2koYG9dysfipaF6RUJmRX4asgvVZ7GEgyJgTGcfkZBh
+pKk+s9E+vW/BuegQzAp+i7OYCfmrJDy9Fydx/wWnZN+mzr5INBkYGkxKhcLb5/M0
+agu9AXXdJg/c0xot/AKVmIRG+l20LVu2h2AVvXXc/sNTuNoUZdFFCvySrjZaJz0Z
+6LxBvdmPww3foZhA+YBQ6nBNVw/WYg2dgNoRt4bDUgQbpFW+1Z3KcMbQWzJBiwoi
+25xdjfItXf8I7CdJMDv+qO042JngEpMol8flGS0gBq4ZALUqLTcPkFSskmLBB+MK
+HAp+gZM4bIhQaWyCJbHjuZSVXEx/VhskvF1F/8Orn7IejcLcjdW8GxJHhHECfE58
+prnFx+Jkb1o8wgYu1EHEXOVhyj2bPcHwCOlMaTQsjSKC9i81q98=
+=Uq/D
+-----END PGP SIGNATURE-----
+diff -Nru apache2-2.4.29/debian/control apache2-2.4.29/debian/control
+--- apache2-2.4.29/debian/control	2018-02-06 11:57:05.000000000 +0000
++++ apache2-2.4.29/debian/control	2018-03-02 02:19:31.000000000 +0000
+@@ -1,8 +1,7 @@
+ Source: apache2
+ Section: httpd
+ Priority: optional
+-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+-XSBC-Original-Maintainer: Debian Apache Maintainers <debian-apache@lists.debian.org>
++Maintainer: Debian Apache Maintainers <debian-apache@lists.debian.org>
+ Uploaders: Stefan Fritsch <sf@debian.org>, Arno Töll <arno@debian.org>
+ Build-Depends: debhelper (>= 9.20160709~), lsb-release, dpkg-dev (>= 1.16.1~),
+  libaprutil1-dev (>= 1.5.0), libapr1-dev (>= 1.5.0), libpcre3-dev, zlib1g-dev,
+diff -Nru apache2-2.4.29/debian/patches/series apache2-2.4.29/debian/patches/series
+--- apache2-2.4.29/debian/patches/series	2017-11-10 15:51:46.000000000 +0000
++++ apache2-2.4.29/debian/patches/series	2018-03-02 02:19:13.000000000 +0000
+@@ -15,3 +15,4 @@
+ # Patches added by Ubuntu
+ 086_svn_cross_compiles
+ 
++util_ldap_cache_lock_fix.patch
+diff -Nru apache2-2.4.29/debian/patches/util_ldap_cache_lock_fix.patch apache2-2.4.29/debian/patches/util_ldap_cache_lock_fix.patch
+--- apache2-2.4.29/debian/patches/util_ldap_cache_lock_fix.patch	1970-01-01 00:00:00.000000000 +0000
++++ apache2-2.4.29/debian/patches/util_ldap_cache_lock_fix.patch	2018-03-02 02:19:26.000000000 +0000
+@@ -0,0 +1,47 @@
++Description: [PATCH] Merge r1824811 from trunk:
++
++ 00:00:00 2001 From: Yann Ylavic <ylavic@apache.org> Date: Tue, 20 Feb 2018
++ 13:02:54 +0000 Subject: [PATCH] Merge r1824811 from trunk:
++
++10 years after r567503 , fix this properly.
++
++The lock is created in post_config, so we can't copy it
++around in a merge_server_config() callback.
++
++Submitted by: covener
++Reviewed by: covener, rpluem, jim
++--
++Origin: https://bz.apache.org/bugzilla/show_bug.cgi?id=60296
++Origin: upstream, commit: 39ae6cd642689c20b599727ee1fb95233faabb05
++Bug: https://bz.apache.org/bugzilla/show_bug.cgi?id=58483
++Bug: https://bz.apache.org/bugzilla/show_bug.cgi?id=60296
++Bug-Debian: https://bugs.debian.org/814980
++Bug-Ubuntu: https://bugs.launchpad.net/bugs/1752683
++Reviewed-by: Rafael David Tinoco <rafael.tinoco@canonical.com>
++Last-Update: 2018-03-01
++
++--- apache2-2.4.29.orig/modules/ldap/util_ldap.c
+++++ apache2-2.4.29/modules/ldap/util_ldap.c
++@@ -2858,7 +2858,6 @@ static void *util_ldap_merge_config(apr_
++     st->search_cache_size = base->search_cache_size;
++     st->compare_cache_ttl = base->compare_cache_ttl;
++     st->compare_cache_size = base->compare_cache_size;
++-    st->util_ldap_cache_lock = base->util_ldap_cache_lock;
++ 
++     st->connections = NULL;
++     st->ssl_supported = 0; /* not known until post-config and re-merged */
++@@ -2977,12 +2976,12 @@ static int util_ldap_post_config(apr_poo
++             st_vhost = (util_ldap_state_t *)
++                        ap_get_module_config(s_vhost->module_config,
++                                             &ldap_module);
++-
+++            st_vhost->util_ldap_cache = st->util_ldap_cache;
+++            st_vhost->util_ldap_cache_lock = st->util_ldap_cache_lock;
++ #if APR_HAS_SHARED_MEMORY
++             st_vhost->cache_shm = st->cache_shm;
++             st_vhost->cache_rmm = st->cache_rmm;
++             st_vhost->cache_file = st->cache_file;
++-            st_vhost->util_ldap_cache = st->util_ldap_cache;
++             ap_log_error(APLOG_MARK, APLOG_DEBUG, result, s, APLOGNO(01316)
++                          "LDAP merging Shared Cache conf: shm=0x%pp rmm=0x%pp "
++                          "for VHOST: %s", st->cache_shm, st->cache_rmm,

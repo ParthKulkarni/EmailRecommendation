@@ -1,0 +1,45 @@
+To : Kevin Otte <nivex@nivex.net>, 853990@bugs.debian.org
+Subject : Bug#853990: Add prompt for iSCSI initiator name in installer
+From : Philip Hands <phil@hands.com>
+Date : Fri, 03 Feb 2017 10:00:03 +0100
+Message-id : 87o9yjzm24.fsf@whist.hands.com
+Reply-to : Philip Hands <phil@hands.com>, 853990@bugs.debian.org
+In-reply-to : <[🔎] f9dcf33a-8e7a-e123-ad09-f7b38606d023@nivex.net>
+References : <[🔎] f9dcf33a-8e7a-e123-ad09-f7b38606d023@nivex.net>
+
+
+Kevin Otte <nivex@nivex.net> writes:
+> Package: partman-iscsi
+> Version: 44
+>
+> The installer should prompt for the desired iSCSI initiator name before
+> starting the initiator. Many iSCSI targets require the specification of
+> the IQN as part of their ACLs. It is useful for the administrator to be
+> able to set this.
+>
+> I have included a patch based on Ubuntu's modifications to the package
+> that appears to achieve this.
+To be useful one also needs to change choose_partition/iscsi/do_option to call
+iscsi_start() rather than iscsi-start, otherwise you're defining a
+function that's never called.  Also, one needs to define
+partman-iscsi/initiatorname in the template.  See:
+  https://patches.ubuntu.com/p/partman-iscsi/partman-iscsi_40ubuntu3.patch
+(I was rather hoping I could pull this out of launchpad with
+git-remote-bzr but I seem not to have got the incatations right -- I'll
+give that another try to see if I can cherry-pick the relevant commits
+nicely...)
+BTW Is there a reason not to also pick up the removal of '-o update'
+From the Ubuntu patch while we're about it?  We seem to have as recent
+open-iscsi as ubuntu, so presumably also don't need that option.
+I'd use a here document (<<"!EOF!" ...) rather than all the echos.
+Also, the -n is superfluos, and is not in line with the [ "$RET" ] usage
+in the rest of the file.
+Does the /etc/iscsi/initiatorname.iscsi actually need to be only
+readable by root?  Seems needlessly restrictive to me, but I don't use
+iscsi.
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

@@ -1,0 +1,90 @@
+To : debian-devel@lists.debian.org
+Subject : Should tasks be considered harmful?
+From : Bjørn Mork <bjorn@mork.no>
+Date : Sun, 03 Dec 2017 23:43:03 +0100
+Message-id : 87fu8r3020.fsf@miraculix.mork.no
+
+
+tl;dr: Desktop tasks have unexpected (from the user point of view) side
+effects due to dependencies. This can be considered harmful since the
+installer task selection can easily can trick a user into installing a
+"substandard" system.
+Yesterday I did something I rarely do: I installed Debian from scratch
+on a laptop.  This is not something I do a lot, simply because there is
+no reason with the excellent upgrade support Debian has. Even when I
+occasionally change hardware, I usually migrate as much configuration as
+possible - including the list of installed packages.
+I must admit that I had very high expectations based on my previous
+experience with Debian. I expected a smooth install ending up with a
+system where everything just worked.  And it was close. But not quite.
+And the failure was so unnecessary, and potentionally so difficult to
+figure out for new users, that I think it is worth considering as a much
+larger problem than a simple installation bug.
+This old laptop had a built-in 3G modem (an Ericsson F3507g - not that
+it matters), which I "knew" would work fine in Debian. Aleksander, Dan
+and all the contributors have done a very nice job with ModemManager.
+But the modem did not work. Because ModemManager wasn't installed at
+all!  How did that happen?
+I had briefly looked at desktop task choices during installation, and
+not being too fond of any of the DEs, I arbitrarily selected LXDE.
+Figured it couldn't hurt having a lightweight DE on an almost 10 year
+old laptop.  What I missed completely was that the lxde package, which
+obviously is a dependency of task-lxde-desktop, has this in its
+recommends:
+ wicd | network-manager-gnome
+So it drags in wicd instead of network-manager-gnome.  Which I can
+perfectly understand from a lightweight point of view.  But the problem
+is that these two packages don't support the same features, and
+'lightweight' isn't a good selection criteria during installation. In a
+perfect world, the installer could have had sufficient information about
+the hardware and the users wishes to make this choice. But it has
+not. So it should install the options which are most likely to work for
+all users.  Which is clearly network-manager in this case.  Replacing
+wicd with network-manager-gnome, which drags in network-manager and
+modemmanger, fixed my modem issue.
+But how would a user without any previous knowledge of modemmanager or
+Linux networking be able to figure this out? As a new user, would you
+even dare to rip out the core network tool which was installed by
+default, to replace it with something else?  I don't think so.  Many
+users would be stuck with a non-working 3G modem and not being able to
+fix it.  Which I find terribly sad, knowing the hard work put into
+making ModemManager work as well as it does.
+Now, of anyone is still reading, you are probably wondering why I didn't
+just open a bug instead of writing this long story here. Well, AFAICS
+there is no bug.
+There is nothing wrong with the installer.  It just did what I asked it
+to, since I selected this specific task.  I don't think it is reasonable
+to expect the installer to do any dependency validation or overrides.
+That would be crazy.  T
+There is also nothing wrong with the task-lxde-desktop.  It depends of
+lxde, which it obviously must do.
+I don't think there is anything wrong with lxde either.  Recommending
+wicd is fine with me.  It's just not suitable for everyone, and
+therefore unsuitable as an installation default.  But that should not be
+a concern for lxde.
+And there is certainly nothing wrong with wicd.  It serves its purpose,
+and does it well. A limited feature set is a perfectly valid design
+choice.
+So the installation end result is bad, but every package and subsystem
+does exactly what they are supposed to do. It is the overall system
+design that fails.  Which is why I think this is more of a policy
+question than a bug.  Thinking on how I went wrong, I have come to the
+conclusion that I would have been much better off if there were no
+desktop task choice at all.  If I just got Gnome or whatever would be
+the default.  Then I would also get the one and only "default set of
+Debian packages", without any unexpected replacements.  I would of
+course still be free to change the default desktop selection after
+installation, as well as anything else.  But then I would have had a
+much better opportunity to see the consequences, if dependencies caused
+important system packages to be replaced.
+IMHO the task selection during installation is harmful. Unpredictable
+(from user point of view) results cannot be avoided, since any
+additional package selected during installation will modify the resolved
+set of dependencies.
+I believe there was a similar problem related to automatic package
+selection based on detected network environment during install.  This
+has been resolved.  But the underlying issue is still there: If you
+allow the installer to select or deselect *any* package during
+installation, then it is very hard to predict how their dependencies
+will modify the installation.
+Bjørn

@@ -1,0 +1,40 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Should libpam-elogind Provide libpam-systemd ?
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 5 Nov 2018 09:51:33 +0000
+Message-id : 20181105095133.GA10861@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 8ba7a234-1d05-55cb-27a7-105e86b3c309@debian.org>
+References : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk> <[🔎] 20181102190210.GA3346@localhost> <[🔎] 20181102222258.GA3226@espresso.pseudorandom.co.uk> <[🔎] 20181102230850.uc3idwp4gy4o2gei@angband.pl> <[🔎] 20181103111130.GA6804@espresso.pseudorandom.co.uk> <[🔎] 8ba7a234-1d05-55cb-27a7-105e86b3c309@debian.org>
+
+
+On Mon, 05 Nov 2018 at 08:44:45 +0100, Philipp Kern wrote:
+> Do you know if any idea was
+> already floated somewhere on how to make this work? I.e. have multiple
+> systemd user instances per user?
+This is specifically not supported. `systemd --user` always has the
+same semantics as the $XDG_RUNTIME_DIR that it uses: it is one per uid
+per machine. If you need multiple instances of foo per uid, then foo
+must either not be a systemd user service, or be an instanced user
+service (e.g. you could have a foo@.service with instances like
+foo@0.service for X11 display :0, if that's how foo is meant to work).
+The D-Bus session bus can be configured to be either one per uid per
+machine, i.e. one per `systemd --user` (install dbus-user-session)
+or one per X11 display (don't install dbus-user-session, do install
+dbus-x11), depending on what you think "session" should mean. This is
+why the dbus-user-session package is separate from dbus: it gives you
+an opt-in or opt-out for the one-per-uid semantics. In some non-Debian
+distros, you don't get that choice: for example, in Arch Linux and Fedora,
+there is a single dbus package that contains the equivalent of both our
+dbus and our dbus-user-session.
+> In our case a remote desktop is spawned in parallel to the regular one,
+> in the background. That makes for all sort of weird behavior
+Yes, it will tend to. Many applications and services don't really cope
+gracefully with multiple instances sharing a home directory. D-Bus does,
+but many of the applications and services that communicate via D-Bus
+don't (in particular, dconf has last-write-wins semantics that can lose
+writes, and other configuration storage mechanisms will usually have
+similar behaviour).
+If you want a separate foo for the GUI and the remote desktop, then foo
+cannot be run as a (non-instanced) systemd user service. If you want to
+share foo between the two, then it can (and probably should).
+    smcv

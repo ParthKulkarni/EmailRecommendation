@@ -1,0 +1,63 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#880993: enable http2 protocol when http2 module is enabled
+From : Antoine Beaupre <anarcat@debian.org>
+Date : Mon, 06 Nov 2017 13:50:50 -0500
+Message-id : 150999425017.25407.8375094487190036238.reportbug@curie.anarc.at
+Reply-to : Antoine Beaupre <anarcat@debian.org>, 880993@bugs.debian.org
+
+
+Source: apache2
+Version: 2.4.25-3+deb9u3
+Severity: wishlist
+It's unclear to me why the http2 module in the Apache2 debian package
+doesn't *actually* enable the http2 *protocol*.
+Maybe I don't understand this right, but it seems to me that to enable
+http2 in apache/Debian, you  need to do the following:
+    a2enmod http2
+But then also add some configuration blurb like this somewhere:
+    Protocols h2 h2c http/1.1
+The above configuration will enable HTTP/2 over TLS (h2) and HTTP/2
+over TCP (h2c, cleartext) then keep the http/1.1 as a
+backwards-compatibility option.
+Why isn't this part of /etc/apache2/mods-available/http2.conf? It
+seems to me if you want to enable HTTP2 on the server, you'd expect
+this to just turn on as well. I can imagine that people may want to
+enable only on *some* virtual hosts, but then that config can be
+commented out or disabled and added to virtual host as needed. Or it
+can be disabled in the relevant vhosts as well.
+It could also be a good place to have, commented out, sample H2Push
+configurations as well... e.g.
+# # HTTP/2 push configuration
+#
+# H2Push          on
+#
+# # Default Priority Rule
+#
+# H2PushPriority * After 16
+#
+# # More complex ruleset:
+#
+# H2PushPriority  *                       after
+# H2PushPriority  text/css                before
+# H2PushPriority  image/jpeg              after   32
+# H2PushPriority  image/png               after   32
+# H2PushPriority  application/javascript  interleaved
+#
+# # Configure some stylesheet and script to be pushed by the webserver
+#
+# <FilesMatch "\.html$">
+#     Header add Link "</style.css>; rel=preload; as=style"
+#     Header add Link "</script.js>; rel=preload; as=script"
+# </FilesMatch>
+More sample configs are here:
+https://httpd.apache.org/docs/2.4/mod/mod_http2.html#h2pushpriority
+What do you think?
+-- System Information:
+Debian Release: 9.1
+  APT prefers stable
+  APT policy: (500, 'stable'), (1, 'experimental'), (1, 'unstable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-4-amd64 (SMP w/4 CPU cores)
+Locale: LANG=fr_CA.UTF-8, LC_CTYPE=fr_CA.UTF-8 (charmap=UTF-8), LANGUAGE=fr_CA.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /usr/bin/dash
+Init: systemd (via /run/systemd/system)

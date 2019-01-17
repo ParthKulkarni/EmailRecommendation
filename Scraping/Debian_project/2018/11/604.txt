@@ -1,0 +1,74 @@
+To : debian-devel@lists.debian.org, debian-arm@lists.debian.org,	pkg-kde-talk@alioth-lists.debian.net
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Adrian Bunk <bunk@debian.org>
+Date : Thu, 29 Nov 2018 00:15:53 +0200
+Message-id : 20181128221553.GE7424@localhost
+In-reply-to : <[🔎] 20181128140351.GA7571@mitya57.me>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] 2682712.gOydg1LB9R@tonks> <[🔎] 3005918.A3t91XcMaO@tonks> <[🔎] 1804155.CmlG43vXzp@tonks> <[🔎] 20181128070052.GA26398@virgil.dodds.net> <[🔎] 20181128140351.GA7571@mitya57.me>
+
+
+On Wed, Nov 28, 2018 at 05:03:51PM +0300, Dmitry Shachnev wrote:
+> On Tue, Nov 27, 2018 at 11:00:52PM -0800, Steve Langasek wrote:
+> > $ grep-dctrl -n -sSource:Package -FDepends \
+> >         -e 'libqt5(gui|3drenderer|quick|quickparticles|quickwidgets|multimediawidgets)5[[:space:]]*(\(>= 5\.[0-9.]*\))(?|$),' \
+> >         /var/lib/apt/lists/archive.ubuntu.com_ubuntu_dists_xenial_*binary-amd64_Packages | sort -u
+> > maliit-plugins
+> > ovito
+> > pyqt5
+> > qml-box2d
+> > qt3d-opensource-src
+> > qtbase-opensource-src
+> > qtdeclarative-opensource-src
+> > qtubuntu-cameraplugin-fake
+> > stellarium
+> > wallch
+> > $
+> >
+> > Every single other binary package that depends on libqt5gui5 (etc) in Ubuntu
+> > 16.04 has an ORed dependency on libqt5gui5 | libqt5gui5-gles.
+> 
+> Ah, this is interesting.
+> 
+> The amount of packages will probably be larger in the current sid,
+> but it should not be more than 20 packages.
+> 
+> Plus there are packages which are using QT_OPENGL_ES macro for conditional
+> compilation (as I mentioned in my previous mail), but there are also not many
+> of them:
+> 
+> gammaray
+> goldendict
+> gst-plugins-good1.0
+> kamoso
+> krita
+> leocad
+> openclonk
+> phonon-backend-gstreamer
+> qtav
+> qt-gstreamer
+> qtwebkit-opensource-src
+> qtwayland-opensource-src
+> qtcharts-opensource-src
+>...
+There are also packages like qmmq or kdenlive that use 
+Qt5Gui_OPENGL_IMPLEMENTATION for conditional compilation.[1]
+ES/non-ES is in so many places part of the Qt API that I doubt this 
+could be sorted out quickly.
+Qt already supports runtime ES/non-ES in the same library build on 
+Windows [2], something like that might also be doable for Linux if 
+anyone (Linaro? Canonical?) with a real interest in that would work
+on making it happen.
+Some of the listed applications already set Qt::AA_UseOpenGLES or
+Qt::AA_UseDesktopOpenGL for the Windows case, but there would surely
+be additional application side fixes required after someone added
+dynamic OpenGL selection also for Linux to Qt.
+> Dmitry Shachnev
+cu
+Adrian
+[1] https://codesearch.debian.net/search?q=Qt5Gui_OPENGL_IMPLEMENTATION
+[2] http://doc.qt.io/qt-5/windows-requirements.html#dynamically-loading-graphics-drivers
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

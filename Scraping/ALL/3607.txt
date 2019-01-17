@@ -1,0 +1,106 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#868852: debian-installer: hd-media images should have LVM support to find ISO in logical volumes
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Wed, 19 Jul 2017 11:05:07 +0200
+Message-id : 20170719090507.dzawcn2vkl5xfnco@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 868852@bugs.debian.org
+
+
+Source: debian-installer
+Version: 20170615
+Severity: wishlist
+Tags: patch
+User: devel@kali.org
+Usertags: origin-kali kali-patch
+I would like the hd-media images to include the "md-modules" and
+"lvm2-udeb" udebs so that we can find the ISO image on LVM logical volumes
+too.
+The attached patch implements this. Does anybody have an objection or can
+I commit this ?
+The cost on the initrd.gz seems to be about 1.24Mb (the above udebs have
+dependencies): my rebuilt initrd.gz is 17169667 bytes while the current
+one on the daily-build seems to be 15862910 bytes.
+Cheers,
+ Raphaël.
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/
+>From 2b6285718813fc191befc46c2640f1766122c718 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20Hertzog?= <hertzog@debian.org>
+Date: Tue, 18 Jul 2017 17:05:04 +0200
+Subject: [PATCH] Include udebs for LVM support in hd-media images
+Update the hd-media image to include udebs required to detect
+LVM logical volumes too (so that we can find the ISO in logical
+volumes too).
+lvm2-udeb is linux specific so we add the required udebs only in
+the configuration files for linux architectures.
+---
+ build/pkg-lists/hd-media/amd64.cfg | 4 ++++
+ build/pkg-lists/hd-media/armhf.cfg | 4 ++++
+ build/pkg-lists/hd-media/i386.cfg  | 4 ++++
+ debian/changelog                   | 5 +++++
+ 4 files changed, 17 insertions(+)
+diff --git a/build/pkg-lists/hd-media/amd64.cfg b/build/pkg-lists/hd-media/amd64.cfg
+index f020155a6..c33684b96 100644
+--- a/build/pkg-lists/hd-media/amd64.cfg
++++ b/build/pkg-lists/hd-media/amd64.cfg
+@@ -26,6 +26,10 @@ cdrom-core-modules-${kernel:Version}
+ fat-modules-${kernel:Version}
+ ext4-modules-${kernel:Version}
+ 
++# We want to be able to find the iso in a LVM logical volume too
++md-modules-${kernel:Version}
++lvm2-udeb
++
+ # the iso is loop-mounted
+ loop-modules-${kernel:Version}
+ 
+diff --git a/build/pkg-lists/hd-media/armhf.cfg b/build/pkg-lists/hd-media/armhf.cfg
+index 638bea2dd..be08feff6 100644
+--- a/build/pkg-lists/hd-media/armhf.cfg
++++ b/build/pkg-lists/hd-media/armhf.cfg
+@@ -21,6 +21,10 @@ scsi-core-modules-${kernel:Version}
+ scsi-modules-${kernel:Version}
+ virtio-modules-${kernel:Version}
+ 
++# We want to be able to find the iso in a LVM logical volume too
++md-modules-${kernel:Version}
++lvm2-udeb
++
+ loop-modules-${kernel:Version}
+ 
+ input-modules-${kernel:Version} ?
+diff --git a/build/pkg-lists/hd-media/i386.cfg b/build/pkg-lists/hd-media/i386.cfg
+index f020155a6..c33684b96 100644
+--- a/build/pkg-lists/hd-media/i386.cfg
++++ b/build/pkg-lists/hd-media/i386.cfg
+@@ -26,6 +26,10 @@ cdrom-core-modules-${kernel:Version}
+ fat-modules-${kernel:Version}
+ ext4-modules-${kernel:Version}
+ 
++# We want to be able to find the iso in a LVM logical volume too
++md-modules-${kernel:Version}
++lvm2-udeb
++
+ # the iso is loop-mounted
+ loop-modules-${kernel:Version}
+ 
+diff --git a/debian/changelog b/debian/changelog
+index 9f5a86bfe..967ab9684 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -6,6 +6,11 @@ debian-installer (201707XX) UNRELEASED; urgency=medium
+   [ Martin Michlmayr ]
+   * Drop orion5x-qnap image.
+ 
++  [ Raphaël Hertzog ]
++  * Update the hd-media image to include udebs required to detect
++    LVM logical volumes too (so that we can find the ISO in logical
++    volumes too).
++
+  -- Cyril Brulebois <kibi@debian.org>  Thu, 22 Jun 2017 06:48:30 +0200
+ 
+ debian-installer (20170615) unstable; urgency=medium
+-- 
+2.13.3

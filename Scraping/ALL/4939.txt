@@ -1,0 +1,51 @@
+To : 697488@bugs.debian.org
+Subject : Bug#697488: debootstrap: wrong default mirror
+From : Geert Stappers <stappers@stappers.nl>
+Date : Mon, 30 Jan 2017 22:32:18 +0100
+Message-id : 20170130213218.GK3943@gpm.stappers.nl
+Reply-to : Geert Stappers <stappers@stappers.nl>, 697488@bugs.debian.org
+In-reply-to : <[🔎] 20170129204404.GB2786@mraw.org>
+References : <20130106015945.15661.55075.reportbug@OptiPlex960.ruk.cuni.cz> <20130107011818.GC4248@mraw.org> <[🔎] 20170129182238.GA22806@einval.com> <[🔎] 20170129204404.GB2786@mraw.org>
+
+
+On Sun, Jan 29, 2017 at 09:44:04PM +0100, Cyril Brulebois wrote:
+> Steve McIntyre <steve@einval.com> (2017-01-29):
+> > 
+> > I'd suggest that now we have an official service at deb.debian.org,
+> > that's probably the best option for a default. Any objections?
+> 
+> As it's DSA-maintained, fine with me. Thanks.
+> 
+deb.debian.org is a DNS entry to CDN servers.
+Long version: wget -qO - http://deb.debian.org | html2text
+****** Welcome to deb.debian.org! ******
+This is deb.debian.org. This service provides mirrors for the following Debian
+archive repositories:
+    * /debian/
+    * /debian-debug/
+    * /debian-ports/
+    * /debian-security/
+The server deb.debian.org does not have packages itself, but the name has SRV
+records in DNS that let apt in stretch and later find places.
+To use it with a sufficiently recent apt, you for instance can put
+deb http://deb.debian.org/debian unstable main
+deb http://deb.debian.org/debian-debug unstable-debug main
+deb http://deb.debian.org/debian-ports unstable main
+in your sources.list.
+As of October 2016 the SRV record is
+_http._tcp.deb.debian.org.	IN	SRV	10 1 80 prod.debian.map.fastly.net.
+_http._tcp.deb.debian.org.	IN	SRV	10 1 80 dpvctowv9b08b.cloudfront.net.
+If you hit the server behind deb.debian.org directly, either because you use an
+older apt or because you use a HTTP proxy that does not support SRV records,
+your requests will get HTTP redirected to one of the CDN instances. If you want
+to avoid the redirects, you can pick one instance directly. For instance, this
+also works in your sources.list:
+deb http://cdn-fastly.deb.debian.org/debian stable main
+deb http://cdn-fastly.deb.debian.org/debian-security stable/updates main
+The redirection service is also available on HTTPS, so with the apt-transport-
+https package installed, you can use:
+deb https://deb.debian.org/debian stable main
+deb https://deb.debian.org/debian-security stable/updates main
+This service is sponsored by Fastly and Amazon_CloudFront.
+===============================================================================
+DSA

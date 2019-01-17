@@ -1,0 +1,38 @@
+To : 894588@bugs.debian.org
+Subject : Bug#894588: "apache2ctl start" leads to severe errors in cgi scripts
+From : Bernd Gonsior <bernd.gonsior@fsfe.org>
+Date : Fri, 25 May 2018 17:12:55 +0200
+Message-id : 66405210.LjVv5OIPqS@pc12
+Reply-to : Bernd Gonsior <bernd.gonsior@fsfe.org>, 894588@bugs.debian.org
+References : <2106282.dT5eTI7sol@pc12>
+
+
+Dear Maintainer,
+even after updating Debian 9.4 today all the errors described at Mon,
+2 Apr 2018 still exist. Even worse, after every update of Debian the
+workaround described there (replace call of "apache2ctl start" with
+"apache2ctl graceful" in /usr/sbin/apache2ctl) is silently
+overwritten. This renders several cgi applications useless unless the
+workaround is manually restored.
+Can i help you somehow? For example, after being instructed, some
+basic gdb usage would be possible. From my point of view i would start
+here:
+$ file /usr/sbin/apache2
+/usr/sbin/apache2: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), 
+dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 
+2.6.32, BuildID[sha1]=7c6921f7a97e8753600832689691e71b0e3dc213, stripped
+$ /usr/sbin/apache2 -h
+Usage: /usr/sbin/apache2 [-D name] [-d directory] [-f file]
+...
+  -X                 : debug mode (only one worker, do not detach)
+$ /usr/sbin/apache2 --help
+[Fri May 25 17:05:58.606662 2018] [core:warn] [pid 2480] AH00111: Config 
+variable ${APACHE_RUN_DIR} is not defined
+apache2: Syntax error on line 80 of /etc/apache2/apache2.conf: 
+DefaultRuntimeDir must be a valid directory, absolute or relative to 
+ServerRoot
+As far as i can judge the difference between calling any binary with
+"-h" or "--help" should never be a strange error message as the one
+above, i would take into account, that this could be the symptom of
+something _really_ evil. Hopefully it's not.
+Regards, Bernd

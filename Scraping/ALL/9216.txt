@@ -1,0 +1,66 @@
+To : Santiago Vila <sanvila@debian.org>, 917491@bugs.debian.org
+Subject : Bug#917491: debian-installer-netboot-images: FTBFS (BAD signature from "Debian Archive Automatic Signing Key (8/jessie) <ftpmaster@debian.org>")
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 28 Dec 2018 19:15:31 +0100
+Message-id : 20181228181531.ghx54bvprvjzvyat@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 917491@bugs.debian.org
+In-reply-to : <[🔎] E1gcfTM-00018z-HM@paradis.debian.org>
+References : <[🔎] E1gcfTM-00018z-HM@paradis.debian.org> <[🔎] E1gcfTM-00018z-HM@paradis.debian.org>
+
+
+Hi Santiago,
+Santiago Vila <sanvila@debian.org> (2018-12-27):
+> Package: src:debian-installer-netboot-images
+> Version: 20170615+deb9u5
+> Severity: serious
+> Tags: ftbfs
+Thanks for the notice.
+> gpgv: Signature made Wed Dec 19 20:22:50 2018 UTC
+> gpgv:                using RSA key A1BD8E9D78F7FE5C3E65D8AF8B48AD6246925553
+> gpgv: Can't check signature: No public key
+> gpgv: Signature made Wed Dec 19 20:22:50 2018 UTC
+> gpgv:                using RSA key 126C0D24BD8A2942CC7DF8AC7638D0442B90D010
+> gpgv: BAD signature from "Debian Archive Automatic Signing Key (8/jessie) <ftpmaster@debian.org>"
+> make[1]: *** [debian/rules:20: get-images-amd64] Error 1
+> make[1]: Leaving directory '/<<BUILDDIR>>/debian-installer-netboot-images-20170615+deb9u5'
+> make: *** [debian/rules:15: binary-indep] Error 2
+> dpkg-buildpackage: error: fakeroot debian/rules binary-indep subprocess returned exit status 2
+> --------------------------------------------------------------------------------
+At first I thought this would be easily solved by moving from tracking
+Debian 9 to tracking Debian 10, but here's what we get after the update:
+    + gpgv --keyring /usr/share/keyrings/debian-archive-keyring.gpg /home/kibi/debian-installer/packages/debian-installer-netboot-images/Release.gpg /home/kibi/debian-installer/packages/debian-installer-netboot-images/Release
+    gpgv: Signature made Sat 10 Nov 2018 10:12:51 UTC
+    gpgv:                using RSA key A1BD8E9D78F7FE5C3E65D8AF8B48AD6246925553
+    gpgv: Can't check signature: No public key
+    gpgv: Signature made Sat 10 Nov 2018 10:12:51 UTC
+    gpgv:                using RSA key 126C0D24BD8A2942CC7DF8AC7638D0442B90D010
+    gpgv: Good signature from "Debian Archive Automatic Signing Key (8/jessie) <ftpmaster@debian.org>"
+    gpgv: Signature made Sat 10 Nov 2018 10:18:21 UTC
+    gpgv:                using RSA key 067E3C456BAE240ACEE88F6FEF0F382A1A7B6500
+    gpgv: Good signature from "Debian Stable Release Key (9/stretch) <debian-release@lists.debian.org>"
+    make[1]: *** [debian/rules:19: get-images-amd64] Error 2
+So gpgv exits with 2 because one of the signature couldn't be checked
+due to a missing public key?
+A1BD8E9D78F7FE5C3E65D8AF8B48AD6246925553 is:
+    Debian Archive Automatic Signing Key (7.0/wheezy) <ftpmaster@debian.or
+    4096 bit RSA key 0x8B48AD6246925553, created: 2012-04-27, expires: 2020-04-25
+which was removed from d-a-k in 2018.1:
+  https://tracker.debian.org/news/998794/accepted-debian-archive-keyring-20181-source-into-unstable/
+Back to reading the actual failure in the log you pasted, it's actually
+a BAD signature, which is a bit worrying. I'll have to get back to that
+later on.
+In the meanwhile, I've pushed this:
+  https://salsa.debian.org/installer-team/debian-installer-netboot-images/commit/c59c0c2335052dce98810ce99775621292e630ec
+  https://salsa.debian.org/installer-team/debian-installer-netboot-images/commit/650baa18dba7f28db72c2f46b5dc82b0526c02e4
+On a side note, there are a few things that needs getting done in d-a-k:
+  https://bugs.debian.org/917535
+  https://bugs.debian.org/917536
+So possibly we're currently lacking a newer key, so ftp-master still
+uses an old (Debian 7) key instead of a newer one, which explains the
+failure to verify the buster builds?
+Cc-ing packages@r.d.o for input.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

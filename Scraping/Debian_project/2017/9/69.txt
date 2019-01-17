@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org, debian-admin@lists.debian.org, 	reproducible-builds@lists.alioth.debian.org, 763822@bugs.debian.org
+Subject : Re: distributing .buildinfo files (Re: Bad interaction between pbuilder/debhelper/dpkg-buildinfo/dpkg-genchanges and dak on security-master)
+From : Paul Wise <pabs@debian.org>
+Date : Sun, 03 Sep 2017 08:46:25 +0800
+Message-id : 1504399585.778.33.camel@debian.org
+In-reply-to : <[🔎] 20170902214841.GA26056@layer-acht.org>
+References : <m2n.s.1dS0ni-153949@chiark.greenend.org.uk>	 <22874.19978.163146.67401@chiark.greenend.org.uk>	 <2a804fb40b6ad1e488da8ced58bb4659@mail.kern.pm>	 <20170703170645.rdeiizuxb4whls2n@mapreri.org>	 <65f77b5c-c7a4-fde7-3caf-b4e27ef79e78@debian.org>	 <[🔎] 20170902214841.GA26056@layer-acht.org>
+
+
+On Sat, 2017-09-02 at 21:48 +0000, Holger Levsen wrote:
+> > So I suppose we talk about 13 GB[1] of static content in about 1.7M
+> > files. Is that something that could be distributed through
+> > static.debian.org if there are concerns around inodes for the main
+> > mirrors? Given that they would be accessed mostly rarely[2]?
+> > 
+> > [1] 7.7kB (75%ile as mentioned in the referenced bug) * 55000 binary
+> > packages * 10 architectures * 3 versions - so quite conservatively
+I had a quick look at the (currently) 4 systems behind static.d.o and
+it looks like they can all take the extra space and inodes. senfter
+only has 48GB space left but we can expand the storage there.
+mirror-csail only has 64M inodes available, but should be fine.
+One concern might be the rsync time for 1.7M inodes, I'm not sure if
+our static setup does sites in parallel.
+There might be other factors here that I'm not aware of, hopefully
+other DSA folks can fill them in.
+Are these files going to only be available for the versions of packages
+that exist in the archive right now, or is it going to be a historical
+archive of all Debian build information forever?
+paralel
+What kind of growth per year are we expecting?
+> using static.debian.org seems to be a good idea to me, what would be needed to make
+> this happen?
+Some patches to files in dsa-puppet to define the service:
+modules/roles/manifests/static_mirror.pp
+modules/roles/misc/static-components.yaml
+modules/roles/templates/static-mirroring/vhost/static-vhosts-simple.erb
+modules/sudo/files/sudoers
+https://anonscm.debian.org/cgit/mirror/dsa-puppet.git/
+> or, we could put them in a git repo instead, and use git.debian.org…
+It strikes me as quite a lot of data for one git repo :)
+-- 
+bye,
+pabs
+https://wiki.debian.org/PaulWise
+signature.asc

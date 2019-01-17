@@ -1,0 +1,57 @@
+To : debian-devel@lists.debian.org
+Subject : Unsustainable debian/rules as official build entry point?
+From : Guillem Jover <guillem@debian.org>
+Date : Wed, 18 Oct 2017 11:36:41 +0200
+Message-id : 20171018093641.tzyv5aku4lmdw2dr@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+
+
+Hi!
+So, dpkg 1.19.0 and 1.19.0.1 had a bug where the build target was not
+being called when building packages.
+Apparently this caused mass build failures, all due to packages (or
+their helpers) being very Debian policy non-compliant! These are all
+MUST requirements. Stuff like:
+  - binary-targets are the only thing required to build a package, and
+    the needed build-targets must be depended on by the binary-targets.
+  - build-targets must not require root privs, but must be able to be
+    run with root privs (via binary-target invocation).
+  - debian/rules must not assume any pre-existing environment variable,
+    as it still needs to be runnable as debian/rules.
+From what I've been told (thanks Niels and Helmut! :), we have lots of
+packages in the archive that FTBFS due to, at least:
+  - debhelper compat levels < 9 not recursing into debian/rules to
+    call the build target.
+  - dh-elpa's test failing when executed as root.
+  - debian/rules assuming DEB_*_MULTIARCH being present w/o defining it.
+The first will just solve itself as people upgrade compat, the second
+does really need fixing (although might get shadowed again with the
+upcoming R³ support), the last is a recurring problem.
+Given the above, and that these are clear regressions, it seems
+obvious to me that we are (collectively) not checking/using debian/rules
+as the official build entry point interface.
+And I've got to question whether we should keep supporting it or just
+declare dpkg-buildpackage to be that entry point.
+Using debian/rules as the official build entry point has the beauty
+that it makes source packages be somewhat self-contained (although
+they will still require dpkg-dev tools internally), has perhaps less
+interface surface than dpkg-buildpackage provides, and does not tie
+it to a specific implementation (dpkg in this case).
+Using dpkg-buildpackage as the official build entry point would allow
+for much debian/rules refactoring and reduction, and optimizations. We
+could predefine multiple environment variables from data sources
+dpkg-buildpackage has already needed to parse, or to get a defined and
+cleaner environment (see recent LC_ALL=C.UTF-8 thread). It could allow
+us to make packaging easier by possbly (and conditionally) reversing the
+current inside-out build nature, where the bulk of the building logic is
+inside debian/rules via some helper, and even perhaps reduce the need
+for a helper, making packaging easier. Etc.
+In the past there's been quite strong opposition to switching the
+official build entry point from debian/rules to dpkg-buildpackage
+(well, even to debian/rules being a Makefile! :). But it seems obvious
+that the current situation is not very sustainable. So if there's
+still opposition, it might make sense for those opposing to at least
+try to attest the conformance of that interface from time to time, and
+file bugs etc.? Thoughts?
+Thanks,
+Guillem

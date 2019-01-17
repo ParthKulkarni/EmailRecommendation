@@ -1,0 +1,39 @@
+To : "Manuel A. Fernandez Montecelo" <manuel.montezelo@gmail.com>
+Subject : Re: e2fsprogs as Essential: yes?:  Maybe we should be separating l10n files first?
+From : Theodore Ts'o <tytso@mit.edu>
+Date : Sun, 7 Jan 2018 15:29:29 -0500
+Message-id : 20180107202929.GA16490@thunk.org
+In-reply-to : <[🔎] 20180106012553.GB22994@reva.itsari.org>
+References : <[🔎] 20180103225932.GC23421@thunk.org> <[🔎] 20180102021037.GG2532@thunk.org> <[🔎] 20180106012553.GB22994@reva.itsari.org>
+
+
+On Sat, Jan 06, 2018 at 02:25:55AM +0100, Manuel A. Fernandez Montecelo wrote:
+> 2018-01-02 03:10 Theodore Ts'o:
+> > My only real concern is whether this might complicate building the
+> > latest version of e2fsprogs for stable and old-stable for
+> > debian-backports.
+> 
+> I think that it's fine, they've been supported for a long time and
+> stable and old-stable should be covered, not sure about old-old-stable
+> without backports.
+It's mostly fine.  The one problem I found was that I tried to add the
+*-dbg packages to the control file such that they would only be built
+if the build profile pkg.e2fsprogs.legacy-dbg was active.
+Unfortunately, when I tried doing a source-only upload of e2fsprogs,
+the DAK software complained that "e2fsprogs-dbg" et.al. were new
+packages that weren't supported with a source-only upload.
+That's apparently because it was parsing the control file, found the
+package declaration, and assumed that build profiles will only
+suppress packages (e.g., such as fuse2fs or documentation pckages).
+It didn't assume that a non-standard build profile such as
+pkg.e2fsprogs.legacy-dbg would *enable* a package, and that under
+normal builds, the *-dbg packages wouldn't be built.  Which is fair
+enough, there's no way DAK could determine that without actually
+building the source-only upload.
+So I had to move the *-dbg package definitions into a
+debian/control.legacy-dbg file, and mutate debian/control in order to
+both support jessie backports, and keep DAK happy.
+Which is sad, but it's a solution which works --- and I understand why
+there really isn't any other way for DAK to handle this case.
+Cheers,
+							- Ted

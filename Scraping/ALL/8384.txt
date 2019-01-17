@@ -1,0 +1,51 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>, 891393@bugs.debian.org
+Subject : Bug#891393: debootstrap: Should warn about distributions that need vsyscall enabled
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Tue, 10 Apr 2018 22:30:58 +0100
+Message-id : 675ccde0aa828576f3ed9e2fabcded705644dc2c.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 891393@bugs.debian.org
+In-reply-to : <[🔎] 20180410105546.833d71a12b57d2babfcb1333@iijmio-mail.jp>
+References : <20180225161401.c6113b97480cc94f1c843c5d@iijmio-mail.jp>  <[🔎] 20180410105546.833d71a12b57d2babfcb1333@iijmio-mail.jp> <20180225161401.c6113b97480cc94f1c843c5d@iijmio-mail.jp>
+
+
+On Tue, 2018-04-10 at 10:55 +0900, Hideki Yamane wrote:
+> Hi,
+> 
+> On Mon, 26 Feb 2018 23:19:43 +0900 Hideki Yamane <henrich@iijmio-mail.jp> wrote:
+> > > debootstrap could perhaps warn about the need to enable vsyscalls for
+> > > old amd64 distributions.  (Annoyingly, there's no easy way to detect
+> > > whether they are currently enabled.)
+> > 
+> >  Just showing some errors about it is fine, IMO.
+> 
+>  And here's a proposed patch. Could you check it, please?
+> 
+> 
+> diff --git a/scripts/debian-common b/scripts/debian-common
+> index 4ab1fe8..830a99e 100644
+> --- a/scripts/debian-common
+> +++ b/scripts/debian-common
+> @@ -59,6 +59,17 @@ first_stage_install () {
+>  }
+>  
+>  second_stage_install () {
+> +       case "$CODENAME" in
+> +               etch|etch-m68k|jessie|jessie-kfreebsd|lenny|squeeze|wheezy|hoary|breezy|dapper|edgy|feisty|gusty|hardy|interpid|jaunty|karmic)
+"gutsy" and "intrepid" are typo'd here.
+> +                       if [ "$ARCH" = amd64 ] && [ "$HOST_ARCH" = amd64 ] && \
+> +                               [ $(uname -r | awk 'BEGIN{FS="."}{printf("%d%03d", $1, $2)}') -gt 4009 ]; then
+I don't think you should include the kernel version check here, because
+this is a configuration change made in Debian that may be made in
+different versions (or not at all) in kernel packages for Debian
+derivatives or custom kernels.
+> +                               warning VIRTUALSYSCALL "You're trying to create an old amd64 release on newer one, and it may cause segfault due to incompatibility.\n   If you'd face such case, you should add 'vsyscall=emulate' to your kernel parametar.\n   For detail, see /usr/share/doc/linux-image-amd64/NEWS.Debian.gz"
+This is slightly strange wording.  And that documentation file might
+not be installed.  Can I suggest the following instead:
+    You're trying to create an old amd64 release, which may segfault
+    on later kernel versions.  You may need to add 'vsyscall=emulate'
+    to the kernel parameters to avoid this.
+Ben.
+-- 
+Ben Hutchings
+All the simple programs have been written, and all the good names taken
+signature.asc

@@ -1,0 +1,52 @@
+To : debian-devel@lists.debian.org
+Subject : Re: concerns about Salsa
+From : Tollef Fog Heen <tfheen@err.no>
+Date : Thu, 07 Jun 2018 18:48:58 +0200
+Message-id : 874liemtj9.fsf@err.no
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 87a7s9jge3.fsf@hope.eyrie.org> (Russ Allbery's message of "Tue,	05 Jun 2018 10:24:20 -0700")
+References : <[🔎] 3155612.nf7Q4P6B6c@deblab>	<[🔎] 23317.10360.626230.429328@chiark.greenend.org.uk>	<[🔎] 20180605123716.hme6yer4uhtpizey@crans.org>	<[🔎] 20180605125532.elbvlqhqgyt33cor@riva.ucam.org>	<[🔎] 87a7s9jge3.fsf@hope.eyrie.org>
+
+
+]] Russ Allbery 
+I agree with the points in your mail, but I wanted to expand slightly on
+where I think Debian stands in the scale you described.
+> I think people's varying reactions on this thread may have a lot to do
+> with where they are in this hierarchy of scale, and what problems they
+> therefore anticipate.  But the Debian Project infrastructure itself seems
+> to me to be firmly in that middle tier where it makes sense to run the
+> core thing out of Git and the supporting scaffolding from packages.  We
+> have a lot of things that we're working on directly and intensely as the
+> core mission of that part of the project, but generally they're deployed
+> on one or two machines and don't need management at scale, canarying, and
+> rollback properties.
+As DSA, I'd love to have Kubernetes or similar in stable so we could
+have deployment using containers and just rebuild those and then service
+owners could have a good way to do both development, testing and
+deployment of their services.  It would also offer a much better way for
+people to help out with services: If you want to help with, say,
+packages.d.o, you can download the git repo and some sample data (or
+database schema + importer), build a container with your changes and
+then test them.
+This is significantly easier than the current way, which is something
+like: install a set of packages (defined in the debian metapackages
+repo), then maybe set up some scaffolding (defined in dsa-puppet), then
+deploy the service (with scripts that make assumptions about the
+environment, host names, etc; if you're unlucky that «script» is only in
+the service owner's .$SHELL_history file), then test that and finally
+provide a patch with just the relevant changes for the feature or bug
+you're trying to implement or fix.
+So while we're not likely to have many deployments of each service,
+lowering the bar for setting up services, defining a very clear boundary
+between the service and its surroundings and making service development
+much easier would be worth it for us.
+> More broadly, one useful way to think about the mission of a Linux
+> distribution is to make all the things our users *don't* care about
+> effortless and simple, so that they can invest all of their energy and
+> attention into the one or two things they *do* care about.  Trying to get
+> them to package those few things that they care about deeply is more
+> dubious and often doesn't add much value for them.
+This is a good point.
+-- 
+Tollef Fog Heen
+UNIX is user friendly, it's just picky about who its friends are

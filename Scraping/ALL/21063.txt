@@ -1,0 +1,59 @@
+To : mqudsi@neosmart.net
+Subject : Bug#886173: general: ls quotes results with special characters in its output
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Tue, 02 Jan 2018 21:26:41 +0000
+Message-id : 1514928401.2714.162.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 886173@bugs.debian.org
+In-reply-to : <[🔎] 01010160b898588f-4fb75c55-2cc1-4ad6-ab94-a7e18e45dcdc-000000@us-west-2.amazonses.com>
+References : <[🔎] 01010160b898588f-4fb75c55-2cc1-4ad6-ab94-a7e18e45dcdc-000000@us-west-2.amazonses.com> <[🔎] 01010160b898588f-4fb75c55-2cc1-4ad6-ab94-a7e18e45dcdc-000000@us-west-2.amazonses.com>
+
+
+Control: reassign -1 coreutils
+On Tue, 2018-01-02 at 20:38 +0000, mqudsi@neosmart.net wrote:
+[...]
+> In particular, `ls` output (both in regular and `-l` modes) wraps in
+> single quotes the names of files that contain special characters (or, at
+> least, a parenthesis), meaning its output is not an accurate reflection
+> of the actual contents of the directory.
+The output of ls on a terminal has never, in general, been an accurate
+reflection of the contents of a directory.  Consider that filenames can
+contain *any* byte value other than '\0' or '/', so including carriage
+return, newline, backspace and escape characters.
+ls also uses multiple columns by default, but without quoting you can't
+generally tell where the columns are, e.g. is:
+aa  ba  ca
+ab  bb  cb
+a list of 6 two-letter filenames, or 2 filenames with spaces in, or
+something else again?
+[...]
+> Additionally, the output cannot be copied-and-pasted as it is. What is
+> the point of injecting quotes if they don't actually escape/quote their
+> content? To illustrate with an example:
+> 
+> ```
+> mqudsi@buster ~> touch \$\(test\)
+> mqudsi@buster ~> ls -l
+> -rw-r--r-- 1 mqudsi mqudsi    0 Jan  2 14:27 '$(test)'
+> ```
+> 
+> That's not shell-safe, but the quotes might lead you to think it were.[...]
+It is shell-safe.  No $-expansion is done within single-quoted text.
+> There's no good way to account for all inputs or to account for the
+> idiosyncrasies of the quoting behavior of all the different shells.
+I think that the behaviour of single-quoting is very consistent across
+shells, in part because it is specified by POSIX.
+[...]
+> Hopefully this behavior can be changed to simply listing the contents of
+> the specified directory as-is.
+Be careful what you wish for.  But I think this will revert the recent
+change:
+    alias ls='ls --literal'
+and this will disable all transformation of filenames (the same as if
+output is not sent to a terminal):
+    alias ls='ls --literal --color=never --show-control-chars -1'
+Ben.
+-- 
+Ben Hutchings
+Lowery's Law:
+        If it jams, force it. If it breaks, it needed replacing anyway.
+signature.asc

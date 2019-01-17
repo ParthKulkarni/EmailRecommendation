@@ -1,0 +1,57 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#868243: jessie-pu: package partman-ext3/84+deb8u1
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 13 Jul 2017 17:40:37 +0200
+Message-id : 20170713154037.5445.56738.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 868243@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+Tags: jessie
+User: release.debian.org@packages.debian.org
+Usertags: pu
+Hi,
+It's high time we fix this issue in jessie: failing to pass the “force”
+flag when using mkfs leads to hangs in d-i. It's been fixed in stretch
+but not backported to jessie yet. Relevant bug reports according to my
+notes: #767682, #778922, #774525, #767682.
+Changelog entry:
+| partman-ext3 (84+deb8u1) jessie; urgency=low
+| 
+|   [ Christian Perrier ]
+|   * Force ext3|ext4 filesystem creation with "-F" so that D-I doesn't
+|     "hang" when re-using an existing partition in some situations.
+|     Closes: #767682
+| 
+|  -- Cyril Brulebois <kibi@debian.org>  Thu, 13 Jul 2017 17:36:02 +0200
+Thanks for considering.
+KiBi.
+diff -Nru partman-ext3-84/commit.d/format_ext3 partman-ext3-84+deb8u1/commit.d/format_ext3
+--- partman-ext3-84/commit.d/format_ext3	2014-07-08 07:09:38.000000000 +0200
++++ partman-ext3-84+deb8u1/commit.d/format_ext3	2017-07-13 17:35:45.000000000 +0200
+@@ -56,7 +56,7 @@
+ 				usage=''
+ 			fi
+ 			if log-output -t partman --pass-stdout \
+-			   mkfs.$filesystem $device $usage >/dev/null; then
++			   mkfs.$filesystem -F $device $usage >/dev/null; then
+ 				sync
+ 				status=OK
+ 			else
+diff -Nru partman-ext3-84/debian/changelog partman-ext3-84+deb8u1/debian/changelog
+--- partman-ext3-84/debian/changelog	2014-11-15 08:07:34.000000000 +0100
++++ partman-ext3-84+deb8u1/debian/changelog	2017-07-13 17:36:07.000000000 +0200
+@@ -1,3 +1,12 @@
++partman-ext3 (84+deb8u1) jessie; urgency=low
++
++  [ Christian Perrier ]
++  * Force ext3|ext4 filesystem creation with "-F" so that D-I doesn't
++    "hang" when re-using an existing partition in some situations.
++    Closes: #767682
++
++ -- Cyril Brulebois <kibi@debian.org>  Thu, 13 Jul 2017 17:36:02 +0200
++
+ partman-ext3 (84) unstable; urgency=low
+ 
+   [ Updated translations ]

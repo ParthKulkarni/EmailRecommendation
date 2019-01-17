@@ -1,0 +1,27 @@
+To : debian-devel@lists.debian.org
+Subject : pro-tip: preinstall debhelper in your sbuild
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 24 Mar 2017 13:46:31 +0100
+Message-id : 20170324124631.jetb2q6b6mzq4d54@angband.pl
+
+
+Hi!
+Thought I'd share a trick I'm using: as debhelper's dependencies chain became
+really fat, you can gain a drastic speed-up (especially for small packages)
+by preinstalling debhelper into your base sbuild/pbuilder/etc image.
+With debian/compat now mandatory, there's no benefit in testing this
+build-dependency manually: lintian will do that for you, with no false
+negatives (false positives for package-uses-debhelper-but-lacks-build-depends
+are harmless: all 3 depend transitively via dh-autoreconf).
+Thus, let's leave installing it over and over to those who build on tmpfs;
+those of us on eMMC or nbd -- or even a regular SSD -- can get this
+speed-up.
+Obviously, you need --no-install-recommends while doing so: things like init
+or xml-core could make you overlook a real missing B-Dep.
+And while we're here, do re-check whether you have eatmydata both installed
+and enabled (command-prefix=eatmydata) in sbuild configuration...
+-- 
+⢀⣴⠾⠻⢶⣦⠀ Meow!
+⣾⠁⢠⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ Collisions shmolisions, let's see them find a collision or second
+⠈⠳⣄⠀⠀⠀⠀ preimage for double rot13!

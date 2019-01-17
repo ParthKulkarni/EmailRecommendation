@@ -1,0 +1,86 @@
+To : jonas@jones.dk
+Subject : Re: Debian built from non-Debian sources
+From : Steve McIntyre <steve@einval.com>
+Date : Mon, 17 Jul 2017 01:00:25 +0100
+Message-id : E1dWtSb-0004eM-BM@mail.einval.com
+In-reply-to : <[🔎] 150023953107.6357.14317255048993881925@auryn.jones.dk>
+References : <[🔎] 150022471012.6357.9386072546587078002@auryn.jones.dk> <[🔎] 20170716172806.tbezsre2zfhyzudl@belkar.wrar.name> <[🔎] 20170716172806.tbezsre2zfhyzudl@belkar.wrar.name> <[🔎] E1dWpvx-00073m-KR@mail.einval.com> <[🔎] E1dWpvx-00073m-KR@mail.einval.com>
+
+
+Jonas wrote:
+>Quoting Steve McIntyre (2017-07-16 22:14:29)
+>> Jonas wrote:
+>> >Quoting Andrey Rahmatullin (2017-07-16 19:28:06)
+>> >> On Sun, Jul 16, 2017 at 07:05:10PM +0200, Jonas Smedegaard wrote:
+>> >> > Is our install images excepmt from our Policy that all dependencies must 
+>> >> > be in Debian, or am I mistaken that we have such Policy?
+>> >> Do we?  The Debian Policy covers only debs.
+>> >> Also, dak isn't in the archive either.
+>> >
+>> >I thought Policy covered what we distribute - which excludes dak but 
+>> >includes libisofs code embedded in installer images.
+>> 
+>> Can you identify any code at all from libisofs which is embedded in
+>> the images? I'm honestly not aware of any.
+>
+>I believe the embedded MBR is part of the libisofs project.
+No, the MBR is generated from the isolinux/syslinux packages. xorriso
+(libisofs) just updates some pointers in there to point at the El
+Torito bootable images, to add a fake partition table, etc.
+>> I've been using upstream versions of xorriso on-and-off over the last 
+>> few years, accepting assistance from the (very helpful!) upstream 
+>> author Thomas Schmitt when trying to debug thorny issues like hybrid 
+>> BIOS/UEFI booting.
+>> 
+>> The exact behaviour that we've worked out in some cases has needed 
+>> upstream tweaks, and we've needed those tweaks from time to time in 
+>> what we've released.
+>
+>No doubt the particular version of libisofs was used for good reasons.
+>
+>My concern is the ability to replicate and derive the least possible 
+>from Debian resources like the install images.
+ACK, understood.
+>Concretely The Debian derivative PureOS is having trouble booting their 
+>homemade live image on some hardware, but boots fine on both Debian 
+>netinst image and Debian live image.  Looking at the properly working 
+>images I noticed that the live image for stable was produced using 
+>newer-than-stable libisofs,
+Sorry, wrong. It was built using the standard xorriso and libisofs
+versions in stretch. From the stretch-based VM used to build it:
+root@STRETCH-debian-live-builder:~# dpkg -s xorriso | grep Version
+Version: 1.4.6-1+b1
+root@STRETCH-debian-live-builder:~# dpkg -s libisofs6 | grep Version
+Version: 1.4.6-1
+If the PureOS folks are having problems, they could ask on the
+debian-cd list?
+>and that the stable netinst image was produced using a
+>never-in-Debian release of libisofs.
+Right, I'll give you that one. But there's *seriously* nothing special
+there any more than what you'd find in any backport to jessie.
+>A related issue is bug#807168.
+>
+>> >Do we have any Policy on installer images?  If e.g. our netinst or 
+>> >live images contain non-DFSG-but-free-to-distribute code would that 
+>> >be only a wishlist bug, not a Policy violation?
+>> 
+>> That would be a serious bug IMHO - please raise any as you find them.
+>
+>Thanks for clarifying the severity of such theoretic bug specifically.
+>
+>It was just an example, however, and my real question was generally what 
+>governs code we distribute outside packages - i.e. our install images, 
+>if Debian Policy covers only packages.
+Go argue with the Policy folks, I guess.
+But a *lot* of the infrastructure we use to run Debian is not exactly
+what's been packaged, as already mentioned. Look at dak. debian-cd,
+live-wrapper et al *are* packaged, but we're not *necessarily* using
+the exact code that's in the stable archive at any point. We're
+typically using code from git on the build machines, to allow for more
+flexibility in terms of changes to build scripts as problems arise. We
+release things to the archive periodically as a convenience to users,
+but serious use often necessitates using git too. This isn't going to
+change any time soon.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"Because heaters aren't purple!" -- Catherine Pitt

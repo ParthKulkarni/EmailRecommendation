@@ -1,0 +1,185 @@
+To : 871835@bugs.debian.org
+Subject : Bug#871835: systemd-setup-machine-id leaving mount behind? (was "Bug#871835: Call for help: review patches for debootstrap")
+From : Antonio Terceiro <terceiro@debian.org>
+Date : Sun, 22 Apr 2018 10:09:42 -0300
+Message-id : 20180422130942.GA2715@debian.org
+Reply-to : Antonio Terceiro <terceiro@debian.org>, 871835@bugs.debian.org
+In-reply-to : <[🔎] 20180421233047.GA16960@debian.org>
+References : <20180406110151.632e00a77a08bbe17783d1d0@iijmio-mail.jp> <22926.34636.587046.22180@kueppers.informatik.uni-Koeln.de> <[🔎] 44c734c9-5124-b99a-e2a3-2054d1062357@nodens.org> <[🔎] 20180417104243.235c9187a8e0f789fc4ba9ab@iijmio-mail.jp> <[🔎] 20180421233047.GA16960@debian.org> <22926.34636.587046.22180@kueppers.informatik.uni-Koeln.de>
+
+
+Dear systemd team: the context here is a patch set for debootstrap that,
+while using a local apt cache, makes debootstrap complete in 2/3 of the
+time, compared to the version currently in unstable.
+see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=871835 for details
+On Sat, 21 Apr 2018 20:30:47 -0300 Antonio Terceiro <terceiro@debian.org> wrote:
+> I have also looked at these patches, and they look good to me, and also
+> work great here. Using a local APT proxy, these patches make debootstrap
+> complete in ~ 2/3 of the time that debootstrap from unstable takes.
+> 
+> The one thing I found is that trying to use debootstrap with these
+> patches with mkosi makes mkosi crash like this:
+> 
+> ‣ Installing Debian complete.
+> ‣ Assigning hostname...
+> ‣ Assigning hostname complete.
+> ‣ Unmounting Package Cache...
+> ‣ Unmounting Package Cache complete.
+> ‣ Resetting machine ID...
+> Traceback (most recent call last):
+>   File "/usr/bin/mkosi", line 2904, in <module>
+>     main()
+>   File "/usr/bin/mkosi", line 2900, in main
+>     build_stuff(args)
+>   File "/usr/bin/mkosi", line 2852, in build_stuff
+>     raw, tar, root_hash = build_image(args, workspace, run_build_script=False)
+>   File "/usr/bin/mkosi", line 2711, in build_image
+>     reset_machine_id(args, workspace.name, run_build_script, for_cache)
+>   File "/usr/bin/mkosi", line 1186, in reset_machine_id
+>     os.unlink(machine_id)
+> OSError: [Errno 16] Device or resource busy: '/home/terceiro/tmp/test-systemd-containers/.mkosi-agbwha1l/root/etc/machine-id'
+> Traceback (most recent call last):
+>   File "/usr/lib/python3.6/weakref.py", line 624, in _exitfunc
+>     f()
+>   File "/usr/lib/python3.6/weakref.py", line 548, in __call__
+>     return info.func(*info.args, **(info.kwargs or {}))
+>   File "/usr/lib/python3.6/tempfile.py", line 936, in _cleanup
+>     _rmtree(name)
+>   File "/usr/lib/python3.6/shutil.py", line 480, in rmtree
+>     _rmtree_safe_fd(fd, path, onerror)
+>   File "/usr/lib/python3.6/shutil.py", line 418, in _rmtree_safe_fd
+>     _rmtree_safe_fd(dirfd, fullname, onerror)
+>   File "/usr/lib/python3.6/shutil.py", line 418, in _rmtree_safe_fd
+>     _rmtree_safe_fd(dirfd, fullname, onerror)
+>   File "/usr/lib/python3.6/shutil.py", line 438, in _rmtree_safe_fd
+>     onerror(os.unlink, fullname, sys.exc_info())
+>   File "/usr/lib/python3.6/shutil.py", line 436, in _rmtree_safe_fd
+>     os.unlink(name, dir_fd=topfd)
+> OSError: [Errno 16] Device or resource busy: 'machine-id'
+>
+> I can't reproduce this with current debootstrap from unstable, but 1)
+> none of these patches seem to do anything related, and 2) the error
+> happens after debootstrap is already done, so I suspect this might be an
+> issue with mkosi that is surfaced by debootstrap running faster, and not
+> an issue with debootstrap itself.
+Investigating further, I tested debootstrap alone, and realized that
+with this patch set applied, after debootstrap finishes, a mount point
+is left over:
+# findmnt | grep machine-id
+├─/root/patched2/etc/machine-id                        /dev/mapper/lemur--vg-root[/root/patched2/run/machine-id] ext4            ro,relatime,errors=remount-ro,data=ordered
+This explains the crash in mkosi and points the problem to something
+that happens during the debootstrap run.
+I compared the output of debootstrap from unstable with the patched
+debootstrap, and they are idential, i.e. packages are installed in the
+same order, but for some reason, when running with the faster
+debootstrap, the above mount is left over.
+Looking around, I suspect that this could be left behind by
+systemd-machine-id-setup, however, I couldn't understand yet why this
+would happen.
+systemd team: could you provide any insight? for reference, I am
+attaching the current diff between debootstrap master branch, and a
+local branch where I have Thomas Lange's patched applied.
+signature.ascdiff --git a/functions b/functions
+index 1e41862..c0f749c 100644
+--- a/functions
++++ b/functions
+@@ -282,7 +282,7 @@ verify_checksum () {
+ 			error 1 SIGCHECK "Cannot check sha${SHA_SIZE}sum"
+ 		fi
+ 	fi
+-	relsize="$(wc -c < "$1")"
++	relsize=`stat -c '%s' "$1"`
+ 	if [ "$expsize" -ne "$relsize" ] || [ "$expchecksum" != "$relchecksum" ]; then
+ 		return 1
+ 	fi
+@@ -1326,9 +1326,8 @@ if in_path perl; then
+ $unique = shift @ARGV; $field = lc(shift @ARGV); $mirror = shift @ARGV;
+ %fields = map { $_, 0 } @ARGV;
+ $prevpkg = "";
++$chksumfield = lc($ENV{DEBOOTSTRAP_CHECKSUM_FIELD}).":";
+ while (<STDIN>) {
+-	chomp;
+-	next if (/^ /);
+ 	if (/^([^:]*:)\s*(.*)$/) {
+ 		$f = lc($1); $v = $2;
+ 		if ($f eq "package:") {
+@@ -1349,7 +1348,7 @@ while (<STDIN>) {
+ 		$ver = $v if ($f eq "version:");
+ 		$arc = $v if ($f eq "architecture:");
+ 		$fil = $v if ($f eq "filename:");
+-		$chk = $v if (lc $f eq lc($ENV{DEBOOTSTRAP_CHECKSUM_FIELD}).":");
++		$chk = $v if ($f eq $chksumfield);
+ 		$siz = $v if ($f eq "size:");
+ 		$val = $v if ($f eq $field);
+ 	} elsif (/^$/) {
+@@ -1391,53 +1390,49 @@ while (read STDIN, $x, 1) {
+ }' "$@"
+ 		elif [ "$1" = "GETDEPS" ]; then
+ 			local pkgdest="$2"; shift; shift
+-			perl -e '
+-$prevpkg = "";
+-@d = ();
++LC_ALL=C grep -P '^$|^Package:|^Depends:|^Pre-Depends:'  $pkgdest | perl -e '
++%seen = map { $_ => 1 } @ARGV;
+ while (<STDIN>) {
+-	chomp;
+ 	if (/^Package: (.*)$/) {
+ 		$pkg = $1;
+-		if ($pkg ne $prevpkg) {
+-			for my $d (@d) {
+-				print "$d\n";
+-			}
+-		}
+-		$prevpkg = $1;
+-		@d = ();
+-	}
+-	$in = 1 if (grep {$_ eq $pkg} @ARGV);
+-	$in = 0 if (/^$/);
++		next;
++	} elsif (/^$/) {
++                $in = 0;
++                next;
++        }
++	$in = 1 if $seen{$pkg};
+ 	if ($in and (/^Depends: (.*)$/ or /^Pre-Depends: (.*)$/)) {
+ 		for $d (split /\s*,\s*/, $1) {
+ 			$d =~ s/\s*[|].*$//;
+ 			$d =~ s/\s*[(].*[)]\s*//;
+ 			$d =~ s/:.*//;
+-			push @d, $d;
++			$depends{$d} = 1;
+ 		}
+ 	}
+ }
+-for my $d (@d) {
+-	print "$d\n";
+-}' <"$pkgdest" "$@" | sort | uniq
++	foreach (sort keys %depends) {
++	  print "$_\n";
++	}
++' "$@"
+ 		elif [ "$1" = "PKGS" ]; then
+ 			local m="$2"
+ 			local p="$3"
+ 			shift; shift; shift
+-			pkgdetails_field 1 Package: "$m" "$@" < "$p"
++			LC_ALL=C grep -P '^$|^Architecture:|^Filename:|^MD5sum:|^Package:|^Priority:|^SHA256:|^Size:|^Version:|^Depends:|^Pre-Depends:' "$p" | pkgdetails_field 1 Package: "$m" "$@"
+ 		elif [ "$1" = "FIELD" ]; then
+ 			local f="$2"
+ 			local m="$3"
+ 			local p="$4"
+ 			shift; shift; shift; shift
+-			pkgdetails_field 0 "$f" "$m" "$@" < "$p"
++			LC_ALL=C grep -P '^$|^Architecture:|^Filename:|^MD5sum:|^Package:|^Priority:|^SHA256:|^Size:|^Version:|^Depends:|^Pre-Depends:' "$p" | pkgdetails_field 0 "$f" "$m" "$@"
+ 		elif [ "$1" = "STANZAS" ]; then
+ 			local pkgdest="$2"; shift; shift
+ 			perl -e '
+ my $accum = "";
++%seen = map { $_ => 1 } @ARGV;
+ while (<STDIN>) {
+ 	$accum .= $_;
+-	$in = 1 if (/^Package: (.*)$/ && grep {$_ eq $1} @ARGV);
++	$in = 1 if (/^Package: (.*)$/ && $seen{$1});
+ 	if ($in and /^$/) {
+ 		print $accum;
+ 		if (substr($accum, -1) != "\n") {

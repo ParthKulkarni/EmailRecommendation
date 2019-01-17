@@ -1,0 +1,56 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: debootstrap: [idea] force review before commit to master
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Mon, 28 May 2018 11:21:29 +0900
+Message-id : 20180528112129.550c1bd47dd8a6ee2e4b6909@iijmio-mail.jp
+In-reply-to : <[🔎] 20180520232955.GA13708@espresso.pseudorandom.co.uk>
+References : <[🔎] 20180516165547.f7681d67fc442f8e40c15b60@iijmio-mail.jp>	<[🔎] f60d3c4a6e21c2e8f96cce9da65b9885@debian.org>	<[🔎] 20180517083615.GI18516@home.ouaza.com>	<[🔎] ca0f1ba3-ef5f-5d6e-126c-81f64f5de7d8@debian.org>	<[🔎] 20180520091900.bd4452af5a430e3aef9084b0@iijmio-mail.jp>	<[🔎] 5a2e086c-d30f-dd91-76e6-e5504e5cfacc@debian.org>	<[🔎] 20180520232955.GA13708@espresso.pseudorandom.co.uk>
+
+
+On Mon, 21 May 2018 00:29:55 +0100
+Simon McVittie <smcv@debian.org> wrote:
+> However, it seems plausible that Docker wouldn't allow the fake schroot
+> or the fake pbuilder to run either - I don't think Docker containers are
+> allowed to exercise CAP_SYS_ADMIN, which is needed when playing with
+> mount points. It might be necessary to skip that part. Unfortunately
+> systemd-detect-virt --container doesn't seem to detect Docker as anything
+> more specific than "container-other", so the test script might have to
+> resort to looking for mentions of docker in /proc/self/mountinfo,
+> or pessimistically assume that "container-other" has all possible
+> container limitations.
+ Then, how about checking /proc/1/mountinfo with " /docker" and "cgroup"
+ like this?
+diff --git a/debian/tests/debian-testing b/debian/tests/debian-testing
+index 9b39896..52d4584 100755
+--- a/debian/tests/debian-testing
++++ b/debian/tests/debian-testing
+@@ -32,6 +32,16 @@ sub capture {
+     return $output;
+ }
+ 
++my $check_non_docker_env;
++if (run([qw(grep "\ \/docker.*cgroup" /proc/1/mountinfo)], '&>', '/dev/null')) {
++    diag("it seems docker environment");
++    $check_non_docker_env = 0;
++}
++else {
++    diag("okay, it's not docker environment");
++    $check_non_docker_env = 1;
++}
++
+ my @maybe_unshare_mount_ns;
+ 
+ if (verbose_run(['unshare', '-m', 'true'])) {
+@@ -255,8 +265,10 @@ if (!verbose_run(['debootstrap',
+     BAIL_OUT("debootstrap failed: $?");
+ }
+ 
+-check_chroot(chroot => 'chroot.d', can_mknod_ptmx => $can_mknod_ptmx,
+-    kernel => $kernel, container => $container);
++if ($check_non_docker_env) {
++    check_chroot(chroot => 'chroot.d', can_mknod_ptmx => $can_mknod_ptmx,
++        kernel => $kernel, container => $container);
++}
+ 
+ if ($^O ne 'linux') {
+     diag("Cannot use systemd-nspawn on non-Linux");

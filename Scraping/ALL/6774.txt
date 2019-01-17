@@ -1,0 +1,30 @@
+To : Gilles MOREL <contact@gilles-morel.fr>
+Subject : Bug#872410: AHCI module not loaded when using preseed
+From : Jörg Schulz <jschulz@sgbs.de>
+Date : Wed, 2 May 2018 18:25:35 +0200
+Message-id : 4a7cb6df-c868-f4c7-ca1b-7a07dca51031@sgbs.de
+Reply-to : Jörg Schulz <jschulz@sgbs.de>, 872410@bugs.debian.org
+References : <2365093.Fpk48EIQC0@victory>
+
+
+Hello Gilles,
+with this HACK you don't have to modify your kernel, initrd or 
+udeb-repository. Simply add this line to your preseed file:
+d-i preseed/early_command string sed -i '/depmod -a > .dev.null 2>&1 || 
+true/a modprobe ahci || true' /bin/hw-detect
+It tries to modify /bin/hw-detect to unconditionally try to load the 
+ahci module after the "depmod -a"-command at the beginning of the 
+script. hw-detect is called (at least) 2 times before partitioning.
+obviously not available and modprobe will fail) and a second time form 
+disk-detect. Now the sata-modules-udeb should have been installed 
+already and the ahci-module is ready to install - after "depmop -a" of 
+course.
+To further investigate this it would be nice if you could confirm my 
+guess of a timing problem. For this you could add this line to your 
+preseed file (instead of the above of course):
+d-i preseed/early_command string sed -i '/^update-dev >.dev.null$/i 
+sleep 10' /bin/hw-detect
+d-i preseed/early_command string sed -i '/^update-dev >.dev.null$/i 
+udevadm control --reload' /bin/hw-detect
+Hope this helps.
+Jörg

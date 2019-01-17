@@ -1,0 +1,123 @@
+To : Stefan Fritsch <sf@debian.org>
+Subject : Bug#858373: help needed to complete regression fix for apache2 Bug#858373
+From : Antoine Beaupré <anarcat@orangeseeds.org>
+Date : Fri, 21 Jul 2017 09:44:38 -0400
+Message-id : 87r2x9rjjt.fsf@curie.anarc.at
+Reply-to : Antoine Beaupré <anarcat@orangeseeds.org>, 858373@bugs.debian.org
+In-reply-to : <[🔎] 3009983.iA4e6ce5NB@k>
+References : <20170411023810.GC13258@sin.redhat.com> <[🔎] 20170719181601.x24orqjghe7gzvn5@curie.anarc.at> <[🔎] 20170719194520.uahfl74guvh4ixka@curie.anarc.at> <[🔎] 3009983.iA4e6ce5NB@k>
+
+
+TL;DR: New proposed package (deb7u11) doesn't actually show a new
+regression, please test:
+https://people.debian.org/~anarcat/debian/wheezy-lts/apache2_2.2.22-13+deb7u11_amd64.changes
+In particular, Brian Kroth: are you *sure* you had that ErrorDocument
+400 working in apache2_2.2.22-13+deb7u7 (ie. before the DLA-841-1
+upload)? In my tests, it didn't actually work at all. It wouldn't
+trigger a segfault, but the CGI script wouldn't get called either. In
+the above package, we don't segfault anymore, but we yield a 400 + 500
+error message (because the ErrorDocument fails). The solution, here, is
+obviously to update to a later Apache version (e.g. update to jessie,
+really) to get that functionality working, from my perspective.
+More technical details follow.
+On 2017-07-21 09:24:00, Stefan Fritsch wrote:
+> Hi Antoine,
+>
+> On Wednesday, 19 July 2017 15:45:20 CEST Antoine Beaupre wrote:
+>> As I mentioned in the #858373 bug report, I started looking at fixing
+>> the regression introduced by the 2.2.22-13+deb7u8 upload, part of
+>> DLA-841-1. The problem occurs when a CGI(d) ErrorDocument is configured
+>> to handle 400 error messages that can be triggered with a simple "GET /
+>> HTTP/1.0\n\n". Such a request segfaults Apache in Wheezy right now.
+>
+>> Unfortunately, re-introducing the protocol initialization code isn't
+>> sufficient: it does fix the segfaults, but the ErrorDocument handling is
+>> not quite working yet. Instead of seeing the output of the
+>> ErrorDocument, after 10 seconds, I get the raw 400 message, doubled with
+>> a 500 error document warning:
+>
+>> Note that I have also tried to see if sending "\r\n" instead of just
+>> "\n" in my "hello world" example would work around the issue: it
+>> doesn't, unfortunately.
+>> 
+>> I am at a loss as where to go from here, to be honest. The patch
+>> (attached) at least fixes the segfault, which resolves the primary issue
+>> at hand here (DoS by crashing processes!) but it would be nice to
+>> actually fix the ErrorDocument as well..
+>
+> This sounds familiar. Maybe it's simply broken in 2.2.22. Can you compare with 
+> 2.2.22-13+deb7u7 if that bug has been there already?
+Well, the problem is - how do I reproduce this? I can't generate the
+same 400 error message in deb7u7 (I tried!) with the previous techniques
+because the new request handling code isn't there. That is, the
+following query just works:
+# printf "GET / HTTP/1.0\n\n" | nc localhost 80 | head -1
+HTTP/1.1 200 OK
+Furthermore, generating a 400 error, when it works in deb7u7, doesn't
+trigger the ErrorDocument - not sure why:
+# printf "G ET / HTTP/1.0\r\n\r\n" | nc localhost 80
+HTTP/1.1 400 Bad Request
+Date: Fri, 21 Jul 2017 13:40:48 GMT
+Server: Apache/2.2.22 (Debian)
+Vary: Accept-Encoding
+Content-Length: 302
+Connection: close
+Content-Type: text/html; charset=iso-8859-1
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>400 Bad Request</title>
+</head><body>
+<h1>Bad Request</h1>
+<p>Your browser sent a request that this server could not understand.<br />
+</p>
+<hr>
+<address>Apache/2.2.22 (Debian) Server at wheezy.raw Port 80</address>
+</body></html>
+Logs show the following:
+[Fri Jul 21 13:40:48 2017] [error] [client 127.0.0.1] Invalid URI in request G ET / HTTP/1.0
+... whether or not the 400 ErrorDocument directive is present. Notice
+how the ErrorDocument isn't triggered at all here.
+Of course, a 404 ErrorDocument still works correctly:
+# printf "GET /wtf HTTP/1.0\r\n\r\n" | nc localhost 80
+HTTP/1.1 404 Not Found
+Date: Fri, 21 Jul 2017 13:23:46 GMT
+Server: Apache/2.2.22 (Debian)
+Vary: Accept-Encoding
+Connection: close
+Content-Type: text/plain
+Hello, World.
+I get this behavior consistently with deb7u7 and the proposed deb7u11
+(which only adds a 500 error document to *certain* 400 errors,
+basically). I find that is an acceptable compromise to fix a segfault,
+and, from my perspective, doesn't introduce a regression.
+> In 2.2.30, there is this fix, which is obviously missing from 2.2.22:
+>
+>   *) core, modules: Avoid error response/document handling by the core if some
+>      handler or input filter already did it while reading the request (causing
+>      a double response body).  [Yann Ylavic]
+>
+> I could not find a changelog entry about the 10s delay, but it's possible that 
+> that has been fixed as well. If the issue is not a regression, you should 
+> simply release the patch that you have. The fix for the error document seems 
+> rather invasive:
+>
+> https://svn.apache.org/r1683808
+But that's another big patch to backport:
+ 20 files changed, 196 insertions(+), 129 deletions(-)
+Not sure we want to pile yet another backport on top of the pile we
+already have. Now I really regret not updating to 2.2.34. :(
+Since this issue doesn't seem to be a regression (the ErrorDocument
+didn't seem to get called at all, previously), I think I'll just post a
+test package with the regression fix and be done with it for now.
+I'm more confident in the upload now, and hopefully it won't break too
+many things now. At least we don't segfault. ;)
+I'll be available to upload the test package tomorrow or by the end of
+next week, if there are no regressions. I'd be glad if someone else
+could do some more smoke tests here, in particular the original
+submitter who has such a great test environment. :)
+Thanks for the feedback, Stefan!
+A.
+-- 
+Dans vos mensonges de pierre
+Vous gaspillez le soleil
+                        - Gilles Vigneault

@@ -1,0 +1,40 @@
+To : Daniele Nicolodi <daniele@grinta.net>
+Subject : Re: Systemd user instance equivalent of dh_systemd_enable?
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 8 Apr 2018 23:20:05 +0100
+Message-id : 20180408222005.GA14255@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] ea9bdec5-b3f9-c9f9-9a9d-e466650cd229@grinta.net>
+References : <[🔎] 11a6698c-4947-e4be-03b9-27abfae00110@grinta.net> <[🔎] 20180408112802.GA27186@espresso.pseudorandom.co.uk> <[🔎] ea9bdec5-b3f9-c9f9-9a9d-e466650cd229@grinta.net>
+
+
+On Sun, 08 Apr 2018 at 08:26:13 -0600, Daniele Nicolodi wrote:
+> the package is dbus-broker, a replacement for dbus-deamon. You may have
+> heard of it: there has been a short exchange about its packaging for
+> Debian with its developers with the Debian dbus maintainers in Cc.
+Sorry, I didn't see that conversation until now. Please use the role address
+<package name>@packages.debian.org if you want to reach package maintainers:
+mailing lists used to represent team maintenance often don't have
+the entire team subscribed, particularly if the team maintains many
+not-entirely-related packages (as pkg-utopia does), because the list
+receives all the "messages to the maintainer" for every package that it
+maintains, making it inconveniently high-traffic.
+If dbus-broker is uploaded to Debian as an optional dbus-daemon
+replacement, it will definitely need to be coordinated with the dbus
+source package. Having the two packages coexist is probably not going to
+be straightforward to set up, and if any diversions, alternatives etc.
+are going on, all maintainers of the dbus package will need to be aware
+of them.
+I do not expect that dbus-broker will be compatible with every D-Bus
+service in Debian. The one incompatibility that I'm reasonably sure exists
+is that if the Exec= for an activatable service points to a command that
+will fork (background itself) and exit 0, dbus-daemon tolerates this
+(at the cost of worse error behaviour because it cannot tell whether
+the service subsequently fails), while dbus-broker almost certainly does
+not. This is inadvisable behaviour even with the reference dbus-daemon,
+so I'd consider it to be a bug in the service, but unfortunately it can't
+be detected statically.
+It's unfortunate that current Debian infrastructure conflates the
+concepts of "should receive every communication about all of these
+packages" and "is a team": hopefully current/near-future work being done
+on tracker.debian.org will address that.
+    smcv

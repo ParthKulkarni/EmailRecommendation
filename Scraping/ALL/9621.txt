@@ -1,0 +1,47 @@
+To : deity@lists.debian.org, debian-devel@lists.debian.org
+Subject : Call for testing: APT 1.5~alpha1/experimental
+From : Julian Andres Klode <jak@debian.org>
+Date : Thu, 29 Jun 2017 09:38:31 +0200
+Message-id : 20170629093009.GA21698@debian.org
+Mail-followup-to : deity@lists.debian.org, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170627194055.GA8639@debian.org>
+References : <[🔎] 20170627194055.GA8639@debian.org>
+
+
+APT 1.5~alpha1 landed in experimental today(ish). It includes three
+big changes (one of which, the new https support, is opt-in).
+  [ Changes to unauthenticated repositories ]
+  The security exception for apt-get to only raise warnings if it encounters
+  unauthenticated repositories in the "update" command is gone now, so that it
+  will raise errors just like apt and all other apt-based front-ends do since
+  at least apt version 1.3.
+  It is possible (but STRONGLY ADVISED AGAINST) to revert to the previous
+  behaviour of apt-get by setting the option
+    Binary::apt-get::Acquire::AllowInsecureRepositories "true";
+  See apt-secure(8) manpage for configuration details.
+  [ Experimental https support in http ]
+  The http method will eventually replace the curl-based https method, but for
+  now, this is an opt-in experiment that can be enabled by setting
+  Dir::Bin::Methods::https to "http". Known issues:
+    - We do not support HTTPS proxies yet
+    - We do not support proxying HTTPS connections yet (CONNECT)
+    - IssuerCert and SslForceVersion are unsupported
+  TLS code paths can be disabled by setting Acquire::AllowTLS to "false".
+  [ Release Info Changes ]
+  If values like Origin, Label, and Codename change in a Release file,
+  update fails, or asks a user (if interactive). Various
+  --allow-releaseinfo-change are provided for non-interactive use.
+Please consider testing it. I'm especially interested in people
+using client certificates or anything fancy with HTTPS that is not
+listed in the known issues list.
+It would be great if people knowledgeable
+about https and TLS in general also had a look at how GnuTLS is used:
+https://anonscm.debian.org/cgit/apt/apt.git/commit/?id=2851ec6cf037d552118b885be0dd7796d74730c6
+(I accidentally squashed a move of the SOCKS code in there, but
+ it should still be readable)
+Thanks!
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

@@ -1,0 +1,63 @@
+To : debian-devel@lists.debian.org
+Subject : dlopen()ing shared libraries considered harmful (was Re: Depends/Recommends from libraries)
+From : Guillem Jover <guillem@debian.org>
+Date : Sun, 26 Mar 2017 05:44:20 +0200
+Message-id : 20170326034420.okdimd2hgqfewwii@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170310101658.yiq6e2l4x6zmlbzv@perpetual.pseudorandom.co.uk>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org> <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk> <[🔎] 87d1dqfh41.fsf@hope.eyrie.org> <[🔎] 20170309225205.trfsko4cxx26stht@basil.wdw> <[🔎] 20170310101658.yiq6e2l4x6zmlbzv@perpetual.pseudorandom.co.uk>
+
+
+Hi!
+On Fri, 2017-03-10 at 10:16:58 +0000, Simon McVittie wrote:
+> I do not agree that dlopen()ing dependencies (what you have called "dynamic
+> loading") is something we should encourage over normal linking with -lfoo
+> (resulting in a DT_NEEDED entry, what you have called "static loading").
+Thanks for this write-up! I've had pending in my queue something like
+this for a long time, but never found the time. It's still one of my
+long-term personal crusades [C]. :)
+As I've also noted in the past [B], I'd go even further and say that
+we need at least to very strongly discourage, but ideally outright ban
+the dlopen()ing of shared libraries that are not part of the same
+source package or at least under the control of the same upstream
+project, or are shared libraries that define themselves to the ABI
+and SONAME level (but those are very few and rare).
+ [C] <https://bugs.debian.org/465195>
+ [B] <https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=612842#49>
+     <https://lists.debian.org/debian-devel/2013/05/msg01033.html>
+> dlopen()ing dependencies in the way that is most commonly implemented,
+> with dlopen("libimobiledevice.so.6") and dlsym(handle, "idevice_new")
+> or similar, has some practical problems for Debian:
+> 
+> * The libraries used aren't visible to dpkg-shlibdeps. The maintainer has
+>   to know what dlopen() calls the code will make, and either hard-code an
+>   appropriate Depends (or in this case Recommends), or link a dummy
+>   executable against the same things that are dlopen()ed (as is done
+>   in packages like wine and openal-soft) and use that for dpkg-shlibdeps.
+>   Either way, they have to remember to update it for every new upstream
+>   release. This is the sort of tedious-but-subtle work that we automate
+>   because otherwise it will inevitably be incorrect after a few releases.
+> 
+> * The exact symbols used aren't visible to dpkg-shlibdeps. The maintainer
+>   has to hard-code a version number that has all the required symbols.
+>   Again, this is the sort of thing that we automate because it will
+>   inevitably go wrong if done manually.
+And:
+ * Because the shared library SONAME is hard-coded in both code and
+   packaging metadata, whenever there's a transition with a SOVERSION
+   bump that could have been handled with a simple mass binNMU, instead
+   it requires manual intervention to patch those, while making sure it
+   still works due to the points above.
+> The pedantically correct way to have weak library dependencies is this
+> multi-level chain of linking, analogous to what is documented for APIs
+> that wrap dlopen() such as libltdl and GLib's GModule:
+> 
+>     - eventual API user, e.g. /usr/bin/gnome-software
+>       dlopen()s:
+>         - a plugin intended to be dlopen()ed, e.g. libgs_plugin_flatpak-user.so
+>           has DT_NEEDED on:
+>             - libflatpak0
+I don't think this is pedantical at all, it's IMO the only sane and
+correct way to handle this.
+Thanks,
+Guillem

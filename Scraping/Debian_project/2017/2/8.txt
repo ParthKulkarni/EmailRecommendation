@@ -1,0 +1,39 @@
+To : debian-devel@lists.debian.org
+Subject : Re: lintian: shlib-read-write-env
+From : Mathieu Malaterre <malat@debian.org>
+Date : Wed, 1 Feb 2017 08:46:37 +0100
+Message-id : CA+7wUsymRiLfBccxTcjc170w3C5BPQMFFfoH4_w=pM1LeH-EfA@mail.gmail.com
+In-reply-to : <40588b05-b40f-1913-8b64-eaa3a4c9155d@iwakd.de>
+References : <CA+7wUsynDa8BAKsY-5g5cDqDHKujUZ0JhKBtsZRTPVvr4T6mgw@mail.gmail.com> <b942385e-47e5-5fc5-4372-a7edf478571a@iwakd.de> <1485877780.2900.21.camel@decadent.org.uk> <40588b05-b40f-1913-8b64-eaa3a4c9155d@iwakd.de>
+
+
+On Tue, Jan 31, 2017 at 4:56 PM, Christian Seiler <christian@iwakd.de> wrote:
+> On 01/31/2017 04:49 PM, Ben Hutchings wrote:
+>> On Tue, 2017-01-31 at 14:23 +0100, Christian Seiler wrote:
+>>> On 01/31/2017 11:15 AM, Mathieu Malaterre wrote:
+>>>> I'd like to discuss addition of a new lintian checks for
+>>>> getenv/setenv/putenv used in shared libraries.
+>>>
+>>> Why getenv() though? It just reads the environment.
+>>>> From what you link yourself:
+>>>> The getenv and secure_getenv functions can be safely used in
+>>>> multi-threaded programs.
+>> [...]
+>>
+>> But it returns a pointer to the value, which might be freed by another
+>> thread before it is used.  If there were a reader function that copied
+>> the value to a caller-provided buffer, it could be properly thread-
+>> safe.
+>
+> But that's only a problem if you call setenv() or similar in a
+> different thread, which you shouldn't do.
+>
+> getenv() is only unsafe if the environment is modified, a library
+> using getenv() in a program that follows libc's guidelines to not
+> call setenv() in an MT-context is perfectly fine.
+That was precisely my point. Usage of `getenv` even from a
+multithreaded program (see demo code I sent) can only lead to crash in
+case another thread (same process) is calling `setenv` (or
+equivalent). I had security concern, but this discussion proved it is
+impossible to exploit.
+-M

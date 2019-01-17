@@ -1,0 +1,48 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Announce: docker-buildpackage
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 2 May 2018 08:36:48 +0100
+Message-id : 20180502073648.GA13293@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 152524210157.30462.10385000744516703627@localhost>
+References : <[🔎] 4340a82e-15fc-1518-122a-c49273da1e5a@metux.net> <[🔎] CAKTje6G9YHB2zSZEt_1D1M0v9u3dcCuHTqRrya1O0aFN-Rq-mQ@mail.gmail.com> <[🔎] 20180501142549.GE26906@gpm.stappers.nl> <[🔎] 23272.31716.682215.929843@chiark.greenend.org.uk> <[🔎] 152524210157.30462.10385000744516703627@localhost>
+
+
+On Wed, 02 May 2018 at 08:21:41 +0200, Johannes Schauer wrote:
+> Unfortunately, according to Martin [1] it is out of scope for autopkgtest to
+> also add support for making persistent changes to the underlying backend. This
+> in turn means, that an operation like:
+> 
+>     $ sbuild-update -udcar unstable
+> 
+> will never work for the autopkgtest backend.
+This has the same predictability issues as upgrading a system rather
+than reinstalling it: how do we know that the result of an upgrade is
+the same as the result of reinstallation? For real systems we support
+upgrades anyway, because the value of carrying over configuration changes
+is greater than the cost of some unpredictability; but sbuild chroots
+don't/shouldn't have configuration (all the configuration is outside
+the chroot on the host system), so that doesn't really apply.
+In general an upgrade won't do the same thing as a reinstall, because
+old packages that used to be important but are no longer will tend to
+remain installed:
+- packages that used to be Essential but are not any more,
+  because full systems need them but containers and chroots don't
+  (init; hopefully sysvinit-utils and e2fsprogs at some point)
+- packages that used to be transitively (build-)Essential or important
+  but are no longer the preferred choice (old major versions of gcc;
+  maybe old major versions of Python if a version of Python becomes
+  build-essential)
+- superseded versions of libraries (older SONAMEs of libasan, libpcre,
+  libncurses, etc.)
+As far as I'm aware, the production buildds never upgrade their chroots:
+instead they re-bootstrap and discard the old version. Docker strongly
+encourages the same approach.
+In my build tool Vectis <https://github.com/smcv/vectis>, which uses
+autopkgtest virtual machines, I use the same approach for virtual machine
+images, sbuild tarballs, piuparts tarballs and lxc images: never upgrade,
+only replace. I don't currently use autopkgtest as a sbuild backend,
+because one of the design goals of Vectis is that it defaults to the
+same mechanisms as the production infrastructure, so that if it works
+locally for me it will work on Debian machines too; but it does know
+how to re-bootstrap sbuild tarballs separately.
+    smcv

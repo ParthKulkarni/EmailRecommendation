@@ -1,0 +1,60 @@
+To : Marvin Renich <mrvn@renich.org>, debian-devel@lists.debian.org, debian-dpkg@lists.debian.org, deity@lists.debian.org
+Subject : Re: Proposal: A new approach to differential debs
+From : Christian Seiler <christian@iwakd.de>
+Date : Mon, 14 Aug 2017 00:58:40 +0200
+Message-id : a612f253-f2fa-0fb5-f55f-020e57102ae7@iwakd.de
+Reply-to : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+In-reply-to : <[🔎] 20170813222909.bipl3b3r3fp3n6lp@basil.wdw>
+References : <[🔎] 20170812135640.GA6037@debian.org> <[🔎] 20170813093856.2kk7zwy4u4qb2xpf@localhost> <[🔎] CAKTje6E+dd3c5RQbTVH8ZnVS0Dc5ZJ9aeTocE6et+GUSkC_PRw@mail.gmail.com> <[🔎] CANpLOiTfiW0uxxMHuRDpxwCFt=P88=7zD+C4NMyqjG8RqZ8SPw@mail.gmail.com> <[🔎] 20170813123457.GA4794@debian.org> <[🔎] CANpLOiT9ycbi3FykK3-5MNfN_NFOLgiq4X=k4YtwW3Cc0gLxAw@mail.gmail.com> <[🔎] 8553d23c-f975-3200-71e6-e455742445ce@iwakd.de> <[🔎] 20170813222909.bipl3b3r3fp3n6lp@basil.wdw>
+
+
+(Setting reply-to to debian-devel@ only as I don't think this
+should continue on debian-dpkg@ and deity@)
+On 08/14/2017 12:29 AM, Marvin Renich wrote:
+> * Christian Seiler <christian@iwakd.de> [170813 13:19]:
+>> On 08/13/2017 07:11 PM, Peter Silva wrote:
+>>>> apt by default automatically deletes packages files after a successful install,
+>>>
+>>> I don't think it does that.
+>>
+>> The "apt" command line tool doesn't, but traditional "apt-get" does, as
+>> does "aptitude". This was documented in the release notes of Jessie and
+>> the changelog of the APT package when the "apt" wrapper was introduced.
+> 
+> This differs from my experience.  My laptop's /var/cache/apt/archives/
+> directory has 3459 .deb files.  I use aptitude almost exclusively, and I
+> update several times a week.
+Erm, rereading my text, I misspoke a bit, I meant the opposite of
+what I said:
+ - apt-get / aptitude leave /var/cache/apt/archives lying around
+ - apt doesn't
+> Is there an apt.conf parameter that controls this?
+For aptitude I have no idea, haven't used that in quite a while.
+For the apt and apt-get utilities there's the following explanation
+in /usr/share/doc/apt/NEWS.Debian.gz:
+  [ Automatic removal of debs after install ]
+  After packages are successfully installed by apt(8),
+  the corresponding .deb package files will be
+  removed from the /var/cache/apt/archives cache directory.
+  This can be changed by setting the apt configuration option
+    "Binary::apt::APT::Keep-Downloaded-Packages" to "true". E.g:
+  # echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' \
+      > /etc/apt/apt.conf.d/01keep-debs
+  Please note that the behavior of apt-get is unchanged. The
+  downloaded debs will be kept in the cache directory after they
+  are installed. To enable the behavior for other tools, you can set
+  "APT::Keep-Downloaded-Packages" to false.
+The corresponding changelog entry for 1.2~exp1 is not quite as
+obvious, so I should have probably referenced NEWS and not
+changelog in my message, sorry about that:
+  * Add new APT::Keep-Downloaded-Packages option (Closes: #160743)
+> A cursory glance through the Jessie release notes
+> (HTML) TOC doesn't give any obvious pointer to where this was mentioned;
+Sorry, I was pretty sure it was in there, but after looking
+through them you're right: it's not in there. But it was
+mentioned by the APT developers towards the end of the
+Jessie release cycle - I can't find anyting in
+debian-devel-announce about that either though. Maybe it was
+in the DebConf15 talk about APT?
+Regards,
+Christian

@@ -1,0 +1,47 @@
+To : Ian Campbell <ijc@debian.org>, 853855@bugs.debian.org
+Subject : Bug#853855: di-utils: Kernel boot options containing a dot are not propagated to the installed system
+From : Emmanuel Kasper <emmanuel@libera.cc>
+Date : Fri, 3 Feb 2017 12:22:38 +0100
+Message-id : 42004b12-99de-f8d1-d9c9-3f7ca505edef@libera.cc
+Reply-to : Emmanuel Kasper <emmanuel@libera.cc>, 853855@bugs.debian.org
+In-reply-to : <[🔎] 1486060403.7612.38.camel@debian.org>
+References : <[🔎] 20170201143047.26819.63823.reportbug@ada.libera.cc> <[🔎] 1486060403.7612.38.camel@debian.org>
+
+
+>> A kernel boot param like net.ifnames=0 will be skipped when the
+>> installer parses the boot option for setting the bootloader.
+>>
+>> Found in di-utils: 
+>>
+>>                 # Skip module-specific variables
+>>                 varnodot="${var##*.*}"
+>>                 if [ "$varnodot" = "" ]; then
+>>                         continue
+>>                 fi
+>>
+>> So basically any option containing a dot is not propagated to the
+>> installed system.  This was introduced by
+>> 7cf15980d714da8b958a73c93459ee09fdbb9415 ("Skip new module-specific
+>> parameters in user-params.")
+>>
+>> I found no documented or obvious reason for this behaviour.
+> 
+> Sounds like the assumption was that any "foo.bar=baz" arguments were
+> always to be used as the "bar=baz" option when loading the "foo" module
+> (i.e. "modprobe foo bar=baz"), which I think the installer supports
+> (for convenience) but perhaps not the installed system (where they
+> should instead be in /etc/modules or /etc/modprobe.conf or similar)
+> does not?
+> 
+> which I think the installer supports
+> (for convenience) but perhaps not the installed system (where they
+> should instead be in /etc/modules or /etc/modprobe.conf or similar)
+Thanks for the analysys, it looks like a very much plausible rationale
+behind this commit.
+If I understand you correctly, net.ifnames is understood as
+a kernel module option, and modules options are not propagated to the
+bootloader, because they "should" be configured in
+/etc/modprobe.d/my_module.
+Actually I might be missing something, but if for instance I need a
+kernel module option to make the installer boot on my hardware, like a
+radeon.modeset=0, I probably need this on the installed system as well ?

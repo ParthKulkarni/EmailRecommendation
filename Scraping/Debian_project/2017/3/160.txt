@@ -1,0 +1,40 @@
+To : debian-devel@lists.debian.org
+Subject : Symbol specific dependencies (was Re: Depends/Recommends from libraries)
+From : Guillem Jover <guillem@debian.org>
+Date : Fri, 10 Mar 2017 05:24:15 +0100
+Message-id : 20170310042415.y6s6fvwsc3w3dxv5@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org> <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk>
+
+
+Hi!
+On Thu, 2017-03-09 at 17:29:09 +0000, Ian Jackson wrote:
+> I think the right way to solve this problem is to declare that:
+[…]
+>  * If a library needs or wants additional software installed,
+>    if and when functions in that library are called, this
+>    should be documented in the /usr/share/doc/BAR/README.Debian.gz for
+>    the corresponding -dev library package.  (If churn is
+>    likely, a library-specific virtual package name may need
+>    to be documented, and provided as appropriate.)
+>  * Programs which call functions in libraries (directly or indirectly)
+>    should arrange to Depend on, Recommend, or Suggest, the appropriate
+>    infrastructure, as documented by the -dev package(s).
+We can already represent symbol specific dependencies, so we can have
+a library that ships this following made-up symbols file:
+,---
+libservice.so.0 libservice0 #MINVER#
+| serviced
+ start_service_daemon 0 1
+ generic_serviceless_action 0
+`---
+Of course one problem is that libraries might not be delimited in this
+way, and they might just start such services when merely initializing
+the library, when calling any of its functions, or at any point inside
+some state machine or whatever. Also a program might call such function
+but that might be conditional on a configuration parameter or something
+else, so the fact that a program uses that symbol does not mean it might
+even call it.
+Thanks,
+Guillem

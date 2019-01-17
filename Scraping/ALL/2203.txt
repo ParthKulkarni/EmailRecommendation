@@ -1,0 +1,85 @@
+To : debian-boot@lists.debian.org
+Subject : Re: flash-kernel and dtbs
+From : Rainer Dorsch <ml@bokomoko.de>
+Date : Sun, 26 Nov 2017 22:52:14 +0100
+Message-id : 1516760.bZkb1yO5pm@blackbox
+In-reply-to : <[🔎] 87o9nozvlv.fsf@aikidev.net>
+References : <[🔎] 4150222.Ex2muNh25l@blackbox> <[🔎] 87o9nozvlv.fsf@aikidev.net>
+
+
+Hi Vagrant,
+thanks for your quick reply.
+On Sonntag, 26. November 2017 11:30:04 CET Vagrant Cascadian wrote:
+> On 2017-11-26, Rainer Dorsch wrote:
+> > I try to setup the correct dtb for a HummingBoard DualLite using
+> > flash-kernel,
+> > but the kernel seems to load always the Cubox-i dtb:
+> What u-boot do you have installed? 
+It seems there is no u-boot installed at all....
+rd@mohot:~$ apt-cache policy u-boot-imx
+u-boot-imx:
+  Installed: (none)
+  Candidate: 2016.11+dfsg1-4
+  Version table:
+     2016.11+dfsg1-4 500
+        500 http://ftp.de.debian.org/debian stretch/main armhf Packages
+rd@mohot:~$ apt-cache policy u-boot
+u-boot:
+  Installed: (none)
+  Candidate: 2016.11+dfsg1-4
+  Version table:
+     2016.11+dfsg1-4 500
+        500 http://ftp.de.debian.org/debian stretch/main armhf Packages
+rd@mohot:~$ 
+....I am wondering why the device boots at all.
+> Can you get to the u-boot console
+> (probably serial console), and run the following commands:
+> 
+>   ver
+>   run findfdt
+>   printenv fdtfile
+Yes, that should work, but I need to do that later this week.
+> > root@mohot:~# cat /etc/flash-kernel/machine
+> > SolidRun HummingBoard DL/Solo
+> > root@mohot:~# fdtdump /boot/dtb-4.13.0-0.bpo.1-armmp |grep model
+> > 
+> >     model = "SolidRun HummingBoard Solo/DualLite";
+> >     
+> >         model = "On-board Codec";
+> >         model = "On-board SPDIF";
+> > 
+> > root@mohot:~# uname -a
+> > Linux mohot 4.13.0-0.bpo.1-armmp #1 SMP Debian 4.13.4-2~bpo9+1
+> > (2017-10-17)
+> > armv7l GNU/Linux
+> > root@mohot:~#  ls -l /boot/dtb-4.13.0-0.bpo.1-armmp
+> > lrwxrwxrwx 1 root root 49 Nov 26 15:16 /boot/dtb-4.13.0-0.bpo.1-armmp ->
+> > dtbs/ 4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb
+> 
+> What is the output of "ls /boot/dtbs/*/*.dtb" ?
+root@mohot:/var/log# ls /boot/dtbs/*/*.dtb
+/boot/dtbs/4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb  /boot/dtbs/
+4.13.0-0.bpo.1-armmp/imx6q-hummingboard.dtb
+/boot/dtbs/4.13.0-0.bpo.1-armmp/imx6q-cubox-i.dtb        /boot/dtbs/4.9.0-4-
+armmp/imx6q-cubox-i.dtb
+root@mohot:/var/log# 
+> > Looks all good for me so far, but another dtb is loaded:
+> > 
+> > rd@mohot:~$ grep fdt /var/log/kern.log
+> > Nov 19 16:45:14 mohot kernel: [    0.000000] OF: fdt: Machine model:
+> > SolidRun Cubox-i Dual/Quad
+> 
+> What is the output of "cat /proc/device-tree/model" ?
+root@mohot:/var/log# cat /proc/device-tree/model 
+SolidRun Cubox-i Dual/Quadroot@mohot:/var/log# 
+> > Can anybody tell, what I am doing wrong? Is that a flash-kernel bug?
+> 
+> I doubt it's flash-kernel; more likely you have the wrong u-boot build,
+> or wrong environment variables saved in u-boot.
+> 
+The missing u-boot points also in this direction, I installed u-boot-imx now, 
+but that did not change anything...
+Rainer
+-- 
+Rainer Dorsch
+http://bokomoko.de/

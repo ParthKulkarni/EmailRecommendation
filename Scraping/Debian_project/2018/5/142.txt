@@ -1,0 +1,43 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Firefox 60esr on Stretch ?
+From : Moritz Mühlenhoff <jmm@inutil.org>
+Date : Fri, 18 May 2018 10:29:03 +0200
+Message-id : slrnpft3mf.pq8.jmm@inutil.org
+References : <[🔎] CAB=k8WJ7AUAA+fovQwVxrU120hNGjfEJ380WRUu1wdsWTEx3vA@mail.gmail.com> <[🔎] b1acc42b-b734-60c1-6342-33b9c2bd589c@debian.org> <[🔎] 20180503123135.q77g5kckjol4mnyz@glandium.org> <[🔎] 20180516090302.e46549241fd1bbb4c41e2b9e@iijmio-mail.jp> <[🔎] slrnpfopk0.o75.jmm@inutil.org> <[🔎] f48ce00c-8c10-77e5-6327-efc04eca9d98@debian.org>
+
+
+Emilio Pozuelo Monfort <pochu@debian.org> schrieb:
+> On 16/05/18 19:12, Moritz Mühlenhoff wrote:
+>> I've started to look into this; I have created a llvm-4.0 build
+>> for stretch and build a bootstrap build of rustc 1.24 against it.
+>> Those two went fine.
+>> 
+>> However cargo's bootstrap is broken ATM which will need fixing (and
+>> it also requires a more recent libgit than we have in stretch).
+>
+> Does it fail like in bug #858153 (which has a patch) or in a different way?
+That bug is a year old and for 0.19, not sure if it's still any relevant
+for current releases, when trying to run a bootstrap build with 0.25 it's
+still trying to execute cargo, but I haven't dug deeper so far:
+----------
+make[1]: Entering directory '/home/jmm/cargo/cargo-0.25.0'
+# cp -a /home/jmm/cargo/cargo-0.25.0/Cargo.lock /home/jmm/cargo/cargo-0.25.0/.Cargo.lock.orig
+ln -sf `which cargo` /home/jmm/cargo/cargo-0.25.0/cargo-stage0
+debian/scripts/prune-checksums vendor/backtrace-sys-*/
+debian/scripts/prune-checksums vendor/libgit2-sys-*/
+make[1]: Leaving directory '/home/jmm/cargo/cargo-0.25.0'
+   debian/rules override_dh_auto_build-arch
+make[1]: Entering directory '/home/jmm/cargo/cargo-0.25.0'
+RUST_BACKTRACE=1 cargo build --release --target=x86_64-unknown-linux-gnu --verbose
+/bin/sh: 1: cargo: not found
+debian/rules:75: recipe for target 'override_dh_auto_build-arch' failed
+make[1]: *** [override_dh_auto_build-arch] Error 127
+make[1]: Leaving directory '/home/jmm/cargo/cargo-0.25.0'
+debian/rules:46: recipe for target 'build-arch' failed
+make: *** [build-arch] Error 2
+dpkg-buildpackage: error: debian/rules build-arch gave error exit status 2
+----------
+If anyone wants to give this a shot, my llvm 4.0 and rustc 1.24 packages
+for stretch are available at https://people.debian.org/~jmm/esr60/
+Cheers,
+        Moritz

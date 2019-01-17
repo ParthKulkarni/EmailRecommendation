@@ -1,0 +1,115 @@
+To : 873945@bugs.debian.org
+Subject : Bug#873945: Confirmed
+From : Thomas <thomas@shadowweb.org>
+Date : Tue, 30 Jan 2018 18:19:07 +0100
+Message-id : e160780a-c090-46fd-95e6-9a40550464fd@shadowweb.org
+Reply-to : Thomas <thomas@shadowweb.org>, 873945@bugs.debian.org
+References : <zarafa.59a958ba.418c.4f62bf5755c793ce@web.hosted-power.com>
+
+
+Hi,
+I can confirm this issue/bug in mod_http2. Occasional segmentation
+faults when using mod_http2, reproducible by frequently accessing vhosts
+with enabled h2 support.
+I was also able to resolve it by upgrading mod_http2 to the version
+included in Apache 2.4.29.
+Coredump backtrace from segfaulted standard Debian (Stretch) 2.4.25
+mod_http2 (for what it's worth):
+#0  h2_stream_out_prepare (stream=stream@entry=0x7f19584550a0,
+plen=plen@entry=0x7f1959ea2a00, peos=peos@entry=0x7f1959ea29fc,
+presponse=presponse@entry=0x7f1959ea2a08) at h2_stream.c:604
+[Current thread is 1 (Thread 0x7f1959ea3700 (LWP 15463))]
+(gdb) bt full
+#0  h2_stream_out_prepare (stream=stream@entry=0x7f19584550a0,
+plen=plen@entry=0x7f1959ea2a00, peos=peos@entry=0x7f1959ea29fc,
+presponse=presponse@entry=0x7f1959ea2a08) at h2_stream.c:604
+        c = <optimized out>
+        status = <optimized out>
+        requested = <optimized out>
+        b = <optimized out>
+        e = <optimized out>
+#1  0x00007f19744786cb in on_stream_resume (ctx=0x7f195849f0a0,
+stream=0x7f19584550a0) at h2_session.c:1576
+        session = 0x7f195849f0a0
+        status = <optimized out>
+        rv = <optimized out>
+        len = 0
+        eos = 0
+        headers = 0x0
+#2  0x00007f197446fe3b in h2_mplx_dispatch_master_events
+(m=0x7f195849f2d0, on_resume=on_resume@entry=0x7f1974478500
+<on_stream_resume>, on_ctx=on_ctx@entry=0x7f195849f0a0) at h2_mplx.c:1379
+        status = 0
+        acquired = 1
+        ids = {85, 75, 87, 73, 79, 77, 39, 53, 89, 91, 23, 93, 95, 97,
+99, 101, 103, 107, 105, 109, 111, 123, 125, 119, 121, 115, 117, 113,
+127, 129, 131, 133, 135, 137, 139, 141, 143, 145, 147, 149, 151, 153,
+155, 157, 0, 32767, 0, 0,
+          58, 1, 0, 0, 0, 0, -1010297088, -1897350404, 1, 0, 1481241560,
+32537, 1, 0, 1481241904, 32537, 1481241896, 32537, 8000, 0, 1784734664,
+32537, 1950777061, 32537, 1508518904, 32537, 1508518896, 32537, 58, 0,
+1508518912, 32537,
+          1508519092, 32537, -1, -1, 1784725616, 32537, 58, 0, 58, 0,
+-1010297088, -1897350404, 1481241296, 32537, 1481240736, 32537, 0, 0, 0, 0}
+        stream = <optimized out>
+        i = 43
+        n = 44
+#3  0x00007f19744797ab in h2_session_process (session=0x7f195849f0a0,
+async=async@entry=0) at h2_session.c:2210
+        status = 0
+        c = 0x7f196a6112c8
+        rv = <optimized out>
+        mpm_state = 1
+        trace = 0
+#4  0x00007f1974465b2a in h2_conn_run (ctx=ctx@entry=0x7f196a60e2f8,
+c=c@entry=0x7f196a6112c8) at h2_conn.c:212
+        status = <optimized out>
+        mpm_state = 0
+#5  0x00007f197446ba5b in h2_h2_process_conn (c=0x7f196a6112c8) at
+h2_h2.c:658
+        status = <optimized out>
+        ctx = 0x7f196a60e2f8
+        c = 0x7f196a6112c8
+#6  0x0000563011b2c730 in ap_run_process_connection
+(c=c@entry=0x7f196a6112c8) at connection.c:42
+        pHook = <optimized out>
+        n = 2
+        rv = -1
+#7  0x0000563011b2cc80 in ap_process_connection
+(c=c@entry=0x7f196a6112c8, csd=csd@entry=0x7f196a6110b0) at connection.c:226
+        rc = <optimized out>
+#8  0x00007f1973338e4a in process_socket (bucket_alloc=0x7f19584b9028,
+my_thread_num=4, my_child_num=2, sock=0x7f196a6110b0, p=0x7f196a611028,
+thd=0x7f197af2dc78) at worker.c:631
+        current_conn = 0x7f196a6112c8
+        conn_id = <optimized out>
+        sbh = 0x7f196a6112c0
+#9  worker_thread (thd=0x7f197af2dc78, dummy=<optimized out>) at
+worker.c:992
+        ti = <optimized out>
+        process_slot = 2
+        thread_slot = 4
+        csd = 0x7f196a6110b0
+        bucket_alloc = 0x7f19584b9028
+        last_ptrans = <optimized out>
+        ptrans = 0x7f196a611028
+        rv = <optimized out>
+        is_idle = 0
+#10 0x00007f197a557494 in start_thread (arg=0x7f1959ea3700) at
+pthread_create.c:333
+        __res = <optimized out>
+        pd = 0x7f1959ea3700
+        now = <optimized out>
+        unwind_buf = {cancel_jmp_buf = {{jmp_buf = {139746859431680,
+-6524335721044288688, 0, 139746901392863, 0, 139747414900800,
+6577037691194661712, 6576965816350759760}, mask_was_saved = 0}}, priv =
+{pad = {0x0, 0x0, 0x0, 0x0},
+            data = {prev = 0x0, cleanup = 0x0, canceltype = 0}}}
+        not_first_call = <optimized out>
+        pagesize_m1 = <optimized out>
+        sp = <optimized out>
+        freesize = <optimized out>
+        __PRETTY_FUNCTION__ = "start_thread"
+#11 0x00007f197a299aff in clone () at
+../sysdeps/unix/sysv/linux/x86_64/clone.S:97
+No locals.

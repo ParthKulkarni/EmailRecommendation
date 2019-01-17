@@ -1,0 +1,50 @@
+To : Michael Biebl <biebl@debian.org>, 856060@bugs.debian.org, 856061@bugs.debian.org
+Subject : Bug#856060: Please don't use obsolete libsysfs-dev any more
+From : Philipp Kern <pkern@debian.org>
+Date : Sun, 9 Apr 2017 10:17:41 +0200
+Message-id : b7177960-31ad-4e39-cd5a-b5e22a9410d4@debian.org
+Reply-to : Philipp Kern <pkern@debian.org>, 856060@bugs.debian.org
+In-reply-to : <148797390685.16610.14625134929672203834.reportbug@pluto.milchstrasse.xx>
+References : <148797390685.16610.14625134929672203834.reportbug@pluto.milchstrasse.xx>
+
+
+Hi Michael,
+On 02/24/2017 11:05 PM, Michael Biebl wrote:
+> Some years ago libsysfs (source package: sysfsutils) was written as an
+> abstraction layer for accessing /sys/. However, this turned out to be
+> a historical error and evolutionary dead end: It does not actually
+> abstract anything (it's just as specific to the Linux kernel and a
+> particular version thereof as /sys itself), and just adds unnecessary
+> complexity, RAM overhead, and bugs. Thus its development has ceased
+> years ago, in favor of programs just using /sys as it is.
+> 
+> In fact, most applications probably don't want to access /sys at all,
+> but use libudev [1] or gudev [2] instead. These provide a better API
+> for device enumeration, properties, and callbacks for hardware
+> changes.
+I can see how we ended up here, but it still does abstract something
+away: access to sysfs, avoiding bugs in accessing it from C in the process.
+Both this and s390-netdevice use libsysfs to iterate over devices on
+a specified bus, extracting and writing some attributes (stuff like
+"online" (r/w), "devtype" (r/o), "cutype" (r/o), setting the ccwgroup,
+layer2 and portno settings on Ethernet adapters). Is that something
+libudev would be suitable for? If so, it'd need to grow a udeb.
+Interestingly enough glib does have a udeb. Would that mean that gudev
+could be a potential option? Would that just require a udeb for udev and
+one for gudev (which has 40k on my system)? That might be more pleasant
+to work with.
+> This package is one of the few which still use the old libsysfs. Can
+> you please check with upstream to prepare a migration away from
+> libsysfs to using plain /sys or libudev? I hope that we can drop the
+> old libsysfs entirely for wheezy.
+Unfortunately for this and s390-netdevice there's no upstream to work with.
+> Thank you for considering!
+> 
+> 
+> [1] http://www.kernel.org/pub/linux/utils/kernel/hotplug/libudev/
+This link is broken.
+> [2] http://www.kernel.org/pub/linux/utils/kernel/hotplug/gudev/
+And so is this one.
+Kind regards
+Philipp Kern
+signature.asc

@@ -1,0 +1,80 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Jonas Smedegaard <jonas@jones.dk>
+Date : Thu, 09 Mar 2017 08:51:51 +0100
+Message-id : 148904591121.2564.7806668501679738050@auryn.jones.dk
+In-reply-to : <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org>
+
+
+Quoting Russ Allbery (2017-03-09 04:24:09)
+> Adam Borowski <kilobyte@angband.pl> writes:
+> 
+> > I'd like to discuss (and then propose to -policy) the following 
+> > rule:
+> 
+> > # Libraries which don't provide a convenient means of conditionally 
+> > # loading at runtime (this includes most libraries for languages 
+> > # such as C), SHOULD NOT declare a "Depends:" or "Recommends:" 
+> > # relationship, directly or indirectly, on packages containing 
+> > # anything more than dormant files. Those include, among others, 
+> > # daemons, executables in $PATH, etc.  Any such relationship should 
+> > # be instead declared by programs that use the library in question 
+> > # -- it is up to them to decide how important the relationship is.
+> 
+> This feels to me like the wrong tool.  It's entirely plausible for 
+> there to be a library whose entire purpose is to execute some external 
+> helper program with elevated privileges, which obviously should depend 
+> on the package that provides that program.  If we had such a 
+> requirement in Policy, we would end up with libraries that don't 
+> Depend on their actual dependencies and then callers have to add the 
+> dependency and then it's all just a mess.
+> 
+> I feel like the problem here is that people are failing to fix bugs in 
+> their packages (unnecessary dependencies on libraries that have heavy 
+> dependencies), and you're trying to use Policy as a stick to beat them 
+> with to get them to fix their bugs.  I don't think this is a good 
+> idea, and I don't want us to end up with weird and incorrect 
+> dependencies for libraries that really do require external helper 
+> programs (which is not particularly rare).
+What I believe could be improved in policy is to clarify/emphasize that 
+package relations are _directional_.
+I have reported several bugs related to too strong relationships, where 
+the main arugment of mine was that the relationship more accurately was 
+the reverse of what was declared.
+That said, I agree it not not sensible to (yet) impose a strict rule, 
+only a clarification to existing rules on declaring relationships.
+> Particularly since I don't think this requirement is actually targeted at
+> the dependency that's bothering you.  In your example:
+> 
+> > It'd help disarm dependency chains such as:
+> >     xfce4-power-manager -> upower -> libimobiledevice4 -> usbmuxd
+> > ie, wanting XFCE currently pulls in a daemon that's of no use to anyone not
+> > using a piece of iJunk (and what it even has to do with power management?).
+> 
+> this would outlaw the Recommends from libimobiledevice4 to usbmuxd, but my
+> understanding is that dependency is *correct*, and the actual extraneous
+> dependency that's upsetting you is the one from upower to
+> libimobiledevice4, which this Policy change would not affect at all.  If I
+> were fixing this bug, that's the change I would make: have upower
+> dynamically load libimobiledevice4 iff it exists, since that's fairly
+> niche functionality.  (Or, really, given that it's a Recommends, just not
+> worry about it.)
+What you describe above is how a _different_ software design could 
+result in simpler package dependencies - for _existing_ software I find 
+it correct to identify the libimobiledevice4 → usbmuxd relation as the 
+problematic one.
+> In general, I don't want to see us place too many restrictions on 
+> Recommends.  If you don't want additional helpful programs, disable 
+> installing Recommends by default.  I think it's very odd to worry 
+> about bloat while simultaneously installing Recommends by default; 
+> those aren't really consistent things to do.
+I strongly disagree: We _can_ improve on the default behaviour of our 
+package handling - we need not give up and leave it to power users able 
+to handle arguably broken systems.
+ - Jonas
+-- 
+ * Jonas Smedegaard - idealist & Internet-arkitekt
+ * Tlf.: +45 40843136  Website: http://dr.jones.dk/
+ [x] quote me freely  [ ] ask before reusing  [ ] keep private
+signature.asc

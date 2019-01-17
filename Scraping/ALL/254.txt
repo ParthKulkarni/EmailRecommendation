@@ -1,0 +1,61 @@
+To : Antoine Beaupré <anarcat@orangeseeds.org>
+Subject : Re: testing and review requested for Wheezy update of apache2
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Sun, 22 Jan 2017 11:25:08 +0100
+Message-id : 1671189.9cX05MgSZt@k
+In-reply-to : <[🔎] 1894087.UjISrH0e0J@k>
+References : <20161223225643.GA24261@inguza.net> <[🔎] 87fukh7hcq.fsf@curie.anarc.at> <[🔎] 1894087.UjISrH0e0J@k>
+
+
+On Thursday, 19 January 2017 20:47:15 CET Stefan Fritsch wrote:
+> On Tuesday, 17 January 2017 11:59:17 CET Antoine Beaupré wrote:
+> > I would need people to start testing the package at this point, not
+> > necessarily in production considering how big the change is, but your
+> > comfort level will vary with the severity and complexity of services. :)
+> 
+> There is a separate test suite available, though it needs some tweaks to
+> make it run with the Debian config layout. I will try to find some time
+> coming week- end to run it against the wheezy package with and without your
+> changes.
+This doesn't look too bad, but not perfect. The diff of the results from 
+2.2.22-13+deb7u7 to your packages, with tweaks to make the test suite run the 
+tests that are new for 2.2.32 is this:
+ Test Summary Report
+ -------------------
+ t/apache/chunkinput.t             (Wstat: 0 Tests: 37 Failed: 1)
+   Failed test:  3
+ t/apache/contentlength.t          (Wstat: 0 Tests: 24 Failed: 8)
+   Failed tests:  2, 4, 14, 16, 18, 20, 22, 24
++t/apache/http_strict.t            (Wstat: 0 Tests: 85 Failed: 3)
++  Failed tests:  2, 8, 26
++t/apache/mmn.t                    (Wstat: 0 Tests: 2 Failed: 1)
++  Failed test:  2
++t/apache/server_name_port.t       (Wstat: 0 Tests: 84 Failed: 0)
++  TODO passed:   57, 60, 81, 84
+ t/security/CVE-2005-3352.t        (Wstat: 0 Tests: 2 Failed: 1)
+   Failed test:  2
+-Files=116, Tests=3479, 233 wallclock secs ( 1.31 usr  0.12 sys + 51.14 cusr  
+8.12 csys = 60.69 CPU)
++Files=116, Tests=3567, 238 wallclock secs ( 1.36 usr  0.07 sys + 52.43 cusr  
+8.02 csys = 61.88 CPU)
+The mmn.t fail is expected and ok. You haven't backported all new features 
+from 2.2.32, so you should not bump the magic number to the number from 
+2.2.32.
+The messages from t/apache/server_name_port.t are just unexpected PASSes, 
+probably the test suite lacks proper TODO specification for 2.2.32 here.
+Apart from that, your package does not cause any regressions. However, of the 
+new tests for the HTTPProtocolOptions feature, three tests fail. Two of these 
+have to do with NUL-Bytes in the request. 
+I have put the full logs and some scripts and diffs to run the test suite at 
+[1]. 
+For jessie, I am not that far, yet. So I don't have any hints about the 
+http_strict.t test fails.
+In 2.4.25, the changes have been reported to break underscores in hostnames 
+[2]. While these are not RFC-conforming, this is probably not something one 
+should break in a security update. Therefore I would relax the hostname 
+checking to also accept underscores. I think the relevant code is in vhost.c 
+in fix_hostname_non_v6() .
+Cheers,
+Stefan
+[1] https://www.sfritsch.de/~stf/http-strict-debian/wheezy/
+[2] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=851357

@@ -1,0 +1,49 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#907704: choose-mirror: default to deb.debian.org
+From : Julien Cristau <jcristau@debian.org>
+Date : Fri, 31 Aug 2018 18:27:42 +0200
+Message-id : 66d80fd8-7b01-e344-780c-ae8116884066@debian.org
+Reply-to : Julien Cristau <jcristau@debian.org>, 907704@bugs.debian.org
+
+
+Package: choose-mirror
+Severity: wishlist
+X-Debbugs-Cc: tfheen@debian.org
+I think it's time for choose-mirror to stop asking by default.  AFAIK
+deb.debian.org works well enough now that we don't need users to
+manually select a mirror close to them.
+PoC patch, completely untested:
+diff --git a/choose-mirror.c b/choose-mirror.c
+index 2662c5f..5463fa7 100644
+--- a/choose-mirror.c
++++ b/choose-mirror.c
+@@ -665,7 +665,7 @@ static int choose_mirror(void) {
+                debconf_subst(debconf, mir, "mirrors", list);
+                free(list);
+-               debconf_input(debconf, "high", mir);
++               debconf_input(debconf, "medium", mir);
+                free(mir);
+        } else {
+                char *host = add_protocol("hostname");
+diff --git a/debian/choose-mirror-bin.templates.http-in
+b/debian/choose-mirror-bin.templates.http-in
+index 785851e..2dc1f02 100644
+--- a/debian/choose-mirror-bin.templates.http-in
++++ b/debian/choose-mirror-bin.templates.http-in
+@@ -29,13 +29,14 @@ _Description: Debian archive mirror country:
+ Template: mirror/http/mirror
+ Type: select
+ Choices: ${mirrors}
++Default: deb.debian.org
+ # :sl1:
+ _Description: Debian archive mirror:
+  Please select a Debian archive mirror. You should use a mirror in
+  your country or region if you do not know which mirror has the best
+  Internet connection to you.
+  .
+- Usually, ftp.<your country code>.debian.org is a good choice.
++ Usually, deb.debian.org is a good choice.
+ Template: mirror/http/hostname
+ Type: string
+Cheers,
+Julien

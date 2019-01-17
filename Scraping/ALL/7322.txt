@@ -1,0 +1,25 @@
+To : 806780@bugs.debian.org
+Subject : Bug#806780: --foreign/--second-stage breaks with multiple components
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Tue, 13 Mar 2018 20:30:19 +0900
+Message-id : 20180313203019.8e03d1757959a413ed3c3824@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 806780@bugs.debian.org
+In-reply-to : <144895947700.25758.14271529608207911604.reportbug@dusk>
+References : <144895947700.25758.14271529608207911604.reportbug@dusk>
+
+
+tags -1 +confirmed
+On Tue, 01 Dec 2015 09:44:37 +0100 Sjoerd Simons <sjoerd@debian.org> wrote:
+> When passing multiple components to --second-stage things fail as debootstrap
+> tries to open debootstrap.invalid_dists_badger_snake|mushroom-armhf.Packages
+> rather then seperate Packages file for snake and mushroom.
+ Let's try to reproduce it
+$ sudo debootstrap --foreign --components=main,contrib,non-free sid sid http://debian-mirror.sakura.ne.jp/debian
+$ sudo chroot ./sid /debootstrap/debootstrap --second-stage --components=main,contrib,non-free
+(snip)
+Processing triggers for libc-bin (2.27-2) ...
+/debootstrap/debootstrap: 1363: /debootstrap/debootstrap: cannot open //var/lib/apt/lists/debootstrap.invalid_dists_sid_main|contrib|non-free_binary-amd64_Packages: No such file
+ It happens, and patch fixes it.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp

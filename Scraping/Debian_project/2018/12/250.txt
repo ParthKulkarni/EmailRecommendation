@@ -1,0 +1,41 @@
+To : systemd@packages.debian.org, sysvinit@packages.debian.org,    runit@packages.debian.org
+Subject : Removing conflicts of init system
+From : Dmitry Bogatov <KAction@debian.org>
+Date : Fri, 21 Dec 2018 18:54:37 +0000
+Message-id : E1gaPwU-0002fD-Bb@eggs.gnu.org
+
+
+[ I am not subscribed. Please keep me in CC. ]
+Currently, init system packages (sysvinit-core, runit-init,
+systemd-sysv) are mutually exclusive -- each of them provides,
+among other, /sbin/init file and as such, conflicts with rest.
+This scheme has following drawbacks:
+ * switching between init systems is destructive:
+   once you switch, old /sbin/init is gone; should things go wrong, you
+   have no easy recover via init=/sbin/old-init kernel option.
+   Side note: switching from systemd is more safe, since systemd-sysv
+   provides only link to /lib/systemd.
+ * unneeded inter-dependencies. New system would require update of
+   'Conflicts' field in rest packages.
+ * After new init system is installed and old is removed, system is left
+   running with old pid1 and no tools to control it, unless new system
+   is providing compatibility.
+I propose to replace current approach with update-alternatives(1)
+approach.  By coordinated effort of present init systems (in thread), we
+introduce master link /sbin/init and number of slave links:
+	/sbin/halt
+	/sbin/poweroff
+	/sbin/reboot
+	/sbin/runlevel
+	/sbin/shutdown
+	/usr/share/man/man8/halt.8.gz
+	/usr/share/man/man8/init.8.gz
+	/usr/share/man/man8/poweroff.8.gz
+	/usr/share/man/man8/reboot.8.gz
+	/usr/share/man/man8/runlevel.8.gz
+	/usr/share/man/man8/shutdown.8.gz
+After this is done, init systems will no longer conflict each other, and
+all mentioned issues would be solved. I see it as clear win, but
+probably I am missing something.
+Opinions?
+pgpLgfft_idxW.pgp

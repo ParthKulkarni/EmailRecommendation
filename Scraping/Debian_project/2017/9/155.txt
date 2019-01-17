@@ -1,0 +1,98 @@
+To : Sean Whitton <spwhitton@spwhitton.name>
+Subject : Re: Steps towards a patch to document disabling a daemon upon installation
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Sun, 10 Sep 2017 13:16:19 +0200
+Message-id : 20170910111619.ak3co2pxx7w7ybwq@fatal.se
+In-reply-to : <[🔎] 87efrfvc5p.fsf@iris.silentflame.com>
+References : <[🔎] 87efrfvc5p.fsf@iris.silentflame.com>
+
+
+Hello Sean Whitton,
+Thanks for your work on this. Hopefully you'll find something in my
+comments inlined below of any use...
+On Sat, Sep 09, 2017 at 01:40:18PM -0700, Sean Whitton wrote:
+> Hello,
+> 
+> This is what I have so far; it is certainly inadequate.  CCing -devel
+> for help answering my technical questions about this patch.
+> 
+> > @@ -537,6 +537,21 @@ and in your ``postrm``
+> >          update-rc.d package remove
+> >      fi
+> >  
+> > +The default behaviour is to enable autostarting your package's daemon.
+> > +If the daemon should not be autostarted unless the local administrator
+> > +has explicitly requested this, use instead add to your ``postinst``
+> > +script
+> > +
+> > +::
+> > +
+> > +    update-rc.d package defaults
+> > +    update-rc.d package disable
+I can't help myself but repeat that I'd prefer seeing more passive
+wording eg. instead of "instead add to your postinst" use something
+like "the postinst should contain" + a footnote about this normally
+being added by dh_...
+Manually written maintainer scripts should be avoided and I've seen
+people being "fooled" by taking policy literally before. (Maybe this
+deserves a section of its own?)
+> > +
+> > +An older practice, which should not be used, was to include a line
+> > +like ``DISABLED=yes`` in the package's ``/etc/default`` file.  The
+> > +package's init script would not start the service until the local
+> > +system administrator changed this to ``DISABLED=no``, or similar.
+> > +
+> >  Note that if your package changes runlevels or priority, you may have to
+> >  remove and recreate the links, since otherwise the old links may
+> >  persist. Refer to the documentation of ``update-rc.d``.
+> 
+> 1. Is the 'should not' for the /etc/default practice too strong?
+Not in my opinion, no.
+>    I don't know an efficient way to find out how many packages this
+>    would make buggy.  But given that we have very strong reasons
+>    against the old practice, we might want to use a 'should not'
+>    regardless.
+Any maintainer being hit by policy extremists have two options:
+1. Take the opportunity to fix the package to follow best pracises.
+2. Postpone by saying "should not" is not "must not" (and lower severity),
+   plus "patches welcome" ofcourse.
+I think that's good enough.
+> 
+> 2. Do we need to include any text saying *why* the /etc/default practice
+>    is a bad idea?  I couldn't come up with a succinct way to state it.
+>    In general, I think we can err on the side of not including the text,
+>    since we have policy bugs that document the reasons.
+I don't think elaborating on all the ways something can be done
+incorrectly is nessessary. Should not be too hard for anyone interested
+in the reason to find out atleast one reason either by thinking it
+through by themselves or by googling for past discussions.
+If anything I'd rather see helpful suggestions (in footnotes?) on how
+a proper cleanup should be done. (Convert admin changes on upgrades,
+use debian/*.maintscript to rm_conffile)
+> 
+> 3. The maintscript snippet I have added is not right because it will
+>    disable the daemon every time the package is updated.  Unfortunately,
+>    the postinst doesn't know whether this is a new installation, or an
+>    upgrade.
+> 
+>    An alternative is to require the package maintainer to set the
+>    correct LSB headers and systemd unit file configuration values such
+>    that the daemon is not autostarted (in the former case, setting the
+>    daemon not to be started at any runlevel).  But I think this would
+>    prevent the local system administrator from enabling the service with
+>    a simple `update-rc.d package enable`, which is the whole point of
+>    all this.
+> 
+>    I looked at dh_installinit(8) and update-rc.d(8) and I couldn't get
+>    them to generate a postinst that does what I want.  It seems you're
+>    expected to use all three of these:
+> 
+>        dh_systemd_enable --no-enable
+>        dh_systemd_start --no-start
+>        dh_installinit --no-start
+> 
+>    but then after a reboot, a sysvinit system will start the daemon,
+>    AFAICT.
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=709384
+Regards,
+Andreas Henriksson

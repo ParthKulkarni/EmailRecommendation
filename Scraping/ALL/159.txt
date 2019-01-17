@@ -1,0 +1,212 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#867565: apache2 segfaults on stop
+From : Valentin Vidic <Valentin.Vidic@CARNet.hr>
+Date : Fri, 7 Jul 2017 14:30:59 +0200
+Message-id : 20170707123059.6dgnwscgta7gwwhn@gavran.carpriv.carnet.hr
+Reply-to : Valentin Vidic <Valentin.Vidic@CARNet.hr>, 867565@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3+deb9u1
+Severity: normal
+Dear Maintainer,
+Stopping or restaring apache2 produces an error in kernel log:
+  # systemctl apache2 stop
+Jul  7 14:13:52 stretch kernel: [ 5393.547573] apache2[7588]: segfault at 7f7e1113b7a0 ip 00007f7e1113b7a0 sp 00007fff96cb0108 error 14 in libexpat.so.1.6.2[7f7e135b4000+27000]
+On the other hand, calling 
+  # apache2ctl stop
+does not cause a segfault.
+The core file contains the following:
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x00007fbf0e6c37a0 in ?? ()
+#1  0x000055aef5eacf9e in ap_run_mpm_query (query_code=query_code@entry=2, result=result@entry=0x7fff4fdb01ac, _rv=_rv@entry=0x7fff4fdb0184) at mpm_common.c:97
+#2  0x000055aef5eadd2e in ap_mpm_query (query_code=query_code@entry=2, result=result@entry=0x7fff4fdb01ac) at mpm_common.c:419
+#3  0x000055aef5ecdb34 in log_tid (info=<optimized out>, arg=<optimized out>, buf=0x7fff4fdb02fe "", buflen=8130) at log.c:612
+#4  0x000055aef5ecea56 in do_errorlog_default (buflen=8192, args=0x7fff4fdb4340, errstr_fmt=0x55aef5ef5338 "AH00060: seg fault or similar nasty error detected in the parent process", 
+    errstr_end=<synthetic pointer>, errstr_start=<synthetic pointer>, buf=0x7fff4fdb02c0 "[Fri Jul 07 13:50:03.365295 2017] [core:notice] [pid 1351:tid ", info=0x7fff4fdb0270) at log.c:944
+#5  log_error_core (file=0x55aef5ef520c "mpm_unix.c", line=989, module_index=0, level=<optimized out>, status=0, s=<optimized out>, c=<optimized out>, r=0x0, pool=0x0, 
+    fmt=0x55aef5ef5338 "AH00060: seg fault or similar nasty error detected in the parent process", args=0x7fff4fdb4340) at log.c:1270
+#6  0x000055aef5ecef37 in ap_log_error_ (file=file@entry=0x55aef5ef520c "mpm_unix.c", line=line@entry=989, module_index=module_index@entry=0, level=level@entry=5, status=status@entry=0, s=<optimized out>, 
+    fmt=0x55aef5ef5338 "AH00060: seg fault or similar nasty error detected in the parent process") at log.c:1319
+#7  0x000055aef5ed5cc0 in sig_coredump (sig=11) at mpm_unix.c:986
+#8  <signal handler called>
+#9  0x00007fbf0e6c38d0 in ?? ()
+#10 <signal handler called>
+#11 0x00007fbf116903d3 in __select_nocancel () at ../sysdeps/unix/syscall-template.S:84
+#12 0x00007fbf11b93245 in apr_sleep (t=t@entry=46875) at ./time/unix/time.c:246
+#13 0x00007fbf11b86ea3 in free_proc_chain (procs=0x7fbf122ede30) at ./memory/unix/apr_pools.c:2483
+#14 0x00007fbf11b87b90 in apr_pool_destroy (pool=0x7fbf1244d028) at ./memory/unix/apr_pools.c:817
+#15 0x00007fbf11b87b55 in apr_pool_destroy (pool=0x7fbf12454028) at ./memory/unix/apr_pools.c:811
+#16 0x000055aef5ea5d18 in destroy_and_exit_process (process_exit_value=0, process=<optimized out>) at main.c:264
+#17 0x000055aef5ea5ad7 in main (argc=<optimized out>, argv=<optimized out>) at main.c:796
+-- Package-specific info:
+-- System Information:
+Debian Release: 9.0
+  APT prefers stable
+  APT policy: (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-3-amd64 (SMP w/2 CPU cores)
+Locale: LANG=C, LC_CTYPE=C (charmap=ANSI_X3.4-1968), LANGUAGE=C (charmap=ANSI_X3.4-1968)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages apache2 depends on:
+ii  apache2-bin          2.4.25-3+deb9u1
+ii  apache2-data         2.4.25-3+deb9u1
+ii  apache2-utils        2.4.25-3+deb9u1
+ii  dpkg                 1.18.24
+ii  init-system-helpers  1.48
+ii  lsb-base             9.20161125
+ii  mime-support         3.60
+ii  perl                 5.24.1-3
+ii  procps               2:3.3.12-3
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.39
+Versions of packages apache2 suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+pn  www-browser                                      <none>
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.5.2-5
+ii  libaprutil1              1.5.4-3
+ii  libaprutil1-dbd-sqlite3  1.5.4-3
+ii  libaprutil1-ldap         1.5.4-3
+ii  libc6                    2.24-11+deb9u1
+ii  libldap-2.4-2            2.4.44+dfsg-5
+ii  liblua5.2-0              5.2.4-1.1+b2
+ii  libnghttp2-14            1.18.1-1
+ii  libpcre3                 2:8.39-3
+ii  libssl1.0.2              1.0.2l-2
+ii  libxml2                  2.9.4+dfsg1-2.2
+ii  perl                     5.24.1-3
+ii  zlib1g                   1:1.2.8.dfsg-5
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+pn  www-browser                                      <none>
+Versions of packages apache2 is related to:
+ii  apache2      2.4.25-3+deb9u1
+ii  apache2-bin  2.4.25-3+deb9u1
+-- Configuration Files:
+/etc/apache2/sites-available/default-ssl.conf changed:
+<IfModule mod_ssl.c>
+	<VirtualHost _default_:443>
+		ServerAdmin webmaster@localhost
+		DocumentRoot /var/www/html
+		# Available loglevels: trace8, ..., trace1, debug, info, notice, warn,
+		# error, crit, alert, emerg.
+		# It is also possible to configure the loglevel for particular
+		# modules, e.g.
+		#LogLevel info ssl:warn
+		ErrorLog ${APACHE_LOG_DIR}/error.log
+		CustomLog ${APACHE_LOG_DIR}/access.log combined
+		# For most configuration files from conf-available/, which are
+		# enabled or disabled at a global level, it is possible to
+		# include a line for only one particular virtual host. For example the
+		# following line enables the CGI configuration for this host only
+		# after it has been globally disabled with "a2disconf".
+		#Include conf-available/serve-cgi-bin.conf
+		#   SSL Engine Switch:
+		#   Enable/Disable SSL for this virtual host.
+		SSLEngine on
+		#   A self-signed (snakeoil) certificate can be created by installing
+		#   the ssl-cert package. See
+		#   /usr/share/doc/apache2/README.Debian.gz for more info.
+		#   If both key and certificate are stored in the same file, only the
+		#   SSLCertificateFile directive is needed.
+		SSLCertificateFile	/etc/ssl/certs/ssl-cert-snakeoil.pem
+		SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
+		#   Server Certificate Chain:
+		#   Point SSLCertificateChainFile at a file containing the
+		#   concatenation of PEM encoded CA certificates which form the
+		#   certificate chain for the server certificate. Alternatively
+		#   the referenced file can be the same as SSLCertificateFile
+		#   when the CA certificates are directly appended to the server
+		#   certificate for convinience.
+		#SSLCertificateChainFile /etc/apache2/ssl.crt/server-ca.crt
+		#   Certificate Authority (CA):
+		#   Set the CA certificate verification path where to find CA
+		#   certificates for client authentication or alternatively one
+		#   huge file containing all of them (file must be PEM encoded)
+		#   Note: Inside SSLCACertificatePath you need hash symlinks
+		#		 to point to the certificate files. Use the provided
+		#		 Makefile to update the hash symlinks after changes.
+		#SSLCACertificatePath /etc/ssl/certs/
+		#SSLCACertificateFile /etc/apache2/ssl.crt/ca-bundle.crt
+		#   Certificate Revocation Lists (CRL):
+		#   Set the CA revocation path where to find CA CRLs for client
+		#   authentication or alternatively one huge file containing all
+		#   of them (file must be PEM encoded)
+		#   Note: Inside SSLCARevocationPath you need hash symlinks
+		#		 to point to the certificate files. Use the provided
+		#		 Makefile to update the hash symlinks after changes.
+		#SSLCARevocationPath /etc/apache2/ssl.crl/
+		#SSLCARevocationFile /etc/apache2/ssl.crl/ca-bundle.crl
+		#   Client Authentication (Type):
+		#   Client certificate verification type and depth.  Types are
+		#   none, optional, require and optional_no_ca.  Depth is a
+		#   number which specifies how deeply to verify the certificate
+		#   issuer chain before deciding the certificate is not valid.
+		#SSLVerifyClient require
+		#SSLVerifyDepth  10
+		#   SSL Engine Options:
+		#   Set various options for the SSL engine.
+		#   o FakeBasicAuth:
+		#	 Translate the client X.509 into a Basic Authorisation.  This means that
+		#	 the standard Auth/DBMAuth methods can be used for access control.  The
+		#	 user name is the `one line' version of the client's X.509 certificate.
+		#	 Note that no password is obtained from the user. Every entry in the user
+		#	 file needs this password: `xxj31ZMTZzkVA'.
+		#   o ExportCertData:
+		#	 This exports two additional environment variables: SSL_CLIENT_CERT and
+		#	 SSL_SERVER_CERT. These contain the PEM-encoded certificates of the
+		#	 server (always existing) and the client (only existing when client
+		#	 authentication is used). This can be used to import the certificates
+		#	 into CGI scripts.
+		#   o StdEnvVars:
+		#	 This exports the standard SSL/TLS related `SSL_*' environment variables.
+		#	 Per default this exportation is switched off for performance reasons,
+		#	 because the extraction step is an expensive operation and is usually
+		#	 useless for serving static content. So one usually enables the
+		#	 exportation for CGI and SSI requests only.
+		#   o OptRenegotiate:
+		#	 This enables optimized SSL connection renegotiation handling when SSL
+		#	 directives are used in per-directory context.
+		#SSLOptions +FakeBasicAuth +ExportCertData +StrictRequire
+		<FilesMatch "\.(cgi|shtml|phtml|php)$">
+				SSLOptions +StdEnvVars
+		</FilesMatch>
+		<Directory /usr/lib/cgi-bin>
+				SSLOptions +StdEnvVars
+		</Directory>
+		#   SSL Protocol Adjustments:
+		#   The safe and default but still SSL/TLS standard compliant shutdown
+		#   approach is that mod_ssl sends the close notify alert but doesn't wait for
+		#   the close notify alert from client. When you need a different shutdown
+		#   approach you can use one of the following variables:
+		#   o ssl-unclean-shutdown:
+		#	 This forces an unclean shutdown when the connection is closed, i.e. no
+		#	 SSL close notify alert is send or allowed to received.  This violates
+		#	 the SSL/TLS standard but is needed for some brain-dead browsers. Use
+		#	 this when you receive I/O errors because of the standard approach where
+		#	 mod_ssl sends the close notify alert.
+		#   o ssl-accurate-shutdown:
+		#	 This forces an accurate shutdown when the connection is closed, i.e. a
+		#	 SSL close notify alert is send and mod_ssl waits for the close notify
+		#	 alert of the client. This is 100% SSL/TLS standard compliant, but in
+		#	 practice often causes hanging connections with brain-dead browsers. Use
+		#	 this only for browsers where you know that their SSL implementation
+		#	 works correctly.
+		#   Notice: Most problems of broken clients are also related to the HTTP
+		#   keep-alive facility, so you usually additionally want to disable
+		#   keep-alive for those clients, too. Use variable "nokeepalive" for this.
+		#   Similarly, one has to force some clients to use HTTP/1.0 to workaround
+		#   their broken HTTP/1.1 implementation. Use variables "downgrade-1.0" and
+		#   "force-response-1.0" for this.
+		# BrowserMatch "MSIE [2-6]" \
+		#		nokeepalive ssl-unclean-shutdown \
+		#		downgrade-1.0 force-response-1.0
+		SSLProtocol -ALL +TLSv1.2 +TLSv1.1 +TLSv1
+		SSLCipherSuite ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+	</VirtualHost>
+</IfModule>
+-- no debconf information

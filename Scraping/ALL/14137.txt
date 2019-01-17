@@ -1,0 +1,84 @@
+To : debian-devel@lists.debian.org
+Subject : Re: help with execnet
+From : Daniel Stender <debian@danielstender.com>
+Date : Fri, 13 Jan 2017 01:19:12 +0100
+Message-id : 53f2518e-b1ad-bedf-6390-3173dceae520@danielstender.com
+In-reply-to : <34674085-2fe0-b094-9e4a-4b2309aa23a5@danielstender.com>
+References : <3a89db7c-3eb3-192c-1a46-bb0b638c309f@danielstender.com> <0b0d8764-c15c-8fe3-afb4-e0bf484a4633@debian.org> <34674085-2fe0-b094-9e4a-4b2309aa23a5@danielstender.com>
+
+
+On 27.12.2016 14:18, Daniel Stender wrote:
+> On 27.12.2016 12:09, Tobias Hansen wrote:
+>> Hi,
+>>
+>> I just want to add that execnet is marked for autoremoval on January 17.
+>> Also, sagemath depends indirectly on execnet.
+>> The bugs should be fixed before January 7 to avoid stuff getting removed
+>> from testing.
+>>
+>> Best,
+>> Tobias
+> 
+> For the current state, I've just test build again without any errors on amd64 incl. passing
+> the build time tests [1].
+> 
+> Three FTBFS resp. failing tests have been reported so far [2,3,4], another one - also from DEP-8 -
+> I've just added [5].
+> 
+> [2] is from another test build, [3] from the reproducible builds CI (where it currently doesn't appear),
+> [4] and [5] from DEP-8 testing (where it never passed).
+> 
+> Thanks for comments,
+> DS
+> 
+> [1] http://www.danielstender.com/uploads/execnet_1.4.1-3_amd64-2016-12-27T12:50:09Z.build
+> 
+> [2] https://bugs.debian.org/840823 (testing/test_gateway.py::TestBasicGateway::test_gateway_status_busy[thread-popen] FAILED)
+> 
+> [3] https://bugs.debian.org/846951 (testing/test_gateway.py::TestTracing::test_popen_stderr_tracing FAILED)
+> 
+> [4] https://bugs.debian.org/846952 (testing/test_channel.py::TestStringCoerce::test_2to3 FAILED)
+> 
+> [5] https://bugs.debian.org/849466 (testing/test_basics.py::test_stdouterrin_setnull[thread] FAILED)
+... some progress, #849466 has been reported as an issue at Bitbucket, I've disabled/removed warnings for
+the Python3 tests in DEP-8 and this vanishes (that could be restored if the issue is closed).
+The other failure from DEP-8 (#846952 on Python 2.7) doesn't appear in a local DEP-8 autopkgtest [2]. This
+tests gets skipped in a Python 2 enviroment, but deb/tests/control is all right. Strange. I've lowered the
+severity (hardly RC).
+#846951 is difficult to reproduce. It's from reproducible builds CI, but current it doesn't appear (nor any other
+problem). I'm tending to lower this, too.
+#840823 is confirmed, I have that in a clean new Debian testing on i386:
+<cut>
+________________________ TestBasicGateway.test_gateway_status_busy[thread-popen] ________________________
+self = <test_gateway.TestBasicGateway instance at 0xb39811ec>
+gw = <Gateway id='popen' receive-live, thread model, 0 active channels>
+    def test_gateway_status_busy(self, gw):
+        numchannels = gw.remote_status().numchannels
+        ch1 = gw.remote_exec("channel.send(1); channel.receive()")
+        ch2 = gw.remote_exec("channel.receive()")
+        ch1.receive()
+        status = gw.remote_status()
+        assert status.numexecuting == 2  # number of active execution threads
+        assert status.numchannels == numchannels + 2
+        ch1.send(None)
+        ch2.send(None)
+        ch1.waitclose()
+        ch2.waitclose()
+        for i in range(10):
+            status = gw.remote_status()
+            if status.numexecuting == 0:
+                break
+        else:
+>           pytest.fail("did not get correct remote status")
+E           Failed: did not get correct remote status
+testing/test_gateway.py:88: Failed
+</cut>
+DS
+[1] https://bitbucket.org/hpk42/execnet/issues/31/test-failure-with-enabled-warnings
+[2] http://www.danielstender.com/uploads/execnet-local-dep8.txt
+ 
+-- 
+4096R/DF5182C8
+Debian Developer (stender@debian.org)
+LPIC-1 (LPI000329859 64mz6f7kt4)
+http://www.danielstender.com/

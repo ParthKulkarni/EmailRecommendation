@@ -1,0 +1,43 @@
+To : Niels Thykier <niels@thykier.net>
+Subject : Re: [debhelper-devel] Bug#879478: debhelper: dh_testroot regression: relies on debian/control
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 22 Oct 2017 21:43:07 +0200
+Message-id : 20171022194307.3vxefdifwxliaatp@mraw.org
+In-reply-to : <[🔎] ed3a6ab9-5463-2894-1b85-eb069b1ec64f@thykier.net>
+References : <[🔎] 150864040341.32114.8464148918814030365.reportbug@armor.home> <[🔎] ed3a6ab9-5463-2894-1b85-eb069b1ec64f@thykier.net>
+
+
+Hi,
+Niels Thykier <niels@thykier.net> (2017-10-22):
+> Unfortunately, I cannot even fix this by guarding it with a compat bump
+> (because that will die as it cannot find debian/compat).  For now, I
+> will have it issue a warning and continue (plus make some assumptions
+> about what the d/control file would have contained).  But eventually, I
+> will remove that fallback and that *cannot* happen with a compat bump.
+> 
+> For you, an easy fix appears be to re-arrange the lines:
+> 
+> 	dh_testroot
+> 	@[ -d ../debian ] || { echo "directory '../debian' [...] }
+> 
+> Into:
+> 
+> 	@[ -d ../debian ] || { echo "directory '../debian' [...] }
+> 	cd .. && dh_testroot
+> 
+> (Only occurs two places AFAICT in the Makefile).  This change would also
+> be backwards compatible for you.
+FYI (debian-boot@): I've checked after filing this bug report that daily
+builds are broken… and that release builds are broken as well, so fixing
+the issue by taking this proposed change should work for all use cases.
+I've filed #879554 to make sure we don't forget about updating d-i
+before debhelper gets updated again. I'll probably double check this
+for the next buster alpha release.
+> The scope of dh_testroot has changed and I have committed an update of
+> the documentation of dh_testroot targeting 10.10.1.  Furthermore, I
+> have added a note in debhelper.7 that all debhelper tools must be run
+> from the unpacked source root (except where otherwise noted).
+ACK.
+Also: Thanks for the quick reply.
+KiBi.
+signature.asc

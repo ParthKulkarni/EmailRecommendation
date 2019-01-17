@@ -1,0 +1,35 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Please add lzip support in the repository
+From : Henrique de Moraes Holschuh <hmh@debian.org>
+Date : Thu, 15 Jun 2017 20:36:48 -0300
+Message-id : 20170615233648.GB21283@khazad-dum.debian.net
+In-reply-to : <[🔎] 1497529370@msgid.manchmal.in-ulm.de>
+References : <[🔎] CAA3kg_gykqU6TDeYg+yGJJeO7P0F+jhjZ-M=R7rwqBRFPM_TBA@mail.gmail.com> <[🔎] 1497529370@msgid.manchmal.in-ulm.de>
+
+
+On Thu, 15 Jun 2017, Christoph Biedl wrote:
+> Also I doubt the reduced disk space and network bandwitdth usage of any
+> new kid on the block (there's also zstd) really justifies the work
+> needed to implement the support in the many tools that deal with the
+> files. I might be convinced otherwise.
+I agree with almost everything you said, but the whole point of using
+lzip instead of xz would be for a less fragile on-disk format, not
+performance (be it speed, memory usage, or compression ratio).
+And I don't think we actually benefit any from a less fragile compressed
+container format for Debian *packages* (source or binary).
+We pretty much need Debian packages to be 100% correct in the first
+place, they are not going to be subject to lossy recovery from
+corruption (which is where lzip is supposed to be much better than xz):
+we need to replace any that is even slightly corrupt with a fully
+correct copy.
+So, it would make more sense to have a par2 (or create a modern version
+of it, actually) ECC layer on top of the compression layer, at which
+point we can use one of the already supported compression formats.
+And the same is also very likely true for data you hold dear.  par2 ECC
+information will allow you to recover from much worse file damage than
+lzip's better format ever could.
+Now, if a lot of upstream tarballs start to be natively avaiable in .gz
+and .lzip format (no .xz), *then* it becomes interesting to at least
+support lzip for source packages.
+-- 
+  Henrique Holschuh

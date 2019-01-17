@@ -1,0 +1,47 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 21 Nov 2018 09:59:24 -0800
+Message-id : 87in0quxab.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20181121092346.umhv45iy2vhvpljv@angband.pl> (Adam Borowski's	message of "Wed, 21 Nov 2018 10:23:46 +0100")
+References : <[🔎] 20181120211617.gxnuwxpx2hy445ps@angband.pl>	<[🔎] 6FEC5C58-827A-42EF-B7F4-F9603AFBB60D@gmail.com>	<[🔎] 20181121092346.umhv45iy2vhvpljv@angband.pl>
+
+
+Adam Borowski <kilobyte@angband.pl> writes:
+> Thus, either usrmerge Essential or not included in Buster -- no middle
+> way.
+I think I agree with this.
+My impression is that most of the problems with usrmerge are because we're
+trying to support a halfway position that Red Hat did not try to support,
+where some systems are merged and some aren't.  This creates a ton of
+complicated edge cases and inconsistencies, and now we're looking at
+making invasive changes to package build systems to try to fix those edge
+cases.  This feels like a vast waste of developer time and resources that
+could be put to better purposes.
+If we just force-merge every system on upgrade, none of those
+inconsistencies matter, and I do believe we could successfully complete
+that process (with some bumps, of course).  But this halfway slow
+migration is death by a thousand cuts.
+I think there are some arguments to be made for just force-merging and
+moving on, but they're mostly "tidiness" arguments (letting everyone
+recycle the brain cells they're currently using to keep track of whether
+something is in /bin or /usr/bin and try to make decisions about this,
+getting rid of all the compatibility symlinks, permanently eliminating all
+minor bugs from omitting /bin or /sbin from PATH, and so forth).  Those
+are real benefits that I don't think we should underestimate, but I'm not
+sure they're strong enough benefits to create a bunch of hard feelings and
+frustration and anger inside the project.  They're also mostly benefits
+for packagers; there aren't a ton of benefits for users here.
+If we're *not* going to commit to force-merging all systems, I think we
+should just stop, or at least slow way down, because there are a *lot* of
+edge cases and it's going to require a lot of work to go through them.
+I'm very dubious of the viability of any strategy that requires people
+override the paths to binaries in their debian/rules file to undo Autoconf
+auto-probing, for example.
+It feels to me like we should decide as a project whether we're going to
+do the same thing Red Hat did and just do the merge and be done with it,
+or whether we're going to do a much slower migration by some more robust
+strategy of (for example) moving each binary out of /bin manually, but
+either way, the current strategy does not seem viable to me.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

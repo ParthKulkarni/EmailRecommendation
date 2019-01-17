@@ -1,0 +1,53 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#862698: ITP: minecraft -- blocks to build anything you can imagine
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 16 May 2017 07:19:10 +0100
+Message-id : 20170516061847.dovcm3egwtzspapi@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 149488443434.9640.13876102601062920746.reportbug@riseup.net>
+References : <[🔎] 149488443434.9640.13876102601062920746.reportbug@riseup.net>
+
+
+On Mon, 15 May 2017 at 18:40:34 -0300, Carlos Donizete Froes wrote:
+> * Package name    : minecraft
+>   Version         : 0.1
+>   Upstream Author : Carlos Donizete Froes <coringao@riseup.net>
+> * URL             : https://minecraft.net
+> * License         : BSD-2-Clause
+>   Programming Lang: Shell
+This information does not seem consistent with what I know about
+Minecraft, which is that it is proprietary software, available for
+purchase (not even free-as-in-free-beer), originally written by Mojang AB,
+now owned by Microsoft, written in Java, and currently versioned 1.11.2.
+If what you mean is that you will be writing a "launcher" package in contrib
+similar to the steam package, please give the package a description (and
+perhaps name) that indicates that. The description in this ITP seems
+very misleading.
+You might find it useful to look at (for example) the quake, freespace2
+and game-data-packager packages for examples of dealing with
+non-distributable game data. I don't think we have permission to
+redistribute anything from Minecraft, not even the small,
+infrequently-updated launcher that downloads, updates and runs the
+more-frequently-updated game, unless Microsoft has changed the policy
+that Mojang AB historically had (analogous to how Valve encourage
+redistribution of the stub that downloads and launches Steam, which is
+what's actually in our steam package).
+If this package downloads proprietary files automatically, here are some
+issues that should be considered:
+* minimizing amount of code run as root (downloading the Minecraft
+  launcher per-user is probably better - the launcher will download
+  Minecraft itself once per user anyway, so sharing files between users
+  to reduce disk space usage is not straightforward)
+* not executing code that was not obtained in a way that can be trusted:
+  downloading via https with correct certificate validation, or checking
+  the launcher against known-good cryptographic hashes like
+  game-data-packager does, or similar
+* not preventing offline apt updates in which packages are downloaded
+  while online, then installed at a later time without Internet access
+game-data-packager/doc/why.mdwn might be interesting reading.
+https://github.com/endlessm/flatpak-minecraft is an alternative approach
+to making Minecraft more straightforward to install on a Debian derivative,
+although it would be nice if we could use a Debian-based runtime that
+included the OpenJDK JRE from Debian (building Debian-based Flatpak
+runtimes is something I want to work on, but I haven't got there yet).
+Regards,
+    S

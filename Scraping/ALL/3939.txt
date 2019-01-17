@@ -1,0 +1,49 @@
+To : Cyril Brulebois <kibi@debian.org>, 873465@bugs.debian.org
+Subject : Re: Bug#873465: apt: wrongly reports failure on 'update' on mips64el, triggers d-i FTBFS
+From : Julian Andres Klode <jak@debian.org>
+Date : Mon, 28 Aug 2017 11:10:14 +0200
+Message-id : 20170828110317.GA13429@debian.org
+Mail-followup-to : Julian Andres Klode <jak@debian.org>,	Cyril Brulebois <kibi@debian.org>, 873465@bugs.debian.org,	debian-boot@lists.debian.org
+In-reply-to : <[🔎] 20170828055034.GB16128@mraw.org>
+References : <[🔎] 20170828042450.2910.72095.reportbug@armor.home> <[🔎] 20170828042450.2910.72095.reportbug@armor.home> <[🔎] 20170828055034.GB16128@mraw.org>
+
+
+On Mon, Aug 28, 2017 at 07:50:34AM +0200, Cyril Brulebois wrote:
+> Control: tag -1 patch
+> 
+> Cyril Brulebois <kibi@debian.org> (2017-08-28):
+> > Given apt 1.5~beta2 was uploaded on the evening of the 17th, it probably
+> > reached the archive on the 18th, and was first used in the build chroot
+> > for the 0030Z build on the 19th. I'm filing this against apt since it
+> > seems clear to me there were no actual download errors, but it also
+> > seems likely that apt might be encountering gcc-7 related
+> > miscompilations, see #871514.
+> > 
+> > In any case, a speedy fix would be much appreciated, as this is a
+> > blocker for the D-I Buster Alpha 1 release (which has already been
+> > delayed way too much for other reasons).
+> 
+> I've built apt with -O0 (it seems a more acceptable workaround than
+> going back to gcc-6), and setting PATH/LD_LIBRARY_PATH to point to its
+> debian/tmp directory, I've managed to get rid of the issue I was getting
+> when trying to build debian-installer, and even managed to get a full
+> build.
+> 
+> Of course this generates a lot of noise in dpkg-gensymbols (end of the
+> build log attached), but since it didn't bail on me, I guess that's OK?
+> 
+> Trivial patch for debian/rules attached; of course this can be limited
+> to mips64el, but I'd like to get a maintainer's opinion as to whether
+> that's an acceptable workaround for the time being. If it is, I can NMU.
+Hmm, shouldn't it also STRIP the -O2? I guess this would work too and
+might be nicer?
+ifeq ($(DEB_HOST_ARCH),mips64el)
+	DEB_BUILD_OPTIONS += noopt
+endif
+(noopt also changes -O2 into -O0). Anyhow, feel free to upload an
+NMU with ifeq ($(DEB_HOST_ARCH),mips64el) around either change.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

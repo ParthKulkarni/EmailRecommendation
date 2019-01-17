@@ -1,0 +1,236 @@
+To : Kari Tanninen <otmen@elisanet.fi>
+Subject : Re: Armel: Debian installer freeezes (GuruPlug Server plus)
+From : Martin Michlmayr <tbm@cyrius.com>
+Date : Fri, 2 Mar 2018 10:47:05 +0100
+Message-id : 20180302094705.eqvsqfojfk5f7hwv@jirafa.cyrius.com
+In-reply-to : <[🔎] f4732142fdf41529a3c2d563a0d2ed21@be508.mail.saunalahti.fi>
+References : <[🔎] 7d2b5cd2b76322278749f6358709f811@be508.mail.saunalahti.fi> <[🔎] 20180301120245.una45cavlishaa6m@jirafa.cyrius.com> <[🔎] 832324d77e6d817c2046c5d76e3b0602@be508.mail.saunalahti.fi> <[🔎] 20180301131149.25oatx7jtqpwiovj@jirafa.cyrius.com> <[🔎] 1eea0232a84f5601eb19a584174f17b5@be508.mail.saunalahti.fi> <[🔎] f4732142fdf41529a3c2d563a0d2ed21@be508.mail.saunalahti.fi>
+
+
+Can you try:
+tftpboot 0x00800000 uImage
+tftpboot 0x01100000 uInitrd
+setenv bootargs console=ttyS0,115200n8 earlyprintk base-installer/initramfs-tools/driver-policy=most
+bootm 0x00800000 0x01100000
+* Kari Tanninen <otmen@elisanet.fi> [2018-03-02 11:42]:
+> Minicom terminal log Armel strech d-i:
+> 
+> bootm_size is currently not set, different values is tried when
+> fdt_high/initrd_high not set:
+> 
+> bootm_size=512M
+> bootm_size=0x1fb00000
+> etc.
+> 
+> (U-boot docs are pretty unclear with exact syntax for "hex" format)
+> 
+> -------------------------- Guruplug memories at fdt-blob
+> -------------------------------------
+> memory {
+> 		device_type = "memory";
+> 		reg = <0x00000000 0x20000000>;
+> 	};
+> 
+> 
+> &nand {
+> 	status = "okay";
+> 
+> 	partition@0 {
+> 		label = "u-boot";
+> 		reg = <0x00000000 0x00100000>;
+> 		read-only;
+> 	};
+> 
+> 	partition@100000 {
+> 		label = "uImage";
+> 		reg = <0x00100000 0x00400000>;
+> 	};
+> 
+> 	partition@500000 {
+> 		label = "data";
+> 		reg = <0x00500000 0x1fb00000>;
+> 	};
+> };
+> 
+> KariTanninen
+> 
+> 
+> ################################ Minicom Terminal log
+> #####################################################
+> Welcome to minicom 2.3
+> 
+> OPTIONS: [18n
+> Compiled on Feb 26 2009, 00:28:35.
+> Port /dev/ttyUSB0
+> 
+>                  Press CTRL-A Z for help on special keys
+> 
+> 
+> => printenv
+> baudrate=115200
+> bootargs=console=ttyS0, 115200n8
+> base-installer/initramfs-tools/driver-policy=most
+> bootargs_console=console=ttyS0, 115200 root=/dev/sdb2 rootdelay=10
+> base-installer/initramfs-tools/driver-policy=most
+> bootcmd=setenv bootargs ${bootargs_console}; run bootcmd_usb; run
+> bootcmd_fdt; bootm 0x00800000 0x01100000 0x0c000000;
+> bootcmd_fdt=fdt addr 0x0c000000; fdt resize; fdt chosen; fdt list /chosen;
+> bootcmd_usb=usb start; usb start; ext2load usb 2:1 0x00800000 /uImage;
+> ext2load usb 2:1 0x01100000 /uInitrd; ext2load usb 2:1 0x0c000000 /guru
+> bootdelay=6
+> eth1addr=F0:AD:4A:00:47:00
+> ethact=egiga0
+> ethaddr=F0:AD:4A:00:46:FF
+> fdt_addr_r=0x0c000000
+> fdt_high=0xffffffff
+> fdtaddr=c000000
+> fileaddr=1100000
+> filesize=b2c4af
+> initrd_high=0xffffffff
+> ipaddr=10.4.50.6
+> kernel_addr_r=0x00800000
+> ramdisk_addr_r=0x01100000
+> serverip=10.4.50.5
+> stderr=serial
+> stdin=serial
+> stdout=serial
+> 
+> Environment size: 921/131068 bytes
+> => tftpboot 0x00800000 uImage
+> Using egiga0 device
+> TFTP from server 10.4.50.5; our IP address is 10.4.50.6
+> Filename 'uImage'.
+> Load address: 0x800000
+> Loading: #################################################################
+> #################################################################
+>          ###########
+>          4 MiB/s
+> done
+> Bytes transferred = 2060842 (1f722a hex)
+> Using egiga0 device
+> TFTP from server 10.4.50.5; our IP address is 10.4.50.6
+> Filename 'uInitrd'.
+> Load address: 0x1100000
+> Loading: #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+> #################################################################
+>          ###################
+>          3.9 MiB/s
+> done
+> Bytes transferred = 11715759 (b2c4af hex)
+> bootm 0x00800000 0x01100000
+> ## Booting kernel from Legacy Image at 00800000 ...
+>    Image Name:   Debian kernel
+>    Created:      2017-12-05  16:25:07 UTC
+>    Image Type:   ARM Linux Kernel Image (uncompressed)
+>    Data Size:    2060778 Bytes = 2 MiB
+>    Load Address: 00008000
+>    Entry Point:  00008000
+>    Verifying Checksum ... OK
+> ## Loading init Ramdisk from Legacy Image at 01100000 ...
+>    Image Name:   debian-installer ramdisk
+>    Created:      2017-12-05  16:25:07 UTC
+>    Image Type:   ARM Linux RAMDisk Image (gzip compressed)
+>    Data Size:    11715695 Bytes = 11.2 MiB
+>    Load Address: 00000000
+>    Entry Point:  00000000
+>    Verifying Checksum ... OK
+>    Loading Kernel Image ... OK
+> Starting kernel ...
+> Uncompressing Linux... done, booting the kernel.
+> 
+> 
+> 
+> 
+> 
+> Kari Tanninen kirjoitti 1.3.2018 20:01:
+> > I try tomorrow record Debian "Stretch" U-boot/uImage/uInitrd -terminal
+> > output with instructions
+> > "https://www.cyrius.com/debian/kirkwood/sheevaplug/install/";
+> > 
+> > Sorry delay, I have to load new binaries to GuruPlug and I'm not very
+> > familiar with unix command line scripting, readable minicom -output
+> > needs little tee/sed processing.
+> > 
+> > Kari Tanninen
+> > 
+> > 
+> > not very handy to make commad line scripting, terminal output
+> > 
+> > Martin Michlmayr kirjoitti 1.3.2018 15:11:
+> > > (Adding Ian Campbell.)
+> > > 
+> > > Ok, I didn't notice the version of u-boot from the log you posted and
+> > > went on what you wrote.
+> > > 
+> > > However, looking at the log file again, I notice you're loading the
+> > > DTB file separately.
+> > > 
+> > > You say you follow my installation instructions but clearly you're
+> > > not.  In Debian installer, for the various plug devices, we append to
+> > > the DTB at the end of the kernel rather than loading it separately.
+> > > 
+> > > Can you please follow the instructions at
+> > > https://www.cyrius.com/debian/kirkwood/sheevaplug/install/ and post
+> > > the output of that?
+> > > 
+> > > 
+> > > 
+> > > * Kari Tanninen <otmen@elisanet.fi> [2018-03-01 15:01]:
+> > > > I'm using Debian stretch U-boot version (U-boot version number
+> > > > is visible on
+> > > > the log-file). I have tried Debian "buster" U-boot version too,
+> > > > but it
+> > > > freezes at "Setting egiga0" point. There is warning on "Debian Armel
+> > > > installation guide", that U-boot does update kernel variables
+> > > > only on fresh
+> > > > installation, if first U-boot version is older than 2014, there
+> > > > will be
+> > > > problems becouse of "bootm_size" variable is missing and default
+> > > > value
+> > > > cannot be set.
+> > > > 
+> > > > Flattened device tree -mechanism is not using those "ATAG" global
+> > > > kernel/U-boot -variables, but problem is missing U-boot "boot_args"
+> > > > -variable, too.
+> > > > 
+> > > > Fdt-file includes that "Chosen" -field for command line
+> > > > parameters and
+> > > > U-boot has a commands to resize fdt -file and append command
+> > > > line parameters
+> > > > to it before actual boot.
+> > > > 
+> > > > U-boot sets and can read correctly that fdt-file "chosen" part.
+> > > > U-boot
+> > > > kprint line for that "chosen" value is visible on log-file.
+> > > > 
+> > > > Martin Michlmayr kirjoitti 1.3.2018 14:02:
+> > > > > * Kari Tanninen <otmen@elisanet.fi> [2018-03-01 11:26]:
+> > > > > > HW: Guruplug Server plus with JTAG-box (ARMv5-family)
+> > > > > > original U-boot pre-2014
+> > > > > ...
+> > > > > > Is there any fix-up/work-aroud trick available or is new kernel
+> > > > > > compiling
+> > > > > > only option?
+> > > > >
+> > > > > I've never had a GuruPlug so I cannot really comment but why are you
+> > > > > using the pre-2014 u-boot version?  I cannot remember all the
+> > > > > differences of the u-boot versions of the installation page says you
+> > > > > should upgrade your u-boot before installing Debian.  Maybe you can
+> > > > > give this a try.
+> > > > >
+> > > > > Based on the logs you posted, it seems to me that the kernel and
+> > > > > ramdisk are loaded but the kernel doesn't see the ramdisk, leading to
+> > > > > the "no root" issue.
+-- 
+Martin Michlmayr
+http://www.cyrius.com/

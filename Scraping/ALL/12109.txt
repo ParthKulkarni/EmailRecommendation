@@ -1,0 +1,181 @@
+To : Jose R R <jose.r.r@metztli.com>
+Subject : Re: [E-devel] EFL 1.19.0-beta3 (from git) package for Debian Experimental
+From : Carsten Haitzler (The Rasterman) <raster@rasterman.com>
+Date : Thu, 23 Mar 2017 19:04:14 +0900
+Message-id : 20170323190414.87b167378688347b072a80fa@rasterman.com
+In-reply-to : <[🔎] CAM12Q5RiyzZUTxQTXnnPQoPidJLyBYDSATLJTXxnBzMVSbbbSw@mail.gmail.com>
+References : <CAM12Q5SCMgk=W0C-==XKzF4bo8CFh-y3QJWfXGcTAD2tV1mJAw@mail.gmail.com>	<[🔎] 20170320201511.lbmu27zod7buhbcg@vanvanmojo.kallisti.us>	<[🔎] CAM12Q5TZqe2WiZXQniYQy_zTArGDsbUgaDujaKTaiYyYMskT9Q@mail.gmail.com>	<[🔎] 20170321235542.bz3kyjs6fvl5yyrg@stgulik>	<CAM12Q5QJUfF+sLdL6-hipQi610jAHfqY_dNsBG7POFVteqRh5A@mail.gmail.com>	<[🔎] 20170323145632.5115415e2259e5440f3e6d39@rasterman.com>	<[🔎] CAM12Q5RiyzZUTxQTXnnPQoPidJLyBYDSATLJTXxnBzMVSbbbSw@mail.gmail.com>
+
+
+On Thu, 23 Mar 2017 00:21:38 -0700 Jose R R <jose.r.r@metztli.com> said:
+> On Wed, Mar 22, 2017 at 10:56 PM, Carsten Haitzler <raster@rasterman.com>
+> wrote:
+> > On Wed, 22 Mar 2017 04:50:38 -0700 Jose R R <jose.r.r@metztli.com> said:
+> >
+> >> On Tue, Mar 21, 2017 at 4:55 PM, Ross Vandegrift <ross@kallisti.us> wrote:
+> >> [...]
+> >> > Oh I see - I misunderstood your previous message and thought you were
+> >> > targeting sid.  You need to backport + rebuild for jessie.  IIRC, the
+> >> > only change I needed was to remove the auto dbgsym stuff.
+> >> >
+> >> > [snip]
+> >> >> FAIL: tests/evas/evas_suite
+> >> >> ===========================
+> >> >>
+> >> >> /mnt/caxtolli/usr/src/build/enlightenment-debian/sid-omeyi/efl-1.18.4/src/tests/evas/.libs/evas_suite:
+> >> >> symbol lookup
+> >> >> error: /mnt/caxtolli/usr/src/build/enlightenment-debian/sid-omeyi/efl-1.18.4/src/lib/efl/.libs/libefl.so.1:
+> >> >> undefined symbol: _eo_call_end FAIL tests/evas/evas_suite (exit status:
+> >> >> 127)
+> >> >
+> >> > This seems suspicious - the linker can't find a symbol in libefl.so.
+> >> > Are you building with some other patches?
+> >> Nope.
+> >>
+> >> >
+> >> > [snip]
+> >> >> FAIL: tests/eio/eio_suite
+> >> >> =========================
+> >> >>
+> >> >> Running suite(s): Eio
+> >> > [snip]
+> >> >> 98%: Checks: 51, Failures: 1, Errors: 0
+> >> >> tests/eio/eio_test_manager.c:68:F:Eio
+> >> >> Job:efl_io_manager_test_ls_funcs:0: Failure '(*number_of_listed_files) !
+> >> >> = test_count' occurred
+> >> >
+> >> > I don't recall seeing this test fail before, sorry.
+> >> >
+> >> Ok, the above issues are from EFL 1.19.0 beta3 effort on a Debian Sid
+> >> (Unstable) on Reiser4 root fs.
+> >>
+> >> An EFL 1.18.4 build on Debian-Reiser4 root fs Jessie (Stable), fed
+> >> heavily from official jessie-backports repository, does succeed in
+> >> building the corresponding EFL 1.18.4 DEBs -- as long as I do three
+> >> modifications to relevant debian packaging.
+> >>
+> >> First I modify debian/rules, option: --enable-fb
+> >> -------------------------------------------------------------------------------------------------------------------------------------------------
+> >> [...]
+> >> ifeq (linux,$(DEB_HOST_ARCH_OS))
+> >>         arch_flags += --enable-fb    <=## Directive is overlooked. DEB
+> >> build fails *because* it's missing
+> >> [...]
+> >> override_dh_auto_configure:
+> >>         dh_auto_configure --verbose -- \
+> >>         [...]
+> >>         --enable-fb \       <=## Added explicitly here, satisfies
+> >> dh_install $(arch_flags)
+> >> [...]
+> >> ------------------------------------------------------------------------------------------------------------------------------------------------
+> >
+> > err so --enable-fb makes an eio test work? and makes the evas test suite
+> > work (which doesn't use fb access at all)...  THAT i don't get...
+> Hold on :) ...
+> Assuming I disable *all* tests, debian/rules *should* generate *all*
+> EFL DEB packages --but it does not, log shows hint:
+you dont have to disable tests... you actually HAVE to enable them with
+--with-tests=regular or --with-tests=coverage ... AND you then also have to do
+"make check" to compile AND run them... it requires effort to enable them and
+run them.
+> [...]
+> make[2]: Leaving directory
+> '/mnt/caxtolli/usr/src/build/enlightenment-debian/jessie-bp/efl-1.18.4'
+> make[1]: Leaving directory
+> '/mnt/caxtolli/usr/src/build/enlightenment-debian/jessie-bp/efl-1.18.4'
+>    debian/rules override_dh_install
+> make[1]: Entering directory
+> '/mnt/caxtolli/usr/src/build/enlightenment-debian/jessie-bp/efl-1.18.4'
+> dh_install --list-missing
+> dh_install: Cannot find (any matches for)
+> "debian/tmp/usr/lib/*/evas/modules/engines/fb/*/module.so" (tried in
+> "." and "debian/tmp")
+> dh_install: libevas1-engines-fb missing files:
+> debian/tmp/usr/lib/*/evas/modules/engines/fb/*/module.so
+> dh_install: Cannot find (any matches for)
+> "debian/tmp/usr/lib/*/libecore_fb.so.*" (tried in "." and
+> "debian/tmp")
+> dh_install: libecore-fb1 missing files: debian/tmp/usr/lib/*/libecore_fb.so.*
+> dh_install: usr/bin/ecore_evas_convert exists in debian/tmp but is not
+> installed to anywhere
+> [...]
+that's your packaging issue there... your packages expect files you don't have
+(eg the fb support libs and modules) ... and they fail to package up the binary
+there. you are the packager here. you should know what these mean... :)
+fyi:
+ 4:59PM ~/C/efl > make DESTDIR=/tmp/BLAH install
+...
+ 5:02PM ~/C/efl > ls /tmp/BLAH/usr/local/lib/libecore_fb*
+4.0K /tmp/BLAH/usr/local/lib/libecore_fb.la
+   0 /tmp/BLAH/usr/local/lib/libecore_fb.so@
+   0 /tmp/BLAH/usr/local/lib/libecore_fb.so.1@
+128K /tmp/BLAH/usr/local/lib/libecore_fb.so.1.19.0*
+ 5:03PM ~/C/efl > ls /tmp/BLAH/usr/local/lib/evas/modules/engines/fb/v-1.19
+total 192K
+4.0K module.la*  188K module.so*
+ 5:03PM ~/C/efl > ls /tmp/BLAH/usr/local/lib/ecore_evas/engines/fb/v-1.19
+total 88K
+4.0K module.la*   84K module.so*
+all there as expected in the destdir :) thats what packaging tools use - they
+use DESTDIR to specify "debian/tmp" athe destination dir for install
+(otherwise keeping prefix and other paths as normal)... efl does obey/follow
+this with its makefiles.
+> which hints that experimental debian packaging default debian/rules directive
+> ifeq (linux,$(DEB_HOST_ARCH_OS))
+>          arch_flags += --enable-fb
+> 
+> is being overlooked during build procedure. Accordingly, I had to
+> explicitly add --enable-fb, at the end of options, as:
+yes - so whatever your debian system is - it doesn't think it's linux. at this
+point it's your debian rules here... you do need to make sure it works... :)
+> override_dh_auto_configure:
+>         dh_auto_configure --verbose -- \
+>         --disable-rpath \
+>         --disable-silent-rules \
+>         --enable-doc \
+>         --with-profile=dev \
+>         --with-tests=regular \
+>         --with-crypto=gnutls \
+>         --disable-tslib \
+>         --enable-liblz4 \
+>         --enable-xinput22 \
+>         --enable-image-loader-webp \
+>         --enable-harfbuzz \
+>         --enable-systemd \
+>         --enable-static \
+>         --enable-image-loader-webp \
+>         --with-generic_vlc \
+>         --enable-fb \
+>         $(arch_flags)
+> 
+> That's how DEBs in reference snapshot were generated *finally*.
+no wayland i see. :( also no ibus input method support either.
+> >
+> >> Second & third, I add your code to skip two(2) failing tests :D
+> >>
+> >> Skip: src/tests/eet/eet_suite.c
+> >> Skip: src/tests/eio/eio_suite.c
+> >
+> > if you're disabling tests...
+> I am not the only one. check experimental debian/changelog for
+> references to previous deeds ;-)
+> 
+> why not just not do "make check". i do not know
+> > why your tests fail, but they should not.
+> 
+> That's why I attached relevant fail logs in previous message ;-)
+> Best Professional Regards.
+> 
+> -- 
+> Jose R R
+> http://metztli.it
+> ---------------------------------------------------------------------------------------------
+> Download Debian-Reiser4 for AMD64 https://sf.net/projects/debian-reiser4/
+> ---------------------------------------------------------------------------------------------
+> Try at no charge http://b2evolution.net for http://OpenShift.com PaaS
+> ---------------------------------------------------------------------------------------------
+> from our GitHub http://Nepohualtzintzin.com repository. Cloud the easy way!
+> 
+-- 
+------------- Codito, ergo sum - "I code, therefore I am" --------------
+The Rasterman (Carsten Haitzler)    raster@rasterman.com

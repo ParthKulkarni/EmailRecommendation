@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Re: User-installable Debian packages?
+From : Paul Wise <pabs@debian.org>
+Date : Sat, 22 Jul 2017 21:34:46 +1000
+Message-id : CAKTje6Gqo93HFGP=eMUH15kPh3+EpMK=TC10zCFWXTYsnDBcbQ@mail.gmail.com
+In-reply-to : <[🔎] b6683708-9b2b-289d-6686-82fcf7bbbeff@gmx.de>
+References : <[🔎] b6683708-9b2b-289d-6686-82fcf7bbbeff@gmx.de>
+
+
+On Sat, Jul 22, 2017 at 8:28 PM, Steffen Möller wrote:
+> user-installable packages
+That sounds like Flatpak/Snappy/etc.
+I would wager most Debian packages are not bit-for-bit identical when
+you vary the installation prefix (and Debian build tools don't support
+doing that AFAICT), but you can almost fake user-installable packages
+using existing binary packages using something like this (sorry about
+the wrapping). If we were all using Hurd then a few extra overlay
+mount points would be enough of course.
+==> .bash.d/software <==
+export PATH=$PATH:~/software/usr/bin:~/software/bin
+export LD_LIBRARY_PATH=~/software/usr/lib:~/software/usr/lib/x86_64-linux-gnu:~/software/lib:~/software/lib/x86_64-linux-gnu
+export PERL5LIB=~/software/usr/share/perl5
+export PYTHONPATH=~/software/usr/lib/python2.7/dist-packages
+==> software/update <==
+#!/bin/sh
+rm -rf usr apt/archives/*.deb
+rsync --delete --archive --exclude archives /var/cache/apt/ apt/
+rsync --delete --archive --exclude lock --exclude Lock /var/lib/dpkg/ dpkg/
+apt-get -o 'Dir::Cache=/home/pabs/software/apt' -o
+'Dir::State::status=/home/pabs/software/dpkg/status' --download-only
+install foo
+for f in apt/archives/*.deb ; do
+    dpkg -x $f .
+done
+-- 
+bye,
+pabs
+https://wiki.debian.org/PaulWise

@@ -1,0 +1,52 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Re: Removal of upstart integration
+From : Christian Seiler <christian@iwakd.de>
+Date : Sun, 24 Sep 2017 01:52:45 +0200
+Message-id : b0819171-4fec-1cba-c757-a6fa44e0c328@iwakd.de
+Reply-to : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+In-reply-to : <[🔎] b27c7e73-8522-4f5d-1cb9-db5c5c969725@debian.org>
+References : <CANBHLUh_ZhEfbkVnOp8iM-j+4xVo5rzORvknVptyUna+b6B-EA@mail.gmail.com> <[🔎] CADsTwjJpe1RmVcR2r+GpAWMzSHFXTK3jw-DaMLqnr2AiHCLuMw@mail.gmail.com> <[🔎] 22969.10990.314064.367698@chiark.greenend.org.uk> <[🔎] b27c7e73-8522-4f5d-1cb9-db5c5c969725@debian.org>
+
+
+On 09/24/2017 01:32 AM, Thomas Goirand wrote:
+> On 09/13/2017 02:56 PM, Ian Jackson wrote:
+>> Alexandre Detiste writes ("Re: Removal of upstart integration"):
+>>> Please also sprinkle these maintainers scripts with some
+>>>
+>>>   rmdir /etc/init  --ignore-fail-on-non-empty
+>>
+>> That should be
+>>
+>>   rmdir --ignore-fail-on-non-empty /etc/init
+>>
+>> in case an environment variable is set requesting traditional
+>> (non-GNU) positional option parsing.
+>>
+>> Ian.
+> 
+> I didn't know such an env var even existed. Would you mind expliciting
+> what this env var is exactly?
+POSIXLY_CORRECT. Try it yourself:
+ls / -l
+POSIXLY_CORRECT= ls / -l
+See also:
+https://manpages.debian.org/stretch/manpages-dev/getopt.3.en.html
+Since not every program does option parsing via getopt(3) the
+situation is actually a bit more involved in general. There are
+the following three possible things that can happen:
+ - Programs that either use getopt(3) or manually implement
+   POSIXLY_CORRECT will show the same behavior as ls or rmdir:
+   use pure POSIX semantics if the option is set and use the
+   GNU extension (which mainly boils down to allowing options
+   after parameters) if it's not set.
+ - Other programs that implement option parsing manually or use
+   another library than getopt(3) will only follow pure POSIX
+   semantics.
+ - Yet other programs that implement option parsing manually or
+   use another library than getopt(3) will only follow the GNU
+   extension (or at least a variant thereof).
+In the case of most programs such as cp, ls, rmdir etc.
+getopt(3) is used and the environment variable does have an
+effect.
+Regards,
+Christian

@@ -1,0 +1,100 @@
+To : submit@bugs.debian.org
+Subject : ITP: vspline -- generic C++ code for uniform b-splines, remap functions
+From : "Kay F. Jahnke" <kfjahnke@gmail.com>
+Date : Thu, 6 Jul 2017 09:16:17 +0200
+Message-id : 3344d1b0-d613-76e3-48c6-fb758b186ebe@gmail.com
+
+
+Package: wnpp
+Severity: wishlist
+Owner: "Kay F. Jahnke" <kfjahnke@gmail.com>
+User: debian-science@lists.debian.org
+Usertags: field..mathematics
+* Package name    : vspline
+  Version         : 0.1.1
+  Upstream Author : Kay F. Jahnke <kfjahnke@gmail.com>
+* URL             : https://bitbucket.org/kfj/vspline
+* License         : EXPAT
+  Programming Lang: C++11
+  Description     : generic C++ code for uniform b-splines, remap functions
+vspline is a header-only generic C++ library trying to address all
+aspects of uniform b-splines. This includes b-spline prefiltering
+(conversion of the source data into b-spline coefficients), evaluation
+of the spline, and mass evaluation of data with remap-like functions.
+I am the developer of this software, and members of the debian science
+team have  suggested I should get involved with packaging. The code is
+now ready to be packaged, there is a repository at alioth already with
+packaging information:
+https://anonscm.debian.org/cgit/debian-science/packages/vspline.git
+I intend to do the packaging.
+I do seek for a mentor/sponsor.
+Here's my writeup about vspline:
+vspline can create uniform b-splines of
+ -  real data types and their aggregates [*]
+ -  coming in strided memory
+ -  with a reasonable selection of boundary conditions
+ -  used in either an implicit or an explicit scheme of extrapolation
+ -  arbitrary spline order (up to 24)
+ -  arbitrary dimensions of the spline
+ -  with multithreaded code
+ -  optionally using the CPU's vector units
+on the evaluation side it provides
+ -  evaluation of the spline at point locations in the defined range
+ -  evaluation of the spline's derivatives
+ -  mapping of arbitrary coordinates into the defined range
+ -  evaluation of nD arrays of coordinates ('remap' function)
+ -  target coordinate-fed remap function ('index_remap')
+ -  functor-based remap, aka 'transform' function
+ -  functor-based 'apply' function
+[*] I use 'aggregate' here in the sense of 'several of the same type',
+    rather than 'several of any type'
+while there is no lack of freely available b-spline code, vspline's aim
+is to provide very fast prefiltering and evaluation by exploiting
+multithreading and (optionally) the CPU's vector units. multithreading
+is done with a tailor-made multithreading implementation using a thread
+pool, while vectorization is done generically by using Vc. vspline's
+remap routines bring these multithreading and vectorization capabilities
+to bear when processing/generating mass data. The remapping routines can
+produce interpolated values for nD arrays of coordinates or, more
+generally, operate with functors which allow for the processing of
+arbitrary value-generating pipelines. vspline's current main focus is on
+image processing, but since the code is dimension-agnostic, it can
+handle volume data as well, and there are specializations for 1D data, too.
+vspline relies on vigra for data handling; vigra offers a convenient
+zero-overhead nD array 'view' type, which can easily adopt regular nD
+data by passing their shape and strides. It also offers efficient
+handling of small aggregates of uniform type (like pixels) which vspline
+also relies on.
+I use the code in vspline in it's companion project pv, which is a
+panoramic image viewer, available from
+https://bitbucket.org/kfj/pv
+vspline is probably beta stage, but due to the steady use in pv it is
+well-tuned especially for image processing. The code has stabilized
+nicely, so I think that presenting it to debian is appropriate. The very
+low version number is due to the recent adoption of a debian-friendly
+tagging scheme. Nevertheless I'd say that vspline is still experimental
+- I only have access to a limited set of systems to experiment with, and
+there are quite a few heuristics in the code which are probably
+suboptimal on some targets. I'd welcome others to experiment with the
+code and share their results to improve vspline.
+When I started working on b-splines a few years ago, I worked a lot with
+libeinspline, which is also available as a debian package, but is coded
+in C and only offers cubic b-splines in up to three dimensions. I wanted
+a wider scope and a modern code base in C++, and I wanted to use the
+signal processing approach to b-splines rather than the linear algebra
+approach used in libeinspline, so I set out on vspline. vigra, which I
+use for data handling, also offers b-spline code, but I felt more
+comfortable implementing the maths myself to fine-tune weight
+generation, multithreading and vectorization, and also to make the
+spline degree a run-time parameter rather than a template parameter.
+Another source for b-spline code is opencv, which also offers a
+remap function using b-spline interpolation, as does scipy. I made an
+attempt to extend the concept of remapping. The classical remap function
+takes an array of coordinates and produces an equally-shaped array of
+interpolated values. This can be seen as a specialization of an 'apply'
+or 'transform' function where the coordinate value is transformed into
+the interpolated value at this location. vspline provides multithreaded, 
+vectorized apply and transform routines and implements remapping as a 
+specialization.
+With regards
+Kay F. Jahnke

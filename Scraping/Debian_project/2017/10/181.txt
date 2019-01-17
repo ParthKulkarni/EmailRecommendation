@@ -1,0 +1,52 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>, 857452@bugs.debian.org
+Subject : Re: Bug#857452: Steps towards a patch to document disabling a daemon upon installation
+From : Felipe Sateler <fsateler@debian.org>
+Date : Thu, 5 Oct 2017 09:57:00 -0300
+Message-id : CAAfdZj87hKXxBKd3f0q+8Dx93cLhF_krW3ibh_kESyPfftmR1w@mail.gmail.com
+In-reply-to : <22967.55235.385194.202775@chiark.greenend.org.uk>
+References : <87efrfvc5p.fsf@iris.silentflame.com> <22966.37496.665485.820932@chiark.greenend.org.uk> <148923716048.1282.266349224107051374.reportbug@nana.phantasia.die-welt.net> <op6q3g$1ps$1@blaine.gmane.org> <22967.55235.385194.202775@chiark.greenend.org.uk>
+
+
+On Tue, Sep 12, 2017 at 9:49 AM, Ian Jackson
+<ijackson@chiark.greenend.org.uk> wrote:
+> Felipe Sateler writes ("Re: Steps towards a patch to document disabling a daemon upon installation"):
+>>  I suggest instead mentioning the real reasons its bad:
+>
+> Thanks for providing real reasons.
+>
+>> > I can't speak to the behaviour of systemd, but I think the
+>> >   update-rc.d add-disabled
+>> > operation I propose would, for sysvinit systems, do the follow:
+>> > 1. Are there already rc*.d links for DAEMON ?  If so, do nothing.
+>> > 2. If not, create them in the way that  defaults && disable
+>> >   would have done.
+>>
+>> Currently, update-rc.d leaves all the hard work to insserv under sysvinit.
+>
+> Yes.
+>
+>> The behaviour would have to change to check if any links exist and skip
+>> invoking insserv in that case. I am not sure if that would mean a behavior
+>> change though. Maybe this early in the release cycle is a good time to
+>> try these kinds of changes.
+>
+> I think that the right thing for `update-rc.d defaults-disabled' is to
+> do this:
+>  1. check to see if any links already exist
+>       if they do, do nothing else
+>  2. parse the init script to find the default-start and default-stop
+>       runlevels
+>  3. run
+>       insserv add DAEMON,stop=RLVL,RLVL,....
+>     (for the complete set of start and stop runlevels)
+>
+> After this, the script is run for `stop' in each of those runlevels,
+> roughly like update-rc.d disable would do (the sequence numbers will
+> briefly not be identical, until insserv is re-run).
+I have a branch that does some refactoring to update-rc.d and adds the
+new command[1]
+Review welcome.
+[1] https://anonscm.debian.org/cgit/collab-maint/init-system-helpers.git/log/?h=refactor
+-- 
+Saludos,
+Felipe Sateler

@@ -1,0 +1,46 @@
+To : Ben Hutchings <ben@decadent.org.uk>
+Subject : Bug#860472: apt-setup: switch fallback mirror from ftp.debian.org to deb.debian.org?
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 17 Apr 2017 22:03:04 +0200
+Message-id : 20170417200304.GA23295@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 860472@bugs.debian.org
+In-reply-to : <[🔎] 1492459032.2409.108.camel@decadent.org.uk>
+References : <[🔎] 20170417132537.4018.90339.reportbug@armor.home> <[🔎] 1492459032.2409.108.camel@decadent.org.uk>
+
+
+Control: tag -1 patch pending
+Ben Hutchings <ben@decadent.org.uk> (2017-04-17):
+> On Mon, 2017-04-17 at 15:25 +0200, Cyril Brulebois wrote:
+> > Package: apt-setup
+> > Severity: normal
+> > 
+> > We have a few places with a default mirror, e.g. debootstrap, and we've
+> > had a few changes over the years with http.debian.net and other things.
+> > Lately, we seem to have standardized on deb.debian.org, which might be a
+> > good fallback for apt-setup too:
+> > 
+> > kibi@armor:~/debian-installer/packages/apt-setup/generators$ git grep ftp.debian.org
+> > > 92updates:      echo "# deb http://ftp.debian.org/debian/ ${codename}-updates $dists" >> $file
+> > > 92updates:      echo "# deb-src http://ftp.debian.org/debian/ ${codename}-updates $dists" >> $file
+> > > 93backports:    echo "# deb http://ftp.debian.org/debian/ ${codename}-backports $dists" >> $file
+> > > 93backports:    echo "# deb-src http://ftp.debian.org/debian/ ${codename}-backports $dists" >> $file
+> > 
+> > Comments/objections?
+> 
+> I agree we should use deb.debian.org as a 'safe' default mirror.  We
+> should certainly not put a hostname in APT sources that doesn't
+> correspond to a tightly synched set of servers.
+Thanks for your input, just pushed a patch to master. I should have
+mentioned this is the fallback when a mirror wasn't selected, in
+this code path:
+    if  [ -n "$protocol" ] && [ -n "$host" ]; then
+            echo "deb $protocol://${host}${directory} ${codename}-updates $dists" >> $file
+    else
+            echo "# A network mirror was not selected during install.  The following entries" >> $file
+            echo "# are provided as examples, but you should amend them as appropriate" >> $file
+            echo "# for your mirror of choice." >> $file
+            echo "#" >> $file
+            echo "# deb http://deb.debian.org/debian/ ${codename}-updates $dists" >> $file
+    fi
+KiBi.
+signature.asc

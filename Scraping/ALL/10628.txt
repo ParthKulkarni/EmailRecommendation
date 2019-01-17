@@ -1,0 +1,208 @@
+To : John Johansen <john.johansen@canonical.com>
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : Guido Günther <agx@sigxcpu.org>
+Date : Sun, 10 Sep 2017 18:10:33 +0200
+Message-id : 20170910161033.ddwyw4anpizyqfiw@bogon.m.sigxcpu.org
+Mail-followup-to : Guido Günther <agx@sigxcpu.org>,	John Johansen <john.johansen@canonical.com>,	intrigeri <intrigeri@debian.org>, debian-devel@lists.debian.org,	Tyler Hicks <tyhicks@canonical.com>,	Steve Beattie <steve.beattie@canonical.com>,	Seth Arnold <seth.arnold@canonical.com>,	Christian Boltz <apparmor-debian@cboltz.de>
+In-reply-to : <[🔎] 1d280c7a-0b68-d5d8-a889-5b03531883c0@canonical.com>
+References : <857eyij4fb.fsf@boum.org> <slrnoodm52.55v.jmm@inutil.org> <85zibcr9t5.fsf@boum.org> <226a3f19-63e7-b37c-0b2b-205456609048@iwakd.de> <slrnoogef4.20r.jmm@inutil.org> <853790qvh5.fsf@boum.org> <4715b734-f3a5-8434-169b-dd02e9f6f07d@canonical.com> <[🔎] 8560crtzxz.fsf@boum.org> <[🔎] 1d280c7a-0b68-d5d8-a889-5b03531883c0@canonical.com>
+
+
+Hi John,
+very interesting read!
+On Sat, Sep 09, 2017 at 02:07:32PM -0700, John Johansen wrote:
+> On 09/09/2017 12:49 PM, intrigeri wrote:
+> > Hi John et al,
+> > 
+> > John Johansen:
+> >> On 08/09/2017 02:31 PM, intrigeri wrote:
+> >>> Moritz Mühlenhoff:
+> >>>> Christian Seiler <christian@iwakd.de> schrieb:
+> >>>>> Another thing to consider: if a profile is too restrictive, but the
+> >>>>> part that is too restrictive isn't in the upstream kernel yet, then
+> >>>>> things could break if you upgrade the kernel to a newer version from
+> >>>>> e.g. backports later on. How would you deal with that kind of
+> >>>>> breakage during the lifetime of a stable release?
+> >>>
+> >>>> Agreed, that was pretty much my concern.
+> >>>
+> >>> Thank you so much for highlighting problems I had missed! :)
+> >>>
+> >>> A simple, but not entirely satisfying answer is:
+> >>>
+> >>> 1. Gather info about how real this problem has been in practice for
+> >>>    Ubuntu: they frequently update their kernel for various already
+> >>>    released distros with the latest AppArmor bits. I think they
+> >>>    occasionally have to update other packages accordingly to adjust
+> >>>    AppArmor policy. I don't know how often this happens. I'll ask them
+> >>>    to compile a list of such stable updates.
+> > 
+> >> [...]
+> >> The question specifically asks about, an updated kernel with a policy
+> >> that was developed under a different feature set, suddenly breaking
+> >> when a new kernel is run on an older system.
+> > 
+> > Right.
+> > 
+> > Below you elaborate about ABI compatibility between the kernel,
+> > userspace and policy. Thanks, I've learned a lot!
+> > 
+> > But even more specifically, the question was about policy updates
+> > mandated to avoid breaking *confined applications* when upgrading to
+> > a kernel that mediates more interfaces than the one in Debian stable.
+> > 
+> 
+> haha, I had a broader answer dealing with some of this and upon review
+> had decided the question was about a newer kernel on an older release,
+> and it would be best to have concise answers around that :)
+> 
+> > Christian Seiler put it clearly (quoted above) but here's a more
+> > practical example: say 1. D-Bus mediation lands in Linux
+> > 4.15 (totally made up, but this would be nice!); 2. I run Debian
+> > Stretch; 3. I have to run Linux 4.15+ from stretch-backports (e.g.
+> > on a shiny laptop that needs recent drivers). Then any AppArmor
+> > profile shipped in Debian Stretch that was developed without D-Bus
+> > mediation in mind can potentially start breaking the application
+> > it confines.
+> > 
+> This is true, hence the suggestion to pin the feature set by
+> setting the features file in parser.conf  This would prevent policy
+> from enforcing the dbus feature, and prevent the application
+> from breaking.
+> 
+> I will admit this is not ideal because it applies to all policy loaded
+> in the namespace (a container could have its own parser and flags)
+> unless policy is manually loaded with a flag to override it. Which
+> prevents policy that has been developed with the new feature from
+> taking advantage of it in this scenario.
+> 
+> There is some work to expose the feature set to policy which will let
+> policy conditionally choose which features it supports but I can't
+> promise when that work will land.
+> 
+> > So our questions to Ubuntu & other distros are:
+> > How have you been dealing with such problems in the past few years?
+> > How often did you have to update packages in a stable release in
+> > order to fix them?
+> > 
+> > Now, simply enabling AppArmor by default during the Buster development
+> > cycle will give us some of the answers:  given many AppArmor features
+> > will land in Linux in the next months/years, we *will* notice if our
+> > policy is outdated :)
+> > 
+> 
+> So there are four separate components (kernel, userspace, policy,
+> application) to discuss here and different potential problems,
+> depending on the combination.
+> 
+> - kernel: If the kernel is backported and the feature set is pinned
+>   there is a low likely hood of problems. As I addressed previously
+>   there is the potential for a kernel to make changes beyond
+>   apparmor's control that change how/what permission requests reach
+>   apparmor and this can cause problems. Thankfully in practice this
+>   has not happened often.
+> 
+> - apparmor userspace: Baring bugs, new userspaces should just work
+>   with old kernels. Even if the feature set is not pinned, the
+>   userspace will use the old kernel's feature set, so it is equivalent
+>   to pinning.
+> 
+> - applications: When newer versions of applications are backported
+>   they can break under old policy because they provide new features
+>   that old policy wasn't designed for.  Policy must be tested and
+>   updated as part of an application backport/SRU.
+This (and somewhat related the next point) is the reason why policy
+should be shipped by the application (that is the Debian package
+containing the application), not in an apparmor-profiles package. This
+makes sure the profile matches the application. Everything else calls
+out for trouble.
+Cheers,
+ -- Guido
+> 
+> - policy: The backporting of policy is the most problematic. New
+>   policy shouldn't be dropped onto older applications without testing.
+> 
+>   Also new policy may make use of features that are not supported by
+>   an older userspace. In this case policy should be adjusted or a
+>   newer apparmor userspace can be used.  If the feature set is pinned
+>   the apparmor userspace can gracefully downgrade unsupported features
+>   so that new policy can work on older feature sets (you can also
+>   configure it to warn or abort).
+> 
+>   The single biggest problem is applications that would like to share
+>   a single policy across multiple releases. Ie.  they only want to
+>   maintain a single policy for Stretch, and Buster but Stretch
+>   apparmor userspace doesn't support some feature required in Buster.
+> 
+>   Currently this requires backporting a newer apparmor userspace and
+>   pinning of the feature set if the kernel changes.
+> 
+>   There is work in progress to allow older parsers to recognize and
+>   downgrade new features without directly supporting them but I can
+>   not say when this will land.
+> 
+> 
+> Speaking from experience with Ubuntu, the kernel backports are seldom
+> problematic. We have seen the most issues around application
+> backports; either policy needing to be updated if it is not shipped as
+> part of the application, or the application policy requiring features
+> not supported by the apparmor userspace. This can be dealt with by
+> either editing the policy or backporting a newer apparmor userspace.
+> 
+> These issues should be and generally are caught during the SRU
+> process.
+> 
+> >>>> Ideally the feature set used would also be controlled by the
+> >>>> apparmor userspace side.
+> >>>
+> >>> If we need to go this far: apparmor_parser has a --features-file
+> >>> option that we could leverage to tie the feature set being used to
+> >>> something else than the version of the running kernel, e.g.
+> >>> with a file shipped in a new package built from src:linux with
+> >>> appropriate versioned dependencies.
+> > 
+> >> the feature file can indeed be specified on the command line using
+> >> --feature-file, but from a support pov I think specifying it in the
+> >> config file
+> > 
+> >>   apparmor/subdomain.conf
+> > 
+> > Do you mean /etc/apparmor/parser.conf?
+> > I can't find anything related in subdomain.conf(5).
+> > 
+> 
+> ah yep, oops there used to be a subdomain.conf, back before Novell
+> renamed the project to AppArmor.
+> 
+> >> would be better as then you don't have to mess with initscripts, unit
+> >> files, etc.
+> > 
+> > Absolutely. I guess we would want a package built from src:apparmor to
+> > ship that conffile containing "features-file XYZ", where XYZ encodes
+> > the feature set supported by the policy in the version of Debian this
+> > src:apparmor was built for. Which raises a number of technical and
+> > policy questions, not all of them trivial, so I want to first check
+> > whether we really need to go that far (see above).
+> > 
+> >> 4.14 - isn't fully decided yet, but it should pickup everything except
+> >>        maybe the extended unix socket mediation
+> > 
+> > Just curious: does this "everything except" include D-Bus mediation?
+> > 
+> 
+> No D-Bus mediation depends on the extended unix domain socket
+> mediation.
+> 
+> And I can now say that the extended unix socket mediation didn't make
+> it into 4.14 but everything else did. So you can use basic af socket
+> rules.
+> 
+> >> There is recognition that this was the wrong approach and there is
+> >> now an upstream first policy.
+> > 
+> > This, along with the vivid collaboration I see between the GNOME and
+> > Ubuntu projects these days, is very good news :)
+> > 
+> > Cheers,
+> > 
+>

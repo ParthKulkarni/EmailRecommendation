@@ -1,0 +1,52 @@
+To : 902870@bugs.debian.org
+Subject : Bug#902870: USB-3 controller not workable with Linux 4.16 or 4.15 respectively
+From : andrew glaeser <bugs@irregulaire.info>
+Date : Wed, 4 Jul 2018 09:29:30 +0200
+Message-id : 20180704092930.0432f613@a68n.lokal
+Reply-to : andrew glaeser <bugs@irregulaire.info>, 902870@bugs.debian.org
+References : <[🔎] 20180702171218.15fabc9a@a68n.lokal>
+
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+The problem appears like this:
+> [    2.672381] xhci_hcd 0000:02:00.0: Refused to change power state,
+> currently in D3 [    2.672452] xhci_hcd 0000:02:00.0: xHCI Host Controller
+> [    2.672460] xhci_hcd 0000:02:00.0: new USB bus registered, assigned bus
+> number 8 [    2.672469] xhci_hcd 0000:02:00.0: Host halt failed, -19
+> [    2.672470] xhci_hcd 0000:02:00.0: can't setup: -19
+> [    2.672508] xhci_hcd 0000:02:00.0: USB bus 8 deregistered
+> [    2.672533] xhci_hcd 0000:02:00.0: init 0000:02:00.0 fail, -19
+The USB3-controller worked and was hot-pluggable with stock kernel 4.9, but
+not with kernel 4.16, with ubuntu 18.04 it is exactly the same thing, there
+are several offerings regarding the issue on the web, but the fix does not
+seem to be trivial, at least I cannot see the solution yet:
+It is the xhci_pci module:
+> > 02:00.0 0c03: 1912:0015 (rev ff) (prog-if ff)
+> >         !!! Unknown header type 7f
+> >         Kernel modules: xhci_pci
+here are some proposals:
+https://unix.stackexchange.com/questions/276439/nvme-pcie-disk-power-cycling
+https://help.ubuntu.com/community/Asus_U36SD
+https://ask.fedoraproject.org/en/question/41436/usb30-is-not-functional-due-to-xhci_hcd-cant-setup-on-fedora-20/
+This does not help:
+> root@OptiPlex-580:/home/user# cat /etc/default/grub 
+> # If you change this file, run 'update-grub' afterwards to update
+> # /boot/grub/grub.cfg.
+> # For full documentation of the options in this file, see:
+> #   info -f grub -n 'Simple configuration'
+> 
+> GRUB_DEFAULT=0
+> GRUB_HIDDEN_TIMEOUT=0
+> GRUB_HIDDEN_TIMEOUT_QUIET=true
+> GRUB_TIMEOUT=10
+> GRUB_DISTRIBUTOR=`lsb_release -i -s 2> /dev/null || echo Debian`
+> GRUB_CMDLINE_LINUX_DEFAULT="quiet splash xhci.enable=1"
+> GRUB_CMDLINE_LINUX=""
+> 
+ 
+-----BEGIN PGP SIGNATURE-----
+iF0EARECAB0WIQTF9uNaslvnJpWt8kXn6sEfJS3nCwUCWzx3WgAKCRDn6sEfJS3n
+CzHCAKC1fNQoikoBwwXwE3ANO72o4VVTzwCgtBO5c5MVNsKAa9bstJWFxAYkIM0=
+=/TZG
+-----END PGP SIGNATURE-----

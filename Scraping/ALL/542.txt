@@ -1,0 +1,262 @@
+To : 894713@bugs.debian.org
+Subject : Re: Bug#894713: stretch-pu:  apache2/2.4.25-3+deb9u5
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Sun, 13 May 2018 19:15:22 +0200
+Message-id : 381572461.U70aQcU6Zo@k
+In-reply-to : <152275725330.3199.10882644970793316680.reportbug@manul.sfritsch.de>
+References : <152275725330.3199.10882644970793316680.reportbug@manul.sfritsch.de>
+
+
+Hi,
+On Tuesday, 3 April 2018 14:07:33 CEST Stefan Fritsch wrote:
+> I would like to do an upgrade of apache2 in stretch that upgrades the
+> complete mod_http2 and mod_proxy_http2 modules from the versions from
+> 2.4.25 to the versions from 2.4.33.
+> 
+> The reason is that the fix for CVE-2018-1302 [1] is difficult to
+> backport because it concerns a complex life-time issue of data
+> structures, the relevant code has changed greatly between 2.4.25 and
+> 2.4.33, and I am not familiar with the internals of mod_http2.  There
+> are other random segfaults [2] and other bugs [3] in stretch's mod_http2
+> that are reportedly fixed by newer mod_http2. Therefore, upgrading the
+> whole thing seems like the best solution to me. Do you agree with this
+> approach?
+I have now prepared updated packages. The changelog diff is:
+apache2 (2.4.25-3+deb9u5) stretch; urgency=medium
+  * Upgrade mod_http and mod_proxy_http2 to the versions from 2.4.33. This
+    fixes
+    - CVE-2018-1302: mod_http2: Potential crash w/ mod_http2
+    - Segfaults in mod_http2 (Closes: #873945)
+    - mod_http2 issue with option "Indexes" and directive "HeaderName"
+      (Closes: #850947)
+  * mod_http2: Avoid high memory usage with large files, causing crashes on
+    32bit archs. Closes: #897218
+  * Make the apache-htcacheclean init script actually look into
+    /etc/default/apache-htcacheclean for its config. Closes: #898563
+ -- Stefan Fritsch <sf@debian.org>  Sun, 13 May 2018 17:43:20 +0200
+A partial debdiff without the mod_http2-upgrade-to-2.4.33.diff file is 
+attached. The full debdiff is available at [1] (probably too large for mailing 
+lists). The diffstat of the  mod_http2-upgrade-to-2.4.33.diff file is included 
+below [2].
+Cheers,
+Stefan
+[1] https://www.sfritsch.de/~stf/apache2_2.4.25-3+deb9u5~test1/
+apache2_2.4.25-3+deb9u5.debdiff 
+[2]
+ configure                        |    2 
+ modules/http2/NWGNUmod_http2     |    2 
+ modules/http2/config2.m4         |   23 
+ modules/http2/h2.h               |   46 -
+ modules/http2/h2_alt_svc.c       |   13 
+ modules/http2/h2_alt_svc.h       |   13 
+ modules/http2/h2_bucket_beam.c   |  892 ++++++++++++----------
+ modules/http2/h2_bucket_beam.h   |  147 ++-
+ modules/http2/h2_bucket_eoc.c    |  110 --
+ modules/http2/h2_bucket_eoc.h    |   32 
+ modules/http2/h2_bucket_eos.c    |   18 
+ modules/http2/h2_bucket_eos.h    |   13 
+ modules/http2/h2_config.c        |   38 
+ modules/http2/h2_config.h        |   15 
+ modules/http2/h2_conn.c          |  156 ++-
+ modules/http2/h2_conn.h          |   16 
+ modules/http2/h2_conn_io.c       |  138 +--
+ modules/http2/h2_conn_io.h       |   27 
+ modules/http2/h2_ctx.c           |   15 
+ modules/http2/h2_ctx.h           |   13 
+ modules/http2/h2_filter.c        |  165 ++--
+ modules/http2/h2_filter.h        |   26 
+ modules/http2/h2_from_h1.c       |   54 -
+ modules/http2/h2_from_h1.h       |   13 
+ modules/http2/h2_h2.c            |   25 
+ modules/http2/h2_h2.h            |   13 
+ modules/http2/h2_headers.c       |   31 
+ modules/http2/h2_headers.h       |   19 
+ modules/http2/h2_mplx.c          | 1551 ++++++++++++++++
++----------------------
+ modules/http2/h2_mplx.h          |   84 --
+ modules/http2/h2_ngn_shed.c      |   30 
+ modules/http2/h2_ngn_shed.h      |   13 
+ modules/http2/h2_private.h       |   13 
+ modules/http2/h2_proxy_session.c |   94 +-
+ modules/http2/h2_proxy_session.h |   23 
+ modules/http2/h2_proxy_util.c    |  296 +++++++
+ modules/http2/h2_proxy_util.h    |   64 +
+ modules/http2/h2_push.c          |   20 
+ modules/http2/h2_push.h          |   14 
+ modules/http2/h2_request.c       |   34 
+ modules/http2/h2_request.h       |   13 
+ modules/http2/h2_session.c       | 1432 +++++++++++++++++-------------------
+ modules/http2/h2_session.h       |   76 -
+ modules/http2/h2_stream.c        | 1208 ++++++++++++++++++------------
+ modules/http2/h2_stream.h        |  179 ++--
+ modules/http2/h2_switch.c        |   29 
+ modules/http2/h2_switch.h        |   13 
+ modules/http2/h2_task.c          |  250 +++---
+ modules/http2/h2_task.h          |   26 
+ modules/http2/h2_util.c          | 1017 ++++++++++++++++++++-----
+ modules/http2/h2_util.h          |  188 ++++
+ modules/http2/h2_version.h       |   33 
+ modules/http2/h2_worker.c        |  103 --
+ modules/http2/h2_worker.h        |  135 ---
+ modules/http2/h2_workers.c       |  587 ++++++--------
+ modules/http2/h2_workers.h       |   82 --
+ modules/http2/mod_http2.c        |   37 
+ modules/http2/mod_http2.dep      |  118 --
+ modules/http2/mod_http2.dsp      |    8 
+ modules/http2/mod_http2.h        |   13 
+ modules/http2/mod_http2.mak      |   18 
+ modules/http2/mod_proxy_http2.c  |  208 ++---
+ modules/http2/mod_proxy_http2.h  |   13 
+ 63 files changed, 5534 insertions(+), 4563 deletions(-)
+diff -Nru apache2-2.4.25/debian/apache2.apache-htcacheclean.init apache2-2.4.25/debian/apache2.apache-htcacheclean.init
+--- apache2-2.4.25/debian/apache2.apache-htcacheclean.init	2018-03-31 10:45:18.000000000 +0200
++++ apache2-2.4.25/debian/apache2.apache-htcacheclean.init	2018-05-13 17:43:20.000000000 +0200
+@@ -30,6 +30,13 @@
+ HTCACHECLEAN_PATH="${HTCACHECLEAN_PATH:=/var/cache/apache2$DIR_SUFFIX/mod_cache_disk}"
+ HTCACHECLEAN_OPTIONS="${HTCACHECLEAN_OPTIONS:=-n}"
+ 
++# Read configuration variable file if it is present
++if [ -f /etc/default/apache-htcacheclean$DIR_SUFFIX ] ; then
++       . /etc/default/apache-htcacheclean$DIR_SUFFIX
++elif [ -f /etc/default/apache-htcacheclean ] ; then
++       . /etc/default/apache-htcacheclean
++fi
++
+ PIDDIR="/var/run/apache2/$RUN_USER"
+ PIDFILE="$PIDDIR/$NAME.pid"
+ DAEMON_ARGS="$HTCACHECLEAN_OPTIONS \
+diff -Nru apache2-2.4.25/debian/changelog apache2-2.4.25/debian/changelog
+--- apache2-2.4.25/debian/changelog	2018-03-31 10:47:16.000000000 +0200
++++ apache2-2.4.25/debian/changelog	2018-05-13 17:43:20.000000000 +0200
+@@ -1,3 +1,18 @@
++apache2 (2.4.25-3+deb9u5) stretch; urgency=medium
++
++  * Upgrade mod_http and mod_proxy_http2 to the versions from 2.4.33. This
++    fixes
++    - CVE-2018-1302: mod_http2: Potential crash w/ mod_http2
++    - Segfaults in mod_http2 (Closes: #873945)
++    - mod_http2 issue with option "Indexes" and directive "HeaderName"
++      (Closes: #850947)
++  * mod_http2: Avoid high memory usage with large files, causing crashes on
++    32bit archs. Closes: #897218
++  * Make the apache-htcacheclean init script actually look into
++    /etc/default/apache-htcacheclean for its config. Closes: #898563
++
++ -- Stefan Fritsch <sf@debian.org>  Sun, 13 May 2018 17:43:20 +0200
++
+ apache2 (2.4.25-3+deb9u4) stretch-security; urgency=medium
+ 
+   * CVE-2017-15710: mod_authnz_ldap: Out of bound write in mod_authnz_ldap
+diff -Nru apache2-2.4.25/debian/patches/CVE-2017-7659.diff apache2-2.4.25/debian/patches/CVE-2017-7659.diff
+--- apache2-2.4.25/debian/patches/CVE-2017-7659.diff	2018-03-31 10:45:18.000000000 +0200
++++ apache2-2.4.25/debian/patches/CVE-2017-7659.diff	1970-01-01 01:00:00.000000000 +0100
+@@ -1,33 +0,0 @@
+-#commit 672187c168b94b562d8065e08e2cad5b00cdd0e3
+-#Author: Stefan Eissing <icing@apache.org>
+-#Date:   Wed Feb 1 20:40:38 2017 +0000
+-#
+-#    On the trunk:
+-#    
+-#    mod_http2: fix for crash when running out of memory. Initial patch by Robert Swiecki <robert@swiecki.net>
+-#    
+-#    
+-#    
+-#    git-svn-id: https://svn.apache.org/repos/asf/httpd/httpd/trunk@1781304 13f79535-47bb-0310-9956-ffa450edef68
+-#
+---- apache2.orig/modules/http2/h2_stream.c
+-+++ apache2/modules/http2/h2_stream.c
+-@@ -286,11 +286,13 @@ apr_status_t h2_stream_set_request_rec(h
+-         return APR_ECONNRESET;
+-     }
+-     status = h2_request_rcreate(&req, stream->pool, r);
+--    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, status, r, APLOGNO(03058)
+--                  "h2_request(%d): set_request_rec %s host=%s://%s%s",
+--                  stream->id, req->method, req->scheme, req->authority, 
+--                  req->path);
+--    stream->rtmp = req;
+-+    if (status == APR_SUCCESS) {
+-+        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, status, r, APLOGNO(03058)
+-+                      "h2_request(%d): set_request_rec %s host=%s://%s%s",
+-+                      stream->id, req->method, req->scheme, req->authority, 
+-+                      req->path);
+-+        stream->rtmp = req;
+-+    }
+-     return status;
+- }
+- 
+diff -Nru apache2-2.4.25/debian/patches/mod_http2_mem_usage_32bit.diff apache2-2.4.25/debian/patches/mod_http2_mem_usage_32bit.diff
+--- apache2-2.4.25/debian/patches/mod_http2_mem_usage_32bit.diff	1970-01-01 01:00:00.000000000 +0100
++++ apache2-2.4.25/debian/patches/mod_http2_mem_usage_32bit.diff	2018-05-13 17:43:20.000000000 +0200
+@@ -0,0 +1,12 @@
++# https://svn.apache.org/r1830419
++# http://bugs.debian.org/897218
++--- apache2.orig/modules/http2/h2_bucket_beam.c
+++++ apache2/modules/http2/h2_bucket_beam.c
++@@ -924,6 +924,7 @@ apr_status_t h2_beam_send(h2_bucket_beam
++             while (!APR_BRIGADE_EMPTY(sender_bb) && APR_SUCCESS == rv) {
++                 if (space_left <= 0) {
++                     report_prod_io(beam, force_report, &bl);
+++                    r_purge_sent(beam);
++                     rv = wait_not_full(beam, block, &space_left, &bl);
++                     if (APR_SUCCESS != rv) {
++                         break;
+diff -Nru apache2-2.4.25/debian/patches/mod_http2-revert-new-proxy-features.diff apache2-2.4.25/debian/patches/mod_http2-revert-new-proxy-features.diff
+--- apache2-2.4.25/debian/patches/mod_http2-revert-new-proxy-features.diff	1970-01-01 01:00:00.000000000 +0100
++++ apache2-2.4.25/debian/patches/mod_http2-revert-new-proxy-features.diff	2018-05-13 17:29:38.000000000 +0200
+@@ -0,0 +1,34 @@
++# Revert part of r1824187 which requires a newer mod_proxy
++--- apache2.orig/modules/http2/h2_h2.c
+++++ apache2/modules/http2/h2_h2.c
++@@ -60,6 +60,7 @@ const char *H2_MAGIC_TOKEN = "PRI * HTTP
++ /*******************************************************************************
++  * The optional mod_ssl functions we need. 
++  */
+++static APR_OPTIONAL_FN_TYPE(ssl_engine_disable) *opt_ssl_engine_disable;
++ static APR_OPTIONAL_FN_TYPE(ssl_is_https) *opt_ssl_is_https;
++ static APR_OPTIONAL_FN_TYPE(ssl_var_lookup) *opt_ssl_var_lookup;
++ 
++@@ -445,6 +446,7 @@ apr_status_t h2_h2_init(apr_pool_t *pool
++ {
++     (void)pool;
++     ap_log_error(APLOG_MARK, APLOG_TRACE1, 0, s, "h2_h2, child_init");
+++    opt_ssl_engine_disable = APR_RETRIEVE_OPTIONAL_FN(ssl_engine_disable);
++     opt_ssl_is_https = APR_RETRIEVE_OPTIONAL_FN(ssl_is_https);
++     opt_ssl_var_lookup = APR_RETRIEVE_OPTIONAL_FN(ssl_var_lookup);
++     
++--- apache2.orig/modules/http2/mod_proxy_http2.c
+++++ apache2/modules/http2/mod_proxy_http2.c
++@@ -580,9 +580,9 @@ run_connect:
++     
++     /* Step Three: Create conn_rec for the socket we have open now. */
++     if (!ctx->p_conn->connection) {
++-        status = ap_proxy_connection_create_ex(ctx->proxy_func,
++-                                               ctx->p_conn, ctx->rbase);
++-        if (status != OK) {
+++        if ((status = ap_proxy_connection_create(ctx->proxy_func, ctx->p_conn,
+++                                                 ctx->owner, 
+++                                                 ctx->server)) != OK) {
++             ap_log_cerror(APLOG_MARK, APLOG_DEBUG, status, ctx->owner, APLOGNO(03353)
++                           "setup new connection: is_ssl=%d %s %s %s", 
++                           ctx->p_conn->is_ssl, ctx->p_conn->ssl_hostname, 
+diff -Nru apache2-2.4.25/debian/patches/mod_http2-upgrade-to-2.4.33.diff apache2-2.4.25/debian/patches/mod_http2-upgrade-to-2.4.33.diff
+--- apache2-2.4.25/debian/patches/mod_http2-upgrade-to-2.4.33.diff	1970-01-01 01:00:00.000000000 +0100
++++ apache2-2.4.25/debian/patches/mod_http2-upgrade-to-2.4.33.diff	2018-05-13 17:43:20.000000000 +0200
+[ snip ]
+diff -Nru apache2-2.4.25/debian/patches/series apache2-2.4.25/debian/patches/series
+--- apache2-2.4.25/debian/patches/series	2018-03-31 10:45:18.000000000 +0200
++++ apache2-2.4.25/debian/patches/series	2018-05-13 17:43:20.000000000 +0200
+@@ -13,7 +13,6 @@
+ 
+ CVE-2017-3167.diff
+ CVE-2017-3169.diff
+-CVE-2017-7659.diff
+ CVE-2017-7668.diff
+ CVE-2017-7679.diff
+ CVE-2017-9788-mod_auth_digest.diff
+@@ -25,3 +24,6 @@
+ CVE-2018-1301-HTTP-request-read-out-of-bounds.diff
+ CVE-2018-1303-mod_cache_socache-oob.diff
+ CVE-2018-1312-mod_auth_digest-nonce.diff
++mod_http2-upgrade-to-2.4.33.diff
++mod_http2-revert-new-proxy-features.diff
++mod_http2_mem_usage_32bit.diff

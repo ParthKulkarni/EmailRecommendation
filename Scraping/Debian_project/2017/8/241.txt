@@ -1,0 +1,25 @@
+To : debian-devel@lists.debian.org
+Subject : Re: OpenSSL disables TLS 1.0 and 1.1
+From : Kurt Roeckx <kurt@roeckx.be>
+Date : Mon, 7 Aug 2017 20:35:52 +0200
+Message-id : 20170807183552.m6ufe3dl5ywztusd@roeckx.be
+In-reply-to : <[🔎] 8737932yic.fsf@delenn.ganneff.de>
+References : <20170807014238.mf64rdvgpdkpaiwa@roeckx.be> <[🔎] 8737932yic.fsf@delenn.ganneff.de>
+
+
+On Mon, Aug 07, 2017 at 05:22:51PM +0200, Joerg Jaspert wrote:
+> I wonder if there is a middle way that ensures that all new stuff does
+> go TLS1.2 (or later, whenever), but does allow older stuff still to
+> work. Which isnt the case if they are just disabled.
+I could change the default settings to set the minimum supported
+version as TLS 1.2. That is, act like
+SSL_CTX_set_min_proto_version() was called with TLS1_2_VERSION.
+That would allow applications to override this this by calling
+SSL_CTX_set_min_proto_version(). But then those are new
+functions in 1.1.0 and they probably aren't supported by many
+applications.
+An other alternative is to use the deprecated SSL_CTX_set_options
+options (SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1) by default, but then
+there is probably no software that has support for clearing those
+with SSL_CTX_clear_options()
+Kurt

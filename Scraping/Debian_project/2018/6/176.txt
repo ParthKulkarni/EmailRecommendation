@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: libcurl3 vs libcurl4
+From : Simon McVittie <smcv@debian.org>
+Date : Fri, 8 Jun 2018 11:22:50 +0100
+Message-id : 20180608102250.GA13822@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 92e30acb-e0be-2cf3-d6c2-c8df90eb2dc7@aixigo.de>
+References : <[🔎] 92e30acb-e0be-2cf3-d6c2-c8df90eb2dc7@aixigo.de>
+
+
+On Fri, 08 Jun 2018 at 10:06:47 +0200, Harald Dunkel wrote:
+> maybe a stupid question, but how comes libcurl4 doesn't
+> provide a new soname, making it possible to install both
+> libcurl3 and libcurl4 in parallel?
+To be compatible with other distributions, Debian and other distributions
+should both follow upstream's SONAME policy. When the ABI breaks for
+reasons that don't involve upstream code changes, we can't usually
+unilaterally invent a new SONAME, so instead we rename the package and add
+Conflicts/Replaces on older versions, as seen during C++ ABI transitions
+(for instance the package containing libasprintf.so.0 being renamed from
+libasprintf0 to libasprintf0c2 at some point before jessie, and then to
+libasprintf0v5 between jessie and stretch).
+With the transition from OpenSSL 1.0 to 1.1, we encountered
+a similar problem: the upstream developer does not alter the
+SONAME according to the version of OpenSSL used (and they can't
+really, because it's the same source code), so if you find either
+libcurl.so.N in some distribution (Debian or otherwise), you can't
+know whether CURLOPT_SSL_CTX_FUNCTION works with an OpenSSL 1.0
+SSL_CTX or an OpenSSL 1.1 SSL_CTX without further context.
+A further complication with libcurl is that for historical reasons,
+we shipped a libcurl3 package containing a library whose SONAME
+is libcurl.so.4, with a compatibility symlink libcurl.so.3 for
+older binaries. It isn't immediately clear why; this might have been
+caused by an unnecessary SONAME change by upstream at some point in
+the past? Instead of renaming libcurl3 to libcurl3a or something, the
+maintainer took the opportunity to sync up the SONAME with the package
+name and use libcurl4.
+Because libcurl3 and libcurl4 both contain libcurl.so.4, they cannot
+be co-installed, and they have to conflict; and because libcurl4
+doesn't contain the libcurl.so.3 compat symlink, it can't have
+Provides: libcurl3 either. (That symlink wouldn't be useful, because
+older binaries that have not been recompiled against the new,
+OpenSSL-1.1-using libcurl expect CURLOPT_SSL_CTX_FUNCTION to work
+with an OpenSSL 1.0 or older SSL_CTX, so they are not compatible
+with the new libcurl anyway.)
+See <https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=858398>.
+    smcv

@@ -1,0 +1,45 @@
+To : Hans-Christoph Steiner <hans@eds.org>, 873919@bugs.debian.org
+Subject : Re: Bug#873919: make dpkg-buildpackage default locale UTF-8
+From : Guillem Jover <guillem@debian.org>
+Date : Fri, 1 Sep 2017 10:57:42 +0200
+Message-id : 20170901085742.t7g7xvlainxei76t@thunder.hadrons.org
+Mail-followup-to : Hans-Christoph Steiner <hans@eds.org>,	873919@bugs.debian.org, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 303d8fe7-0d26-1907-2e3c-a46009bb8f91@eds.org>
+References : <[🔎] 303d8fe7-0d26-1907-2e3c-a46009bb8f91@eds.org>
+
+
+Control: forcemerge -1 843776
+Hi!
+On Fri, 2017-09-01 at 10:23:59 +0200, Hans-Christoph Steiner wrote:
+> Package: dpkg-dev
+> 
+> More and more packages are adding unicode files as unicode support has
+> become more reliable and available.  The package building process is not
+> guaranteed to happen in a unicode locale since the Debian default locale
+> is LC_ALL=C, which is ASCII not UTF-8.  Reading UTF-8 filenames when the
+> system is using ASCII causes errors (Python makes them very visible, for
+> example).
+> 
+> mbiebl, youpi, wRAR, bunk, and I had a discussion in #debian-devel.  It
+> looks like setting the default locale to C.UTF-8 in dpkg-buildpackage is
+> an easy way to improve this situation a lot.  Any package that needs an
+> encoding besides UTF-8 could always set it by adding something like this
+> to debian/rules:
+> 
+>   export LC_ALL = C
+As long as the project considers debian/rules the main entry point to a
+package build, I'm not planning on predefining new general purpose
+environment variables from dpkg-buildpackage that would otherwise not
+be set by the builder.
+The distinction here would be something like LC_*, against something
+like CC on a cross-compilation, which you need to set no matter what.
+But please, see the rationale on the other bug. I think I'll be adding
+an entry to the dpkg FAQ, because it seems this has become a recurring
+request. :)
+> Setting C.UTF-8 as the global default in Debian would be the best
+> solution to this and many other issues, but that's a much much larger
+> project:
+> https://sourceware.org/glibc/wiki/Proposals/C.UTF-8
+That _might_ help on buildds, but not on maintainer systems for example.
+Thanks,
+Guillem

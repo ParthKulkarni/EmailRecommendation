@@ -1,0 +1,86 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Re: convention on listen port local or all network interfaces etc.
+From : Tomas Pospisek <tpo2@sourcepole.ch>
+Date : Thu, 23 Feb 2017 22:22:48 +0100
+Message-id : 739bffc8-62ac-dac9-6092-3743e9e1d6be@sourcepole.ch
+In-reply-to : <[🔎] f2071a8f-75a0-3986-e5de-e191c91ef225@riseup.net>
+References : <[🔎] 2b18082d-56f3-80b4-8945-d2a91472d107@riseup.net> <[🔎] fc52b5f8-eda8-f6eb-3ca0-ed98247b2390@sourcepole.ch> <[🔎] f2071a8f-75a0-3986-e5de-e191c91ef225@riseup.net>
+
+
+Am 23.02.2017 um 03:26 schrieb Patrick Schleizer:
+> Tomas Pospisek:
+>> Am 21.02.2017 um 01:55 schrieb Patrick Schleizer:
+>>
+>>> for file_name in /usr/lib/server-config.d/*.conf ; do
+>>>    file_list="$file_list $file_name"
+>>> done
+>>>
+>>> for file_name in /etc/server-config.d/*.conf ; do
+>>>    file_list="$file_list $file_name"
+>>> done
+>>>
+>>> for file_name in /home/.config/server-config.d/*.conf ; do
+>>>    file_list="$file_list $file_name"
+>>> done
+>>>
+>>> for item in $file_list ; do
+>>>    source "$item"
+>>> done
+>>
+>> I like this in principle. However, I'd rather make stuff explicit than
+>> implicit. Implicit means you need to have a priory knowledge, explicit
+>> means you see stuff. So for the above that would be:
+>>
+>> $ cat /etc/server/main.config
+>> ...
+>> # predefined
+>> include /usr/lib/server/config.d/*.conf
+>> # system config
+>> include /etc/server/config.d/*.conf
+>>
+>> *t
+> 
+> That is a great idea! Will try to keep explicit vs implicit in mind.
+> Explicit is great. I'll be updating this convention proposal when no
+> more comments come in.
+> 
+> Would you suggest just a single file /etc/server/main.config?
+> 
+> Or should there be also:
+> 
+> - /usr/lib/server/main.config
+> - /etc/server/main.config
+> - /home/.config/server/main.config
+> 
+> ?
+> 
+> Should main.config file[s] only contain `include` statements and
+> comments and nothing else?
+I'd suggest to use principles as orientation lights, but not as dogmas.
+So f.ex. if you have some config file that is not expected to be
+modified much (see /etc/* - most of the files there I never touch but,
+in good Debian tradition, it's good *to be able* to customize stuff, if
+need arises). So the configs that should work in most environments out
+of the box could be in one piece - and contain the includes and maybe a
+few other things.
+On the other hand if you have configs that are pages and pages long
+(which converges towards unreadable), or are expected to be extended or
+customized heavily - apache comes to mind for both characteristics -
+then you probably want to split the config into as orthogonal and
+topical pieces as useful. Again, you can see the evolution of this
+principle f.ex. with apache which started as a single config file and
+today has quite a nice separation of concerns into different subdir.d's.
+There are other examples of the latter principle f.ex. in Debian's
+nginx' layout, which I consider very well done, or Debian's exim config,
+which I consider non-understandable without a nuclear physics degree and
+multiple years of study. (I am also the kind of person who thinks that
+maybe systemd has surpassed exim in that regard and entered a whole new
+dimension, maybe of a string theory quality, a place that only sendmail
+enlighteneds are reported to have seen before. I have not much studied
+selinux yet though, which has been created by some of the brightest
+cryptographers of our time I hear).
+Have a look around in /etc on desktop machines and on servers and have a
+look at those configs that are ugly, uncomprehensible or beautiful and
+intuitive and try to determine what the reasons for the beauty or
+ugliness are.
+*t

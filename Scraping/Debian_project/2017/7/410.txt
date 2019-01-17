@@ -1,0 +1,79 @@
+To : debian-devel@lists.debian.org
+Subject : Re: New package split of util-linux
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 31 Jul 2017 07:22:19 +0200
+Message-id : 20170731052219.fbk4mlb56om6yd73@angband.pl
+In-reply-to : <[🔎] 20170727103224.GA19433@fatal.se>
+References : <[🔎] 20170726081846.GA22129@fatal.se> <[🔎] 20170726090306.vsqikwgqircrvqhs@angband.pl> <[🔎] 20170727103224.GA19433@fatal.se>
+
+
+On Thu, Jul 27, 2017 at 12:32:24PM +0200, Andreas Henriksson wrote:
+> On Wed, Jul 26, 2017 at 11:03:08AM +0200, Adam Borowski wrote:
+> > But why should mount be Essential?  It's useless in containers and chroots.
+> 
+> I'm very open to making things non-essential if possible, not limited to
+> only mount. (Why should bsdutils be essential for example? But how do we
+> make it non-essential? Even if policy didn't forbid depending on
+> essential packages, how would we even identify users that should add
+> a dependency? See also #474540 for another example of this practical
+> problem.)
+https://wiki.debian.org/BusterPriorityRequalification has some interesting
+discussion.
+Making things non-Essential is indeed hard, but making them Important[1]
+is easier as for most tools these two are considered synonymous.
+As we're very early in Buster's cycle, a somewhat cavalier approach could
+be acceptable: to degrade programs and see what breaks.  It's safe for
+upgrades (tools really dislike removing Important) and for new regular
+whole-machine installs; only uses that might have issues are chroots
+and small containers.
+> I aware of but have no practical experience with the Important: yes
+> field. I can only guess and hope that if we use that for mount there
+> won't be any weird upgrade problems. (Help welcome to verify it!)
+I've done some research, and:
+* user-facing tools support Important well enough, as of Stretch:
+  while dpkg itself doesn't protest, frontends like apt, dselect, aptitude,
+  synaptic, gnome-packagekit, apper are all _too_ paranoid here.  This is
+  actually good for ordinary users -- converting a full machine to a
+  container isn't exactly a common use case.
+  The only frontend that doesn't stop you is cupt, but with popcon vote of
+  23 it's not much of a concern, especially that you tend to remove Buster
+  packages using Buster tools.
+* on the other hand, current dpkg-gencontrol does not support this field
+* the Policy doesn't mention it either
+Thus: it's not legal to use Important yet but there are no blockers to
+have it for Buster.
+If you'd like to play some more, my test packages are in:
+deb http://angband.pl/debian essimp main
+(-src, https), key:
+wget -qO- https://angband.pl/deb/archive.html|apt-key add -
+"test-essential", "test-important"
+> > What about making the split at different levels of essentialness?  With the
+> > new Important: yes (not be confused with priority: important), this makes
+> > three levels, and thus three packages:
+> > * stuff that's needed on every Debian system
+> > * stuff needed on every bare-metal box / "real" VM
+> > * things you can go without
+> 
+> I would be very interested to see your resulting of this splitup!
+As Steve Langasek mentioned, not all containers are alike.  Unlike old-style
+implementations like vserver or openvz (even they let you allow ccaps
+SECURE_MOUNT and BINARY_MOUNT), modern containers are a really fuzzy
+concept, with a mix-and-match of chroot, cgroups, namespaces, seccomp.
+But there's a pretty common set of things typical containers don't need.
+They don't need to manipulate partitions, fsck, etc.  That's most of
+util-linux's size.
+> In theory I'm not really sure there's anything matching the "stuff
+> that's needed on every Debian system" criteria in src:util-linux
+> if considering less usual usecases.)
+Yeah but a container has a host which can rescue it, and then you can
+install anything you want into the container.  So it's about minimal
+functionality only.
+Meow!
+[1]. A poorly chosen name, because of confusion with priority:important.
+But AFAIK it was repurposing an ancient hidden feature rather than a new
+design.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ What Would Jesus Do, MUD/MMORPG edition:
+⣾⠁⢰⠒⠀⣿⡁ • multiplay with an admin char to benefit your mortal
+⢿⡄⠘⠷⠚⠋⠀ • abuse item cloning bugs (the five fishes + two breads affair)
+⠈⠳⣄⠀⠀⠀⠀ • use glitches to walk on water

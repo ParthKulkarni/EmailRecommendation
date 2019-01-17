@@ -1,0 +1,28 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#916070: rootskel FTBFS with glibc 2.28
+From : Adrian Bunk <bunk@debian.org>
+Date : Sun, 09 Dec 2018 21:11:40 +0200
+Message-id : 154438270094.23157.7248681333093997126.reportbug@localhost
+Reply-to : Adrian Bunk <bunk@debian.org>, 916070@bugs.debian.org
+
+
+Source: rootskel
+Version: 1.125
+Severity: serious
+Tags: ftbfs
+https://tests.reproducible-builds.org/debian/rb-pkg/unstable/amd64/rootskel.html
+...
+gcc -Os -Wall get-real-console-linux.c -o get-real-console-linux
+get-real-console-linux.c: In function 'main':
+get-real-console-linux.c:30:23: warning: implicit declaration of function 'major' [-Wimplicit-function-declaration]
+     printf("%d:%d\n", major(dev), minor(dev));
+                       ^~~~~
+get-real-console-linux.c:30:35: warning: implicit declaration of function 'minor'; did you mean 'mknod'? [-Wimplicit-function-declaration]
+     printf("%d:%d\n", major(dev), minor(dev));
+                                   ^~~~~
+                                   mknod
+/usr/bin/ld: /tmp/cc8kbEaP.o: in function `main':
+get-real-console-linux.c:(.text.startup+0x62): undefined reference to `minor'
+/usr/bin/ld: get-real-console-linux.c:(.text.startup+0x6f): undefined reference to `major'
+collect2: error: ld returned 1 exit status
+make[4]: *** [Makefile:24: get-real-console-linux] Error 1

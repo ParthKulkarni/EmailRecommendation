@@ -1,0 +1,33 @@
+To : debian-devel@lists.debian.org, debian-arm@lists.debian.org,	pkg-kde-talk@alioth-lists.debian.net
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Dmitry Shachnev <mitya57@debian.org>
+Date : Thu, 29 Nov 2018 15:51:16 +0300
+Message-id : 20181129125116.GB5754@mitya57.me
+In-reply-to : <[🔎] 20181128203251.GA13322@virgil.dodds.net>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] 2682712.gOydg1LB9R@tonks> <[🔎] 3005918.A3t91XcMaO@tonks> <[🔎] 1804155.CmlG43vXzp@tonks> <[🔎] 20181128070052.GA26398@virgil.dodds.net> <[🔎] 20181128140351.GA7571@mitya57.me> <[🔎] 20181128203251.GA13322@virgil.dodds.net>
+
+
+On Wed, Nov 28, 2018 at 12:32:51PM -0800, Steve Langasek wrote:
+> I would caution against prematurely optimizing for build-time.  Yes,
+> building the entire source package twice is a waste of resources, but it's
+> probably a drop in the bucket.
+My mail concert was not build-time, but our (maintainers’) time.
+For any changes in normal packages (e.g. packaging new upstream releases),
+we will need to carefully merge these changes into the -gles packages and
+remove the bits that are not needed there.
+> The reason not to build the two stacks from a single source package is that
+> the gl vs gles libraries are by design drop-in replacements for one another
+> - i.e.: they must have the same soname in order for the symbols magic to
+> work, which means they end up conflicting on the system.  You *could* design
+> a system that allows them to be coinstallable via subdirectories and
+> manually-managed symlinks, but I doubt this is actually worth it in practice
+> for the number of packages affected.
+Ah, I understand now — you mean that to build both variants of e.g. Qt 3D,
+we will need to build-depend on both libqt5gui5 and libqt5gui5-gles, which are
+not co-installable.
+That is a valid reason for having two separate source packages.
+However maybe it will be possible to build at least two variants of qtbase
+from the same source, as that’s one ofthe most complicated Qt packages.
+--
+Dmitry Shachnev
+signature.asc

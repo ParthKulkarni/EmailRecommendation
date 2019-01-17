@@ -1,0 +1,29 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#892281: gcc: make PIE opt-out rather than opt-in
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Wed, 7 Mar 2018 19:16:27 +0100
+Message-id : 20180307181626.GA19218@alf.mars
+Reply-to : Helmut Grohne <helmut@subdivi.de>, 892281@bugs.debian.org
+
+
+Source: gcc-8
+Version: 8-20180218-1
+Severity: wishlist
+We have long transitioned to PIE by default on all release architectures
+now. Still each gcc-V package tracks the architectures that enable PIE
+by default in an opt-in list (pie_archs).
+Since it is the default, PIE is much better supported than !PIE now.
+For instance, musl-linux-mips fails building dash, because ld segfaults.
+Once enabling PIE for musl, it proceeds. Similarly, x32 fails linking
+systemd and it obviously is connected to !PIE:
+    ld: /tmp/cc9ezYWe.ltrans0.ltrans.o: relocation R_X86_64_32S against `.rodata' can not be used when making a PIE object; recompile with -fPIC
+Very likely, the riscv64 people want to enable PIE by default as well.
+Since it practically is the default "everywhere", can we move on to
+enable PIE for all "new" architectures by turning the opt-in list
+opt-out? While at it, can we keep this list as small as possible? At
+least for musl-linux-any and x32, we know that !PIE causes more harm
+than PIE.
+I've Cced this to d-devel to have people object, but I think the case is
+pretty clear at this point, because opt-out will reduce the maintenance
+cost.
+Helmut

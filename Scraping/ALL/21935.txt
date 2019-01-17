@@ -1,0 +1,106 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Guillem Jover <guillem@debian.org>
+Date : Sun, 23 Dec 2018 04:06:14 +0100
+Message-id : 20181223030614.GA8788@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 87a7lmdoac.fsf@hope.eyrie.org>
+References : <20181120211617.gxnuwxpx2hy445ps@angband.pl> <6FEC5C58-827A-42EF-B7F4-F9603AFBB60D@gmail.com> <20181121092346.umhv45iy2vhvpljv@angband.pl> <20181123153217.GA14862@thunder.hadrons.org> <[🔎] 20181202114005.GA12327@estella.local.invalid> <[🔎] 20181204003247.GB13132@gaara.hadrons.org> <[🔎] 87a7lmdoac.fsf@hope.eyrie.org>
+
+
+Hi!
+On Mon, 2018-12-03 at 18:22:03 -0800, Russ Allbery wrote:
+> Guillem Jover <guillem@debian.org> writes:
+> > The current merged-/usr deployment (via usrmerge or the bootstrapping
+> > symlink generation before unpack) is a major hack, and bypasses the dpkg
+> > understanding of the filesystem, it breaks dpkg-query, and while we
+> > could workaround the breakage there, it's still the wrong way to go
+> > around this.
+> 
+> Does this imply that you're considering adding support for merging /usr
+> *properly* directly inside dpkg, with all the correct updates to dpkg's
+> metadata?
+Above I was talking mostly about workarounds, such as the one I
+mentioned earlier in the thread, which I've got as a draft patch
+for dpkg-query to try to fix #858331:
+  <https://git.hadrons.org/cgit/debian/dpkg/dpkg.git/log/?h=pu/query-map-pathnames>
+which mostly let's dpkg-query know about the aliasing in the filesystem.
+This will still leave out dpkg-divert, dpkg-statoverride, dpkg-trigger,
+and update-alternatives. This will also leave out any other software
+that uses filesystem paths as keys in their databases.
+Some of these other commands will just fail to find the files requested,
+because they are not the canonical ones. On a merged-/usr-via-symlinks
+u-a in particular can be told to make a mess if called like this f.ex.:
+  $ update-alternatives --install /bin/iface iface-a /usr/bin/impl-x 100
+  $ update-alternatives --install /usr/bin/iface iface-b /usr/bin/impl-z 200
+What you are proposing above would be to do the magical mapping from
+the canonical location found in the .deb into the new location on the
+filesystem. I don't think this is a generally applicable solution.
+Of the top of my head I can think of two potential ways to solve this:
+ * Relocatable packages [R], where dpkg would do some kind of global
+   diversion on specific pathnames.
+   This would require support from the package itself, at least to
+   denote that it supports being relocated. This might also require
+   major patching on the upstream side in case it does not. And if we
+   have to do either, we might as well have modified the canonical
+   paths in the package instead, which would be way less work.
+   This is still a somewhat interesting theoretical idea, though.
+   [R] The mythical dpkg 2.0 spec already talks about this in its
+       appendix G, <https://www.dpkg.org/doc/specs/dpkg2.pdf>.
+ * A variation on relocatable packages, but in addition automatically
+   inject the aliased paths into the filesystem and database as if
+   they had come from the package, for backwards compatibility, iff
+   they are not already present in the package or the database.
+   This would also require each injected pathname to be tracked
+   specifically, so that something like dpkg-repack can do its magic.
+   This would also have the potential to file conflict with random
+   stuff in case other packages provide those paths, and might be
+   difficult to check centrally, as the generation of those paths
+   would be local.
+Both of these solutions would at no point convert the /bin, /sbin and
+/lib directories into symlinks, I think doing that from within dpkg
+would be maddness TBH.
+Both would need the dpkg interfaces to be augmented in some way to be
+able to tell what are the canonical paths for a file, and in the
+second variant, which have been magically injected.
+As generalized solutions to the aliasing problem it would mean that
+local admins would be able to map files anywhere, which would imply
+that the query results for (at least) many dpkg-related things could
+vary wildly depending on the system, even when using the exact same
+distribution baseline.
+So I do not see how the above can be considered proper either in any
+way. :)
+> Because that would be an awesome way to fully support this.
+While I think these are theoretically interesting solutions, they look
+to me like huge can of worms, with very problematic consequences on
+the global filesystem namespace we use as a shared interface. They
+also imply to permanently suffer the aliasing problems.
+To me it's always been very clear the only *proper* way to deploy
+merged-/usr, is to do the changes to the canonical pathnames on
+each relevant package. Even adding compat symlinks, means that dpkg
+would know about them, and they'd be temporary anyway for the most
+part until any remaining user has been made path relative or its
+absolute path changed.
+But the way this specific deployment plan has been pushed forward
+has been extremely frustrating. There's been continued warnings about
+the problems ahead, and they have been consistently ignored or
+downplayed:
+  - the original dpkg-shlibdeps problems was known way ahead of the
+    initial debootstrap switch.
+  - the problem with misbuilds was also obvious and mentioned at least
+    on that same dpkg-shlibdeps bug report.
+  - the dpkg-query issue (and the aliasing problem in general) has
+    been also known for a while now.
+And still the debootstrap default was switched again, when that
+deployment method is an irreversible switch, which makes it really
+a terrible default.
+In the future whenever needing to install a new Debian system w/o this
+hack the only easy recourse is to start from stretch and upgrade from
+there. :/ I know I'm going to do locally anything at hand to avoid
+the broken-by-design merged-/usr-via-symlinks on systems I manage.
+At the same time, as I've also mentioned before, I'm happy to switch
+the canonical path for packages that I maintain, whenever the project
+comes back from this fool's errand… and decides to do the transition
+properly. :)
+Thanks,
+Guillem

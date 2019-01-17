@@ -1,0 +1,89 @@
+To : Michael Biebl <biebl@debian.org>, 858943@bugs.debian.org
+Subject : Re: Bug#858943: unblock: systemd/232-22
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 1 Apr 2017 01:45:54 +0200
+Message-id : 20170331234554.GA1893@mraw.org
+In-reply-to : <149073432580.15714.7002773787076498768.reportbug@pluto.milchstrasse.xx>
+References : <149073432580.15714.7002773787076498768.reportbug@pluto.milchstrasse.xx>
+
+
+Hi,
+Michael Biebl <biebl@debian.org> (2017-03-28):
+> since 232-19, a couple of fixes accumulated which we'd like to see enter
+> testing/stretch
+> 
+> As this potentially affects the installer, I've CC debian-boot aka KiBi.
+> 
+> A complete debdiff is attached.
+> 
+> The changelog + annotations follows. Sorry if it's a bit verbose.
+FWIW: I'm very happy with the amount of details, many thanks!
+> >   [ Michael Biebl ]
+> >   * Add Conflicts against hal.
+> >     Since v183, udev no longer supports RUN+="socket:". This feature is
+> >     still used by hal, but now generates vast amounts of errors in the
+> >     journal. Thus force the removal of hal by adding a Conflicts to the udev
+> >     package. This is safe, as hal is long dead and no package depends on it
+> >     anymore.
+> 
+> https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=29757891624a73702b1de4b4d5ebd70d721357db
+> 
+> (not relevant for the installer)
+> 
+> This is a potentially odd one. hal has been removed in jessie, but
+> apparently some users still have it installed after upgrading from
+> previous releases. This now leads to massive amounts of error messages
+> in the journal (basically on every uevent). So forcing the removal of
+> hal seems justified.
+> There is a slight catch: the Conflicts could potentially lead to udev
+> not being upgraded or udev removed in favour of keeping hal.
+> But: since no other package depends on hal anymore and lots of packages
+> depend on udev this scenario is rather unlikely. I did several upgrade
+> tests and was not able to trigger such a condition. In all cases, hal
+> was removed as intended.
+Oh, wow, hal is still alive on some systems?! Crazy. :-)
+> >   * rules: Allow SPARC vdisk devices when identifying CD drives
+> >     (Closes: #858014)
+> 
+> https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=99e1327b3883fcc5632af7aad4c19ce93e2a55b1
+> 
+> (might be relevant for the installer)
+> 
+> Requested by a porter, didn't see a good reason not to include it.
+> Low-risk change.
+I think that's fine, yeah. From a quick look, a few places might need an
+update in d-i components (since we've got some hardcoded lists of
+patterns at the moment…), but I suppose having the udev change is a
+prerequisite anyway.
+> >   * udev: Fix /dev/disk/by-path aliases for virtio disks. (Closes: #856558)
+> 
+> https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=8ecdc5ca14cf9390104f434c77d76355485d49d4
+> 
+> (might be relevant for the installer)
+> 
+> Quoting Martin: "this is reasonably straightforward and also important to
+> get fixed in Stretch"
+I'm not seeing anything directly using those in d-i components.
+> >   * udev: Create persistent net names for virtio CCW devices.
+> >     This only affects s390x as only this has CCW devices. This provides
+> >     stable network interface names for those and avoids changing the names
+> >     on updating Stretch to Buster. (Closes: #856559)
+> 
+> https://anonscm.debian.org/git/pkg-systemd/systemd.git/commit/?h=stretch&id=bb9ad652f309a90a5424381503083ee9a530a888
+> 
+> (might be relevant for the installer)
+> 
+> This only affects s390x, so regression potential is low and it's
+> important to get into stretch, otherwise we'd have migration issues in
+> buster (as names would change, which would be ugly)
+Adding debian-s390@lists.debian.org to the loop to make sure they're
+aware of this. Can't really judge whether this could be annoying in d-i,
+it seems to me that's just fixing a move which hadn't happened with the
+net.ifnames transition, for specific hardware?
+> Regards,
+> Michael
+> on behalf of the pkg-systemd team.
+Again, many thanks for the details, that's really appreciated.
+→ ACK for the whole lot.
+KiBi.
+signature.asc

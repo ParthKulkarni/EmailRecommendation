@@ -1,0 +1,21 @@
+To : "debian-boot@lists.debian.org" <debian-boot@lists.debian.org>
+Subject : Preseed, policy-rc.d returns 101
+From : "Rak, Anton" <anton.rak@eks-intec.de>
+Date : Tue, 18 Jul 2017 12:52:55 +0000
+Message-id : 1500382377305.54710@eks-intec.de
+
+
+1) d-i preseed/late_command string apt-install profinet-ui
+2) d-i pkgsel/include string profinet-ui
+#!/bin/bash
+set -e
+deb-systemd-helper unmask profinet-ui.service >/dev/null || true
+if deb-systemd-helper --quiet was-enabled profinet-ui.service; then
+    deb-systemd-invoke enable profinet-ui.service >/dev/null || true
+else
+    deb-systemd-helper update-state profinet-ui.service >/dev/null || true
+fi
+if [ -d /run/systemd/system ]; then
+    systemctl --system daemon-reload >/dev/null || true
+    deb-systemd-invoke start profinet-ui.service >/dev/null || exit $?
+fi

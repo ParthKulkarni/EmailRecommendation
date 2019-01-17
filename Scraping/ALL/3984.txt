@@ -1,0 +1,54 @@
+To : Wouter Verhelst <wouter@debian.org>, 795735@bugs.debian.org, Lars Wirzenius <liw@liw.fi>
+Subject : Bug#795735: partman-crypto: always encrypt swap
+From : Daniel Kahn Gillmor <dkg@debian.org>
+Date : Thu, 19 Oct 2017 16:37:54 -0400
+Message-id : 87d15izxel.fsf@fifthhorseman.net
+Reply-to : Daniel Kahn Gillmor <dkg@debian.org>, 795735@bugs.debian.org
+In-reply-to : <20150816142116.GB31077@grep.be>
+References : <20150816135524.28014.86345.reportbug@exolobe1> <20150816142116.GB31077@grep.be> <20150816135524.28014.86345.reportbug@exolobe1>
+
+
+It's a shame that encrypted swap by default hasn't happened yet for
+debian.
+As i see it, the three outstanding concerns are:
+ a) source of entropy at boot time
+ b) actual hardware performance
+ c) suspend-to-disk
+boot time entropy
+-----------------
+The linux kernel's getrandom() situation is much better today than it
+was two years ago.  It's actually possible to get blocking bytes when
+needed early, without forcing yourself into a blocking situation later
+once the kernel's prng is initialized.  See getrandom(2) and random(4)
+for more details.
+actual hardware performance
+---------------------------
+I suspect the cost is negligible on most hardware today, particularly
+when compared to the disk I/O.  If you're swapping, you're likely to be
+waiting for the disk, not waiting for the CPU.  That said, i agree that
+users with specialized situations ought to be able to disable this.  But
+the default should still be on.
+suspend-to-disk
+---------------
+If the user suspends to disk, then the memory will be written to disk.
+this is definitely a leak.  However, we currently write the memory to
+disk *without* suspending to disk, so even if we don't handle
+suspend-to-disk "safely" it's still a win to encrypt swap, because we
+protect the people who do *not* suspend to disk.  So that's the simplest
+solution to the suspend-to-disk problem: just punt on it for now, and
+leave that case unprotected.
+If suspend-to-disk (or rather, resume-from-disk) is the only problem,
+then we should look for ways to opportunistically take advantage of
+other non-disk hardware on which we could store any ephemeral keys
+needed for restoration.
+For example, on systems with rewritable nvram, it's conceivable that we
+could suspend to the encrypted volume, and then stash the ephemeral
+encryption key in nvram.  Upon resume, read the key from nvram into main
+memory, clear the nvram, and restore from the encrypted volume.  This
+isn't perfectly secure (an attacker with both the disk and the nvram can
+recover your memory from the suspend file) but it is a significant win
+against an attacker who physically removes the hard disk.
+So i think we ought to outline the steps that need to be taken to make
+this happen by default.  Which pieces need to be updated, and how?
+     --dkg
+signature.asc

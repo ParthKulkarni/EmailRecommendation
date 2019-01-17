@@ -1,0 +1,59 @@
+To : debian-devel@lists.debian.org
+Subject : Re: apt cron autoclean not enabled by default
+From : David Kalnischkies <david@kalnischkies.de>
+Date : Sun, 8 Oct 2017 18:53:51 +0200
+Message-id : 20171008165351.mgu4llsgzzedbve5@crossbow
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 23002.13332.302254.27127@chiark.greenend.org.uk>
+References : <[🔎] 23002.13332.302254.27127@chiark.greenend.org.uk>
+
+
+On Sun, Oct 08, 2017 at 03:20:04PM +0100, Ian Jackson wrote:
+> You're all going to laugh at me now, but: some years ago I gradually
+> stopped using dselect.  Multiarch was the last nail in the coffin.
+> 
+> Now I discover while debugging something that each one of my machines
+> has been accumulating a museum of obsolete .debs in /var/cache/apt.
+> 
+> Is this supposed to be cleaned up by default by something ?
+Now that you are in the habit of switching tools (SCNR), try "apt"
+instead of "apt-get" which defaults to deleting .deb files after it has
+used them for installation.
+The NEWS entry for 1.2~exp1 gives some details on how to disable this
+for apt and/or how to enable it for other libapt-based tools.
+The short version is:
+echo 'APT::Keep-Downloaded-Packages "false";' > /etc/apt/apt.conf.d/01clean-debs
+> None of my installations seem to have the necessary machinery enabled.
+> This is bizarre because all the relevant moving parts (principally
+> /etc/cron.daily/apt) seem fully functional when I turn them on.
+The cronjob does pretty much nothing by default, you can teach it to run
+autoclean or clean or some age-based mixture through (I don't use it, so
+I know next to nothing about it and stay out of touching it)
+Details can be found e.g. at the top of /usr/lib/apt/apt.systemd.daily
+(to whom it may concern: yes, I know, the filename includes systemd.
+No, the file isn't systemd specific. There is compat-machinery to call
+it from cron if systemd-timers are not available)
+> I realise we've been arguing for years about turning on _updates_ by
+> default, but I hadn't realised that we doubted whether people would
+> want to delete decades-old .deb files...
+People are different, so, much like you will find people complaining
+about automatic upgrades you will also find people complaining about you
+having deleted files they wanted to share with other machines via
+sneaker nets, needed for that downgrade to unbreak their system, want to
+hold a bit longer on to the files they have paid a heavy fee/time for
+while downloading via mobile/third-internet-world countries or just like
+to run their private partial copy of snapshot.debian.org.
+I guess we (= Debian) will invent something after automatic upgrades are
+done as there is then a "need" for it (assuming those tools don't delete
+already, which I am not sure), much like we will eventually figure out
+how to phase out old kernels (at the moment they are stuck waiting for
+an autoremove to be run, but that can't really be run without user
+confirmation).
+btw: I don't want to be sounding like "that guy", but reading the
+release notes helps preventing "decades-old" as that includes the
+suggestion to run 'clean' before the upgrade and Debian releases a
+few times within a decade… (heck, apt hasn't reached the "decades"
+milestone yet… so technically… but just a few more months).
+Best regards
+David Kalnischkies
+signature.asc

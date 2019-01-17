@@ -1,0 +1,524 @@
+To : 877467@bugs.debian.org
+Subject : Bug#877467: Odroid-XU4: success despite several challenges
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Wed, 11 Apr 2018 19:52:27 -0700
+Message-id : 87fu41cf10.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 877467@bugs.debian.org
+In-reply-to : <handler.877467.B.150691119427213.ack@bugs.debian.org>
+References : <87a81agu96.fsf@aikidev.net> <handler.877467.B.150691119427213.ack@bugs.debian.org> <87a81agu96.fsf@aikidev.net>
+
+
+Package: installation-reports
+Followup-For: Bug #877467
+Tested same model board with a newer debian-installer and buster, and
+this install went a bit easier(mostly due to USB being fixed in the
+current kernels), but still had many of the same problems.
+Modules needed to detect the ethernet adapter were still not present in
+the netboot image. There was a confusing message about partitioning
+location. The boot firmware was overwritten as part of the install, but
+I suspect that is an old vendor conflict with dos partition tables that
+should be fixed in more recent versions of the firmware.
+live well,
+  vagrant
+-- Package-specific info:
+Boot method: network
+Image version: https://d-i.debian.org/daily-images/armhf/20180411-00:11/netboot/netboot.tar.gz
+Date: 2018-04-11
+Machine: Odroid-XU4
+Partitions:
+Filesystem     Type     1K-blocks    Used Available Use% Mounted on
+udev           devtmpfs   1002724       0   1002724   0% /dev
+tmpfs          tmpfs       204104    5392    198712   3% /run
+/dev/sda3      ext4       4740148 1227768   3251880  28% /
+tmpfs          tmpfs      1020508       0   1020508   0% /dev/shm
+tmpfs          tmpfs         5120       0      5120   0% /run/lock
+tmpfs          tmpfs      1020508       0   1020508   0% /sys/fs/cgroup
+/dev/mmcblk1p3 ext4        464790   50855    385417  12% /boot
+tmpfs          tmpfs       204100       0    204100   0% /run/user/1000
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [E]
+Configure network:      [O]
+Detect CD:              [ ]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [E]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [E]
+Overall install:        [ ]
+Comments/Problems:
+The modules included on the netboot initrd didn't include enough to
+actually load the modules for the ethernet adapters. Appending all the
+kernel modules for that kernel version to the initrd worked around the
+problem, and ethernet detected fine.
+Modules from non-working install:
+Module                  Size  Used by
+dwc3_exynos            16384  0
+ohci_exynos            16384  0
+ohci_hcd               45056  1 ohci_exynos
+ehci_exynos            16384  0
+ehci_hcd               77824  1 ehci_exynos
+dw_mmc_exynos          16384  0
+dw_mmc_pltfm           16384  1 dw_mmc_exynos
+usbcore               204800  4
+ehci_exynos,ehci_hcd,ohci_hcd,ohci_exynos
+dw_mmc                 36864  2 dw_mmc_pltfm,dw_mmc_exynos
+phy_exynos_usb2        20480  2
+usb_common             16384  1 usbcore
+phy_exynos5_usbdrd     16384  0
+Modules from working install:
+Module                  Size  Used by
+sd_mod                 45056  0
+uas                    20480  0
+usb_storage            53248  1 uas
+scsi_mod              196608  3 sd_mod,usb_storage,uas
+cdc_ether              16384  0
+usbnet                 32768  1 cdc_ether
+r8152                  57344  0
+mii                    16384  2 usbnet,r8152
+snd_soc_hdmi_codec     16384  0
+snd_soc_core          163840  1 snd_soc_hdmi_codec
+xhci_plat_hcd          16384  0
+snd_pcm_dmaengine      16384  1 snd_soc_core
+snd_pcm                90112  3 snd_pcm_dmaengine,snd_soc_hdmi_codec,snd_soc_core
+snd_timer              28672  1 snd_pcm
+xhci_hcd              196608  1 xhci_plat_hcd
+snd                    61440  4 snd_soc_hdmi_codec,snd_timer,snd_soc_core,snd_pcm
+soundcore              16384  1 snd
+dwc3                  102400  0
+udc_core               36864  1 dwc3
+phy_generic            16384  0
+clk_s2mps11            16384  0
+s2mps11                57344  17
+dwc3_exynos            16384  0
+phy_exynos_mipi_video    16384  0
+phy_exynos_dp_video    16384  0
+ohci_exynos            16384  0
+ohci_hcd               45056  1 ohci_exynos
+ehci_exynos            16384  0
+ehci_hcd               77824  1 ehci_exynos
+exynosdrm              90112  0
+analogix_dp            36864  1 exynosdrm
+drm_kms_helper        135168  2 exynosdrm,analogix_dp
+drm                   335872  4 exynosdrm,analogix_dp,drm_kms_helper
+pwm_samsung            16384  2
+exynos_adc             24576  0
+i2c_exynos5            16384  0
+industrialio           57344  1 exynos_adc
+dw_mmc_exynos          16384  0
+dw_mmc_pltfm           16384  1 dw_mmc_exynos
+usbcore               204800  11
+ehci_exynos,usbnet,usb_storage,ehci_hcd,cdc_ether,xhci_plat_hcd,uas,ohci_hcd,ohci_exynos,r8152,xhci_hcd
+usb_common             16384  3 udc_core,usbcore,dwc3
+dw_mmc                 36864  2 dw_mmc_pltfm,dw_mmc_exynos
+phy_exynos_usb2        20480  2
+phy_exynos5_usbdrd     16384  4
+s3c2410_wdt            16384  0
+evdev                  24576  0
+leds_pwm               16384  0
+pwm_fan                16384  0
+cpufreq_dt             16384  0
+After finalizing partitioning, there was a confusing prompt about the
+start location of the partition, but the instructions to fix it didn't
+make much sense- essentially said to delete and recreate it, which
+resulted in the same error the second time. Moving to 5GB later in the
+disk worked.
+   ┌───────────────────────┤ [!!] Partition disks
+   │
+   │ The partition /dev/sda3 assigned to / starts at an offset of 2560
+   │ bytes from the minimum alignment for this disk, which may lead to
+   │ very poor performance.
+   │
+   │ Since you are formatting this partition, you should correct this
+   │ problem now by realigning the partition, as it will be difficult to
+   │ change later. To do this, go back to the main partitioning menu,
+   │ delete the partition, and recreate it in the same position with the
+   │ same settings. This will cause the partition to start at a point best
+   │ suited for this disk.
+   │
+   │ Do you want to return to the partitioning menu?
+   │
+   │     <Go Back>                                       <Yes>    <No>
+The boot firmware which was present on the microSD was overwritten
+during the install process, but I think that is because it was
+installed with an older method which conflicts with where a dos
+partition table is normally written. I hope the new boot firmware
+location will avoid that issue. Not too much debian-installer can do
+about that anyways.
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="10 (buster) - installer build 20180411-00:04"
+X_INSTALLATION_MEDIUM=netboot
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux odxu4cz 4.15.0-2-armmp #1 SMP Debian 4.15.11-1 (2018-03-20) armv7l GNU/Linux
+usb-list: 
+usb-list: Bus 01 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.15.0-2-armmp ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 01: USB Host Controller [1d6b:0001]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.15.0-2-armmp ohci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 01: xHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.15.0-2-armmp xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 02: USB2.0 Hub [05e3:0610]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 02
+usb-list:    Manufacturer: GenesysLogic
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 02 Driver hub
+usb-list: 
+usb-list: Bus 04 Device 01: xHCI Host Controller [1d6b:0003]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 03
+usb-list:    Manufacturer: Linux 4.15.0-2-armmp xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 04 Device 02: USB3.0 Hub [05e3:0616]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 03
+usb-list:    Manufacturer: GenesysLogic
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 04 Device 03: Go To Final Lap [152d:1561]
+usb-list:    Level 02 Parent 02 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: JMicron
+usb-list:    Interface 00: Class 08(mstor) Subclass 06 Protocol 62 Driver uas
+usb-list: 
+usb-list: Bus 05 Device 01: xHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.15.0-2-armmp xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 05 Device 02: USB 10/100/1000 LAN [0bda:8153]
+usb-list:    Level 01 Parent 01 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Realtek
+usb-list:    Interface 00: Class ff(vend.) Subclass ff Protocol 00 Driver r8152
+usb-list: 
+usb-list: Bus 06 Device 01: xHCI Host Controller [1d6b:0003]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 03
+usb-list:    Manufacturer: Linux 4.15.0-2-armmp xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+lsmod: Module                  Size  Used by
+lsmod: dm_mod                118784  0
+lsmod: dax                    20480  1 dm_mod
+lsmod: md_mod                139264  0
+lsmod: xfs                  1056768  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   184320  0
+lsmod: btrfs                1212416  0
+lsmod: zstd_decompress        69632  1 btrfs
+lsmod: zstd_compress         167936  1 btrfs
+lsmod: xxhash                 20480  2 zstd_compress,zstd_decompress
+lsmod: zlib_deflate           28672  1 btrfs
+lsmod: xor                    16384  1 btrfs
+lsmod: raid6_pq               98304  1 btrfs
+lsmod: ntfs                  110592  0
+lsmod: fuse                   98304  0
+lsmod: vfat                   20480  0
+lsmod: fat                    69632  1 vfat
+lsmod: ext4                  593920  2
+lsmod: crc16                  16384  1 ext4
+lsmod: mbcache                16384  1 ext4
+lsmod: jbd2                  102400  1 ext4
+lsmod: crc32c_generic         16384  6
+lsmod: fscrypto               24576  1 ext4
+lsmod: ecb                    16384  0
+lsmod: sd_mod                 45056  3
+lsmod: uas                    20480  2
+lsmod: usb_storage            53248  1 uas
+lsmod: scsi_mod              196608  3 sd_mod,usb_storage,uas
+lsmod: cdc_ether              16384  0
+lsmod: usbnet                 32768  1 cdc_ether
+lsmod: r8152                  57344  0
+lsmod: mii                    16384  2 usbnet,r8152
+lsmod: snd_soc_hdmi_codec     16384  0
+lsmod: snd_soc_core          163840  1 snd_soc_hdmi_codec
+lsmod: xhci_plat_hcd          16384  0
+lsmod: snd_pcm_dmaengine      16384  1 snd_soc_core
+lsmod: snd_pcm                90112  3 snd_pcm_dmaengine,snd_soc_hdmi_codec,snd_soc_core
+lsmod: snd_timer              28672  1 snd_pcm
+lsmod: xhci_hcd              196608  1 xhci_plat_hcd
+lsmod: snd                    61440  4 snd_soc_hdmi_codec,snd_timer,snd_soc_core,snd_pcm
+lsmod: soundcore              16384  1 snd
+lsmod: dwc3                  102400  0
+lsmod: udc_core               36864  1 dwc3
+lsmod: phy_generic            16384  0
+lsmod: clk_s2mps11            16384  0
+lsmod: s2mps11                57344  17
+lsmod: dwc3_exynos            16384  0
+lsmod: phy_exynos_mipi_video    16384  0
+lsmod: phy_exynos_dp_video    16384  0
+lsmod: ohci_exynos            16384  0
+lsmod: ohci_hcd               45056  1 ohci_exynos
+lsmod: ehci_exynos            16384  0
+lsmod: ehci_hcd               77824  1 ehci_exynos
+lsmod: exynosdrm              90112  0
+lsmod: analogix_dp            36864  1 exynosdrm
+lsmod: drm_kms_helper        135168  2 exynosdrm,analogix_dp
+lsmod: drm                   335872  4 exynosdrm,analogix_dp,drm_kms_helper
+lsmod: pwm_samsung            16384  2
+lsmod: exynos_adc             24576  0
+lsmod: i2c_exynos5            16384  0
+lsmod: industrialio           57344  1 exynos_adc
+lsmod: dw_mmc_exynos          16384  0
+lsmod: dw_mmc_pltfm           16384  1 dw_mmc_exynos
+lsmod: usbcore               204800  11 ehci_exynos,usbnet,usb_storage,ehci_hcd,cdc_ether,xhci_plat_hcd,uas,ohci_hcd,ohci_exynos,r8152,xhci_hcd
+lsmod: usb_common             16384  3 udc_core,usbcore,dwc3
+lsmod: dw_mmc                 36864  2 dw_mmc_pltfm,dw_mmc_exynos
+lsmod: phy_exynos_usb2        20480  2
+lsmod: phy_exynos5_usbdrd     16384  4
+lsmod: s3c2410_wdt            16384  0
+lsmod: evdev                  24576  0
+lsmod: leds_pwm               16384  0
+lsmod: pwm_fan                16384  0
+lsmod: cpufreq_dt             16384  0
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                    204108       104    204004   0% /run
+df: devtmpfs                980128         0    980128   0% /dev
+df: /dev/sda3              4740148    681500   3798148  15% /target
+df: /dev/mmcblk1p3          464790     26707    409565   6% /target/boot
+df: /dev/sda3              4740148    681500   3798148  15% /dev/.static/dev
+df: devtmpfs                980128         0    980128   0% /target/dev
+free:              total       used       free     shared    buffers     cached
+free: Mem:       2041048    1051888     989160     178332      69724     853336
+free: -/+ buffers/cache:     128828    1912220
+free: Swap:       458740          0     458740
+/proc/cmdline: console=ttySAC2,115200
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: model name	: ARMv7 Processor rev 3 (v7l)
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xc07
+/proc/cpuinfo: CPU revision	: 3
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: model name	: ARMv7 Processor rev 3 (v7l)
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xc07
+/proc/cpuinfo: CPU revision	: 3
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: model name	: ARMv7 Processor rev 3 (v7l)
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xc07
+/proc/cpuinfo: CPU revision	: 3
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: model name	: ARMv7 Processor rev 3 (v7l)
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xc07
+/proc/cpuinfo: CPU revision	: 3
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 4
+/proc/cpuinfo: model name	: ARMv7 Processor rev 3 (v7l)
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x2
+/proc/cpuinfo: CPU part	: 0xc0f
+/proc/cpuinfo: CPU revision	: 3
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 5
+/proc/cpuinfo: model name	: ARMv7 Processor rev 3 (v7l)
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x2
+/proc/cpuinfo: CPU part	: 0xc0f
+/proc/cpuinfo: CPU revision	: 3
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 6
+/proc/cpuinfo: model name	: ARMv7 Processor rev 3 (v7l)
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x2
+/proc/cpuinfo: CPU part	: 0xc0f
+/proc/cpuinfo: CPU revision	: 3
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 7
+/proc/cpuinfo: model name	: ARMv7 Processor rev 3 (v7l)
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x2
+/proc/cpuinfo: CPU part	: 0xc0f
+/proc/cpuinfo: CPU revision	: 3
+/proc/cpuinfo: 
+/proc/cpuinfo: Hardware	: SAMSUNG EXYNOS (Flattened Device Tree)
+/proc/cpuinfo: Revision	: 0000
+/proc/cpuinfo: Serial		: 0000000000000000
+/proc/device-tree/model: Hardkernel Odroid XU4./proc/iomem: 02020000-02073fff : 2020000.sysram
+/proc/iomem: 03810000-0381000b : audss-clock-controller@3810000
+/proc/iomem: 03880000-03880fff : adma@3880000
+/proc/iomem:   03880000-03880fff : adma@3880000
+/proc/iomem: 10040000-10044fff : system-controller@10040000
+/proc/iomem: 101d0000-101d00ff : watchdog@101d0000
+/proc/iomem: 10800000-10800fff : mdma@10800000
+/proc/iomem:   10800000-10800fff : mdma@10800000
+/proc/iomem: 12000000-12007fff : dwc3@12000000
+/proc/iomem:   12000000-12007fff : dwc3@12000000
+/proc/iomem: 1200c100-1200ffff : dwc3@12000000
+/proc/iomem: 12100000-121000ff : phy@12100000
+/proc/iomem: 12110000-121100ff : usb@12110000
+/proc/iomem: 12120000-121200ff : usb@12120000
+/proc/iomem: 12130000-121300ff : phy@12130000
+/proc/iomem: 121a0000-121a0fff : pdma@121A0000
+/proc/iomem:   121a0000-121a0fff : pdma@121A0000
+/proc/iomem: 121b0000-121b0fff : pdma@121B0000
+/proc/iomem:   121b0000-121b0fff : pdma@121B0000
+/proc/iomem: 12200000-12201fff : mmc@12200000
+/proc/iomem: 12220000-12220fff : mmc@12220000
+/proc/iomem: 12400000-12407fff : dwc3@12400000
+/proc/iomem:   12400000-12407fff : dwc3@12400000
+/proc/iomem: 1240c100-1240ffff : dwc3@12400000
+/proc/iomem: 12500000-125000ff : phy@12500000
+/proc/iomem: 12c00000-12c000ff : 12c00000.serial
+/proc/iomem: 12c10000-12c100ff : 12c10000.serial
+/proc/iomem: 12c20000-12c200ff : 12c20000.serial
+/proc/iomem: 12c30000-12c300ff : 12c30000.serial
+/proc/iomem: 12c80000-12c800ff : i2c@12C80000
+/proc/iomem: 12ca0000-12ca0fff : i2c@12ca0000
+/proc/iomem: 12dd0000-12dd00ff : pwm@12DD0000
+/proc/iomem: 14530000-1459ffff : hdmi@14530000
+/proc/iomem: 40000000-be9fffff : System RAM
+/proc/iomem:   40008000-40cfffff : Kernel code
+/proc/iomem:   40f00000-4106111b : Kernel data
+/proc/interrupts:            CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+/proc/interrupts:  49:          0          0          0          0          0          0          0          0  COMBINER 187 Edge      mct_comp_irq
+/proc/interrupts:  50:      41493          0          0          0          0          0          0          0     GICv2 152 Level     mct_tick0
+/proc/interrupts:  51:          0      75780          0          0          0          0          0          0     GICv2 153 Level     mct_tick1
+/proc/interrupts:  52:          0          0      64909          0          0          0          0          0     GICv2 154 Level     mct_tick2
+/proc/interrupts:  53:          0          0          0      63301          0          0          0          0     GICv2 155 Level     mct_tick3
+/proc/interrupts:  54:          0          0          0          0     124079          0          0          0     GICv2 160 Level     mct_tick4
+/proc/interrupts:  55:          0          0          0          0          0     119065          0          0     GICv2 161 Level     mct_tick5
+/proc/interrupts:  56:          0          0          0          0          0          0     112568          0     GICv2 162 Level     mct_tick6
+/proc/interrupts:  57:          0          0          0          0          0          0          0     119928     GICv2 163 Level     mct_tick7
+/proc/interrupts:  60:      20428          0          0          0          0          0          0          0     GICv2  85 Level     12c20000.serial
+/proc/interrupts:  62:          0          0          0          0          0          0          0          0     GICv2  90 Level     12c80000.i2c
+/proc/interrupts:  68:          0          0          0          0          0          0          0          0     GICv2  74 Level     101d0000.watchdog
+/proc/interrupts:  70:        916          0          0          0          0          0          0          0     GICv2  92 Level     12ca0000.i2c
+/proc/interrupts:  71:          1          0          0          0          0          0          0          0     GICv2 103 Level     ehci_hcd:usb1, ohci_hcd:usb2
+/proc/interrupts:  73:          0          0          0          0          0          0          0          0     GICv2 107 Level     dw-mci
+/proc/interrupts:  74:      72627          0          0          0          0          0          0          0     GICv2 109 Level     dw-mci
+/proc/interrupts:  75:          0          0          0          0          0          0          0          0     GICv2  77 Level     13400000.pinctrl
+/proc/interrupts:  93:          0          0          0          0          0          0          0          0     GICv2 110 Level     13410000.pinctrl
+/proc/interrupts:  94:          0          0          0          0          0          0          0          0     GICv2  78 Level     14000000.pinctrl
+/proc/interrupts:  95:          0          0          0          0          0          0          0          0     GICv2  82 Level     14010000.pinctrl
+/proc/interrupts:  96:          0          0          0          0          0          0          0          0     GICv2  79 Level     3860000.pinctrl
+/proc/interrupts:  97:          0          0          0          0          0          0          0          0     GICv2 142 Level     3880000.adma
+/proc/interrupts:  98:       2819          0          0          0          0          0          0          0     GICv2  66 Level     121a0000.pdma
+/proc/interrupts:  99:          0          0          0          0          0          0          0          0     GICv2  67 Level     121b0000.pdma
+/proc/interrupts: 100:          0          0          0          0          0          0          0          0     GICv2  65 Level     10800000.mdma
+/proc/interrupts: 104:          0          0          0          0          0          0          0          0     GICv2 126 Level     drm_mixer
+/proc/interrupts: 110:        367          0          0          0          0          0          0          0     GICv2  97 Edge      10060000.tmu
+/proc/interrupts: 111:          0          0          0          0          0          0          0          0     GICv2 215 Edge      10064000.tmu
+/proc/interrupts: 112:       1167          0          0          0          0          0          0          0     GICv2 216 Edge      10068000.tmu
+/proc/interrupts: 113:        657          0          0          0          0          0          0          0     GICv2 217 Edge      1006c000.tmu
+/proc/interrupts: 114:          0          0          0          0          0          0          0          0     GICv2 247 Edge      100a0000.tmu
+/proc/interrupts: 133:          0          0          0          0          0          0          0          0  exynos4210_wkup_irq_chip   3 Edge      power key
+/proc/interrupts: 134:          1          0          0          0          0          0          0          0  exynos4210_wkup_irq_chip   4 Edge      s2mps11
+/proc/interrupts: 135:          0          0          0          0          0          0          0          0   s2mps11  10 Edge      rtc-alarm0
+/proc/interrupts: 136:     136883          0          0          0          0          0          0          0     GICv2 104 Level     xhci-hcd:usb3
+/proc/interrupts: 137:     114584          0          0          0          0          0          0          0     GICv2 105 Level     xhci-hcd:usb5
+/proc/interrupts: 138:          1          0          0          0          0          0          0          0  exynos4210_wkup_irq_chip   7 Edge      hdmi
+/proc/interrupts: IPI0:          0          0          0          0          0          0          0          0  CPU wakeup interrupts
+/proc/interrupts: IPI1:          0          0          0          0          0          0          0          0  Timer broadcast interrupts
+/proc/interrupts: IPI2:      26536      50072      39954      41526      70510      53839      73462      54424  Rescheduling interrupts
+/proc/interrupts: IPI3:          2       5917       5177       3165       7941       4706       7919       3901  Function call interrupts
+/proc/interrupts: IPI4:          0          0          0          0          0          0          0          0  CPU stop interrupts
+/proc/interrupts: IPI5:          0          0          0          0          0          0          0          0  IRQ work interrupts
+/proc/interrupts: IPI6:          0          0          0          0          0          0          0          0  completion interrupts
+/proc/interrupts: Err:          0
+/proc/meminfo: MemTotal:        2041048 kB
+/proc/meminfo: MemFree:          989068 kB
+/proc/meminfo: MemAvailable:    1735800 kB
+/proc/meminfo: Buffers:           69724 kB
+/proc/meminfo: Cached:           853348 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           385136 kB
+/proc/meminfo: Inactive:         556716 kB
+/proc/meminfo: Active(anon):     149728 kB
+/proc/meminfo: Inactive(anon):    47380 kB
+/proc/meminfo: Active(file):     235408 kB
+/proc/meminfo: Inactive(file):   509336 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: HighTotal:       1288192 kB
+/proc/meminfo: HighFree:         398908 kB
+/proc/meminfo: LowTotal:         752856 kB
+/proc/meminfo: LowFree:          590160 kB
+/proc/meminfo: SwapTotal:        458740 kB
+/proc/meminfo: SwapFree:         458740 kB
+/proc/meminfo: Dirty:              1456 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         18856 kB
+/proc/meminfo: Mapped:             3144 kB
+/proc/meminfo: Shmem:            178332 kB
+/proc/meminfo: Slab:              81108 kB
+/proc/meminfo: SReclaimable:      62896 kB
+/proc/meminfo: SUnreclaim:        18212 kB
+/proc/meminfo: KernelStack:        1288 kB
+/proc/meminfo: PageTables:          516 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:     1479264 kB
+/proc/meminfo: Committed_AS:     204312 kB
+/proc/meminfo: VmallocTotal:     245760 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: CmaTotal:          16384 kB
+/proc/meminfo: CmaFree:           15100 kB
+/proc/bus/input/devices: I: Bus=0019 Vendor=0001 Product=0001 Version=0100
+/proc/bus/input/devices: N: Name="gpio_keys"
+/proc/bus/input/devices: P: Phys=gpio-keys/input0
+/proc/bus/input/devices: S: Sysfs=/devices/platform/gpio_keys/input/input0
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=kbd event0 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=3
+/proc/bus/input/devices: B: KEY=100000 0 0 0
+/proc/bus/input/devices: 
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: armhf (armv7l)
+Kernel: Linux 4.15.0-2-armmp-lpae (SMP w/8 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled
+signature.asc

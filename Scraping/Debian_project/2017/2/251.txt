@@ -1,0 +1,77 @@
+To : debian-devel@lists.debian.org
+Subject : Re: changelog practice, unfinalised vs UNRELEASED vs ~version
+From : Wookey <wookey@wookware.org>
+Date : Sun, 12 Feb 2017 18:34:26 +0000
+Message-id : 20170212183426.GN29872@mail.wookware.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 22688.22947.749751.138991@chiark.greenend.org.uk>
+References : <[🔎] 22688.22947.749751.138991@chiark.greenend.org.uk>
+
+
+On 2017-02-12 12:48 +0000, Ian Jackson wrote:
+> We do not seem to have a coherent approach to how to handle
+> debian/changelog in trees (eg, vcs branches) which are not yet ready
+> for upload.
+> 
+> See below two examples of things done differently.
+> The questions are:
+> 
+> Q1. Should the suite in the changelog entry be UNRELEASED,
+>     or the suite at which the vcs branch is targeted ?
+> 
+> Q2. Should the changelog entry be finalised ?  That is, should it
+>     have an uploader name and date ?
+> 
+> Q3. Should the version number be the intended next version number,
+>     or should it be decorated with ~something ?  If it should
+>     be decorated, what should it be decorated with ?
+I don't have strong opinions on this, but as someone who still largely
+uses tarball-based processes, and git-based ones only when working
+with other people, there are things I feel it's vital to preserve, and
+things I'm very happy to see go.
+1. I really dislike dch's enthusiasm for putting in 'UNRELEASED'. It
+gives me nothing I wanted, and just provides the opportunity to really
+do a final, clean, tested, build, only to find on upload that it's
+still marked 'UNRELASED', and I have to do the build, test, upload
+step again - for big packages that is a huge pain and happens way too
+often. I really resent that there is no way to do dch -i;dch -r in one
+go - the separation of these is just makework for me. 
+I _always_ want to bump my version (dch -i) before I change _anything_
+because otherwise I'll accidentally overwrite the old version on
+build, so can't easily make patches/check diffs. I _don't_ want to
+change the targetted suite from unstable very often at all.  Your
+suggestion of putting UNRELEASED in the version rather than the suite
+would be a major improvement (because it's much more obvious when
+building/testing). So overall your proposal is an improvement on the
+status quo, but I really don't like the status quo much.
+I'd be happier if I didn't have to deal with 'UNRELEASED' at all
+unless I actually wanted to, so I'm not at all keen on your suggestion
+of making it mandatory.
+I wasn't aware that unfinalised changelog entries were a thing at
+all. In my experience if they aren't perfectly formatted (which is why
+I took to using dch in the first place) something will complain and
+you can can't build the package. They make sense to me as a concept,
+although I'm currently perfectly happy that the date in there tells me
+when I started work on this new release; that seems fair enough, but I
+do agree that removing them to make patch (or git) merging easier
+makes sense. Gratuitous changelog conflicts are annoying.
+> Proposal:
+> 
+>  * Tools which add/edit changelog change items should insist that the
+>    changelog is unfinalised and contains ~UNRELEASED in its version.
+I really don't want this to be _required_. Dicking with the version is
+better than dicking with the suite, but I really would prefer it if
+the tools did neither, or could simply be asked to.
+I realise that I'm pushing uphill somewhat here and no-one much cares
+about people who still don't use git if they don't have to. But the
+UNRELEASED/'dch -r' thing pisses me off on a daily basis, and this
+seemed like the time to point out that some of us don't find it all
+helpful. From that POV, moving it from suite to version would
+definitely be less annoying.
+I suppose I should file a wishlist bug about dch's annoying
+'UNRELEASED' behaviour, and lack of a workaround.
+Wookey
+-- 
+Principal hats:  Linaro, Debian, Wookware, ARM
+http://wookware.org/
+signature.asc

@@ -1,0 +1,67 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 08 Mar 2017 19:24:09 -0800
+Message-id : 87o9xbxhd2.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> (Adam Borowski's	message of "Wed, 8 Mar 2017 23:33:53 +0100")
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl>
+
+
+Adam Borowski <kilobyte@angband.pl> writes:
+> I'd like to discuss (and then propose to -policy) the following rule:
+> # Libraries which don't provide a convenient means of conditionally loading
+> # at runtime (this includes most libraries for languages such as C), SHOULD
+> # NOT declare a "Depends:" or "Recommends:" relationship, directly or
+> # indirectly, on packages containing anything more than dormant files. 
+> # Those include, among others, daemons, executables in $PATH, etc.  Any such
+> # relationship should be instead declared by programs that use the library
+> # in question -- it is up to them to decide how important the relationship
+> # is.
+This feels to me like the wrong tool.  It's entirely plausible for there
+to be a library whose entire purpose is to execute some external helper
+program with elevated privileges, which obviously should depend on the
+package that provides that program.  If we had such a requirement in
+Policy, we would end up with libraries that don't Depend on their actual
+dependencies and then callers have to add the dependency and then it's all
+just a mess.
+I feel like the problem here is that people are failing to fix bugs in
+their packages (unnecessary dependencies on libraries that have heavy
+dependencies), and you're trying to use Policy as a stick to beat them
+with to get them to fix their bugs.  I don't think this is a good idea,
+and I don't want us to end up with weird and incorrect dependencies for
+libraries that really do require external helper programs (which is not
+particularly rare).
+Particularly since I don't think this requirement is actually targeted at
+the dependency that's bothering you.  In your example:
+> It'd help disarm dependency chains such as:
+>     xfce4-power-manager -> upower -> libimobiledevice4 -> usbmuxd
+> ie, wanting XFCE currently pulls in a daemon that's of no use to anyone not
+> using a piece of iJunk (and what it even has to do with power management?).
+this would outlaw the Recommends from libimobiledevice4 to usbmuxd, but my
+understanding is that dependency is *correct*, and the actual extraneous
+dependency that's upsetting you is the one from upower to
+libimobiledevice4, which this Policy change would not affect at all.  If I
+were fixing this bug, that's the change I would make: have upower
+dynamically load libimobiledevice4 iff it exists, since that's fairly
+niche functionality.  (Or, really, given that it's a Recommends, just not
+worry about it.)
+In general, I don't want to see us place too many restrictions on
+Recommends.  If you don't want additional helpful programs, disable
+installing Recommends by default.  I think it's very odd to worry about
+bloat while simultaneously installing Recommends by default; those aren't
+really consistent things to do.
+> Other prominent examples include:
+>     openssh-server -> libwrap1 -> tcpd
+> using tcpd for ssh is a very niche use.
+I assume this is for /etc/hosts.allow and /etc/hosts.deny.  I think that
+could be lowered to a Suggests without losing much assuming the library
+behaves correctly when those files are missing; have you already reported
+that as a bug?
+>     e2fsprogs -> libuuid1 -> uuid-runtime
+> that daemon is useful only if you need to rapidly generate MANY uuids.  Not
+> just a single uuid per filesystem.  If your package actually needs that, it
+> can declare the dependency itself, like ceph-base does.
+Here too, Recommends -> Suggests seems to make sense to me; is that a
+conversation anyone has already had with the maintainer?
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

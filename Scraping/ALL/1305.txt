@@ -1,0 +1,118 @@
+To : Adam Borowski <kilobyte@angband.pl>, 855489@bugs.debian.org
+Subject : Bug#855489: lilo-installer: fails in postinst: sfdisk: invalid option -- '1'
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 19 Feb 2017 06:40:26 +0100
+Message-id : 20170219054026.GF30768@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 855489@bugs.debian.org
+In-reply-to : <[🔎] 148747982631.7001.10540279946450226239.reportbug@umbar.angband.pl>
+References : <[🔎] 148747982631.7001.10540279946450226239.reportbug@umbar.angband.pl>
+
+
+Control: tag -1 patch pending
+Hi,
+Adam Borowski <kilobyte@angband.pl> (2017-02-19):
+> (reported by "jim" on #debian-boot)
+> 
+> After choosing LILO rather than GRUB as the boot loader,
+> lilo-installer fails when invoking sfdisk.
+> 
+> Tested on /dev/vda and /dev/vda1.
+> 
+> 
+> A totally untested idea for a patch attached.
+I've reworded the patch a little, see attached file.
+diskutils/sfdisk.c was rewritten anew in v2.26-rc1 and support for the
+old shortcut was dropped when --activate was added again after they
+restarted from a fresh main(), with getopts.
+Pointers:
+ * Switch to basic main(), old code deletion
+   → 1881390de25df8587b8fc281c451796f7d032dd3
+ * (Re)addition of--activate
+   → 54b13b0c5caf6ae1745cbd526ea7e6581811b37f
+Old comments:
+    /*
+     * Activate: usually one wants to have a single primary partition
+     * to be active. OS/2 fdisk makes non-bootable logical partitions
+     * active - I don't know what that means to OS/2 Boot Manager.
+     *
+     * Call: activate /dev/hda 2 5 7       make these partitions active
+     *                                     and the remaining ones inactive
+     * Or:   sfdisk -A /dev/hda 2 5 7
+     *
+     * If only a single partition must be active, one may also use the form
+     *       sfdisk -A2 /dev/hda
+     *
+     * With "activate /dev/hda" or "sfdisk -A /dev/hda" the active partitions
+     * are listed but not changed. To get zero active partitions, use
+     * "activate /dev/hda none" or "sfdisk -A /dev/hda none".
+     * Use something like `echo ",,,*" | sfdisk -N2 /dev/hda' to only make
+     * /dev/hda2 active, without changing other partitions.
+     *
+     * A warning will be given if after the change not precisely one primary
+     * partition is active.
+     *
+     * The present syntax was chosen to be (somewhat) compatible with the
+     * activate from the LILO package.
+     */
+Awaiting test results from the reporter before pushing.
+KiBi.
+signature.ascFrom 5470ee9fafecfc897503e18ce89dc9b11f528251 Mon Sep 17 00:00:00 2001
+From: Adam Borowski <kilobyte@angband.pl>
+Date: Sun, 19 Feb 2017 05:43:39 +0100
+Subject: [PATCH] Reverse the order of arguments to sfdisk -A, and switch to
+ --activate.
+During a massive overhaul in util-linux 2.26, sfdisk -A accidentally
+changed meaning to --append. This change was later reverted, but the
+parsing was also reworked, and support for shortcuts like "fdisk -A2
+/dev/hda" instead of "fdisk -A /dev/hda 2" was dropped.
+So switch from -A to --activate for safety, and use the expected
+argument order.
+Submitted-by: Adam Borowski <kilobyte@angband.pl>
+Commit message amended based on some util-linux history digging, and
+quotes added to all arguments.
+Signed-off-by: Cyril Brulebois <kibi@debian.org>
+---
+ debian/changelog | 9 +++++++++
+ debian/postinst  | 4 ++--
+ 2 files changed, 11 insertions(+), 2 deletions(-)
+diff --git a/debian/changelog b/debian/changelog
+index 875dcdc..0a156fc 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,12 @@
++lilo-installer (1.52) UNRELEASED; urgency=medium
++
++  [ Adam Borowski ]
++  * Reverse the order of arguments to sfdisk -A, and switch to --activate
++    for extra safety since util-linux upstream had -a/-A mixed up at some
++    point, and support for old syntax was dropped anyway (Closes: #855489).
++
++ -- Cyril Brulebois <kibi@debian.org>  Sun, 19 Feb 2017 06:05:22 +0100
++
+ lilo-installer (1.51) unstable; urgency=medium
+ 
+   [ Updated translations ]
+diff --git a/debian/postinst b/debian/postinst
+index 58ab0ce..dca8a4a 100755
+--- a/debian/postinst
++++ b/debian/postinst
+@@ -155,7 +155,7 @@ if (echo "${bootdev}" | grep -v '/c[0-9]d[0-9]$' | grep -q '[0-9]$') \
+ 		if [ "${RET}" = "true" ]; then
+ 			pnum=$(echo ${bootdev} | sed 's/^.*\([0-9]\+\)$/\1/')
+ 			echo -n "I: Setting partition to active..." >&2
+-			sfdisk -A${pnum} ${disc_offered_devfs}
++			sfdisk --activate "${disc_offered_devfs}" "${pnum}"
+ 			echo "done." >&2
+ 		fi
+ 	fi
+@@ -174,7 +174,7 @@ if [ "${raid_boot}" = no ] && (! fdisk -l "$disc_offered_devfs" | grep '^/dev/'
+ 		# /boot.
+ 		pnum="$(echo "$bootfs" | sed 's/^.*\([0-9]\+\)$/\1/')"
+ 		echo -n "I: Setting partition $bootfs to active..." >&2
+-		sfdisk -A"$pnum" "$disc_offered_devfs"
++		sfdisk --activate "${disc_offered_devfs}" "${pnum}"
+ 		echo "done." >&2
+ 	fi
+ fi
+-- 
+2.1.4

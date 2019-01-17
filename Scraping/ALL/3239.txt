@@ -1,0 +1,68 @@
+To : 857132@bugs.debian.org
+Subject : Bug#857132: console-setup: additional info needed ?
+From : Karsten Hilbert <Karsten.Hilbert@gmx.net>
+Date : Wed, 22 Mar 2017 22:17:12 +0100
+Message-id : 20170322211712.x2ibghkoeel2ccpi@hermes.hilbert.loc
+Reply-to : Karsten Hilbert <Karsten.Hilbert@gmx.net>, 857132@bugs.debian.org
+In-reply-to : <[🔎] 20170322184816.GA29772@logic>
+References : <[🔎] 149017858840.23048.7220154904975481356.reportbug@hermes.hilbert.loc> <[🔎] 20170322111851.GA1617@debian.lan> <[🔎] 20170322120016.xigufsgrjq36z4zb@hermes.hilbert.loc> <[🔎] 20170322130228.GA27537@logic> <[🔎] 20170322141957.dtfhebv4py6whtmm@hermes.hilbert.loc> <[🔎] 20170322144927.GA28544@logic> <[🔎] 20170322165604.ts5zea25dws35t2m@hermes.hilbert.loc> <[🔎] 20170322184816.GA29772@logic>
+
+
+On Wed, Mar 22, 2017 at 08:48:16PM +0200, Anton Zinoviev wrote:
+> > 2017-03-22 13:05:13.364493514 +0100 /etc/console-setup/cached_setup_font.sh
+> > 2017-03-22 13:05:13.364493514 +0100 /etc/console-setup/cached_setup_keyboard.sh
+> > 2017-03-22 13:05:13.364493514 +0100 /etc/console-setup/cached_setup_terminal.sh
+> > 2017-03-22 12:54:59.368053266 +0100 /etc/console-setup/cached_UTF-8_del.kmap.gz
+> > 2017-03-22 12:53:10.459239057 +0100 /etc/default/console-setup
+> > 2017-03-07 09:26:01.171789164 +0100 /etc/default/keyboard
+> 
+> It seems something has changed /etc/default/console-setup. If this file 
+> is changed, then boot scripts of console-setup will recreate the 
+> cached_* files in /etc.
+> 
+> Do you know what has caused this file to be changed?
+That was me, again, because I hoped that setting
+	# Change to "yes" and setupcon will explain what is being doing
+	VERBOSE_OUTPUT="yes"
+from "no" to "yes" would generate helpful debugging output.
+However, I haven't been able to find any :-/
+> Something unrelated that might explain the bug is this: maybe this 
+> system runs X
+It does, yes.
+> but doesn't have framebuffer on the console?
+Oh, it does:
+dmseg:
+	[   20.377384] fbcon: inteldrmfb (fb0) is primary device
+	...
+	[   21.054248] Console: switching to colour frame buffer device 170x48
+	[   21.084983] i915 0000:00:02.0: fb0: inteldrmfb frame buffer device
+fbset -v -i
+	Linux Frame Buffer Device Configuration Version 2.1 (23/06/1999)
+	(C) Copyright 1995-1999 by Geert Uytterhoeven
+	Opening frame buffer device `/dev/fb0'
+	Using current video mode from `/dev/fb0'
+	mode "1366x768"
+	    geometry 1366 768 1366 768 32
+	    timings 0 0 0 0 0 0 0
+	    accel true
+	    rgba 8/16,8/8,8/0,0/0
+	endmode
+	Getting further frame buffer information
+	Frame buffer device information:
+	    Name        : inteldrmfb
+	    Address     : 0xd0048000
+	    Size        : 4227072
+	    Type        : PACKED PIXELS
+	    Visual      : TRUECOLOR
+	    XPanStep    : 1
+	    YPanStep    : 1
+	    YWrapStep   : 0
+	    LineLength  : 5504
+	    Accelerator : No
+> BTW, instead of `systemctl restart console-setup.service` you can use 
+> the command `setupcon`.
+OK, I will resort to that in order to minimize what is involved.
+Karsten
+-- 
+GPG key ID E4071346 @ eu.pool.sks-keyservers.net
+E167 67FD A291 2BEA 73BD  4537 78B9 A9F9 E407 1346

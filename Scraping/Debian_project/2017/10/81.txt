@@ -1,0 +1,82 @@
+To : debian-devel@lists.debian.org
+Subject : Re: e2fsprogs as Essential: yes?
+From : Felipe Sateler <fsateler@debian.org>
+Date : Mon, 2 Oct 2017 13:20:55 +0000 (UTC)
+Message-id : oqtefm$71s$1@blaine.gmane.org
+References : <20110326184708.GB18787@virgil.dodds.net>	<20170930224538.2pfhbxbnd7c245du@alf.mars>
+
+
+Hi,
+On Sun, 01 Oct 2017 00:45:39 +0200, Helmut Grohne wrote:
+> In 2011 Steve Langasek proposed dropping Essential: yes from e2fsprogs.
+> 
+> On Sat, Mar 26, 2011 at 11:47:08AM -0700, Steve Langasek wrote:
+>> Currently the e2fsprogs package is marked Essential: yes in the
+>> archive.  Is this a historical holdover?  I believe e2fsprogs used to
+>> ship /sbin/fsck, but since 2009 (i.e., util-linux (>= 2.15~rc1-1),
+>> which e2fsprogs has a pre-depends on), this has been provided by
+>> util-linux instead.
+>>
+>> The remaining programs provided by e2fsprogs are all specific to the
+>> ext* family of filesystems, so I don't think meet the definition of
+>> Essential any longer - their presence is certainly important if you
+>> have an ext[234] filesystem, but while this is the default, you can
+>> have systems that don't use ext* at all, which makes e2fsprogs no more
+>> essential in nature than the other per-filesystem fsck tools.
+>>
+>> Now that the transition to util-linux is done in a stable release, is
+>> it time for us to drop the Essential: yes flag from e2fsprogs?  This
+>> will benefit those targetting embedded systems that don't use ext,
+>> where the package will be dead weight; the risk of any packages
+>> assuming availability of these e2fs-specific interfaces without a
+>> dependency is quite low; and we're at the right point in the cycle to
+>> make changes to the Essential set, where we have time to deal with any
+>> unexpected fallout.
+> 
+> Since then we have fully transitioned to systemd and init has become
+> non-essential. The issue around pulling e2fsprogs into essential via
+> logsave has thus solved itself.
+> 
+> I think we should revisit this proposal now that it becomes practical.
+Thanks for resuming this work.
+> 
+> To get us going, I have come up with a plan:
+> 
+> 1) Analyze which packages would need dependencies on e2fsprogs.
+>From what I gather in the files you attached, these packages are flagged 
+for preinst/postrm and thus may be problematic:
+1. e2fsck-static (appears to be false positive)
+2. lilo (uses kernel preinst hook)
+3. blktrace (appears false positive)	
+I don't know how the kernel hook works, is it problematic?
+> 2) File a bug against lintian to stop complaining about e2fsprogs
+>    dependencies.
++1
+> 3) MBF those packages that need an e2fsprogs dependency.
+> 4) Drop Essential: yes from e2fsprogs.
+As Adam mentioned, we will need to wait one release to drop the 
+Essential: yes bit :( . Alternatively, e2fsck would have to gain Breaks: 
+against all unfixed rdeps. For such a core package I think this might be 
+problematic for upgrades, but I haven't tested.
+> So I thought, "how hard can it be?" All we need to do is grep the
+> archive for those tools and add those dependencies. So I unpacked sid
+> main amd64 and grepped[1] each and every file (potentially decompressing
+> gzip) for those e2fsprogs. The results[2] are 5666 occurrences in 1250
+> binary packages. From there, I started looking[3] into the actual uses
+> and filtered common non-uses such as documentation, debug symbols,
+> kernel images, locales and other stuff. I manually checked the remaining
+> packages and thus went down[4] to 318 occurrences in 133 binary
+> packages. Thus I arrive at the final dd-list (attached) for an MBF. We
+> can now say that our package lists will increase by less than 1.5kb
+> uncompressed if we make e2fsprogs non-essential. In comparison, the
+> average binary package weighs 767 bytes. I believe that the method used
+> is mostly free from false negatives (by looking for bare program names
+> in each and every file) and has a manageable number of false positives.
+> 
+> I think we can check off the analysis part. How about proceeding with
+> the lintian bug and the MBF now? Did I miss anything?
+I think this is OK. Thanks again for the work, and I think we should 
+proceed. The earlier, the better!
+-- 
+Saludos,
+Felipe Sateler

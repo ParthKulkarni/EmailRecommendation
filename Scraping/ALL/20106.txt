@@ -1,0 +1,50 @@
+To : debian-devel@lists.debian.org, debian-backports@lists.debian.org
+Subject : Re: Debian Buster release to partially drop non-systemd support
+From : Petter Reinholdtsen <pere@hungry.com>
+Date : Tue, 16 Oct 2018 17:54:34 +0200
+Message-id : sa6bm7tdgzp.fsf@meta.reinholdtsen.name
+In-reply-to : <[🔎] 20181016145117.GA2612@piware.de>
+References : <20181013020024.iz2pqs7ekl5qn2br@hork.ruvolo.net> <ede53632dd0e7b81a3ed94c55952fae882f76bf9.camel@decadent.org.uk> <20181013034727.lok4dclyt5dajf2b@hork.ruvolo.net> <37e22065a2a8b45267e77bd40a647c26b14e1fa2.camel@decadent.org.uk> <[🔎] 20181013105824.ei7v7fvmo7hmo7pg@layer-acht.org> <[🔎] alpine.DEB.2.21.1810141807300.8797@tglase-nb.lan.tarent.de> <[🔎] 87o9buun8n.fsf@gentoo.org> <[🔎] sa6efcqj8rc.fsf@meta.reinholdtsen.name> <[🔎] 20181016145117.GA2612@piware.de>
+
+
+[Martin Pitt]
+> It's not only that. The sysvinit package *itself* doesn't actually do
+> much really. That's not to downplay your past involvement there of
+> course (e. g.  developing insserv alone was a huge task), but the
+> *real* maintenance is in all the packages that *ship* SysV init
+> scripts.
+Sure.  But for the common case, it do not need to be much, when using
+the /lib/init/init-d-script mechanism.  Of the around 1000 packages with
+init.d scripts when I kept track of such things, around 900 did not need
+much logic at all to start its daemon.  And as I wrote five years
+ago[1], the init.d script often do not have to be longer than this:
+#!/lib/init/init-d-script
+### BEGIN INIT INFO
+# Provides:          rsyslog
+# Required-Start:    $remote_fs $time
+# Required-Stop:     umountnfs $time
+# X-Stop-After:      sendsigs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: enhanced syslogd
+# Description:       Rsyslog is an enhanced multi-threaded syslogd.
+#                    It is quite compatible to stock sysklogd and can be 
+#                    used as a drop-in replacement.
+### END INIT INFO
+DESC="enhanced syslogd"
+DAEMON=/usr/sbin/rsyslogd
+[1] <URL: http://people.skolelinux.org/pere/blog/Debian_init_d_boot_script_example_for_rsyslog.html >
+> SysV init leaves all the really hard problems to these, as it cannot
+> really do much by itself. That's a fact that people that keep yelling
+> "but SysV init was so easy!" keep finessing..
+Absolutely.  And the sysvinit boot system have lots of unsolved problems
+we never got around to figuring out, related to disk and other device
+setup.  The main cause is the fact that the linux kernel is no longer
+predicatble and sequencial, but asynchonous.  No amount of wishful
+thinking is going to bring is back to a world where static sequencing of
+boot events is going to handle all the interdependencies.
+To bad systemd do not work with kFreeBSD and Hurd, then we could use the
+same mechanism on all architectures.
+-- 
+Happy hacking
+Petter Reinholdtsen

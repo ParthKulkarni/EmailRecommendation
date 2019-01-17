@@ -1,0 +1,72 @@
+To : Julian Andres Klode <jak@debian.org>, 851774@bugs.debian.org,	Marga Manterola <marga@google.com>, deity@bugs.debian.org
+Subject : Bug#851774: Stop using apt-key add to add keys in generators/60local
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 5 Feb 2017 00:25:52 +0100
+Message-id : 20170204232552.GA22682@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 851774@bugs.debian.org
+In-reply-to : <20170121183343.GA31901@debian.org>
+References : <CAM+PWT0Yx4YK63J=84zA2dvhXwjGROxC72AhEE=7uGnOs+mbcg@mail.gmail.com> <91472e5c-7c1b-b017-536d-541b563716cb@philkern.de> <20170121183343.GA31901@debian.org>
+
+
+Hi,
+I'm adding gnupg maintainers in cc since they might have interesting
+tips for the implementation. Context: we need to replace apt-key add
+calls with dropping files under the appropriate names for extra
+repositories in a Debian Installer context.
+Julian Andres Klode <jak@debian.org> (2017-01-21):
+> > On 18.01.2017 17:43, Marga Manterola wrote:
+> > > For a long time it's been possible to preseed a local repository that
+> > > has it's own keyring. However, with the latest changes related to gpg
+> > > dependencies getting dropped in apt, this is no longer possible.
+> > > 
+> > > I'm setting severity as serious as adviced by Julien Cristau on IRC.
+> > > With the current state of things, in order to install a local repository
+> > > with a keyring the user needs to somehow create a script that will put
+> > > the keyring in place before 60local runs, and not preseed the keyring at
+> > > all.  If the keyring is preseeded, *the whole installation will fail*
+> > > because apt-key add fails which causes 60local to fail, which causes the
+> > > install base system step to fail.
+> > > 
+> > > This is the offending code:
+> > > https://sources.debian.net/src/apt-setup/1:0.123/generators/60local/#L33
+> > > 
+> > > This is using the deprecated apt-key add functionality.  From the
+> > > apt-key manpage:
+> > > 
+> > > COMMANDS
+> > >        add filename
+> > > (...)
+> > >            Note: Instead of using this command a keyring should be
+> > > placed directly in the /etc/apt/trusted.gpg.d/ directory with a
+> > > descriptive name and either "gpg" or "asc" as file extension.
+> > > 
+> > > So, the right thing to do is to copy the file to the right path instead
+> > > of calling apt-key add with it.
+> > 
+> > Does that mean that we actually have to infer (check using grep?) if the
+> > file is armored or not? I think `apt-key add' just dealt with whatever
+> > it got and put the key into the keyring using gpg's --import function.
+> > So it's a little unfortunate that we'd now need to know the format of
+> > what we need to put into the fragment directory.
+> 
+> AFAIK. If it is armored, it must be called .asc, if not it must be
+> called .gpg. Armored files are supported since 1.4~beta1, that is,
+> starting with stretch and Ubuntu zesty. GPG might also support
+> unarmored content in .asc files (at least it does --unarmor with
+> an unarmored file).
+> 
+> So, the answer is probably yes, but you could try out just
+> storing everything in .asc files and it might work (but that's
+> a bit ugly...).
+I've tested with a custom repository and a sid chroot, and results are
+as follows when only the said file has been added to trusted.gpg.d/:
+| C2B35520.asc with asc contents: OK
+| C2B35520.asc with gpg contents: KO
+| C2B35520.gpg with gpg contents: OK
+| C2B35520.gpg with asc contents: KO
+so I think we need to have some kind of autodetection code. gnupg
+maintainers: is grepping for “BEGIN PGP PUBLIC KEY BLOCK” enough to
+decide between armored and non-armored? Or do you have any better
+solutions?
+KiBi.
+signature.asc

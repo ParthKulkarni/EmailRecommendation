@@ -1,0 +1,50 @@
+To : Matthias Klose <doko@debian.org>
+Subject : Re: Bug#901001: python3-minimal should Pre-Depend on python3.N-minimal
+From : Steve Langasek <vorlon@debian.org>
+Date : Sat, 9 Jun 2018 11:44:34 -0700
+Message-id : 20180609184434.GB20663@virgil.dodds.net
+Mail-followup-to : Matthias Klose <doko@debian.org>,	Philipp Kern <pkern@debian.org>, 901001@bugs.debian.org,	Julian Andres Klode <jak@debian.org>, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 17e15b73-0e4a-0d16-7ad6-11b1ad5625a8@debian.org>
+References : <[🔎] 20180607145701.GA23316@debian.org> <[🔎] 20180609052003.GA20663@virgil.dodds.net> <[🔎] 20180607145701.GA23316@debian.org> <[🔎] cd4df30f-c5e2-ce59-2968-22748e1390f8@debian.org> <[🔎] b81ccab8-c743-b6e0-a66f-10fe17abfa4a@debian.org> <[🔎] 17e15b73-0e4a-0d16-7ad6-11b1ad5625a8@debian.org>
+
+
+On Sat, Jun 09, 2018 at 06:39:19PM +0200, Matthias Klose wrote:
+> On 09.06.2018 18:31, Matthias Klose wrote:
+> > On 09.06.2018 11:55, Philipp Kern wrote:
+> > > On 6/9/18 7:20 AM, Steve Langasek wrote:
+> > > > - the package is being upgraded; it is in the common case (when no python
+> > > >    module names have been dropped from within the package) less important to
+> > > >    run py3clean because the same files will be recreated shortly afterwards
+> > > >    by py3compile from the new postinst.
+> > > What's the consequence from deleting the files and only recreating them
+> > > later? Longer startup time of the interpreter in that short window?
+> > yes, that's the only thing.
+> > > Because if it's worse, it'd be good to have py3clean only delete the
+> > > obsolete files in the postinst?
+> but as written in the bug report, there is another solution, to have
+> py3clean search for the interpreter it uses, and which doesn't need the
+> pre-dependency.
+Is the following scenario a concern that we should take into consideration?
+ - a core library that python3.5-minimal (or libpython3.5-minimal) depends
+   on has an ABI change and must be renamed, with a conflicts on the old
+   package name.
+ - new python-minimal is unpacked. /usr/bin/python is a dangling symlink.
+ - python3.5-minimal is removed due to the conflict.
+ - python3.6-minimal is not yet unpacked, because ordering is not
+   guaranteed.
+ - python3-foo module is removed due to another conflict.  The prerm fails
+   because py3clean can find no version of python3 interpreter on the disk.
+The pre-depends would address this case, by enforcing the configuration of
+python3.6-minimal before unpacking python-minimal (and before removing
+python3.5-minimal).  It does constrain apt's solver, but as long as apt can
+find a solution, that's ok.
+It may be an ignorable hypothetical, since the set of libraries that
+python3.5-minimal + libpython3.5-minimal depends on is quite small, and they
+are all very stable and well-maintained upstream (zlib, libexpat1, libc6,
+libssl).
+-- 
+Steve Langasek                   Give me a lever long enough and a Free OS
+Debian Developer                   to set it on, and I can move the world.
+Ubuntu Developer                                   https://www.debian.org/
+slangasek@ubuntu.com                                     vorlon@debian.org
+signature.asc

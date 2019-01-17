@@ -1,0 +1,59 @@
+To : Philipp Kern <pkern@debian.org>, debian-bsd@lists.debian.org, debian-hurd@lists.debian.org
+Subject : Re: isc-dhcpd vs udhcpd
+From : Ondřej Surý <ondrej@sury.org>
+Date : Mon, 23 Oct 2017 13:32:36 +0200
+Message-id : 1508758356.1061314.1147806712.4842605A@webmail.messagingengine.com
+In-reply-to : <[🔎] 04095ca0-8835-9c59-8325-5f7a291475d5@philkern.de>
+References : <[🔎] 1508744191.1000826.1147599456.1411C47C@webmail.messagingengine.com> <[🔎] 04095ca0-8835-9c59-8325-5f7a291475d5@philkern.de>
+
+
+Just to rephrase my original request then...
+Personally, I don't really care about the DHCP client used in d-i, but I
+do care about complexity in the bind9 packaging.
+The --without-openssl support will go away (probably in BIND 9.13) and I
+would rather unify the two sets of libraries into one. If that means
+shuffling symbols around, so we don't end up with libxml2, libjson and
+libgeoip in d-i, then I will rather make it happen in upstream
+So the main difference between export and non-export libraries are:
+Are these a problem?
+* krb5 / gssapi # guess this is a problem, as krb5 has not udebs
+* libcap2 # guess not, there's a udeb
+These have to definitely go:
+* libgeoip1 (I have no idea why it's linked to libisc)
+* libxml2 (I have no idea why it's linked to libisc)
+Cheers,
+Ondrej
+-- 
+Ondřej Surý <ondrej@sury.org>
+On Mon, Oct 23, 2017, at 13:21, Philipp Kern wrote:
+> On 23.10.2017 09:36, Ondřej Surý wrote:
+> > while revising bind9 udebs, KiBi suggested that non-Linux architectures
+> > might be using isc-dhcpd instead of udhcpd due some problems and it
+> > might be a good idea to revise the decision now that we have a busybox
+> > maintainer?
+> 
+> Ubuntu has used dhclient for a long time now in d-i. I think there are
+> at least two parts to it: a) consistency across architectures - it is
+> weird to support two completely different implementations and b)
+> actually use the same implementation than the installed system would
+> rather than something embedded that has less features.
+> 
+> I recall times at work where we had severe issues with dhclient not
+> staying around in the background refreshing the lease. I have no idea if
+> this is still the case, I just recall that -1 behavior was kind of a
+> mess. Back then we bumped the lease duration. If picking udhcpc means
+> that we can address such issues more easily, that's better.
+> 
+> At the same time people know how to configure dhclient and can use a
+> similar config as in the installed system. My understanding is that
+> udhcpc has essentially no options at all (like sending additional DHCP
+> options).
+> 
+> netcfg also did not receive that much love in recent times and I wonder
+> if something more integrated wouldn't be better than the hacks layered
+> on top of each other to make it work we have today. But at the same time
+> I know that something modern like systemd-networkd won't work for d-i
+> either because of architecture consistency. :/
+> 
+> Kind regards
+> Philipp Kern

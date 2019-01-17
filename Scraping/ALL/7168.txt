@@ -1,0 +1,51 @@
+To : Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Subject : Bug#618859: debirf make fails in symlinked directory
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sun, 11 Mar 2018 21:04:24 +0900
+Message-id : 20180311210424.6d96a1abe3812f9b71fcc79b@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 618859@bugs.debian.org
+In-reply-to : <4D86D6D3.2020109@fifthhorseman.net>
+References : <20110319010609.22041.35258.reportbug@chicken> <4D86D6D3.2020109@fifthhorseman.net> <20110319010609.22041.35258.reportbug@chicken>
+
+
+On Mon, 21 Mar 2011 00:40:51 -0400
+Daniel Kahn Gillmor <dkg@fifthhorseman.net> wrote:
+> So it appears to be a bug in debootstrap itself?  I've tried running
+> debootstrap as superuser with the same arguments supplied by debirf, on
+> a clean directory, and I get the same error.  To replicate (on a sid
+> system):
+> 
+> > mkdir /tmp/testloc
+> > ln -s /tmp/testloc /tmp/testlink
+> > cd /tmp/testlink
+> > fakechroot debootstrap --keyring /usr/share/keyrings/debian-archive-keyring.gpg  --variant=fakechroot squeeze $(pwd)/mini http://mirror.cc.columbia.edu/debian 
+   ^^^
+    it should be "fakechroot fakeroot debootstrap ..."
+ debootstrap (1.0.93) with fakechroot caused segfault here on my box.
+> (snip)
+> I: Extracting zlib1g...
+> W: Failure trying to run: chroot /tmp/testlink/mini dpkg-deb -f /var/cache/apt/archives/dpkg_1.18.24_amd64.deb Version
+> W: See /tmp/testlink/mini/debootstrap/debootstrap.log for details
+> I: Installing core packages...
+> W: Failure trying to run: chroot /tmp/testlink/mini dpkg --force-depends --install /var/cache/apt/archives/base-passwd_3.5.43_amd64.deb
+> W: See /tmp/testlink/mini/debootstrap/debootstrap.log for details
+> 
+> $ cat /tmp/testlink/mini/debootstrap/debootstrap.log
+> (snip)
+> /usr/sbin/chroot.fakechroot: line 105:  6306 Segmentation fault      env -u FAKECHROOT_BASE_ORIG FAKECHROOT_CMD_ORIG= LD_LIBRARY_PATH="$fakechroot_chroot_paths" FAKECHROOT_BASE="$fakechroot_chroot_base" "$fakechroot_chroot_chroot" "${@:1:$(($fakechroot_chroot_n - 1))}" "${fakechroot_chroot_newroot#$FAKECHROOT_BASE_ORIG}" "${@:$(($fakechroot_chroot_n + 1))}"
+> /usr/sbin/chroot.fakechroot: line 105:  6365 Segmentation fault      env -u FAKECHROOT_BASE_ORIG FAKECHROOT_CMD_ORIG= LD_LIBRARY_PATH="$fakechroot_chroot_paths" FAKECHROOT_BASE="$fakechroot_chroot_base" "$fakechroot_chroot_chroot" "${@:1:$(($fakechroot_chroot_n - 1))}" "${fakechroot_chroot_newroot#$FAKECHROOT_BASE_ORIG}" "${@:$(($fakechroot_chroot_n + 1))}"
+ But with roor privilege, it succeeded. 
+> $ sudo debootstrap stretch $(pwd)/mini http://debian-mirror.sakura.ne.jp/debian
+> mkdir: cannot create directory '/tmp/testlink': Permission denied
+> mknod: /tmp/testlink/mini/test-dev-null: No such file or directory
+> E: Cannot install into target '/tmp/testlink/mini' mounted with noexec or nodev
+ Okay, just do it under ~/tmp...
+> $ mkdir ~/tmp/testloc
+> $ ln -s ~/tmp/testloc ~/tmp/testlink
+> $ cd ~/tmp/testlink
+> $ sudo debootstrap --keep-debootstrap-dir stretch $(pwd)/mini http://debian-mirror.sakura.ne.jp/debian
+ -> no error.
+ I'll investigate it with more old debootstrap later.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp

@@ -1,0 +1,425 @@
+To : debian-devel@lists.debian.org
+Subject : Let's enable AppArmor by default (why not?)
+From : intrigeri <intrigeri@debian.org>
+Date : Fri, 04 Aug 2017 19:31:36 -0400
+Message-id : 857eyij4fb.fsf@boum.org
+Reply-to : debian-devel@lists.debian.org
+
+
+Hi!
+tl;dr: I hereby propose we enable AppArmor by default in testing/sid,
+and decide one year later if we want to keep it this way in the
+Buster release.
+My goals when initiating this discussion are:
+ - Get a rough idea of what amount of effort the Debian project is
+   happy (and able) to invest into such proactive security measures.
+ - Learn about any relevant social & technical concerns I am not
+   aware of.
+I don't expect we'll make a decision based on this very proposal:
+I expect the proposal will need to be refined, or abandoned, to take
+into account what we will learn during this preliminary discussion.
+Why do we need AppArmor?
+========================
+AppArmor is a Mandatory Access Control framework implemented as
+a Linux Security Module (LSM), user space utilities, and a quite
+simple language to define policy.
+AppArmor confines programs according to a set of rules that specify
+what operations a given program can access, e.g. it can prevent
+exploited server software from accessing data it does not own and
+executing arbitrary code. This proactive approach helps protect the
+system against some known and unknown vulnerabilities.
+Various actors are actively exploiting software. Random users are
+victimized every day, and specific populations are specifically
+targeted, e.g. government opponents, human rights defenders, system
+administrators, software developers and distributors, as revealed by
+the Snowden leaks.
+Every month we learn about many new attack vectors made possible by
+programming errors. We fix them after the fact, which is great but
+a bit too late: users may already have been exploited. Most operating
+systems have adopted proactive approaches to mitigate the impact of
+such problems.
+In Debian, great efforts are in progress: hardening binaries makes it
+harder to write successful exploits, and making our packages build
+reproducibly will make it harder to introduce vulnerabilities at the
+binary level.
+Still, Debian is far from being best in class on this front: we have
+no widespread mechanism for sandboxing desktop applications. We can
+surely do better. The great news is that there is one low-hanging
+fruit waiting to be picked, and it's what this proposal is about :)
+A proposal
+==========
+1. Enable AppArmor by default in testing/sid as soon as feasible in
+   the Buster cycle.
+   I can think of several possible ways to do it but for now I'd
+   rather focus on the "do we want to do it at all" conversation.
+   If curious some options are listed on the wiki:
+   https://wiki.debian.org/AppArmor/Progress#Enabling_AppArmor_by_default.3F
+   Feel free to discuss them on <pkg-apparmor-team@lists.alioth.debian.org>.
+   And anyway, you can already opt-in for AppArmor on your system today:
+   https://wiki.debian.org/AppArmor/HowToUse :)
+2. During a year, watch out for AppArmor related issues and address
+   them in a prompt manner.
+   Note that the best way to address them quickly enough is sometimes
+   to simply disable the problematic AppArmor profile: it's cheap,
+   doesn't require advanced AppArmor skills, and IMO a smaller
+   AppArmor policy enabled by default is more useful than a broader
+   but less robust one that only a couple thousand users benefit from.
+3. A year after AppArmor was enabled by default: evaluate how it went
+   and decide if Buster should be shipped with AppArmor enabled by
+   default or not.
+   I commit to do an analysis using BTS data to help make this
+   decision. If we need formal success criteria and a clearly defined
+   team who'll make the call, I'm happy to think about it. But here
+   again I'd rather focus on the general idea than on implementation
+   details at this point.
+Questions and Answers
+=====================
+Table of contents:
+ - What's the benefit, exactly?
+ - What do other distributions do?
+ - What's the history of AppArmor in Debian?
+ - How popular is AppArmor in Debian?
+ - What's the cost for Debian users?
+ - What's the cost for package maintainers?
+ - Is the Debian AppArmor team strong enough to support this change?
+ - Why AppArmor and not SELinux?
+ - Why AppArmor and not sandboxing based on XYZ?
+ - Will this prevent users from using another Linux Security Module?
+ - What does upstream look like?
+ - How much will we depend on Canonical's business priorities?
+ - No thanks: I've tried AppArmor and it broke stuff too often
+ - Doesn't AppArmor need out-of-tree kernel patches?
+ - How can I help?
+ - Credits
+What's the benefit, exactly?
+----------------------------
+Before we even bother looking at the cost of enabling AppArmor by
+default, let's look closer at the expected benefit. In other words:
+what kind of attacks does AppArmor really mitigate or prevent in the
+real world?
+tl;dr: big benefit for server software, and for desktop applications
+limited to less sophisticated, non-targeted attacks (but it'll get
+better).
+AppArmor is well suited to protect against remote exploitation of
+security issues in server software and non-GUI programs often run with
+elevated privileges (think of dhclient, ping, tcpdump). I'm sure one
+could identify a few serious issues that would have been mitigated or
+prevented by our current AppArmor policy, by looking at a list of
+DSA/CVE. Also, one gets interesting security properties when software
+is tuned for AppArmor: e.g. a given libvirt/QEMU virtual machine can
+only access its assigned storage volumes, and not other VMs'; this is
+useful against QEMU security issues that allow guests to escape the
+virtualization layer.
+On the desktop, to be honest things look pretty bad *currently*:
+AppArmor is not enough, and we need new concepts and technologies to
+fix serious limitations on the desktop sandboxing front.
+Thankfully this is being actively worked on and the future of desktop
+sandboxing on GNU/Linux looks bright and shiny! Some of the future
+options rely on AppArmor, some others don't. See the "Why AppArmor and
+not sandboxing based on XYZ?" section below.
+Still, confining desktop apps with AppArmor has benefit against
+scripted or non-targeted attacks: it will mitigate some attacks and
+others will get through. So while it's probably not worth starting to
+write lots of new policy for GUI applications now, I think that
+leveraging the existing one will already serve our users.
+What do other distributions do?
+-------------------------------
+AppArmor has been enabled by default in several other GNU/Linux
+distributions and Debian derivatives for a while:
+ * in openSUSE + SLES since 2006
+ * in Ubuntu since 2008, with a growing policy:
+   https://wiki.ubuntu.com/SecurityTeam/KnowledgeBase/AppArmorProfiles
+ * in Tails, since 2014 for a few important services (CUPS, Tor) and
+   a few desktop applications (e.g. Totem, Evince, Pidgin, Tor
+   Browser, Thunderbird)
+ * in a few other Debian derivatives (Whonix, Subgraph OS) for at
+   least a couple years.
+What's the history of AppArmor in Debian?
+-----------------------------------------
+AppArmor has been available (opt-in) in Debian since 2011. In 2014
+a Debian AppArmor packaging team was created, that has been taking
+care of the AppArmor packages and policy since then.
+In the last 3 years the AppArmor policy shipped in Debian was extended
+substantially and its coverage is now on par with Ubuntu's. It's still
+rather small due to the strategy we chose: we wanted to avoid
+traumatizing early adopters and to avoid creating a culture of
+"AppArmor always breaks stuff, let's get used to disabling it".
+So like Ubuntu and openSUSE, we're shipping a rather small and mature
+AppArmor policy. I believe this strategy has been successful so far,
+and even some non-trivial pieces of software like Thunderbird now ship
+an AppArmor policy; but of course it has one drawback: most software,
+including web browsers, is not confined with AppArmor whatsoever.
+Surely with more people contributing to our AppArmor policy we could
+have it cover other important pieces of software; time will tell.
+A number of maintainers accepted shipping AppArmor policy in their own
+package. If you're one of them, please consider providing feedback
+about how it went for you.
+How popular is AppArmor in Debian?
+----------------------------------
+tl;dr: AppArmor has steadily become more and more popular in Debian in
+the last few years. I think the user base has reached a critical mass
+that proves it works OK.
+Here's what popcon says ("Vote" count) for the apparmor binary
+package, that's needed to use AppArmor:
+ * 2015-01:  ~400
+ * 2016-01:  ~700 (+75% in a year)
+ * 2017-01: ~1300 (+85% in a year)
+ * today:    1870 (+44% in 7 months)
+But we have no way to tell whether a user who has AppArmor packages
+installed actually enabled the AppArmor LSM, so the data for
+apparmor-profiles-extra might be more useful here: I expect that only
+users who really want to use AppArmor with an extended policy would
+bother installing it. This one has 435 registered installations
+("Vote" has always been 0 for some reason that I did not investigate);
+it was introduced in October 2014, and since then its popcon stats
+have been steadily increasing.
+What's the cost for Debian users?
+---------------------------------
+AppArmor unavoidably breaks functionality from time to time: e.g.
+new versions of software we package (or of their dependencies)
+regularly start needing access to new file locations.
+And then users see broken applications from time to time, after
+upgrading their testing/sid system. This is to be taken seriously, but
+not a big concern IMO:
+ - Apparently Ubuntu users have been coping with AppArmor enforced
+   by default for 9 years. I see no reason why Debian users would not.
+ - I've counted 14 bugs bugs reported in the Debian BTS during the
+   Stretch development cycle against our supported AppArmor policy.
+   Among those, 11 were closed (106 days after being reported on
+   average); all the important ones were closed within 2 months;
+   larger delays were due to users developing fixes and/or upstream
+   taking some time to review merge requests. About the 3 bugs still
+   open: one is waiting for input from other package maintainers since
+   2 years, another one had a patch waiting to be applied, and the
+   last one needs to be fixed in libvirt upstream.
+ - Serious breakage is less likely to happen once AppArmor is enabled
+   by default, as there are greater chances that the maintainer would
+   have noticed it before uploading.
+ - Workarounds are regularly suggested to the bug reporter on the BTS,
+   and in many cases the bug reporter documents in the bug report the
+   workaround they have *already* applied.
+   Implementing a suggested workarounds requires being able to edit
+   a text file and running one command as root, which should be doable
+   by the vast majority of testing/sid users.
+What's the cost for package maintainers?
+----------------------------------------
+For most of them: none at all. As said earlier, our AppArmor policy
+does not cover that much software yet.
+But maintainers of software confined by AppArmor will have to deal
+with a new kind of bug reports, whose number is likely to grow
+significantly once AppArmor is enabled by default. This means they
+have to:
+1. identify if a bug report can possibly be related to AppArmor;
+2. either learn how to debug AppArmor issues themselves, or ask the
+   pkg-apparmor team for help (thanks to usertags:
+   https://wiki.debian.org/AppArmor/Reportbug#Usertags).
+I expect that initially pkg-apparmor will need to provide help in many
+cases, but over time the affected maintainers will slowly learn just
+enough about AppArmor to handle at least the simplest cases
+themselves, just like it happened in Ubuntu years ago.
+Is the Debian AppArmor team strong enough to support this change?
+-----------------------------------------------------------------
+This is a valid concern, as I have been doing the greatest part of the
+work on this team.
+So far I've found my AppArmor-related workload totally sustainable:
+it took me just a few hours here and there, and I would be doing this
+work for Tails anyway, so better do it directly in Debian. Still,
+primarily relying on one single person is concerning.
+Thankfully, a number of other people have been contributing in various
+ways. A few Debian users and contributors got used to reporting bugs
+and contribute improvements to our AppArmor policy upstream.
+Another team member uploaded src:apparmor once. Ulrike Uhlig wrote
+documentation about AppArmor for Debian users and
+contributors during an Outreachy project whose outcome was posted to
+debian-devel-announce in March, 2015.
+Also, just like any such distro-wide change, I expect the amount of
+work required to support the broader project:
+ - will be large initially; I'm confident that the current state of
+   our team is good enough to support the project during the first
+   stage of the transition;
+ - will only decrease over time, as Debian people get used to it and
+   learn the small bits they need to know about the new technology,
+   and eventually the cases when our AppArmor team has to give a hand
+   will become rare;
+ - will be done by AppArmor people from other distributions as well:
+   a few of them actively participate on the pkg-apparmor mailing list
+   and help on issues reported in the Debian BTS.
+So I think it's totally reasonable to give it a try.
+Why AppArmor and not SELinux?
+-----------------------------
+SELinux is another LSM that tackles similar problems.
+Disclaimer: I've picked AppArmor years ago and didn't look much at
+SELinux recently, so some of what follows may be totally wrong or
+outdated. Sorry! Debian SELinux people, if you don't mind please help
+me get the basic facts right :)
+Pros:
+ * Allows mediating more kernel objects / interfaces than AppArmor, so
+   policy can be made stricter and safer given sufficient expertise
+   and available time for maintenance.
+ * Enabled by default in RHEL so in theory a great number of sysadmins
+   are at ease with it (see below why reality may not match this).
+ * A quick look at popcon suggests that SELinux might be more popular
+   in Debian than AppArmor, but I'm not sure I am interpreting the
+   numbers right (and I suspect that just like AppArmor, the popcon
+   won't tell us if users who have installed the relevant support
+   packages actually run their system with the corresponding LSM
+   enabled & enforced).
+Cons:
+ * Writing, maintaining, auditing and debugging SELinux policy
+   requires grasping a complex conceptual model; I am told this is not
+   as easy as doing the same with AppArmor.
+ * As far as I could understand when chatting with sysadmins of Red
+   Hat systems, this has resulted in a culture where many users got
+   used to disable SELinux entirely on their systems, instead of
+   trying to fix the buggy policy. I've seen the opposite happen with
+   AppArmor, which is good: for example, pretty often bug reporters to
+   the Debian BTS document themselves how they could workaround the
+   problem locally *without* turning AppArmor off. Looking at open
+   bugs in the BTS against src:refpolicy, this seems to happen very
+   rarely for SELinux, so I wonder if it would be realistic to ship
+   Debian with SELinux enforced by default and have our community
+   support it.
+ * https://wiki.debian.org/SELinux/Issues says "Graphical/Desktop
+   installs of Debian are not heavily tested with selinux, so you
+   might run into quite some issues".
+ * I'm not aware of any Debian derivative shipping with SELinux
+   enabled by default. If that's correct, then it means that we would
+   have to deal with quite some policy compatibility issues ourselves.
+To me, the complexity of SELinux is a deal breaker: it seems that we
+would need to get lots more expertise and energy to enforce SELinux by
+default than doing the same with AppArmor.
+Now, if for some reason the project prefers to ship with SELinux
+enforced instead of AppArmor, fine by me: I would strongly prefer this
+option to nothing at all.
+Why AppArmor and not sandboxing based on XYZ?
+---------------------------------------------
+(Replace "XYZ" with Flatpak, Ubuntu's Snappy, Subgraph OS' oz,
+Firejail, Subuser, or you preferred other promising option.)
+We need both!
+AppArmor covers server software well, and on the desktop it currently
+protects against not-too-sophisticated, non-targeted attacks.
+In a nutshell, the GNU/Linux desktop really wasn't designed for
+applications to be siloed. To fix that we need new concepts and
+technologies, such as Wayland, portals, and fine-grained D-Bus
+mediation. Next generation desktop sandboxing technologies will fix
+this and improve UX at the same time, and it will be amazing. But they
+are not ready for prime-time yet. A Debian user cannot benefit from
+them *today* much; this might change in time for Buster, but really
+we're comparing a well-established, polished solution with a bunch of
+other ones whose integration with Debian is being brainstormed.
+Anyway, this is not an either/or situation: even though there are
+currently compatibility issues, one can perfectly well develop/adapt
+such tools in a way that makes them work fine with AppArmor enabled.
+Let's enable AppArmor so we cover at least the server use case and the
+low-hanging fruits of the desktop one, and figure out later where we
+should put our efforts for securing the desktop, once the dust has
+settled and next generation solutions have matured and been integrated
+in Debian.
+Will this prevent users from using another Linux Security Module?
+-----------------------------------------------------------------
+Some "minor" Linux Security Modules, such as Yama, live perfectly well
+with others.
+But currently it is not possible to enable several of the major
+security modules. There's been (slow) work in progress to fix this for
+a while, but it has picked up recently and there is a lot of interest
+to have, say, AppArmor and SELinux stackable:
+  https://lwn.net/Articles/719731/
+Now, every user will still be able to opt-out from AppArmor and
+instead enable their preferred LSM.
+What does upstream look like?
+-----------------------------
+The upstream project is almost 20 years old, very mature and
+cooperative with Debian. E.g. the upstream release schedule has been
+adjusted both for Jessie and Stretch to accommodate Debian's
+schedule nicely.
+Regarding who does the work:
+ - Canonical employees do most of the kernel work. They also maintain
+   the library and other C code, e.g. the policy parser.
+ - The Python utilities are primarily maintained by openSUSE's
+   Christian Boltz.
+ - Maintaining AppArmor policy is a cross-distro team effort, mostly
+   done by Debian, Ubuntu and openSUSE people.
+How much will we depend on Canonical's business priorities?
+-----------------------------------------------------------
+Given Canonical employees do the greatest part of the work upstream:
+indeed, we will. I see two main concerns about this:
+Long-term reliability: this funding could run out some day.
+I personally am not overly concerned, as Canonical has been investing
+a lot into products (Snappy, LXC/LXD) that strongly depend on AppArmor
+in the last few years.
+Power imbalance: the company that does so much of the work has great
+power over the priorities of the upstream project. This is the case
+for a large amount of critical software we ship, so like it or not, it
+is something we are living with already. AppArmor developers employed
+by Canonical have shown great willingness in cooperating with Debian
+in the last few years, so I'm confident that our contributions will be
+welcome for the foreseeable future, whenever we need to adapt the
+software to our needs. But of course management/business decisions can
+change this at any time.
+No thanks: I've tried AppArmor and it broke stuff too often
+-----------------------------------------------------------
+Sorry about that. I think this has had three main causes so far, that
+all share one single root cause i.e. "AppArmor is not enabled by
+default" (chicken'n'egg!):
+1. Most package maintainers don't test packages with AppArmor before
+   uploading, so users notice breakage that could easily be avoided.
+2. The huge majority of our users are not affected by breakage caused
+   by AppArmor, so we handle such breakage in a way that saves
+   maintainers' time: e.g. in many cases I've personally preferred to
+   wait for my fixes to AppArmor profiles to be approved and merged
+   upstream before applying them in Debian.
+   Once AppArmor is enabled by default, as far as I'm concerned
+   I don't plan to wait for upstream review before fixing regressions
+   in testing/sid.
+3. The huge majority of our users are not affected by breakage caused
+   by AppArmor, so such breakage was kinda acceptable and thus we
+   *sometimes* preferred to give a specific AppArmor profile more
+   exposure to testers, even if it had a couple known issues, in order
+   to identify problems and help stabilize it (e.g. Tor, libvirt).
+   I think we will need to be more conservative once AppArmor is
+   enabled by default, i.e. profiles that break functionality too much
+   or too often should not be enabled by default.
+Doesn't AppArmor need out-of-tree kernel patches?
+-------------------------------------------------
+Yes and no.
+Historically, the mainline Linux kernel has supported a rather small
+subset of the AppArmor mediation made possible by the out-of-tree
+kernel patch. This made the value of enabling AppArmor smaller than it
+could be (e.g. LXC is not well confined in Debian: #750106), and
+smaller than it is in distros that apply the out-of-tree kernel patch
+(such as Ubuntu).
+Still, even with the set of features available in mainline Linux
+*today*, IMO enabling AppArmor already has a good cost/benefit ratio
+for Debian and our users. I'm not proposing we apply out-of-tree
+AppArmor kernel patches.
+Thankfully, the AppArmor kernel developers recently changed how they
+proceed: new features are now added to Linux mainline before they
+reach Ubuntu, so I'm confident that this situation will get better and
+better in the future, and Buster's kernel will support tons of new
+AppArmor mediation types compared to Stretch.
+How can I help?
+---------------
+ * Enable AppArmor on your Debian systems:
+   https://wiki.debian.org/AppArmor/HowToUse
+ * If you maintain a package for which we ship AppArmor policy in
+   Debian: test it with AppArmor enabled before uploading.
+   Ask for help if needed:
+   https://wiki.debian.org/AppArmor/Reportbug#Usertags
+ * Join the team:
+   https://wiki.debian.org/AppArmor/Contribute
+ * Talk to us:
+   <pkg-apparmor-team@lists.alioth.debian.org>
+Credits
+-------
+A huge thank you to the people who reviewed this text, provided
+valuable input that I took into account & integrated, and helped me
+change my mind here and there: Christian Boltz, gregoa, Guido Günther,
+Jamie Strandboge, John Johansen, Sebastien Delafond, Simon McVittie
+and Solveig! Sorry to those I forgot. I shamelessly stole bits of text
+they wrote. I absolutely do *not* imply they endorse this proposal.
+Thanks a lot to my pkg-apparmor team-mates, to Kees Cook who
+introduced AppArmor in Debian in the first place, and to all AppArmor
+contributors upstream and in other distros :)
+Cheers,
+-- 
+intrigeri

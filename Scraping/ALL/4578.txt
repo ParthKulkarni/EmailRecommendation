@@ -1,0 +1,52 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#859403: XKBOPTIONS="terminate:ctrl_alt_bksp" is lost on dpkg-reconfigure
+From : Harald Dunkel <harri@afaics.de>
+Date : Mon, 3 Apr 2017 11:24:26 +0200
+Message-id : a3287ce2-88aa-6528-3cd4-54ba293fbb75@afaics.de
+Reply-to : Harald Dunkel <harri@afaics.de>, 859403@bugs.debian.org
+
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+Package: keyboard-configuration
+Version: 1.163
+If I append
+	XKBOPTIONS="caps:none"
+to /etc/default/keyboard, and run "dpkg-reconfigure keyboard-configuration"
+later, then there is a dialog
+	The current keyboard options in the configuration file /etc/default/keyboard
+	are defined as XKBOPTIONS="caps:none".
+	If you choose to keep these options, no questions about the keyboard
+	options will be asked.
+	Keep current keyboard options in the configuration file? (yes/no)
+If I chose [yes], then the
+	XKBOPTIONS="terminate:ctrl_alt_bksp"
+is lost. Instead the caps:none is included twice. Here is the diff between
+before and after running dpkg-reconfigure:
+	# diff -u5 /etc/default/keyboard{.bak,}
+	--- /etc/default/keyboard.bak	2017-04-03 11:11:35.248445833 +0200
+	+++ /etc/default/keyboard	2017-04-03 11:12:37.253205700 +0200
+	@@ -3,10 +3,10 @@
+	 # Consult the keyboard(5) manual page.
+	
+	 XKBMODEL="pc101"
+	 XKBLAYOUT="us"
+	 XKBVARIANT=""
+	-XKBOPTIONS="terminate:ctrl_alt_bksp"
+	+XKBOPTIONS="caps:none"
+	
+	 BACKSPACE="guess"
+	
+	 XKBOPTIONS="caps:none"
+Regards
+Harri
+-----BEGIN PGP SIGNATURE-----
+iQEzBAEBCAAdFiEEH2V614LbR/u1O+a1Cp4qnmbTgcsFAljiFMoACgkQCp4qnmbT
+gcslkggAhpye1TqoFxNG21yJAXloN0AN/T1SsneveOgL3Ieqq/okgGqnda8Sb5T1
+koOgqeSLk50vkWetPwKUv5Ixe5DTNi6L55d1awdzrejMl1gd/MwP0K3nLsheew8L
+z2mvW1jmMNCJnLo40djiw5NPjT+lcsi6vW1K1CPzyMycEPQROZkHziFQn5nIpPvi
+pnRpHrcOjIUj5aSMzIC323+SE6WAg/Nd/znHQBPH4D9uL4Q0mOE7z6wcVIggve6r
+G+kQRscgADnKa9aCxHzR0ZqnffzQYDTq1kGUigYtonqFhP9/hlPw6CR6MQpKhHWN
+U+r7u83JQHYjav6JnrAJawN8pDKj0g==
+=zacK
+-----END PGP SIGNATURE-----

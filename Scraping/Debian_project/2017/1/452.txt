@@ -1,0 +1,31 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto reject if autopkgtest of reverse dependencies fail or cause FTBFS
+From : Martin Pitt <mpitt@debian.org>
+Date : Mon, 16 Jan 2017 13:01:44 +0100
+Message-id : 20170116120144.GC1595@donald
+
+
+Hello all,
+(I'm not subscribed, thus hand-crafting In-Reply-To:; please keep CC'ing me on
+replies).
+Ole Streicher [Fri, 13 Jan 2017 15:57:09 +0100]
+> Will there be a way to override this for the maintainer? Otherwise I
+> would see the danger that a buggy reverse dependency CI test can prevent
+> an important update, for example if the reverse dependency uses a long
+> deprecated function that is now removed.
+If you upload a new version of a library that removes a symbol, then all
+reverse dependences must get fixed in or removed from testing anyway. In this
+scenario the new lib would already not propagate as the rdepends would FTBFS in
+the binNMU against the new library SONAME (assuming that you did bump it).
+OTOH, if you did not bump the SONAME, then this is an RC bug anyway which then
+gets caught by the test.
+For other scenarios which aren't already caught by britney's installability
+checks (change in behaviour which doesn't reflect in changed ABI) we actually
+do want the same: If we can catch a regression through a test, then it makes
+zero sense to automatically land that regression in testing anyway -- the whole
+point of this exercise is to allow us to land transitions with confidence and
+sort out transitions in unstable *before* landing regressions in testing.
+Martin
+-- 
+Martin Pitt                        | http://www.piware.de
+Ubuntu Developer (www.ubuntu.com)  | Debian Developer  (www.debian.org)

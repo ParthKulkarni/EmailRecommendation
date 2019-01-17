@@ -1,0 +1,76 @@
+To : Johannes Schauer <josch@debian.org>
+Subject : Bug#833525: debootstrap: Deleted my entire /home partition using "mostly harmless" debootstrap --print-debs option
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Tue, 13 Mar 2018 20:41:34 +0900
+Message-id : 20180313204134.ad2a088de3a618e2527cdb38@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 833525@bugs.debian.org
+In-reply-to : <147041012978.13590.2945242720439838959@localhost>
+References : <147040171488.21712.12248559186777134735.reportbug@Sparrowhawk.Four> <147041012978.13590.2945242720439838959@localhost> <147040171488.21712.12248559186777134735.reportbug@Sparrowhawk.Four>
+
+
+Hi,
+On Fri, 05 Aug 2016 17:15:29 +0200
+Johannes Schauer <josch@debian.org> wrote:
+> if I understand correctly, the problem is two-fold:
+> 
+>  - debootstrap removes everything in a directory even if there was stuff in it
+>    beforehand (this should not happen)
+> 
+>  - debootstrap removes recursively across filesystem boundaries (how was this
+>    not noticed earlier?)
+> 
+> The following patch should fix this:
+ Unfortunately, this patch would break behavior of --make-tarball option,
+ after creating tarball it cleans $TARGET but this patch prevent it even if
+ $TARGET doesn't exist before command runs.
+ Here's revised patch attached.
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp
+>From bcca7322c029a2d51c2adf738bf02cb54415685d Mon Sep 17 00:00:00 2001
+From: Hideki Yamane <henrich@debian.org>
+Date: Tue, 13 Mar 2018 20:39:05 +0900
+Subject: [PATCH] prevent removal when print-deb option was specified and its
+ directory doesn't empty
+Based on patch by Johannes Schauer <josch@debian.org>
+Closes: #833525
+---
+ debootstrap | 18 +++++++++++++++---
+ 1 file changed, 15 insertions(+), 3 deletions(-)
+diff --git a/debootstrap b/debootstrap
+index 0160afa..6300517 100755
+--- a/debootstrap
++++ b/debootstrap
+@@ -422,6 +422,13 @@ fi
+ 
+ ###########################################################################
+ 
++TARGET_EMPTY=true
++if [  -e "$TARGET"/* ]; then
++	TARGET_EMPTY=false
++fi
++
++###########################################################################
++
+ if in_path dpkg && \
+      dpkg --print-architecture >/dev/null 2>&1; then
+ 	HOST_ARCH=`/usr/bin/dpkg --print-architecture`
+@@ -701,8 +708,13 @@ if am_doing_phase second_stage; then
+ fi
+ 
+ if am_doing_phase kill_target; then
+-	if [ "$KEEP_DEBOOTSTRAP_DIR" != true ]; then
+-		info KILLTARGET "Deleting target directory"
+-		rm -rf "$TARGET"
++	if [ "$KEEP_DEBOOTSTRAP_DIR" = true ]; then
++		true
++	# prevent removal when print-deb option was specified and its directory doesn't empty
++	elif [ "$PRINT_DEBS" = true ] && [ "$TARGET_EMPTY" != true ]; then
++		true
++	else
++                info KILLTARGET "Deleting target directory"
++		rm -rf --one-file-system "$TARGET"
+ 	fi
+ fi
+-- 
+2.16.2

@@ -1,0 +1,131 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#913431: partman-base: Add support for kiB, MiB, ... input
+From : Vincent Danjean <vdanjean@debian.org>
+Date : Sat, 10 Nov 2018 22:17:10 +0100
+Message-id : 154188463094.24950.9785813732000262589.reportbug@eyak.imag.fr
+Reply-to : Vincent Danjean <vdanjean@debian.org>, 913431@bugs.debian.org
+
+
+Package: partman-base
+Severity: wishlist
+Tags: patch
+  Hi,
+  For a few years, Debian applied the standard that
+kB, MB, ... are power-of-ten units and kiB, MiB, ...
+are power-of-two units:
+https://wiki.debian.org/ConsistentUnitPrefixes
+  Currently, the debian-installer (more precisely
+partman) only accept power-of-ten units.
+  This patch add support for power-of-two units.
+It does not change the output (as the patch in
+#684128 was doing if I read it correctly).
+  As the patch modifies only the input
+(accepting some things that were refused before)
+and not the output, I do not think it will break
+anything. Nevertheless, it would be good if it
+is applied soon enought so that testing could
+occurs in good condition.
+  For information, I've the habit of always
+using power-of-two size for LVM lv. It means
+that, for several years, I switch to the
+second virtual console during my Debian
+installations in order to manually invoke
+"lvm lvcreate -L XXGiB -n name vg-name"
+as I cannot do it with partman. It is
+especially useful for the swap partition
+(that I want to have the same space as
+the RAM).
+  I always thinked it would be fixed in
+the next release, but as it is not yet
+done (for several releases), I propose
+this patch.
+  Regards,
+    Vincent
+-- System Information:
+Debian Release: buster/sid
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'unstable'), (500, 'testing'), (500, 'stable'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386, armel, mipsel
+Kernel: Linux 4.19.0-rc7-amd64 (SMP w/4 CPU cores)
+Locale: LANG=fr_FR.utf8, LC_CTYPE=fr_FR.utf8 (charmap=UTF-8), LANGUAGE=fr_FR.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+>From e5b23df47a4a3d771a764f6e12193cc71718c954 Mon Sep 17 00:00:00 2001
+From: Vincent Danjean <Vincent.Danjean@ens-lyon.org>
+Date: Sat, 10 Nov 2018 21:56:27 +0100
+Subject: [PATCH] Allows one to use power-of-two units in human2longint
+kiB, MiB, GiB, TiB are now allowed and computed correctly
+---
+ lib/base.sh | 29 +++++++++++++++++++++++++----
+ 1 file changed, 25 insertions(+), 4 deletions(-)
+diff --git a/lib/base.sh b/lib/base.sh
+index ae7a8704..0bc91695 100644
+--- a/lib/base.sh
++++ b/lib/base.sh
+@@ -314,7 +314,7 @@ longint2human () {
+ }
+ 
+ human2longint () {
+-	local human orighuman gotb suffix int frac longint
++	local human orighuman gotb suffix int frac longint binary
+ 	set -- $*; human="$1$2$3$4$5" # without the spaces
+ 	orighuman="$human"
+ 	human=${human%b} #remove last b
+@@ -323,6 +323,15 @@ human2longint () {
+ 	if [ "$human" != "$orighuman" ]; then
+ 		gotb=1
+ 	fi
++	binary=${human#${human%?}} # the last symbol of $human
++	case $binary in
++	i)
++		human=${human%$binary}
++		;;
++	*)
++		binary=''
++		;;
++	esac
+ 	suffix=${human#${human%?}} # the last symbol of $human
+ 	case $suffix in
+ 	k|K|m|M|g|G|t|T)
+@@ -342,23 +351,35 @@ human2longint () {
+ 	frac="${frac#[.,]}0000" # to be sure there are at least 4 digits
+ 	frac=${frac%${frac#????}} # only the first 4 digits of $frac
+ 	longint=$(expr "$int" \* 10000 + "$frac")
+-	case $suffix in
+-	b|B)
+-		longint=${longint%????}
++	case $binary$suffix in
++	b|B|ib|iB|i)
++		longint=${int}
+ 		[ "$longint" ] || longint=0
+ 		;;
+ 	k|K)
+ 		longint=${longint%?}
+ 		;;
++	ik|iK)
++		longint=$(expr "$longint" \* 1024 / 10000 )
++		;;
+ 	m|M)
+ 		longint=${longint}00
+ 		;;
++	im|iM)
++		longint=$(expr "$longint" \* 1048576 / 10000 )
++		;;
+ 	g|G)
+ 		longint=${longint}00000
+ 		;;
++	ig|iG)
++		longint=$(expr "$longint" \* 1073741824 / 10000 )
++		;;
+ 	t|T)
+ 		longint=${longint}00000000
+ 		;;
++	it|iT)
++		longint=$(expr "$longint" \* 1099511627776 / 10000 )
++		;;
+ 	*) # no suffix:
+ 		# bytes
+ 		#longint=${longint%????}
+-- 
+2.19.1

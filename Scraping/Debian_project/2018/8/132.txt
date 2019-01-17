@@ -1,0 +1,32 @@
+To : debian-devel@lists.debian.org
+Subject : What packages are "responsible" for /tmp/xauth-1000* ?
+From : Vincas Dargis <vindrg@gmail.com>
+Date : Wed, 8 Aug 2018 17:12:34 +0300
+Message-id : 29c212ae-884b-4a71-d8ce-f95b94da4dc4@gmail.com
+
+
+Hi Debian Developers,
+While debugging some AppArmor-related stuff I've discovered that some application uses 
+`/tmp/xauth-1000-_0` files instead of `~/.Xauthority`, and started discussion on upstream AppArmor 
+mailing list [0] on how to deal with such cases.
+Simon McVittie enlightened me [1] (thanks!) that having different Xauthority paths can be influenced 
+by desktop managers, remote desktop access applications, and else.
+Now, knowing that there can be different paths depending on "parent" application that influences 
+interaction with X, instead of patching AppArmors so-called "X" abstraction (basically an include 
+file [2]) for every use case we know or don't know yet, we could deal with Xauthority alternatives 
+by utilizing AppArmor variables.
+To achieve that, I would need to find packages that "decide", affect Xauthority path. Then, I would 
+discuss with it's maintainers about possibility to ship single file with additions to the the 
+upstream AppArmor variable, adding single line with "new", additional path[s] to the Xauthority file 
+like this:
+This will make dealing with changing paths (not only XAUTHORITY; for TMPDIR and else too!) with 
+AppArmor easier, less upstream-dependent, and in more load-balanced way by putting less burden on 
+limited AppArmor team. I believe making AppArmor more configurable, flexible is really important as 
+we are targeting to enable it (or should I say "keep enabled" as it is enabled now for the 
+experiment) by default.
+So the main question is, how do I start? How do I find as much packages as possible to start 
+discussions with their maintainers about shipping additional file, to make us of this env.d idea?
+Maybe Debian Developers reading this knows ( or even are responsible for ) already quite a few 
+packages that in fact that uses "unusual" Xauthority paths?
+[2] 
+https://salsa.debian.org/apparmor-team/apparmor/blob/69be44e5ef31905eb27be0c04c1346061b0cbc78/profiles/apparmor.d/abstractions/X#L20

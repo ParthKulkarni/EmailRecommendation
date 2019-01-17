@@ -1,0 +1,38 @@
+To : Julian Andres Klode <jak@debian.org>, debian-boot@lists.debian.org
+Subject : Re: APT Date verification
+From : Philip Hands <phil@hands.com>
+Date : Thu, 08 Feb 2018 21:05:50 +0100
+Message-id : 87zi4js0v5.fsf@whist.hands.com
+In-reply-to : <[🔎] 20180208144017.GA29907@debian.org>
+References : <[🔎] 20180208144017.GA29907@debian.org>
+
+
+On Thu, 08 Feb 2018, Julian Andres Klode <jak@debian.org> wrote:
+> Hey guys,
+>
+> APT will shortly start validating that the Date field in a release
+> file is not (too far) in the future. This might have implications
+> for installing on devices with an inaccurate clock, as they might
+> now fail.
+>
+> There are two primary workarounds:
+>
+> * Set Acquire::Check-Date to false
+> * Set check-date sources.list option to false
+It is probably worth checking the system's current time to see if it is
+before the date that apt was built (or rather apt's SOURCE_DATE_EPOCH)
+and/or the date that the medium that is being booted was built (if
+that's available) or similar, to check if we're living in the past.
+If that's the case, these errors about future signatures are really not
+worth reporting.
+It might also be good to then try hard to get sensible time somehow, but
+that's not apt's problem to solve.  Perhaps the right thing to do in d-i
+is to check for being in the past, try to find a decent time source, and
+if that fails then set a flag that could be used to decide to disable
+the check when we come to running apt.
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

@@ -1,0 +1,62 @@
+To : bw <bwtnguy@yahoo.com>
+Subject : Re: (solved) Re: wireless fail after stretch installation
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 7 Mar 2018 13:25:16 +0000
+Message-id : 23199.59452.198656.637391@chiark.greenend.org.uk
+In-reply-to : <m2n.s.1etJPj-443238@chiark.greenend.org.uk>
+References : <03032018234403.eab31bb87d17@desktop.copernicus.org.uk>	<713788210.10248487.1520152860867@mail.yahoo.com>	<04032018102644.a3f3790f8b3a@desktop.copernicus.org.uk>	<alpine.NEB.2.21.1803041054390.14335@panix1.panix.com>	<87606blnk5.fsf@hands.com>	<m2n.s.1esyhq-514937@chiark.greenend.org.uk>	<[🔎] 23198.44335.823580.650544@chiark.greenend.org.uk>	<[🔎] 06032018165907.42c8b3de5579@desktop.copernicus.org.uk>	<m2n.s.1etGYW-119232@chiark.greenend.org.uk>	<[🔎] 23198.57139.220857.1680@chiark.greenend.org.uk>	<[🔎] 06032018194752.4bf3296b2b7e@desktop.copernicus.org.uk>	<m2n.s.1etJPj-443238@chiark.greenend.org.uk>
+
+
+bw writes ("Re: (solved) Re: wireless fail after stretch installation"):
+> On Tue, 6 Mar 2018, Brian wrote:
+> > One user calls it a "sick joke". After five years and with no attempt
+> > to rectify the situation, I'm beginning to have sympathy with that view.
+Debian, like all ordinary software, is full of bugs.  Many bugs
+languish unfixed for years.  This is not malice, or a "sick joke".
+It's just that there is too much to do and too few people to do it.
+There are rare cases where horrible people deliberately sabotage
+things.  They are very high profile because they are so outrageous,
+but they are not the norm.  I see no evidence in relation to this bug
+that anyone is sabotaging anything.
+The correct approach to this bug is to figure out how to fix it, and
+send a patch.
+> Brute forcing this thing with wifi to /e/n/i might not be the best 
+> approach?  What about people who want a different config than the 
+> installer?  What about people who don;t want to be UP (auto) on bootup?  
+> What about static configs?  Wifi is by nature a mobile environment, what 
+> about security or several devices?  Let's help the devs by hashing out the 
+> pros and cons and making a coherent proposal?
+We are considering the situation where the user has installed a
+barebones system, with no GUI network management tools.
+Such a user will probably *expect* to edit a configuration file when
+they want to change their network configuration, whether because their
+needs change, or because their needs are different to those of the
+majority of people.
+Consequently, there is no problem in principle with setting up /e/n/i
+to have the wifi configuration from the install.  That is what most
+people who do this will want; and if it doesn't suit them, they can
+change it.  (It is easier to change it or delete it, than it is to set
+it up from scratch.)
+AFAICT from reading #694068, the reason d-i currently strips this
+information out of the installed system is because it contains the
+wifi password in /e/n/i, a world-readable file.  That would obviously
+be wrong.
+Someone should implement and test the suggestion made by Trent Buck,
+here,
+  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=694068#47
+Specifically:
+|  If you don't want to udebify wpa_passphrase, you can do it by hand:
+|
+|      cat >"/etc/wpa_supplicant/wpa_supplicant-$iface.conf" <<EOF
+|      network={
+|	 ssid="$ssid"
+|	 psk="$passphrase"
+|      }
+|      EOF
+This should be arranged in the appropriate bit of d-i, so that the
+installed system works the same way as the installer.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

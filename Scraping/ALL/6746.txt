@@ -1,0 +1,69 @@
+To : pkern@debian.org
+Subject : Bug#913740: fetch-url does not use --no-check-certificate on HTTP to HTTPS redirects
+From : Mauricio Oliveira <mauricio.oliveira@canonical.com>
+Date : Thu, 22 Nov 2018 10:14:38 -0200
+Message-id : CAO9xwp1sn43mc1PnEbgosUMf1j=9hU+HQNXBQ+E42bR-CP_5mg@mail.gmail.com
+Reply-to : Mauricio Oliveira <mauricio.oliveira@canonical.com>, 913740@bugs.debian.org
+In-reply-to : <[🔎] ca0eca41-52bf-df56-e1fb-32dc11cd2c79@debian.org>
+References : <[🔎] 99119b4c84f1d9da638e6834ecda7412@debian.org> <[🔎] CAO9xwp2uUQgS0CUhPss=qqUJtHqP6vmLmvmpJ+Vb79uKnjcyWw@mail.gmail.com> <[🔎] CAO9xwp2aq0k1wib0WK_xHZPps2SzCzZZtY=JtNz-oJ+sj2bPrA@mail.gmail.com> <[🔎] ca0eca41-52bf-df56-e1fb-32dc11cd2c79@debian.org> <[🔎] CAO9xwp2uUQgS0CUhPss=qqUJtHqP6vmLmvmpJ+Vb79uKnjcyWw@mail.gmail.com>
+
+
+On Wed, Nov 21, 2018 at 7:02 PM Philipp Kern <pkern@debian.org> wrote:
+>
+> Am 21.11.2018 um 15:47 schrieb Mauricio Oliveira:
+> >> [...] I will note that it's also possible to copy additional
+> >> root certificates into the initrd pre-install. (At least it used to work
+> >> before HTTPS was generally available.)
+> > It looks like this requires rebuilding the initrd, which is some extra work
+> > (and unfortunately it does not allow using the already
+> > distributed/official files out there), [...]
+>
+> Linux support specifying multiple files to be loaded as an initrd[1]. In
+Interesting, I wasn't aware of that -- thanks for mentioning it.
+> [snip]
+>
+> Yes, it requires extra work. So does preseeding.
+Indeed. If you excuse an apparently pedantic comparison for a moment:
+I'd think preseeding requires a bit less extra work than an initrd,
+and also less than a proper HTTPS/SSL setup, thus it looks like
+this is probably (one of) the reason(s) this workaround option exists. :- )
+> Now maybe the argument is that there could be mirrors outside of your
+> control that redirect you to HTTPS and the root of trust is the GPG key
+> material embedded into the initrd. [...]
+Indeed. Another example is the material in the initrd to become outdated
+(e.g., expiration dates) but continues to be used (e.g., deployments that
+must run an stabler/older release only, with that initrd) and the new web
+servers with archives/mirrors do not work anymore.
+> [... That's a fair point but I will note
+> that you did not actually list a use case, you just reported what didn't
+> work.
+Sorry, I may have missed something, but I was under the impression
+these two use cases in the bug report could be considered use cases.
+Nonetheless, respectfully, I think it's not a problem to fix something
+that doesn't work if it's available for users, and they may use it for
+their own reasons and in their own ways on their own consideration
+(you know, adopting good/secure practices or not).
+"""
+[...] there are cases when an user does not know for sure
+whether the server uses/supports that, or the server might change its
+behavior and start HTTP to HTTPS redirect after URLs have spread over
+(e.g., scripts and infrastructure)
+"""
+> I guess I don't really object to your patch and am mostly questioning
+> the existence of the option in this day and age, [...]
+Yes, I completely understand it -- no worries at all.
+> [...] which then means people
+> are encouraged to enable that rather than setup their infrastructure
+> correctly. But there might still be value in having that option
+> available with some signage on how to do it right.
+Right. One scenario I can think of is testing/proof-of-concept cases,
+where not necessarily everything must be strictly correct and secure
+at that stage, but will be considered/implemented properly later on,
+if it's decided to move on with the implementation.
+Unfortunately, if during that early stage, where not too many systems/
+resources are available (e.g., uses a web server with HTTP(S) redirect
+and an invalid certificate, because that's what's avaiable at that point)
+things don't work well (e.g., this problem), it might even prevent the
+concept from moving on, and never reach the actual/proper/secure
+implementation, for example.
+Thanks and best regards,

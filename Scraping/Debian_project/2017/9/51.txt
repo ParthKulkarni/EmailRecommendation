@@ -1,0 +1,162 @@
+To : debian-devel@lists.debian.org
+Subject : Summary of the 2038 BoF at DC17
+From : Steve McIntyre <steve@einval.com>
+Date : Sat, 2 Sep 2017 00:58:54 +0100
+Message-id : 20170901235854.ds4hffumd2ktggau@tack.einval.com
+Reply-to : debian-devel@lists.debian.org
+
+
+Hi folks,
+As promised, here's a quick summary of what was discussed at the 2038
+BoF session I ran in Montréal.
+Thanks to the awesome efforts of our video team, the session is
+already online [1]. I've taken a copy of the Gobby notes too,
+alongside my small set of slides for the session. [2]
+We had a conversation about the coming End of The World, the 2038 problem.
+What's the problem?
+-------------------
+UNIX time_t is 31 bits (signed), counting seconds since Jan 1,
+1970. It's going to wrap.. It's used *everywhere* in UNIX-based
+systems. Imagine the effects of Y2K, but worse.
+What could go wrong?
+--------------------
+All kinds if disasters! We're not trying to exaggerate this *too*
+much, but it's likely to be a significat problem. For most of the
+things that needed fixing for Y2K, they were on big obvious computers,
+typically mainframes. Y2K was solved by people doing a lot of work; to
+many outside of the direct work, it almost came to be an anti-climax.
+In 20 years' time, the systems that we will be trying to fix for the
+2038 problem are likely to be much harder to track. They're typically
+not even going to look like computers - look at the IoT devices
+available today, and extrapolate. Imagine all kinds of devices with
+embedded computers that we won't know how to talk to, let alone verify
+their software.
+When does it happen?
+--------------------
+Pick the example from the date(1) man page:
+$ date --date=@$((2**31-1))
+Tue 19 Jan 03:14:07 GMT 2038
+At that point, lots of software will believe it's suddenly 1902...
+What needs doing?
+-----------------
+Lots of fixes are going to be needed all the way up the stack. 
+Data formats are often not 2038-safe. The filesystems in use today are
+typically not ready. Modern ext4 *is*, using 34 bits for seconds and
+30 bits for nanoseconds. btrfs uses a 64-bit second counter. But data
+on older filesystems will need to be migrated.
+There are many places in the Linux kernel where 32-bit time_t is
+used. This is being worked on, and so are the interfaces that expose
+32-bit time_t.
+Lots of libraries use 32-bit time_t, even in places where it might not
+be obvious. Finally, applications will need fixing.
+Linux kernel
+------------
+There's project underway to fix Linux time-handling, led by Deepa
+Dinamani and Arnd Bergmann. There's a web site describing the efforts
+at https://kernelnewbies.org/y2038 and a mailing list at
+y2038@lists.linaro.org. They are using the y2038 project as a good way
+to get new developers involved in the Linux kernel, and those people
+are working on fixing things in a number of areas: adding core 64-bit
+time support, fixing drivers, and adding new versions of interfaces
+(syscalls, ioctls).
+We can't just replace all the existing interfaces with 64-bit
+versions, of course - we need to continue suporting the existing
+interfaces for existing code.
+There are lots of tasks here where people can join in and help.
+Glibc
+-----
+Glibc is the next obvious piece of the puzzle - almost everything
+depends on it. Planning is ongoing at
+  https://sourceware.org/glibc/wiki/Y2038ProofnessDesign
+to provide 64-bit time_t support without breaking the existing 32-bit
+code. There's more coverage in LWN at
+  https://lwn.net/Articles/664800/
+The glibc developers are obviously going to need the kernel to provide
+64-bit interfaces to make much progress. Again, there's lot of work to
+be done here and help will be welcome.
+Elsewhere?
+----------
+If you're working further up the stack, it's hard to make many fixes
+when the lower levels are not yet done.
+Kernels other than Linux are also going to have the same problems to
+solve - not really looked at them in much detail. As the old time_t
+interfaces are POSIX-specified, hopefully we'll get equivalent new
+64-bit interfaces that will be standard across systems.
+Massive numbers of libraries are going to need updates, possibly more
+than people realise. Anything embedding a time_t will obviously need
+changing. However, many more structures will embed a timeval or
+timespec and they're also broken. Almost anything that embeds
+libc-exposed timing functions will need updating.
+We're going to need mass rebuilds to find things that break with new
+interfaces, and to ensure that old interfaces still work. An obvious
+thing to do here also is automated scanning for ABI compliance as
+things change.
+Things to do now
+----------------
+Firstly: developers trying to be *too* clever are likely to only make
+things worse - don't do it! Whatever you do in your code, don't bodge
+around the 32-bit time_t problem. *Don't* store time values in weird
+formats, and don't assume things about it to "avoid" porting
+problems. These are all going to cause pain in the future as we try to
+fix problems.
+For the time being in your code, *use* time_t and expect an ABI break
+down the road. This is the best plan *for now*.
+In terms of things like on-disk data structures, don't try to
+second-guess future interfaces by simply adding padding space for a
+64-bit time_t or equivalent. The final solution for time handling may
+not be what you expect and you might just make things worse.
+Dive in and help the kernel and glibc folks if you can!
+Next, check your code and the dependencies of your code to see if
+there are any bodges or breakages that you *can* fix now.
+Discussion
+----------
+It's a shame to spoil the future pensions of people by trying to fix
+this problem early! :-)
+There are various license checkers already in use today - could the
+same technology help finding time junk? Similarly, are any of the
+static analysis tools likely to help. It's believed that Coverity (for
+example) may be looking into the static analysis component of
+this. There's plenty of scope for developers to help work in these
+areas too.
+Do we need to worry about *unsigned* time_t usage too (good to 2106)?
+As an example, OpenPGP packets use that. This gives us a little bit
+longer, but will still need to be considered. The main point to
+consider is fixing things *properly*, don't just hack around things by
+moving the epoch or something similarly short-term.
+It's important that we work on fixing issues *now* to stop people
+building broken things that will bite us. We all expect that our own
+computer systems will be fine by 2038; Debian systems will be fixed
+and working! We'll have rebuilt the world with new interfaces and
+found the issues. The issues are going to be in the IoT, with systems
+that we won't be able to simply rebuild/verify/test - they'll fail. We
+need to get the underlying systems right ASAP for those systems.
+2038 is the problem we're looking at now, but we're going to start
+seeing issues well before then - think repeating calendar entries.
+Libraries often don't need to expose any time_t style information, but
+it's something to be careful about. If people have worked things out
+well, changing the internal implementation of a delay function should
+not pollute up the stack. But it's easy to pick up changes without
+realising - think about select() in the event loop, for example.
+Statically linked things (e.g. the Go ecosystem) are likely to bite -
+we need to make sure that the libraries that they embed are fixed
+early, before we can rebuild that stack upwards.
+How can we enforec the ability to upgrade and get support for IoT
+products so that they don't just brick themselves in future? GPL
+violations play into this because the sources are unavailable - i.e.,
+no way to rebuild and upgrade. Ancient vendor kernels are a major
+PITA, and only make things more urgent.
+If you're designing your own data format without reference to current
+or upcoming standards, then of course consider the need for better
+time handling. Conversions will be needed anyway.
+Main takeaways:
+ * This is a real problem
+ * We need to fix the problem *early*
+ * People are working on this already, and there's plenty of tasks to
+   help with
+[1] http://meetings-archive.debian.net/pub/debian-meetings/2017/debconf17/it-s-the-end-of-the-world-in-21-years.vp8.webm
+[2] https://www.einval.com/~steve/talks/Debconf17-eotw-2038/
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"...In the UNIX world, people tend to interpret `non-technical user'
+ as meaning someone who's only ever written one device driver." -- Daniel Pead
+signature.asc

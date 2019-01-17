@@ -1,0 +1,67 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bad interaction between pbuilder/debhelper/dpkg-buildinfo/dpkg-genchanges and dak on security-master
+From : Yves-Alexis Perez <corsac@debian.org>
+Date : Mon, 03 Jul 2017 14:59:40 +0200
+Message-id : 1499086780.18870.75.camel@debian.org
+In-reply-to : <[🔎] 1499086174.18870.71.camel@debian.org>
+References : <[🔎] 1499086174.18870.71.camel@debian.org>
+
+
+Sorry for the fail on FTP-masters email address (which also got the mail
+bounced from alioth). Replying to keep threading consistent but quoting the
+whole mail below).
+On Mon, 2017-07-03 at 14:49 +0200, Yves-Alexis Perez wrote:
+> Hi,
+> 
+> I recently had a problem with an upload to the archive, likely due to bad
+> interaction between the tooling I use to build packages and the archive
+> manager.
+> 
+> I usually build my packages using pbuilder, with SOURCE_ONLY_CHANGES=yes in
+> .pbuilderrc, so pbuilder will ask to generate a _source.changes along with
+> the
+> _<arch>.changes files.
+> 
+> When uploading to the archive, I do a complete (meaning arch-any + arch-all)
+> build to be sure, then upload only the _source.changes so everything gets
+> rebuilt by the autobuilders. It worked just fine for every upload I did to
+> sid
+> and experimental.
+> 
+> However, I recently did that for an upload targeted at stretch-security, and
+> unfortunately this caused a problem on security-master, where dak couldn't
+> process the build by the amd64 autobuilder because an _amd64.buildinfo file
+> was already present. It was part of my upload because it was included in the
+> _source.changes file generated during the pbuilder run.
+> 
+> I'm not completely sure what needs fixing here, but:
+> 
+> - when doing a complete build, something will generate a _<arch>.buildinfo
+> file (using dpkg-genbuildinfo), maybe its part of debhelper, I'm not sure
+> what
+> control I, dpkg or pbuilder have on this;
+> - nothing generates a _source.buildinfo file;
+> - when pbuilder generates the source changes file, it calls dpkg-genchanges
+> -S
+> after the build, which apparently includes any buildinfo file
+> unconditionnaly
+> (http://sources.debian.net/src/dpkg/1.18.24/scripts/dpkg-genchanges.pl/#L310
+> )
+> 
+> So few questions:
+> 
+> - would it make sense to have a _source.buildinfo when building a package?
+> - would it make sense to not include _<arch>.buildinfo when generating a
+> _source.changes?
+> - should the archive accept a _source.changes file with arch specific stuff
+> inside (it's does currently, although the security archive failed later)?
+> 
+> I yet didn't file any bug (to pbuidler, debhelper or dpkg-dev) because I'm
+> really unsure where the problem(s) lies.
+> 
+> Any help appreciated here. Please keep on CC, I'm not subscribed to debian-
+> devel anymore.
+> 
+> Regards,
+-- 
+Yves-Alexissignature.asc

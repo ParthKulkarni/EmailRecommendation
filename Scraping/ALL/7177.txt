@@ -1,0 +1,48 @@
+To : debian-boot@lists.debian.org
+Subject : cannot exit installer in unattended/preseeded installation launched from live system with debian-installer-launcher
+From : Philipp Kunz <philippqunz@gmail.com>
+Date : Sun, 25 Mar 2018 23:21:22 +0200
+Message-id : 56886111-f4a7-ebd1-84ee-ee7aa2ff5a90@gmail.com
+
+
+hi,
+i tried to run the installer from within a live system with preseeds and 
+then to reboot the live system and everything automatically. i got it as 
+far as the installer proceed to finish the installation main-menu item.
+when looking at what happened, it went to 
+/lib/live/installer/usr/lib/finish-install.d/99reboot from there to 
+/lib/debian-installer/exit and /lib/debian-installer/exit-command and 
+/lib/debian-installer/exit will try to unmount, swapoff, and so and then 
+to reboot. that fails and the main-menu reduces priority and goes to 
+finish the installation main menu itme again waiting for user input and 
+failing thereby to complete the automatic installation.
+however, i guess some piece of code like di-utils-reboot.postinst (see 
+[1] or [2]) would actually achieve the installer to exit automatically. 
+but /lib/debian-installer/exit and /lib/debian-installer/exit-command 
+know only three possibilities: reboot, halt, and poweroff. i have no 
+clue how this really fits together. Is there possibly something missing 
+or not optimally aligned and in fact kind of a bug or do i try something 
+not supported or in the wrong way?
+i admit i haven't even found out what exact version of all the 
+components involved i'm using. recently downloaded from debian stretch 
+apt repository. now i tried to include exit as a fourth "finish" command 
+in /lib/debian-installer/exit-command and /lib/debian-installer/exit 
+like this:
+i hope one can understand the patch-like notation. a first try to change 
+it like this showed that it actually exited the installer. for that 
+experiment though i had to change the scripts while the installer was 
+running. packaging such a change would be another step. what i still 
+don't understand is how this fits into the big picture with 
+di-utils-reboot.postinst (see [1] or [2]) where the code i hoped for is 
+actually there but i just can't get it executed automatically. more 
+elegant even would probably be to replace the content of 99reboot with a 
+call to di-utils-reboot.postinst. again, this might more express the 
+problem i encountered, while a solution might be quite different.
+[1] 
+https://anonscm.debian.org/cgit/d-i/debian-installer-utils.git/tree/debian/di-utils-exit-installer.postinst
+[2] 
+https://anonscm.debian.org/cgit/d-i/debian-installer-utils.git/tree/debian/di-utils-reboot.postinst
+[3] 
+https://anonscm.debian.org/cgit/d-i/finish-install.git/tree/finish-install.d/99reboot
+[no reference found for] /lib/debian-installer/exit and 
+/lib/debian-installer/exit-command

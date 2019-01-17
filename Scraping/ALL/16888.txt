@@ -1,0 +1,56 @@
+To : Paride Legovini <pl@ninthfloor.org>
+Subject : Re: Updating the policy for conflicting binaries names ? [was: Re: Re: New package netgen-lvs with binary /usr/bin/netgen - already taken]
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Sun, 9 Sep 2018 21:32:36 +0100
+Message-id : 23445.33636.12206.331767@chiark.greenend.org.uk
+In-reply-to : <[🔎] 9eca450f-b8f4-ff60-0150-f36d8b057de8@ninthfloor.org>
+References : <[🔎] 20180907201021.a5sdi6eyqjwi2kig@macbookair>	<[🔎] 87worwt02s.fsf@iris.silentflame.com>	<[🔎] d1f66651-a6e1-6ace-4d73-fd333b5fdd5b@debian.org>	<[🔎] 87zhwrstft.fsf@iris.silentflame.com>	<[🔎] eb8e8e91-e9dc-3ab3-8af4-2635ce41cc11@ninthfloor.org>	<[🔎] 87lg8bmswk.fsf@hope.eyrie.org>	<[🔎] 9eca450f-b8f4-ff60-0150-f36d8b057de8@ninthfloor.org>
+
+
+Paride Legovini writes ("Re: Updating the policy for conflicting binaries names ? [was: Re: Re: New package netgen-lvs with binary /usr/bin/netgen - already taken]"):
+> It would certainly work, but as you say it is still irritating. I like
+> the idea of putting the binaries in a different directory *and*
+> providing a "name compatibility package", as it has been already
+> suggested. This package would provide the symlinks in /usr/bin and set
+> the needed Conflicts. In this way we allow both packages to be installed
+> at the same time while leaving the users enough freedom to chose what to
+> have in their PATH.
+This is not a bad idea but we should impose some serious restrictions:
+ * The basic principle is that the compat name, and the compat
+   package, is provided for users and nothing in Debian (even the
+   package itself) may use it.
+ * Other packages MUST NOT depend on or recommend the -debcompat
+   package.  The reasons for this should be obvious.
+ * No program (including parts of the same package) should run the
+   program by the compat name (by setting PATH, for exmaple).
+   This is because PATH settings leak: modern software often calls
+   other programs, and even if it doesn't do so now it may do so in
+   future.
+> As we want the packages to be discoverable, I would name them something
+> like this:
+> 
+> <package>-debcompat (for "compatible with the other Debian packages"):
+> installs binaries in /usr/share/<package>/bin, does not set Conflicts,
+> warns the user in the Description, Suggests <package>.
+> 
+> <package>: installs the /usr/bin symlinks, sets the required Conflicts,
+> depends on <package>-compat.
+I think this is backwards.  Also it will result in violations of the
+rules I state above.
+> A "first come best served, modulo a different debian-devel consensus,
+> modulo CTTE" policy could be good enough to decide which package
+> deserves to install the "real" binary in /usr/bin.
+I am in favour of my "cut the child in half" rule, as a general rule.
+> We have to recognize that there is no perfect solution here. If we
+> enforce the rename it will often be a big hassle for several people for
+> a little gain while still leaving room for ambiguity (e.g. user set-up
+> aliases and symlinks). On the other side if we allow Conflicts to be
+> always used we will end up having useful but incompatible packages. I
+> think the best compromise is somewhere in between.
+Convenience for the amjority needs to be tempered with justice, and
+consideration for the future.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

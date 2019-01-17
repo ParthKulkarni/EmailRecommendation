@@ -1,0 +1,139 @@
+To : debian-devel@lists.debian.org
+Subject : Upcoming shift to Ayatana (App)Indicator(s)
+From : Mike Gabriel <sunweaver@debian.org>
+Date : Thu, 29 Mar 2018 13:11:54 +0000
+Message-id : 20180329131154.Horde.0dm6UHwcZhy-QIAuhtXdI2n@mail.das-netzwerkteam.de
+
+
+Hi all,
+I send out my recent blog post to the debian-devel ML to provide a  
+means for bundled feedback. I am also hoping for feedback from Ubuntu  
+developers. On DebConf17 I talked to Dmitry John Ledkov about the idea  
+of having Indicators maintained outside of Ubuntu and the idea found  
+interest. (Although the renaming in the shared lib has caused some  
+pain to people, but so be it now).
+This mail is also intended for members of the release team, as I need  
+advice on how to address such a transition (or rather "shift") in  
+Debian's BTS. As this is not a real shared lib bin:pkg transition, I  
+feel.
+This is to make people aware and inform about an ongoing effort to  
+replace Indicators in Debian (most people know the concept from  
+Ubuntu) by a more generically developed and actively maintained fork:  
+Ayatana Indicators.
+In Debian, we will soon start sending out patches too SNI supporting  
+applications via Debian's BTS (and upstream trackers, too, probably),  
+that make the shift from Ubuntu AppIndicator (badly maintained in  
+Debian) to Ayatana AppIndicator.
+Status of the work being done is documented here:  
+https://wiki.debian.org/Ayatana/IndicatorsTransition
+The fork is currently pushed forward by the Debian and Ubuntu MATE  
+packaging team.
+The Indicators concept has originally been documented by Canonical,  
+find your entry point in the readings here [1,2].
+Some great work and achievement was done around Ubuntu Indicators by  
+Canonical Ltd. and the Indicators concept has always been a special  
+identifying feature of Ubuntu. Now with the switch to GNOMEv3, the  
+future of Indicators in Ubuntu is uncertain. This is where Ayatana  
+Indicators come in...
+The main problem with Ubuntu Indicators today (and ever since) is (has  
+been): they only work properly on Ubuntu, mostly because of one  
+Ubuntu-specific patch against GTK-3 [3].
+In Ayatana Indicators (speaking with my upstream hat on now), we are  
+currently working on a re-implementation of the rendering part of the  
+indicators (using GTK's popovers rather then menushells), so that it  
+works on vanilla GTK-3. Help from GTK-3 developers is highly welcome,  
+in case you feel like chiming in.
+Furthermore, the various indicator icons in Ubuntu (-session, -power,  
+-sound, etc. - see below for more info) have been targetted more and  
+more for sole usage with the Unity 7 and 8 desktop environments. They  
+can be used with other desktop environments, but are likely to behave  
+quite agnostic (and sometimes stupid) there.
+In Ayatana Indicators, we are working on generalizing the  
+functionality of those indicator icon applications and make them more  
+gnostic on other desktop environments.
+Ayatana Indicators as an upstream project will be very open to  
+contributions from other desktop environment developers that want to  
+utilize the indicator icons with their desktop shell, but need  
+adaptations for their environment. Furthermore, we want to encourage  
+Unity 7 and Unity 8 developers to consider switching over (and getting  
+one step further with the goal of shipping Unity on non-Ubuntu  
+systems). With the Unity 8 maintainers (the people from UBports /  
+Ubuntu Touch) first discussion exchanges have taken place.
+Theses are panel plugins mostly, that render the system tray icons and  
+menus (and widgets) defined by indicator aware applications. They  
+normally come with your desktop environment (if it supports indicators).
+Letting the desktop environment render the system tray itself assures  
+that the indicator icons (i.e. the desktop system tray) looks just  
+like the rest of the desktop shell. With the classical (xembed based)  
+system tray (or notification) areas, all applications render their  
+icon and menus themselves, which can cause theming problems and a11y  
+issues and more.
+Examples of indicator renderers are: ``mate-indicator-applet``,  
+``budgie-indicator-applet``, ``xfce4-indicator-pluign``, etc.
+The Ayatana Indicators project currently only provides a rendering  
+shared lib for GTK-2 and GTK-3 based applications. We still need to  
+connect better with the Qt-world.
+The libayatana-indicator library also utilizes a variety of versatile  
+GTK-3 widget defined in another shared library: aytana-ido.
+The Ayatana Indicators project continues and generalizes various  
+indicator icon applications that are not applications by themselves  
+really, but more like system / desktop control elements:
+  * ayatana-indicator-datetime (clock, calendar,  
+evolution-data-server integration)
+These indicators are currently under heavy re-development. The current  
+effort in Ayatana Indicators is to make them far more generic and  
+usable on all desktop environments that want to support them. E.g. we  
+recently added XFCE awareness to the -session and the -power indicator  
+icons.
+One special indicator icon is the Ayatana Indicator Application  
+indicator. It provides SNI support to third-party applications (see  
+below). For the desktop applet, it appears just like any of the other  
+above named indicators, but it opens the door to the world of SNI  
+supporting applications.
+One available and easy-to-install test case in Debian buster for  
+indicator icons provided by the Ayatana Indicators project is the  
+arctica-greeter package. The icons displayed in the greeter are  
+Ayatana Indicators.
+The Ayatana AppIndicator API is just one way of talking to an SNI DBus  
+service. The implementation is done in the shared lib  
+'libayatana-appindicator'. This library provides an easy to implement  
+API that allows GTK-2/3 applications to create an indicator icon in a  
+panel with an indicator renderer added.
+In the application, the developer creates a generic menu structure and  
+defines one or more icons for the system tray (more than one icon:  
+only one icon is shown (plus some text, if needed), but that icon may  
+changed based on the applet's status). This generic menu is sent to a  
+DBus interface (org.kde.StatusNotifier). Sometimes, people say, that  
+such applications have SNI support (StatusNotifier Interface support).
+The Ayatana Indicators project offers Ayatana AppIndicator to GTK-3  
+developers (and GTK-2, but well...). Canonical implemented bindings  
+for Python2, Perl, GIR, Mono/CLI and we continue to support these as  
+long as it makes sense.
+The nice part of Ayatana AppIndicator shared library is: if a desktop  
+shell does not offer the SNI service, then it tries to fall back to  
+the xembed-way of adding system tray icons to your panel / status bar.
+In Debian, we will start sending out patches too SNI supporting  
+applications soon, that make the shift from Ubuntu AppIndicator (badly  
+maintained in Debian) to Ayatana AppIndicator. The cool part of this  
+is, you can convert your GTK-3 application from Ubuntu AppIndicator to  
+Ayatana AppIndicator and use it on top of any(!) SNI implementation,  
+be it an applet based on Ubuntu Indicators, based on Ayatana  
+Indicators or some other implementation, like the vala-sntray-applet  
+or SNI support in KDE.
+  * For the new upstream project, we have started a minimal web page:  
+https://ayatanaindicators.github.io/
+  * Upstream development takes place on Github:  
+https://github.com/AyatanaIndicators
+  * The always up-to-date status of Ayatana Indicators in Debian is  
+documented here: https://wiki.debian.org/Ayatana/IndicatorsTransition
+  * See also our DDPO overview page:  
+https://qa.debian.org/developer.php?login=pkg-ayatana-devel%40lists.alioth.debian.org
+  * [3]  
+https://bazaar.launchpad.net/~ubuntu-desktop/gtk/ubuntugtk3/view/head:/debian/patches/ubuntu_gtk_custom_menu_items.patch
+pgpbgfYhXmqIQ.pgp
+--
+mike gabriel aka sunweaver (Debian Developer)
+mobile: +49 (1520) 1976 148
+landline: +49 (4354) 8390 139
+GnuPG Fingerprint: 9BFB AEE8 6C0A A5FF BF22  0782 9AF4 6B30 2577 1B31
+mail: sunweaver@debian.org, http://sunweavers.net

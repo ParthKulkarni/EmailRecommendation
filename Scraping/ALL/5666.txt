@@ -1,0 +1,54 @@
+To : elbrus@debian.org
+Subject : Re: debootstrap/1.0.102 appears to break debuerreotype autopkgtest
+From : Tianon Gravi <admwiggin@gmail.com>
+Date : Mon, 18 Jun 2018 08:07:44 -0700
+Message-id : CAHnKnK3xBYcmVLeE0L=JLSysDOV0nDhQhcrTgJZLinZi50_QFA@mail.gmail.com
+In-reply-to : <[🔎] b088d655-4207-75f6-9993-7a90638c4e54@debian.org>
+References : <[🔎] 5a86d902-de17-2baf-bb80-9bb018e06646@debian.org> <[🔎] 87fu1pbx1h.fsf@43-1.org> <[🔎] b088d655-4207-75f6-9993-7a90638c4e54@debian.org>
+
+
+On Mon, 18 Jun 2018 at 02:43, Paul Gevers <elbrus@debian.org> wrote:
+> It would be nice if you responded to this idea of Ansgar, as the
+> regression in debuerreotype is currently delaying the migration of
+> debootstrap. Is the new behavior of debootstrap really bad for
+> debuerreotype or is it just resulting in a different image which is fine
+> otherwise for your package?
+>
+> In the former case, you should file an RC bug in that case to block
+> debootstrap from migrating until debuerreotype is ready.
+>
+> In the latter case, you can unblock the migration of debootstrap by
+> adapting debuerreotype and/or its autopkgtest (and please let me know).
+> Or, e.g. because you are lacking time, you can tell me that you are fine
+> with the current regression and I can instruct the migration software to
+> ignore it (less preferred).
+>
+> Just to be absolutely clear, if nothing happens, debootstrap will
+> migrate in 10 days to testing and the new behavior will be the baseline
+> for autopkgtesting.
+To be frank, I'm a little surprised that debuerreotype is believed to
+be the blocker here -- I replied via mail to Ansgar (which I now see
+you got dropped from CC on -- my apologies, that mail is at [1]), and
+uploaded debuerrotype 0.7 [2], which implements the behavior he's
+described (explicitly using "--merged-usr" / "--no-merged-usr" instead
+of relying on the implicit default).
+[1]: https://lists.debian.org/debian-boot/2018/06/msg00178.html
+[2]: https://lists.debian.org/debian-boot/2018/06/msg00179.html
+Then, I realized he was actually describing what the behavior in
+_debootstrap_ should be, and I sent an initial debootstrap patch to
+the list [3] fixing the implementation bug (which Hideki [4] turned
+into a merge request at [5]).
+[3]: https://lists.debian.org/debian-boot/2018/06/msg00182.html
+[4]: https://lists.debian.org/debian-boot/2018/06/msg00190.html
+[5]: https://salsa.debian.org/installer-team/debootstrap/merge_requests/12
+IMO, that merge request needs some review and an upload and then this
+bug will be fixed properly in debootstrap too.  I think the only
+points in question are whether defaulting the variable to the empty
+string (and adjusting that empty default based on suite later where we
+actually know it) is the desired approach and what to do with
+EXTRACT_DEB_TAR_OPTIONS / adding "-k" (from bug 838388) [6].
+[6]: https://lists.debian.org/debian-boot/2018/06/msg00186.html
+Cheers!
+♥,
+- Tianon
+  4096R / B42F 6819 007F 00F8 8E36  4FD4 036A 9C25 BF35 7DD4

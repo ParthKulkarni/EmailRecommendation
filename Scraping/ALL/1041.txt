@@ -1,0 +1,40 @@
+To : debian-doc@lists.debian.org
+Subject : Re: Installation guide is not updated in some languages
+From : Samuel Thibault <sthibault@debian.org>
+Date : Sun, 4 Jun 2017 12:08:18 +0200
+Message-id : 20170604100818.v2neckhfjcwdd5mo@var.youpi.perso.aquilenet.fr
+Mail-followup-to : debian-doc@lists.debian.org,	Holger Wansing <linux@wansing-online.de>,	Osamu Aoki <osamu.aoki@gmail.com>,	Hideki Yamane <henrich@debian.or.jp>, debian-boot@lists.debian.org
+In-reply-to : <[🔎] 20170604095404.p3he67phegrft2oy@var.youpi.perso.aquilenet.fr>
+References : <20170603085830.d62994fee0b6ee384778fa47@debian.or.jp> <20170603020713.e2wnpyvtqpmm4krh@goofy.local> <20170603132645.e2d56bc99abc8ed4d53c8f04@debian.or.jp> <[🔎] 20170603080927.7f3e10e97e133a6a73b42118@wansing-online.de> <20170603165635.exzhs4zrd6lnur6b@goofy.local> <[🔎] 20170603212506.8c36691b0da8c54069e625c4@wansing-online.de> <[🔎] 20170604092917.rngkb3f7762ksat7@var.youpi.perso.aquilenet.fr> <[🔎] 20170604093045.a2wxyb4yupmf67nb@var.youpi.perso.aquilenet.fr> <[🔎] 20170604094013.mlfjy76zbtiwvqiu@var.youpi.perso.aquilenet.fr> <[🔎] 20170604095404.p3he67phegrft2oy@var.youpi.perso.aquilenet.fr>
+
+
+Hello doc people,
+Samuel Thibault, on dim. 04 juin 2017 11:54:04 +0200, wrote:
+> Some build dependencies are missing on www-master:
+> 
+> fonts-wqy-microhei fonts-vlgothic
+Could you apply the attached patch on www-master, so that we way more
+easily catch the issue?
+And also please run
+touch -t 201701010000 /srv/www.debian.org/installmanual/stretch.log 
+so that lessoften triggers the build again.
+Thanks,
+Samuel
+--- /srv/www.debian.org/cron/lessoften-parts/1installation-guide.old	2017-06-04 10:05:04.435177401 +0000
++++ /srv/www.debian.org/cron/lessoften-parts/1installation-guide	2017-06-04 10:04:50.382858046 +0000
+@@ -17,9 +17,12 @@
+ 	[ -d "$igdir" ] && rm -fr "$igdir"
+ 	dpkg-source -sn -x "$igdsc" >> $crondir/log/lessoften.log
+ 	if [ -d "$igdir" ]; then
+-		echo "building installation-guide for stretch..." >> $crondir/log/lessoften.log
+-		cd $igdir/build &&
+-			manual_release=stretch destination=$webtopdir/installmanual/stretch/ ./buildweb.sh > $webtopdir/installmanual/stretch.log 2>&1
++		echo "checking build dependencies..." >> $crondir/log/lessoften.log
++		if cd $igdir && dpkg-checkbuilddeps >> $crondir/log/lessoften.log ; then
++			echo "building installation-guide for stretch..." >> $crondir/log/lessoften.log
++			cd $igdir/build &&
++				manual_release=stretch destination=$webtopdir/installmanual/stretch/ ./buildweb.sh > $webtopdir/installmanual/stretch.log 2>&1
++		fi
+ 	fi
+ 	echo "copying stretch installmanual in place..." >> $crondir/log/lessoften.log
+ 	cp -a $webtopdir/installmanual/stretch/* $webdir/releases/stretch/

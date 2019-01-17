@@ -1,0 +1,48 @@
+To : Ian Campbell <ijc@debian.org>
+Subject : Re: Bug#861263: debian-installer: zfs support
+From : Sam Kuper <sam.kuper@uclmail.net>
+Date : Sat, 6 May 2017 15:35:52 +0100
+Message-id : CAD-JurLiFAeTCbhqxxwNw6D39X6v_TRu42vRugeFhNWEKcg8Ww@mail.gmail.com
+In-reply-to : <[🔎] 1494077331.4633.12.camel@debian.org>
+References : <[🔎] CAD-JurKcL-mrvrCDQtS54XeujOQq_X83=b7G_PNYRbLLRMu4aw@mail.gmail.com> <[🔎] 1493991213.2564.55.camel@decadent.org.uk> <[🔎] CAD-Jur+zJAG4f+vQjP5VWDeJn8q9mMpirHL6J1x0P8Xb4AwtNA@mail.gmail.com> <[🔎] 1494011026.2564.57.camel@decadent.org.uk> <[🔎] CAD-JurLBEhRFC0tMmCCTOiSu318XRnj6TU4w6bWZPj8dNKqCOQ@mail.gmail.com> <[🔎] 1494015143.2564.60.camel@decadent.org.uk> <[🔎] CAD-JurL+menygdhN40mYS=U2t2A_YQFOMMf_nFWEGM3Dw7Qt8Q@mail.gmail.com> <[🔎] 1494018683.2564.63.camel@decadent.org.uk> <[🔎] CAD-Jur+5wQbfpXH8wk1WBRxJyzNNP-aiFpZ0t8ETaL+5fUZJFg@mail.gmail.com> <[🔎] 1494077331.4633.12.camel@debian.org>
+
+
+On 06/05/2017, Ian Campbell <ijc@debian.org> wrote:
+> On Fri, 2017-05-05 at 22:52 +0100, Sam Kuper wrote:
+>> If so, is there
+>> any reason in principle why that installer could not in future be
+>> distributed with the capability to (download and) compile and run ZFS,
+>> and to provide the user with the option to install Debian onto a ZFS
+>> root partition?
+>
+> There is no build toolchain (gcc et al) available for the installer
+> environment itself, nor are kernel headers provided there.
+I was not aware of that. Thank you for making this crucial point :)
+> It would in theory be possible to arrange build and install modules
+> during installation using the in-progress target installation (where
+> the normal toolchain packages could be installed) such that they are
+> available during the latter parts of the install procedure -- that is
+> clearly of limited use for any modules which are required for the
+> filesystems which you want to install to (certainly the root fs and
+> perhaps any separate /usr or /var partition(s)).
+Given that a machine intended to run ZFS is likely to be provisioned
+with >2GB of RAM (much more than the Debian Installer would normally
+require), might a viable workaround be for the Debian Installer to
+take the following steps?
+- Ensure that some minimum amount of RAM is available, and refuse to
+proceed with a root-on-ZFS installation if not;
+- install the toolchain, ZFS source, and any other packages from
+"main" or "contrib" necessary to support these, to a RAM disk;
+- compile and load ZFS functionality;
+- format the target HDD/SSD using ZFS;
+- copy the toolchain binaries and ZFS source packages, etc, to the
+relevant places on the target HDD/SSD (/usr/bin ,
+/var/cache/apt/archives/ , etc);
+- resume the installation as usual.
+> For most other
+> partitions it would probably be just as easy to format them post-
+> install anyway.
+True. So to proceed towards solving this feature request, I guess the
+initial focus should be on how to install the root ZFS
+partition/dataset. Figuring out how to handle other
+partitions/datasets can wait until that has been solved.

@@ -1,0 +1,97 @@
+To : debian-devel@lists.debian.org
+Subject : Re: New: "cme run paste-license script" (was: Re: pasting license text into debian/copyright)
+From : Andreas Tille <andreas@an3as.eu>
+Date : Sat, 21 Oct 2017 16:20:58 +0200
+Message-id : 20171021142058.lxdiguwtxzvugjle@an3as.eu
+In-reply-to : <[🔎] 6296083.vGfjeKyVYu@ylum>
+References : <alpine.DEB.2.02.1709161746380.9827@jupiter.server.alteholz.net> <20170920092450.zjuqck5ft344cqvn@colleen.colgarra.priv.at> <3711685.j13fBtpGFk@ylum> <[🔎] 6296083.vGfjeKyVYu@ylum>
+
+
+Hi Dominique,
+I wanted to try this cool feature but failed may be I did something wrong:
+$ gbp clone https://anonscm.debian.org/git/debian-med/beads.git
+$ cd beads
+beads(master) $ cme run paste-license  --arg license=CeCILL --arg COPYING 
+Log4perl: Seems like no initialization happened. Forgot to call init()?
+Odd number of elements in hash assignment at /usr/share/perl5/App/Cme/Command/run.pm line 110.
+cme: using Dpkg::Copyright model
+Warning: Files:"*" License short_name skipping value CeCILL because of the following errors:
+license 'CeCILL' is not declared in main License section. Expected 
+Warning: Files:"debian/*" License short_name skipping value CeCILL because of the following errors:
+license 'CeCILL' is not declared in main License section. Expected 
+License CeCILL is not used in Files: section
+^C
+I needed to ^C since cme did not finished otherwise.
+Am I doing something wrong or is there some issue with this new
+cool feature?
+Kind regards
+       Andreas.
+On Tue, Oct 17, 2017 at 01:20:15PM +0200, Dominique Dumont wrote:
+> Hi
+> 
+> People have complained that adding license text in debian/copyright file is 
+> tedious.
+> 
+> To avoid this problem, libconfig-model-dpkg-perl 2.102 now ships a new cme 
+> script to copy a license text in debian/copyright. This script is run with 
+> "cme run" command [1]
+> 
+> For instance:
+> 
+> $ echo -e "blah\n\nblah\n\nblah"  > my-lic.txt
+> $ cme run paste-license  --arg license=MyTest --arg file=my-lic.txt
+> cme: using Dpkg::Copyright model
+> License MyTest is not used in Files: section
+> 
+> Changes applied to dpkg-copyright configuration:
+> - License:MyTest text: 
+> @@ -1 +1,5 @@
+> -<undef>
+> +blah
+> +
+> +blah
+> +
+> +blah
+> 
+> $ git diff
+> diff --git a/debian/copyright b/debian/copyright
+> index 60bf1722..6e85dadb 100644
+> --- a/debian/copyright
+> +++ b/debian/copyright
+> @@ -22,3 +22,10 @@ License: LGPL-2.1+
+>      License, or (at your option) any later version.
+>      On Debian GNU/Linux systems, the complete text of version 2.1 of the GNU
+>      Lesser General Public License can be found in `/usr/share/common-
+> licenses/LGPL-2.1'
+> +
+> +License: MyTest
+> + blah
+> + .
+> + blah
+> + .
+> + blah
+> 
+> The doc specific to this script is shown with -doc option:
+> 
+> $ cme run paste-license --doc
+> paste license text in License paragraph
+> paste file: cme run paste-license --arg license=Expat --arg file=MIT.txt
+> paste STDIN: cat MIT.txt | cme run paste-license --arg license=Expat
+> 
+> Please ignore a warning message about missing initialisation of Log4Perl. This 
+> is harmless and will be fixed soon.
+> 
+> I hope this command will be useful to help you in your packaging activities.
+> 
+> All the best
+> 
+> [1] https://manpages.debian.org/testing/cme/App::Cme::Command::run.3pm.en.html
+> 
+> 
+> -- 
+>  https://github.com/dod38fr/   -o- http://search.cpan.org/~ddumont/
+> http://ddumont.wordpress.com/  -o-   irc: dod at irc.debian.org
+> 
+> 
+-- 
+http://fam-tille.de

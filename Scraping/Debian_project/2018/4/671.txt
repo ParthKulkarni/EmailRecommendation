@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Re: RFC: Support for zstd in .deb packages?
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 27 Apr 2018 13:13:03 +0200
+Message-id : 20180427111303.gco6zkhr3tq5mqlo@angband.pl
+In-reply-to : <[🔎] 3147447.MmNVLoyVbS@merkaba>
+References : <[🔎] 20180427050212.GA9721@gaara.hadrons.org> <[🔎] 3147447.MmNVLoyVbS@merkaba>
+
+
+On Fri, Apr 27, 2018 at 09:44:09AM +0200, Martin Steigerwald wrote:
+> Regarding technical aspects like these, one more data point: BTRFS 
+> meanwhile offers zstandard compression support. So I bet BTRFS 
+> developers consider it suitable for format stability and long-term data 
+> storage. I am still using lzo on my BTRFS filesystems, so I can not tell 
+> any practical experiences so far.
+I've been using zstd on btrfs since half a year before it was mainlined:
+there wasn't a single problem that would threaten stability; usual
+development woes (alloc/dealloc thrashing, etc) were fixed long before
+patches went to -next.
+It compresses better than gzip while being faster than lzo, thus there is no
+reason to use either if you won't ever use kernels < 4.14 (and, if you ever
+compressed a single file with zstd, the incompat flag is set, so you can't
+even mount with old kernels anyway).
+There is one remaining problem: patch adding zstd support to grub is still
+not merged (same as f2fs support, etc...).  This is not a problem for
+vmlinuz or initrd (these are compressed already and btrfs backs off from
+compressed files very cowardly), but /boot/grub/grub.cfg usually _does_ get
+compressed thus you need to prop it off:
+find /boot/grub -exec btrfs prop set '{}' compression zlib \;
+(properties on newly created files will get copied from parent dir, need to
+manually set existing ones)
+And yeah, we probably should molest grub's maintainer in Debian...
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ 
+⢿⡄⠘⠷⠚⠋⠀ Certified airhead; got the CT scan to prove that!
+⠈⠳⣄⠀⠀⠀⠀

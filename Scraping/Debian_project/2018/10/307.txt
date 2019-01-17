@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: no{thing} build profiles
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 22 Oct 2018 23:12:57 +0200
+Message-id : 20181022211257.c2ttgidjruyn44mi@angband.pl
+In-reply-to : <[🔎] 87woq9ohor.fsf@hope.eyrie.org>
+References : <[🔎] 20181020171607.2khryydow7bnqfdc@shell.thinkmo.de> <[🔎] 87lg6s8nxb.fsf_-_@violet.siamics.net> <[🔎] 87va5vg13z.fsf@err.no> <[🔎] 154011468574.1793.17134216390366195697@auryn.jones.dk> <[🔎] pqhir3$558$1@blaine.gmane.org> <[🔎] 20181021161327.2fqaapm4yrp4564s@basil.wdw> <[🔎] CAKNHny-uiVrPH=-emDJcGJk9sNPpmVXOS_k3j8h8CHcJ9C+Zng@mail.gmail.com> <[🔎] 20181022153221.kb2iamlkbozg5cch@basil.wdw> <[🔎] 20181022173241.5bwew4nbfz3fmkhg@angband.pl> <[🔎] 87woq9ohor.fsf@hope.eyrie.org>
+
+
+On Mon, Oct 22, 2018 at 01:22:12PM -0700, Russ Allbery wrote:
+> Adam Borowski <kilobyte@angband.pl> writes:
+> 
+> > Thus, I'd re-propose a Policy change that was mentioned in multiple
+> > threads in the past:
+> 
+> > "A runtime library should not Depend: or Recommend: on any packages than
+> > other libraries or dormant data, unless the library or its programming
+> > language provides a convenient scheme for it being loaded only
+> > optionally.  Any such dependencies should be declared by programs linked
+> > against such a library."
+> 
+> I think the prerequisite for making a change like this would be for the
+> library to be able to surface this transitive requirement in metadata so
+> that debhelper could support automatically adding it to the dependencies
+> of all linked programs (and I'm not sure that sort of collapse of our
+> dependency structure is a good idea).
+That would be a bad idea -- we don't want gratuitous dependencies all
+around.  Just because I use xfce doesn't mean I want a daemon for some old
+kinds of iApple iJunk, yet Recommends: chains install that.
+It's the program that depends on the library that can make an informed
+decision: sometimes, the program needs that daemon to function, other times
+it can interface with it in a corner case that's wanted by 0.01% of users.
+The library's maintainer has an elevated view of its importance, but a lot
+of the time it's only an optional part.
+> Otherwise, if a user does want to use the functionality that GnuPG
+> provides but doesn't have gnupg installed since it's been relegated to a
+> Suggests, do they have much hope of figuring out what's wrong and how to
+> fix it?  Or will the package just look broken?
+In this case, the program that links against libgpgme gets to decide how
+important that dependency is.
+> Minimal installation size is *not* the only goal here.  Ease of use and
+> lack of surprise is important to.  Personally, I'd much rather have
+> numerous unused packages installed than to have something break in an
+> opaque way when I try to use it, even if I'm unlikely to need to use it.
+> This is particularly the case when the additional packages don't do things
+> like run services or (much) increase the attack surface.
+I'd agree with you if this problem happened only in moderation.  But it does
+not, to the point of recommends being mostly unusable.  Even worse, if you
+tell apt to install package A that Recommends B (directly or indirectly) and
+B is not installable (like, by some hold/conflict/apt preferences/etc), apt
+refuses to install A at all, not even telling you what the problem is.
+What I want is to get Recommends back to a state where they would be useful
+and policy compliant -- ie, "list packages that would be found together with
+this one in all but unusual installations".
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ 10 people enter a bar: 1 who understands binary,
+⢿⡄⠘⠷⠚⠋⠀ 1 who doesn't, D who prefer to write it as hex,
+⠈⠳⣄⠀⠀⠀⠀ and 1 who narrowly avoided an off-by-one error.

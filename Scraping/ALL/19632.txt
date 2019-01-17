@@ -1,0 +1,105 @@
+To : debian-devel@lists.debian.org
+Subject : Failed to create sbuild chroot for cross-compiling
+From : Holger Wansing <hwansing@mailbox.org>
+Date : Sat, 25 Aug 2018 20:30:15 +0200
+Message-id : 20180825203015.354eba3cebb738f00e1c2a9e@mailbox.org
+
+
+Hi all,
+I need to get some debian-installer packages uploaded for s390x and mips.
+Since I have no hardware for that archs, I suspect the way to go is to create
+a chroot for that archs, right?
+My hardware is amd64.
+I have a working sbuild chroot for amd64, for creation of that I followed
+https://wiki.debian.org/sbuild
+Based on this, I tried to create chroots for s390x and mips, too. 
+But that fails.
+Is there some documentation for this use case?
+The manpage of sbuild-createchroot contains commandline examples for several
+use cases, but not for cross-compiling.
+I used:
+sbuild-createchroot --arch=s390x --foreign --include=eatmydata,ccache,gnupg unstable /srv/chroot/unstable-s390x-sbuild http://deb.debian.org/debian
+and the output ends with:
+----snip-----
+I: Please add any additional APT sources to /srv/chroot/unstable-s390x-sbuild/etc/apt/sources.list
+I: schroot chroot configuration written to /etc/schroot/chroot.d/unstable-s390x-sbuild-awxveq.
+   +------------------------------------------------------------------------
+   |[unstable-s390x-sbuild]
+   |description=Debian unstable/s390x autobuilder
+   |groups=root,sbuild
+   |root-groups=root,sbuild
+   |profile=sbuild
+   |type=directory
+   |directory=/srv/chroot/unstable-s390x-sbuild
+   |union-type=overlay
+   +------------------------------------------------------------------------
+I: Please rename and modify this file as required.
+W: The selected architecture and the current architecture do not match
+W: (s390x versus amd64).
+I: You probably need to add a personality option (see schroot(1)).
+I: You may want to report your use case to the sbuild developers so that
+I: the appropriate option gets automatically added in the future.
+I: sudo chroot configuration linked as /etc/sbuild/chroot/unstable-s390x-sbuild.
+/usr/sbin/chroot: der Befehl „/bin/sh“ konnte nicht ausgeführt werden: No such file or directory
+/usr/sbin/chroot: der Befehl „/bin/sh“ konnte nicht ausgeführt werden: No such file or directory
+E: Failed to create build directory /build
+Failed to set up chroot
+E: Error creating chroot session: skipping apt update
+I: Successfully set up unstable chroot.
+I: Run "sbuild-adduser" to add new sbuild users.
+----snap------
+After that, I execute
+/srv/chroot/unstable-s390x-sbuild/debootstrap/debootstrap unstable /srv/chroot/unstable-s390x-sbuild/
+as documented for sbuild-createchroot's --foreign option. And that finishs without error.
+However, sbuild cannot create a chroot session, the sbuild command
+sbuild --build=s390x --host=amd64 -s -d unstable --source-only-changes --run-lintian
+fails with
+----snip----
+Package: s390-dasd
+Version: 0.0.60
+Source Version: 0.0.60
+Distribution: unstable
+Machine Architecture: amd64
+Host Architecture: amd64
+Build Architecture: s390x
+Build Type: source,any
+E: Failed to execute “/usr/bin/getent”: No such file or directory
+sh: 1: cannot create /var/run/schroot/mount/unstable-s390x-sbuild-66ca4af6-72c6-4bec-9c69-ae9dd9d3bab0/etc/group: Permission denied
+E: Failed to create group sbuild
+Failed to set up chroot
+E: Error creating chroot session: skipping s390-dasd
++------------------------------------------------------------------------------+
+| Summary                                                                      |
++------------------------------------------------------------------------------+
+Build Architecture: s390x
+Build Type: source,any
+Build-Space: 0
+Build-Time: 0
+Distribution: unstable
+Fail-Stage: create-session
+Host Architecture: amd64
+Install-Time: 0
+Job: /home/holgerw/uploading-d-i/d-i/packages/s390-dasd_0.0.60.dsc
+Machine Architecture: amd64
+Package: s390-dasd
+Package-Time: 0
+Source-Version: 0.0.60
+Space: 0
+Status: failed
+Version: 0.0.60
+--------------------------------------------------------------------------------
+Finished at 2018-08-25T18:24:29Z
+Build needed 00:00:00, 0k disk space
+E: Error creating chroot session: skipping s390-dasd
+-----snap-----
+I fail to see what's wrong.
+"Permission denied" points on some lacking permissions. I have added the user
+to the sbuild group, as documented on
+https://wiki.debian.org/sbuild
+And: the sbuild chroot for amd64 works fine for the same user.
+Could somebody help me?
+Thanks
+Holger
+-- 
+Holger Wansing <hwansing@mailbox.org>
+PGP-Finterprint: 496A C6E8 1442 4B34 8508  3529 59F1 87CA 156E B076

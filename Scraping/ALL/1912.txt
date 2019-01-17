@@ -1,0 +1,50 @@
+To : Alexander Kurtz <alexander@kurtz.be>, 774227@bugs.debian.org
+Subject : Bug#774227: busybox-static: execs applets when chrooting
+From : Chris Boot <bootc@debian.org>
+Date : Thu, 21 Sep 2017 14:44:51 +0100
+Message-id : 8cfd6ebf-921b-5ac2-4d06-e45516c57e85@debian.org
+Reply-to : Chris Boot <bootc@debian.org>, 774227@bugs.debian.org
+In-reply-to : <1499078971.26287.1.camel@kurtz.be>
+References : <20141230142611.GA11359@client.brlink.eu> <1499078971.26287.1.camel@kurtz.be> <20141230142611.GA11359@client.brlink.eu>
+
+
+Control: tags -1 confirmed
+Control: severity -1 normal
+On 03/07/17 11:49, Alexander Kurtz wrote:
+> As you can see, chroot will run the applet rather than the binary
+> unless the full path is given. While this *may* be useful in some
+> situations, it can also lead to *really* subtle failures in others, so
+> I'm raising the severity of this bug. Please consider applying
+> Bernhard's patch if possible or at least documenting this behaviour!
+Hi Alexander, Bernhard,
+The busybox package in Debian is under new management, and we (the new
+maintainers) are going over the existing bugs to see what can and should
+be fixed or closed.
+I've spent some time investigating this bug, and it seems that this
+behaviour is actually deliberate in busybox-static. The -static package
+is specifically configured in this way:
+> bootc@muta busybox $ grep -r CONFIG_FEATURE_PREFER_APPLETS debian/config/pkg/
+> debian/config/pkg/udeb:# CONFIG_FEATURE_PREFER_APPLETS is not set
+> debian/config/pkg/static:CONFIG_FEATURE_PREFER_APPLETS=y
+> debian/config/pkg/deb:# CONFIG_FEATURE_PREFER_APPLETS is not set
+I can understand that you might find this behaviour surprising, but I
+believe that the static package would have been configured this way due
+to its intended usage: as a useful tool to rescue a broken system. If
+your system is broken in such a way that you require a statically-linked
+version of busybox to dig yourself out of that hole, then it's likely
+that your system-provided tools will not function. There is no point
+trying to run them, so the built-in applets should be preferred.
+The standard flavour of busybox in Debian is the dynamically linked
+'busybox' package, which doesn't have this behaviour because it's mainly
+intended for use in the initramfs.
+I guess this means that the behaviour is probably correct and simply
+needs documenting. Aside from the package description, is there
+somewhere in particular that makes sense to you (for example, where you
+would have looked) to find such a difference documented?
+Because I suspect this is a documentation bug rather than actual broken
+behaviour, I am reducing the severity of this bug.
+Cheers,
+Chris
+-- 
+Chris Boot
+bootc@debian.org

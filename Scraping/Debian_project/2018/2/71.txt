@@ -1,0 +1,321 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Mass bug filing for the removal of freetype-config and freetype.m4
+From : Hugh McMaster <hugh.mcmaster@outlook.com>
+Date : Thu, 1 Feb 2018 11:07:42 +0000
+Message-id : SLXP216MB0351361CA86186EBC7C8939DF2E40@SLXP216MB0351.KORP216.PROD.OUTLOOK.COM
+
+
+Hi everyone,
+I intend to do a mass bug filing against all packages that use freetype-config and/or freetype.m4, 
+as these APIs will be removed from libfreetype6-dev in the next maintainer release. This is a 
+Debian-specific change.
+Freetype-config has been considered deprecated for several years [1]. Although it is suitable 
+for compiling for the native architecture (i.e. host = build), it cannot handle cross-compiling.
+See, for example [1], [2] and [3].
+Freetype-config also acts as a wrapper for pkg-config, if that package is installed. However, 
+as explained in [2] and [3], this does not help with cross-compiling, because "pkg-config 
+must be qualified with the GNU triplet of the package architecture" in order to output 
+the correct library paths.
+I asked for freetype-config to be removed in [4] to allow libfreetype6-dev to become 
+Multi-Arch: same. Five months later, I compromised and patched freetype-config to 
+remove the hard-coded libdir paths causing the multi-arch file conflict.
+A separate change (build-depending on pkg-config) fixed [5], but caused additional 
+bugs when libfreetype6-dev is installed for foreign architectures only (see [2] and [3]).
+In these bugs, freetype-config was calling pkg-config for the native architecture.
+Following discussions in [3] and further investigation, the decision was made to 
+remove freetype-config and freetype.m4 to better support multi-arch usage.
+With this in mind, I removed freetype-config and built all reverse 
+build-dependencies. I have also searched codesearch.debian.net for use of 
+AC_CHECK_FT2 in configure.ac and configure.in. (Thanks to Simon McVittie 
+for the suggestion.)
+A list of affected source packages is attached. 36 packages FTBFS without 
+freetype-config. Another 25 compile, but warn that freetype was not detected.
+26 of the 61 packages already use pkg-config to detect other libraries, 
+so updating those packages to detect freetype2 using pkg-config is straightforward. 
+The proposed wording for the bug reports reads:
+--------
+Dear Maintainer,
+The next release of libfreetype6-dev will *not* ship freetype-config or 
+or freetype2.m4. This is a Debian-specific change.
+Please use pkg-config to detect the freetype2 headers and libraries.
+If this bug is not resolved prior to the release of the next version of 
+libfreetype6-dev, your package may FTBFS.
+Thank you
+--------
+I realise removing freetype-config may not be popular. However, 
+the long-term benefits will outweigh any short-term inconvenience.
+--
+Hugh McMaster
+[1] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=642354
+[2] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=871470
+[3] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=886461
+[4] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=870618
+[5] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=885324List of packages affected by the removal of freetype-config:
+D Haley <mycae@gmx.com>
+   3depict (U)
+Debian Science Maintainers <debian-science-maintainers@lists.alioth.debian.org>
+   3depict
+Barry deFreese <bdefreese@debian.org>
+   adonthell (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   adonthell
+Robert Luberda <robert@debian.org>
+   afterstep
+Barry deFreese <bdefreese@debian.org>
+   asc (U)
+Bartosz Fenski <fenio@debian.org>
+   asc (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   asc
+Markus Koschany <apo@debian.org>
+   asc (U)
+Sam Hocevar <sho@debian.org>
+   asc (U)
+Barry deFreese <bddebian@comcast.net>
+   brutalchess (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   brutalchess
+Vincent Legout <vlegout@debian.org>
+   brutalchess (U)
+Debian OCaml Maintainers <debian-ocaml-maint@lists.debian.org>
+   camlimages
+Mehdi Dogguy <mehdi@debian.org>
+   camlimages (U)
+Ralf Treinen <treinen@debian.org>
+   camlimages (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   cube2font
+Martin Erik Werner <martinerikwerner@gmail.com>
+   cube2font (U)
+Debian QA Group <packages@qa.debian.org>
+   dia
+Marc Leeman <marc.leeman@gmail.com>
+   dvdauthor
+OHURA Makoto <ohura@debian.org>
+   dvi2ps
+Varun Hiremath <varun@debian.org>
+   dvipng
+Barry deFreese <bdefreese@debian.org>
+   fenix-plugins (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   fenix-plugins
+Miriam Ruiz <little_miry@yahoo.es>
+   fenix-plugins (U)
+Peter Pentchev <roam@ringlet.net>
+   fenix-plugins (U)
+Michele Martone <michelemartone@users.sourceforge.net>
+   fim
+Rafael Laboissiere <rafael@debian.org>
+   fim (U)
+Aaron M. Ucko <ucko@debian.org>
+   fltk1.1
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   foobillardplus
+Markus Koschany <apo@debian.org>
+   foobillardplus (U)
+Sam Hocevar <sho@debian.org>
+   ftgl
+Jaimos Skriletz <jaimosskriletz@gmail.com>
+   fvwm
+Giacomo Catenazzi <cate@debian.org>
+   g15composer
+Ari Pollak <ari@debian.org>
+   gimp
+Jordi Mallach <jordi@debian.org>
+   gimp (U)
+Debian GNUstep maintainers <pkg-gnustep-maintainers@lists.alioth.debian.org>
+   gnustep-back
+Eric Heintzmann <heintzmann.eric@free.fr>
+   gnustep-back (U)
+GÃ¼rkan Myczko <gurkan@phys.ethz.ch>
+   gnustep-back (U)
+Yavor Doganov <yavor@gnu.org>
+   gnustep-back (U)
+Laszlo Boszormenyi (GCS) <gcs@debian.org>
+   graphicsmagick
+Colin Watson <cjwatson@debian.org>
+   grub2 (U)
+Felix Zielcke <fzielcke@z-51.de>
+   grub2 (U)
+GRUB Maintainers <pkg-grub-devel@lists.alioth.debian.org>
+   grub2
+Ian Campbell <ijc@debian.org>
+   grub2 (U)
+Jordi Mallach <jordi@debian.org>
+   grub2 (U)
+Debian Multimedia Maintainers <pkg-multimedia-maintainers@lists.alioth.debian.org>
+   inkscape
+Matteo F. Vescovi <mfv@debian.org>
+   inkscape (U)
+Mattia Rizzolo <mattia@debian.org>
+   inkscape (U)
+Dominique Dumont <dod@debian.org>
+   lcdproc
+Giacomo Catenazzi <cate@debian.org>
+   libg15render
+Harshula Jayasuriya <harshula@debian.org>
+   libotf
+Debian SDL packages maintainers <pkg-sdl-maintainers@lists.alioth.debian.org>
+   libsdl-sge
+Manuel A. Fernandez Montecelo <mafm@debian.org>
+   libsdl-sge (U)
+Debian SDL packages maintainers <pkg-sdl-maintainers@lists.alioth.debian.org>
+   libsdl2-ttf
+Manuel A. Fernandez Montecelo <mafm@debian.org>
+   libsdl2-ttf (U)
+Debian QA Group <packages@qa.debian.org>
+   libwmf
+Debian freesmartphone.org Team <pkg-fso-maint@lists.alioth.debian.org>
+   literki
+Timo Jyrinki <timo@debian.org>
+   literki (U)
+Harshula Jayasuriya <harshula@debian.org>
+   m17n-lib
+Bas Couwenberg <sebastic@debian.org>
+   mapnik (U)
+David Paleino <dapal@debian.org>
+   mapnik (U)
+Debian GIS Project <pkg-grass-devel@lists.alioth.debian.org>
+   mapnik
+Francesco Paolo Lovergine <frankie@debian.org>
+   mapnik (U)
+JÃ©rÃ©my Lal <kapouer@melix.org>
+   mapnik (U)
+Debian GNUstep maintainers <pkg-gnustep-maintainers@lists.alioth.debian.org>
+   mknfonts.tool
+Yavor Doganov <yavor@gnu.org>
+   mknfonts.tool (U)
+Graham Inggs <ginggs@debian.org>
+   motif
+Paul Gevers <elbrus@debian.org>
+   motif (U)
+A Mennucc1 <mennucc1@debian.org>
+   mplayer (U)
+Debian Multimedia Maintainers <pkg-multimedia-maintainers@lists.alioth.debian.org>
+   mplayer
+Miguel A. ColÃ³n VÃ©lez <debian.micove@gmail.com>
+   mplayer (U)
+Reinhard Tartler <siretart@tauware.de>
+   mplayer (U)
+Aaron M. Ucko <ucko@debian.org>
+   ncbi-blast+ (U)
+Andreas Tille <tille@debian.org>
+   ncbi-blast+ (U)
+Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
+   ncbi-blast+
+Olivier Sallou <osallou@debian.org>
+   ncbi-blast+ (U)
+Bas Wijnen <wijnen@debian.org>
+   openmsx
+Alberto Luaces FernÃ¡ndez <aluaces@udc.es>
+   openscenegraph (U)
+Loic Dachary (OuoU) <loic@debian.org>
+   openscenegraph
+Manuel A. Fernandez Montecelo <mafm@debian.org>
+   openscenegraph (U)
+Ola Lundqvist <opal@debian.org>
+   openscenegraph (U)
+Miriam Ruiz <miriam@debian.org>
+   otf2bdf
+Emfox Zhou <emfox@debian.org>
+   pcmanx-gtk2
+Debian PHP Maintainers <pkg-php-maint@lists.alioth.debian.org>
+   php7.0
+Lior Kaplan <kaplan@debian.org>
+   php7.0 (U)
+OndÅ?ej SurÃ½ <ondrej@debian.org>
+   php7.0 (U)
+Debian PHP Maintainers <pkg-php-maint@lists.alioth.debian.org>
+   php7.1
+Lior Kaplan <kaplan@debian.org>
+   php7.1 (U)
+OndÅ?ej SurÃ½ <ondrej@debian.org>
+   php7.1 (U)
+A Mennucc1 <mennucc1@debian.org>
+   pygame (U)
+Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
+   pygame
+Dominik George <nik@naturalnet.de>
+   pygame (U)
+Ed Boraas <ed@debian.org>
+   pygame (U)
+Vincent Cheng <vcheng@debian.org>
+   pygame (U)
+Dirk Eddelbuettel <edd@debian.org>
+   rgl
+Ying-Chun Liu (PaulLiu) <paulliu@debian.org>
+   rlvm
+Debian Science Team <debian-science-maintainers@lists.alioth.debian.org>
+   sagemath
+Jerome Benoit <calculus@rezozer.net>
+   sagemath (U)
+Julien Puydt <julien.puydt@laposte.net>
+   sagemath (U)
+Tobias Hansen <thansen@debian.org>
+   sagemath (U)
+Ximin Luo <infinity0@debian.org>
+   sagemath (U)
+Bruno "Fuddl" Kleinert <fuddl@debian.org>
+   scorched3d (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   scorched3d
+Phil Morrell <debian@emorrp1.name>
+   scorched3d (U)
+Reinhard Tartler <siretart@tauware.de>
+   scorched3d (U)
+Stephen M. Webb <stephen.webb@bregmasoft.ca>
+   scorched3d (U)
+David Weinehall <tao@debian.org>
+   scummvm (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   scummvm
+Dmitry Smirnov <onlyjob@debian.org>
+   scummvm (U)
+Moritz Muehlenhoff <jmm@debian.org>
+   scummvm (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   scummvm-tools
+Stephen Kitt <skitt@debian.org>
+   scummvm-tools (U)
+Debian SDL packages maintainers <pkg-sdl-maintainers@lists.alioth.debian.org>
+   sdl-ttf2.0
+Manuel A. Fernandez Montecelo <mafm@debian.org>
+   sdl-ttf2.0 (U)
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   teeworlds
+Felix Geyer <fgeyer@debian.org>
+   teeworlds (U)
+Jack Coulter <jscinoz@gmail.com>
+   teeworlds (U)
+Debian TeX Maintainers <debian-tex-maint@lists.debian.org>
+   texlive-bin
+Norbert Preining <preining@debian.org>
+   texlive-bin (U)
+Olly Betts <olly@survex.com>
+   therion (U)
+Wookey <wookey@debian.org>
+   therion
+Debian Fonts Task Force <pkg-fonts-devel@lists.alioth.debian.org>
+   ttfautohint (U)
+GÃ¼rkan Myczko <gurkan@phys.ethz.ch>
+   ttfautohint
+Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+   tuxpuck
+Markus Koschany <apo@debian.org>
+   tuxpuck (U)
+Debian QA Group <packages@qa.debian.org>
+   tvtime
+Youhei SASAKI <uwabami@gfd-dennou.org>
+   xdvik-ja
+Joachim Wiedorn <joodebian@joonet.de>
+   xfe
+Daniel Leidert (dale) <daniel.leidert@wgdd.de>
+   xmlroff (U)
+Debian XML/SGML Group <debian-xml-sgml-pkgs@lists.alioth.debian.org>
+   xmlroff
+W. Martin Borgert <debacle@debian.org>
+   xmlroff (U)
+Steve McIntyre <93sam@debian.org>
+   xplanet
+Ying-Chun Liu (PaulLiu) <paulliu@debian.org>
+   xsystem35

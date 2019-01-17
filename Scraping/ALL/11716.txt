@@ -1,0 +1,87 @@
+To : debian-devel@lists.debian.org
+Subject : Re: pro-tip: preinstall debhelper in your sbuild
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 25 Mar 2017 04:51:22 +0100
+Message-id : 20170325035122.3pccvnpbs5vamtpj@angband.pl
+In-reply-to : <[🔎] 8ef398b1-1f07-b37d-7e73-d898ea459de2@debian.org>
+References : <[🔎] 20170324124631.jetb2q6b6mzq4d54@angband.pl> <[🔎] 8ef398b1-1f07-b37d-7e73-d898ea459de2@debian.org>
+
+
+On Fri, Mar 24, 2017 at 11:09:37PM +0100, Michael Biebl wrote:
+> Am 24.03.2017 um 13:46 schrieb Adam Borowski:
+> > Hi!
+> > Thought I'd share a trick I'm using: as debhelper's dependencies chain became
+> > really fat, you can gain a drastic speed-up (especially for small packages)
+> > by preinstalling debhelper into your base sbuild/pbuilder/etc image.
+> 
+> Installing debhelper (+dependencies) takes about 5s here (on a 6 year
+> old laptop with SSD+eatmydata). Most of that time seems to be spent in
+> man-db's postinst.
+> 
+> I have no idea how you ended up with 1m13s
+> > Thus, let's leave installing it over and over to those who build on
+> > tmpfs; those of us on eMMC or nbd -- or even a regular SSD -- can get
+                          ^^^^
+> > this speed-up.
+Also, I intentionally did the test in non-ideal circumstances: the machine
+was loaded with its usual complement of running sbuild instances.  It wasn't
+the worst case, either: both neighbours were doing CPUish parts, if they did
+heavy I/O, installing debhelper would take far longer.
+On an idle system, it's 31s.
+The machine isn't that bad: despite being a four years old cheap SoC,
+somehow Odroid-U3 (identical other than irrelevant doodads to my U2) happens
+to be the best performing armhf machine Reproducible Builds use, despite some
+others having much better specs on paper.
+And my setup is faster than theirs:
+* 4.9 kernel has problems:
+CPU test: gcc -O2  for(int i=0;i<1048576*256;i++) rand();
+I/O test: dd if=/dev/mmcblk0 of=/dev/null bs=1048576 count=20000
+                     CPU     I/O
+vendor 3.8           15s     51MB/s
+Debian 4.9           18.8s   71MB/s
+vanilla 4.11-rc2     15s     84MB/s
+Part of CPU differences can be explained by
+https://www.mail-archive.com/linux-kernel@vger.kernel.org/msg1299278.html
+but naively backporting just that patch brings that test only to 17.6s,
+and obviously doesn't help with I/O.
+* local eMMC is faster than NBD or USB
+The above speeds are read, for _write_ I get only 8MB/s -- but then,
+Odroid-U2/U3 have only 100Mbit ethernet, and really smelly USB so eMMC still
+wins overall.
+* btrfs
+You don't usually hear of btrfs being fast, but here it wipes the floor with
+ext4 and similar:
+  • its usual nemesis, fsync, is dead.  Btrfs does fsyncs hideously slow, a
+    pathological test like Postgres-on-xfs-in-VM can be ~10× slower
+    than ext4/xfs/etc on regular disks -- but eatmydata means no fsync.
+  • on SD/eMMC btrfs and f2fs perform writes of a bunch of source-sized
+    files 4× faster than ext4 and 6× faster than xfs (test: git reset --hard
+    in an empty kernel tree)
+  • compress=lzo helps with highly-compressible files, to the tune of >2×
+    speed on -g .o and dpkg's status files
+Welcome to the land of optimizations on our slower architectures. :)
+But then, you'll want to dismiss the above with "I have a fast amd64, I'm
+above that".  Let's see, so your I/O is great, and tasks become CPU-bound.
+Could you compile the following:
+.----
+#include <stdio.h>
+#include <stdlib.h>
+int main()
+{
+    int i;
+    for (i=0;i<1048576*256;i++)
+        rand();
+    return 0;
+}
+`----
+with "gcc -O2" and time its execution?
+On my old 2.8GHz 6x Phenom2 it takes 2.4s real.  Proportionally 15s*5/31
+is just that, thus the ratio of single-core-CPU vs I/O is same.  And the
+machine can take more sbuilds/higher parallelization.
+Thus, while by absolute numbers, installing debhelper takes way less, so do
+other parts of the build, thus proportionally it keeps being a big win.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ Meow!
+⣾⠁⢠⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ Collisions shmolisions, let's see them find a collision or second
+⠈⠳⣄⠀⠀⠀⠀ preimage for double rot13!

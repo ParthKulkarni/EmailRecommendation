@@ -1,0 +1,73 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#862369: debian-installer: Manual installation with root on lvm/raid 1  does not boot
+From : Alfred Grimstad <agrimstad@gmail.com>
+Date : Mon, 15 May 2017 13:58:41 -0400
+Message-id : 1494871121.20394.12.camel@gmail.com
+Reply-to : Alfred Grimstad <agrimstad@gmail.com>, 862369@bugs.debian.org
+In-reply-to : <[🔎] 20170515162141.GB20460@mraw.org>
+References : 	<[🔎] 149453420501.4467.7389718269535465541.reportbug@hack.hollis.local>	 <[🔎] 20170515162141.GB20460@mraw.org>
+
+
+On Mon, 2017-05-15 at 18:21 +0200, Cyril Brulebois wrote:
+> Control: found -1 20170407
+> Control: tag -1 moreinfo
+> 
+> Hi,
+> 
+> Al Grimstad <agrimstad@gmail.com> (2017-05-11):
+> > Package: debian-installer
+> > Version: RC3
+> > Severity: normal
+> 
+> Setting the right version.
+> 
+> > After performing an installation of Stretch RC3, the installation will not
+> > boot.
+> > 
+> > The problem is that grub is not being invoked correctly. My hardware is two
+> > SATA drives configured as a single RAID1 array and this array used for one
+> > lvm volume group. Root (which contains /boot and /usr) is one logical volume.
+> > 
+> > At the end of the installation I used the installer interface to write the
+> > MBR to BOTH /dev/sda and /dev/sdb.
+> 
+> Did writing to both /dev/sda and /dev/sdb work or report a failure at this
+> point? Also, when you say installer interface, you mean answering the
+> grub-installer prompt during the installation process, rather than switching
+> to a console and typing commands there, right?
+Writing to both /dev/sda and /dev/sdb both seemed to work in the normal
+fashion during the main install process, which I've done with the Debian
+installer many times. There was no error indication.
+I fixed the problem by choosing "Advanced Options->Rescue Mode" using
+the same installer CD.
+After using the prompts to assemble my raid array and choose my root
+file system I got to the menu giving me the option to "Reinstall GRUB
+boot loader," which I chose.
+I ran this option twice, once for /dev/sda and again for /dev/sdb. Based
+on what was written on the screen, this was equivalent to running:
+grub-install /dev/sd{a|b}. After that, stretch booted.
+> 
+> > To fix the problem, I used the installer cd to go into recovery mode.
+> > In this mode I was able to write the MBR to /dev/sda and /dev/sdb and
+> > the installation now boots normally.
+> > 
+> > My hardware is intel 64 bit on an ASUS mobo. The kernel is
+> > vmlinuz-4.9.0-2-amd64.
+> 
+> Please provide installation logs (/var/log/installer has them), esp. syslog,
+> as we would expect from installation reports (see [1] for more info).
+> 
+>  1. https://www.debian.org/releases/jessie/amd64/ch05s04.html.en#problem-report
+OK. I found /var/log/installer/syslog. I gzipped it and have attached to
+this message. I guess you're asking that I add it to the bug report,
+which I'll also try to do.
+> I haven't tried LVM-on-RAID1 without separate /boot yet, so I'm not sure
+> it's expected to work directly; but I know for sure that LVM-on-RAID1 with
+> separate /boot should work just fine.
+Since it was so easy for me to fix, I want to think that it wouldn't
+take much to tweak the installer to handle this case correctly too. I
+hope so, anyway. -- al
+> 
+> 
+> KiBi.
+syslog.gz

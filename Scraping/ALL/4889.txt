@@ -1,0 +1,37 @@
+To : Steve McIntyre <steve@einval.com>
+Subject : Bug#852323: debian-installer: grub-installer not convert root= entry to UUID
+From : Andrey Melnikov <temnota.am@gmail.com>
+Date : Tue, 24 Jan 2017 16:33:50 +0300
+Message-id : CA+PODjo7rN6J6eQCzoavzehfkGkLLqX+KBt9SpDW416rezdt4g@mail.gmail.com
+Reply-to : Andrey Melnikov <temnota.am@gmail.com>, 852323@bugs.debian.org
+In-reply-to : <[🔎] CA+PODjr-C_OT9o8xjna7N4hLkqOO=Z8=ERu=qXhkjnf-SR+QeQ@mail.gmail.com>
+References : <[🔎] 148518620741.25440.1352063034147903464.reportbug@ppc.Dlink> <[🔎] 20170123160306.GF21059@einval.com> <[🔎] CA+PODjr-C_OT9o8xjna7N4hLkqOO=Z8=ERu=qXhkjnf-SR+QeQ@mail.gmail.com>
+
+
+additional data (chroot'ed from installer console)
+root@server:/# ls -l /dev/disk/by-uuid/
+total 0
+lrwxrwxrwx 1 root root 10 Jan 24 14:41
+e5635a37-b72e-40e7-85b5-4a40867a2f71 -> ../../sdb1
+root@server:/# blkid
+/dev/sda1: TYPE="vfat"
+/dev/sdb2: UUID="dbe73c33-f6ad-43b1-8976-c8b6cee7a673" TYPE="swap"
+PARTUUID="40d1b763-199c-446d-9fd5-008086740fb2"
+/dev/sdb3: UUID="01385666-8e64-46de-9edf-5c86bf5a7b5e" TYPE="ext4"
+PARTUUID="f89d01ef-1b38-42b2-a04e-2f8303a87eb7"
+/dev/sdb4: UUID="0daa25cb-257d-4e52-a20b-4fa2a1b95486" TYPE="ext4"
+PARTUUID="2352072f-e7a5-4ad5-a6c7-910a5bf9bb3c"
+/dev/sdb1: PARTUUID="43c414a3-63a2-4949-b337-fc381fa48ec5"
+root@server:/#
+running /bin/update-dev in installer env by hands - change situation a bit:
+root@server:/# ls -l /dev/disk/by-uuid/
+total 0
+lrwxrwxrwx 1 root root 10 Jan 24 16:24
+01385666-8e64-46de-9edf-5c86bf5a7b5e -> ../../sdb3
+lrwxrwxrwx 1 root root 10 Jan 24 16:24
+0daa25cb-257d-4e52-a20b-4fa2a1b95486 -> ../../sdb4
+lrwxrwxrwx 1 root root 10 Jan 24 16:24
+dbe73c33-f6ad-43b1-8976-c8b6cee7a673 -> ../../sdb2
+after this - reinstall grub from installer window - and it write
+correct line in grub.cfg "linux   /boot/vmlinuz-4.8.0-2-amd64
+root=UUID=01385666-8e64-46de-9edf-5c86bf5a7b5e ro  quiet"

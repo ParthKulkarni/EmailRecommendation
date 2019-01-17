@@ -1,0 +1,61 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#851620: partman-md: doesn't warn about not being able to embed in the end
+From : Samuel Thibault <sthibault@debian.org>
+Date : Mon, 16 Jan 2017 22:46:44 +0100
+Message-id : 20170116214644.GA26265@var.home
+Reply-to : Samuel Thibault <sthibault@debian.org>, 851620@bugs.debian.org
+
+
+Package: partman-md
+Version: 77
+Severity: wishlist
+Hello,
+partman-md doesn't warn when disks to be used for RAID are partitioned
+with GPT without a bios boot partition for embedding (and I haven't seen
+documentation about the issue in the installer manual).
+To reproduce:
+dd < /dev/zero > disk1 bs=1M count=1 seek=3000
+/sbin/fdisk disk1
+g
+w
+dd < /dev/zero > disk2 bs=1M count=1 seek=3000
+/sbin/fdisk disk2
+g
+w
+kvm -drive file=disk1 -drive file=disk2 -m 1G -cdrom debian-stretch-DI-rc1-amd64-netinst.iso -boot d
+at partitioning step:
+- request manual partitioning
+- configure software RAID
+- keep current partition layout
+- create MD device, e.g. RAID1, with the two disks
+- write the changes
+- finish RAID menu
+- set up / partition on the MD device
+- install Debian with default options
+- let it install grub on sda
+This brings an error. syslog shows:
+this GPT partition label contains no BIOS Boot Partition: embedding won't be possible
+grub-install: error:
+embedding is not possible, but this is required for RAID and LVM install
+That's a bit late for noticing thig. Perhaps this should just be
+documented in the manual, but the installer could also warn e.g. at the
+"keep current partition layout" stage above that there is no device
+which has some place to embed boot (but let the user discard it in case
+that's on purpose).
+Samuel
+-- System Information:
+Debian Release: stretch/sid
+  APT prefers testing
+  APT policy: (990, 'testing'), (500, 'unstable-debug'), (500, 'testing-debug'), (500, 'buildd-unstable'), (500, 'unstable'), (500, 'stable'), (500, 'oldstable'), (1, 'experimental-debug'), (1, 'buildd-experimental'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0 (SMP w/4 CPU cores)
+Locale: LANG=fr_FR.UTF-8, LC_CTYPE=fr_FR.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+-- 
+Samuel
+N: beep beep Miam miam? 
+y: ++
+a: kill -MIAM -1
+ -+- #runtime < /dev/miam -+-

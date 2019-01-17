@@ -1,0 +1,61 @@
+To : Adam Borowski <kilobyte@angband.pl>
+Subject : Re: RFC: Support for zstd in .deb packages?
+From : Julian Andres Klode <jak@debian.org>
+Date : Fri, 27 Apr 2018 16:27:36 +0200
+Message-id : 20180427162431.GA9017@debian.org
+Mail-followup-to : Julian Andres Klode <jak@debian.org>,	Adam Borowski <kilobyte@angband.pl>, debian-devel@lists.debian.org,	debian-dpkg@lists.debian.org,	Bálint Réczey <balint.reczey@canonical.com>
+In-reply-to : <[🔎] 20180427114506.75z4swo2mjbfsbxm@angband.pl>
+References : <[🔎] 20180427050212.GA9721@gaara.hadrons.org> <[🔎] 20180427114506.75z4swo2mjbfsbxm@angband.pl>
+
+
+On Fri, Apr 27, 2018 at 01:45:07PM +0200, Adam Borowski wrote:
+> (ZSTD)
+> 
+> On Fri, Apr 27, 2018 at 07:02:12AM +0200, Guillem Jover wrote:
+> > Recently Julian mentioned it again on IRC, and we each started
+> > implementing support in dpkg and apt respectively, to allow easier
+> > evaluation. I stopped when I realized the code was getting too messy,
+> > but after few weeks Julian and Bálint Réczey ended up implementing
+> > the support for apt and dpkg [D], so that they could merge it in
+> > Ubuntu for their upcoming release, which they did.
+> > 
+> > Their main driving reason (AFAICT) has been (de)compression speed.
+> 
+> With default level:
+> 
+> 	comp	decomp	size
+> xz	8.038s	0.356s	4320292
+> bz2	2.265s	0.730s	5234516
+> zst	0.274s	0.102s	5657626
+> gz	0.880s	0.152s	6515505
+> Z	0.499s	0.133s	8932459
+> lzo	0.100s	0.095s	9198874
+> 
+> _Compression_ speed is insane; decompression is merely nice.  Obviously,
+> tuneable level turns this single point into an envelope, but even xz at its
+> lowest levels can be multiple times faster than gzip while delivering better
+> compression.
+We only care about zstd at level 19 for dpkg and apt.
+> Don't.  For .debs, that is.
+> 
+> A .deb that is getting processed goes through dpkg, whose status files
+> writes and all those fsyncs are so slow that it's pointless to optimize
+> every last bit of decompression.  If someone already goes as far as
+> recompressing packages, we got two fine choices: "xz -0" and "none"; the
+> former being faster than gzip while compressing better, and the latter being
+> as fast as cat.  You don't get any further than cat on the size-vs-speed
+> slider...
+Our major use case is cloud initial setup, image building, CI, buildds, all
+of which do not require any syncs, and can safely use eatmydata, for example;
+hence the enormous speed up.
+There's still a speed up with syncs, but it's less than 10% IIRC. This will
+get faster over time as SSDs increase their IOPS.
+> 
+> On the other hand, adding .tar.zst [2] would be a much welcome addition for
+> files referenced from .dsc.  A machine that installs dpkg-dev has enough
+> storage that a half-MB library is beneath any notice, and zstd is a fine
+> replacement for gzip and the likes.
+this was backed out at guillem's request.
+-- 
+debian developer - deb.li/jak | jak-linux.org - free software dev
+ubuntu core developer                              i speak de, en

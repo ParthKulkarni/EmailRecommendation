@@ -1,0 +1,44 @@
+To : debian-devel@lists.debian.org, debian-arm@lists.debian.org,	pkg-kde-talk@lists.alioth.debian.org
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Dmitry Shachnev <mitya57@debian.org>
+Date : Wed, 28 Nov 2018 16:40:30 +0300
+Message-id : 20181128134030.GA3831@mitya57.me
+In-reply-to : <[🔎] 20181127233958.GA3201@virgil.dodds.net>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] 1978113.NGEtsr0Vo0@tonks> <[🔎] 20181127220627.GC6167@virgil.dodds.net> <[🔎] 1739322.4binucu7PP@tonks> <[🔎] 20181127233958.GA3201@virgil.dodds.net>
+
+
+Hi Steve and all,
+On Tue, Nov 27, 2018 at 03:39:58PM -0800, Steve Langasek wrote:
+> It is actually fairly easy to answer this question as well: simply identify
+> all the packages in the archive that depend on one of the known dual-stack
+> libraries, prepare dual stack packages that use the symbols file magic from
+> Ubuntu, rebuild all the reverse-dependencies, and identify all those
+> packages which are libraries and which end up with a dependency only on the
+> GL version of the package instead of a dependency on GL | GLES.
+>
+> A fair amount of compile time required to do this analysis, but relatively
+> little human time.
+Let me explain what the mentioned “symbols file magic” is:
+debian/libqt5gui5.symbols header has these lines:
+libQt5Gui.so.5 libqt5gui5 #MINVER# | libqt5gui5-gles #MINVER#
+| libqt5gui5 #MINVER# | libqt5gui5-gles #MINVER#, qtbase-abi-5-7-1
+| libqt5gui5 #MINVER#
+| libqt5gui5-gles #MINVER#
+So symbols that exist in both desktop OpenGL and GL ES builds get a dependency
+on libqt5gui5 | libqt5gui5-gles, and maybe on a -abi- virtual package if they
+are private.
+And symbols that exist in only one of flavours are getting the dependency
+only on the particular binary package name, e.g.:
+(optional)_ZN25QOpenGLFunctions_3_2_Core14versionProfileEv@Qt_5 5.2.0 2
+ → gets a dependency on libqt5gui5 only
+(optional|arch=!armhf !arm64 !armel)_ZN20QOpenGLFunctions_ES214versionProfileEv@Qt_5 5.2.0 3
+ → gets a dependency on libqt5gui5-gles only
+Most of these symbols are for QOpenGLFunctions* classes.
+I will try to get an estimate of how many package are using them a bit later.
+Also there are packages that build different things depending on OpenGL
+variant, by using qtConfig(opengles2) in their .pro files or by checking
+QT_OPENGL_ES macro in their C++ files. These will probably also need
+dual stack packages.
+--
+Dmitry Shachnev
+signature.asc

@@ -1,0 +1,40 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#886473: apt-setup lacks a dependency on gnupg
+From : Martin <debianbts2018@kefrepy.netizen.se>
+Date : Sat, 6 Jan 2018 15:22:41 +0100
+Message-id : 20180106142241.GE22024@ch.lugn.nu
+Reply-to : Martin <debianbts2018@kefrepy.netizen.se>, 886473@bugs.debian.org
+
+
+Package: apt-setup
+Version: 1:0.134
+Using additional repositories by preseeding with apt-setup/local0/repository 
+and apt-setup/local0/key is currently broken, causing the installation to 
+fail with a non-obvious error message at a late stage of the install. The 
+reason seems to be that apt-key fails on line 38 of generators/60local, 
+since apt requires gnupg to be installed for the attempted operation.
+Until recently, base-installer has always pulled in gnupg. Presumably due to 
+some other package depending on it. This is no longer the case.
+As long as 60local is implemented as is, and the example-preseed.txt 
+documents the use of additional repositories, apt-setup should ensure 
+installing from additional repositories works.
+My undestanding of prepare_gpg_home() in cmdline/apt-key.in of apt is that 
+it is an active choice to not have apt itself depend on gnupg, thus making 
+it the responsibility of the caller.
+I can see that there is a wishlist bug #877013 addressing a similar issue. 
+Don't know more about it's status than the bug report reveals, but would 
+consider this is a separate issue of higher severity since it now actually 
+breaks functionality rather than merely is about adding more granular 
+security controls.
+A work around which helped me and might be interesting for other bitten by 
+this bug is to add "d-i base-installer/includes string gnupg" to the preseed 
+file.
+Unfortunately I cannot provide a patch, since I do not fully understand 
+which mechanism to use to make a udeb of the installer environment pull in a 
+package in the base-install of the target system. None of the packages I 
+could suspect to be changed have seen any recent relevant commit activity, 
+so I can't figure out exactly what made this break. It should not make much 
+difference since it likely has been a missing dependency in apt-setup all 
+along.
+--
+/Martin

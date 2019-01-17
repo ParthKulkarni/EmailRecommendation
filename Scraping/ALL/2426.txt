@@ -1,0 +1,88 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#882089: libdebian-installer FTBFS since glibc 2.25
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Sat, 18 Nov 2017 22:07:45 +0100
+Message-id : 20171118210744.zcdb4dafvenbdlzg@alf.mars
+Reply-to : Helmut Grohne <helmut@subdivi.de>, 882089@bugs.debian.org
+
+
+Source: libdebian-installer
+Version: 0.111
+Severity: serious
+Justification: fails to build from source (but built successfully in the past)
+User: helmutg@debian.org
+Usertags: rebootstrap
+| make[5]: Entering directory '/<<PKGBUILDDIR>>/build/src/system'
+| /bin/bash ../../libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I. -I../../../src/system  -I../../../include -I../../ -Wdate-time -D_FORTIFY_SOURCE=2  -Wall -W -Werror -ggdb -Wmissing-declarations -Os -fomit-frame-pointer -c -o devfs.lo ../../../src/system/devfs.c
+| libtool: compile:  gcc -DHAVE_CONFIG_H -I. -I../../../src/system -I../../../include -I../../ -Wdate-time -D_FORTIFY_SOURCE=2 -Wall -W -Werror -ggdb -Wmissing-declarations -Os -fomit-frame-pointer -c ../../../src/system/devfs.c  -fPIC -DPIC -o .libs/devfs.o
+| ../../../src/system/devfs.c: In function 'di_system_devfs_map_from':
+| ../../../src/system/devfs.c:127:13: error: In the GNU C Library, "major" is defined
+|  by <sys/sysmacros.h>. For historical compatibility, it is
+|  currently defined by <sys/types.h> as well, but we plan to
+|  remove this soon. To use "major", include <sys/sysmacros.h>
+|  directly. If you did not intend to use a system-defined macro
+|  "major", you should undefine it after including <sys/types.h>. [-Werror]
+|      if (major (s.st_rdev) == e->major &&
+|              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~                                                                                                                                                                                                                                                                                                                                            
+| ../../../src/system/devfs.c:128:13: error: In the GNU C Library, "minor" is defined
+|  by <sys/sysmacros.h>. For historical compatibility, it is
+|  currently defined by <sys/types.h> as well, but we plan to
+|  remove this soon. To use "minor", include <sys/sysmacros.h>
+|  directly. If you did not intend to use a system-defined macro
+|  "minor", you should undefine it after including <sys/types.h>. [-Werror]
+|          ((e->type == ENTRY_TYPE_ONE && minor (s.st_rdev) == e->minor) ||
+|              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                                                                                                                                                                                                                                                                                            
+| ../../../src/system/devfs.c:129:13: error: In the GNU C Library, "minor" is defined
+|  by <sys/sysmacros.h>. For historical compatibility, it is
+|  currently defined by <sys/types.h> as well, but we plan to
+|  remove this soon. To use "minor", include <sys/sysmacros.h>
+|  directly. If you did not intend to use a system-defined macro
+|  "minor", you should undefine it after including <sys/types.h>. [-Werror]
+|           (e->type != ENTRY_TYPE_ONE && minor (s.st_rdev) >= e->minor))) {
+|              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                                                                                                                                                                                                                                                                                           
+| ../../../src/system/devfs.c:151:13: error: In the GNU C Library, "minor" is defined
+|  by <sys/sysmacros.h>. For historical compatibility, it is
+|  currently defined by <sys/types.h> as well, but we plan to
+|  remove this soon. To use "minor", include <sys/sysmacros.h>
+|  directly. If you did not intend to use a system-defined macro
+|  "minor", you should undefine it after including <sys/types.h>. [-Werror]
+|        disc = minor (s.st_rdev) - e->minor + e->entry_first;
+|              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                                                                                                                                                                                                                                                                                                         
+| ../../../src/system/devfs.c:159:13: error: In the GNU C Library, "minor" is defined
+|  by <sys/sysmacros.h>. For historical compatibility, it is
+|  currently defined by <sys/types.h> as well, but we plan to
+|  remove this soon. To use "minor", include <sys/sysmacros.h>
+|  directly. If you did not intend to use a system-defined macro
+|  "minor", you should undefine it after including <sys/types.h>. [-Werror]
+|        disc = (minor (s.st_rdev) >> e->entry_disc_minor_shift);
+|              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                                                                                                                                                                                                                                                                                                      
+| ../../../src/system/devfs.c:160:13: error: In the GNU C Library, "minor" is defined
+|  by <sys/sysmacros.h>. For historical compatibility, it is
+|  currently defined by <sys/types.h> as well, but we plan to
+|  remove this soon. To use "minor", include <sys/sysmacros.h>
+|  directly. If you did not intend to use a system-defined macro
+|  "minor", you should undefine it after including <sys/types.h>. [-Werror]
+|        part = (minor (s.st_rdev) & ((1 << e->entry_disc_minor_shift) - 1));
+|              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                                                                                                                                                                                                                                                                                          
+| cc1: all warnings being treated as errors
+| Makefile:435: recipe for target 'devfs.lo' failed
+| make[5]: *** [devfs.lo] Error 1
+| make[5]: Leaving directory '/<<PKGBUILDDIR>>/build/src/system'
+| Makefile:569: recipe for target 'all-recursive' failed
+| make[4]: *** [all-recursive] Error 1
+| make[4]: Leaving directory '/<<PKGBUILDDIR>>/build/src'
+| Makefile:466: recipe for target 'all-recursive' failed
+| make[3]: *** [all-recursive] Error 1
+| make[3]: Leaving directory '/<<PKGBUILDDIR>>/build'
+| Makefile:373: recipe for target 'all' failed
+| make[2]: *** [all] Error 2
+| make[2]: Leaving directory '/<<PKGBUILDDIR>>/build'
+| dh_auto_build: cd build && make -j1 returned exit code 2
+| debian/rules:25: recipe for target 'override_dh_auto_build' failed
+| make[1]: *** [override_dh_auto_build] Error 2
+| make[1]: Leaving directory '/<<PKGBUILDDIR>>'
+| debian/rules:3: recipe for target 'build-arch' failed
+| make: *** [build-arch] Error 2
+| dpkg-buildpackage: error: debian/rules build-arch subprocess returned exit status 2
+I'm pretty sure this is caused by the glibc 2.25 upload.
+Helmut

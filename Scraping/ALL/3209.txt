@@ -1,0 +1,64 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#857064: debian-installer: Can't list partition types in fdisk
+From : Sebastian Schmidt <yath@yath.de>
+Date : Thu, 9 Mar 2017 19:23:58 +0100
+Message-id : 20170309182358.ns7i2nebj2lzpqit@marax.lan.yath.de
+Reply-to : Sebastian Schmidt <yath@yath.de>, 857064@bugs.debian.org
+In-reply-to : <[🔎] 20170309111823.GE3494@mraw.org>
+References : <[🔎] 148890602184.13980.520162538437404639.reportbug@moniac.lan.yath.de> <[🔎] 20170309111823.GE3494@mraw.org>
+
+
+On Thu, Mar 09, 2017 at 12:18:23PM +0100, Cyril Brulebois wrote:
+> Hi,
+> 
+> Sebastian Schmidt <yath@yath.de> (2017-03-07):
+> > when using fdisk from within a rescue console in the Stretch RC2
+> > installer, I can’t list available partition types:
+> > | Command (m for help): t
+> > | Hex code (type L to list all codes): L
+> > | sh: less: not found
+> > 
+> > Linking /bin/more to /bin/less isn’t sufficient since busybox checks the
+> > process’ argv[0] and bails with “less: applet not found”. Creating a
+> > wrapper script with ‘more "$@"’ works, though.
+> 
+> I'm not sure where this comes from, since list_types doesn't seem to be
+> calling any external pager. But there's maybe something wrapping around
+> the output more globally. Only looked briefly at util-linux/fdisk.c, and
+> you can pretend I don't know anything about busybox anyway…
+It’s in disk-utils/fdisk.c in void list_partition_types():
+|     } else {
+|         /*
+|          * Prints 1 column in format <idx> <name> <typestr>
+|          */
+|         size_t i;
+| 
+|         pager_open();
+| 
+|         for (i = 0; i < ntypes; i++) {
+|             const struct fdisk_parttype *t = fdisk_label_get_parttype(lb, i);
+|             printf("%3zu %-30s %s\n", i + 1,
+|                     fdisk_parttype_get_name(t),
+|                     fdisk_parttype_get_string(t));
+|         }
+| 
+|         pager_close();
+|     }
+ 
+The setup is done in lib/pager.c in void __setup_pager():
+| static void __setup_pager(void)
+| {
+|     const char *pager = getenv("PAGER");
+|     struct sigaction sa;
+| 
+|     if (!isatty(STDOUT_FILENO))
+|         return;
+| 
+|     if (!pager)
+|         pager = "less";
+|     else if (!*pager || !strcmp(pager, "cat"))
+|         return;
+| 
+| [...]
+So setting $PAGER to more, cat or nothing in the shell should fix it.
+signature.asc

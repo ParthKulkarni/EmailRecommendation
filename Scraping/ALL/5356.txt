@@ -1,0 +1,79 @@
+To : Guilhem Moulin <guilhem@debian.org>,	Debian-Boot <debian-boot@lists.debian.org>,	Debian Cryptsetup Team <pkg-cryptsetup-devel@lists.alioth.debian.org>,	Debian-Release <debian-release@lists.debian.org>
+Subject : Re: [pkg-cryptsetup-devel] Upcoming transition: libcryptsetup4 -> libcryptsetup12
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 18 Dec 2017 01:39:35 +0100
+Message-id : 20171218003935.hef26z5drco2wzto@mraw.org
+In-reply-to : <[🔎] 20171218003258.GA2291@localhost.localdomain>
+References : <[🔎] 4877a771-712f-b7fa-b654-28e71192ce29@freesources.org> <[🔎] 20171217123255.rhsz4fhr75locdxi@mraw.org> <[🔎] 20171217160036.GB7778@localhost.localdomain> <[🔎] 20171217171221.mza6mf3r76py6h2s@mraw.org> <[🔎] 20171218003258.GA2291@localhost.localdomain>
+
+
+Hi,
+Guilhem Moulin <guilhem@debian.org> (2017-12-18):
+> On Sun, 17 Dec 2017 at 18:12:21 +0100, Cyril Brulebois wrote:
+> > FWIW, feel free to (x-debbugs-)cc debian-boot@ when requesting such
+> > additions; you might get some feedback like a patch or two, or
+> > alternative routes to consider.
+> > 
+> > I hadn't spotted libcryptsetup12-udeb isn't installable due to these
+> > dependencies, as experimental isn't checked automatically:
+> > https://d-i.debian.org/dose/
+> 
+> Makes sense, sorry for not doing so.
+No worries, knowing about the transition in advance was nice already. :)
+> > I've added this as a todo item, along with looking into src:argon2
+> > and src:json-c. I'll try to look into that next week (ping welcome),
+> > but we'll need to get those packages past NEW; it would be
+> > appreciated to only start the cryptsetup transition once
+> > dependencies can be satisfied, to avoid breaking d-i daily builds
+> > purposefully.
+> 
+> Ack.  I see mejo has just requested the transition slot in #884618,
+> that means we should we block that bug by #88052[56], right?
+That would look good yes.
+> > Also, from one the those two bugs: “cryptsetup ≥2.0.0 introduces a
+> > new on-disk “LUKS2” format, which support Argon2i and Argon2id as
+> > PBKDF.”
+> > 
+> > Is that a new default format? Does it need any special handling from
+> > d-i components, like options or files to create, or is that just a
+> > transparent change for cryptsetup callers?
+> 
+> The format isn't the new default in the sense that `cryptsetup
+> luksFormat` still creates “legacy” LUKS (version 1) devices, and one
+> needs to append `--type luks2` to create LUKS2 devices.  Opening a LUKS2
+> block device does require a locking directory[0] (/run/lock/cryptsetup),
+> but partman-crypto can stay as is as long as it keeps creating LUKS1
+> devices.
+> 
+> Not sure what's upstream's intention regarding making `cryptsetup
+> luksFormat` create LUKS2 devices by default, but at this stage it seems
+> precipitated to switch to LUKS2 in d-i: I'd rather stick to upstream's
+> default, especially considering the following snippets of their v2.0.0
+> Release Notes:
+> 
+>     “Please note that […] the LUKS2 on-disk format itself are new
+>     features and can contain some bugs.”
+>     — https://gitlab.com/cryptsetup/cryptsetup/blob/v2.0.0/docs/v2.0.0-ReleaseNotes#L15
+> 
+> (And FWIW it's possible to later in-place convert a device from LUKS1 to
+> LUKS2 format using `cryptsetup convert`, although it of course won't
+> magically upgrade the crypto & PKDF algorithms.)
+Alright; feel free to poke us again for partman-crypto when the new
+format looks mature enough so that we see about adding support for it.
+> > Alternatively, instead of waiting for udebs to be available for the
+> > dependencies, maybe support for those two libraries could be patched
+> > out temporarily in the cryptsetup udebs?
+> 
+> For libargon2-0 it should be a matter of changing the default PBKDF
+> back to pbkdf2, but I don't see a way to drop the libjson-c3
+> dependency unless we compile cryptsetup without LUKS2 support (LUKS2
+> headers contain metadata stored in JSON format [1]), which is not
+> trivial AFAICT.
+Alright, thanks for your input, that's going to guide my looking into
+these packages during the week; I'll investigate as soon as I'm done
+with urgent matters.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

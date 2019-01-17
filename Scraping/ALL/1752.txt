@@ -1,0 +1,66 @@
+To : 853917@bugs.debian.org, debian-release@lists.debian.org
+Subject : Bug#853917: debian-installer: missing glyphs for Korean / broken rendering
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 28 Feb 2017 08:56:54 +0100
+Message-id : 20170228075654.GE5630@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 853917@bugs.debian.org
+In-reply-to : <[🔎] 20170202025311.7877.88936.reportbug@armor.home>
+References : <[🔎] 20170202025311.7877.88936.reportbug@armor.home>
+
+
+Hi,
+Cyril Brulebois <kibi@debian.org> (2017-02-02):
+> Source: debian-installer
+> Version: 20160516
+> Severity: important
+> Tags: l10n
+> 
+> (debian-l10n-korean@lists.debian.org in X-Debbugs-Cc for informational
+> purposes; maybe someone there will find out what happened before someone
+> from the installer team does.)
+> 
+> Spotted by victory and mentioned on IRC: we're currently lacking support
+> for Korean in the installer, since both the menu entry for Korean at the
+> language selection step and later prompts are only showing the usual
+> boxes for unknown glyphs. :(
+> 
+> I've just tracked this down as a regression from Stretch Alpha 5 to
+> Stretch Alpha 6. I'll try and investigate further in a few hours.
+It's been tracked as a regression in the fonts-android package, filed as
+#853921. The fix hasn't reached testing yet since it needs a unblock,
+which I didn't ask because I wanted to give it more testing.
+I've just successfully tested that a basic install in Japanese doesn't
+suffer from any regression when switching from the version in testing to
+the one in unstable, so I think it's safe to unblock/unblock-udeb it:
+    unblock fonts-android/1:6.0.1r16-1.1
+    unblock-udeb fonts-android/1:6.0.1r16-1.1
+(This took a while since I wanted to finish an automation proof of
+concept which lets me record an installation process and replay it
+later with a different image; but I'm finally there…)
+Adding the release team to the loop since I'm slightly reluctant to
+unblocking an upload of mine (for a package that isn't maintained by
+debian-boot). The (attached) source debdiff shouldn't be too scary
+though.
+KiBi.
+signature.ascdiff -Nru fonts-android-6.0.1r16/debian/changelog fonts-android-6.0.1r16/debian/changelog
+--- fonts-android-6.0.1r16/debian/changelog	2016-02-14 07:47:12.000000000 +0100
++++ fonts-android-6.0.1r16/debian/changelog	2017-02-16 03:35:10.000000000 +0100
+@@ -1,3 +1,12 @@
++fonts-android (1:6.0.1r16-1.1) unstable; urgency=medium
++
++  * Non-maintainer upload.
++  * Switch from DroidSansFallbackFull.ttf to DroidSansFallback.ttf in the
++    fonts-android-udeb package, which fixes missing Korean glyphs for use
++    within the Debian Installer (Closes: #853921).
++
++ -- Cyril Brulebois <kibi@debian.org>  Thu, 16 Feb 2017 03:35:10 +0100
++
+ fonts-android (1:6.0.1r16-1) unstable; urgency=medium
+ 
+   * Imported Upstream version 6.0.1r16
+diff -Nru fonts-android-6.0.1r16/debian/fonts-android-udeb.install fonts-android-6.0.1r16/debian/fonts-android-udeb.install
+--- fonts-android-6.0.1r16/debian/fonts-android-udeb.install	2016-02-14 07:47:12.000000000 +0100
++++ fonts-android-6.0.1r16/debian/fonts-android-udeb.install	2017-02-16 03:35:08.000000000 +0100
+@@ -1 +1 @@
+-DroidSansFallbackFull.ttf	usr/share/fonts/truetype/droid
++DroidSansFallback.ttf	usr/share/fonts/truetype/droid

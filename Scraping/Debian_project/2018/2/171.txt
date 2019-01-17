@@ -1,0 +1,70 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>,	Philipp Kern <pkern@debian.org>
+Subject : Re: Debian part of a version number when epoch is bumped
+From : Guillem Jover <guillem@debian.org>
+Date : Mon, 12 Feb 2018 03:12:20 +0100
+Message-id : 20180212021220.GA24590@gaara.hadrons.org
+Mail-followup-to : Ian Jackson <ijackson@chiark.greenend.org.uk>,	Philipp Kern <pkern@debian.org>,	Seth Arnold <seth.arnold@canonical.com>,	debian-devel@lists.debian.org, Jeremy Bicha <jbicha@debian.org>,	"Christian T. Steigies" <cts@debian.org>
+In-reply-to : <[🔎] d12deea0-3b8b-021b-c16f-8b9e4f0ba455@philkern.de> <[🔎] 23165.36266.326995.408855@chiark.greenend.org.uk>
+
+
+On Fri, 2018-02-09 at 12:01:46 +0000, Ian Jackson wrote:
+> Seth Arnold writes ("Re: Debian part of a version number when epoch is bumped"):
+> > tar will treat a filename with : in it as a command to connect to a remote
+> > machine via rsh and execute /etc/rmt remotely:
+> > ftp://ftp.gnu.org/old-gnu/Manuals/tar/html_node/tar_127.html
+> > 
+> > The git repo shows that GNU tar had --force-local in 1994 (f_force_local):
+> > 
+> > http://git.savannah.gnu.org/cgit/tar.git/commit/?id=d3fdd8259b1dd0e5ec05d1540b10d2deba7cc864
+> > 
+> > Perhaps not using colons in filenames directly comes from not wanting to
+> > require --force-local on every single tar invocation for decades to come?
+Right, covered too in:
+  <https://bugs.debian.org/792853#13>
+> rsync and scp have similar behaviour.
+> 
+> Basically, `:' is annoying in filenames.  Encoding it would have been
+> possible but we don't encode anything else.  And I think a rule
+> against reusing the same upstream version with a different epoch is
+> entirely sensible, anyway.
+Yeah. If we decided we wanted epochs present somehow in filenames
+(#551323, for which I think I've got most code in some dpkg branch,
+but I'd expect there are going to be tons of things assuming filename
+patterns in external tools), we'd still need to decide first how and
+if to encode it, and second when to encode it. As you say, we can
+consider to add the epoch to the upstream tarball or not; because in
+the end that's a Debian specific construction in the same way as our
+revisions.
+If upstream is releasing different content using the same version, then,
+well, this so broken I'm not sure it's worth supported anyway. :)
+The problem could have also been introduced by Debian, by using an
+inexistent version that then upstream starts reusing, which IMO then
+deserves a Debian-specific versioning scheme, such as +ds or similar.
+The former can also be worked around this way. So I think it does make
+sense to ignore epochs for orig tarballs.
+This means we still could consider introducing epochs for the rest of
+the filenames, .dsc, .changes, .deb, .diff.*, etc. The problem of course
+is still *.debian.tar.*.
+In any case, I agree with Colin that the problem here is with DAK
+forgetfulness, because all filenames ever seen by DAK should be unique
+and never contain different content regardless of the time frame.
+On Fri, 2018-02-09 at 18:10:54 +0100, Philipp Kern wrote:
+> On 09.02.2018 17:02, Ian Jackson wrote:
+> > Philipp Kern writes ("Re: Debian part of a version number when epoch is bumped"):
+> >> You say upstream version. But I'd say that rollbacks are exactly that: 
+> >> reuse of a different epoch with the same upstream version. Like what 
+> >> happened to imagemagick multiple times.
+> > 
+> > I don't know precisely what you mean by "rollback".  If you mean
+> > "change our mind about uploading foo new upstream version 3, and go
+> > back to foo upstream version 2", I would not encourage use of an epoch
+> > for that.  I would upload foo version "3+really2".  This is ugly but
+> > fits much better into everything.
+> 
+> But how is that better than using an epoch? I fully understand why
+> Ubuntu has to use this scheme because they can't use epochs. But we can.
+> Why isn't this a legitimate case to use one?
+We've already had this exact conversation before:
+  <https://lists.debian.org/debian-devel/2013/04/msg00203.html>
+Thanks,
+Guillem

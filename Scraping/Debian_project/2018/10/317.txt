@@ -1,0 +1,74 @@
+To : mrvn@renich.org
+Subject : Re: no{thing} build profiles
+From : Matthias Klumpp <matthias@tenstral.net>
+Date : Mon, 22 Oct 2018 20:18:06 +0200
+Message-id : CAKNHny8gf3N_GkFk910c5kuwNUF15e601JjRhcrF7PW4k6wqLg@mail.gmail.com
+In-reply-to : <[🔎] 20181022153221.kb2iamlkbozg5cch@basil.wdw>
+References : <[🔎] CAKTje6Hazu=FfHc9-YT7Ftyz0E9oUbJNf2NayvLiv9OOfS_zJg@mail.gmail.com> <[🔎] 8736t1axpr.fsf@marvin.43-1.org> <[🔎] 87sh10imog.fsf@web.de> <[🔎] 20181020171607.2khryydow7bnqfdc@shell.thinkmo.de> <[🔎] 87lg6s8nxb.fsf_-_@violet.siamics.net> <[🔎] 87va5vg13z.fsf@err.no> <[🔎] 154011468574.1793.17134216390366195697@auryn.jones.dk> <[🔎] pqhir3$558$1@blaine.gmane.org> <[🔎] 20181021161327.2fqaapm4yrp4564s@basil.wdw> <[🔎] CAKNHny-uiVrPH=-emDJcGJk9sNPpmVXOS_k3j8h8CHcJ9C+Zng@mail.gmail.com> <[🔎] 20181022153221.kb2iamlkbozg5cch@basil.wdw>
+
+
+Am Mo., 22. Okt. 2018 um 17:32 Uhr schrieb Marvin Renich <mrvn@renich.org>:
+>
+> * Matthias Klumpp <matthias@tenstral.net> [181021 14:04]:
+> > libgpgme is communicating with gnupg in the background - having
+> > libgpgme without gnupg itself will render the library completely
+> > unusable and break existing users of the library.
+>
+> This keeps getting repeated in this thread in spite of the fact that
+> multiple people have stated that having libgpgme installed without gnupg
+> is useful in a very reasonable scenario.
+>
+> > Also, gnupg/libgpgme are tiny, so you won't waste much disk space
+> > here.
+>
+> See Steve Langasek's reply.
+>
+> Why are some maintainers so adamant about using Depends when Recommends
+> is the correct dependency?
+> [...]
+Because having a real dependency eliminates another source of bugs.
+The library will throw weird (for unexperienced end-users) errors and
+they have to hunt down a solution for why something isn't working as
+they expect. However, if a dependency relation exists, the package
+maintainer can *ensure* that the shipped package is always in a usable
+state, preventing end-users from wasting time in figuring out why
+something does not work, while only adding the additional cost of
+consuming a bit more disk space for people who don't use the feature.
+I have seen this happening countless of times. Ensuring the user has a
+working configuration and can't accidentally break it is pretty key.
+Experienced users will always be able to track issues down in case
+modules are missing, but the average user who just installed something
+from a software center, will get frustrated and waste time in finding
+a solution for their problem.
+The "Recommends" relation should work here in theory, in practice
+though people manage to remove stuff that was recommended by accident,
+or even configure APT to never install recommends, and then end up
+with things not working (granted, in the latter case it's their own
+fault).
+I've seen this when changing the dependency relation of some
+PackageKit libraries on the packagekit daemon to a Recommends - that
+initially resulted in lots of issues, as the PackageKit libraries
+don't do much with their accompanying D-Bus activated daemon. As an
+end result, the dependency relations were just shifted from the
+library to the tools depending on the library, to ensure users have a
+working configuration and don't break their GUI updater.
+In this particular case I think a Recommends relation is justified,
+because some server software also exists where the admin might not
+want PK to be running, as it is first a D-Bus daemon and second an
+admin tool to install software.
+Due to that experience though I am pretty certain that if someone
+removed a vital dependency from a shared library and the software that
+uses it receives bug reports from users who can't use the adverties
+feature, the maintainer of said software would not hesitate to add
+that dependency to the software to ensure it functions properly for
+users who need that feature (unless that dependency was very big).
+The situation is entirely different though for software that is
+designed to be extensible and handles the case of a missing module
+gracefully. In that case, a soft dependency is better. In any case, I
+think that is up to the maintainer to decide, as they know the
+software best and can make sure that it works well for most of its
+audience.
+Cheers,
+    Matthias
+-- 
+I welcome VSRE emails. See http://vsre.info/

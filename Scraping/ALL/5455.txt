@@ -1,0 +1,86 @@
+To : 883361@bugs.debian.org
+Subject : Re: Bug#883361: lvm2-udeb: breaks plain LVM and encrypted LVM support in debian-installer
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 3 Dec 2017 04:06:11 +0100
+Message-id : 20171203030611.yu56evb5i3o5cany@mraw.org
+In-reply-to : <[🔎] 151225981977.2748.3499435088960796237.reportbug@armor.home>
+References : <[🔎] 151225981977.2748.3499435088960796237.reportbug@armor.home>
+
+
+Control: tag -1 patch pending
+Control: reopen 504341
+Cyril Brulebois <kibi@debian.org> (2017-12-03):
+> Current netboot buster images have broken LVM support (selecting normal
+> LVM or encrypted LVM leads to a freeze of the d-i UI) and have had that
+> since the switch from the 20171114T160649Z to the 20171115T035204Z
+> dinstall, which contain these updates for amd64 udebs:
+[…]
+> This is blocking the Buster Alpha 2 release, so an urgent fix would be
+> appreciated.
+> 
+> Changes like “* Enable udev rules in udeb. (closes: #504341)” might have
+> been requested years ago, but some kind of heads-up on debian-boot@ about
+> upcoming changes to lvm support in d-i would really have been appreciated…
+So I've verified that this commit is indeed the culprit:
+| commit f8485bf638d89d48d5a77b924434cbce1f4e96b8
+| Author: Bastian Blank <waldi@debian.org>
+| Date:   Thu Nov 9 19:40:00 2017 +0100
+| 
+|     Enable udev rules in udeb
+|     
+|     Closes: #504341
+and I've checked that reverting it on top of -4 (which isn't published
+in your git repository by the way) makes d-i work again for both plain
+LVM and encrypted LVM use cases.
+Since that was an uncoordinated change, meaning to help d-i & installed
+system to agree on device names, and since it's actually breaking LVM
+support in d-i, I've just uploaded an NMU reverting this change. You'll
+find the source debdiff attached, and I'm reopening the other bug report
+with this message.
+KiBi.
+signature.ascdiff -Nru lvm2-2.02.176/debian/changelog lvm2-2.02.176/debian/changelog
+--- lvm2-2.02.176/debian/changelog	2017-11-10 10:38:46.000000000 +0000
++++ lvm2-2.02.176/debian/changelog	2017-12-03 02:39:59.000000000 +0000
+@@ -1,3 +1,13 @@
++lvm2 (2.02.176-4.1) unstable; urgency=high
++
++  * Non-maintainer upload.
++  * Revert uncoordinated addition of udev rules/sync support in udebs
++    which breaks LVM support in debian-installer instead of getting
++    debian-installer and installed systems to agree on device names.
++    (closes: #883361, reopens: #504341)
++
++ -- Cyril Brulebois <kibi@debian.org>  Sun, 03 Dec 2017 02:39:59 +0000
++
+ lvm2 (2.02.176-4) unstable; urgency=medium
+ 
+   * Don't try to add dropped udev rules to initramfs.
+diff -Nru lvm2-2.02.176/debian/dmsetup-udeb.install lvm2-2.02.176/debian/dmsetup-udeb.install
+--- lvm2-2.02.176/debian/dmsetup-udeb.install	2017-11-09 19:39:52.000000000 +0000
++++ lvm2-2.02.176/debian/dmsetup-udeb.install	2017-12-03 02:37:24.000000000 +0000
+@@ -1,2 +1 @@
+-lib/udev/rules.d/*-dm*.rules
+ sbin/dmsetup
+diff -Nru lvm2-2.02.176/debian/lvm2-udeb.install lvm2-2.02.176/debian/lvm2-udeb.install
+--- lvm2-2.02.176/debian/lvm2-udeb.install	2017-11-09 19:39:52.000000000 +0000
++++ lvm2-2.02.176/debian/lvm2-udeb.install	2017-12-03 02:37:24.000000000 +0000
+@@ -1,5 +1,4 @@
+ etc/lvm/lvm.conf
+-lib/udev/rules.d/*-lvm*.rules
+ sbin/lvchange
+ sbin/lvconvert
+ sbin/lvcreate
+diff -Nru lvm2-2.02.176/debian/rules lvm2-2.02.176/debian/rules
+--- lvm2-2.02.176/debian/rules	2017-11-09 19:39:52.000000000 +0000
++++ lvm2-2.02.176/debian/rules	2017-12-03 02:37:24.000000000 +0000
+@@ -80,9 +80,7 @@
+ 		--with-lvm1=none \
+ 		--with-pool=none \
+ 		--disable-readline \
+-		--disable-selinux \
+-		--enable-udev_rules \
+-		--enable-udev_sync
++		--disable-selinux
+ 
+ override_dh_auto_build:
+ 	dh_auto_build --sourcedirectory=debian/build/build_deb -- \

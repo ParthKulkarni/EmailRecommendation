@@ -1,0 +1,90 @@
+To : Stefan Fritsch <sf@sfritsch.de>
+Subject : Re: Handling of entropy during boot
+From : "Theodore Y. Ts'o" <tytso@mit.edu>
+Date : Tue, 18 Dec 2018 14:11:58 -0500
+Message-id : 20181218191158.GA8974@mit.edu
+In-reply-to : <[🔎] 5877331.emXNK5WogZ@k>
+References : <[🔎] 5877331.emXNK5WogZ@k>
+
+
+On Mon, Dec 17, 2018 at 09:46:42PM +0100, Stefan Fritsch wrote:
+> 
+> There is a random seed file stored by systemd-random-seed.service that saves 
+> entropy from one boot and loads it again after the next reboot. The random 
+> seed file is re-written immediately after the file is read, so the system not 
+> properly shutting down won't cause the same seed file to be used again. The 
+> problem is that systemd (and probably /etc/init.d/urandom, too) does not set 
+> the flag that allows the kernel to credit the randomness and so the kernel does 
+> not know about the entropy contained in that file. Systemd upstream argues that 
+> this is supposed to protect against the same OS image being used many times 
+> [3]. (More links to more discussion can be found at [4]).
+This is an issue which Debian should be deciding more than systemd,
+since the issues involved involve how the entire OS is packaged and
+installed.  That being said, the issues involved are subtle.
+The decision to not credit any randomness for the contents of
+/var/lib/systemd/random-seed is definitely the conservative thing to
+do.  One of the issues is indeed what happens if the OS image gets
+reused.  And it's not just for Virtual Machines, but it can also be an
+issue any time an image is cloned --- for example, in some kind of
+consumer electronic device.  Another question is that has to be
+considered is whether you trust that random-seed file hasn't been
+tampered with or read between it was written and when the system is
+next booted.  For example, if the "Targetted Access Organization" at
+NSA, or its equivalent at German BND, or Chinese MSS, etc., were to
+intercept a specific device, and read the random-seed file, they
+wouldn't need to make any changes to the devices (which might, after
+all, be detectable).  If the OS were to blindly trust the random-seed
+file as having entropy that can't be guessed by an adversary, this
+kind of attack becomes possible.
+Now, should Debian care about this particular attack?  I suspect
+people of good will could very well disagree.  There is a similar
+issue with newer kernels which support the boot-command-line option
+random.trust_cpu=on.  If you are firmly convinced that there is a good
+chance that the NSA has suborned Intel in putting a backdoor into
+RDRAND, you won't want to use that boot option.  But from the
+perspective of the distro, especially one who is striving to be a
+"Universal OS", how should you set this default?
+If the kernel is only going to be used by a VM, you have to trust the
+Host OS provider, and if you're paranoid enough that you doubt Intel's
+ability to resist being suborned by the NSA, you're probably going to
+be even more concerned of the hosting/cloud provider from being in bed
+with the its local government authorities.  So what the default should
+be for Google's "Cloud Optimized OS" is pretty obvious.  The COS
+kernel trusts RDRAND, and this avoids any delays in the boot process
+waiting for the random number to be securely initialized --- because
+we trust RDRAND.
+But for the Universal OS, it answer of whether we should blindly trust
+the random-seed or RDRAND is not so easy.  I can construct scenarios
+where we should obviously trust random-seed --- and scenarios where we
+shouldn't.  And we could throw it up to the user, and ask them to
+answer a question at installation time --- but most users probably
+won't be equipped to be able to answer the question with full
+understanding of the consequencs one way or another.
+That being said, there are some thing we can do that can help
+regardless of what the default ends up being, and how we enable users
+or image installers to change the default.  For example, at least
+every day, or perhaps sooner (and maybe once an hour if the device is
+powered by the AC mains) the contents of the random-seed file should
+be refreshed.  The reason for that is that if the system has been up
+for weeks or month, and the user reboots the system by forcing power
+down or if the kernel crashes, or if the user is in too much of a
+hurry to wait for a clean shutdown sequence, and runs something like
+"echo b > /proc/sysrq-trigger", there is an increased chance that the
+random-seed file may have been snooped sometime in the past
+week/month/quarter.
+> A refinement of the random seed handling could be to check if the hostname/
+> virtual machine-id is the same when saving the seed, and only credit the 
+> entropy if it is unchanged since the last boot.
+This is a good idea, but.... how you set the virtual machine-id is
+very cloud/hosting provider specific.  Also, very often, in many cloud
+environments, the hostname is not set until after the network is
+brought up, since they end up querying the hostname for the VM via the
+metadata server.
+Also, for a kernel meant for a virtualization or cloud environment, my
+recommendation is to use random.trust_cpu=on, or compile the kernel
+with CONFIG_RANDOM_TRUST_CPU, which sets random.trust_cpu to be
+defaulted to on.  Trusting RDRAND in a virtual environment is probably
+right thing to do.  And of course, if systemd mixes in the random-seed
+file, using that as a belt-and-suspenders approach is fine thing.
+Cheers,
+						- Ted

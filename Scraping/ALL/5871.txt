@@ -1,0 +1,73 @@
+To : henrich@iijmio-mail.jp
+Subject : Re: Re: debootstrap/1.0.102 appears to break debuerreotype autopkgtest
+From : Tianon Gravi <tianon@debian.org>
+Date : Thu, 14 Jun 2018 10:15:51 -0700
+Message-id : CAHnKnK0vzvVuujehK0n_+jZ5v99jpNK72kJcRjQZHMNPPafx_Q@mail.gmail.com
+In-reply-to : <[🔎] CAHnKnK2w8oVM7q5nVuOrkX_4A24ttDBqUO1psGDd5vb77Re1zQ@mail.gmail.com>
+References : <[🔎] 87fu1pbx1h.fsf@43-1.org> <[🔎] 20180614182242.c6944a6d6c07141d01e7f8cb@iijmio-mail.jp> <[🔎] CAHnKnK1T5hFcSynyC+qdw+zMSzaNDTs2n+W53B0zH97Z5eJjDw@mail.gmail.com> <[🔎] CAHnKnK3OSv6ww18Zn6pbYaBztJo6NwueRgZohnu7G+SZZoKwpA@mail.gmail.com> <[🔎] CAHnKnK2w8oVM7q5nVuOrkX_4A24ttDBqUO1psGDd5vb77Re1zQ@mail.gmail.com>
+
+
+On Thu, 14 Jun 2018 at 10:00, Tianon Gravi <tianon@debian.org> wrote:
+> Instead of stretch simply defaulting to non-merged-usr, it's now
+> _blacklisted_ from merged-usr, even if I explicitly specify
+> "--merged-usr", right?  Is that the intended implementation here?
+If the attached patch is an OK direction, I'd be happy to submit it as
+a merge request for easier merge/review. O:)
+(sorry for missing that the previous discussion was around this issue
+in debootstrap, not just that this is what debuerreotype needed to do
+-- at a conference and email is a bit of a blur right now /o\)
+♥,
+- Tianon
+  4096R / B42F 6819 007F 00F8 8E36  4FD4 036A 9C25 BF35 7DD4
+diff --git a/debootstrap b/debootstrap
+index 88781fc..8eca9ec 100755
+--- a/debootstrap
++++ b/debootstrap
+@@ -27,7 +27,7 @@ KEYRING=""
+ DISABLE_KEYRING=""
+ FORCE_KEYRING=""
+ VARIANT=""
+-MERGED_USR="yes"
++MERGED_USR=""
+ ARCH=""
+ HOST_ARCH=""
+ HOST_OS=""
+diff --git a/scripts/debian-common b/scripts/debian-common
+index c5a5a39..9517af8 100644
+--- a/scripts/debian-common
++++ b/scripts/debian-common
+@@ -37,12 +37,11 @@ work_out_debs () {
+ first_stage_install () {
+ 	case "$CODENAME" in
+ 		etch*|lenny|squeeze|wheezy|jessie*|stretch)
+-			;;
+-		*)
+-			EXTRACT_DEB_TAR_OPTIONS="$EXTRACT_DEB_TAR_OPTIONS -k"
+-			setup_merged_usr
++			[ -z "$MERGED_USR" ] && MERGED_USR="no"
+ 			;;
+ 	esac
++	EXTRACT_DEB_TAR_OPTIONS="$EXTRACT_DEB_TAR_OPTIONS -k"
++	setup_merged_usr
+ 
+ 	extract $required
+ 
+diff --git a/scripts/gutsy b/scripts/gutsy
+index cea5d7b..9fd3ea1 100644
+--- a/scripts/gutsy
++++ b/scripts/gutsy
+@@ -68,12 +68,11 @@ work_out_debs () {
+ first_stage_install () {
+ 	case "$CODENAME" in
+ 		gutsy|hardy|intrepid|jaunty|karmic|lucid|maverick|natty|oneiric|precise|quantal|raring|saucy|utopic|vivid|wily|yakkety|zesty|artful|bionic|cosmic)
+-			;;
+-		*)
+-			EXTRACT_DEB_TAR_OPTIONS="$EXTRACT_DEB_TAR_OPTIONS -k"
+-			setup_merged_usr
++			[ -z "$MERGED_USR" ] && MERGED_USR="no"
+ 			;;
+ 	esac
++	EXTRACT_DEB_TAR_OPTIONS="$EXTRACT_DEB_TAR_OPTIONS -k"
++	setup_merged_usr
+ 
+ 	extract $required

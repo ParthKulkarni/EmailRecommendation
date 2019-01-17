@@ -1,0 +1,68 @@
+To : debian-devel@lists.debian.org,	Debian Julia Team <pkg-julia-devel@lists.alioth.debian.org>
+Subject : Re: [Pkg-julia-devel] julia_1.0.0-1_amd64.changes REJECTED
+From : Mo Zhou <lumin@debian.org>
+Date : Fri, 21 Dec 2018 02:51:27 +0000
+Message-id : 20181221025126.GB22832@Asuna
+In-reply-to : <[🔎] 87h8f8vt5w.fsf@43-1.org>
+References : <20180823074909.GB2641@Asuna> <20180925144043.GA9441@Asuna> <23467.28117.229615.852023@chiark.greenend.org.uk> <23505.39387.547604.882199@chiark.greenend.org.uk> <0b5007f1-3d37-7097-08f1-e7e6586b558d@debian.org> <20181121141142.orfovb7uabee6zyo@shell.thinkmo.de> <e432dbd7-b327-7a4b-4254-c4e2b8f07b9c@debian.org> <20181130145553.GA11805@Asuna> <[🔎] 20181217123824.GA17993@Asuna> <[🔎] 87h8f8vt5w.fsf@43-1.org>
+
+
+Hi,
+On Thu, Dec 20, 2018 at 09:29:15PM +0100, Ansgar Burchardt wrote:
+> Hi,
+> 
+> Mo Zhou writes:
+> > Another fortnight has passed. Any update?
+> 
+> Sorry for taking so long; I wanted to put this on our meeting agenda,
+> but currently don't find much time...
+>
+> Anyway, the package is now marked to be accepted.
+Your surprisingly quick response is much appreciated. Thanks!
+> There were some misunderstandings on our side why debug symbols weren't
+> stripped and from discussion I'm not sure it is clear why, but we agree
+> that this shouldn't block the current version and should better be
+> discussed in a bug report.
+Well, sometimes I struggle with language barrier when trying to
+explain things clear. That said, let's look at the importance of
+debugging symbols from a *user's* point of view.
+First, from a user's point of view Julia is an interpreted language
+even if it compiles a lot at run time through JIT. Julia sysimage,
+i.e. the unstripped sys.so aims to reduce the runtime compilation
+overhead through AOT (Ahead-Of-Time) compilation, which feels like
+sort of JIT cache in the ELF shared object format.
+Now let's take a look at
+  https://docs.julialang.org/en/v1.0.0/manual/stacktraces/
+and get a stacktrace in Julia REPL following the official doc:
+  ⛬ > stacktrace()
+  5-element Array{Base.StackTraces.StackFrame,1}:
+   top-level scope at none:0
+   eval(::Module, ::Any) at boot.jl:319
+   eval_user_input(::Any, ::REPL.REPLBackend) at REPL.jl:85
+   macro expansion at REPL.jl:117 [inlined]
+   (::getfield(REPL, Symbol("##28#29")){REPL.REPLBackend})() at task.jl:259
+And I must emphasize that all *.jl files are scripts, not code to
+be compiled from user's point of view. These scripts are shipped
+by the julia-common package.
+Then let's strip the sys.so and execute the above function again:
+  /u/l/x/julia ❯❯❯ sudo cp sys.so sys.so.bak 
+  /u/l/x/julia ❯❯❯ sudo strip sys.so
+  ⛬ > stacktrace()
+  1-element Array{Base.StackTraces.StackFrame,1}:
+   top-level scope at none:0
+Well, you would must be disappointed if an interpreter e.g. python
+cannot trace into a script, including the standard library of the
+language itself. I mean, if python were julia, the above snippet means
+python cannot trace into it's own standard library (written in python
+script) anymore after stripping the sysimage. Isn't that ridiculous?
+Apart from that, Julia users can manually compile the Julia base and
+stdlib scripts to reflect changes (although this sounds weird):
+(these commands are borrowed from [1])
+  cd /usr/share/julia/base/
+  julia -C native --output-ji ~/JL/basecompiler.ji --output-o ~/JL/basecompiler.o compiler/compiler.jl
+  julia -C native --output-ji ~/JL/sys.ji --output-o ~/JL/sys.o -J ~/JL/basecompiler.ji --startup-file=no sysimg.jl
+  gcc -shared '-DJULIAC_PROGRAM_LIBNAME="/home/lumin/JL/sys.so"' -o ~/JL/sys.so -Wl,--whole-archive ~/JL/sys.o -Wl,--no-whole-archive -std=gnu99 -I/usr/include/julia -DJULIA_ENABLE_THREADING=1 -fPIC -L/usr/lib/x86_64-linux-gnu -Wl,--export-dynamic -Wl,-rpath,/usr/lib/x86_64-linux-gnu -Wl,-rpath,/usr/lib/x86_64-linux-gnu/julia -ljulia -m64
+---
+I'd redirect this topic to BTS in case where there are still people
+who doubt this decision.
+[1] https://github.com/JuliaLang/PackageCompiler.jl

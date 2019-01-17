@@ -1,0 +1,35 @@
+To : Raphael Hertzog <hertzog@debian.org>, 868859@bugs.debian.org
+Subject : Bug#868859: iso-scan: should also scan LVM logical volumes
+From : Colin Watson <cjwatson@debian.org>
+Date : Sun, 29 Oct 2017 15:52:23 +0000
+Message-id : 20171029155223.5gul5q5iayfopk4q@riva.ucam.org
+Reply-to : Colin Watson <cjwatson@debian.org>, 868859@bugs.debian.org
+In-reply-to : <20170719094848.3wmmwer4vsfbu2qp@home.ouaza.com>
+References : <20170719094848.3wmmwer4vsfbu2qp@home.ouaza.com> <20170719094848.3wmmwer4vsfbu2qp@home.ouaza.com>
+
+
+On Wed, Jul 19, 2017 at 11:48:48AM +0200, Raphael Hertzog wrote:
+> With this patch, I ensure that we activate LVM logical volumes so that
+> they are visible by "list-devices" and so that they can be scanned too.
+> 
+> That way we are also able to identify ISO images stored within LVM
+> logical volumes.
+Seems basically OK.
+> Obviously this has implications on the rest of the installation process.
+> The logical volume will be in use and the partitioning step will have
+> to preserve the logical volume and its parent volume group.
+>     
+> But partman is perfectly able to cope with the logical volumes being
+> already activated so it should be fine to do this here.
+I agree that it ought to work, but what testing have you done of this?
+Have you confirmed that the LV is marked as locked in partman and can't
+be changed using manual partitioning operations?  What happens with
+automatic partitioning?
+(iso-scan will already provoke this kind of situation for ordinary
+partitions, of course, but LVM partitioning is different enough that I'd
+like to know that it's been explicitly checked.)
+> +               if type vgchange >/dev/null; then
+Nit: it's worth ">/dev/null 2>&1" here, as "type" writes to stderr if
+the command isn't available, and that's probably just noise in the logs.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

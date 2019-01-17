@@ -1,0 +1,52 @@
+To : John Johansen <john.johansen@canonical.com>, debian-devel@lists.debian.org,  Tyler Hicks <tyhicks@canonical.com>,  Steve Beattie <steve.beattie@canonical.com>,  Seth Arnold <seth.arnold@canonical.com>,  Christian Boltz <apparmor-debian@cboltz.de>
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : intrigeri <intrigeri@debian.org>
+Date : Mon, 23 Oct 2017 08:48:41 +0200
+Message-id : 85d15ewe9i.fsf@boum.org
+In-reply-to : <1d280c7a-0b68-d5d8-a889-5b03531883c0@canonical.com> (John	Johansen's message of "Sat, 9 Sep 2017 14:07:32 -0700")
+References : <857eyij4fb.fsf@boum.org> <slrnoodm52.55v.jmm@inutil.org>	<85zibcr9t5.fsf@boum.org>	<226a3f19-63e7-b37c-0b2b-205456609048@iwakd.de>	<slrnoogef4.20r.jmm@inutil.org> <853790qvh5.fsf@boum.org>	<4715b734-f3a5-8434-169b-dd02e9f6f07d@canonical.com>	<8560crtzxz.fsf@boum.org>	<1d280c7a-0b68-d5d8-a889-5b03531883c0@canonical.com>
+
+
+Hi,
+John Johansen:
+> On 09/09/2017 12:49 PM, intrigeri wrote:
+>> John Johansen:
+>> Christian Seiler put it clearly (quoted above) but here's a more
+>> practical example: say 1. D-Bus mediation lands in Linux
+>> 4.15 (totally made up, but this would be nice!); 2. I run Debian
+>> Stretch; 3. I have to run Linux 4.15+ from stretch-backports (e.g.
+>> on a shiny laptop that needs recent drivers). Then any AppArmor
+>> profile shipped in Debian Stretch that was developed without D-Bus
+>> mediation in mind can potentially start breaking the application
+>> it confines.
+This is now happening: the side-effect of many new AppArmor features
+having landed in Linux mainline (good news!) — before our policy was
+updated accordingly — is that AppArmor broke a couple things when
+Linux 4.13 landed in sid (sorry, it's the first time we face this
+situation and we're learning along the way!), and breaks *lots* of
+things when running Linux 4.14. This situation is exceptional in that
+years of kernel development are being upstreamed at once, but it's
+bound to happen again at a smaller scale, and we do need to deal with
+it to support the use case described above anyway.
+My plan is:
+1. In testing/sid, ship a conffile (in a package built from
+   src:apparmor) that pins the most recent feature set fully supported
+   by our policy, i.e. Linux 4.12's or 4.13's (depending on whether
+   we've fixed all the regressions brought by 4.13 yet); this is now
+   tracked by #879584. This should make the transition to Linux 4.14
+   smooth;
+2. Once our policy has been updated to work well with Linux 4.14's
+   AppArmor features (#877581), bump the pinned feature set to 4.14's.
+3. Rinse & repeat for Linux 4.15 etc.
+And wrt. Stretch + Linux from backports, I'll propose a stable update
+of src:apparmor that ships a similar conffile that pins the feature
+set to Linux 4.9's (#879585).
+I've mentioned a few issues with this plan on the corresponding bug
+reports. I propose we discuss them there to avoid overloading this
+thread with too many fine details :)
+> - kernel: If the kernel is backported and the feature set is pinned
+>   there is a low likely hood of problems.
+… so we should be good with the above plan. Thanks!
+Cheers,
+-- 
+intrigeri

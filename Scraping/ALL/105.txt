@@ -1,0 +1,38 @@
+To : 852776-submitter@bugs.debian.org
+Subject : Re: Bug#852776: mariadb-server-10.1: init script doesn't specify it should be started prior to apache2 etc
+From : Ondřej Surý <ondrej@sury.org>
+Date : Sun, 26 Mar 2017 15:54:57 +0200
+Message-id : 1490536497.4033362.923787296.43821DAA@webmail.messagingengine.com
+
+
+Hi Julian,
+I understand that apache2 is a usually a "prominent" user of mysql
+database, but I am inclined to say, that such dependency would be better
+placed in the packages that uses 'mysql', as it would be a tedious to
+list all possible dependencies (php-fpm, opendnssec with mysql, etc...)
+into the mariadb init script, and it all depends on per-system/per-user
+needs.
+I haven't tested it yet, but perhaps we can investigate whether all
+database packages could "Provide: $database" and all such users could do
+"Require-Start: $database".
+Similar to what postfix do:
+$ cat /etc/insserv.conf.d/postfix 
+$mail-transport-agent postfix
+So having a:
+/etc/insserv.conf.d/mysql
+$database mysql
+and
+/etc/insserv.conf/postgresql-9.6
+$database postgresql-9.6
+might actually help insserv to figure out the right sysvrc script order.
+But I might be mistaken whether this would work if more packages has the
+'$database' defined.
+Ccing apache2 and postgresql maintainers on this one.
+Cheers,
+-- 
+Ondřej Surý <ondrej@sury.org>
+Knot DNS (https://www.knot-dns.cz/) – a high-performance DNS server
+Knot Resolver (https://www.knot-resolver.cz/) – secure, privacy-aware,
+fast DNS(SEC) resolver
+Vše pro chleba (https://vseprochleba.cz) – Mouky ze mlýna a potřeby pro
+pečení chleba všeho druhu

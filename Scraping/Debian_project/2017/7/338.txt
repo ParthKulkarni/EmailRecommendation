@@ -1,0 +1,39 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#868640: hdb_generate_key_set_password broke ABI
+From : Brian May <bam@debian.org>
+Date : Tue, 18 Jul 2017 08:30:55 +1000
+Message-id : 87wp7666hs.fsf@prune.linuxpenguins.xyz
+In-reply-to : <87zic266uy.fsf@prune.linuxpenguins.xyz>
+References : <20170717030608.ie5c6g2plogebwmr@kiwi.nardis.ca> <87379v7b4a.fsf@prune.linuxpenguins.xyz> <20170717152456.GA5691@comet.nardis.ca> <87zic266uy.fsf@prune.linuxpenguins.xyz>
+
+
+Hello Debian-Devel!
+I have this tricky situation. It appears in 2011, upstream made a change
+to Heimdal that broken the shared library ABI, and didn't change the
+SONAME.
+=== cut ===
+commit af011f57fc4ae6e865bab471c20aa9047e4e19d4
+Author: Roland C. Dowdeswell <elric@imrryr.org>
+Date:   Mon Nov 28 15:18:52 2011 +0000
+    Provide server side kadm5_chpass_principal_3() with ks_tuple implementation.
+    
+    We enable kadm5_chpass_principal_3() in the server side of the
+    library.  The client kadm5 library calls will still return the
+    error KAMD5_KS_TUPLE_NO_SUPP.
+    
+    Signed-off-by: Nicolas Williams <nico@cryptonector.com>
+=== cut ===
+This change was undetected, and included in Debian in Wheezy, Jessie,
+Stretch.
+Now Upstream has realized their
+error. https://github.com/heimdal/heimdal/issues/246
+There response was to restore the ABI to the previous state. This change
+is now in testing and unstable.
+What should I do? It appears patch the ABI back to the previous state,
+and break compatability with other distributions. Or I can keep it as it
+and break upgrades.
+Please read the bull details of 868640 for more information, and for
+details of similar situation that occured before the Stretch
+release. #848694
+-- 
+Brian May <bam@debian.org>

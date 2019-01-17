@@ -1,0 +1,76 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Switching to sysvinit-core fails miserably in buster/sid
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Wed, 25 Oct 2017 07:53:30 +0200
+Message-id : 20171025055330.hfcsjct6mql7tgrr@angband.pl
+In-reply-to : <[🔎] e9d10eea-048d-fa93-0f1a-a5ba3d4bd95a@nachtgeist.net>
+References : <[🔎] e9d10eea-048d-fa93-0f1a-a5ba3d4bd95a@nachtgeist.net>
+
+
+On Tue, Oct 24, 2017 at 06:46:06PM +0200, Daniel Reichelt wrote:
+> Hi *,
+> 
+> for development purposes I frequently create xen-vms via
+> xen-create-image (jessie, stretch, buster, sid - each in 32 and 64bit)
+> on a stretch Dom0. In a custom role script for xen-tools, I install
+> sysvinit-core. (For non-users of xen-tools: this happens after
+> debootstrap has completed.) Until a few weeks ago, this used to be
+> enough and everything worked just fine.
+> 
+> Now, after sysvinit-core is installed, init scripts don't get enabled
+> (i.e. S* symlinks are missing in /etc/rc?.d), which leaves a big
+> mess of things as not even networking or ssh are enabled.
+It's about sysv-rc, not sysvinit-core; init doesn't matter at all for "init"
+scripts -- it's the rc system what does, be it sysv-rc, openrc or
+.service-less systemd.  And those indeed have different ways of marking a
+particular daemon as enabled or disabled.
+This is done by "init-system-helpers" whose job is to record this setting
+and set it up even in case a different rc system is installed later, like in
+your case.
+> It seems to me, this happens to init scripts of packages which were
+> installed prior to sysvinit-core. I have yet to work out the details of
+> this time-dependency, i.e.
+> 
+> 
+> - whether it's sufficient that sysvinit-core gets processed prior to a
+> init-script-carrying package
+> 
+> - or if the entire run of dpkg installing sysvinit-core has to finish,
+> and init scripts get processed correctly only if they're installed
+> during a subsequent invocation of dpkg.
+I've checked what happens for completely independent runs: on stretch, all
+is ok, no matter the order.  On current unstable, update-rc.d must be run
+only after getting rid of systemd-sysv (not sure if a reboot is needed or
+not).
+Sounds like this is the culprit:
+init-system-helpers (1.50) unstable; urgency=medium
+  ...
+  * Refactor internals of update-rc.d
+    - Refactor actions into a sequence of steps according to the installed
+      init systems. This makes plugging new init systems or new actions
+      easier.
+  ...
+ -- Felipe Sateler <fsateler@debian.org>  Thu, 12 Oct 2017 20:16:13 -0300
+> As a workaround, after sysvinit-core is installed from the role script,
+> I therein run
+> 
+> cd /etc/init.d
+> for script in *
+> do
+> 	update-rc.d "$script" enable
+> done
+This would turn on every daemon, even those which have been disabled by the
+user.
+> as well, which I suspect is quite crude and shouldn't be necessary in
+> the first place. I don't have the first clue which package I should file
+> a bug report against. Any hints appreciated!
+init-systemd-helpers.
+Also, same happens when switching to openrc.  (While I installed quite a few
+test systems in the last few days, I switch rc systems before installing
+daemons, so I didn't notice this myself.)
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ Laws we want back: Poland, Dz.U. 1921 nr.30 poz.177 (also Dz.U. 
+⣾⠁⢰⠒⠀⣿⡁ 1920 nr.11 poz.61): Art.2: An official, guilty of accepting a gift
+⢿⡄⠘⠷⠚⠋⠀ or another material benefit, or a promise thereof, [in matters
+⠈⠳⣄⠀⠀⠀⠀ relevant to duties], shall be punished by death by shooting.

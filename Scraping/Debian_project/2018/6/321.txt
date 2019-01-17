@@ -1,0 +1,45 @@
+To : 902288@bugs.debian.org
+Subject : Bug#902288: Issue raised with gnome-desktop as well
+From : Marco Ippolito <maroloccio@gmail.com>
+Date : Mon, 25 Jun 2018 13:28:55 +0200
+Message-id : 20180625112855.GB2918@sanctuary
+Reply-to : Marco Ippolito <maroloccio@gmail.com>, 902288@bugs.debian.org
+References : <[🔎] 152985130565.26662.28719390873955749.reportbug@sanctuary>
+
+
+To avoid duplication of work, I report my filing of the issue with
+gnome-desktop:
+https://gitlab.gnome.org/GNOME/gnome-desktop/issues/4
+I have a feeling bubblewrapping (i.e. bwrap), strict as it is configured at the
+moment, could potentially affect other packages generating thumbnails, e.g.:
+$ apt-file search /usr/share/thumbnailers | column -t -s : | sort
+atril-common                 /usr/share/thumbnailers/atril.thumbnailer
+blender-data                 /usr/share/thumbnailers/blender.thumbnailer
+dia-common                   /usr/share/thumbnailers/dia.thumbnailer
+evince                       /usr/share/thumbnailers/evince.thumbnailer
+exe-thumbnailer              /usr/share/thumbnailers/exe-dll-msi.thumbnailer
+ffmpegthumbnailer            /usr/share/thumbnailers/ffmpegthumbnailer.thumbnailer
+geogebra-gnome               /usr/share/thumbnailers/geogebra.thumbnailer
+gnome-font-viewer            /usr/share/thumbnailers/gnome-font-viewer.thumbnailer
+gnome-hwp-support            /usr/share/thumbnailers/hwp-thumbnailer.thumbnailer
+gnome-nds-thumbnailer        /usr/share/thumbnailers/gnome-nds-thumbnailer.thumbnailer
+gwyddion-common              /usr/share/thumbnailers/gwyddion.thumbnailer
+heif-thumbnailer             /usr/share/thumbnailers/heif.thumbnailer
+libgdk-pixbuf2.0-bin         /usr/share/thumbnailers/gdk-pixbuf-thumbnailer.thumbnailer
+libgsf-bin                   /usr/share/thumbnailers/gsf-office.thumbnailer
+librsvg2-common              /usr/share/thumbnailers/librsvg.thumbnailer
+mate-control-center-common   /usr/share/thumbnailers/mate-font-viewer.thumbnailer
+mypaint                      /usr/share/thumbnailers/mypaint-ora.thumbnailer
+pentobi                      /usr/share/thumbnailers/pentobi.thumbnailer
+tiled                        /usr/share/thumbnailers/tiled.thumbnailer
+totem-common                 /usr/share/thumbnailers/totem.thumbnailer
+Do package maintainers run tests for thumbnailers? For example, we expect
+gnome-desktop to generate a thumbnail .png from the hash of the media resource
+as "URI-like" (not a full URI escaping, I have noticed, just some characters):
+(Python)
+hashlib.md5("file://" + sys.argv[1].replace(" ", "%20")
+                                   .replace("|", "%7C")).hexdigest()
+do we verify that such file is created under:
+$XDG_CACHE_HOME/thumbnails/GNOME_DESKTOP_THUMBNAIL_SIZE_{NORMAL,LARGE}
+This would allow answering this type of questions programmatically: have
+changes in gnome-desktop broken the way in which the Blender thumbnailer works?

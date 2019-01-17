@@ -1,0 +1,76 @@
+To : debian-devel@lists.debian.org
+Subject : Re: build* targets as root
+From : Guillem Jover <guillem@debian.org>
+Date : Wed, 18 Oct 2017 14:01:19 +0200
+Message-id : 20171018120119.m7zlgtwwn6bx47jm@thunder.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20171018103029.i3ndvi5tegclh3fe@perpetual.pseudorandom.co.uk>
+References : <[🔎] 20171018093641.tzyv5aku4lmdw2dr@gaara.hadrons.org> <[🔎] 20171018103029.i3ndvi5tegclh3fe@perpetual.pseudorandom.co.uk>
+
+
+On Wed, 2017-10-18 at 11:30:29 +0100, Simon McVittie wrote:
+> On Wed, 18 Oct 2017 at 11:36:41 +0200, Guillem Jover wrote:
+> > Apparently this caused mass build failures, all due to packages (or
+> > their helpers) being very Debian policy non-compliant! These are all
+> > MUST requirements. Stuff like:
+> ...
+> >   - build-targets [...] must be able to be
+> >     run with root privs (via binary-target invocation)
+> 
+> Which Policy requirements combine to imply this?
+From 4.9§:
+,---
+   binary (required), binary-arch (required), binary-indep (required)
+     The binary target must be all that is necessary for the user to
+     build the binary package(s) produced from this source package. It
+     is split into two parts: binary-arch builds the binary packages
+     which are specific to a particular architecture, and binary-indep
+     builds those which are not.
+     …
+     Both binary-* targets should depend on the build target, or on the
+     appropriate build-arch or build-indep target, so that the package
+     is built if it has not been already. It should then create the
+     relevant binary package(s), using dpkg-gencontrol to make their
+     control files and dpkg-deb to build them and place them in the
+     parent of the top level directory.
+     …
+     The binary targets must be invoked as root.
+`---
+And while the second paragraph is strictly speaking a SHOULD, I take
+it to mean that these targets should be depended on somehow even if
+transitively (there's a bug on policy about precisely that). Because
+the first paragraph overrides the second one. Otherwise if we had
+different build paths depending on whether one has just called «binary»
+or «build + binary» that would be broken too IMO. See for example this
+paragraph:
+,---
+   build (required)
+     …
+     For some packages, notably ones where the same source tree is
+     compiled in different ways to produce two binary packages, the
+     build target does not make much sense. For these packages it is
+     good enough to provide two (or more) targets (build-a and build-b
+     or whatever) for each of the ways of building the package, and a
+     build target that does nothing. The binary target will have to
+     build the package in each of the possible ways and make the binary
+     package out of each.
+     …
+`---
+> If this is really a Policy MUST then I'm not sure how realistic it
+> is to combine this with build-time testing, particularly if the root
+> privileges are allowed to be a lie and not actually imply any privilege
+> (fakeroot). fakeroot has some important limitations: in particular,
+> anything that has build-time tests involving a protocol that uses AF_UNIX
+> credentials passing (D-Bus, Wayland, PostgreSQL, some uses of X11)
+> is going to have a hard time.
+…
+> So if Policy indirectly requires the build* targets to work under
+> fakeroot, I would prefer to see that part of Policy change.
+On the general problem of using (fake)root, the correct solution is IMO
+to stop having to use (fake)root at all. This should be possible in the
+future with R³, which we'll be announcing shortly on a separate thread.
+But IMO that's a bit besides the point here, the real point is that the
+current debian/rules full interface is not being checked for comformance,
+and it's decaying anyway. And only what dpkg-buildpackage exposes is. :/
+Thanks,
+Guillem

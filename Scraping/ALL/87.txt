@@ -1,0 +1,26 @@
+To : 872036@bugs.debian.org
+Subject : Bug#872036: Acknowledgement (AH00060: seg fault or similar nasty error detected in the parent process)
+From : Athanasius <debian@miggy.org>
+Date : Wed, 8 Nov 2017 13:33:24 +0000
+Message-id : 20171108133324.GA495@fysh.org
+Reply-to : Athanasius <debian@miggy.org>, 872036@bugs.debian.org
+In-reply-to : <[🔎] 20171106124807.GE6442@fysh.org>
+References : <150264213812.15375.9122558661806739111.reportbug@localhost>
+
+
+mpm-event based apache has now survived two nightly runs of logrotate
+doing '/etc/init.d/apache2 reload' since I ensured it will only do that
+once per run.
+  So what is it about mpm-event that causes apache2 to crash when
+multiple '/etc/init.d/apache2 reload' invocations happen in very quick
+succession ?  Smells like an upstream bug, yes ?
+  Not that I can seem to reproduce this with:
+COUNT=1 ; while [ $COUNT -lt 80 ] ; do ( /etc/init.d/apache2 reload &); COUNT=`expr $COUNT + 1` ; done
+  Perhaps it's not just the rapid reloads, but combining those with
+needing to create new log files ?
+Although it does leave me with only processes like:
+	/usr/sbin/apache2 -k graceful
+running, rather than the more usual:
+	/usr/sbin/apache2 -k start
+And some instances of the init.d script complaining "Apache2 is not
+running" on subsequent invocations.

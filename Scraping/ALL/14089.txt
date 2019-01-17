@@ -1,0 +1,76 @@
+To : Christian Seiler <christian@iwakd.de>
+Subject : Re: Bug#860771: ITP: node-diffie-hellman -- pure js diffie-hellman
+From : Bastien ROUCARIES <roucaries.bastien@gmail.com>
+Date : Thu, 20 Apr 2017 11:09:07 +0200
+Message-id : CAE2SPAav9B6KX8htxy5GwEy3jVDntfUSE5KiQYtUDV++J8FYeA@mail.gmail.com
+In-reply-to : <[🔎] 9ca41dc7-a07b-de97-2237-ca20eca540df@iwakd.de>
+References : <[🔎] CAE2SPAYzCLLq3sa-z2=g1r1+UhnbzsCZ1Zmv1CyKddCHwH+ODA@mail.gmail.com> <[🔎] 9ca41dc7-a07b-de97-2237-ca20eca540df@iwakd.de>
+
+
+On Thu, Apr 20, 2017 at 12:41 AM, Christian Seiler <christian@iwakd.de> wrote:
+> On 04/19/2017 11:36 PM, Bastien ROUCARIES wrote:
+>> Package: wnpp
+>> Severity: wishlist
+>> Owner: rouca@debian.org
+>> X-Debbugs-CC: debian-devel@lists.debian.org
+>>
+>> * Package name    : node-diffie-hellman
+>>   Version         : 5.0.2
+>>   Upstream Author : Calvin Metcalf
+>> * URL             : https://github.com/crypto-browserify/diffie-hellman
+>> * License         : Expat
+>>   Programming Lang: JavaScript
+>>   Description     : pure js diffie-hellman key exchange
+>>
+>>  Diffie–Hellman key exchange (D–H)  is a specific method of securely
+>>  exchanging cryptographic keys over a public channel. The
+>> Diffie–Hellman key exchange method allows two parties that have no
+>> prior knowledge of each other to jointly establish a shared secret key
+>> over an insecure channel. This key can then be used to encrypt
+>> subsequent communications using a symmetric key cipher.
+>>  .
+>>  Node.js is an event-based server-side JavaScript engine.
+>
+> Is this timing safe? From the github page it uses a pure-JS
+> BigNum implementation (bn.js) for the complicated stuff, but
+> the README of that code doesn't mention timing at all. And
+> from perusing the source code of bn.js, it doesn't appear to
+> be the case that their implementation of exponentiation in
+> a prime field is geared towards constant-time execution (when
+> the sizes are the same).
+>
+> If you look at e.g. OpenSSL's source code (bn_exp.c), there's
+> a specific function (bn_mod_exp_mont_consttime) in there that
+> takes great care of making sure that the operation runs in
+> constant time - down to how the memory layout is organized. I
+> wouldn't know how you'd even do that in an interpreted
+> language such as JavaScript, but even if that's possible, I'd
+> suspect that a lot of brain power would need to go into
+> designing that [1], while bn.js's implementation of the
+> Red.pow function seems rather straight-forward. (Which is
+> fine, bn.js appears to have the goal to be a generic bignum
+> library, and not targeted at crypto.)
+>
+> What I'm saying is: while not having tested that, I believe
+> that this implementation of DH is going to be susceptible to
+> timing attacks. (And if it isn't, the author should really
+> provide some rationale why not, with some test results. The
+> README is rather sparse, though.) Which would be fine if you
+> just wanted to use this library to generate the DH prime
+> itself (that is not timing critical), or just use it in an
+> academic context (to let people play around with DH), but
+> I'd not want to use this for real-world applications of the
+> actual key exchange protocol.
+I have planned to add a big fat warning about safety of
+browserify-crypto. I am myself unease to use it but it is needed for
+browserify.
+Do you prefer a README.debian per pure js crypto package ?
+I plan to patch browserify and add a flag in order to use the crypto API.
+>
+> Regards,
+> Christian
+>
+> [1] Especially if this is to be run in browsers, with
+>     different JITs etc. Designing algorithms in pure JS
+>     for these environments that are timing-safe looks rather
+>     daunting to me.

@@ -1,0 +1,44 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#881969: making bootable SD cards
+From : Joey Hess <id@joeyh.name>
+Date : Thu, 16 Nov 2017 19:54:42 -0400
+Message-id : 20171116235442.h4xrhqax7blbf57t@kitenet.net
+Reply-to : Joey Hess <id@joeyh.name>, 881969@bugs.debian.org
+
+
+Package: flash-kernel
+Version: 3.87
+Severity: normal
+  Therefore you usually have to setup an SD card with the appropriate u-boot
+  version for your particular device (see below) as a prerequisite for
+  installing Debian. If you use the pre-made SD card images with the
+  installer, this step is not necessary, as these images already contain
+  u-boot.
+  -- https://wiki.debian.org/InstallingDebianOn/Allwinner
+This seems to fall squarely in flash-kernel's wheelhouse, since it
+already handles the other parts of u-boot installation, and it knows
+the name of the board being installed.
+The d-i SD card images avoid the problem, but they are only one way to
+install; there are even other ways to use d-i to install that need this
+manual step first.
+The main difficulty in putting it in flash-kernel is that it might be
+installed in a chroot in a situation where it should not be altering
+the boot sector of the host's disk. So, something like grub-installer
+seems to be called for, so the user specifies the device to install to.
+A utility in flash-kernel would be much nicer than needing to puzzle out dd
+commands from README.Debian files and hope you got it right. I'm currently
+having to embed those dd commands inside propellor; they're also embedded
+inside debian-installer (build/boot/arm/u-boot-image-config).
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable
+  APT policy: (500, 'unstable'), (500, 'testing'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.13.0-1-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.utf8, LC_CTYPE=en_US.utf8 (charmap=UTF-8), LANGUAGE=en_US.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+-- 
+see shy jo
+signature.asc

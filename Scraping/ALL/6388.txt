@@ -1,0 +1,47 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#890418: [PATCH] Don't let host PATH leak into the target commands
+From : Lubomir Rintel <lkundrak@v3.sk>
+Date : Wed, 14 Feb 2018 15:48:46 +0100
+Message-id : 1518619726.15296.7.camel@v3.sk
+Reply-to : Lubomir Rintel <lkundrak@v3.sk>, 890418@bugs.debian.org
+
+
+Package: debootstrap
+Severity: normal
+This fixes debootstrap on Fedora host, with unified /usr and PATH
+lacking /bin and /sbin.
+---
+ functions | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)From 03f508d24fd5f582c0fda420f9698174ab9128c0 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Sat, 27 Jan 2018 11:04:11 +0100
+Subject: [PATCH] Don't let host PATH leak into the target commands
+This fixes debootstrap on Fedora host, with unified /usr and PATH
+lacking /bin and /sbin.
+---
+ functions | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+diff --git a/functions b/functions
+index 3cfa0d4..e30687c 100644
+--- a/functions
++++ b/functions
+@@ -976,7 +976,7 @@ extract () { (
+ ); }
+ 
+ in_target_nofail () {
+-	if ! $CHROOT_CMD "$@" 2>/dev/null; then
++	if ! PATH=/sbin:/usr/sbin:/bin:/usr/bin $CHROOT_CMD "$@" 2>/dev/null; then
+ 		true
+ 	fi
+ 	return 0
+@@ -987,7 +987,7 @@ in_target_failmsg () {
+ 	local msg="$2"
+ 	local arg="$3"
+ 	shift; shift; shift
+-	if ! $CHROOT_CMD "$@"; then
++	if ! PATH=/sbin:/usr/sbin:/bin:/usr/bin $CHROOT_CMD "$@"; then
+ 		warning "$code" "$msg" "$arg"
+ 		# Try to point user at actual failing package.
+ 		msg="See %s for details"
+-- 
+2.14.3

@@ -1,0 +1,77 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Better infrastructure for dbgsyms
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Fri, 11 Aug 2017 00:28:11 +0200 (CEST)
+Message-id : alpine.DEB.2.11.1708110010560.3885@manul.sfritsch.de
+In-reply-to : <[🔎] 6d1313e4-c037-dd28-5d71-31edf152a0ad@thykier.net>
+References : <[🔎] alpine.DEB.2.11.1708061801430.2367@manul.sfritsch.de> <[🔎] CAKTje6G0AXL-xzxWDxJxE1hWpgqZLGP-RZLUxdF-5HTr8T6QYg@mail.gmail.com> <[🔎] alpine.DEB.2.11.1708081541590.20586@manul.sfritsch.de> <[🔎] 20170808140259.GD28695@zira.vinc17.org> <[🔎] 20170808210723.d7evv7qf24z35unw@glandium.org> <[🔎] 20170809092914.dcl4mi7ie3n6jait@crossbow> <[🔎] alpine.DEB.2.11.1708101535570.29353@manul.sfritsch.de> <[🔎] 6d1313e4-c037-dd28-5d71-31edf152a0ad@thykier.net>
+
+
+Thanks for your response, Niels,
+On Thu, 10 Aug 2017, Niels Thykier wrote:
+> > BTW, in some discussions some other questions were raised:
+> > 
+> > - Is it really a good idea that foo-dbgsym depends on "foo (== 
+> > foo-version)"? Wouldn't a Conflict or breaks on "foo (!= foo-version)" 
+> > make more sense respective package? Consider that you want to analyze the 
+> > core dump on a different system and foo may pull in quite a lot of 
+> > dependencies, start servers, etc.
+> > 
+> 
+>  could be debugging coredumps from multiple versions on the same
+> machine.  As a debugger, you are basically interested in the
+> /usr/lib/debug files themselves and not the dbgsym.deb.
+>   The .deb packages happen to be the only transport mechanism that
+> Debian provides, but we should consider that they limit people to
+> basically debugging on the same distribution as they are running  (at
+> least if you want to dbg files for libc and other low level libraries).
+Yes, I agree that being able to only download and unpack the packages into 
+some directory should be available as an alternative. This would make 
+root-access un-neccessary.
+In gdb, one can use 'set debug-file-directory' to a search patch with 
+several directories.
+> Anyway, The relation was added for two reasons:
+> 
+>  * It was a "requirement" imposed to me when I wrote it from several
+>    others.  I presume that it was historical to match that of -dbg
+>    packages
+> 
+>  * To make dbgsym packages trivially policy compliant (without
+>    duplicating the copyright file), I used usr/share/doc symlinks.
+true, I hadn't thought about the copyright file.
+> 
+> > - Is it allowed for packages that are not in the debug section to depend 
+> > on packages in the debug section. [...]
+> > 
+> 
+> Not in Debian.  The "main" component of the "debian" archive is
+> self-contained; the "debian-debug" archive is an add-on on top of this.
+> [...]
+> Largely, it is the technically similar to a package in main depending on
+> a package in non-free (except for the legal/ethical implications).
+ok
+ 
+> > - Would an option to put all symbols from a source package into a single 
+> > dbgsym package make sense? This would allow to get rid of all those dbgsym 
+> > packages with only a single small file in them.
+> > 
+> 
+> Technically, it should rather trivial if we ignore some corner cases.
+> Notably, the dbgsym would no longer be (bit-for-bit) reproducible under
+> "noX" profiles (that exclude packages).
+> 
+> We might also have to replace the usr/share/doc symlink in favour of a
+> real copyright file (or assume that dbgsym packages cannot contain
+> copyrightable information / is not subject to license terms or define
+> that they inherit their license information from $SOMEWHERE).
+ok. That's probably not worth the effort, then.
+> > - Should we put the URL of the debug sym sources.list entry into the 
+> > release file of the non-debug sym section? That way, apt could determine 
+> > the location of the dbgsym packages by itself without having to edit 
+> > sources.list.
+> I think that is an interesting idea and would go nicely hand in hand
+> with the request for other mirror metadata in #761348 (like what is the
+> base suite for "add-on suites" like experimental)
+thanks for the pointer. I have sent a comment to that bug report.
+Cheers,
+Stefan

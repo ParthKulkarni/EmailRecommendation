@@ -1,0 +1,546 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#867335: stretch-pu: package systemd/232-25
+From : Michael Biebl <biebl@debian.org>
+Date : Wed, 05 Jul 2017 23:25:11 +0200
+Message-id : 149928991197.20492.5448536992595882686.reportbug@pluto.milchstrasse.xx
+Reply-to : Michael Biebl <biebl@debian.org>, 867335@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+Tags: stretch
+User: release.debian.org@packages.debian.org
+Usertags: pu
+Hi,
+I'd like to make a stable upload for systemd.
+All changes are already in unstable.
+An annotated changelog follows:
+systemd (232-25+deb9u1) stretch; urgency=medium
+  [ Dimitri John Ledkov ]
+  * Fix out-of-bounds write in systemd-resolved.
+    CVE-2017-9445 (Closes: #866147, LP: #1695546)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch-proposed&id=986c0be9809e6234680c001b731c5b3099f41c1c
+That's probably the most important one to get into stretch.
+The security team wanted us to fix this issue via a stable upload.
+  [ Michael Biebl ]
+  * Be truly quiet in systemctl -q is-enabled (Closes: #866579)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch-proposed&id=c18ed0fce975e268ebf80e2a89e870d51f9ce7b7
+One line patch, regression potential is very low.
+  * Improve RLIMIT_NOFILE handling.
+    Use /proc/sys/fs/nr_open to find the current limit of open files
+    compiled into the kernel instead of using a hard-coded value of 65536
+    for RLIMIT_NOFILE. (Closes: #865449)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch-proposed&id=920ec17f9390e1bef8e68be52cb153b462bb921d
+This was requested by a user to be backported to stretch.
+  [ Nicolas Braud-Santoni ]
+  * debian/extra/rules: Use updated U2F ruleset.
+    This ruleset comes from Yubico's libu2f-host. (Closes: #824532)
+https://anonscm.debian.org/cgit/pkg-systemd/systemd.git/commit/?h=stretch-proposed&id=f4644056a65e31ab60da2586fa994ef2285bbc73
+This updates the list of devices which are U2F capable.
+I expect the regression potential to be very low.
+The changes shouldn't affect the installer. CCed debian-boot nonetheless for
+a KiBi ack.
+Full debdiff is attached.
+Regards,
+Michael
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable
+  APT policy: (500, 'unstable'), (200, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-3-amd64 (SMP w/4 CPU cores)
+Locale: LANG=de_DE.utf8, LC_CTYPE=de_DE.utf8 (charmap=UTF-8), LANGUAGE=de_DE.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+diff --git a/debian/changelog b/debian/changelog
+index d3789db..fe1e79f 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,22 @@
++systemd (232-25+deb9u1) stretch; urgency=medium
++
++  [ Dimitri John Ledkov ]
++  * Fix out-of-bounds write in systemd-resolved.
++    CVE-2017-9445 (Closes: #866147, LP: #1695546)
++
++  [ Michael Biebl ]
++  * Be truly quiet in systemctl -q is-enabled (Closes: #866579)
++  * Improve RLIMIT_NOFILE handling.
++    Use /proc/sys/fs/nr_open to find the current limit of open files
++    compiled into the kernel instead of using a hard-coded value of 65536
++    for RLIMIT_NOFILE. (Closes: #865449)
++
++  [ Nicolas Braud-Santoni ]
++  * debian/extra/rules: Use updated U2F ruleset.
++    This ruleset comes from Yubico's libu2f-host. (Closes: #824532)
++
++ -- Michael Biebl <biebl@debian.org>  Wed, 05 Jul 2017 22:31:25 +0200
++
+ systemd (232-25) unstable; urgency=medium
+ 
+   * hwdb: Use path_join() to generate the hwdb_bin path.
+diff --git a/debian/extra/rules/70-debian-uaccess.rules b/debian/extra/rules/70-debian-uaccess.rules
+index 18d6137..f94948c 100644
+--- a/debian/extra/rules/70-debian-uaccess.rules
++++ b/debian/extra/rules/70-debian-uaccess.rules
+@@ -1,19 +1,22 @@
+-# FIDO u2f devices for two-factor authentication; current clients access the
+-# device directly
+-ACTION!="add|change", GOTO="fido_u2f_end"
+-SUBSYSTEM!="hidraw", GOTO="fido_u2f_end"
+-KERNEL!="hidraw*", GOTO="fido_u2f_end"
++# this udev file should be used with udev 188 and newer
++ACTION!="add|change", GOTO="u2f_end"
+ 
+-# FIDO u2f devices, until there is a proper kernel driver
+-ATTRS{idVendor}=="1050", ATTRS{idProduct}=="0113|0114|0115|0116|0120|0402|0403|0406|0407|0410", TAG+="uaccess"
++# Yubico YubiKey
++KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1050", ATTRS{idProduct}=="0113|0114|0115|0116|0120|0402|0403|0406|0407|0410", TAG+="uaccess"
+ 
+-# Happlink (formaly Plug-Up) Security KEY
+-ATTRS{idVendor}=="2581", ATTRS{idProduct}=="f1d0", TAG+="uaccess"
++# Happlink (formerly Plug-Up) Security KEY
++KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="2581", ATTRS{idProduct}=="f1d0", TAG+="uaccess"
+ 
+-# Neowave Keydo
+-ATTRS{idVendor}=="1e0d", ATTRS{idProduct}=="f1d0", TAG+="uaccess"
++#  Neowave Keydo and Keydo AES
++KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1e0d", ATTRS{idProduct}=="f1d0|f1ae", TAG+="uaccess"
+ 
+ # HyperSecu HyperFIDO
+-ATTRS{idVendor}=="096e", ATTRS{idProduct}=="0880", TAG+="uaccess"
++KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="096e|2ccf", ATTRS{idProduct}=="0880", TAG+="uaccess"
+ 
+-LABEL="fido_u2f_end"
++# Feitian ePass FIDO
++KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="096e", ATTRS{idProduct}=="0850", TAG+="uaccess"
++
++# JaCarta U2F
++KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="24dc", ATTRS{idProduct}=="0101", TAG+="uaccess"
++
++LABEL="u2f_end"
+diff --git a/debian/patches/debian/Add-run-initctl-support-to-SysV-compat-tools.patch b/debian/patches/debian/Add-run-initctl-support-to-SysV-compat-tools.patch
+index e3cfa6b..447f743 100644
+--- a/debian/patches/debian/Add-run-initctl-support-to-SysV-compat-tools.patch
++++ b/debian/patches/debian/Add-run-initctl-support-to-SysV-compat-tools.patch
+@@ -11,10 +11,10 @@ as PID 1.
+  1 file changed, 10 insertions(+), 5 deletions(-)
+ 
+ diff --git a/src/systemctl/systemctl.c b/src/systemctl/systemctl.c
+-index 9e723b0..c18893b 100644
++index bf77fbb..d8033cd 100644
+ --- a/src/systemctl/systemctl.c
+ +++ b/src/systemctl/systemctl.c
+-@@ -7991,17 +7991,22 @@ static int talk_initctl(void) {
++@@ -7992,17 +7992,22 @@ static int talk_initctl(void) {
+  
+          request.runlevel = rl;
+  
+diff --git a/debian/patches/debian/Revert-core-set-RLIMIT_CORE-to-unlimited-by-default.patch b/debian/patches/debian/Revert-core-set-RLIMIT_CORE-to-unlimited-by-default.patch
+index 586baab..a16ce4a 100644
+--- a/debian/patches/debian/Revert-core-set-RLIMIT_CORE-to-unlimited-by-default.patch
++++ b/debian/patches/debian/Revert-core-set-RLIMIT_CORE-to-unlimited-by-default.patch
+@@ -19,10 +19,10 @@ Bug-Debian: https://bugs.debian.org/815020
+  2 files changed, 1 insertion(+), 13 deletions(-)
+ 
+ diff --git a/src/core/main.c b/src/core/main.c
+-index fc1ae12..8619e1f 100644
++index cf9c253..5a46373 100644
+ --- a/src/core/main.c
+ +++ b/src/core/main.c
+-@@ -1481,18 +1481,6 @@ int main(int argc, char *argv[]) {
++@@ -1491,18 +1491,6 @@ int main(int argc, char *argv[]) {
+                  kernel_timestamp = DUAL_TIMESTAMP_NULL;
+          }
+  
+diff --git a/debian/patches/debian/fsckd-daemon-for-inter-fsckd-communication.patch b/debian/patches/debian/fsckd-daemon-for-inter-fsckd-communication.patch
+index 022e1ed..7577b9e 100644
+--- a/debian/patches/debian/fsckd-daemon-for-inter-fsckd-communication.patch
++++ b/debian/patches/debian/fsckd-daemon-for-inter-fsckd-communication.patch
+@@ -109,7 +109,7 @@ index 013e0d7..a20cb25 100644
+  	man/systemd-getty-generator.xml \
+  	man/systemd-gpt-auto-generator.xml \
+ diff --git a/Makefile.am b/Makefile.am
+-index ecd8bc1..882f8b2 100644
++index 13bbf21..d2f4294 100644
+ --- a/Makefile.am
+ +++ b/Makefile.am
+ @@ -394,6 +394,7 @@ rootlibexec_PROGRAMS = \
+diff --git a/debian/patches/main-improve-RLIMIT_NOFILE-handling-5795.patch b/debian/patches/main-improve-RLIMIT_NOFILE-handling-5795.patch
+new file mode 100644
+index 0000000..f2299bf
+--- /dev/null
++++ b/debian/patches/main-improve-RLIMIT_NOFILE-handling-5795.patch
+@@ -0,0 +1,51 @@
++From: Christian Brauner <christian.brauner@ubuntu.com>
++Date: Wed, 26 Apr 2017 06:18:10 +0200
++Subject: main: improve RLIMIT_NOFILE handling (#5795)
++
++This has systemd look at /proc/sys/fs/nr_open to find the current maximum of
++open files compiled into the kernel and tries to set the RLIMIT_NOFILE max to
++it. This has the advantage the value chosen as limit is less arbitrary and also
++improves the behavior of systemd in containers that have an rlimit set: When
++systemd currently starts in a container that has RLIMIT_NOFILE set to e.g.
++100000 systemd will lower it to 65536. With this patch systemd will try to set
++the nofile limit to the allowed kernel maximum. If this fails, it will compute
++the minimum of the current set value (the limit that is set on the container)
++and the maximum value as soft limit and the currently set maximum value as the
++maximum value. This way it retains the limit set on the container.
++
++(cherry picked from commit 6385cb31ef443be3e0d6da5ea62a267a49174688)
++---
++ src/core/main.c | 12 +++++++++++-
++ 1 file changed, 11 insertions(+), 1 deletion(-)
++
++diff --git a/src/core/main.c b/src/core/main.c
++index fc1ae12..cf9c253 100644
++--- a/src/core/main.c
+++++ b/src/core/main.c
++@@ -1116,6 +1116,8 @@ static int prepare_reexecute(Manager *m, FILE **_f, FDSet **_fds, bool switching
++ static int bump_rlimit_nofile(struct rlimit *saved_rlimit) {
++         struct rlimit nl;
++         int r;
+++        int min_max;
+++        _cleanup_free_ char *nr_open = NULL;
++ 
++         assert(saved_rlimit);
++ 
++@@ -1136,8 +1138,16 @@ static int bump_rlimit_nofile(struct rlimit *saved_rlimit) {
++                 arg_default_rlimit[RLIMIT_NOFILE] = rl;
++         }
++ 
+++        /* Get current RLIMIT_NOFILE maximum compiled into the kernel. */
+++        r = read_one_line_file("/proc/sys/fs/nr_open", &nr_open);
+++        if (r == 0)
+++                r = safe_atoi(nr_open, &min_max);
+++        /* If we fail, fallback to the hard-coded kernel limit of 1024 * 1024. */
+++        if (r < 0)
+++                min_max = 1024 * 1024;
+++
++         /* Bump up the resource limit for ourselves substantially */
++-        nl.rlim_cur = nl.rlim_max = 64*1024;
+++        nl.rlim_cur = nl.rlim_max = min_max;
++         r = setrlimit_closest(RLIMIT_NOFILE, &nl);
++         if (r < 0)
++                 return log_warning_errno(r, "Setting RLIMIT_NOFILE failed, ignoring: %m");
+diff --git a/debian/patches/resolved-define-various-packet-sizes-as-unsigned.patch b/debian/patches/resolved-define-various-packet-sizes-as-unsigned.patch
+new file mode 100644
+index 0000000..6c4f92f
+--- /dev/null
++++ b/debian/patches/resolved-define-various-packet-sizes-as-unsigned.patch
+@@ -0,0 +1,47 @@
++From: =?utf-8?q?Zbigniew_J=C4=99drzejewski-Szmek?= <zbyszek@in.waw.pl>
++Date: Tue, 27 Jun 2017 16:59:06 -0400
++Subject: resolved: define various packet sizes as unsigned
++
++This seems like the right thing to do, and apparently at least some compilers
++warn about signed/unsigned comparisons with DNS_PACKET_SIZE_MAX.
++
++(cherry picked from commit 64a21fdaca7c93f1c30b21f6fdbd2261798b161a)
++---
++ src/resolve/resolved-dns-packet.c | 2 +-
++ src/resolve/resolved-dns-packet.h | 6 +++---
++ 2 files changed, 4 insertions(+), 4 deletions(-)
++
++diff --git a/src/resolve/resolved-dns-packet.c b/src/resolve/resolved-dns-packet.c
++index 893efae..f10eafe 100644
++--- a/src/resolve/resolved-dns-packet.c
+++++ b/src/resolve/resolved-dns-packet.c
++@@ -28,7 +28,7 @@
++ 
++ #define EDNS0_OPT_DO (1<<15)
++ 
++-#define DNS_PACKET_SIZE_START 512
+++#define DNS_PACKET_SIZE_START 512u
++ assert_cc(DNS_PACKET_SIZE_START > UDP_PACKET_HEADER_SIZE)
++ 
++ typedef struct DnsPacketRewinder {
++diff --git a/src/resolve/resolved-dns-packet.h b/src/resolve/resolved-dns-packet.h
++index 7329581..73a6410 100644
++--- a/src/resolve/resolved-dns-packet.h
+++++ b/src/resolve/resolved-dns-packet.h
++@@ -58,13 +58,13 @@ struct DnsPacketHeader {
++ /* The various DNS protocols deviate in how large a packet can grow,
++    but the TCP transport has a 16bit size field, hence that appears to
++    be the absolute maximum. */
++-#define DNS_PACKET_SIZE_MAX 0xFFFF
+++#define DNS_PACKET_SIZE_MAX 0xFFFFu
++ 
++ /* RFC 1035 say 512 is the maximum, for classic unicast DNS */
++-#define DNS_PACKET_UNICAST_SIZE_MAX 512
+++#define DNS_PACKET_UNICAST_SIZE_MAX 512u
++ 
++ /* With EDNS0 we can use larger packets, default to 4096, which is what is commonly used */
++-#define DNS_PACKET_UNICAST_SIZE_LARGE_MAX 4096
+++#define DNS_PACKET_UNICAST_SIZE_LARGE_MAX 4096u
++ 
++ struct DnsPacket {
++         int n_ref;
+diff --git a/debian/patches/resolved-do-not-allocate-packets-with-minimum-size.patch b/debian/patches/resolved-do-not-allocate-packets-with-minimum-size.patch
+new file mode 100644
+index 0000000..be8a370
+--- /dev/null
++++ b/debian/patches/resolved-do-not-allocate-packets-with-minimum-size.patch
+@@ -0,0 +1,46 @@
++From: =?utf-8?q?Zbigniew_J=C4=99drzejewski-Szmek?= <zbyszek@in.waw.pl>
++Date: Tue, 27 Jun 2017 14:20:00 -0400
++Subject: resolved: do not allocate packets with minimum size
++
++dns_packet_new() is sometimes called with mtu == 0, and in that case we should
++allocate more than the absolute minimum (which is the dns packet header size),
++otherwise we have to resize immediately again after appending the first data to
++the packet.
++
++This partially reverts the previous commit.
++
++(cherry picked from commit 88795538726a5bbfd9efc13d441cb05e1d7fc139)
++---
++ src/resolve/resolved-dns-packet.c | 12 +++++++++++-
++ 1 file changed, 11 insertions(+), 1 deletion(-)
++
++diff --git a/src/resolve/resolved-dns-packet.c b/src/resolve/resolved-dns-packet.c
++index bac0e16..893efae 100644
++--- a/src/resolve/resolved-dns-packet.c
+++++ b/src/resolve/resolved-dns-packet.c
++@@ -28,6 +28,9 @@
++ 
++ #define EDNS0_OPT_DO (1<<15)
++ 
+++#define DNS_PACKET_SIZE_START 512
+++assert_cc(DNS_PACKET_SIZE_START > UDP_PACKET_HEADER_SIZE)
+++
++ typedef struct DnsPacketRewinder {
++         DnsPacket *packet;
++         size_t saved_rindex;
++@@ -47,7 +50,14 @@ int dns_packet_new(DnsPacket **ret, DnsProtocol protocol, size_t mtu) {
++ 
++         assert(ret);
++ 
++-        a = MAX(mtu, DNS_PACKET_HEADER_SIZE);
+++        /* When dns_packet_new() is called with mtu == 0, allocate more than the
+++         * absolute minimum (which is the dns packet header size), to avoid
+++         * resizing immediately again after appending the first data to the packet.
+++         */
+++        if (mtu < UDP_PACKET_HEADER_SIZE)
+++                a = DNS_PACKET_SIZE_START;
+++        else
+++                a = MAX(mtu, DNS_PACKET_HEADER_SIZE);
++ 
++         /* round up to next page size */
++         a = PAGE_ALIGN(ALIGN(sizeof(DnsPacket)) + a) - ALIGN(sizeof(DnsPacket));
+diff --git a/debian/patches/resolved-simplify-alloc-size-calculation.patch b/debian/patches/resolved-simplify-alloc-size-calculation.patch
+new file mode 100644
+index 0000000..3c1bf42
+--- /dev/null
++++ b/debian/patches/resolved-simplify-alloc-size-calculation.patch
+@@ -0,0 +1,49 @@
++From: =?utf-8?q?Zbigniew_J=C4=99drzejewski-Szmek?= <zbyszek@in.waw.pl>
++Date: Sun, 18 Jun 2017 16:07:57 -0400
++Subject: resolved: simplify alloc size calculation
++
++The allocation size was calculated in a complicated way, and for values
++close to the page size we would actually allocate less than requested.
++
++Reported by Chris Coulson <chris.coulson@canonical.com>.
++
++CVE-2017-9445
++
++(cherry picked from commit db848813bae4d28c524b3b6a7dad135e426659ce)
++---
++ src/resolve/resolved-dns-packet.c | 8 +-------
++ src/resolve/resolved-dns-packet.h | 2 --
++ 2 files changed, 1 insertion(+), 9 deletions(-)
++
++diff --git a/src/resolve/resolved-dns-packet.c b/src/resolve/resolved-dns-packet.c
++index 07a761e..bac0e16 100644
++--- a/src/resolve/resolved-dns-packet.c
+++++ b/src/resolve/resolved-dns-packet.c
++@@ -47,13 +47,7 @@ int dns_packet_new(DnsPacket **ret, DnsProtocol protocol, size_t mtu) {
++ 
++         assert(ret);
++ 
++-        if (mtu <= UDP_PACKET_HEADER_SIZE)
++-                a = DNS_PACKET_SIZE_START;
++-        else
++-                a = mtu - UDP_PACKET_HEADER_SIZE;
++-
++-        if (a < DNS_PACKET_HEADER_SIZE)
++-                a = DNS_PACKET_HEADER_SIZE;
+++        a = MAX(mtu, DNS_PACKET_HEADER_SIZE);
++ 
++         /* round up to next page size */
++         a = PAGE_ALIGN(ALIGN(sizeof(DnsPacket)) + a) - ALIGN(sizeof(DnsPacket));
++diff --git a/src/resolve/resolved-dns-packet.h b/src/resolve/resolved-dns-packet.h
++index 054dc88..7329581 100644
++--- a/src/resolve/resolved-dns-packet.h
+++++ b/src/resolve/resolved-dns-packet.h
++@@ -66,8 +66,6 @@ struct DnsPacketHeader {
++ /* With EDNS0 we can use larger packets, default to 4096, which is what is commonly used */
++ #define DNS_PACKET_UNICAST_SIZE_LARGE_MAX 4096
++ 
++-#define DNS_PACKET_SIZE_START 512
++-
++ struct DnsPacket {
++         int n_ref;
++         DnsProtocol protocol;
+diff --git a/debian/patches/series b/debian/patches/series
+index 621b176..b01371c 100644
+--- a/debian/patches/series
++++ b/debian/patches/series
+@@ -67,6 +67,12 @@ hwdb-use-path_join-to-generate-the-hwdb_bin-path-6063.patch
+ Revert-selinux-split-up-mac_selinux_have-from-mac_selinux.patch
+ audit-fd-check-for-CAP_AUDIT_WRITE-before-opening-an-audi.patch
+ link-fix-offload-features-initialization-4639.patch
++test-resolved-packet-add-a-simple-test-for-our-allocation.patch
++resolved-simplify-alloc-size-calculation.patch
++resolved-do-not-allocate-packets-with-minimum-size.patch
++resolved-define-various-packet-sizes-as-unsigned.patch
++systemctl-be-truly-quiet-in-systemctl-q-is-enabled.patch
++main-improve-RLIMIT_NOFILE-handling-5795.patch
+ debian/Use-Debian-specific-config-files.patch
+ debian/don-t-try-to-start-autovt-units-when-not-running-wit.patch
+ debian/Make-logind-hostnamed-localed-timedated-D-Bus-activa.patch
+diff --git a/debian/patches/systemctl-be-truly-quiet-in-systemctl-q-is-enabled.patch b/debian/patches/systemctl-be-truly-quiet-in-systemctl-q-is-enabled.patch
+new file mode 100644
+index 0000000..640f523
+--- /dev/null
++++ b/debian/patches/systemctl-be-truly-quiet-in-systemctl-q-is-enabled.patch
+@@ -0,0 +1,24 @@
++From: Lennart Poettering <lennart@poettering.net>
++Date: Mon, 26 Jun 2017 16:11:20 +0200
++Subject: systemctl: be truly quiet in systemctl -q is-enabled
++
++Fixes: #6196
++(cherry picked from commit 8ecc68f4301a25337f93822296edd77af25c621f)
++---
++ src/systemctl/systemctl.c | 3 ++-
++ 1 file changed, 2 insertions(+), 1 deletion(-)
++
++diff --git a/src/systemctl/systemctl.c b/src/systemctl/systemctl.c
++index 9e723b0..bf77fbb 100644
++--- a/src/systemctl/systemctl.c
+++++ b/src/systemctl/systemctl.c
++@@ -5800,7 +5800,8 @@ static int enable_sysv_units(const char *verb, char **args) {
++                 if (!l)
++                         return log_oom();
++ 
++-                log_info("Executing: %s", l);
+++                if (!arg_quiet)
+++                        log_info("Executing: %s", l);
++ 
++                 pid = fork();
++                 if (pid < 0)
+diff --git a/debian/patches/test-resolved-packet-add-a-simple-test-for-our-allocation.patch b/debian/patches/test-resolved-packet-add-a-simple-test-for-our-allocation.patch
+new file mode 100644
+index 0000000..617a2ba
+--- /dev/null
++++ b/debian/patches/test-resolved-packet-add-a-simple-test-for-our-allocation.patch
+@@ -0,0 +1,107 @@
++From: Dimitri John Ledkov <xnox@ubuntu.com>
++Date: Wed, 28 Jun 2017 13:14:30 +0100
++Subject: test-resolved-packet: add a simple test for our allocation functions
++
++(cherry picked from commit 751ca3f1de316ca79b60001334dbdf54077e1d01)
++---
++ .gitignore                         |  1 +
++ Makefile.am                        | 14 ++++++++++++
++ src/resolve/test-resolved-packet.c | 45 ++++++++++++++++++++++++++++++++++++++
++ 3 files changed, 60 insertions(+)
++ create mode 100644 src/resolve/test-resolved-packet.c
++
++diff --git a/.gitignore b/.gitignore
++index 21fcf98..950d2d0 100644
++--- a/.gitignore
+++++ b/.gitignore
++@@ -259,6 +259,7 @@
++ /test-replace-var
++ /test-resolve
++ /test-resolve-tables
+++/test-resolved-packet
++ /test-ring
++ /test-rlimit-util
++ /test-sched-prio
++diff --git a/Makefile.am b/Makefile.am
++index ecd8bc1..13bbf21 100644
++--- a/Makefile.am
+++++ b/Makefile.am
++@@ -5500,6 +5500,7 @@ dist_zshcompletion_data += \
++ tests += \
++ 	test-dns-packet \
++ 	test-resolve-tables \
+++	test-resolved-packet \
++ 	test-dnssec
++ 
++ manual_tests += \
++@@ -5521,6 +5522,19 @@ test_resolve_tables_LDADD = \
++ 	$(GCRYPT_LIBS) \
++ 	-lm
++ 
+++test_resolved_packet_SOURCES = \
+++	src/resolve/test-resolved-packet.c \
+++	$(basic_dns_sources)
+++
+++test_resolved_packet_CFLAGS = \
+++	$(AM_CFLAGS) \
+++	$(GCRYPT_CFLAGS)
+++
+++test_resolved_packet_LDADD = \
+++	libsystemd-shared.la \
+++	$(GCRYPT_LIBS) \
+++	-lm
+++
++ test_dns_packet_SOURCES = \
++ 	src/resolve/test-dns-packet.c \
++ 	$(basic_dns_sources)
++diff --git a/src/resolve/test-resolved-packet.c b/src/resolve/test-resolved-packet.c
++new file mode 100644
++index 0000000..8b7da14
++--- /dev/null
+++++ b/src/resolve/test-resolved-packet.c
++@@ -0,0 +1,45 @@
+++/***
+++  This file is part of systemd
+++
+++  Copyright 2017 Zbigniew Jędrzejewski-Szmek
+++
+++  systemd is free software; you can redistribute it and/or modify it
+++  under the terms of the GNU Lesser General Public License as published by
+++  the Free Software Foundation; either version 2.1 of the License, or
+++  (at your option) any later version.
+++
+++  systemd is distributed in the hope that it will be useful, but
+++  WITHOUT ANY WARRANTY; without even the implied warranty of
+++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+++  Lesser General Public License for more details.
+++
+++  You should have received a copy of the GNU Lesser General Public License
+++  along with systemd; If not, see <http://www.gnu.org/licenses/>.
+++***/
+++
+++#include "log.h"
+++#include "resolved-dns-packet.h"
+++
+++static void test_dns_packet_new(void) {
+++        size_t i;
+++
+++        for (i = 0; i < DNS_PACKET_SIZE_MAX + 2; i++) {
+++                _cleanup_(dns_packet_unrefp) DnsPacket *p = NULL;
+++
+++                assert_se(dns_packet_new(&p, DNS_PROTOCOL_DNS, i) == 0);
+++
+++                log_debug("dns_packet_new: %zu → %zu", i, p->allocated);
+++                assert_se(p->allocated >= MIN(DNS_PACKET_SIZE_MAX, i));
+++        }
+++}
+++
+++int main(int argc, char **argv) {
+++
+++        log_set_max_level(LOG_DEBUG);
+++        log_parse_environment();
+++        log_open();
+++
+++        test_dns_packet_new();
+++
+++        return 0;
+++}

@@ -1,0 +1,77 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 21 Nov 2018 11:57:14 +0000
+Message-id : 23541.18458.937933.885499@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20181121075658.GA32431@bongo.bofh.it>
+References : <[🔎] 20181120211617.gxnuwxpx2hy445ps@angband.pl>	<[🔎] 20181121075658.GA32431@bongo.bofh.it>
+
+
+Marco d'Itri writes ("Re: usrmerge -- plan B?"):
+> On Nov 20, Adam Borowski <kilobyte@angband.pl> wrote:
+> > Another question is, why?
+> 
+> It has been documented here long ago: https://wiki.debian.org/UsrMerge .
+I looked at that page and it has no rationale.
+> You are misconstructing the arguments in favour of merged-/usr to be 
+> able to dismiss them easily.
+I suspect you meant to refer to this:
+   https://www.freedesktop.org/wiki/Software/systemd/TheCaseForTheUsrMerge/
+I have read that.  IMO the arguments are extremely diffuse and
+certainly do not justify the level of effort necessary to do this in a
+rapid fashion (or, IMO, at all).
+In this context it is important to realise that there would be serious
+social costs to pressing ahead with making this mandatory: rightly or
+wrongly, a significant minority of users and downstreams would
+strongly dislike this change.  The nastiness and fighting which will
+result if we press forward with this would far outweigh any minor
+technical benefits of this simplification.
+(In this context I want to repeat what Adam said about mounting /usr
+in the initramfs.  That has removed the practical need to care, most
+of the time, about whether a particular thing is in / or /usr.  So we
+have already got most of the techical benefits.)
+I have a perception that this change is part of a programme of
+`tidying up'.  I have seen controversial changes proposed elsewhere,
+which also seem largely motivated by a sense of `tidiness'.
+As a general rule I think this is harmful.  `Tidying things up' is
+fine if no-one cares about them.  If someone does care about them then
+usually it is better to keep them, even if it is a small amount of
+extra work, to maintain Debian as the most flexible base for
+everyone's work.
+I don't intend to do a point-by-point rebuttal of the whole
+`TheCaseForTheUsrMerge' page, but it leads with `Compatibility', so I
+will deal with the section `Compatibility: The Gist of It'.
+1. "... scripts/programs written for other Unixes or other Linuxes and
+   ported to your distribution will no longer need fixing for the file
+   system paths of the binaries called, which is otherwise a major
+   source of frustration ..."
+The author of this text is obviously extremely easily frustrated.
+Personally I have very rarely encountered any situation where the fact
+that a particular binary was in /bin vs /usr/bin was any source of
+frustration or even any trivial difficulty.  For interpreters, there
+is generally a conventional #!  line that everyone uses.  Most of the
+rest of the time programs use PATH.
+There *is* trouble arounding executable locations: but it isn't / vs
+/usr.  It's sbin vs libexec; and /usr vs /usr/local.  But usrmerge
+does nothing to help those.
+For modern programs everything tends to be in /usr[/local] anyway; for
+older programs the compatibility arrangements are already in place.
+2. Solaris compatibility
+Well, this is a real argument.  But, seriously, do we care ?
+3. "Maintaining the /usr split requires non-trivial project-specific
+handling in the upstream build system".
+I am not sure exactly what this point is.  AFAICT it is simply
+complaining that if your package wants to ship files in / rather than
+/usr, you need to do something in your *.install files or whatever.
+This is true.  But it is not an argument in favour of making /bin a
+symlink to /usr/bin.
+Now that we mount /usr in the initramfs this can often be dispensed
+with, along the lines of Adam's "plan B".  This can be done on a
+package-by-package basis as the maintainer considers that the costs of
+maintaining things in /bin becomes too high.  A maintainer can also
+leave behind compatibility symlinks (the set of which is of course
+closed).
+4. "Improved compatibility with current upstream development"
+I can't even figure out what this means.  Upstream programs that want
+to ship everything in /usr are not a problem.
+Ian.

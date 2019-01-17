@@ -1,0 +1,46 @@
+To : Debian Developers <debian-devel@lists.debian.org>
+Subject : Re: lintian: shlib-read-write-env
+From : Christian Seiler <christian@iwakd.de>
+Date : Tue, 31 Jan 2017 14:23:40 +0100
+Message-id : b942385e-47e5-5fc5-4372-a7edf478571a@iwakd.de
+In-reply-to : <[🔎] CA+7wUsynDa8BAKsY-5g5cDqDHKujUZ0JhKBtsZRTPVvr4T6mgw@mail.gmail.com>
+References : <[🔎] CA+7wUsynDa8BAKsY-5g5cDqDHKujUZ0JhKBtsZRTPVvr4T6mgw@mail.gmail.com>
+
+
+On 01/31/2017 11:15 AM, Mathieu Malaterre wrote:
+> I'd like to discuss addition of a new lintian checks for
+> getenv/setenv/putenv used in shared libraries.
+Why getenv() though? It just reads the environment.
+>From what you link yourself:
+| The getenv and secure_getenv functions can be safely used in
+| multi-threaded programs.
+Furthermore:
+> Modifications of environment variables are not allowed in
+> multi-threaded programs.
+Yes. However, just because a library imports a symbol doesn't mean
+it uses it in a multithreaded context. (What if a specific routine
+in the library uses setenv(), but that routine is clearly marked
+as not to be used in an MT-context in the library's docs? And the
+rest of the library is safe?)
+Case in point: [1]
+readelf -sW /usr/lib/x86_64-linux-gnu/libpython3.5m.so | grep putenv
+   205: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND putenv@GLIBC_2.2.5 (2)
+So basically you have the problem that you can't really be certain
+that this is bad just based on the symbol being imported, but if
+the library does do it improperly, it's really, really bad. So
+from the severity you'd at least want a lintian warning, but
+OTOH I don't think it makes sense to have tons of maintainers of
+perfectly fine libraries override this tag.
+I think a check like this would be great, same as e.g. a check
+that libraries properly use O_CLOEXEC for fds, but that's also
+very, very difficult to get right as a check. [2]
+Regards,
+Christian
+[1] Yeah, I know, Python is not great with threads due to the GIL,
+    but it _is_ thread-safe.
+[2] Especially since code could have runtime fallbacks for older
+    kernels that didn't yet have dup3, accept4 or similar. And
+    you'd basically need to do static analysis. And the library
+    could provide a function where the caller explicitly requests
+    an fd without CLOEXEC, especially if the library wraps open()
+    in some way.

@@ -1,0 +1,59 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Feedback on 3.0 source format problems
+From : Vincent Bernat <bernat@debian.org>
+Date : Mon, 02 Jan 2017 11:04:18 +0100
+Message-id : m34m1hsrq5.fsf@luffy.cx
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170102094541.uka57l4t543ibhok@x> (Josh Triplett's message of	"Mon, 2 Jan 2017 01:45:44 -0800")
+References : <[🔎] 20170102094541.uka57l4t543ibhok@x>
+
+
+❦  2 janvier 2017 01:45 -0800, Josh Triplett <josh@joshtriplett.org> :
+>> > I don't want the source format to care about details like those.
+>> > If people want to use quilt to manage a patch series within their
+>> > packages, they can do so, but the source format shouldn't care
+>> > about that.  The source format should not attempt to specify or
+>> > interact in any way with patching or version control.
+>>
+>> For me, this is a great improvement over the previous format with
+>> several different patching systems (quilt, dpatch, nothing,
+>> custom). Now, most packages are using quilt, one less thing to
+>> understand.
+>>
+>> IMO, we still have too much diversity in how we handle version control
+>> for packages.
+>
+> "Using" quilt by stuffing the former contents of .diff.gz into
+> debian/patches/debian-changes doesn't seem like an improvement; it just
+> adds complexity, and opens the possibility of someone adding other
+> changes via quilt, rather than as a patch suitable for direct "git
+> am".
+This is still far less possibilities than what what was previously
+allowed by the previous format. Since this new format, many packages now
+have distinct patches. There is also DEP-3 that should help.
+> Personally, when I want to patch a random package, I run "debcheckout
+> package-name", make changes, commit them, format-patch, and mail that to
+> the BTS.  If the package doesn't have an appropriate Vcs field for
+> debcheckout to read, I instead run "apt source package-name",
+> "cp package-name-version{,.orig}", edit,
+> "diff -Naur package-name-version{.orig,}", and then submit the
+> result.  Either way, if someone wants to manage their patches in quilt
+> or similar, they can take the resulting patch and insert it into
+> debian/patches/ easily enough.
+Your debcheckout assumes that the VCS is git. Moreover, it assumes that
+the patch management system is in an "applied" state for the Debian
+branch. And if you want to test your change, you may be in additional
+pain. Is the package using plain quilt? Is it using some esoteric patch
+management system like "git-dpm"?  Does the source from debcheckout
+includes the upstream branch or do you have to grab the tarball from
+somewhere else? In this case, how do you make your patch?
+Your second method assumes that existing patches are already applied
+(which is the case with 3.0 (quilt)).
+My point is just that we have too many ways to represent a source
+package and its modifications. 3.0 (quilt) is definitely an
+improvement. Making everybody uses the same git workflow (like gbp pq)
+would be better IMO, but I understand many will object.
+-- 
+Use statement labels that mean something.
+            - The Elements of Programming Style (Kernighan & Plauger)
+signature.asc

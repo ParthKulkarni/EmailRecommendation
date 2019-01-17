@@ -1,0 +1,123 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#903815: ITP: pw -- A simple command-line password manager
+From : Holger Levsen <holger@layer-acht.org>
+Date : Mon, 16 Jul 2018 12:16:04 +0000
+Message-id : 20180716121604.5i3hrhbh5kmz2kut@layer-acht.org
+In-reply-to : <[🔎] aa2d4d3d-41d2-5399-225b-f492be2d2c1c@t-online.de>
+References : <[🔎] 20180715084224.5kzlh4mfiy7z4qzc@dashamir> <[🔎] ac0827e2-5469-a1c9-da89-b4ebaf9e458d@debian.org> <[🔎] CAMucfLwG=K==qDgv+Rt56LHAFjyW+J=sfqzE8nv7QHx6guvRRg@mail.gmail.com> <[🔎] aa2d4d3d-41d2-5399-225b-f492be2d2c1c@t-online.de>
+
+
+On Sun, Jul 15, 2018 at 12:41:36PM +0200, Carsten Schoenert wrote:
+> Hmm, do you have tried to validate your shell code?
+> https://www.shellcheck.net/
+> I just pasted
+> https://raw.githubusercontent.com/dashohoxha/pw/master/src/pw.sh into
+> and got quite a lot of problematic remarks.
+I've also done this now and must say/add "ouch":
+$ sudo apt install shellcheck
+$ curl -s https://raw.githubusercontent.com/dashohoxha/pw/master/src/pw.sh | shellcheck -
+In - line 26:
+        $GPG --symmetric $opts --cipher-algo=AES256 \
+                         ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 31:
+        $GPG --encrypt $opts --use-agent --no-encrypt-to \
+                       ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 32:
+            $recipients "$archive"
+            ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 39:
+        $GPG $opts --passphrase-fd 0 "$archive.gpg" <<< "$PASSPHRASE"
+             ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 41:
+        $GPG --decrypt $opts --use-agent --output="$archive" "$archive.gpg"
+                       ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 71:
+    make_workdir
+    ^-- SC2119: Use make_workdir "$@" if function's $1 should mean script's $1.
+In - line 91:
+    make_workdir
+    ^-- SC2119: Use make_workdir "$@" if function's $1 should mean script's $1.
+In - line 144:
+    local before="$(xclip -o -selection "$X_SELECTION" 2>/dev/null | base64)"
+          ^-- SC2155: Declare and assign separately to avoid masking return values.
+In - line 149:
+        local now="$(xclip -o -selection "$X_SELECTION" | base64)"
+              ^-- SC2155: Declare and assign separately to avoid masking return values.
+In - line 166:
+make_workdir() {
+^-- SC2120: make_workdir references arguments, but none are ever passed.
+In - line 189:
+            find "$WORKDIR" -type f -exec $SHRED {} +
+                                          ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 200:
+[[ -f "$platform_file" ]] && source "$platform_file"
+                             ^-- SC1090: Can't follow non-constant source. Use a directive to specify location.
+In - line 346:
+        local pass="$(cat "$WORKDIR/$path" | head -n 1)"
+              ^-- SC2155: Declare and assign separately to avoid masking return values.
+                          ^-- SC2002: Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+In - line 569:
+    GPG_KEYS="$@"
+             ^-- SC2124: Assigning an array to a string! Assign as array, or use * instead of @ to concatenate.
+In - line 584:
+    $GPG $GPG_OPTS --gen-key
+         ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 606:
+        | while read pwfile
+                ^-- SC2162: read without -r will mangle backslashes.
+In - line 624:
+[[ -f "$customize_file" ]] && source "$customize_file"
+                              ^-- SC1090: Can't follow non-constant source. Use a directive to specify location.
+In - line 647:
+        *)                       try_ext_cmd $cmd "$@" ;;
+                                             ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 659:
+        read -e -p 'pw> ' command options
+        ^-- SC2162: read without -r will mangle backslashes.
+In - line 665:
+            *)   run_cmd $command $options ;;
+                         ^-- SC2086: Double quote to prevent globbing and word splitting.
+                                  ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 684:
+    sleep $TIMEOUT
+          ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 698:
+        source "$PW_DIR/cmd_$cmd.sh"
+        ^-- SC1090: Can't follow non-constant source. Use a directive to specify location.
+In - line 699:
+        debug running: cmd_$cmd "$@"
+                           ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 700:
+        cmd_$cmd "$@"
+            ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 707:
+        source "$LIBDIR/ext/$PLATFORM/cmd_$cmd.sh"
+        ^-- SC1090: Can't follow non-constant source. Use a directive to specify location.
+In - line 708:
+        debug running: cmd_$cmd "$@"
+                           ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 709:
+        cmd_$cmd "$@"
+            ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 716:
+        source "$LIBDIR/ext/cmd_$cmd.sh"
+        ^-- SC1090: Can't follow non-constant source. Use a directive to specify location.
+In - line 717:
+        debug running: cmd_$cmd "$@"
+                           ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 718:
+        cmd_$cmd "$@"
+            ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 723:
+    cmd_get $cmd
+            ^-- SC2086: Double quote to prevent globbing and word splitting.
+In - line 753:
+    source "$config_file"
+    ^-- SC1090: Can't follow non-constant source. Use a directive to specify location.
+In - line 781:
+    [[ -f "$ARCHIVE.gpg.keys" ]] &&  source "$ARCHIVE.gpg.keys"    # get GPG_KEYS
+                                     ^-- SC1090: Can't follow non-constant source. Use a directive to specify location.
+-- 
+cheers,
+	Holger
+signature.asc

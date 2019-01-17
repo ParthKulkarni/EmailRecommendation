@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Re: allowed uses of non-baseline CPU extensions
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Mon, 23 Oct 2017 19:29:32 -0700
+Message-id : 20171024022928.rxs57jfteb46o725@x
+In-reply-to : <[🔎] d2b7f54d-5225-acf5-8ef6-f4e42a6e7af7@debian.org>
+
+
+Philipp Kern wrote:
+> I think that's a very important observation. I don't think you can
+> necessarily conclude that the system where the package is initially
+> installed is the system were the code is executed.
+>
+> In many kinds of image-based environments the machines the image is
+> shipped to have very likely a different instruction capability than the
+> machine where the image is built on.
+>
+> You argued in #873733[1] that you'd rather see the package installation
+> fail. I see the appeal of that, especially to alert the admin. But there
+> needs to be some kind of switch to flip to ignore these. Right now it
+> seems that switch is IGNORE_ISA in the environment. But given the
+> attempts to get a cleaner environment for dpkg, I'm not sure that's the
+> best file. I.e. it'd be better to also have a flag file.
+As with others in this thread, I'd prefer to have apt understand the
+concept of architecture variations and instruction set features, as a
+variation on multiarch. (apt could potentially have a command-line
+option to override that and install a package onto a system that didn't
+understand the instruction set features, but that would potentially
+require delaying the execution of any code from the package, which could
+include maintainer scripts, until runtime, much like debootstrap's cross
+mode.)
+> As a side note I'm also amazed that there's literally a uuencoded blob
+> in the preinst that contains binary code that is unpacked and executed,
+> just like any malware would do. :)
+You can, in fact, simply ship a binary preinst.
+~$ file /var/lib/dpkg/info/bash.preinst
+/var/lib/dpkg/info/bash.preinst: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32, BuildID[sha1]=09642c1eb0869e8a9c075d0e8109f7ef1f62b320, with debug_info, not stripped
+- Josh Triplett

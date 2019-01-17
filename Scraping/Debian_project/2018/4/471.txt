@@ -1,0 +1,68 @@
+To : debian-devel@lists.debian.org
+Subject : Comma in Maintainer field (Was: problems in gjots2 and Debian)
+From : Andreas Tille <andreas@an3as.eu>
+Date : Thu, 19 Apr 2018 08:37:07 +0200
+Message-id : 20180419063706.iw5dipf62yqcz3jk@an3as.eu
+In-reply-to : <[🔎] 20180418165218.GI1711@belkar.wrar.name>
+References : <[🔎] 0d0ed463-dfb2-ace0-5fd9-772672ba8d9c@rolf.leggewie.biz> <[🔎] 2369130.YcAjvQKqO2@merkaba> <[🔎] 20180418095510.GF1711@belkar.wrar.name> <[🔎] 5AD75A21.8080502@fastmail.fm> <[🔎] 23255.23971.253689.782302@chiark.greenend.org.uk> <[🔎] 20180418165218.GI1711@belkar.wrar.name>
+
+
+On Wed, Apr 18, 2018 at 09:52:18PM +0500, Andrey Rahmatullin wrote:
+> On Wed, Apr 18, 2018 at 04:00:51PM +0100, Ian Jackson wrote:
+> > Instead, tools grew to tolerate commas here rather than treat them as
+> > separators (because they would mishandle the erroneous packages).
+> Is this the main problem with fixing the Policy? Does someone have a plan
+> with this?
+I checked UDD for real cases:
+udd=# select distinct maintainer from packages where maintainer like '%,%' order by maintainer;
+                                                  maintainer                                                  
+--------------------------------------------------------------------------------------------------------------
+ "Adam C. Powell, IV" <hazelsct@debian.org>
+ Adam C. Powell, IV <hazelsct@debian.org>
+ Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+ John H. Robinson, IV <jaqque@debian.org>
+ "Natural Language Processing, Japanese" <pkg-nlp-ja-devel@lists.alioth.debian.org>
+ Natural Language Processing, Japanese <pkg-nlp-ja-devel@lists.alioth.debian.org>
+ Rogério Brito <rbrito@ime.usp.br>,                                                                          +
+  Holger Levsen <holger@debian.org>
+ Thomas Bushnell, BSG <tb@debian.org>
+ TransNexus, Inc. <support@transnexus.com>
+(9 rows)
+>From my understanding the names in quotes should be parsed correctly, right?
+This leaves 7 maintainer names
+udd=# select distinct maintainer from packages where maintainer like '%,%' and maintainer not like '"%' order by maintainer;
+                                                  maintainer                                                   
+---------------------------------------------------------------------------------------------------------------
+ Adam C. Powell, IV <hazelsct@debian.org>
+ Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+ John H. Robinson, IV <jaqque@debian.org>
+ Natural Language Processing, Japanese <pkg-nlp-ja-devel@lists.alioth.debian.org>
+ Rogério Brito <rbrito@ime.usp.br>,                                                                          +
+  Holger Levsen <holger@debian.org>
+ Thomas Bushnell, BSG <tb@debian.org>
+ TransNexus, Inc. <support@transnexus.com>
+(7 rows)
+Out of these there are clearly two bugs that violate our current
+udd=# select distinct package, maintainer from packages where maintainer like '%>%,%'order by maintainer;
+     package      |                                                  maintainer                                                   
+------------------+---------------------------------------------------------------------------------------------------------------
+ gir1.0-gdata-0.0 | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+ libgdata7        | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+ libgdata-common  | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+ libgdata-dev     | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+ libgdata-doc     | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+ youtube-dl       | Rogério Brito <rbrito@ime.usp.br>,                                                                          +
+                  |  Holger Levsen <holger@debian.org>
+(6 rows)
+I think we should start filing bug reports against packages 
+that do not match our current understanding of that field
+(and lintian should throw an error about this).
+Currently that definitely fits the last query but if we
+intend to enhance the maintainer field to some later point
+in time we should also ask the other 5 maintainers above
+to add quotes around their names.
+What do you think?
+Kind regards
+       Andreas.
+-- 
+http://fam-tille.de

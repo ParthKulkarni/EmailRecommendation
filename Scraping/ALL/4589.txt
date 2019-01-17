@@ -1,0 +1,72 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#859386: busybox sh: bogus home dir handling in cd and tilde expansion
+From : Paul Wise <pabs@debian.org>
+Date : Mon, 03 Apr 2017 10:20:16 +0800
+Message-id : 1491186016.27984.17.camel@debian.org
+Reply-to : Paul Wise <pabs@debian.org>, 859386@bugs.debian.org
+
+
+Package: busybox
+Version: 1:1.22.0-19+b2
+Severity: normal
+Usertags: home
+The HOME environment variable does not have to be present, programs
+must fall back to the value in the passwd file. busybox sh does not do
+this in the following two places.
+ * When running cd without any argument
+ * When expanding tilde (~) characters
+Interestingly, the prompt does work even if HOME is unset.
+The busybox documentation doesn't specify any behaviour for these.
+POSIX leaves both of these as implementation defined so it would be
+good if busybox sh falls back on the user's home dir if HOME is unset.
+http://pubs.opengroup.org/onlinepubs/9699919799/utilities/cd.html
+http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_01
+pabs@chianamo ~ $ busybox sh
+BusyBox v1.22.1 (Debian 1:1.22.0-19+b2) built-in shell (ash)
+Enter 'help' for a list of built-in commands.
+~ $ echo ~
+/home/pabs
+~ $ unset HOME
+~ $ echo ~
+~
+~ $ exit
+pabs@chianamo ~ $ busybox sh
+BusyBox v1.22.1 (Debian 1:1.22.0-19+b2) built-in shell (ash)
+Enter 'help' for a list of built-in commands.
+~ $ pwd
+/home/pabs
+~ $ mkdir tmp
+~ $ cd tmp
+~/tmp $ pwd
+/home/pabs/tmp
+~/tmp $ cd
+~ $ pwd
+/home/pabs
+~ $ unset HOME
+~ $ pwd
+/home/pabs
+~ $ cd tmp
+~/tmp $ pwd
+/home/pabs/tmp
+~/tmp $ cd
+~/tmp $ pwd
+/home/pabs/tmp
+-- System Information:
+Debian Release: 9.0
+  APT prefers testing-debug
+  APT policy: (900, 'testing-debug'), (900, 'testing'), (860, 'testing-proposed-updates'), (800, 'unstable-debug'), (800, 'unstable'), (790, 'buildd-unstable'), (700, 'experimental-debug'), (700, 'experimental'), (690, 'buildd-experimental')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_AU.utf8, LC_CTYPE=en_AU.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages busybox depends on:
+ii  libc6  2.24-9
+busybox recommends no packages.
+busybox suggests no packages.
+-- no debconf information
+-- 
+bye,
+pabs
+https://wiki.debian.org/PaulWise
+signature.asc

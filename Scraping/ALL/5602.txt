@@ -1,0 +1,43 @@
+To : 900317@bugs.debian.org
+Subject : Bug#900317: debian-installer: black screen and no answer from X server
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 7 Jun 2018 13:25:50 +0200
+Message-id : 20180607112550.inwsu2wvno3dt267@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 900317@bugs.debian.org
+In-reply-to : <152755947380.13898.5462619354123405841.reportbug@armor.home>
+References : <152755947380.13898.5462619354123405841.reportbug@armor.home> <152755947380.13898.5462619354123405841.reportbug@armor.home>
+
+
+Control: tag -1 pending
+Hi,
+Cyril Brulebois <kibi@debian.org> (2018-05-29):
+> Going back to the previous linux ABI shows the same behaviour (so both
+> 4.16.0-1 and 4.16.0-2 are affected), so I suppose it could be due to the
+> new X server. It seems to start at least, since I'm briefly seeing its
+> startup logs.
+> 
+> Interested people could look at images from the last few days and check
+> the differences in build logs for further suspects:
+>   https://d-i.debian.org/daily-images/amd64/
+> 
+> For this bug:
+>  - OK = ctrl-alt-fN can switch ttys. You'll likely see messages about
+>         “random” things (see #898468).
+>  - KO = ctrl-alt-fN doesn't seem to have any effects.
+Using a serial console I was able to get a shell, and to try and start
+Xorg manually, which resulted in a symbol error:
+| Xorg: symbol lookup error: /usr/lib/xorg/modules/drivers/fbdev_drv.so: undefined symbol: shadowUpdatePackedWeak
+Michel Dänzer kindly pointed to this bug report against the fbdev
+driver, which is fixed upstream in 0.5.0:
+  https://bugs.debian.org/900613
+I've merged the new upstream release locally and rebuilt d-i against it,
+and I've verified the bug fix is OK; meanwhile, Julien uploaded the new
+upstream release:
+  https://tracker.debian.org/news/963445/accepted-xserver-xorg-video-fbdev-1050-1-source-into-unstable/
+Keeping this bug report open for the time being, until the fbdev driver
+migrates to testing, so that I don't try to upload d-i too soon…
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

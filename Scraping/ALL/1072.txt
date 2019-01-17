@@ -1,0 +1,54 @@
+To : submit@bugs.debian.org
+Subject : Bug#864260: Missing kernel in debian-installer sd-card images for armhf (stretch)
+From : Diego Roversi <diegor@tiscali.it>
+Date : Mon, 5 Jun 2017 21:51:59 +0200
+Message-id : 20170605215159.d06d9afb2f75a763fa82760a@tiscali.it
+Reply-to : Diego Roversi <diegor@tiscali.it>, 864260@bugs.debian.org
+
+
+Package: debian-installer
+Version: 20170525
+The sd-card images of debian-installer for arm-hf don't have a kernel image inside, and they can't boot from sd.
+To reproduce the problem:
+#wget http://ftp.uk.debian.org/debian/dists/stretch/main/installer-armhf/current/images/netboot/SD-card-images/firmware.A10-OLinuXino-Lime.img.gz
+#wget http://ftp.uk.debian.org/debian/dists/stretch/main/installer-armhf/current/images/netboot/SD-card-images/partition.img.gz
+#zcat firmware.A10-OLinuXino-Lime.img.gz partition.img.gz > image_a10.img
+# ls -lrt
+total 63628
+-rw-r--r-- 1 root root 23891122 May 25 12:21 partition.img.gz
+-rw-r--r-- 1 root root   224112 May 25 12:21 firmware.A10-OLinuXino-Lime.img.gz
+-rw-r--r-- 1 root root 40960000 Jun  4 21:57 image_a10.img
+# losetup /dev/loop0 image_a10.img 
+# fdisk -lu /dev/loop0
+Disk /dev/loop0: 39.1 MiB, 40960000 bytes, 80000 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0x0eded707
+Device       Boot Start   End Sectors  Size Id Type
+/dev/loop0p1 *     2048 79999   77952 38.1M  c W95 FAT32 (LBA)
+# partprobe /dev/loop0
+# mount /dev/loop0p1 /mnt/card
+# ls -l /mnt/card/
+total 20732
+-rwxr-xr-x 1 root root     1575 May 25 10:50 boot.scr
+drwxr-xr-x 2 root root    41984 May 25 10:50 dtbs
+-rwxr-xr-x 1 root root 21185369 May 25 10:50 initrd.gz
+The boot from this sd image give this error:
+Scanning mmc 0:1...                                               
+Found U-Boot script /boot.scr                                     
+reading /boot.scr                                                 
+1575 bytes read in 25 ms (61.5 KiB/s)                             
+## Executing script at 43100000                                   
+Mainline u-boot / new-style environment detected.                 
+reading vmlinuz                                                   
+3701008 bytes read in 391 ms (9 MiB/s)                            
+reading dtbs/sun4i-a10-olinuxino-lime.dtb                         
+27941 bytes read in 621 ms (43 KiB/s)                             
+reading initrd.gz                                                 
+** Unable to read file initrd.gz **                               
+SCRIPT FAILED: continuing...            
+I've also tried to download the image from http://d-i.debian.org/daily-images/armhf/daily/, but initrd.img is missing instead of vmlinuz.
+-- 
+Diego Roversi <diegor@tiscali.it>

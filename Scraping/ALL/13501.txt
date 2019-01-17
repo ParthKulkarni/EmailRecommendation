@@ -1,0 +1,50 @@
+To : Adam Borowski <kilobyte@angband.pl>,    Simon McVittie <smcv@debian.org>
+Subject : Re: allowed uses of non-baseline CPU extensions [and 1 more messages]
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Thu, 5 Oct 2017 13:40:38 +0100
+Message-id : 22998.10310.496316.963165@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20171005081205.ajqukg2xwuv6rt4v@perpetual.pseudorandom.co.uk>,	<[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl>
+References : <[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl>	<[🔎] 20171005081205.ajqukg2xwuv6rt4v@perpetual.pseudorandom.co.uk>
+
+
+Simon McVittie writes ("Re: allowed uses of non-baseline CPU extensions"):
+> I think this is perhaps a reasonable compromise: consider non-baseline
+> CPU requirements to be a bug,
+I think this is the right approach.  It neatly solves the problem of
+asking the maintainer to do the porting and testing work.
+Adam Borowski writes ("allowed uses of non-baseline CPU extensions"):
+> The above cases, at the first glance, seem to provide clear rules.  Too bad,
+> in all but the first case, there's no clear boundary.  Especially "not
+> supported by upstream": how much work can be expected from the maintainer?
+Applying Simon's answer to your example cases:
+> So, let's list packages that want non-baseline:
+>
+> * multiple variants: package src:x provides x-unoptimized, x-sse3 and
+>   x-avx1048576.  Clearly legitimate and a good idea.
+Assuming the dependency arrangements work as intended, there is no bug
+here because the package functions correctly on baseline systems.
+> * useless on older CPUs: pcsx2 can't emulate its game console on hardware
+>   older than said console; scientific number-crunching software is pointless
+>   on a Pentium2.  Trying to provide baseline builds would be a pure waste
+>   of time of the packager, and archive space.
+If a user writes some kind of massive emulation patch that implements
+the missing functionality with a JIT, then we should consider that
+patch on its merits.  (We might well say "err, can you package that as
+a separate package and we'll use it conditionally".  And of course
+we'd expect to say "you did talk to upstream about this right?" if the
+answer wasn't obviously.)  This is likely to be hypothetical...
+> * not supported by upstream: chromium:i386 on !sse2, rust:armhf on !neon
+>   (now fixed).  Not a good thing but a maintainer often lacks resources
+>   to implement this h{im,er}self.
+Again, if a patch is available and not too disruptive we should apply
+it.  How hypothetical this is, and indeed the quality of the patch,
+will vary from case to case.  Bad patches should not be applied,
+obviously.
+> Then there is:
+> * generic variants exist but someone decided that using fancy extensions
+>   is "better" (it might even indeed be better on new CPUs, but...)
+If a user submits a patch to turn off the fancy extensions it should
+be applied.
+The important point is that "makes it run rather slower, on the much
+more common newer hardware" is not a good reason to reject the patch.
+Ian.

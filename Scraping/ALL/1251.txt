@@ -1,0 +1,87 @@
+To : submit@bugs.debian.org
+Subject : Bug#866328: user-setup: allow to preseed the user shell
+From : Luca Boccassi <luca.boccassi@gmail.com>
+Date : Wed, 28 Jun 2017 21:46:26 +0100
+Message-id : 1498682786.5956.4.camel@gmail.com
+Reply-to : Luca Boccassi <luca.boccassi@gmail.com>, 866328@bugs.debian.org
+
+
+Package: user-setup
+Tags: patch
+Severity: wishlist
+Dear Maintainer,
+It would be useful to allow preseeding the user shell.
+The use case we have at work is building live Debian images and
+shipping them to users, where we need to have something other than bash
+as the live user shell.
+This could be achieved with hacky posthook scripts that sed
+/etc/passwd, but it just feels wrong :-)
+Attached is a very small and simple patch to add a passwd/user-shell
+configurable option, modeled after passwd/user-uid.
+Thank you!
+Kind regards,
+Luca Boccassi
+From 80480267a470793b77c336fa49c24a864e647bea Mon Sep 17 00:00:00 2001
+From: Luca Boccassi <luca.boccassi@gmail.com>
+Date: Wed, 28 Jun 2017 19:21:10 +0100
+Subject: [PATCH] Add passwd/user-shell to preseed the user shell
+In some cases it is useful to be able to configure the user shell via
+the installer. Especially when building live-images to deliver to users.
+Add a new optional db_get passwd/user-shell and pass it to
+adduser/useradd --shell/-s if it is set.
+---
+ debian/user-setup-udeb.templates |  5 +++++
+ user-setup-apply                 | 14 ++++++++++++--
+ 2 files changed, 17 insertions(+), 2 deletions(-)
+diff --git a/debian/user-setup-udeb.templates b/debian/user-setup-udeb.templates
+index 45e16b4..64731de 100644
+--- a/debian/user-setup-udeb.templates
++++ b/debian/user-setup-udeb.templates
+@@ -16,6 +16,11 @@ Template: passwd/user-uid
+ Type: string
+ Description: for internal use only
+ 
++# Allow preseeding the shell configured for the first created user
++Template: passwd/user-shell
++Type: string
++Description: for internal use only
++
+ # Allow preseeding the groups to which the first created user is added
+ Template: passwd/user-default-groups
+ Type: string
+diff --git a/user-setup-apply b/user-setup-apply
+index f24ece2..9dfcf55 100755
+--- a/user-setup-apply
++++ b/user-setup-apply
+@@ -109,6 +109,16 @@ if [ "$RET" = true ] && ! is_system_user; then
+ 		UIDOPT=
+ 	fi
+ 
++	if db_get passwd/user-shell && [ "$RET" ]; then
++		if [ -x $ROOT/usr/sbin/adduser ]; then
++			SHELLOPT="--shell $RET"
++		else
++			SHELLOPT="-s $RET"
++		fi
++	else
++		SHELLOPT=
++	fi
++
+ 	# Add the user to the database, using adduser in noninteractive
+ 	# mode.
+ 	db_get passwd/username
+@@ -121,9 +131,9 @@ if [ "$RET" = true ] && ! is_system_user; then
+ 	fi
+ 
+ 	if [ -x $ROOT/usr/sbin/adduser ]; then
+-		$log $chroot $ROOT adduser --disabled-password --gecos "$RET" $UIDOPT "$USER" >/dev/null || true
++		$log $chroot $ROOT adduser --disabled-password --gecos "$RET" $UIDOPT $SHELLOPT "$USER" >/dev/null || true
+ 	else
+-		$log $chroot $ROOT useradd -c "$RET" -m "$USER" $UIDOPT >/dev/null || true
++		$log $chroot $ROOT useradd -c "$RET" -m "$USER" $UIDOPT $SHELLOPT >/dev/null || true
+ 	fi
+ 
+ 	# Clear the user password from the database.
+-- 
+2.11.0
+signature.asc

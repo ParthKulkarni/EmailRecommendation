@@ -1,0 +1,49 @@
+To : Dashamir Hoxha <dashohoxha@gmail.com>, holger@layer-acht.org
+Subject : Re: Bug#903815: ITP: pw -- A simple command-line password manager
+From : Philipp Kern <pkern@debian.org>
+Date : Mon, 16 Jul 2018 15:03:17 +0200
+Message-id : cecac198-67b9-0c6e-e8a0-f10b0a118a17@debian.org
+In-reply-to : <[🔎] CAMucfLyena08MnCF7jX=RsNoqKpxrYDRjnjWo=v2nEhfg1-E8Q@mail.gmail.com>
+References : <[🔎] 20180715084224.5kzlh4mfiy7z4qzc@dashamir> <[🔎] ac0827e2-5469-a1c9-da89-b4ebaf9e458d@debian.org> <[🔎] CAMucfLwG=K==qDgv+Rt56LHAFjyW+J=sfqzE8nv7QHx6guvRRg@mail.gmail.com> <152884dd-2c07-c26b-1011-f503e5d8e7d4@antipoul.fr> <[🔎] CAMucfLzKGarBk=-=CQXYy+xpZpxyYJR=tYiVFC+mZea0Kq4VRQ@mail.gmail.com> <[🔎] 20180716103442.fzkxkzgrvacwvfhk@layer-acht.org> <[🔎] CAMucfLyena08MnCF7jX=RsNoqKpxrYDRjnjWo=v2nEhfg1-E8Q@mail.gmail.com>
+
+
+On 16.07.2018 14:24, Dashamir Hoxha wrote:
+> I have the same answer that I gave to Philipp. He has not looked close
+> enough to the code, and has not tried to follow its logic.
+> For example, error *messages* of `tar` are suppressed, not the errors
+> themselves. The result of the command is checked afterwards.
+> Etc. we can discuss them later.
+As much as I would have liked to not reply, but alas, another ad hominem.
+The result of tar is not checked, no. The result of gpg is checked. I
+think the case I'm worried about is a race on ~/.pw/pw.tgz where between
+archive_unlock and archive_lock pw.tgz is set - say - 0400 and tar fails
+to write.
+That said, because you are so much into proofs:
+> pkern@vsrv ~/pw/src % ./pw.sh
+> Passphrase for archive '/home/pkern/.pw/pw.tgz':
+> Commands:
+>     gen, set, ls, get, show, edit, find, grep, rm, mv, cp, log, help
+> Type q to quit, p to change the passphrase.
+> pw> ls
+> bar
+> foo
+> pw> q
+> pkern@vsrv ~/pw/src % cat tar
+> #!/bin/sh
+> exit 1
+> pkern@vsrv ~/pw/src % PATH=.:$PATH ./pw.sh
+> Passphrase for archive '/home/pkern/.pw/pw.tgz':
+> Commands:
+>     gen, set, ls, get, show, edit, find, grep, rm, mv, cp, log, help
+> Type q to quit, p to change the passphrase.
+> pw> ls
+> pw> gen foo
+> ./pw.sh: line 145: xclip: command not found
+> ./pw.sh: line 145: echo: write error: Broken pipe
+> Error: Could not copy data to the clipboard
+> gpg: can't open '/home/pkern/.pw/pw.tgz': No such file or directory
+> gpg: symmetric encryption of '/home/pkern/.pw/pw.tgz' failed: No such file or directory
+But as soon as tar writes incomplete output (which it totally can, it's
+a Tape ARchiver) you have silent corruption.
+Kind regards
+Philipp Kern

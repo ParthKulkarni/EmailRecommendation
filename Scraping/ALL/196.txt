@@ -1,0 +1,57 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#880195: apache2: Trying to use ws:// in proxy results in  "No protocol handler was valid for the URL /ws .... "
+From : Libor Klepáč <libor.klepac@bcom.cz>
+Date : Mon, 30 Oct 2017 14:50:25 +0100
+Message-id : 150937142504.7069.6972127767786094160.reportbug@libor-nb.bcom.local
+Reply-to : Libor Klepáč <libor.klepac@bcom.cz>, 880195@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3+deb9u3
+Severity: normal
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+Dear Maintainer,
+i'm trying to enable websocket proxy for customer on web server running Stretch.
+After enabling module
+# a2enmod proxy_wstunnel 
+Considering dependency proxy for proxy_wstunnel:
+Module proxy already enabled
+Enabling module proxy_wstunnel.
+To activate the new configuration, you need to run:
+  systemctl restart apache2
+and restarting apache, i try to use this snippet in vhost configuration
+<IfModule mod_proxy_wstunnel.c>
+        ProxyPass "/ws" "ws://127.0.0.1:9000/"
+        ProxyPassReverse "/ws" "ws://127.0.0.1:9000/"
+        ProxyPass "/wss" "ws://127.0.0.1:9000/"
+        ProxyPassReverse "/wss" "ws://127.0.0.1:9000/"
+</IfModule>
+it ends with internal server error and log says
+ AH01144: No protocol handler was valid for the URL /ws. If you are using a DSO version of mod_proxy, make sure the proxy submodules are included in the configuration using LoadModule.
+Acording to
+# apache2ctl -M | grep proxy
+ proxy_module (shared)
+ proxy_http_module (shared)
+ proxy_wstunnel_module (shared)
+all modules are loaded.
+This apache runs MPM prefork+itk, I also tried on another host, running same version but with MPM event, to eliminate influence of itk (I know, it cannot be run with mod_http2 for example), with same result.
+Don't know, what to test next
+With regards,
+Libor 
+-----BEGIN PGP SIGNATURE-----
+iQJJBAEBCAAzFiEEPGZVVU37tFmB0TQv8O+MbsKfR44FAln3LiAVHGxpYm9yLmts
+ZXBhY0BiY29tLmN6AAoJEPDvjG7Cn0eO8dYP/0yAJD0qdpJsxsgNA2XPsNRIJV0x
+eNtppVBVkNH29Nvapa+Cq1RheU79rNJhcUHldOb1iNz0u06G0OzmAuRrDk9tR5b8
+yoVtb2N8EDYuyFmr4Nw1MhMVBgNf1tNXIfmMBLF3Ol0DysvtpEQeZMDpm9bkStfg
+oWbq/YLECDNy9xT0IH+Mt8VoD4EiPSHFjB46iZ0Lvjj/ftsG0rJMUayyzCZ/s4Us
+lGy6JYuMtdF53wZuGGFZTt935TblhUfWTEOypeJ/Sm56Zucnd6TXQBGeqh5F1WKk
+Sn9G6w4KSyZNLZb93gkDJVrRBbLZe7HV6IktmIB5egj0k5o5DgnbG+IEr5vqPbid
+7ZbTZz4w5UGJ/y3RC1MDjrTz0wX6taw3TocBQJpq1Ov0VZ9UkSjq3lNgL+oSwV0m
+yWChI2ZNOrx8FTdQJXL7Ok7Yw4e6fYySgcyl7ahg+RUEZqDAvU5xxvVP74cFYWxB
+uIzXZtKLBKI5X0HIDAXJ+pYmkCIxuHfBxKFKP2PE/CMw2C0UI+RM838t07tyUfnE
+gV2e9KIG/WOTvGsUiRnmSN6020sE5MzyUSXmLmIeTkZoFpI5E3DXfkijN1nau4kA
+2b3NymnfvqXx/eSd2Iu2zAQAApR7PoNmLwPaZYlYryY7hQqNk45YscQKnq91xM45
+MLYYponhG9jT/W1p
+=GrvM
+-----END PGP SIGNATURE-----

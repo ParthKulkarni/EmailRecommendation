@@ -1,0 +1,244 @@
+To : debian-boot@lists.debian.org
+Subject : added /etc/os-release parsing and changed 40lsb
+From : Andrey Gavrilin <gaal.dev@gmail.com>
+Date : Wed, 14 Nov 2018 15:05:50 +0300
+Message-id : CAK13fG6+oSSTcdq2K4J=7Ue0VQ_HgHdPJ3qVwjc+KUcyvRc8ng@mail.gmail.com
+
+
+Hi.
+I have changed 40lsb script and added a script for /etc/os-release:
+operating system identification
+https://www.freedesktop.org/software/systemd/man/os-release.html
+For /etc/os-release:
+/dev/sda1:Debian GNU/Linux 9 (stretch):debian:linux
+For /etc/lsb-release:
+Before /dev/sda1:Debian GNU/Linux 9 (9):debian:linux
+After /dev/sda1:Debian GNU/Linux 9 (stretch):debian:linux
+40lsb uses DISTRIB_RELEASE instead of DISTRIB_CODENAME
+Test files.
+/etc/os-release:
+PRETTY_NAME="Debian GNU/Linux 9 (stretch)"
+NAME="Debian GNU/Linux"
+VERSION_ID="9"
+VERSION="9 (stretch)"
+ID=debian
+HOME_URL="https://www.debian.org/";
+SUPPORT_URL="https://www.debian.org/support";
+BUG_REPORT_URL="https://bugs.debian.org/";
+/etc/lsb-release:
+DISTRIB_ID=debian
+DISTRIB_RELEASE=9
+DISTRIB_CODENAME=stretch
+DISTRIB_DESCRIPTION="Debian GNU/Linux 9"
+Patch descriptions.
+For 40lsb:
+long = DISTRIB_DESCRIPTION ? DISTRIB_DESCRIPTION : DISTRIB_ID + DISTRIB_RELEASE
+short = DISTRIB_ID
+For 35os-release (there are several possible fields for an extension):
+long = PRETTY_NAME ? PRETTY_NAME : NAME + VERSION
+Patches:
+diff --git a/os-probes/mounted/common/35os-release
+b/os-probes/mounted/common/35os-release
+new file mode 100755
+index 0000000..9e3b5d3
+--- /dev/null
++++ b/os-probes/mounted/common/35os-release
+@@ -0,0 +1,44 @@
++#!/bin/sh
++# Test for Linux distributions
++set -e
++
++. /usr/share/os-prober/common.sh
++
++partition="$1"
++dir="$2"
++type="$3"
++
++os_field () {
++ file="$1"
++ field="$2"
++ grep ^"$field=" "$file" | cut -d = -f 2 | sed 's/^"//' | sed
+'s/"$//' | sed 's/:/ /g'
++}
++
++file="$dir/etc/os-release"
++if [ ! -e "$file" ]; then
++ exit 1
++fi
++
++long=$(os_field "$file" PRETTY_NAME)
++if [ -z "$long" ]; then
++ name=$(os_field "$file" NAME)
++ if [ -z "$name" ]; then
++ exit 1
++ fi
++
++ version=$(os_field "$file" VERSION)
++ if [ -n "$version" ]; then
++ long="$name $version"
++ else
++ long="$name"
++ fi
++fi
++
++short=$(os_field "$file" ID | sed 's/ //g')
++if [ -z "$short" ]; then
++ short="linux"
++fi
++
++label="$(count_next_label "$short")"
++result "$partition:$long:$label:linux"
++exit 0
+diff --git a/os-probes/mounted/common/40lsb b/os-probes/mounted/common/40lsb
+index ce8d4e1..52b5046 100755
+--- a/os-probes/mounted/common/40lsb
++++ b/os-probes/mounted/common/40lsb
+@@ -11,7 +11,7 @@ type="$3"
+ lsb_field () {
+  file="$1"
+  field="$2"
+- grep ^"$field" "$file" | cut -d = -f 2 | sed 's/^"//' | sed 's/"$//'
+| sed 's/:/ /g'
++ grep ^"$field=" "$file" | cut -d = -f 2 | sed 's/^"//' | sed
+'s/"$//' | sed 's/:/ /g'
+ }
+ file="$dir/etc/lsb-release"
+@@ -19,23 +19,24 @@ if [ ! -e "$file" ]; then
+  exit 1
+ fi
+-release=$(lsb_field "$file" DISTRIB_RELEASE)
+-if [ -z "$release" ]; then
+- release=$(lsb_field "$file" DISTRIB_CODENAME)
+-fi
+-description=$(lsb_field "$file" DISTRIB_DESCRIPTION)
+-if [ -z "$description" ]; then
+- description=$(lsb_field "$file" DISTRIB_CODENAME)
+-fi
++long=$(lsb_field "$file" DISTRIB_DESCRIPTION)
++if [ -z "$long" ]; then
++ name=$(lsb_field "$file" DISTRIB_ID)
++ if [ -z "$name" ]; then
++ exit 1
++ fi
+-if [ -n "$description" ]; then
+- if [ -n "$release" ]; then
+- long="$description ($release)"
++ version=$(lsb_field "$file" DISTRIB_RELEASE)
++ if [ -n "$version" ]; then
++ long="$name $version"
+  else
+- long="$description"
++ long="$name"
+  fi
+-else
+- exit 1
++fi
++
++codename=$(lsb_field "$file" DISTRIB_CODENAME)
++if [ -n "$codename" ]; then
++ long="$long ($codename)"
+ fi
+ short=$(lsb_field "$file" DISTRIB_ID | sed 's/ //g')
+With regards, Andrey
+diff --git a/os-probes/mounted/common/35os-release b/os-probes/mounted/common/35os-release
+new file mode 100755
+index 0000000..9e3b5d3
+--- /dev/null
++++ b/os-probes/mounted/common/35os-release
+@@ -0,0 +1,44 @@
++#!/bin/sh
++# Test for Linux distributions
++set -e
++
++. /usr/share/os-prober/common.sh
++
++partition="$1"
++dir="$2"
++type="$3"
++
++os_field () {
++	file="$1"
++	field="$2"
++	grep ^"$field=" "$file" | cut -d = -f 2 | sed 's/^"//' | sed 's/"$//' | sed 's/:/ /g'
++}
++
++file="$dir/etc/os-release"
++if [ ! -e "$file" ]; then
++	exit 1
++fi
++
++long=$(os_field "$file" PRETTY_NAME)
++if [ -z "$long" ]; then
++	name=$(os_field "$file" NAME)
++	if [ -z "$name" ]; then
++		exit 1
++	fi
++
++	version=$(os_field "$file" VERSION)
++	if [ -n "$version" ]; then
++		long="$name $version"
++	else
++		long="$name"
++	fi
++fi
++
++short=$(os_field "$file" ID | sed 's/ //g')
++if [ -z "$short" ]; then
++	short="linux"
++fi
++
++label="$(count_next_label "$short")"
++result "$partition:$long:$label:linux"
++exit 0
+diff --git a/os-probes/mounted/common/40lsb b/os-probes/mounted/common/40lsb
+index ce8d4e1..52b5046 100755
+--- a/os-probes/mounted/common/40lsb
++++ b/os-probes/mounted/common/40lsb
+@@ -11,7 +11,7 @@ type="$3"
+ lsb_field () {
+ 	file="$1"
+ 	field="$2"
+-	grep ^"$field" "$file" | cut -d = -f 2 | sed 's/^"//' | sed 's/"$//' | sed 's/:/ /g'
++	grep ^"$field=" "$file" | cut -d = -f 2 | sed 's/^"//' | sed 's/"$//' | sed 's/:/ /g'
+ }
+ 
+ file="$dir/etc/lsb-release"
+@@ -19,23 +19,24 @@ if [ ! -e "$file" ]; then
+ 	exit 1
+ fi
+ 
+-release=$(lsb_field "$file" DISTRIB_RELEASE)
+-if [ -z "$release" ]; then
+-	release=$(lsb_field "$file" DISTRIB_CODENAME)
+-fi
+-description=$(lsb_field "$file" DISTRIB_DESCRIPTION)
+-if [ -z "$description" ]; then
+-	description=$(lsb_field "$file" DISTRIB_CODENAME)
+-fi
++long=$(lsb_field "$file" DISTRIB_DESCRIPTION)
++if [ -z "$long" ]; then
++	name=$(lsb_field "$file" DISTRIB_ID)
++	if [ -z "$name" ]; then
++		exit 1
++	fi
+ 
+-if [ -n "$description" ]; then
+-	if [ -n "$release" ]; then
+-		long="$description ($release)"
++	version=$(lsb_field "$file" DISTRIB_RELEASE)
++	if [ -n "$version" ]; then
++		long="$name $version"
+ 	else
+-		long="$description"
++		long="$name"
+ 	fi
+-else
+-	exit 1
++fi
++
++codename=$(lsb_field "$file" DISTRIB_CODENAME)
++if [ -n "$codename" ]; then
++	long="$long ($codename)"
+ fi
+ 
+ short=$(lsb_field "$file" DISTRIB_ID | sed 's/ //g')

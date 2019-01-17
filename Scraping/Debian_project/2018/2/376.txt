@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Tollef Fog Heen <tfheen@err.no>
+Date : Sat, 17 Feb 2018 19:22:05 +0100
+Message-id : 87sh9zh3xu.fsf@err.no
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 87sh9za5ai.fsf@hope.eyrie.org> (Russ Allbery's message of "Sat,	17 Feb 2018 09:34:45 -0800")
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com>	<[🔎] 20180216151129.GB18296@home.ouaza.com>	<[🔎] 1518796684.2867.116.camel@debian.org>	<[🔎] e7bb0d56-1333-11e8-9b6a-00163eeb5320@msgid.mathom.us>	<[🔎] 20180216171204.GB4131@feivel> <[🔎] 87vaew939z.fsf@iris.silentflame.com>	<[🔎] 20180216193816.GA3202@feivel> <[🔎] 87eflk8u7q.fsf@iris.silentflame.com>	<[🔎] CAKTje6EpCJ+KBoh9nGW-7nzcs8EeFoAJXUxfb6tC0AJMVKoDiw@mail.gmail.com>	<[🔎] 87sh9za5ai.fsf@hope.eyrie.org>
+
+
+]] Russ Allbery 
+> Paul Wise <pabs@debian.org> writes:
+> 
+> > I think the discussion we are having here is orthogonal to
+> > containers/flatpaks.
+> 
+> > If Debian were to have a repository of containers/flatpaks, then it
+> > should meet Debian standards. We cannot just say "here are some
+> > containers, completely unsupported and might not up to our standards".
+> > To achieve that, I think it would be best to automatically convert it
+> > from Debian binary packages. Also, since we are already doing packaging
+> > work, it makes sense to base any container efforts on that, just like
+> > our cloud efforts have been.
+> 
+> I agree with this.
+> 
+> Putting aside completely missing licenses or completely missing source
+> code (these are sometimes more fixable problems, since those are
+> considered suspect practices even in the upstream communities), the root
+> problem here is vendored dependencies.  Most modern languages, not just
+> Java and Node, are switching to vendored dependencies with some mechanism
+> for freezing the dependencies for a project.  See Rust, Go, and
+> increasingly, Python and Ruby, and I would expect to see the same for any
+> new, popular programming language.
+I think there's at least two types of vendoring you're referring to
+here, and they're substantially different.
+One is how Go currently does (but my understanding is that this is
+changing in newer versions).  Here, the source code of dependencies are
+shipped together with the source code for the application.  This leads
+to trees like
+https://github.com/kubernetes/kubernetes/tree/master/vendor where any
+one of those dependencies might be a released version or tag, or it
+might just be a random git snapshot, and there's not really any way to
+know.
+The other (you refer to this as freezing dependencies) is how
+Node.js/npm/yarn, Ruby/gem, (to some extent) Python/pip, and Rust/cargo
+does it.  In those cases, you have some file specifying the versions of
+libraries the application needs, usually as «this version of this
+gem/crate/package» and there is somewhere those packages live by
+default.  Quite often, there's also a lock file of some sort which lists
+out the exact versions used, recursively, which ensures you can deploy
+the exact same code multiple times.
+The second method means you can reason about what versions of code are
+included where.  You might still have to patch five versions of
+libvulnerable, but at least it's possible to find which five versions
+are in use, and get those fixed in a central place and then rebuild
+everything that's vulnerable, recursively.  Not the most fun job in the
+world, but it's at least possible to automate somewhat.
+I'm curious what, if anything, we can do to better support the second
+model. In particular because (as you note) it's very much in vogue with
+lots of upstreams those days.
+-- 
+Tollef Fog Heen
+UNIX is user friendly, it's just picky about who its friends are

@@ -1,0 +1,52 @@
+To : 853277@bugs.debian.org
+Subject : Bug#853277: os-prober: triggers hang on default install with unencrypted LVM
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 1 Feb 2017 00:14:14 +0100
+Message-id : 20170131231414.GM2786@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 853277@bugs.debian.org
+In-reply-to : <[🔎] 20170131042004.1056.96882.reportbug@armor.home>
+References : <[🔎] 20170131042004.1056.96882.reportbug@armor.home>
+
+
+Control: tag -1 patch pending
+Hi,
+Cyril Brulebois <kibi@debian.org> (2017-01-31):
+> When picking plain LVM (not encrypted), os-prober 1.73 hangs right after
+> having printed this to syslog, with slight variations:
+> | 50mount-tests: debug: creating device mapper device /dev/mapper/osprober-linux-sda3 [Steve]
+> | 50mount-tests: debug: creating device mapper device /dev/mapper/osprober-linux-vda5 [Cyril]
+> 
+> The issue seems to be the dmsetup create call (with -r and the partition
+> name) getting stuck in the kernel on the dm_ctl_ioctl call, possibly
+> because we're trying to play with something that's mounted already?
+> 
+> Looking at commits touching dmsetup stuff, I went back to the first one
+> between 1.71 and 1.72:
+> | commit 8a8f565b43fd126e97b2c390bd81868c6653cf2c
+> | Author: Ivo De Decker <ivo.dedecker@ugent.be>
+> | Date:   Sat Jul 13 21:15:41 2013 +0200
+> | 
+> |     using read-only device mapper entry
+> 
+> and using a version built from it is sufficient to reproduce the hang.
+Since that's basically the first time I'm touching os-prober, I first
+went for special-casing the partition holding the root filesystem, and
+tested an installation from a custom CD image successfully. Branch on
+alioth: kibi-vs-lvm; and patches:
+  https://anonscm.debian.org/cgit/d-i/os-prober.git/commit/?id=16eae6151b713e4db2836b81e7958902544a5ecd
+  https://anonscm.debian.org/cgit/d-i/os-prober.git/commit/?id=d70f8416d3555a772666e105d13589416e6e5c0e
+I wasn't too happy about it since there's a os-prober-udeb and lsblk
+isn't available in a debian-installer context (it's available in /target
+so it works properly for the use cases I had been testing).
+Ivo joined the party and proposed a different approach: excluding
+LVM2_member partitions (since they're physical volumes), and I liked
+this approach a lot more.
+Tests are looking fine so I went for it for 1.74.
+Thinking about other use cases, Ivo noted that we might want to exclude
+something else for which there's no codepath: linux_raid_member. But I
+think I'll leave that for a later revision of this package, and try to
+resume the D-I Stretch RC 2 release process with os-prober 1.74. The
+linux_raid_member thing can be filed as a separate bug report (feel free
+to; I'll be doing more testing).
+KiBi.
+signature.asc

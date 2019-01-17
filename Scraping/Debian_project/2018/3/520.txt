@@ -1,0 +1,54 @@
+To : Debian Developers <debian-devel@lists.debian.org>
+Subject : Re: How to enable testing migration for packages Architecture: all but depending from Architecture: any packages [and 2 more messages]
+From : Niels Thykier <niels@thykier.net>
+Date : Thu, 29 Mar 2018 16:27:00 +0000
+Message-id : e30e1fae-45fd-5fa0-26b1-e8ad78b6874e@thykier.net
+In-reply-to : <[🔎] 20180329151855.GR17102@mapreri.org>
+References : <[🔎] 20180329081925.uh2ez4ct7fohzdbl@an3as.eu> <[🔎] 20180329085325.GK17102@mapreri.org> <[🔎] 20180329093211.mx3lqysd3eci33vi@an3as.eu> <[🔎] 23228.64022.503076.709398@chiark.greenend.org.uk> <[🔎] 20180329151855.GR17102@mapreri.org>
+
+
+Mattia Rizzolo:
+> On Thu, Mar 29, 2018 at 03:37:10PM +0100, Ian Jackson wrote:
+>> But, Andreas linked to the excuses page (his [1], above) which mention
+>> a lot of other architectures, where installability of the dependencies
+>> is not relevant.  Eg
+>>   paleomix/s390x unsatisfiable Depends: python-pysam
+>>
+>> I can see why Andreas thought the way he did.  Would it be possible
+>> for the excuses to be made more precise ?  Can I file a bug somewhere
+>> to request that ?
+> 
+> That would be a Britney bug, therefore file it against relase.debian.org
+> and usertag it with 'britney'.
+> 
+> In that case, I'd rather keep listing all the broken architectures, but
+> explicitly mark those allowed to break as such.
+> 
+For the record; It is a known issue documented on
+https://www.debian.org/devel/testing.en.html
+Quote:
+> "Why is it sometimes hard to get Architecture: all packages into "testing"?"
+> 
+> If the Architecture: all package is to be installed, it must be possible to satisfy its dependencies on all architectures. If it depends on certain packages which only compile on a limited set of Debian's architectures, then it can't do that.
+> 
+> However, for the time being, "testing" will ignore Architecture: all packages' installability on non-i386 architectures. ("It's a gross hack and I'm not really happy to have made it, but there you go." —aj)
+(Out of dateness note: We now use i386 AND amd64 as minimum requirement
+instead of only i386).
+The problem with undoing this gross hack is replacing it with something
+that "just works" without (too much) manual hand-holding and does not
+allow "obvious regressions" to migrate.  For those who are interested in
+working on such a patch, my notes on the area are the following:
+"""
+> Britney's current arch:all has work ok for a long while, but it is a hack and should be replaced by a proper solution (that does not require force-hints when Britney is wrong).
+> 
+> What is expected from Britney's arch:all handling?
+> 
+>  * arch:all packages must be installable on at least 1 architecture.
+>  * arch:all packages may be uninstallable on a strict subset of the architectures assuming they have no arch:any rdeps on that architecture.
+>  * arch:all that used to be installable must not regress without a hint/manual approval except:
+>      - If the source previously provided arch:any binaries but no longer does for that architecture. (Assumption, if arch:any + arch:all are provided, the arch:all are assumed only to be relevant on architectures with arch:any binaries)
+"""
+(caveat emptor: My notes might not be the canonical source of truth for
+this problem)
+Thanks,
+~Niels

@@ -1,0 +1,61 @@
+To : Guillem Jover <guillem@debian.org>
+Subject : Re: Unsustainable debian/rules as official build entry point?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 18 Oct 2017 13:35:45 +0100
+Message-id : 23015.19105.562259.530663@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20171018093641.tzyv5aku4lmdw2dr@gaara.hadrons.org>
+References : <[🔎] 20171018093641.tzyv5aku4lmdw2dr@gaara.hadrons.org>
+
+
+Guillem Jover writes ("Unsustainable debian/rules as official build entry point?"):
+> Given the above, and that these are clear regressions, it seems
+> obvious to me that we are (collectively) not checking/using debian/rules
+> as the official build entry point interface.
+> 
+> And I've got to question whether we should keep supporting it or just
+> declare dpkg-buildpackage to be that entry point.
+tl;dr: I think I agree with your suggestion but I would definitely
+  express it rather differently.
+There are two entry points which are relevant:
+1. The interface provided by packages.
+2. The interface consumed by programs which want to build packages.
+Up to now, both of these have been, officially, the same:
+debian/rules.
+But for purpose 2 most programs invoke dpkg-buildpackage now.  This is
+because the official interface 1 keeps becoming more complex,
+particularly because of backward compatibility requirements.
+The compatibility and protocol negotiation functionality in
+dpkg-buildpackage, where dpkg-buildpackage arranges to work with new
+packages in new ways and old packages in old ways, becomes harder and
+harder to reproduce.  So de facto, most consumers of source packages
+consume them via dpkg-buildpackage.
+I think there is a lot of value in interposing a common
+compatibility/adjustment layer between the two interfaces I mention
+above.  So I would support a proposal to official declare that
+programs which want to build (unrelated) packages should do so via
+dpkg-buildpackage.
+However:
+I would _not_ support a proposal to abolish the package-provided rules
+interface as de-jure standard.  It's just that this standard would
+gradually lose its other consumers.  After there is only one consumer
+it will be somewhat easier to change it.
+Additionally, although there being one consumer makes it seem as if we
+could just add new mandatory features to packages (ie, changes which
+require new dpkg-buildpackage), I don't think we should do that.
+It is important for backporting, downstreams, etc. etc., that old
+versions of dpkg-buildpackage can build new packages.
+Important consequences of my views include:
+* The package-provided rules interface needs to remain managed as part
+  of policy (and to continue to have a controlled approach to updates,
+  etc.).
+* The interface is not *defined by* dpkg-buildpackage: ie it is still
+  possible for dpkg-buildpackage to have a bug where it does not
+  implement the de-jure interface.
+* Packages may still need to work around bugs in old versions of
+  dpkg-buildpackage; conversely, new versions of dpkg-buildpackage may
+  need to work around bugs in old packages.
+* For a long time, packages should try to be compatible with old
+  builders which invoke rules directly, even old builders other than
+  dpkg-buildpackage.
+I think you will probably agree, but I wanted to set it all out.
+Ian.

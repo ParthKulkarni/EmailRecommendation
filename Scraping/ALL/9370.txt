@@ -1,0 +1,62 @@
+To : 870448@bugs.debian.org, Ben Hutchings <ben@decadent.org.uk>
+Subject : Bug#870448: hw-detect - stop using modprobe -l
+From : Holger Wansing <hwansing@mailbox.org>
+Date : Mon, 31 Dec 2018 12:45:13 +0100
+Message-id : 20181231124513.bb24536d9ceccb5daccf3a75@mailbox.org
+Reply-to : Holger Wansing <hwansing@mailbox.org>, 870448@bugs.debian.org
+References : <20170802022648.GK28330@mayhem.atnf.CSIRO.AU>
+
+
+Hi,
+has this been forgotten to apply?
+Sounds clean to me ...
+Holger
+On Wed, Aug 02, 2017 at 07:58:05PM +0100, Ben Hutchings wrote:
+> On Wed, 2017-08-02 at 12:26 +1000, Vincent McIntyre wrote:
+> > Package: hw-detect
+> > Version: 1.124
+> > Severity: normal
+> > Tags: patch
+> > 
+> > I keep seeing this in installer logs, back to jessie.
+> > 
+> > Aug  2 01:52:11 main-menu[193]: (process:224): modprobe: invalid option -- 'l'
+> > 
+> > 
+> > I rated this normal rather than minor because the way it is working
+> > now the is_available() function always returns 1 (failure)
+> > 
+> > My suggestion is to use modinfo instead.
+> > This will return multiline output inside the quotes but
+> > a couple of tests suggests that is ok.
+> > It does fail with some modules (nvidia), not sure if we care.
+> >
+> > diff --git a/hw-detect.sh b/hw-detect.sh
+> > index 7977814..d8196c1 100755
+> > --- a/hw-detect.sh
+> > +++ b/hw-detect.sh
+> > @@ -43,7 +43,7 @@ is_not_loaded() {
+> >  }
+> >  
+> >  is_available () {
+> > -       [ "$(modprobe -l $1)" ] || return 1
+> > +       [ "$(modinfo $1)" ] || return 1
+> >  }
+> 
+> But this still prints error messages for missing modules.  I think the
+> function should be implemented as:
+> 
+> is_available () {
+> 	modprobe -qn "$1"
+> }
+> 
+> Ben.
+> 
+> >  # Module as first parameter, description of device the second.
+> > 
+> > Kind regards
+> > Vince
+> > 
+-- 
+Holger Wansing <hwansing@mailbox.org>
+PGP-Finterprint: 496A C6E8 1442 4B34 8508  3529 59F1 87CA 156E B076

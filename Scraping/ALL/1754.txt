@@ -1,0 +1,65 @@
+To : Gunnar Wolf <gwolf@gwolf.org>, Max Vozeler <xam@debian.org>,	Anton Zinoviev <zinoviev@debian.org>,	Colin Watson <cjwatson@debian.org>,	Christian Perrier <bubulle@debian.org>,	Cyril Brulebois <kibi@debian.org>
+Subject : Bug#854822: installation-report: U-boot not correctly installed when partitioning with "Guided - use entire disk"
+From : Karsten Merker <merker@debian.org>
+Date : Fri, 10 Feb 2017 21:36:33 +0100
+Message-id : 20170210203633.GB1785@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 854822@bugs.debian.org
+In-reply-to : <[🔎] 148674908031.1778.11582525461448935566.reportbug@mosca.iiec.unam.mx>
+References : <[🔎] 148674908031.1778.11582525461448935566.reportbug@mosca.iiec.unam.mx>
+
+
+On Fri, Feb 10, 2017 at 11:51:20AM -0600, Gunnar Wolf wrote:
+> Package: installation-reports
+> Version: 2.62
+> Severity: important
+> Tags: d-i
+[...]
+> Boot method: SD card
+> Image version: https://d-i.debian.org/daily-images/armhf/daily/hd-media/SD-card-images/firmware.MX6_Cubox-i.img.gz https://d-i.debian.org/daily-images/armhf/daily/hd-media/SD-card-images/partition.img.gz and http://gemmei.acc.umu.se/cdimage/daily-builds/daily/arch-latest/armhf/iso-cd/debian-testing-armhf-netinst.iso downloaded 2017-02-08
+> Date: <Date and time of the install>
+> 
+> Machine: CuBox-i 4 Pro
+[...] 
+> I am installing the system on the same media that was used to boot the
+> installer from; this is supported according to the installation manual
+> sect. 5.1.5 (last paragraph).
+> 
+> If I ask the partitioner to use the «Guided - use entire disk» option,
+> the install process _seems_to_ be successful, but I end up with a
+> nonbooting system (U-boot seems to be clobbered, as it does not do
+> anything at powerup); selecting «Guided - use the largest continuous
+> free space» results in a correctly booting system.
+Hello,
+when using the "Guided - use entire disk" option, partman by
+default clobbers the boot sector and the area after it (where
+u-boot is located) to make sure that there are no remains of old
+partition tables.  We have code in partman-base that disables
+this clobbering on systems of which we know that u-boot would be
+damaged (which includes systems based on Freescale SoCs such as
+your Cubox-i), but this doesn't work in your case as we currently
+only disable the clobbering for /dev/mmcblk0 while your SD card
+shows up as /dev/mmcblk1. I am not 100% sure about that, but IIRC
+with older kernels the SD card in the cubox-i has shown up as
+/dev/mmcblk0. 
+The relevant code in partman-base can be seen here:
+https://anonscm.debian.org/cgit/d-i/partman-base.git/tree/parted_server.c#n1377
+The easiest solution would be to check for /dev/mmcblk instead of
+/dev/mmcblk0. If nobody has objections against this change, I'll modify
+partman-base accordingly and upload a new version (CCing the partman-base
+uploaders Max Vozeler, Anton Zinoviev, Colin Watson and Christian Perrier
+and Kibi as the d-i release manager).
+> As a very minor issue, even in the second case, after the install
+> notifies «Requesting system reboot», it just hangs. I disconnected and
+> reconnected power to get the system to boot — But it booted correctly
+> after that.
+I have similar experiences with systems based on other ARM-SoCs,
+but I have not been able to pinpoint the cause. The hang happens
+only when rebooting from the d-i environment; rebooting the
+installed system with exactly the same kernel works without
+problems.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

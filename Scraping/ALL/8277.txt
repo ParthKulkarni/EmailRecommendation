@@ -1,0 +1,47 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#910325: libdebian-installer: Build correctly with Werror=implicit-fallthrough
+From : Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>
+Date : Thu, 04 Oct 2018 15:38:54 -0400
+Message-id : 153868193457.15300.4424312792032277858.reportbug@demeter
+Reply-to : Mathieu Trudel-Lapierre <cyphermox@ubuntu.com>, 910325@bugs.debian.org
+
+
+Package: libdebian-installer
+Version: 0.110
+Severity: normal
+Tags: patch
+User: ubuntu-devel@lists.ubuntu.com
+Usertags: origin-ubuntu cosmic ubuntu-patch
+Dear Maintainer,
+it appears that libdebian-installer fails to build in our latest rebuild tests
+with GCC 7 -- implicit-fallthrough warning / error is in place, which means
+GCC will complain about src/tree.c's code for rotating trees when adding new
+nodes. The fix is pretty simple, as the code is straightforward.
+In Ubuntu, the attached patch was applied to achieve the following:
+  * src/tree.c: Silence GCC's implicit-fallthrough warning by being explicit
+    in this binary tree rotate code that there's not fallthrough; we're
+    covering all tree rotation cases already (all paths in switch() already
+    return().
+Thanks for considering the patch.
+-- System Information:
+Debian Release: buster/sid
+  APT prefers cosmic-security
+  APT policy: (500, 'cosmic-security'), (500, 'cosmic')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.18.0-7-generic (SMP w/4 CPU cores)
+Locale: LANG=en_CA.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_CA:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled
+diff -Nru libdebian-installer-0.110ubuntu2/src/tree.c libdebian-installer-0.110ubuntu3/src/tree.c
+--- libdebian-installer-0.110ubuntu2/src/tree.c	2017-05-04 11:46:32.000000000 -0400
++++ libdebian-installer-0.110ubuntu3/src/tree.c	2018-10-04 14:22:53.000000000 -0400
+@@ -198,6 +198,7 @@
+         case 1:
+           return di_tree_node_rotate_right_double (node);
+       }
++      break;
+     case -1:
+     case 0:
+     case 1:

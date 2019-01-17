@@ -1,0 +1,69 @@
+To : Roger Shimizu <rogershimizu@gmail.com>
+Subject : Re: Bug#893988: wide-dhcpv6-client-udeb: not installable: depends on non-udeb libfl2
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 25 Mar 2018 10:19:32 +0200
+Message-id : 20180325081932.3vpha6oefsieccsf@mraw.org
+In-reply-to : <[🔎] CAEQ9gEnD51LVguckLC0t7xOAJt5zsPOM-Xpds1Jji=pT5aOe8w@mail.gmail.com>
+References : <[🔎] 152193814262.30512.10854065852408427546.reportbug@armor.home> <[🔎] CAEQ9gEnD51LVguckLC0t7xOAJt5zsPOM-Xpds1Jji=pT5aOe8w@mail.gmail.com>
+
+
+Control: tag -1 patch
+Hi Roger,
+Roger Shimizu <rogershimizu@gmail.com> (2018-03-25):
+> Do you have any suggestion, except adding udeb support to package flex?
+It looks acceptable to me to use the static library in the udeb, so I've
+tried building it against libfl.a, and that seems to do the job since
+the libfl2 dependency goes away. I'm not sure it's reasonable to do that
+for both the deb and the udeb, though; so I've looked into making it
+conditional, and only building the udeb against the static library.
+Unfortunately, it looks like the build system doesn't support out of
+tree builds, so I've had to copy all files under build-{deb,udeb},
+instead of just running ../configure, make, make install from there.
+I've picked rsync to do this, but feel free to use anything else.
+I've also chosen to clean things up using an override_dh_auto_clean
+target, so that most modifications are seen at once in debian/rules, but
+you may want to use debian/clean instead.
+You'll find a patch series attached. I haven't tested the runtime
+though.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.ascFrom 7f3ef843aafaa204d51865112f8a1f77031a62c9 Mon Sep 17 00:00:00 2001
+From: Cyril Brulebois <kibi@debian.org>
+Date: Sun, 25 Mar 2018 08:16:35 +0000
+Subject: [PATCH 8/8] debian/control: Add a build-dep on rsync for the build
+ tree handling.
+---
+ debian/changelog | 2 ++
+ debian/control   | 3 ++-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+diff --git a/debian/changelog b/debian/changelog
+index 53c51c4..200cc24 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -13,6 +13,8 @@ wide-dhcpv6 (20080615-21) UNRELEASED; urgency=medium
+       installed under the debian/tmp-udeb directory.
+   * debian/patches/0017-Remove-unused-linking-with-libfl.patch:
+     - Add a comment mentioning the tweak for the udeb build.
++  * debian/control:
++    - Add a build-dep on rsync for the build tree handling.
+ 
+  -- Cyril Brulebois <kibi@debian.org>  Sun, 25 Mar 2018 07:51:10 +0000
+ 
+diff --git a/debian/control b/debian/control
+index a721a74..365b20b 100644
+--- a/debian/control
++++ b/debian/control
+@@ -6,7 +6,8 @@ Build-Depends:
+  bison,
+  debhelper (>= 10),
+  flex,
+- libfl-dev
++ libfl-dev,
++ rsync
+ Standards-Version: 3.9.8
+ Vcs-Git: https://github.com/rogers0/packaging_wide-dhcpv6.git
+ Vcs-Browser: https://github.com/rogers0/packaging_wide-dhcpv6
+-- 
+2.16.2

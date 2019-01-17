@@ -1,0 +1,93 @@
+To : Jeremy Bicha <jbicha@debian.org>
+Subject : Re: epoch bump request for gnome-calculator
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Thu, 27 Sep 2018 07:55:38 +0200
+Message-id : 20180927055538.k26sqyuxwbtsv6ll@fatal.se
+In-reply-to : <[🔎] CAAajCMa_2RPL6TguWKARotpcyaOfZLaCAO5c7WbTwt8SdDyLBw@mail.gmail.com>
+References : <[🔎] CAAajCMa_2RPL6TguWKARotpcyaOfZLaCAO5c7WbTwt8SdDyLBw@mail.gmail.com>
+
+
+Hi Jeremy,
+My comments below for what it's worth. You should likely not
+take anything I say too seriously, but maybe I happen to mention
+something that can be food for thought.
+On Wed, Sep 26, 2018 at 09:47:38AM -0400, Jeremy Bicha wrote:
+> Emailing both debian-devel and the Debian GNOME mailing list.
+> 
+> I am requesting project approval for me to upload gnome-calculator
+> with an epoch.
+> 
+> Five years ago, gcalctool 6.4 was renamed to gnome-calculator and
+> renumbered to 3.8. This seemed like a clear case for an epoch since
+> this was a permanent change in the version numbering scheme.
+For me, wherever a (source and binary) package is removed it's
+a clear case that it's an opportunity to *get rid* of epochs.
+Upstream renaming things are a rare opportunity and should
+be utilized!
+> 
+> I made this change in the Debian VCS and uploaded it to Ubuntu. At the
+> time I did not have upload rights to Debian and Ubuntu has deadlines.
+> 
+> A month later, a Debian GNOME team member recognized that we could use
+> a dh_gencontrol hack [1] to only add the epoch to the gcalctool
+> transitional package and we didn't need an epoch for gnome-calculator.
+> Similarly, we could have used this hack for many of the gnome-games
+> packages when they were split into separate source packages but we
+> didn't because we uploaded them before we made this change. (The
+> version numbering didn't change but gnome-games had an epoch we didn't
+> need to carry to the new packages.)
+I feel like I was probably the guilty person here. Possibly having
+higher-than-average dislike for epochs and also being clueless
+on ubuntu deadlines. I feel like rushing an epoch bump in because
+of a deadline is a bad idea, which you are probably well aware of
+as of now.
+(And yes, there where probably more cases this should have been
+used but once uploaded the window of opportunity to eliminate the
+epochs are gone and we have to wait, pray and hope that upstream
+renames things again some time in the future.)
+Also Debhelper commands are overridable by design and their individual
+arguments are documented in their separate manual pages. This should
+be leveraged when ever it's the appropriate thing to do (and avoided
+when it's not).
+> 
+> More recently, I have worked to reduce the difference between Debian
+> and Ubuntu packaging for many GNOME packages. It gets very tedious to
+> need to upload gnome-calculator in Debian and then do a separate
+> upload in Ubuntu (along with all the required Vcs merging, updating
+> and tagging) just to add the epoch in Ubuntu. It would be a lot nicer
+> if I could just sync the Debian package to Ubuntu.
+> 
+> So is it appropriate to bump an epoch in Debian to match an important
+> downstream's epoch?
+I understand this is annoying for you to have to carry forever in
+ubuntu, so I'm willing to look the other way with one condition:
+You make sure to discuss policies on the ubuntu side to take
+extra care to not needlessly introduce epoch bumps which you then
+later come to debian to discuss because it's causing you pain in
+ubuntu. If you ever bump epoch in ubuntu without having done
+the full epoch-dance in debian and waited for it to actually be
+uploaded to the debian archive before you upload the epoch bump
+in ubuntu, then you agree to handle it for all eternity on the
+ubuntu side when needed.
+As an alternative suggestion, why isn't it possible to simply
+get rid of the annoying part by specifying a vendor-condition
+in debian/rules and apply "the hack" to all binary packages
+when building on ubuntu (and on transitional packages only
+when building on debian)?
+Carrying this ubuntu-specific lines in debian/rules even in
+debian would likely be something that people who only care
+for debian could more easily accept.
+eg.
+ifeq ($(DEB_VENDOR),Ubuntu)
+  <insert "the hack" here>
+endif
+> 
+> [1] Current example of the hack:
+> https://salsa.debian.org/fonts-team/fonts-ubuntu/blob/debian/unstable/debian/rules
+> 
+> Thanks,
+> Jeremy Bicha
+> 
+Regards,
+Andreas Henriksson
+(who hasn't mastered the art of writing short mails yet either)

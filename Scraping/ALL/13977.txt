@@ -1,0 +1,36 @@
+To : Josh Triplett <josh@joshtriplett.org>
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Evgeni Golov <evgeni@debian.org>
+Date : Sun, 23 Apr 2017 21:01:13 +0200
+Message-id : 20170423190113.bds4h2fbdsm75eqm@nana.phantasia.die-welt.net
+In-reply-to : <[🔎] 20170423184033.gbbbiba4k4hb7uu4@x>
+References : <[🔎] 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net> <[🔎] 20170423174832.cilayvlngdarhzdb@x> <[🔎] 20170423183759.f4eft5pfn3yp7ch3@nana.phantasia.die-welt.net> <[🔎] 20170423184033.gbbbiba4k4hb7uu4@x>
+
+
+On Sun, Apr 23, 2017 at 11:40:34AM -0700, Josh Triplett wrote:
+> On Sun, Apr 23, 2017 at 08:37:59PM +0200, Evgeni Golov wrote:
+> > On Sun, Apr 23, 2017 at 10:48:33AM -0700, Josh Triplett wrote:
+> > > Evgeni Golov wrote:
+> > > > But this does not account for the fact that this specific tunable may be
+> > > > already overriden in another sysctl.d file and the package would reset
+> > > > it to a lower value?
+> > > 
+> > > You might ask systemd upstream if they'd consider extending the syntax
+> > > to support "increase if below this value but don't decrease".  But in
+> > > the absence of that, I don't think you need to worry about that kind of
+> > > configuration conflict unless it comes up.  Ideally if multiple packages
+> > > need to change this limit, they'll coordinate and agree on the new
+> > > value, or perhaps even depend on a common configuration package.
+> > 
+> > I think such an extension would be quite tricky and probably not worth it.
+> 
+> Can't hurt to ask, given the use case.  Doesn't seem like that much of a
+> challenge to implement; the main challenge would be getting it
+> propagated widely enough to use.
+That was my first thought, too. But then I realized you need operators for:
+- increasing, like above
+- decreasing like for vm.swappiness
+- handling "booleans" and tri-states as used by several security features
+  granted, this is mostly as increasing
+And you obviously get into funny situations when different files mandate
+different change directions.

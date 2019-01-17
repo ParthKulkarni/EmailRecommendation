@@ -1,0 +1,122 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#868900: iso-scan: should be able to copy the ISO into RAM before mount
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Wed, 19 Jul 2017 17:19:21 +0200
+Message-id : 20170719151921.rggjusncu3fkny4i@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 868900@bugs.debian.org
+
+
+Source: iso-scan
+Version: 1.57
+Severity: wishlist
+Tags: patch
+When you use an ISO image stored on a disk, it makes it impossible to
+re-use that disk in the installation process (e.g. for automatic
+partitioning).
+In order to avoid this limitation, I would like iso-scan to be able
+to copy the ISO image into RAM and to mount it from there. The attached
+patch implements precisely when the debconf question "iso-scan/copy_iso_to_ram"
+returns true.
+It would be nice to see this merged (the patch applies cleanly on top
+of the one in #868859, but you can also merge it separately if you drop
+the changelog entry).
+Let me know if there's anything to improve before it's ready to be merged
+(notably on the debconf template, etc.).
+Cheers,
+-- System Information:
+Debian Release: buster/sid
+  APT prefers oldoldstable
+  APT policy: (500, 'oldoldstable'), (500, 'unstable'), (500, 'stable'), (500, 'oldstable'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-3-amd64 (SMP w/4 CPU cores)
+Locale: LANG=fr_FR.UTF-8, LC_CTYPE=fr_FR.UTF-8 (charmap=UTF-8), LANGUAGE=fr_FR.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/
+>From f036be16012d1004053fa977258c842b1d9eed47 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20Hertzog?= <hertzog@debian.org>
+Date: Wed, 19 Jul 2017 16:20:38 +0200
+Subject: [PATCH] Offer possibility to copy ISO to RAM before mount
+The iso-scan/copy_iso_to_ram debconf question controls this new
+feature. It defaults to false for backwards compatibility and also
+because it can only be safely enabled when the amount of RAM is
+sufficient to host a full copy of the image.
+---
+ debian/changelog          |  3 +++
+ debian/iso-scan.postinst  | 19 ++++++++++++++++++-
+ debian/iso-scan.templates | 14 ++++++++++++++
+ 3 files changed, 35 insertions(+), 1 deletion(-)
+diff --git a/debian/changelog b/debian/changelog
+index 6abd1db..18c47c8 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -2,6 +2,9 @@ iso-scan (1.58) UNRELEASED; urgency=medium
+ 
+   * Detect LVM logical volumes so that they can be used to find the ISO image
+     that we are looking for.
++  * Copy the ISO image into RAM before mounting it when debconf question
++    iso-scan/copy_iso_to_ram is true. This makes it possible to use the disk
++    that provided the ISO image for (automatic) partitioning.
+ 
+  -- Raphaël Hertzog <hertzog@debian.org>  Tue, 18 Jul 2017 16:58:13 +0200
+ 
+diff --git a/debian/iso-scan.postinst b/debian/iso-scan.postinst
+index e34f329..1109ba5 100755
+--- a/debian/iso-scan.postinst
++++ b/debian/iso-scan.postinst
+@@ -203,9 +203,26 @@ use_this_iso () {
+ 	local iso_device=$2
+ 	local RET
+ 
++	db_input low iso-scan/copy_iso_to_ram || true
++	db_go
++	db_get iso-scan/copy_iso_to_ram
++
+ 	mount -t auto -o ro $iso_device /hd-media 2>/dev/null
+ 	cd /hd-media
+-	mount -t iso9660 -o loop,ro,exec $iso_to_try /cdrom 2>/dev/null
++
++	if [ "$RET" = false ]; then
++		# Direct mount
++		log "Mounting /hd-media/$iso_to_try on /cdrom"
++		mount -t iso9660 -o loop,ro,exec $iso_to_try /cdrom 2>/dev/null
++	else
++		# We copy the ISO to RAM before mounting it
++		log "Copying /hd-media/$iso_to_try to /installer.iso"
++		cp $iso_to_try /installer.iso
++		log "Mounting /installer.iso on /cdrom"
++		mount -t iso9660 -o loop,ro,exec /installer.iso /cdrom 2>/dev/null
++		cd /
++		umount /hd-media
++	fi
+ 
+ 	analyze_cd
+ 
+diff --git a/debian/iso-scan.templates b/debian/iso-scan.templates
+index e3a23d1..76ba00a 100644
+--- a/debian/iso-scan.templates
++++ b/debian/iso-scan.templates
+@@ -126,3 +126,17 @@ _Description: Is ISO file ${FILENAME} the correct image for installation?
+  .
+  If multiple ISO files exist on the same installer drive,
+  you may select which one you want to use.
++
++Template: iso-scan/copy_iso_to_ram
++Type: boolean
++Default: false
++# :sl3:
++_Description: Copy the ISO image into RAM before mounting it?
++ If you don't copy the ISO image into RAM, then the disk hosting
++ the ISO image cannot be partitioned as the installer will be
++ actively using it.
++ .
++ However copying the ISO into RAM might not be possible if the ISO image
++ is larger than the amount of RAM available. If the amount of RAM
++ remaining after copy is too low, it might cause other unexpected failures
++ later in the installation process.
+-- 
+2.13.3

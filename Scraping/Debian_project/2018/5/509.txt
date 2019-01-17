@@ -1,0 +1,36 @@
+To : Chris Lamb <lamby@debian.org>
+Subject : Re: packages which have not been rebuild since December 2016
+From : Guillem Jover <guillem@debian.org>
+Date : Thu, 31 May 2018 17:33:10 +0200
+Message-id : 20180531153310.GA28168@thunder.hadrons.org
+Mail-followup-to : Chris Lamb <lamby@debian.org>,	Holger Levsen <holger@layer-acht.org>,	Reproducible Builds discussion list <reproducible-builds@lists.alioth.debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 1527715764.3695455.1391017056.4EE2C9BE@webmail.messagingengine.com>
+References : <[🔎] 20180530191110.kgz4wly6r7vp5sjc@layer-acht.org> <[🔎] 1527715764.3695455.1391017056.4EE2C9BE@webmail.messagingengine.com>
+
+
+Hi!
+On Wed, 2018-05-30 at 22:29:24 +0100, Chris Lamb wrote:
+> > One issue we forgot to mention there is that all binary packages built
+> > with dpkg < 1.18.17 need to be rebuild. Is that something easy to find
+> > out with UDD? 
+> 
+> Unless I'm missing something, I don't think that UDD has this. Whilst
+> we have a `packages` relation that can "detect" binNMUs (ie. SELECT *
+> FROM packages WHERE version != source_version) there is no timestamp
+> on this.
+> 
+> We have the "upload_history" relation but that will only give us an
+> upper limit (roughly 50% of the archive).
+I think this should be relatively easy to compute:
+  if ! -e pkg.buildinfo
+    → rebuild
+  elif dpkg-dev not in pkg.buildinfo
+    → rebuild
+  elfi dpkg-dev < 1.18.17 in pkg.buildinfo
+    → rebuild
+?
+And, hey, just today I stumbled upon this
+<https://salsa.debian.org/bremner/built-with> :), which might perhaps
+be a nice starting point.
+Thanks,
+Guillem

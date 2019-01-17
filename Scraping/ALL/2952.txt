@@ -1,0 +1,45 @@
+To : Sven Joachim <svenjoac@gmx.de>
+Subject : Bug#857132: console-setup: additional info needed ?
+From : Anton Zinoviev <anton@lml.bas.bg>
+Date : Thu, 23 Mar 2017 15:04:37 +0200
+Message-id : 20170323130437.GA2628@logic
+Reply-to : Anton Zinoviev <anton@lml.bas.bg>, 857132@bugs.debian.org
+In-reply-to : <[🔎] 87d1d8gvcd.fsf@turtle.gmx.de>
+References : <[🔎] 149017858840.23048.7220154904975481356.reportbug@hermes.hilbert.loc> <[🔎] 20170322111851.GA1617@debian.lan> <[🔎] 20170322120016.xigufsgrjq36z4zb@hermes.hilbert.loc> <[🔎] 20170322130228.GA27537@logic> <[🔎] 87d1d8gvcd.fsf@turtle.gmx.de>
+
+
+[I am sending a CC to pkg-systemd-maintainers@lists.alioth.debian.org]
+On Thu, Mar 23, 2017 at 11:07:14AM +0100, Sven Joachim wrote:
+> 
+> There might be a third possibility which seems to happen on one of my
+> systems: the cached_setup_font.sh script does not work correctly when
+> run during boot by udev.  Because this is what I am observing here, I
+> even added some debug messages to it to see if it is run at all (as
+> intended by /lib/udev/rules.d/90-console-setup.rules), and indeed it
+> does run but the font still remains unchanged.
+> 
+> Manually running /etc/console-setup/cached_setup_font.sh (or
+> setupcon -f, for that matter) works fine, so I'm a bit at a loss here.
+Since systemd makes some configuration of the console, maybe the 
+following scenario might explain what we observe:
+1. systemd/udev creates a new console.
+2. systemd begins the initialization of this console.
+3. udev runs /etc/console-setup/cached_setup_font.sh by the following 
+rule:
+ACTION=="add", SUBSYSTEM=="vtconsole", KERNEL=="vtcon*", RUN+="/etc/console-setup/cached_setup_font.sh"
+4. Now cached_setup_font.sh and systemd execute in parallel.  If 
+cached_setup_font.sh wins, it will configure the console font first and 
+then systemd will load another font.
+My tests of how systemd works show that it does the following:
+1. It reads the curent font of the current console.
+2. Then it does some things to the console(s) (configuration).
+3. When a new console is created it loads on it the font read in 1.
+Therefore, it seems to me that if cached_setup_font.sh completes its job 
+before 1. then everything should be ok.  And if systemd completes its 
+configuration before cached_setup_font.sh starts its work, then again 
+everything will be ok.  However if both work simultaneously things can 
+go wrong.
+So, if this scenario is possible, a natural question is what can be done 
+in order to make sure the scripts of console-setup do not execute in 
+parallel with systemd while configuring the console.
+Anton Zinoviev

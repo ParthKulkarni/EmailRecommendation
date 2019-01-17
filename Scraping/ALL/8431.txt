@@ -1,0 +1,123 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#896826: partman-auto: Wrong minimal disk size calculation when using expert_recipe and lvm partitions
+From : Garinot Pierre <garinot.pierre@errlock.org>
+Date : Tue, 24 Apr 2018 18:07:31 +0200
+Message-id : 152458605152.16272.6997610814379893227.reportbug@laptop.domovoy
+Reply-to : Garinot Pierre <garinot.pierre@errlock.org>, 896826@bugs.debian.org
+
+
+Package: partman-auto
+Version: partman-auto
+Severity: important
+Tags: d-i
+Dear Maintainer,
+   * What led up to the situation?
+Trying to pressed the debian installer for automatic partitionning.
+   * What exactly did you do (or not do) that was effective (or
+     ineffective)?
+Used these preseed rules:
+----
+d-i partman-auto/disk string /dev/sda
+d-i partman-auto/method string lvm
+d-i partman-auto/expert_recipe string                     \
+    arcadia ::                                            \
+        30 50 100 ext4                                    \
+            $primary{ } $bootable{ }                      \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /boot }                           \
+        .                                                 \
+        64 1024 300% linux-swap                           \
+            method{ swap } format{ }                      \
+        .                                                 \
+        1980 3000 -1 ext4                                 \
+            $defaultignore{ }                             \
+            $primary{ }                                   \
+            method{ lvm }                                 \
+            device{ /dev/sda }                            \
+            vg_name{ system }                             \
+        .                                                 \
+        60 100 150 ext4                                   \
+            $lvmok{ } in_vg{ system } lv_name{ root }     \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ / }                               \
+        .                                                 \
+        750 1000 15000 ext4                               \
+            $lvmok{ } in_vg{ system } lv_name{ usr }      \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /usr }                            \
+        .                                                 \
+        10 20 30 ext4                                     \
+            $lvmok{ } in_vg{ system } lv_name{ home }     \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /home }                           \
+        .                                                 \
+        10 20 30 ext4                                     \
+            $lvmok{ } in_vg{ system } lv_name{ roothome } \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /root }                           \
+        .                                                 \
+        20 30 50 ext4                                     \
+            $lvmok{ } in_vg{ system } lv_name{ tmp }      \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /tmp }                            \
+        .                                                 \
+        800 1000 10000 ext4                               \
+            $lvmok{ } in_vg{ system } lv_name{ var }      \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /var }                            \
+        .                                                 \
+        250 500 1000 ext4                                 \
+            $lvmok{ } in_vg{ system } lv_name{ log }      \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /var/log }                        \
+        .                                                 \
+        10 20 10000 ext4                                  \
+            $lvmok{ } in_vg{ system } lv_name{ local }    \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /usr/local }                      \
+        .                                                 \
+        10 20 30 ext4                                     \
+            $lvmok{ } in_vg{ system } lv_name{ srv }      \
+            method{ format } format{ }                    \
+            use_filesystem{ } filesystem{ ext4 }          \
+            mountpoint{ /srv }                            \
+        .
+----
+   * What was the outcome of this action?
+Partitionning fails with the following message in syslog:
+"partman-auto: Available disk space (2147) too small for expert recipe(3994);
+skipping"
+   * What outcome did you expect instead?
+Partitionning successfull, with LVM setup correctly.
+The computed size should be /boot + swap + VG(system) = 2074, which would fit
+on
+the disk (2147).
+I believe the problem to be in lib/recipes.sh, function min_size, which adds
+the
+min_size of _all_ partitions, including those that are LV setup to be part of a
+VG.
+As a result, the computed min_size is larger than what it would actually be.
+I'm sorry i can't work on a patch, since it is more complicated that just
+ignoring partitions using $lvmok{ }, and i don't have time right now.
+The function should also check that all the LVs can fit in their designated VG,
+which may not be defined in the recipe (default one, or created by another mean
+before partman-auto)
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (700, 'stable-updates'), (700, 'stable'), (500, 'oldstable-updates'), (500, 'oldstable')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-6-amd64 (SMP w/4 CPU cores)
+Locale: LANG=C.UTF-8, LC_CTYPE=C.UTF-8 (charmap=UTF-8), LANGUAGE=C.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: sysvinit (via /sbin/init)

@@ -1,0 +1,89 @@
+To : Philipp Kern <pkern@debian.org>, Michael Neuffer <neuffer@neuffer.com>, 694965@bugs.debian.org
+Subject : Bug#694965: netcfg: Allow setup of pointopoint routes to reach gateway
+From : Igor Scheller <debian@igorscheller.de>
+Date : Wed, 13 Jun 2018 01:24:16 +0200
+Message-id : 212b4552-1e65-1bc6-b68b-a95d47cb34bd@igorscheller.de
+Reply-to : Igor Scheller <debian@igorscheller.de>, 694965@bugs.debian.org
+In-reply-to : <[🔎] 03f6f6b4-ef23-9349-5306-3e9b25956f64@igorscheller.de>
+References : <50BBB1D9.3020504@neuffer.com> <20121203225743.GA8720@spike.0x539.de> <[🔎] 03f6f6b4-ef23-9349-5306-3e9b25956f64@igorscheller.de> <50BBA162.3020501@neuffer.com>
+
+
+Oh, and here is the patch File ;)
+On 12.06.2018 13:49, Igor Scheller wrote:
+> Hi,
+> i created a merge request [1] that allows to preseed pointopoint
+> connections so anyone can use a preseed file or boot parameters to
+> define a pointopoint connection.
+> -> If a pointopoint connection is preseeded it would be used.
+>
+> Improvements / thoughts welcome!
+>
+> Greets
+> Igor Scheller
+>
+>
+> [1] https://salsa.debian.org/installer-team/netcfg/merge_requests/2
+signature.ascFrom 06647bebad8643a1990a98431bfdc4eab80007d8 Mon Sep 17 00:00:00 2001
+From: Igor Scheller <igor.scheller@igorshp.de>
+Date: Sat, 2 Jun 2018 17:24:30 +0200
+Subject: [PATCH 1/2] Add support for preseeded pointopoint
+---
+ static.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+diff --git a/static.c b/static.c
+index ea12fba4..316f8d8e 100644
+--- a/static.c
++++ b/static.c
+@@ -557,11 +557,13 @@ int netcfg_get_static(struct debconfclient *client, struct netcfg_interface *ifa
+             if (netcfg_get_ipaddress (client, iface)) {
+                 state = BACKUP;
+             } else {
++                debconf_get(client, "netcfg/get_pointopoint");
+                 if (strncmp(iface->name, "plip", 4) == 0
+                     || strncmp(iface->name, "slip", 4) == 0
+                     || strncmp(iface->name, "ctc", 3) == 0
+                     || strncmp(iface->name, "escon", 5) == 0
+-                    || strncmp(iface->name, "iucv", 4) == 0)
++                    || strncmp(iface->name, "iucv", 4) == 0
++                    || !empty_str(client->value))
+                     state = GET_POINTOPOINT;
+                 else if (iface->masklen == 0) {
+                     state = GET_NETMASK;
+-- 
+2.17.1
+From 258e0a104c3207ecb723103446c686ad57181f7e Mon Sep 17 00:00:00 2001
+From: Igor Scheller <igor.scheller@igorshp.de>
+Date: Tue, 12 Jun 2018 13:12:38 +0200
+Subject: [PATCH 2/2] Preseeded pointopoint: Fix routing
+---
+ static.c          | 2 +-
+ write_interface.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+diff --git a/static.c b/static.c
+index 316f8d8e..e3d93c79 100644
+--- a/static.c
++++ b/static.c
+@@ -368,7 +368,7 @@ static int netcfg_activate_static_ipv4(struct debconfclient *client,
+ 
+     if (!empty_str(interface->pointopoint))
+     {
+-        snprintf(buf, sizeof(buf), "ip route add default dev %s", interface->name);
++        snprintf(buf, sizeof(buf), "ip route add default via %s dev %s", interface->pointopoint, interface->name);
+         rv |= di_exec_shell_log(buf);
+     }
+     else if (!empty_str(interface->gateway)) {
+diff --git a/write_interface.c b/write_interface.c
+index 1f683b2a..406513e6 100644
+--- a/write_interface.c
++++ b/write_interface.c
+@@ -120,7 +120,7 @@ static int nc_wi_static_ipv4(const struct netcfg_interface *interface, FILE *fd)
+ 	fprintf(fd, "iface %s inet static\n", interface->name);
+ 	fprintf(fd, "\taddress %s/%i\n", interface->ipaddress,
+ 	        empty_str(interface->pointopoint) ? interface->masklen : 32);
+-	if (!empty_str(interface->gateway))
++	if (!empty_str(interface->gateway) || !empty_str(interface->pointopoint))
+ 		fprintf(fd, "\tgateway %s\n",
+ 		        empty_str(interface->pointopoint) ? interface->gateway : interface->pointopoint);
+ 	if (!empty_str(interface->pointopoint))
+-- 
+2.17.1

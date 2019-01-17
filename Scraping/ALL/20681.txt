@@ -1,0 +1,50 @@
+To : Adrian Bunk <bunk@debian.org>, debian-devel@lists.debian.org
+Subject : Re: What problem might happen when bumping soname without adding Conflicts:/Breaks:?
+From : Gert Wollny <gw.fossdev@gmail.com>
+Date : Mon, 02 Apr 2018 21:12:18 +0200
+Message-id : 1522696338.4557.28.camel@gmail.com
+In-reply-to : <20180329184319.GV9516@localhost>
+References : <2481913.Ug9B2u56FU@hosiet-tp> <87bmf7vaso.fsf@hope.eyrie.org>	 <20180329184319.GV9516@localhost>
+
+
+Am Donnerstag, den 29.03.2018, 21:43 +0300 schrieb Adrian Bunk:
+> On Wed, Mar 28, 2018 at 08:08:07PM -0700, Russ Allbery wrote:
+> > Boyuan Yang <073plan@gmail.com> writes:
+> > 
+> > > * Upstream released new version and bumped SONAME to 2
+> > > * -dev package didn't change its name
+> > > * My mentor suggests that the new library package
+> > > (libdframeworkdbus2) should 
+> > > add the relationship "Conflicts: libdframeworkdbus1"
+> > 
+> > You do not want to do that.  It defeats one of the primary purposes
+> > for changing the package name: allowing both versions of the shared
+> > library to be co-installed.
+> > ...
+> 
+> The default in Debian is to allow coinstallation of the libraries,
+> but there are actually cases where it is better to add a Conflicts.
+> 
+> Without symbol versioning it is a problem if you end up with both 
+> libraries in a binary, in this case e.g.:
+>   deepin-menu -> libdframeworkdbus1
+>   deepin-menu -> libdtkwidget2 -> libdframeworkdbus2
+Since the -dev package doesn't change name this can only happen in the
+SO-name transition phase, and a binary rebuild of the reverse
+dependencies will fix this since it will pull in only the latest
+version, and AFAIK the release team scheduls this kind of rebuild of
+reverse deps when a so-name transition is done.
+> Even with symbol versions things can go badly in some cases,
+> like the OpenSSL situation in stretch being a complete mess and
+> in some cases using the wrong OpenSSL can result in your application
+> just segfaulting (e.g. the libcurl API passes an opaque OpenSSL
+> struct).
+Well, openssl has/had two different -dev package, which made this
+problem possible.
+> OpenSSL is special due to two versions being supported in stretch,
+> otherwise a Conflicts between libssl1.0.2 and libssl1.1 might have
+> been a good solution.
+But it would have meant for the user that they can notonly co-install
+packages that depend on the same library version.
+Best,
+Gert

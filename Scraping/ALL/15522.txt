@@ -1,0 +1,51 @@
+To : James Cowgill <jcowgill@debian.org>
+Subject : Re: Bug#899299: libu2f-udev: Post-inst script should make udev reload rules
+From : Nicolas Braud-Santoni <nicolas@braud-santoni.eu>
+Date : Mon, 4 Jun 2018 13:34:51 +0200
+Message-id : 20180604113451.v256kcgi2ifynu3a@bogus
+In-reply-to : <[🔎] 888b00cd-8231-bfdf-e5ab-b5982d275ae5@debian.org>
+References : <152697741345.27566.9139564567856744287.reportbug@neon.citronna.de> <152697741345.27566.9139564567856744287.reportbug@neon.citronna.de> <[🔎] 20180603150832.augv2mol2i44rgpr@bogus> <[🔎] 888b00cd-8231-bfdf-e5ab-b5982d275ae5@debian.org>
+
+
+Hi James,
+On Sun, Jun 03, 2018 at 06:20:03PM +0100, James Cowgill wrote:
+> Hi,
+> 
+> On 03/06/18 16:08, Nicolas Braud-Santoni wrote:
+> > X-Debbugs-CC: debian-devel@lists.debian.org
+> > 
+> > Hi Debianites !
+> > 
+> > On Tue, May 22, 2018 at 10:23:33AM +0200, Nicolas Braud-Santoni wrote:
+> >> [libu2f-udev's post-inst script should make udev reload rules.]
+> >> Otherwise, the rules are not active until the next reboot (or until the user
+> >> manually calls `udevadm control -R`).
+> > 
+> > To fix this bug, I need to call `udevadm` from the postinstall script,
+> > meaning that libu2f-udev needs to Pre-Depends on udev.
+> 
+> Running a command from another package in postinst only requires a
+> normal Depends - not a Pre-Depends.
+OK.  I had assumed calling udevadm before udev was configured was wrong,
+thanks for the clarification.
+> However, I don't think you need to run "udevadm control -R" at all. udev
+> will monitor rules from /lib/udev/rules.d while its running and
+> automatically reload them when changed.
+Interesting; when I tested libu2f-udev, I ran into cases where the rules seemed
+not to be loaded yet, though it might be my testing was wrong.
+I will likely keep the explicit reload, though, as I need the script anyhow.
+> For the second half of this bug:
+> > Consider investigating whether it is possible to apply the udev rules to
+> > already-plugged-in devices (as setting tag uaccess should be idempotent).
+> 
+> This can be done by running "udevadm trigger". By default every device
+> on the system will be triggered which is a bit heavyweight, so you
+> probably want to add some *match parameters to restrict this to the
+> devices you're interested in (see the udevadm man page).
+Yes, I wrote a bash abomination which parses the installed rules and issues
+a series of `udevadm trigger` calls with the right filters  :)
+  https://salsa.debian.org/auth-team/libu2f-host/commit/c9ef9a71415ef69ab2cf872473f1d875b0293df9
+Thanks again for the feedback, I will just remove the Pre-Depends (and make it
+a regular Depends).
+Best,
+  nicoo

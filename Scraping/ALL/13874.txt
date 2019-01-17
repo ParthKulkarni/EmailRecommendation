@@ -1,0 +1,32 @@
+To : hmh@debian.org
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Sun, 23 Apr 2017 11:11:37 -0700
+Message-id : 20170423181136.xbkwc6dwpz3km7eg@x
+In-reply-to : <[🔎] 20170423120845.GA12266@khazad-dum.debian.net>
+
+
+Henrique de Moraes Holschuh wrote:
+> 1. read current levels (using sysctl, not directly).
+> 
+> 2. if they are above the default, don't change the state of the system:
+>    if your config file is there, let ucf handle its update normally.  if
+>    your config file is *NOT* there, assume deleted and help ucf a little
+>    (ucf can do this by itself most of the time: we have always handled
+>    deletion of config files in /etc as an action to be preserved, but
+>    *not* at first install)
+> 
+> 3. if they are at a dangerous level, install your config file to /etc
+>    normally, using ucf.  And document that the user needs to reboot
+>    somewhere.
+This seems like a recipe for a very confused sysadmin, wondering what
+non-standard mechanism is messing with sysctls out-of-band and making
+configuration file editing/preservation decisions based on sysctl values
+rather than just the files themselves.
+I would suggest, instead, working with sysctl upstream to add an
+"increase if not at least this value, but don't decrease if above this
+value" mechanism.  That'll take a while to propagate widely enough, but
+once it does, you could use such a mechanism to ensure you have a large
+enough value to function without overriding a larger value set in
+another file.
+Also, you don't generally need to reboot to apply changed sysctls.

@@ -1,0 +1,40 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#850800: Set User-Agent for wget, for preseed flexibility
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Tue, 10 Jan 2017 01:17:52 -0800
+Message-id : 148403987223.11632.6467547125442213515.reportbug@x
+Reply-to : Josh Triplett <josh@joshtriplett.org>, 850800@bugs.debian.org
+
+
+Package: di-utils
+Severity: wishlist
+The attached patch sets a User-Agent for wget (compatible with both
+busybox wget and GNU wget), which allows a site to detect d-i, and (for
+example) redirect to a preseed file to avoid having to enter a longer
+URL on the d-i command line.
+- Josh Triplett
+>From 8caef3cd600553f222f37a49d8d708f6608f588d Mon Sep 17 00:00:00 2001
+From: Josh Triplett <josh@joshtriplett.org>
+Date: Tue, 10 Jan 2017 00:57:27 -0800
+Subject: [PATCH] fetch-url-methods/http: Set User-Agent to "debian-installer"
+ in wget
+This allows a site to detect a Debian installer fetch request and
+redirect to a preseed file, avoiding the need to type a long URL on the
+d-i command line.
+---
+ fetch-url-methods/http | 1 +
+ 1 file changed, 1 insertion(+)
+diff --git a/fetch-url-methods/http b/fetch-url-methods/http
+index c271d45..c3e80fc 100644
+--- a/fetch-url-methods/http
++++ b/fetch-url-methods/http
+@@ -39,6 +39,7 @@ protocol_fetch() {
+ 		fi
+ 		options=-q
+ 	fi
++	options="$options -U debian-installer"
+ 	RETVAL=0
+ 	for i in 1 2; do
+ 		wget404 $options -O "$file" "$url" || RETVAL=$?
+-- 
+2.11.0

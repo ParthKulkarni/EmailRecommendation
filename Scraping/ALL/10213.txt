@@ -1,0 +1,39 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Help requested: Packages which FTBFS randomly
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 20 Feb 2017 08:30:04 +0000
+Message-id : 20170220083004.m4nu3apmzfz2qiz5@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20170220000033.wi2jd5wxgr5adpy4@cantor.unex.es>
+References : <[🔎] alpine.DEB.2.20.1702151742180.26301@cantor.unex.es> <[🔎] 22694.8966.847975.681800@chiark.greenend.org.uk> <[🔎] 1487522746@msgid.manchmal.in-ulm.de> <[🔎] 20170219215956.rzp64i3qqaeluwa5@cantor.unex.es> <[🔎] m3bmtx233t.fsf@luffy.cx> <[🔎] 20170220000033.wi2jd5wxgr5adpy4@cantor.unex.es>
+
+
+On Mon, 20 Feb 2017 at 01:00:33 +0100, Santiago Vila wrote:
+> Wait a moment. How we do define "common" when applied to a "build
+> environment"?
+Do we rely on it for Debian to function, or was it set up to determine
+what works (e.g. for QA)? The former is common; the latter might not
+be, and failing there is evidence of a possible RC bug but not
+*necessarily* an RC bug itself.
+Debian is an operating system, not an academic exercise. If a package
+builds successfully reliably enough on buildds, porterboxes, and
+developers' hardware or VMs that we can prepare security updates and
+other urgent patches for it in a reasonable time, then it's close
+enough.
+Conversely, packages that don't work on Debian's buildds are likely to
+be de facto unreleasable, even if they work fine on less problematic
+hardware[1] or in "more realistic" build environments[2].
+For packages that sometimes FTBFS due to intermittent test failures, I
+for one would rather have the test coverage than not have it. We could
+guarantee that no package will ever fail its build-time tests by not
+running them, but having some packages intermittently fail to build
+seems an acceptable price to pay for having a trivially easy way to
+reject builds that are completely non-functional (for instance because
+an upgraded dependency has broken their assumptions, or because they
+happen to have hit toolchain bugs that produce broken binaries).
+Unfortunately, tests are software too, which means the tests have bugs
+just like the software under test does, and making them perfect is a
+target to aim for rather than a realistic possibility. They still seem
+like a good thing to have.
+    S
+[1] http://apebox.org/wordpress/linux/545
+[2] https://wiki.debian.org/qa.debian.org/FTBFS#A2017-01-29_tzdata_and_lsb-base_no_longer_installed_in_build_chroots

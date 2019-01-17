@@ -1,0 +1,44 @@
+To : debian-devel@lists.debian.org
+Subject : Better infrastructure for dbgsyms (was: Automatic way to install dbgsym packages for a process?)
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Thu, 10 Aug 2017 16:03:18 +0200 (CEST)
+Message-id : alpine.DEB.2.11.1708101535570.29353@manul.sfritsch.de
+In-reply-to : <[🔎] 20170809092914.dcl4mi7ie3n6jait@crossbow>
+References : <[🔎] alpine.DEB.2.11.1708061801430.2367@manul.sfritsch.de> <[🔎] CAKTje6G0AXL-xzxWDxJxE1hWpgqZLGP-RZLUxdF-5HTr8T6QYg@mail.gmail.com> <[🔎] alpine.DEB.2.11.1708081541590.20586@manul.sfritsch.de> <[🔎] 20170808140259.GD28695@zira.vinc17.org> <[🔎] 20170808210723.d7evv7qf24z35unw@glandium.org> <[🔎] 20170809092914.dcl4mi7ie3n6jait@crossbow>
+
+
+Hi,
+On Wed, 9 Aug 2017, David Kalnischkies wrote:
+> I haven't seen the perl script (and I don't speak perl, so even if
+> I had), but from the description of the functionality it doesn't sound
+> too hard and like a natural fit. Personally I would just prefer if
+> someone writes it who knows how it should work and would use it – not me
+> who doesn't even have the debug archive in its sources (as libc6-dbg is
+> not a -dbgsym yet) nor deals with crash.dumps all too often…
+> 
+> 
+> Long story short: I am happy to help via IRC/deity@ & Julian is at
+> DebConf in case someone wants to talk about apt in person.
+I agree that integration in apt would be a good idea. But until then, 
+having the script packaged makes sense. I have filed a wishlist bug 
+agianst debian-goodies:
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=871620
+BTW, in some discussions some other questions were raised:
+- Is it really a good idea that foo-dbgsym depends on "foo (== 
+foo-version)"? Wouldn't a Conflict or breaks on "foo (!= foo-version)" 
+make more sense respective package? Consider that you want to analyze the 
+core dump on a different system and foo may pull in quite a lot of 
+dependencies, start servers, etc.
+- Is it allowed for packages that are not in the debug section to depend 
+on packages in the debug section. For example, to make a meta package that 
+depends on a set of useful dbgsym packages? But the need for this would 
+probably go away with better apt integration.
+- Would an option to put all symbols from a source package into a single 
+dbgsym package make sense? This would allow to get rid of all those dbgsym 
+packages with only a single small file in them.
+- Should we put the URL of the debug sym sources.list entry into the 
+release file of the non-debug sym section? That way, apt could determine 
+the location of the dbgsym packages by itself without having to edit 
+sources.list.
+Cheers,
+Stefan

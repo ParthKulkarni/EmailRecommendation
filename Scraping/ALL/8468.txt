@@ -1,0 +1,72 @@
+To : Paul Wise <pabs@debian.org>
+Subject : Bug#693219: Bug#826709: Doesn't mention --foreign in help output
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 2 Apr 2018 15:27:58 +0200
+Message-id : 20180402132758.2qckripyfrjigpgv@angband.pl
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 693219@bugs.debian.org
+In-reply-to : <[🔎] f75fb1e8970079da717fe75d4a91a2afa6990848.camel@debian.org>
+References : <20121114115155.19383.5573.reportbug@tack.local> <20151126173148.GA3270@reva.itsari.org> <1465372864.2168.15.camel@debian.org> <20180401113241.b6d6f3a3291158742c54affb@iijmio-mail.jp> <[🔎] f75fb1e8970079da717fe75d4a91a2afa6990848.camel@debian.org> <20121114115155.19383.5573.reportbug@tack.local>
+
+
+On Sun, Apr 01, 2018 at 11:24:14AM +0800, Paul Wise wrote:
+> CCing the maintainer of arch-test who will probably have some input.
+> 
+> On Sun, 2018-04-01 at 11:32 +0900, Hideki Yamane wrote:
+> 
+> > +               if [ "$HOST_ARCH" = "amd64" ] && [ "$ARCH" = "i386" ] ; then
+> > +               # i386 binary can be run on amd64 host
+> 
+> It is a bad idea to hard-code this and hard-code it for only two
+> arches
+Especially that amd64 hosts only _usually_ can run i386.  It's a kernel
+config option that happens to be enabled in Debian kernels, but may be
+omitted from derivative or self-built ones, usually for reasons of space and
+security (compat syscalls and ioctls are a source of bugs, sometimes
+exploitable).  Thus, CONFIG_IA32_EMULATION might or might not be enabled.
+On x86 I'm not aware of any 64-bit only hardware, but elsewhere, 32-bit
+compat is optional -- skipping it can make chips cheaper and more
+power-efficient, thus arm64 is often incapable of running armhf or armel.
+Even on armhf, the manufacturer may choose to skip costly synchronization
+needed for obsolete SWP instructions required by armel, which means
+debootstrap (strictly single-threaded I think) will succeed but installed
+system will run into mysterious corruption.
+Thus, a hard-coded list would do more harm than good.  Sure, most of the
+time it'd work, but it's the unusual cases when you need accurate error
+messages.
+> using arch-test and falling back to a more comprehensive list
+> would be much better
+Indeed, making arch-test a Recommends for debootstrap would be a good idea:
+it's a small package, systems that act as hosts are big enough that giving
+the user helpful error messages is worth it.
+It wouldn't harm new (not yet supported archs) as answer "can't test"
+(return code 2) is no different than arch-test being not installed.
+There is one caveat: binfmt uses interpreters relative to the current
+process' root directory, thus testing outside the chroot doesn't imply you
+have an interpreter in the right place inside.  Usually, debootstrap is
+called by tools after doing:
+mkdir -p $CHROOT/usr/bin && cp -p /usr/bin/qemu-6502-static $CHROOT/usr/bin/
+but it's a step you're likely to forget.  I guess, this can be done by
+adding an option to arch-test to copy the helper into the chroot, call
+chroot(2) then test inside.
+Obviously, the above is not a concern for hardware or whole-machine
+emulation (arch-test -n).
+> I prefer the message I wrote in my initial bug report:
+> 
+>   This machine cannot run binaries for architecture armhf
+>   There are two options to work around this:
+> 
+>   Use qemu-debootstrap instead of debootstrap
+> 
+>   Use debootstrap --foreign here and
+>   use debootstrap --second-stage on armhf
+As an author of a hammer, I'm probably biased towards using it.  But,
+there's at least one possibility: before calling any complex tool inside the
+chroot, you can run something dead simple like /bin/true.  If that fails,
+then either you have a non-executable arch, glibc is broken or missing, or
+something else went bad while debootstrapping.  These alternatives can't be
+distinguished between (this is where arch-test would be better), but at
+least we'd isolate that whole class of problems from other reasons mount can
+fail.
+Meow!
+-- 
+ᛊᚨᚾᛁᛏᚣ᛫ᛁᛊ᛫ᚠᛟᚱ᛫ᚦᛖ᛫ᚹᛖᚨᚲ

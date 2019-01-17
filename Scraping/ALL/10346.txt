@@ -1,0 +1,32 @@
+To : debian-devel@lists.debian.org
+Subject : systemd, ntp, kernel and hwclock
+From : Daniel Pocock <daniel@pocock.pro>
+Date : Mon, 27 Feb 2017 17:59:53 +0100
+Message-id : afac576b-b2f3-ab27-124f-e58e1ac14561@pocock.pro
+
+
+Hi all,
+I've observed a system that had a wildly incorrect hardware clock (when
+it was first unboxed), I ran ntpdate to sync the kernel clock but after
+a shutdown and startup again it had a wacky time again.
+I came across the discussion about how the hardware clock is no longer
+set at shutdown[1]
+The system has ntpd running
+Looking at the output of
+   adjtimex --print | grep status
+the bit corresponding to 64 / STA_UNSYNC is 0
+There is a time and date page on the wiki[2] and in the manual[3],
+neither of them appears to have up to date information about the way it
+works with systemd or how to troubleshoot issues like this.
+Monitoring it with:
+    hwclock -r ; date
+shows that the hardware clock is running slowly, losing maybe 1s per
+hour.  I would have expected that if the kernel is syncing to the
+hardware clock every 11 minutes then I wouldn't see such changes.
+Can anybody make any suggestions or add anything to the wiki?
+Regards,
+Daniel
+1. https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=755722
+2. https://wiki.debian.org/DateTime
+3.
+https://www.debian.org/doc/manuals/system-administrator/ch-sysadmin-time.html

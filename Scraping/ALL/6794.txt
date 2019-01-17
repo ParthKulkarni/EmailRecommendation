@@ -1,0 +1,128 @@
+To : Luca Falavigna <dktrkranz@debian.org>
+Subject : Bug#898738: debootstrap fails when specifying components
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 15 May 2018 21:44:38 +0200
+Message-id : 20180515194438.j2xviquxcdq6zutw@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 898738@bugs.debian.org
+In-reply-to : <[🔎] CADk7b0P+b22GnDV20-dQVVLp8W19mrpdWsXNiGnXG3qJ6KndUA@mail.gmail.com>
+References : <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com> <[🔎] 20180515191916.tr23kuvfo23d5pc6@mraw.org> <[🔎] CADk7b0P+b22GnDV20-dQVVLp8W19mrpdWsXNiGnXG3qJ6KndUA@mail.gmail.com> <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com>
+
+
+Luca Falavigna <dktrkranz@debian.org> (2018-05-15):
+> found 898738 1.0.97
+> thanks
+Right, I knew I was forgetting something. That happens when I spend too
+much time debugging and adjusting the write-up as I go. Thanks for
+fixing.
+> 2018-05-15 21:19 GMT+02:00 Cyril Brulebois <kibi@debian.org>:
+> > The issue seems to be the non-free Packages file being checked
+> > against the checksum of the contrib one (both sha256 checksum and
+> > size in fact), so that can't work.
+> 
+> Thanks for checking! Indeed the problem can be reproduced from 1.0.97
+> (hence adjusting found correctly). I'll have a look in the next few
+> days as well.
+I think I've found the issue. At least partly reverting the commit
+makes retrieving/validating indices work again, possibly because
+un-local-izing names was a bad idea? (I took all hunks from the commit
+that touched the download_release_indices function. Not everything is
+needed I guess.)
+See attached patch, against the offending commit. It doesn't apply to
+master as-is because of the by-hash addition.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc--- a/functions
++++ b/functions
+@@ -610,10 +617,13 @@ download_release_sig () {
+ }
+ 
+ download_release_indices () {
+-	local m1="${MIRRORS%% *}"
+-	local inreldest="$TARGET/$($DLDEST rel "$SUITE" "$m1" "dists/$SUITE/InRelease")"
+-	local reldest="$TARGET/$($DLDEST rel "$SUITE" "$m1" "dists/$SUITE/Release")"
+-	local relsigdest="$TARGET/$($DLDEST rel "$SUITE" "$m1" "dists/$SUITE/Release.gpg")"
++	local m1 inreldest reldest relsigdest totalpkgs \
++	      subpath xzi bz2i gzi normi i ext \
++	      donepkgs pkgdest
++	m1="${MIRRORS%% *}"
++	inreldest="$TARGET/$($DLDEST rel "$SUITE" "$m1" "dists/$SUITE/InRelease")"
++	reldest="$TARGET/$($DLDEST rel "$SUITE" "$m1" "dists/$SUITE/Release")"
++	relsigdest="$TARGET/$($DLDEST rel "$SUITE" "$m1" "dists/$SUITE/Release.gpg")"
+ 
+ 	download_release_sig "$m1" "$inreldest" "$reldest" "$relsigdest"
+ 
+@@ -621,14 +631,13 @@ download_release_indices () {
+ 
+ 	extract_release_components "$reldest"
+ 
+-	local totalpkgs=0
++	totalpkgs=0
+ 	for c in $COMPONENTS; do
+-		local subpath="$c/binary-$ARCH/Packages"
+-		local xzi="`get_release_checksum "$reldest" "$subpath.xz"`"
+-		local bz2i="`get_release_checksum "$reldest" "$subpath.bz2"`"
+-		local gzi="`get_release_checksum "$reldest" "$subpath.gz"`"
+-		local normi="`get_release_checksum "$reldest" "$subpath"`"
+-		local i=
++		subpath="$c/binary-$ARCH/Packages"
++		xzi="$(get_release_checksum "$reldest" "$subpath.xz")"
++		bz2i="$(get_release_checksum "$reldest" "$subpath.bz2")"
++		gzi="$(get_release_checksum "$reldest" "$subpath.gz")"
++		normi="$(get_release_checksum "$reldest" "$subpath")"
+ 		if [ "$normi" != "" ]; then
+ 			i="$normi"
+ 		elif in_path bunzip2 && [ "$bz2i" != "" ]; then
+@@ -639,25 +648,22 @@ download_release_indices () {
+ 			i="$gzi"
+ 		fi
+ 		if [ "$i" != "" ]; then
+-			totalpkgs="$(( $totalpkgs + ${i#* } ))"
++			totalpkgs=$(( $totalpkgs + ${i#* } ))
+ 		else
+ 			mv "$reldest" "$reldest.malformed"
+ 			error 1 MISSINGRELENTRY "Invalid Release file, no entry for %s" "$subpath"
+ 		fi
+ 	done
+ 
+-	local donepkgs=0
+-	local pkgdest
++	donepkgs=0
+ 	progress 0 $totalpkgs DOWNPKGS "Downloading Packages files"
+ 	for c in $COMPONENTS; do
+-		local subpath="$c/binary-$ARCH/Packages"
+-		local path="dists/$SUITE/$subpath"
+-		local xzi="`get_release_checksum "$reldest" "$subpath.xz"`"
+-		local bz2i="`get_release_checksum "$reldest" "$subpath.bz2"`"
+-		local gzi="`get_release_checksum "$reldest" "$subpath.gz"`"
+-		local normi="`get_release_checksum "$reldest" "$subpath"`"
+-		local ext=
+-		local i=
++		subpath="$c/binary-$ARCH/Packages"
++		path="dists/$SUITE/$subpath"
++		xzi="$(get_release_checksum "$reldest" "$subpath.xz")"
++		bz2i="$(get_release_checksum "$reldest" "$subpath.bz2")"
++		gzi="$(get_release_checksum "$reldest" "$subpath.gz")"
++		normi="$(get_release_checksum "$reldest" "$subpath")"
+ 		if [ "$normi" != "" ]; then
+ 			ext="$ext $normi ."
+ 			i="$normi"
+@@ -674,7 +680,7 @@ download_release_indices () {
+ 			ext="$ext $gzi gz"
+ 			i="${i:-$gzi}"
+ 		fi
+-		progress_next "$(($donepkgs + ${i#* }))"
++		progress_next $(($donepkgs + ${i#* }))
+ 		for m in $MIRRORS; do
+ 			pkgdest="$TARGET/$($DLDEST pkg "$SUITE" "$c" "$ARCH" "$m" "$path")"
+ 			if get "$m/$path" "$pkgdest" $ext; then break; fi
+@@ -682,7 +688,7 @@ download_release_indices () {
+ 		if [ ! -f "$pkgdest" ]; then
+ 			error 1 COULDNTDL "Couldn't download %s" "$m/$path"
+ 		fi
+-		donepkgs="$(($donepkgs + ${i#* }))"
++		donepkgs=$(($donepkgs + ${i#* }))
+ 		progress $donepkgs $totalpkgs DOWNPKGS "Downloading Packages files"
+ 	done
+ }

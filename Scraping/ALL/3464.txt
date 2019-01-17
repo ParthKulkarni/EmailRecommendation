@@ -1,0 +1,111 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#868848: debian-installer-utils: "list-devices partition" should report LVM logical volumes too
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Wed, 19 Jul 2017 10:29:59 +0200
+Message-id : 20170719082959.vc4u4bp26guxkzgu@home.ouaza.com
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 868848@bugs.debian.org
+
+
+Source: debian-installer-utils
+Version: 1.119
+Severity: normal
+Tags: patch
+User: devel@kali.org
+Usertags: origin-kali kali-patch
+Just like "list-devices partition" reports back RAID partitions, it should
+also report LVM logical volumes. The attached patch does this.
+My goal is to extend the "hd-media" image to be able to find the ISO image
+within an LVM logical volume too. This is a preliminary step in this
+project.
+Currently, I'm not hiding the partitions used by the various volume
+groups. This is unlike what has been done for RAID partitions. But
+I don't know all the places where list-devices is used and I'm not
+convinced that it's really required either (it's not a requirement
+for iso-scan at least). I'm ccing Colin, he might have some insight to
+share on this.
+Let me know if anybody has any objection against this patch.
+Raphaël.
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/
+>From 6a3ece02614a1d729c5438f4192aed8a399e27cc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20Hertzog?= <hertzog@debian.org>
+Date: Tue, 18 Jul 2017 16:41:46 +0200
+Subject: [PATCH] Fix "list-devices partition" to also report LVM logical
+ volumes
+---
+ debian/changelog   |  6 ++++++
+ list-devices-linux | 20 ++++++++++++++++++--
+ 2 files changed, 24 insertions(+), 2 deletions(-)
+diff --git a/debian/changelog b/debian/changelog
+index 8026b68..9181908 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,9 @@
++debian-installer-utils (1.120) UNRELEASED; urgency=medium
++
++  * Fix "list-devices partition" to also report LVM logical volumes.
++
++ -- Raphaël Hertzog <hertzog@debian.org>  Tue, 18 Jul 2017 16:39:00 +0200
++
+ debian-installer-utils (1.119) unstable; urgency=medium
+ 
+   * fix: propagate dot-containing options to target kernel cmdline
+diff --git a/list-devices-linux b/list-devices-linux
+index 9eb3c71..fa9596c 100755
+--- a/list-devices-linux
++++ b/list-devices-linux
+@@ -38,6 +38,10 @@ device_name () {
+ 	echo "/dev/$name"
+ }
+ 
++is_lvm() {
++	grep -qs ^LVM- "$1/dm/uuid"
++}
++
+ is_sataraid () {
+ 	grep -qs ^DMRAID- "$1/dm/uuid"
+ }
+@@ -79,7 +83,13 @@ case $TYPE in
+ 	done
+ 	for x in /sys/block/dm-*; do
+ 		[ -d "$x" ] || continue
+-		(is_sataraid "$x" && is_sataraid_partition "$x") || continue
++		if is_lvm "$x"; then
++			: # Keep LVM logical volumes
++		elif is_sataraid "$x" && is_sataraid_partition "$x"; then
++			: # Keep dmraid partitions
++		else
++			continue  # Skip unknown entries
++		fi
+ 		syspaths="${syspaths:+$syspaths }$x"
+ 	done
+ 	TYPE=disk
+@@ -100,6 +110,9 @@ case $TYPE in
+ 			if is_sataraid "$x" && is_sataraid_partition "$x"; then
+ 				continue
+ 			fi
++			if is_lvm "$x"; then
++				continue
++			fi
+ 			;;
+ 		    *)
+ 			name="$(device_name "$x")"
+@@ -141,10 +154,13 @@ for x in $syspaths; do
+ 			match=:
+ 			;;
+ 		    /block/dm-*)
+-			# for now, we only understand dmraid
++			# for now, we only understand dmraid and LVM
+ 			if is_sataraid "/sys$devpath"; then
+ 				match=:
+ 			fi
++			if is_lvm "/sys$devpath"; then
++				match=:
++			fi
+ 			;;
+ 		esac
+ 	fi
+-- 
+2.13.3

@@ -1,0 +1,122 @@
+To : submit@bugs.debian.org
+Subject : Bug#893300: cdebconf: Adding support for a pkg.cdebconf.nogtk build-profile
+From : Karsten Merker <merker@debian.org>
+Date : Sat, 17 Mar 2018 21:09:11 +0100
+Message-id : 20180317200911.tto7rcj6wuowql6y@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 893300@bugs.debian.org
+
+
+Package: cdebconf
+Version: 0.241
+Priority: wishlist
+X-Debbugs-CC: Cyril Brulebois <kibi@debian.org>, Christian Perrier <bubulle@debian.org>, Regis Boudin <regis@debian.org>, Colin Watson <cjwatson@debian.org>, debian-riscv@lists.debian.org
+User: debian-riscv@lists.debian.org
+Usertags: riscv64
+[CCing the uploaders for cdebconf]
+Hello,
+I would like to add support for a "pkg.cdebconf.nogtk" build-profile
+to cdebconf.  Background for that is that cdebconf (in particular
+libdebconfclient0) is needed rather early in the process of
+bootstrapping a new Debian architecture, but getting it built during
+early architecture bootstrap is difficult due to its build-dependency
+on gtk+cairo, which pulls in an enormous list of transitive
+build-dependencies that are effectively impossible to fullfill in a
+bootstrap scenario.
+AIUI, the only binary packages built from the cdebconf source package
+that actually need gtk+cairo are cdebconf-gtk and cdebconf-gtk-udeb,
+and these aren't required during an architecture bootstrap, so the
+approach is to add a build-profile that does two things when set:
+- disable building of these two binary packages
+- remove the gtk+cairo build-dependency
+Attached is a patch that implements that. As nothing changes when
+the build-profile isn't explicitly activiated, this should be a
+low-risc modification, but as I normally don't work on cdebconf, I
+would like to gather feedback from the regular uploaders (in CC)
+whether you see some reason to object to this change.
+The debdiff between a standard build and a build with the
+build-profile set is clean; the only difference with the
+build-profile enabled is that the gtk-related binary packages
+aren't built.
+If the patch is ok for you, I'll apply it to cdebconf git and
+upload a new version.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.
+>From acd6f9d3065137727e7c372c306cda67adfff9b9 Mon Sep 17 00:00:00 2001
+From: Karsten Merker <merker@debian.org>
+Date: Thu, 15 Mar 2018 20:10:33 +0000
+Subject: [PATCH] Add a pkg.cdebconf.nogtk build-profile.
+When the pkg.cdebconf.nogtk profile is set, the build-dependency on
+gtk and cairo gets removed and the cdebconf-gtk and cdebconf-gtk-udeb
+binary packages (which are the only ones actually depending on gtk
+and cairo) aren't built.  This is important when bootstrapping a new
+architecture as cdebconf is required for building the essential
+package set and a dependency on gtk and cairo pulls in an enormous
+list of transitive build-dependencies that are effectively impossible
+to fullfill in a bootstrap scenario.
+---
+ debian/control | 6 ++++--
+ debian/rules   | 8 ++++++++
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+diff --git a/debian/control b/debian/control
+index 1a194849..b87c0861 100644
+--- a/debian/control
++++ b/debian/control
+@@ -9,8 +9,8 @@ Build-Depends:
+  libtextwrap-dev (>= 0.1-5),
+  libdebian-installer4-dev (>= 0.41) | libdebian-installer-dev,
+  libglib2.0-dev (>= 2.31),
+- libgtk2.0-dev (>= 2.24),
+- libcairo2-dev (>= 1.8.10-3),
++ libgtk2.0-dev (>= 2.24) <!pkg.cdebconf.nogtk>,
++ libcairo2-dev (>= 1.8.10-3) <!pkg.cdebconf.nogtk>,
+  libselinux1-dev (>= 2.3) [linux-any] | libselinux-dev [linux-any],
+  dh-autoreconf,
+  dh-exec,
+@@ -42,6 +42,7 @@ Section: admin
+ Depends: cdebconf, ${shlibs:Depends}, ${misc:Depends}
+ Replaces: cdebconf (<< 0.144)
+ Priority: extra
++Build-Profiles: <!pkg.cdebconf.nogtk>
+ Description: Gtk+ frontend for Debian Configuration Management System
+  Debconf is a configuration management system for Debian packages. It is
+  used by some packages to prompt you for information before they are
+@@ -151,6 +152,7 @@ Architecture: any
+ Section: debian-installer
+ Depends: cdebconf-udeb, ${shlibs:Depends}, ${misc:Depends}, rootskel-gtk [!s390 !s390x]
+ Package-Type: udeb
++Build-Profiles: <!pkg.cdebconf.nogtk>
+ Description: Gtk+ frontend for Debian Configuration Management System
+  Debconf is a configuration management system for Debian packages. It is
+  used by some packages to prompt you for information before they are
+diff --git a/debian/rules b/debian/rules
+index b2b35f4d..8b85a7af 100755
+--- a/debian/rules
++++ b/debian/rules
+@@ -21,6 +21,11 @@ LIBDEBCONF=libdebconfclient0
+ DEB_FRONTENDS=passthrough text newt gtk
+ UDEB_FRONTENDS=passthrough text newt gtk
+ 
++ifneq ($(filter pkg.cdebconf.nogtk,$(DEB_BUILD_PROFILES)),)
++    DEB_FRONTENDS:=$(filter-out gtk,$(DEB_FRONTENDS))
++    UDEB_FRONTENDS:=$(filter-out gtk,$(UDEB_FRONTENDS))
++endif
++
+ ifeq ($(DEB_HOST_ARCH_OS),linux)
+     SELINUXFLAG=--enable-selinux
+ else
+@@ -128,6 +133,9 @@ binary-arch: install-arch
+ 	dh_installdocs -s
+ 	dh_installdebconf -s
+ 	dh_installdirs -s
++ifneq ($(filter pkg.cdebconf.nogtk,$(DEB_BUILD_PROFILES)),)
++	dh_install -plibdebconfclient0-dev src/modules/frontend/gtk/cdebconf_gtk.h usr/include/cdebconf/
++endif
+ 	dh_lintian -s
+ 	dh_strip -s
+ 	dh_compress -s
+-- 
+2.11.0

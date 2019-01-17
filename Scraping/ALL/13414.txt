@@ -1,0 +1,56 @@
+To : debian-devel@lists.debian.org
+Subject : Re: allowed uses of non-baseline CPU extensions
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 5 Oct 2017 09:12:05 +0100
+Message-id : 20171005081205.ajqukg2xwuv6rt4v@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl>
+References : <[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl>
+
+
+On Thu, 05 Oct 2017 at 03:52:56 +0200, Adam Borowski wrote:
+> The package in question, lepton, is a tool to losslessly recompress JPEG
+> files.  It does so faster if your CPU is equipped with SSE4.1, thus the
+> upstream build system hard-codes this requirement, even though it seems
+> that generic code paths are present, broken only by completely bogus
+> ifdeffage
+This is a reasonably common anti-pattern, although the non-SSE case is
+often some sort of Raspberry Pi detection rather than ppc.
+> if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc")
+> option(SSE_VECTORIZATION "SSE instructions" OFF)
+> else()
+> option(SSE_VECTORIZATION "SSE instructions" ON)
+> endif()
+This is clearly wrong, and ideally its maintainer would upstream a fixed
+version (even if upstream want to use SSE by default on x86, it should
+be a positive check for i?86 or x86_64 rather than a negative check for
+ppc); but a packager can also pass -DSSE_VECTORIZATION=OFF to cmake
+(most likely via dh_auto_configure) to force the issue. option() is
+cmake's equivalent of --enable-foo in Automake.
+> So, let's list packages that want non-baseline:
+> * multiple variants: package src:x provides x-unoptimized, x-sse3 and
+>   x-avx1048576.  Clearly legitimate and a good idea.
+For libraries this is perhaps better done via hwcaps
+(like /usr/lib/i386-linux-gnu/cmov/libfoo.so.0 being an i686 version of
+/usr/lib/i386-linux-gnu/libfoo.so.0 before the baseline moved to i686),
+although that doesn't solve anything for non-library executables.
+> * not supported by upstream: chromium:i386 on !sse2, rust:armhf on !neon
+>   (now fixed).  Not a good thing but a maintainer often lacks resources
+>   to implement this h{im,er}self.
+FWIW, I maintain ioquake3/openarena, and would be happy to turn off
+-maltivec on powerpc(spe) if someone told me that the result actually
+worked (it has a JIT, and I don't know PowerPC asm, so for all I know it
+might genuinely require Altivec). Given that nobody has sent that test
+result yet, I've concluded that this is a bug that affects powerpcspe
+buildd operators, but no actual users. Upstream has enabled -maltivec
+on powerpc unconditionally since 2005.
+(There is now an upstream bug report about this, so it does affect at
+least one user; but that user seems to be unwilling to test patches
+that don't mix up several unrelated changes or be clear about what they
+have tested, so it's slow going.)
+I think this is perhaps a reasonable compromise: consider non-baseline
+CPU requirements to be a bug, and be willing to drop down to baseline
+CPU requirements if the result can be tested (if the bug affects a real
+user, then that user is an ideal person to test it), but be prepared to
+leave the bug unfixed if it's a purely theoretical issue?
+Regards,
+    smcv

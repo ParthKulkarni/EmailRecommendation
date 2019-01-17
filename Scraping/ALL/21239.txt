@@ -1,0 +1,36 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: e2fsprogs as Essential: yes?:  Maybe we should be separating l10n files first?
+From : Theodore Ts'o <tytso@mit.edu>
+Date : Wed, 3 Jan 2018 17:56:52 -0500
+Message-id : 20180103225652.GB23421@thunk.org
+In-reply-to : <[🔎] 20180103201338.GA10151@perpetual.pseudorandom.co.uk>
+References : <1506942621.8204.25.camel@debian.org> <20171002113446.kazrk37bizfva7qe@angband.pl> <20171112191845.33rikhh3pay5fyot@thunk.org> <20171113142831.cleko3t7gkf6eeub@alf.mars> <20171113165946.wkwggt4ieeue5cvb@thunk.org> <20171113193508.ool6rpccmwgu2u6w@alf.mars> <[🔎] 20180101215145.GB2532@thunk.org> <[🔎] 20180101234219.GA26669@perpetual.pseudorandom.co.uk> <[🔎] 20180103174045.GA23421@thunk.org> <[🔎] 20180103201338.GA10151@perpetual.pseudorandom.co.uk>
+
+
+On Wed, Jan 03, 2018 at 08:16:35PM +0000, Simon McVittie wrote:
+> > Has there been any thought about having the build
+> > profiles framework support for having the rules file autoselect a
+> > build profile based on the build environment?
+> 
+> I suspect that might be a "considered and rejected" sort of thing,
+> because toolchain maintainers want the same command to always do more
+> or less the same thing. If you want some automation for enabling special
+> build profiles, I'd suggest wrapping it around the outside instead.
+> That also means it's allowed to edit debian/control if it needs to.
+Actually, after doing some experimentation, I was able to make this
+work.  From the debian/rules file:
+USE_DBGSYM ?= $(shell if dpkg --compare-versions $(DH_VERSION) ">=" 9.20160114 ; then echo yes ; fi)
+ifeq ($(USE_DBGSYM),yes)
+dh_strip_args = -p$(1) --dbgsym-migration='$(1)-dbg (<= 1.43-1)'
+dh_strip_args2 = -p$(1) --dbgsym-migration='$(2)-dbg (<= 1.43-1)'
+else
+dh_strip_args = -p$(1) --dbg-package=$(1)-dbg
+dh_strip_args2 = -p$(1) --dbg-package=$(2)-dbg
+DBG_PACKAGES += -pe2fsprogs-dbg -pe2fslibs-dbg -plibcomerr2-dbg -plibss2-dbg
+export DEB_BUILD_PROFILES += pkg.e2fsprogs.legacy-dbg
+endif
+Which is actually cool, because it means you can do an "apt-get source
+e2fsprogs", "schroot -c jessie-amd64", and then run "dpkg-buildpackage
+-us -uc --changes-option=-S" and have the right thing happen
+automagically.
+						- Ted

@@ -1,0 +1,96 @@
+To : Debian Developers <debian-devel@lists.debian.org>
+Subject : Re: get-orig-source and standardized source repacking (was: Debian Policy 4.1.4.0 released)
+From : Andreas Tille <andreas@an3as.eu>
+Date : Fri, 6 Jul 2018 08:16:12 +0200
+Message-id : 20180706061612.ftxduzd6xpeq35tp@an3as.eu
+In-reply-to : <[🔎] 87in5ta7yu.fsf_-_@hope.eyrie.org>
+References : <20090218004450.GA11973@alf.mars> <87zi29ct2v.fsf@iris.silentflame.com> <[🔎] 20180702205725.GD10248@aiede.svl.corp.google.com> <[🔎] 87tvphbapl.fsf@zephyr.silentflame.com> <[🔎] 20180702212836.GH10248@aiede.svl.corp.google.com> <[🔎] 87tvpg8zjo.fsf@zephyr.silentflame.com> <[🔎] 20180703113549.xtrdymxfeezll27o@an3as.eu> <[🔎] 87fu0y7kw3.fsf@zephyr.silentflame.com> <[🔎] 20180705055706.b3byqxjyptbs6xln@an3as.eu> <[🔎] 87in5ta7yu.fsf_-_@hope.eyrie.org>
+
+
+Hi Russ,
+On Thu, Jul 05, 2018 at 10:49:29AM -0700, Russ Allbery wrote:
+> Andreas Tille <andreas@fam-tille.de> writes:
+> 
+> > My main point is that README.source is just text and no code that I can
+> > run and test.  That's different from my proposal.
+> 
+> I can definitely see the merits of clear automation the process of
+> transforming an upstream release into a tarball usable for Debian
+> packaging (with the caveat that like all packaging it may require
+> modification for a new upstream release).
+> 
+> get-orig-source was not that, partly because it was originally
+> underspecified and partly because people used it inconsistently to solve
+> two subtlely but significantly different problems (as Bill pointed out).
+ACK.
+> As a result, the get-orig-source targets in the archive are a mixed bag
+> and are not reliably (or, and I think this is important, testably) usable
+> for that purpose.
+> 
+> Reintroducing the same target with the same name but with a stricter
+> definition would almost certainly make a bunch of those packages buggy.
+Probably.
+> I'm dubious that it's worth disrupting whatever local workflow that they
+> already have around get-orig-source by asking them to rename that target
+> if it doesn't match with new semantics.  That doesn't mean it's a bad idea
+> to have what you're asking for with clear semantics.  However, I think the
+> best way forward is to have that be something new that has clear semantics
+> from the start.
+> 
+> For example, I think one promising way to look at this problem is to
+> define a way to transform a given upstream tarball into its corresponding
+> Debian source tarball, and then one can test that downloading the upstream
+> release corresponding to the current Debian source tarball and running
+> that process on it produces an equivalent tarball to the one used in
+> current Debian packaging.  This is *not* what at least the get-orig-source
+> targets I am familiar with did.
+Your proposal is in the line with what I'm imagining and I agree that it
+is more than the old get-orig-source target.
+ 
+> I think the way to move forward with that is to write a specification that
+> clearly defines its scope and addresses the ambiguities discussed in the
+> original get-orig-source bug report, probably under some new name so that
+> we don't have the problem of making existing packages buggy and so that
+> it's clear whether packages are complying with the new specification as
+> opposed to inheriting some pre-specification get-orig-source target.  We
+> can certainly then look at that for inclusion in Policy, although I think
+> it would be worth field-testing with a variety of packages first to make
+> sure a clearer specification is useful.  There are a bunch of nasty edge
+> cases in this general problem, and while the specification doesn't need to
+> deal with all of them, it should be much clearer than get-orig-source was
+> about where it's declining to try to handle the problem and where
+> documentation for humans about the process should go (presumably
+> README.source).
+Fine for me.  I admit I do not insist on the name of the target.  I try
+to review all my packages until Buster freeze what get-orig-source
+targets I can replace by uscan git mode (probably 50%).  Just yesterday
+I had an example where the upstream download archive is lacking some
+files from upstream SVN which need to be merged in to enable building
+the software[1].  I admit the task to approach two things
+   1. Recreate the existing upstream release
+   2. Fetch the latest upstream release
+is quite hard in theory with this (in practice its easy since upstream
+has not released anything for years).  So yes, field tests are needed
+and I volunteer to take part in this.
+ 
+> Personally (although this certainly isn't a requirement), I think this
+> should build on the work that uscan is already doing and should probably
+> come in the form of uscan configuration or supporting scripts that uscan
+> would run automatically, to try to reduce tool proliferation and build on
+> the tool that's already solving 95% of this problem.  (Or, alternatively,
+> a lower-level tool that uscan itself, as well as other tools like dgit,
+> can use, and that borrows from the work uscan has already done.)
+I fully share your view that the optimal situation would be if uscan
+would be some kind of wrapper around whatever code would be needed to
+create the source tarball.  Since I share this view I once started to
+hack Files-Excluded into uscan and I'm very happy about the git mode.
+In other words: If we could get some kind of "ultra-flexible" uscan the
+sense of the get-orig-source replacement as discussed above would be
+completely fullfilled and that would be an optimal outcome of the
+situation I was not so happy about that get-orig-source was droped from
+policy.
+Kind regards
+      Andreas.
+[1] https://salsa.debian.org/med-team/brig/blob/master/debian/get-orig-source 
+-- 
+http://fam-tille.de

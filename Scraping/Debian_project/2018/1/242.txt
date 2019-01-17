@@ -1,0 +1,86 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#886238: marked as done (Please introduce official nosystemd build profile)
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sun, 7 Jan 2018 00:24:49 +0100
+Message-id : 20180106232449.duxwp5qold4nnuqj@angband.pl
+In-reply-to : <[🔎] handler.886238.D886238.15151494274319.ackdone@bugs.debian.org>
+References : <20180105105023.r2xpt2ixtoqfamo5@shell.thinkmo.de> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] handler.886238.D886238.15151494274319.ackdone@bugs.debian.org>
+
+
+On Fri, Jan 05, 2018 at 10:51:08AM +0000, Debian Bug Tracking System wrote:
+> On Wed, Jan 03, 2018 at 03:12:51PM +0300, Hleb Valoshka wrote:
+> > Please introduce official nosystemd build profile so downstream
+> > distributions can send patches to package maintainers with
+> > systemd-less build instead of keep them in home.
+> 
+> As you have been already told by several people, Debian supports
+> systemd-less systems.
+Server loads yes.  Anything GUI (beyond last-millenium stuff like fvwm)? 
+Nope.  You can find hard dependencies on systemd from core packages of all
+desktop environments; requests for fixing those dependencies have been
+repeatedly ignored.  It takes just a single maintainer to add such a
+dependency and stick with it.
+And I for one did such a profile rebuild, exactly as Hleb is asking for.
+> If you find bugs running in this mode, please file bug reports.
+After enough of such bugs were closed with angry messages (even when
+accompanied by tested patches), no one bothers filing new ones anymore.
+Especially -shim is a bad joke, even an equivs dummy package seems to work
+better (although for basic functionality like suspend or shutdown, you need
+to recompile against consolekit -- which is not that good either).
+d-i is another place where installing a non-systemd system is pretty hard
+for most users, with patches fixing obvious bugs (such as --exclude
+not working as documented) rotting in the BTS.
+But, not everyone is as hostile as you.  Looks like we have a plan that
+might lead to making logind-depending packages work well without systemd
+again.
+Being no tuits factory, I've done only mechanical preparatory work so far
+(unfit for use yet packages: deb https://angband.pl/debian logind main,
+so you can't accuse me of only talk no action).  Unfortunately, I got a pile
+of responses to FTBFS bugs I filed for an armhf archive rebuild that would
+be extremely rude to keep waiting any longer, only after that is dealt with
+I'll be able to do more.
+WIP elogind packages have surfaced recently, I haven't taken a look yet.
+Also, someone else is evaluating CK2.
+> Apart from that, I don't see that you managed to describe what a
+> "nosystemd" profile would actually do.  This would be the least we would
+> need from such a bug report.
+This is why we're having this thread: people have already pointed out that
+avoiding libsystemd0 is a waste of time.  Worthy idea would be to take a
+subset of profile builds some of us have already done, and implement them
+inside Debian proper using that fancy new "profile build" syntax.
+But, Simon McVittie proposed something better.  As the effort is supposed
+to be done by those asking for the change, sounds like time for talk is over
+for now[1].  Once the work is done, we'll come back, either presenting
+patches or discussing an alternative.
+> However what I see is, that you and others instead of actually engaging
+> in discussions just referred to personal attacks.  I and others consider
+> this unacceptable behaviour on our technical mailing lists and our bug
+> tracker.  Please be adviced that I will ask both the BTS owner and the
+> list masters to block you from ever posting again if this behaviour
+> continues.
+You mean, like MikeeUSA references?  Note that he also trolled LKML in the
+very same way about grsecurity.  Thus, according to your logic any
+grsecurity haters including Linus have no place on LKML and should be
+blocked, as they expressed the same opinion as MikeeUSA.
+> As I don't think anything new will come up, I'm closing this bug report.
+> Don't reopen it, this might just expedite your fate.
+It's sad to see suggestions that would fix the problem (such as the build
+profile) see such a response.
+I'll see if the alternate solution will be enough, but if even some packages
+would still benefit from a profile build (pretty likely), I'll reopen this
+bug myself -- as having a common profile name would allow a mechanical
+rebuild.  Please ban me from the BTS then.
+Meow!
+[1]. Some details are worth talking about already, like apt reacting badly
+to schemes like:
+a-addon Depends: a
+b-addon Depends: b
+c Depends: a-addon | b-addon
+User has b installed, wants c -- yet apt insists on replacing b with a.
+We need a way to tell apt that b-addon is the better solution.
+But installation troubles are orthogonal to the packages actually working.
+-- 
+// If you believe in so-called "intellectual property", please immediately
+// cease using counterfeit alphabets.  Instead, contact the nearest temple
+// of Amon, whose priests will provide you with scribal services for all
+// your writing needs, for Reasonable And Non-Discriminatory prices.

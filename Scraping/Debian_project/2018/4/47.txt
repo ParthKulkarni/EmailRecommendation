@@ -1,0 +1,45 @@
+To : Clément Hermann <nodens@nodens.org>
+Subject : Re: Upcoming shift to Ayatana (App)Indicator(s)
+From : Mike Gabriel <sunweaver@debian.org>
+Date : Fri, 06 Apr 2018 20:45:13 +0000
+Message-id : 20180406204513.Horde.wdkpe4xzjcZApKPb1wsVD2L@mail.das-netzwerkteam.de
+In-reply-to : <[🔎] 173aa868-363b-236a-edda-5a3ca0f65457@nodens.org>
+References : <20180329131154.Horde.0dm6UHwcZhy-QIAuhtXdI2n@mail.das-netzwerkteam.de> <[🔎] 173aa868-363b-236a-edda-5a3ca0f65457@nodens.org>
+
+
+HI Clément,
+On  Fr 06 Apr 2018 16:14:36 CEST, Clément Hermann wrote:
+There is no direct Perl module, but the libayatana-appindicator shared  
+lib has gir1.2-ayatanaappindicator-0.1. So you should be good when  
+using GIO in Perl, if you are on GTK3 already. (The  
+perl-Gtk2-Appindicator module has indeed been recently removed from  
+Debian to discourage work on appindicator based on GTK2).
+Yes. With GTK3 you would implement the Xembed based systray icon with  
+GtkStatusIcon and attach a GtkMenu to that.
+With AppIndicator, you will use the API provided by  
+libayatana-appindicator for creating your systray icon. For now, we  
+have to use Ubuntu's docs (it is on my todo list to port the  
+implementation examples over to the Ayatana Indicators' web site) [1].  
+Unfortunately, the porting guide has no Perl example, but with GIO  
+this should be easily transferable from e.g. Python code examples.
+If you want to provide support for GtkStatusIcon and Ayatana  
+AppIndicator, you may want to study the transmission-gtk code [2]  
+(written in C, though).
+You could also drop the GtkStatusIcon based implementation entirely  
+and fully switch over to Ayatana AppIndicator. When doing that, you  
+loose the right-click menu (I must re-check that, if that is really  
+fully true). On desktops that don't provide the StatusNotifierItem  
+interface, your application will fallback to Xembed.
+Staying with Xembed-only support is IMHO not recommendable, because  
+e.g. GNOME (and derivatives) are continuously discussing the removal  
+of Xembed support in their desktop env.
+[1]  
+https://wiki.ubuntu.com/DesktopExperienceTeam/ApplicationIndicators#Porting_Guide_for_Applications
+pgpS1Eji0us1F.pgp
+[2] https://sources.debian.org/src/transmission/2.92-3/gtk/tr-icon.c/#L138
+--
+mike gabriel aka sunweaver (Debian Developer)
+mobile: +49 (1520) 1976 148
+landline: +49 (4354) 8390 139
+GnuPG Fingerprint: 9BFB AEE8 6C0A A5FF BF22  0782 9AF4 6B30 2577 1B31
+mail: sunweaver@debian.org, http://sunweavers.net

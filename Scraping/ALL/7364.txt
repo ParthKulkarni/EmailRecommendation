@@ -1,0 +1,44 @@
+To : 893154@bugs.debian.org
+Subject : Bug#893154: #893154: installation-reports: pine64+ difficult install
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Fri, 16 Mar 2018 16:02:42 -0700
+Message-id : 87sh8zipyl.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 893154@bugs.debian.org
+In-reply-to : <[🔎] 87woybirhr.fsf@aikidev.net>
+References : <[🔎] 87woybirhr.fsf@aikidev.net> <[🔎] 87woybirhr.fsf@aikidev.net>
+
+
+On 2018-03-16, Vagrant Cascadian wrote:
+> I'm looking into enabling EFI emulation in u-boot to allow this
+> part to "just work" with the current grub-EFI images.
+I built a new version of u-boot with EFI emulation support enabled, and
+successfully booted the mini.iso, but still have the problems with
+missing modules in the installer. These modules were insufficient to get
+the USB network adapter to work:
+# lsmod
+Module                  Size  Used by
+ohci_platform          16384  0
+ohci_hcd               61440  1 ohci_platform
+ehci_platform          16384  0
+ehci_hcd               90112  1 ehci_platform
+dwmac_sun8i            20480  0
+mdio_mux               16384  1 dwmac_sun8i
+stmmac_platform        20480  1 dwmac_sun8i
+usbcore               274432  4
+ehci_hcd,ohci_hcd,ehci_platform,ohci_platform
+stmmac                131072  2 stmmac_platform,dwmac_sun8i
+ptp                    24576  1 stmmac
+pps_core               20480  1 ptp
+of_mdio                16384  3 stmmac,mdio_mux,stmmac_platform
+fixed_phy              16384  1 of_mdio
+fixed                  16384  1
+libphy                 65536  4 of_mdio,stmmac,mdio_mux,fixed_phy
+sunxi_mmc              28672  0
+That could be compared against the list from the initial report to see
+if anything obvious is missing.
+Interestingly enough, the microSD is detected; there must be differences
+in the device-tree that u-boot loads when doing EFI emulation and the
+one provided with the kernel package.
+live well,
+  vagrant
+signature.asc

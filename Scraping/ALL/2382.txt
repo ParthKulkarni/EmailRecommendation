@@ -1,0 +1,45 @@
+To : submit@bugs.debian.org
+Subject : Bug#882175: busybox: out-of-bounds read in get_header_ar()
+From : Jakub Wilk <jwilk@jwilk.net>
+Date : Sun, 19 Nov 2017 22:30:27 +0100
+Message-id : 20171119213027.d6mw5ykhlwlkfvx4@jwilk.net
+Reply-to : Jakub Wilk <jwilk@jwilk.net>, 882175@bugs.debian.org
+
+
+Package: busybox
+Version: 1:1.27.2-1
+Apparently an out-of-bounds read can happen when unpacking ar archives:
+  $ valgrind -q -- busybox ar p oob.ar > /dev/null
+  ==2180== Invalid read of size 1
+  ==2180==    at 0x4831403: __GI_strlen (in /usr/lib/valgrind/vgpreload_memcheck-x86-linux.so)
+  ==2180==    by 0x48B9F5A: strdup (strdup.c:41)
+  ==2180==    by 0x1108BC: xstrdup (xfuncs_printf.c:81)
+  ==2180==    by 0x15C560: get_header_ar (get_header_ar.c:116)
+  ==2180==    by 0x15C26F: unpack_ar_archive (unpack_ar_archive.c:20)
+  ==2180==    by 0x14D956: ar_main (ar.c:291)
+  ==2180==    by 0x10F788: run_applet_no_and_exit (appletlib.c:916)
+  ==2180==    by 0x10FA50: run_applet_and_exit (appletlib.c:934)
+  ==2180==    by 0x10FA38: busybox_main (appletlib.c:875)
+  ==2180==    by 0x10FA38: run_applet_and_exit (appletlib.c:927)
+  ==2180==    by 0x10FADC: main (appletlib.c:1032)
+  ==2180==  Address 0x4a0715c is 0 bytes after a block of size 4 alloc'd
+  ==2180==    at 0x482E2BC: malloc (in /usr/lib/valgrind/vgpreload_memcheck-x86-linux.so)
+  ==2180==    by 0x110847: xmalloc (xfuncs_printf.c:47)
+  ==2180==    by 0x15C4A0: get_header_ar (get_header_ar.c:86)
+  ==2180==    by 0x15C26F: unpack_ar_archive (unpack_ar_archive.c:20)
+  ==2180==    by 0x14D956: ar_main (ar.c:291)
+  ==2180==    by 0x10F788: run_applet_no_and_exit (appletlib.c:916)
+  ==2180==    by 0x10FA50: run_applet_and_exit (appletlib.c:934)
+  ==2180==    by 0x10FA38: busybox_main (appletlib.c:875)
+  ==2180==    by 0x10FA38: run_applet_and_exit (appletlib.c:927)
+  ==2180==    by 0x10FADC: main (appletlib.c:1032)
+  ...
+Found using American Fuzzy Lop:
+http://lcamtuf.coredump.cx/afl/
+-- System Information:
+Architecture: i386
+Versions of packages busybox depends on:
+ii  libc6  2.25-1
+--
+Jakub Wilk
+oob.ar

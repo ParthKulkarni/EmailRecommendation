@@ -1,0 +1,102 @@
+To : debian-devel@lists.debian.org
+Subject : Re: New: "cme run paste-license script" (was: Re: pasting license text into debian/copyright)
+From : Dominique Dumont <dod@debian.org>
+Date : Sun, 22 Oct 2017 19:39:10 +0200
+Message-id : 3199922.lr77kXRtHv@ylum
+Reply-to : dod@debian.org
+In-reply-to : <[🔎] 20171022101029.n4v2vipxabbdszve@an3as.eu>
+References : <alpine.DEB.2.02.1709161746380.9827@jupiter.server.alteholz.net> <[🔎] 47149275.V9tmqDmZUZ@ylum> <[🔎] 20171022101029.n4v2vipxabbdszve@an3as.eu>
+
+
+On Sunday, 22 October 2017 12:10:29 CEST Andreas Tille wrote:
+> > without the matching section in Licenses (the one you trying to add). cme
+> > emits a warning when reading a copyright file with this error. This value
+> > is ignored because of this error.
+> 
+> Sorry, I do not understand.  I the string CeCILL (with capital I) is in the
+> main license section.  Could you please be more verbose how d/copyright
+> needs to look like to make cme add the license text?
+Uh ? From a fresh git clone of beads, cat debian/copyright shows:
++++++
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: BEADS
+Upstream-Contact: Olivier Langella <olivier.langella@moulon.inra.fr>
+Source: http://pappso.inra.fr/bioinfo/beads/index.php
+Files-Excluded: */CImg.h
+Files: *
+Copyright: 2008-2010 Michel Zivy <zivy@moulon.inra.fr>, Olivier Langella 
+<olivier.langella@moulon.inra.fr>
+License: CeCILL    
+Files: debian/*
+Copyright: Andreas Tille <tille@debian.org>
+License: CeCILL
+++++
+There's no main CeCILL section.
+And cme complains:
+$ cme check dpkg-copyright 
+cme: using Dpkg::Copyright model
+loading data
+Configuration item 'Files:"*" License short_name' has a wrong value:
+        license 'CeCILL' is not declared in main License section. Expected
+Admitedly, the error message is lackluster when main License section is empty. 
+This will be fixed.
+> > > Warning: Files:"debian/*" License short_name skipping value CeCILL
+> > > because
+> > > of the following errors: license 'CeCILL' is not declared in main
+> > > License
+> > > section. Expected
+> > 
+> > Likewise.
+> 
+> Likewise I fail to understand. ;-)
+Duh ;-)
+> Yes please.  I'd be really happy if you could push a d/copyright that is
+> correctly formed to let cme work.
+I hope that won't be necessary. See below.
+> I redirected simply for this mail here ...
+Fair enough.
+> > err. it never occurred to me that someone could feed cme output to patch
+> > ....
+> Yes, I had this clue only since the first column '+' is a feature
+> frequently used in patch.  Just a wild guess of mine.
+It's just that cme uses a diff to show the delta between old and new value. 
+It's not supposed to be used as a patch. May be I should just display a 
+"changed" message when summarising the changes applied to a text parameter.
+> > cme should write debian/copyright provided no error is left.
+> 
+> That's what I'd prefer.
+So we have a common goal :)
+> I admit I do not really like that GUI.
+I'm open to idea on how to improve the GUI while keeping it generic for the 
+other models supported by cme (e.g ssh systemd itself ...)
+> $ cme modify dpkg-copyright -force 'License:CeCILL text=.file(COPYING) !
+> Files:"*" License short_name=CeCILL Files:"debian/*" License
+> short_name=CeCILL' cme: using Dpkg::Copyright model
+> Warning: Files:"*" License short_name skipping value CeCILL because of the
+> following errors: license 'CeCILL' is not declared in main License section.
+[snip]
+> Hmmm, sorry, no change to d/copyright.
+Sorry, my bad. I dropped a '!' during cut'n'paste. 
+Here's the right command tested on beads repo:
+$ cme modify dpkg-copyright -force 'License:CeCILL text=.file(COPYING) ! 
+Files:"*" License short_name=CeCILL ! Files:"debian/*" License 
+short_name=CeCILL'
+[ snip ]
+$ git diff --stat
+ debian/copyright | 508 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 507 insertions(+), 1 deletion(-)
+> No, sorry, I seem I totally fail to understand.  Why exactly can't cme
+> simply copy the text that is specified as CeCILL into my copyright?
+It did so, but refused to write the output due to errors.
+> Sorry for my probably very naive questions but obviously I do not
+> understand the philosphy behind.
+No problem. cme tries to address a very complicated problem and can be 
+confusing when dealing with corner cases. 
+Thanks for your patience and questions. This is invaluable to improve the 
+usability of cme. :-)
+All the best
+Dod
+-- 
+ https://github.com/dod38fr/   -o- http://search.cpan.org/~ddumont/
+http://ddumont.wordpress.com/  -o-   irc: dod at irc.debian.org

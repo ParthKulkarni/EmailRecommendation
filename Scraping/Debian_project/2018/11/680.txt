@@ -1,0 +1,47 @@
+To : debian-devel@lists.debian.org
+Subject : Re: wxWidgets GTK+ 3 build available
+From : Olly Betts <olly@survex.com>
+Date : Sun, 25 Nov 2018 19:41:57 +0000
+Message-id : 20181125194157.rser6kbpjz6ua5tr@survex.com
+In-reply-to : <[🔎] 20181125152636.GA9257@espresso.pseudorandom.co.uk>
+References : <[🔎] alpine.DEB.2.21.1811241941300.10110@bear.techie.net> <[🔎] 20181125152636.GA9257@espresso.pseudorandom.co.uk>
+
+
+On Sun, Nov 25, 2018 at 03:26:36PM +0000, Simon McVittie wrote:
+> On Sat, 24 Nov 2018 at 20:31:03 -0500, Scott Talbert wrote:
+> > 2) If your package uses wxGLCanvas, it won't work under Wayland.  This is
+> > due to wxGLCanvas (currently) requiring X11 to function.  This can be worked
+> > around by forcing the GDK backend to X11.  Here's one example of how this
+> > has been done: [1]
+> 
+> If there's already a wrapper shell script or something,
+> setting GDK_BACKEND=x11 is OK; but I think the
+> preferred way to force the use of X11 even in a Wayland
+> environment is to make the C/C++/Python/etc. code call
+> gdk_set_allowed_backends("x11"), available since GTK+ 3.10 (for example
+> https://github.com/vim/vim/commit/f80663f17b2f2499b45eb4467088704c8298c385
+> does this).
+That's sensible for gvim since it's using the GTK+ and GDK libraries
+directly.
+However applications using wxWidgets don't usually link to the GDK
+library directly, and so patching them to call
+gdk_set_allowed_backends("x11") would need wider changes than using
+setenv() does.
+Patching wxWidgets itself to call gdk_set_allowed_backends("x11") seems
+undesirable because we'd have to do it unconditionally because we can't
+tell if wxGLCanvas will be used or not at the point where we need to set
+it if it is.  In other words, we'd have to force all wxWidgets-using
+applications to use the x11 backend.
+(There is a wxGLApp class which it might be possible to hook this up to,
+but it's not covered in the wxWidgets API docs and so almost nothing
+actually uses it).
+> In particular please note that setenv() and g_setenv() are not safe
+> to call from multi-threaded code[1] so any calls to [g_]setenv() must
+> usually happen as early as possible in main(), before calling into
+> libraries that might create another thread.
+Applications using wxWidgets don't usually link to glib either, so
+setenv() >> g_setenv() for this purpose.
+You'd want to set this as early as possible anyway since it needs to
+happen before any wxWidgets GUI initialisation happens.
+Cheers,
+    Olly

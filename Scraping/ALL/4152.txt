@@ -1,0 +1,65 @@
+To : Cyril Brulebois <kibi@debian.org>, 879662@bugs.debian.org
+Subject : Re: Bug#879662: apt: debian-installer FTBFS: E: Method copy has died unexpectedly!
+From : Julian Andres Klode <jak@debian.org>
+Date : Tue, 24 Oct 2017 10:34:06 +0200
+Message-id : 20171024102709.GA4355@debian.org
+Mail-followup-to : Julian Andres Klode <jak@debian.org>,	Cyril Brulebois <kibi@debian.org>, 879662@bugs.debian.org,	debian-boot@lists.debian.org
+In-reply-to : <[🔎] 150882413228.12861.10957321933333575863.reportbug@armor.home>
+References : <[🔎] 150882413228.12861.10957321933333575863.reportbug@armor.home>
+
+
+On Tue, Oct 24, 2017 at 07:48:52AM +0200, Cyril Brulebois wrote:
+> Package: apt
+> Version: 1.4.8
+I assume you mean 1.6~alpha1? Because that's what the error
+seems to indicate.
+> Severity: serious
+> Tags: d-i
+> Justification: FTBFS
+> 
+> [ Please keep both debian-boot@ and me in copy. ]
+> 
+> It seems the “most secure file downloading on the planet” can no longer
+> copy files around:
+> | get-packages udeb  
+> | make[5]: 'sources.list.udeb' is up to date.
+> | Ign:1 copy:/home/kibi/debian-installer/installer/build localudebs/ InRelease
+> | Ign:2 copy:/home/kibi/debian-installer/installer/build localudebs/ Release
+> | Ign:3 copy:/home/kibi/debian-installer/installer/build localudebs/ Packages
+> | Ign:4 copy:/home/kibi/debian-installer/installer/build localudebs/ Translation-en
+> | Ign:5 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (deb)
+> | Ign:6 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (deb)
+> | Ign:7 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (udeb)
+> | Get:8 http://localhost/debian unstable InRelease [235 kB]
+> | Ign:9 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (udeb)
+> | Ign:3 copy:/home/kibi/debian-installer/installer/build localudebs/ Packages
+> | Ign:4 copy:/home/kibi/debian-installer/installer/build localudebs/ Translation-en
+> | Ign:5 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (deb)
+> | Ign:6 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (deb)
+> | Ign:7 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (udeb)
+> | Ign:9 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (udeb)
+> | Ign:3 copy:/home/kibi/debian-installer/installer/build localudebs/ Packages
+> | Ign:4 copy:/home/kibi/debian-installer/installer/build localudebs/ Translation-en
+> | Ign:5 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (deb)
+> | Ign:6 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (deb)
+> | Ign:7 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (udeb)
+> | Ign:9 copy:/home/kibi/debian-installer/installer/build localudebs/ Contents (udeb)
+> | Reading package lists...
+> | E: Method copy has died unexpectedly!
+> | E: Sub-process copy received signal 31.
+> 
+> Error reporting is a bit underwhelming. :(
+It says SIGSYS, which means a system call trapped by seccomp. Can you get a coredump
+and run gdb on it and get me a backtrace :) Or guess from the lists:
+https://people.debian.org/~jak/syscalls-allowed.txt
+https://people.debian.org/~jak/syscalls-trapped.txt (all syscalls I found - first list)
+Or play with the settings in the NEWS file,
+	APT::Sandbox::Seccomp "false"; to disable it
+	APT::Sandbox::Seccomp::Allow { "syscall1"; "syscall2"; }; to allow more syscalls by name
+I was wondering if we could install a SIGSYS signal handler to print
+which syscall was blocked, but did not find anything yet.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

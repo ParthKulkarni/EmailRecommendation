@@ -1,0 +1,26 @@
+To : debian-devel@lists.debian.org
+Subject : library package with conffile and SONAME?
+From : Philipp Hahn <pmhahn@pmhahn.de>
+Date : Thu, 15 Mar 2018 13:55:26 +0100
+Message-id : ce77ab0d-c4a3-5681-8dbb-69aae8d97633@pmhahn.de
+
+
+Hello,
+some library packages like "libtirpc1" (just my example here) contain a
+conffile like "/etc/netconfig". Naturally they must conflict with their
+successor "libtirpc3" as they contain the same file name. Currently it
+does not: <https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=884029>
+1. Either I could add the "Conflicts: libtirpc1" but that would render
+the rename of the package following the SONAME change useless as they
+will never be co-installed anyway then.
+2. Or I could add a "Replaces: libtirpc1 (<< 0.2.5-1.2)" to silence dpkg
+and allow libtirpc3 to overwrite that with which still has the same
+format and content. This has the drawback that anyone later on
+installing 1 after 3 will get the error from dpkg as 1 is not allowed to
+replace the file from 3.
+3. And/or I can create an additional package "libtirpc-common" to just
+contain that single conffile and make "libtirpc[13]" both depend on it.
+This last option is AFAIK frowned upon as it creates yet another package
+for a single file.
+So whats the current best practice?
+Philipp

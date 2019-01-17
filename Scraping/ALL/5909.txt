@@ -1,0 +1,91 @@
+To : 897379@bugs.debian.org
+Subject : Bug#897379: #897379 debootstrap : debian-common path if DEBOOTSTRAP_DIR in use
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Thu, 7 Jun 2018 22:37:13 +0200
+Message-id : 20180607203713.GA1868@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 897379@bugs.debian.org
+References : <20180501174636.GA2924@debirf-dominicain>
+
+
+Control: reopen 897379
+Hi,
+Unfortunately, the patch broke one (admittedly unusual) use case (debootstrap is not installed as a deb package
+on the system) :
+# DEBOOTSTRAP_DIR=debootstrap-1.0.101/ debootstrap-1.0.101/debootstrap --foreign sid mychroot-101
+[ ... ]
+I: Extracting zlib1g...
+# echo $?
+0
+# DEBOOTSTRAP_DIR=./mychroot-101/debootstrap debootstrap-1.0.101/debootstrap --second-stage --second-stage-target=./mychroot-101
+E: File not found: debian-common
+# echo $?
+1
+(This use case proved useful once to work around a bug in fakechroot not willing to chroot twice)
+It worked with older versions of debootstrap : 
+# DEBOOTSTRAP_DIR=debootstrap-1.0.89/ debootstrap-1.0.89/debootstrap --foreign sid mychroot-89
+[ ... ]
+I: Extracting zlib1g...
+# echo $?
+0
+# DEBOOTSTRAP_DIR=./mychroot-89/debootstrap debootstrap-1.0.89/debootstrap --second-stage --second-stage-target=./mychroot-89
+[ ... ]
+I: Base system installed successfully.
+# echo $?
+0
+# umount mychroot-89/proc
+# umount mychroot-89/sys
+debootstrap version 1.0.101 invoked as above succeeds with the patch below applied :
+[ ... ]
+I: Base system installed successfully.
+# echo $?
+0
+# umount mychroot-101/etc/machine-id
+I tested in qemu emulation too the stretch debian-installer (netboot, amd64)
+with debootstrap version 1.0.101 patched as below. The installation
+finished successfully.
+(DEBOOTSTRAP_DIR if void is set in /usr/sbin/debootstrap line 15)
+Thank you for your work on debootstrap !
+Regards,
+JH Chatenet
+diff -Naur debootstrap-1.0.101/scripts/etch debootstrap-1.0.101/scripts/etch
+--- debootstrap-1.0.101/scripts/etch
++++ debootstrap-1.0.101/scripts/etch
+@@ -9,8 +9,8 @@
+ # include common settings
+ if [ -e "$DEBOOTSTRAP_DIR/scripts/debian-common" ]; then
+  . "$DEBOOTSTRAP_DIR/scripts/debian-common"
+-elif [ -e /debootstrap/debian-common ]; then
+- . /debootstrap/debian-common
++elif [ -e "$DEBOOTSTRAP_DIR/debian-common" ]; then
++ . "$DEBOOTSTRAP_DIR/debian-common"
+ else
+  error 1 NOCOMMON "File not found: debian-common"
+ fi
+diff -Naur debootstrap-1.0.101/scripts/kali debootstrap-1.0.101/scripts/kali
+--- debootstrap-1.0.101/scripts/kali
++++ debootstrap-1.0.101/scripts/kali
+@@ -8,8 +8,8 @@
+ # include common settings
+ if [ -e "$DEBOOTSTRAP_DIR/scripts/debian-common" ]; then
+  . "$DEBOOTSTRAP_DIR/scripts/debian-common"
+-elif [ -e /debootstrap/debian-common ]; then
+- . /debootstrap/debian-common
++elif [ -e "$DEBOOTSTRAP_DIR/debian-common" ]; then
++ . "$DEBOOTSTRAP_DIR/debian-common"
+ else
+  error 1 NOCOMMON "File not found: debian-common"
+ fi
+diff -Naur debootstrap-1.0.101/scripts/sid debootstrap-1.0.101/scripts/sid
+--- debootstrap-1.0.101/scripts/sid
++++ debootstrap-1.0.101/scripts/sid
+@@ -7,8 +7,8 @@
+ # include common settings
+ if [ -e "$DEBOOTSTRAP_DIR/scripts/debian-common" ]; then
+  . "$DEBOOTSTRAP_DIR/scripts/debian-common"
+-elif [ -e /debootstrap/debian-common ]; then
+- . /debootstrap/debian-common
++elif [ -e "$DEBOOTSTRAP_DIR/debian-common" ]; then
++ . "$DEBOOTSTRAP_DIR/debian-common"
+ else
+  error 1 NOCOMMON "File not found: debian-common"
+ fi

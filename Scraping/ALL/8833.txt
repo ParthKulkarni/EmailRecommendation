@@ -1,0 +1,51 @@
+To : Christian PERRIER <bubulle@debian.org>
+Subject : Bug#875989: console-setup: generated cached_setup_keyboard.sh references /tmp/ file
+From : Göran Weinholt <goran@weinholt.se>
+Date : Fri, 12 Jan 2018 18:38:18 +0100
+Message-id : 87373bvuyd.fsf@industria.weinholt.se
+Reply-to : Göran Weinholt <goran@weinholt.se>, 875989@bugs.debian.org
+In-reply-to : <20170917060017.7xom6k5lwaq3ycip@mykerinos.kheops.frmug.org>	(Christian PERRIER's message of "Sun, 17 Sep 2017 08:00:17 +0200")
+References : <20170917001512.5ufczparcaqvxxsw@fortress.battleship> <20170917001512.5ufczparcaqvxxsw@fortress.battleship> <20170917053232.2u5m3yaezpd7ed7l@mraw.org> <20170917060017.7xom6k5lwaq3ycip@mykerinos.kheops.frmug.org> <20170917001512.5ufczparcaqvxxsw@fortress.battleship>
+
+
+tags 875989 + patch
+thanks
+Christian PERRIER <bubulle@debian.org> writes:
+> Quoting Cyril Brulebois (kibi@debian.org):
+>
+>> It seems there were no functional changes between both versions, only
+>> translation updates plus an extra CHANGES file (which looks like the
+>> last changelog entry). BTW, Christian, a git push seems to be missing.
+>
+> I confirm: this last upload was just a rebuild to include a few
+> updated translations, at least theoretically.
+I ran into this bug today when upgrading from console-setup 1.174 to
+1.175. The analysis provided by OGAWA Hirofumi seems pretty accurate,
+the timestamps are triggering the bug.
+Here's one way to reproduce it:
+industria:~# touch -d "2018-01-12 17:04:43.280045766 +0100" /etc/default/console-setup
+industria:~# touch -d "2018-01-12 17:04:38.812013996 +0100" /etc/default/keyboard
+industria:~# touch -d "2018-01-12 17:04:43.464047075 +0100" /etc/console-setup/cached_UTF-8_del.kmap.gz
+industria:~# /bin/setupcon -k --print-commands-only
+kbd_mode '-u' < '/dev/tty1' 
+kbd_mode '-u' < '/dev/tty2' 
+kbd_mode '-u' < '/dev/tty3' 
+kbd_mode '-u' < '/dev/tty4' 
+kbd_mode '-u' < '/dev/tty5' 
+kbd_mode '-u' < '/dev/tty6' 
+loadkeys '/tmp/tmpkbd.jJa1Rj' > '/dev/null' 
+Updating the timestamp on the cache file makes the problem go away:
+industria:~# touch /etc/console-setup/cached_UTF-8_del.kmap.gz
+industria:~# /bin/setupcon -k --print-commands-only
+kbd_mode '-u' < '/dev/tty1' 
+kbd_mode '-u' < '/dev/tty2' 
+kbd_mode '-u' < '/dev/tty3' 
+kbd_mode '-u' < '/dev/tty4' 
+kbd_mode '-u' < '/dev/tty5' 
+kbd_mode '-u' < '/dev/tty6' 
+loadkeys '/etc/console-setup/cached_UTF-8_del.kmap.gz' > '/dev/null' 
+After applying the patch, setupcon is working as expected again.
+-- 
+Göran Weinholt <goran@weinholt.se>
+73 de SA6CJK
+signature.asc

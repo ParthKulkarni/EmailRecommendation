@@ -1,0 +1,144 @@
+To : Adam Borowski <kilobyte@angband.pl>, 883547@bugs.debian.org
+Subject : Bug#883547: flash-kernel: please allow flavourless kernels
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Mon, 18 Dec 2017 15:08:08 -0800
+Message-id : 87h8sneisn.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 883547@bugs.debian.org
+In-reply-to : <[🔎] 151243987647.25409.4775662987419206791.reportbug@localhost>
+References : <[🔎] 151243987647.25409.4775662987419206791.reportbug@localhost> <[🔎] 151243987647.25409.4775662987419206791.reportbug@localhost>
+
+
+Control: tag 883547 +patch
+On 2017-12-04, Adam Borowski wrote:
+> If for whatever reason you want or need to build your own kernels, the
+> preferred way these days is "make bindeb-pkg".  It is also a good idea
+> to use CONFIG_LOCALVERSION_AUTO=y, which marks the exact tree used to
+> build the kernel.
+>
+> However, with this option, the version is _appended_ after local version,
+> thus making it hard to add that "-armmp" string.
+...
+> Just allowing an empty string flavour doesn't work, as it'll still want a -
+> after the version.
+I think the following patch should work for this, by setting:
+Kernel-Flavor: any
+or even an empty value:
+Kernel-Flavor:
+(though, if that device has existing value in all.db, it will not be
+overridden by the empty value).
+The patch significantly refactors the use of the check_kflavor function,
+and the one place it is called. Essentially, rather than trying to
+derive the suffix from file, comparing that against a known list of good
+suffixes, it merely checks if the targeted kernel version ends with one
+of the good suffixes.
+I haven't done extensive testing yet, but I could go ahead any push this
+myself once I've done more tests, if nobody objects.
+live well,
+  vagrant
+diff --git a/functions b/functions
+index b2ae5be..8dc542d 100644
+--- a/functions
++++ b/functions
+@@ -86,17 +86,17 @@ mtdsize() {
+ }
+ 
+ check_kflavors() {
+-	local kfile_suffix="$1"
+-	shift
+-
+-	if [ -z "$kfile_suffix" ]; then
++	local kvers="$1"
++	local kflavor="$2"
++	if [ "$kflavor" = "any" ]; then
++		return 0
++	fi
++	# count flavor+ as valid
++	kvers=${kvers%%+}
++	if [ "${kvers}" != "${kvers%%$kflavor}" ]; then
++		# kernel version ended with flavor
+ 		return 0
+ 	fi
+-	for kflavor; do
+-		if [ "$kfile_suffix" = "$kflavor" ] || [ "$kfile_suffix" = "$kflavor+" ]; then
+-			return 0
+-		fi
+-	done
+ 	return 1
+ }
+ 
+@@ -764,18 +764,16 @@ if ! check_supported "$machine"; then
+ 	error "Unsupported platform."
+ fi
+ 
+-if kflavors="$(get_machine_field "$machine" "Kernel-Flavors")"; then
+-	kfile_suffix=""
+-	while [ "$kfile_suffix" != "$kfile" ] ; do
+-		kfile_suffix=$(get_kfile_suffix "$kfile" "$kfile_suffix")
+-
+-		if check_kflavors "$kfile_suffix" $kflavors; then
+-			break
+-		fi
+-	done
+-fi
++kfile_suffix=""
++kflavors=$(get_machine_field "$machine" "Kernel-Flavors")
++for kflavor in ${kflavors:-"any"} ; do
++	if check_kflavors "$kvers" "$kflavor" ; then
++		kfile_suffix="$kflavor"
++		break
++	fi
++done
+ 
+-if [ "$kfile_suffix" = "$kfile" ]; then
++if [ -z "$kfile_suffix" ]; then
+ 	echo "Kernel $kfile does not match any of the expected flavors ($kflavors), therefore not writing it to flash." >&2
+ 	exit 0
+ fi
+diff --git a/test_functions b/test_functions
+index e75b089..eeea52f 100755
+--- a/test_functions
++++ b/test_functions
+@@ -116,34 +116,26 @@ add_test test_mtdsize
+ test_check_kflavors() {
+     (
+         . "$functions"
+-        if check_kflavors "ksuffix" "kflavor1" "kflavor2"; then
++        if check_kflavors "4.14.0-1-armmp" "armmp-lpae"; then
+             echo "Expected check_kflavors to fail with kernel suffix not in expected flavors, but it succeeded" >&2
+             exit 1
+         fi
+-        if ! check_kflavors "foo" "kflavor1" "foo" "kflavor3"; then
++        if ! check_kflavors "4.14.0-1-armmp-lpae" "armmp-lpae"; then
+             echo "Expected check_kflavors to succeed with kernel suffix in expected flavors, but it failed" >&2
+             exit 1
+         fi
+-        if ! check_kflavors "kflavor1-suffix" "klavor1" "kflavor1-suffix" "kflavor2"; then
+-            echo "Expected check_kflavours to succeed with double-barrelled kernel suffix in expected flavours, but it failed" >&2
+-            exit 1
+-        fi
+-        if check_kflavors "kflavor1-suffix" "klavor1" "kflavor2"; then
+-            echo "Expected check_kflavours to fail with double-barrelled kernel suffix not in expected flavours, but it succeeded" >&2
+-            exit 1
+-        fi
+-        if ! check_kflavors "" "kflavor1" "kflavor2" "kflavor3"; then
+-            echo "Expected check_kflavors to succeed with empty kernel suffix, but it failed" >&2
+-            exit 1
+-        fi
+-        if check_kflavors "ksuffix+" "kflavor1" "kflavor2"; then
++        if check_kflavors "4.14.0-1-armp-lpae+" "armmp"; then
+             echo "Expected check_kflavors to fail with kernel suffix (with additional +) not in expected flavors, but it succeeded" >&2
+             exit 1
+         fi
+-        if ! check_kflavors "foo+" "kflavor1" "foo" "kflavor2"; then
++        if ! check_kflavors "4.14.0-1-armmp-lpae+" "armmp-lpae"; then
+             echo "Expected check_kflavours to succeed with kernel suffix (with additional +) in expected flavors, but it failed" >&2
+             exit 1
+         fi
++        if ! check_kflavors "4.14.0-1-armmp-lpae" "any"; then
++            echo "Expected check_kflavours to succeed with kernel suffix 'any' in expected flavors, but it failed" >&2
++            exit 1
++        fi
+     )
+ }
+ add_test test_check_kflavors
+signature.asc

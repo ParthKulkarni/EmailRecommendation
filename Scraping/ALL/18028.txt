@@ -1,0 +1,70 @@
+To : debian-devel@lists.debian.org
+Subject : Autodetection of packages that need visibility annotations
+From : Yuri Gribov <tetra2005@gmail.com>
+Date : Tue, 15 May 2018 06:29:48 +0100
+Message-id : CAJOtW+6rZ3cv0R6__xSqeHAoKBim41YHk1TZyBm0B9nhamhdHg@mail.gmail.com
+
+
+Hi all,
+Linux shared libraries by default allow for runtime interposition of
+symbols. This comes in handy for customization of malloc but might
+also have undesired consequences. Firstly, it badly affects
+performance of generated code as
+1) compiler is not allowed to optimize (inline/clone/split) functions
+in fear that they will be interposed
+2) calls to intra-library functions have to go through PLT
+3) ld.so symbol resolution takes longer time (due to larger dynamic
+symbol tables)
+Also interposition hurts code correctness as it increases the chance of
+1) inadvertent symbol collisions (see Flameeys'
+https://flameeyes.blog/2013/02/23/redundant-symbols/ and other related
+posts on his blog)
+2) clients relying on private symbols (and later breaking and
+complaining when such symbols are removed)
+Recommended way to fix interposition is to build libraries with
+`-fvisibility=hidden` and use [GNU visibility
+annotations](https://gcc.gnu.org/wiki/Visibility) to mark public
+symbols. In effort to promote a wider use of those in open-source
+projects, I've recently made a simple tool to help locate Debian
+packages which would benefit the most from such annotations
+(https://github.com/yugr/ShlibVisibilityChecker). The tool (based on
+libclang) compares symbols exported from shlibs with those declared in
+package headers and reports the difference i.e. exported symbols which
+aren't present in headers. The idea is that such symbols are likely to
+be internal library symbols and thus should be marked as hidden.
+Here's an example usage for libacl1 package:
+# # Needs to be run in chroot
+# make clean all
+# scripts/debiancheck libacl1
+Binary symbols not in public interface of acl:
+  __acl_extended_file
+  __acl_from_xattr
+  __acl_to_xattr
+  __bss_start
+  closed
+  _edata
+  _end
+  _fini
+  head
+  high_water_alloc
+  _init
+  next_line
+  num_dir_handles
+  walk_tree
+For a total of 14 (25%).
+Tool, albeit heuristic and imprecise, turned out to be useful - it
+could successfully process ~60% of packages I tried (main reason for
+failures were missing #includes in packages' public headers which are
+arguably package bugs). Some resulting upstream bugs are in
+https://github.com/yugr/ShlibVisibilityChecker#tropheys
+The main reason for writing this mail is that albeit I'd be happy to
+do more visibility patching myself, Debian has 50K packages and it
+would be infeasible for me, both in terms of computing power and
+personal time to handle this task on my own (not to mention that
+upstreams may be hesitant to take patches from unknown contributors).
+Can I suggest that interested maintainers try the tool on packages
+that they maintain and add visibility annotations if they turn out to
+provide noticeable savings (or at least bug upstream projects to
+enable visibility themselves)? I'd obviously be happy to fix any
+arising bugs or add missing features to the tool.
+-Yury Gribov

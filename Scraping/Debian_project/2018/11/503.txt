@@ -1,0 +1,285 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 21 Nov 2018 14:05:42 +0000
+Message-id : 20181121140542.GA31273@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 20181120211617.gxnuwxpx2hy445ps@angband.pl>
+References : <[🔎] 20181120211617.gxnuwxpx2hy445ps@angband.pl>
+
+
+On Tue, 20 Nov 2018 at 22:16:17 +0100, Adam Borowski wrote:
+> There's been another large bout of usrmerge issues recently
+These are one example of a wider class of issues, which Debian is going
+to keep running into, and solving, as long as we're a binary distribution
+(as opposed to a source distribution like Gentoo):
+Many packages probe properties of the build system at build-time, and
+then assume that those properties remain true for the host system.
+(I'm using the usual GNU cross-compiling terms here: you build a package
+on the build system and run it on the host system.)
+Clearly, we value the advantages of being a binary distribution enough
+that we're willing to deal with these issues (if we didn't, we'd be
+using Gentoo or something).
+Cross-compiling is the place where this becomes most obvious, but even
+without cross-compiling, this class of issues includes -march=native:
+assume that the host system's CPU will be the same as (or better than)
+the build system's. It also includes "automagic" dependencies: assume
+that the host system will (want to) have all the optionally-used runtime
+libraries whose -dev packages happen to be present on the build system
+(see recent Policy bugs discussing use of Build-Conflicts and/or explicit
+--disable-foo to make this not happen).
+Merged or unmerged /usr is just another one on the list of properties
+of build systems that host systems are not guaranteed to match.
+We already have a series of written or unwritten rules about what is
+"close enough" that detecting it in the build system and assuming it will
+be the same in the host system is OK, and what is not "close enough".
+For instance, we build i386 packages for >= i686 hardware on SSE-capable
+x86_64 CPUs, we build packages for end-user {stretch + stretch-updates
++ security} systems in chroots that only have stretch available, and
+we build packages in chroots that have "full-fat" perl available and
+expect them to work on systems with only the Essential perl-base; but
+in general we don't expect to be able to build packages for sid systems
+in stretch chroots.
+I think we're going in the right direction with merged /usr, just not
+always in the right order. Unintended consequences of debootstrap and
+buildd changes meant that transitioning buildd chroots to be merged-/usr
+accidentally happened early, but they should have been the very last
+thing to be transitioned.
+Note that the failure mode is one way round: building on a merged-/usr
+system, and using on a non-merged-/usr system, can fail; but because
+of the design of merged /usr (with the compat symlinks in /), I am not
+aware of any examples of building on a non-merged-/usr system, and using
+on a merged-/usr system, being problematic.
+> * let's scrap the usrmerge package
+I think you're conflating the usrmerge package with merged /usr. The
+usrmerge package is one concrete implementation of a way to convert
+existing installations to merged /usr, but you can also get a merged-/usr
+system by installing into a skeleton filesystem where /bin, /sbin,
+/lib* are already symlinks into /usr (as recent debootstrap does),
+or by moving directories around yourself (as my prototype for making
+Flatpak runtimes out of Debian packages does). This particular genie is
+very much no longer in its bottle.
+If we have any level of support for merged /usr, then the usrmerge
+package is a really useful way to codify "here is how you transition from
+unmerged to merged, if that's what you want to do". I used it for the
+recent reproducible-builds test improvements to avoid having to build
+separate unmerged-/usr and merged-/usr base tarballs, for instance.
+> a system with /etc and /var out of sync with /usr is
+> broken.  There are attempts of reducing /etc but I have seen nothing about
+> /var.
+This is partially true, but isn't the whole story. A system or container
+needs its /etc and /var to be *based on* one that is "close enough" to its
+static files, but the point of /etc and /var being separate from the
+static files (/usr, in a merged-/usr system) is that they are mutable.
+One common deployment model for machines with an immutable /usr is
+for /usr to contain a starting point for the system's /etc and /var
+(in OSTree the recommendation is /usr/etc and /usr/var, in Lennart's
+stateless-system design article it's /usr/share/factory/{etc,var}), and
+for the system to populate /etc and /var from those if they don't already
+exist. I think OSTree even has infrastructure for doing a three-way
+merge of (old /usr/etc, new /usr/etc, deployed /etc), although I don't
+know how well it works in practice.
+Efforts towards making stateless systems have tended to concentrate on
+/etc over /var because /etc contains more critical files for a minimal
+system: you can get by without /var/lib/dpkg if you don't plan to upgrade,
+install, remove or list packages, but you won't usually get far without
+at least /etc/fstab, /etc/nsswitch.conf and /etc/passwd.
+It's also often not necessary in practice for /etc and /var to *precisely*
+match the installed packages: if that was required, then backing up and
+restoring /etc and /var couldn't work (not even well enough to reinstall
+the packages to get back to being in sync), and dpkg's default to keep
+sysadmin-modified conffiles would be problematic. The more special-purpose
+and limited the root, the less /etc and /var you will need, and the
+less closely they need to match the static files: a complex development
+desktop system needs a lot of /etc and /var, and needs them to match the
+static files rather closely, but the same is not true for a single-purpose
+container or embedded device that gets upgraded atomically.
+I've noticed that upstreams who are interested in stateless systems
+tend to be moving towards /etc and /var being as empty as possible, as
+decoupled from the static files as possible, and populated as "lazily"
+as possible, with files created as they are needed rather than up-front,
+and re-created as required if missing, rather than assuming that a
+maintainer script that ran once at install time did it. systemd-tmpfiles
+(see tmpfiles.d(5)) is very helpful when writing in this style.
+> Another question is, why?
+There are a few reasons, and which ones are the most significant depend
+which of several related questions you're asking. You might be asking
+why we want merged /usr to be *possible*; or you might be asking why we
+want it to be encouraged/default on end user systems; or you might be
+asking why we want it on Debian developer systems. (Of course, all
+Debian developers are Debian users, and some Debian users are Debian
+developers, so there is overlap.)
+There are probably more reasons than I know about, but here are the
+ones that spring to mind:
+Making merged /usr possible
+===========================
+The work necessary to allow building and booting a merged-/usr Debian
+system can be summed up as: don't assume that /bin and /usr/bin (etc.)
+are distinct directories.
+As a starting point, I hope we agree that /bin, /sbin, /lib* and /usr
+(excluding /usr/local which is special) are all more similar than they
+are different? They're all essentially the same class of files: static,
+read-only during normal operation, and replaced as atomically as possible
+during upgrades instead of being modified incrementally. Unlike /etc,
+they are not modified by the sysadmin; unlike /var, they are not modified
+by automated systems, other than OS upgrade mechanisms; and unlike both
+/etc and /var, their contents depend only on the set of package versions
+installed, not on the identity and history of the system (in principle
+a particular {package: version} map should result in a reproducible
+merged-/usr regardless of how many upgrades took place between initial
+installation and the current situation, although I'm sure there are
+bugs). So it makes some conceptual and operational sense to bundle them
+together as a single atomic unit. (This is why people who want a simpler
+FHS have chosen to advocate merged /usr, and not the opposite approach
+that Debian hurd-i386 tried for a while, in which /usr was a symlink to /
+and static files were unified into the root filesystem.)
+/usr/local can be an exception, depending on how it's used, but in
+containers and embedded systems it often doesn't make sense at all,
+and on systems where a non-empty /usr/local makes sense it can be a
+separate filesystem, or a symlink to /var/usrlocal or similar, if
+desired.
+We want merged /usr to be possible because it's a significant
+simplification for reliable special-purpose systems. If you're
+developing a consumer "appliance" that needs to be used by people who
+don't know it runs Unix, or a piece of infrastructure that needs to
+be reliable, then it needs to minimize opportunities for filesystem
+corruption, and be able to recover as gracefully as possible.
+One way to do that, if you don't need persistent OS-level state or
+configuration changes, is to have a completely stateless system. In
+the initramfs, mount a tmpfs as the new root, create a simple skeleton
+filesystem, mount /usr in it, populate enough of /etc and /var to operate
+(perhaps by copying from immutable template files in /usr), maybe mount
+/home or /srv for user data if that makes sense, and pivot to the new
+root. This is a lot simpler if /usr is all one blob and you don't need
+to bring in /bin, /sbin, /lib* from somewhere else.
+Another way is to populate a persistent root filesystem where
+configuration and state can be changed, but be prepared to reformat it if
+it gets corrupted. Mounting /usr read-only minimizes opportunities for
+filesystem corruption, but that works best if crucial binaries in /bin,
+/sbin, /lib are also on /usr (or some parallel read-only filesystem,
+but why would you want the complexity of two read-only filesystems that
+have to be kept in sync across upgrades when you could just have one?)
+If the root filesystem gets corrupted, or if the user just wants to
+reset configuration and state to the "factory" situation, the recovery
+path is to reformat the root filesystem and re-populate it from a
+template.
+In either of those situations, for best robustness you'll probably
+want to upgrade using "A/B" /usr filesystems, as seen in OSTree, rauc,
+recent Android phones and so on: boot from filesystem A, download and
+install the new system into filesystem B, reboot into filesystem B,
+wait for the next update to be released, install it into filesystem
+A, reboot into filesystem A and repeat. This means you always have a
+known-working filesystem to fall back on (if the most recently updated
+filesystem doesn't boot, use the other one), and is much simpler if all
+your static files are in a single /usr filesystem. If you have persistent
+state then you'll also need at least one persistent root filesystem,
+perhaps also in an A/B pair; but that's still better than having /bin,
+/sbin, /lib* also be separate, or mixing up the static /bin, /sbin,
+/lib* with your persistent state.
+Another reason to want merged /usr is if you have a large number
+of containers (Docker, lxc, Flatpak, whatever) with the same static
+files but distinct persistent state. The static files can be shared
+to save space, but that's only safe if you bind-mount them into the
+container as a read-only filesystem, so that a compromised container
+can't modify other containers' static files. The state is "personal"
+to the container, so it shouldn't be shared: even though it *started*
+as a copy of a template /etc and /var that (as you said) correspond
+to the static files, it has probably been modified while running the
+container. If we want Debian to be a suitable base for such containers,
+then merged /usr needs to be possible. (Note that this does not require
+the host system to also be merged-/usr.)
+Finally, the situations below can't work unless merged /usr is possible.
+Merged /usr on end-user systems
+===============================
+The main reason to prefer merged /usr *on end user systems* is that it's a
+simplification that removes avoidable bugs. You wouldn't design a machine
+that is mostly held together with 12mm bolts, but uses half-inch bolts
+for a few components. In particular, this gives us an advantage that I
+will admit is somewhat circular: it makes packages work as intended,
+even if they are not using the canonical paths that would exist on
+a non-merged-/usr system. A package with a #!/usr/bin/sh script, or
+conversely, a #!/bin/perl script, would fail on unmerged-/usr but would
+work fine on a merged-/usr system. This removes a class of avoidable
+bugs: you don't have to know that sh is canonically in /bin and perl is
+canonically in /usr/bin, and neither does your upstream. These bugs will
+tend to be especially prevalent in software developed by an upstream
+author on a merged-/usr system. As long as we support non-merged-/usr,
+they are bugs, and we can put work into reporting them and fix them like
+any other bug; but if we can declare them not to be bugs, then a class
+of work that would otherwise need to be done goes away, and we can spend
+our time solving more interesting problems.
+Another reason to want merged /usr on end user systems is that we're
+increasingly seeing container technologies that remap the filesystem,
+like bubblewrap (which, for example, is used to sandbox GNOME
+thumbnailers so that file parsing bugs in thumbnailers can't result
+in arbitrary code execution with full privileges). This typically reuses
+the host system's static files, mounted read-only in the sandbox, which
+is much more straightforward if the host system's static files can
+all be found in /usr: you don't need to bind-mount /bin, /sbin, /lib*
+separately. Straightforward code is more likely to get written (I hope
+we can agree that sandboxing thumbnailers is better than not sandboxing
+them) and is more likely to be bug-free.
+Another, more minor, reason to support (or even recommend or require)
+merged /usr is that it sends an undeniable message that booting without
+/usr is definitely no longer something that we aim to support.
+Finally, using merged /usr on end user systems proves that it is, and
+continues to be, possible (in general, things that aren't regularly tested
+don't work).
+Merged /usr on developer systems
+================================
+Developers are users, so the reasons above apply. In particular, many
+developers use the next release of Debian, so using merged /usr on
+developers systems proves that it will continue to be possible in the
+next Debian release.
+If we reach a point where packages don't need to install any files to
+the rootfs (all installed files going in /usr), then those packages'
+maintainers benefit by not having to go behind their build system's back
+to implement the /usr split (see systemd, dbus, and pre-buster versions
+of glib2.0 for examples of packages that get extra complexity from the
+need to separate files between the root and /usr; in systemd the
+complexity is partially upstream, in dbus and glib2.0 it's all
+downstream).
+Why merged /usr instead of gradually moving files out of the root?
+==================================================================
+> * move binaries to /usr/bin one by one, without hurry.  If it takes 10
+>   years, so what?
+Every time we move a file from the rootfs to /usr (let's say we move
+/bin/ping to /usr/bin/ping), we have a risk of bugs where a dependent
+package has hard-coded the old canonical path (in this case /bin/ping)
+and now needs to use the new canonical path.
+On a merged-/usr system, both /bin/ping and /usr/bin/ping work
+equally well; hard-coding either of those paths will work. (Of course,
+hard-coding the one that doesn't exist on a non-merged-/usr system won't
+work on a non-merged-/usr system, but merged-/usr systems aren't going
+to solve bugs that only exist on non-merged-/usr systems by some sort
+of action-at-a-distance.)
+We can avoid those bugs by creating a symbolic link, until /bin etc. are
+entirely populated by symbolic links into /usr/bin etc., but then
+we've taken a long time, a lot of maintainer-script code, and probably
+a lot of NMUs to arrive at something that is functionally equivalent to
+merged /usr being mandatory, without the simplicity of merged /usr's O(1)
+symlinks in the root directory. Taking a long time and higher complexity
+to achieve the same functional result does not sound very appealing to me.
+In some OSs, like Fedora and Arch Linux, there was a flag day that made
+merged /usr go from unsupported to mandatory, and that was that. Of
+course, being Debian, we have made life hard for ourselves by supporting
+both ways for an extended period of time.
+> * /bin would be left populated with nothing but /bin/sh, /bin/bash and
+>   whatever else POSIX demands.
+It's not just about what POSIX demands, but also about what
+interoperability with other distros and OSs requires. #! in scripts is
+one of the problem cases where hard-coding absolute paths is required; we
+can sidestep that with "#!/usr/bin/env perl", but as well as potentially
+causing issues with locally-installed /usr/local/bin/perl, you'll notice
+that has just swapped one absolute path for another :-)
+On a merged-/usr system, both /bin/sh and /usr/bin/sh work; so do
+/usr/bin/env and /bin/env. (In each case, the former path is the only one
+that can be expected to work on a non-merged-/usr system.)
+Away from #!, in general, upstreams (somewhat rationally) prefer
+to hard-code absolute paths into installed files rather than
+searching PATH at runtime, because their target platforms are not
+all as sensible as ours: they also have to cope with platforms
+where /bin/sed is old/bad/broken and you actually want to use
+/opt/gnu/latest/new/newer/bin/gsed or something, but you can't just
+add /opt/gnu/latest/new/newer/bin to PATH because that would break OS
+scripts that rely on the behaviour of /bin/sed.
+    smcv

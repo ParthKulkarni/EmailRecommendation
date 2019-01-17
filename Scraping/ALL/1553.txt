@@ -1,0 +1,67 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#832485: task-xfce-desktop: uninstallable on kfreebsd due to dependency on light-locker
+From : Christoph Egger <christoph@debian.org>
+Date : Sun, 05 Feb 2017 14:21:57 +0100
+Message-id : 87lgtkg4cq.fsf@debian.org
+Reply-to : Christoph Egger <christoph@debian.org>, 832485@bugs.debian.org
+In-reply-to : <[🔎] 20170204182407.GB25704@mraw.org>	(sfid-20170204_192439_871824_81E69F8F) (Cyril Brulebois's message of "Sat,	4 Feb 2017 19:24:07 +0100")
+References : <146949132521.26733.866325060770122766.reportbug@localhost>	<[🔎] 20170204182407.GB25704@mraw.org>
+
+
+Hi all!
+Cyril Brulebois <kibi@debian.org> writes:
+> Adding debian-bsd@ and pkg-xfce-devel@ to the loop:
+>
+> Adam Borowski <kilobyte@angband.pl> (2016-07-26):
+>> Package: task-xfce-desktop
+>> Version: 3.35
+>> Severity: important
+>> 
+>> Hi!
+>> I'm afraid that the xfce task can't be currently installed on kfreebsd. 
+>> This is especially nasty as xfce is the default DE on that arch.
+>> 
+>> The reason is that it depends on light-locker, which is Linux only.
+>> A possible solution is to change that dependency to:
+>>     Depends: light-locker|xscreensaver
+>> which would have the extra benefit of kind of alleviating #827562,
+>> with light-locker as the first alternative per the XFCE's team wishes.
+>> If you think that's a bad idea, the dependency could be arch specific.
+FWIW kfreebsd support in lightlocker seems to really be trivial:
+  Christoph
+ % debdiff light-locker_1.7.0-3.dsc light-locker_1.7.0-3.1.dsc
+diff -Nru light-locker-1.7.0/debian/changelog light-locker-1.7.0/debian/changelog
+--- light-locker-1.7.0/debian/changelog	2016-03-04 15:41:40.000000000 +0100
++++ light-locker-1.7.0/debian/changelog	2017-02-05 14:01:01.000000000 +0100
+@@ -1,3 +1,10 @@
++light-locker (1.7.0-3.1) UNRELEASED; urgency=medium
++
++  * kfreebsd port
++
++ -- Christoph Egger <christoph@debian.org>  Sun, 05 Feb 2017 14:01:01 +0100
++
+ light-locker (1.7.0-3) unstable; urgency=medium
+ 
+   [ Jackson Doak ]
+--- light-locker-1.7.0/debian/rules	2015-07-09 17:11:26.000000000 +0200
++++ light-locker-1.7.0/debian/rules	2017-02-05 14:16:07.000000000 +0100
+@@ -1,12 +1,18 @@
+ #!/usr/bin/make -f
+ 
++include /usr/share/dpkg/architecture.mk
++
+ export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed -Wl,-O1
+ export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+ 
++ifeq ($(DEB_TARGET_ARCH_OS),linux)
++	SYSTEMDCONFIGURE=--with-systemd
++endif
++
+ override_dh_auto_configure:
+ 	NOCONFIGURE=1 xdt-autogen
+ 	dh_auto_configure -- --disable-silent-rules \
+-		--with-systemd \
++		$(SYSTEMDCONFIGURE) \
+ 		--with-upower \
+ 		--with-console-kit \
+ 		--with-mit-ext

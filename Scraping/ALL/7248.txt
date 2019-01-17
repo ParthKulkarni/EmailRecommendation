@@ -1,0 +1,35 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#892082: debian-installer: PCMCIA cards not assigned resources on DELL Latitude CPx J650GT
+From : Selina Gross <selina.gross@gmx.de>
+Date : Mon, 05 Mar 2018 03:26:48 +0100
+Message-id : 152021680825.1076.8745531594946667635.reportbug@Craptop
+Reply-to : Selina Gross <selina.gross@gmx.de>, 892082@bugs.debian.org
+
+
+Package: debian-installer
+Version: debian-9.3.0-i386-netinst.iso
+Severity: normal
+Dear Maintainer,
+trying to install using the network installer CD, it fails autodetecting the network card. The NIC cannot be manually detected either using the F2 console of the installer, as it does not get assigned resources.
+The problem appears to be specific to this laptop, since the same installer CD works flawlessly on another (newer) laptop using the same NIC.
+Possibly the issue relates to the PCMCIA bridge (lspci reports it as):
+00:03.0 CardBus bridge: Texas Instruments PCI1225 (rev 01)
+00:03.1 CardBus bridge: Texas Instruments PCI1225 (rev 01)
+Maybe the issue appears only in conjunction with 5V 16 bit cards (I have no others to test).
+Observations:
+The driver "yenta_socket" gets loaded and assigns an IRQ (IRQ 11 in this case) to the bridge itself, which then correctly reports that cards are inserted.
+Then, however, nothing is done about the cards, IOW, there is no indication in e.g. dmesg that they are assigned resources.
+Network card detection then fails to find the NIC (but other cards, like a modem aren't assigned resources either). The driver (pcnet_cs in this case) can be modprobed manually and loads, but does not work either.
+Unloading and re-loading the pcmcia, yenta etc. modules does not change this behaviour, nor does forcing yenta_socket to ignore the BIOS settings, or removing and re-inserting the cards.
+Upgrading the BIOS to the latest version (V16 from 2003) did not change this, either.
+After completing the installation without network access, when the resulting minimal system boots, the cards do get properly initialized, assigned resources, and are then detected normally by pcnet_cs (or the relevant drivers) and work normally. This suggests that the issue lies with the installer script and not with the drivers themselves.
+Thank you for your continued efforts and kind regards!
+-- System Information:
+Debian Release: 9.3
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: i386 (i686)
+Kernel: Linux 4.9.0-6-686-pae (SMP w/1 CPU core)
+Locale: LANG=de_DE.UTF-8, LC_CTYPE=de_DE.UTF-8 (charmap=UTF-8), LANGUAGE=de_DE.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

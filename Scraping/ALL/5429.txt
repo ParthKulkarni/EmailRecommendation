@@ -1,0 +1,85 @@
+To : Vasilis <andz@torproject.org>, 883549@bugs.debian.org,	Vagrant Cascadian <vagrant@debian.org>
+Subject : Bug#883549: Debian Installer Buster Alpha 1 release - Hardware support of Xunlong Orange Pi zero
+From : Karsten Merker <merker@debian.org>
+Date : Tue, 5 Dec 2017 21:41:09 +0100
+Message-id : 20171205204109.dxdoueqsbs3dxvj6@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 883549@bugs.debian.org
+In-reply-to : <[🔎] 430acf65-dad6-8d39-c040-207628964fb7@torproject.org>
+References : <[🔎] 430acf65-dad6-8d39-c040-207628964fb7@torproject.org> <[🔎] 430acf65-dad6-8d39-c040-207628964fb7@torproject.org>
+
+
+On Tue, Dec 05, 2017 at 03:37:00AM +0000, Vasilis wrote:
+> Package: debian-installer-9-netboot-armhf
+> Version: 20170615+deb9u2
+> 
+> Tested the netinstall version
+> (debian-buster-DI-alpha1-armhf-netinst.iso) in a Xunlong Orange Pi zero
+> device and it seems that the board is not booting up --both ethernet
+> LEDs are on. I attached a serial cable to troubleshot the installation
+> but I don't see any output (perhaps the serial console is disabled).
+> 
+> According to the 'Hardware support changes' section
+> (https://www.debian.org/devel/debian-installer/News/2017/20170903) in
+> the release post the Orange Pi zero system seems to be supported:
+> "Add machine db entries for various sunxi-based systems that are (at
+> least partially) supported in kernel 4.12 and u-boot v2017.07-rc3:
+> Banana Pi BPI-M2-Plus, FriendlyArm NanoPi M1, FriendlyARM NanoPi NEO
+> Air, Lichee Pi Zero, NextThing C.H.I.P. Pro, Xunlong Orange Pi Zero."
+> 
+> Does this mean that these boards be supported by the installer and if
+> yes how one can test the installation on these boards?
+Hello,
+the installer itself has some basic/partial support for the
+Orange Pi Zero, but there are a number of open issues (which is
+why the changelog you have quoted says "partially supported").
+The first thing to note is that the SoC that is used on the
+Orange Pi Zero (H2+) doesn't support direct boot from a USB mass
+storage device like a USB CDROM drive or a USB stick.  For the
+basic variant of the Orange Pi Zero (the one without an SPI NOR
+flash) the only device from which the system can be booted is the
+MicroSD slot, so there is no way to directly boot a netinstall
+ISO.
+ARM-based systems like this one have a different boot process
+than what you might be used to from the i386/amd64 PC world.
+The Orange Pi Zero doesn't have any form of on-board BIOS,
+so it needs to load it's BIOS-equivalent (u-boot) from a
+MicroSD card, and u-boot then provides various ways to
+boot the actual installer, be it over the network (similar
+to PXE on PCs), from the MicroSD card or from a USB stick
+(although not directly from an ISO image written to the stick).
+As u-boot is platform-dependent, one needs a separate u-boot
+build for each platform. Debian provides u-boot builds for
+a number of systems (for a list please cf.
+https://d-i.debian.org/daily-images/armhf/daily/u-boot/),
+but the Orange Pi Zero isn't yet among them as none of the
+developers involved has such a board and nobody else has
+offered to test u-boot on this board (which is prerequisite
+for Debian providing u-boot images).
+Once the actual installer has been loaded from u-boot, the
+installation should work normally, but again there is one caveat:
+the mainline Linux kernel doesn't _yet_ support the ethernet
+controller on the Orange Pi Zero.  A driver for the wired
+ethernet is work-in-progress and will hopefully be available in
+kernel 4.15, but until then, the only way to have network access
+from the Orange Pi Zero would be a supported USB ethernet
+adapter.  Another developer is also working on supporting the
+XR819 WiFi module on the board, but proper mainline kernel
+support for it probably won't be available for quite some time. 
+So it is possible to use the Debian installer on the board, but
+it currently requires building u-boot yourself and plugging in a
+supported USB-ethernet-adapter for network access.
+> Happy to do any further tests.
+If you would be willing to commit to more or less regularly test
+the Debian u-boot package on the board, the Debian u-boot
+maintainer (Vagrant Cascadian, in CC) would probably be happy to
+add u-boot images for the Orange Pi Zero to the Debian u-boot
+package, which would then allow the installer developers to
+provide ready-made SD card images with u-boot and the installer
+in the future (that is, once the wired ethernet is supported in
+the mainline kernel).
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

@@ -1,0 +1,41 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#883711: pkgsel: should running updatedb really be the default?
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 06 Dec 2017 18:51:29 +0100
+Message-id : 151258268908.4872.3193582010844516937.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 883711@bugs.debian.org
+
+
+Package: pkgsel
+Version: 0.46
+Severity: important
+Hi,
+This commit looks like something that should be been discussed, rather than
+something I get to discover while preparing the release announcement:
+| commit fdc3d5a6cf5d2af0ca67494321faf4088170362a
+| Author: Raphaël Hertzog <hertzog@debian.org>
+| Date:   Fri Sep 15 12:16:37 2017 +0200
+| 
+|     Run updatedb by default when a locate implementation has been installed
+|     
+|     This can be disabled with the pkgsel/updatedb preseed.
+|     
+|     This change has been taken from Ubuntu.
+Especially with such a description:
+| Description: for internal use; can be preseeded
+|  If mlocate is installed, update its database after installing packages.
+|  This is time-consuming, so you may wish to set this to false to disable it.
+If you're concerned about users expecting to be able to run *locate without
+waiting for the cron.daily entry, I think it'd be better to have
+implementations mention that the DB is empty and how to initialize it
+instead.
+Currently, locate returns nothing with an empty DB, while mlocate's error
+message could be improved:
+| locate: can not stat () `/var/lib/mlocate/mlocate.db': No such file or directory
+Also, we seem to have a dlocate implementation too.
+I might flip the default to false for the next release, as I don't see why
+every user should pay this price for no obvious gain.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant

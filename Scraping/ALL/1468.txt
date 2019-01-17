@@ -1,0 +1,50 @@
+To : Samuel Thibault <sthibault@debian.org>, 853855@bugs.debian.org
+Subject : Bug#853855: di-utils: Kernel boot options containing a dot are not propagated to the installed system
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Sun, 12 Feb 2017 13:11:07 +0000
+Message-id : 1486905067.2900.73.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 853855@bugs.debian.org
+In-reply-to : <[🔎] 20170212112631.GQ2914@var.home>
+References : <[🔎] 20170201143047.26819.63823.reportbug@ada.libera.cc>	 <[🔎] 1486060403.7612.38.camel@debian.org>	 <[🔎] 42004b12-99de-f8d1-d9c9-3f7ca505edef@libera.cc>	 <[🔎] 1486121931.2872.4.camel@debian.org>	 <[🔎] 462121df-9b0d-f11f-117a-97e098f21913@libera.cc>	 <[🔎] 20170212112631.GQ2914@var.home>
+
+
+On Sun, 2017-02-12 at 12:26 +0100, Samuel Thibault wrote:
+> Hello,
+> 
+> Emmanuel Kasper, on Fri 03 Feb 2017 13:13:32 +0100, wrote:
+> > good catch
+> > 
+> > virt-cat -a testing.build/testing.raw /etc/modprobe.d/local.conf
+> > 
+> > # Local module settings
+> > # Created by the Debian installer
+> > 
+> > options net ifnames=0
+> 
+> Ok... So to sum it up, there are options passed on the d-i kernel
+> command line that we should either:
+> 
+> - copy verbatim in the command line of the installed grub configuration
+> - set as module parameters
+> 
+> and we basically don't have an automatic way of choosing between them.
+>
+> Just wondering: can't we just always do both?  I.e. remove the varnodot
+> check.  Sure that's ugly because then we have both the commandline and
+> the module, but to me it's the least horrifying solution.  And AIUI
+> that'd actually be needed if for instance with a new kernel release a
+> driver gets migrated from compiled-in to loadable module or vice-versa.
+I agree that the current check is incorrect and should be removed.
+It's been possible for a long time to have dotted parameters for built-
+in code, whether or not that code could ever be built as a module.
+> So, does it look too ugly?
+It is ugly that we will still end up writing module parameters for non-
+existent modules.  But I'm guessing that for some other boot loaders we
+don't set the kernel parameters at all, so setting (some) parameters
+there is better than nothing, right?
+Ben.
+-- 
+Ben Hutchings
+If God had intended Man to program,
+we'd have been born with serial I/O ports.
+signature.asc

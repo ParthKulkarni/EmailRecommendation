@@ -1,0 +1,150 @@
+To : debian-boot@lists.debian.org
+Subject : Fw: Re: debootstrap: APTCACHE for debootstrap
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Mon, 2 Apr 2018 11:33:30 +0900
+Message-id : 20180402113330.dbdb2fcbe2e7aa752edc509b@iijmio-mail.jp
+
+
+Hi list,
+ Please look at attached patch to improve debootstrap speed via
+ using pre-downloaded .deb files. If you have any comments, please
+ send it to Bug #844118
+Begin forwarded message:
+Hi,
+On Sat, 12 Nov 2016 22:26:02 +0530
+Ritesh Raj Sarraf <rrs@debian.org> wrote:
+> It'd be nice if we could have debootstrap accept a new switch,
+> --cachedir. This will help a lot, especially in cases where people are
+> making chroots in a Debian box. Because, in most common cases, the
+> running Debian instanace may have some .debs available in its cache
+> folder.
+ I've tried to add --cachedir, not tested much, but it works.
+ Could you check attached patch, please?
+ 
+Test result without cache (normal)
+real    3m39.558s
+user    1m28.939s
+sys     0m10.473s
+With cache
+real    1m49.924s
+user    1m29.232s
+sys     0m8.732s
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp
+>From e8250df72852f1a3af35ad356925ee3df6af458e Mon Sep 17 00:00:00 2001
+From: Hideki Yamane <henrich@debian.org>
+Date: Sun, 1 Apr 2018 19:43:31 +0900
+Subject: [PATCH] Add cachedir feature
+Save deb files under cachedir, it reduce fetch time and improve installation
+time. Closes #551838 and #844118
+---
+ debootstrap   | 20 ++++++++++++++++++++
+ debootstrap.8 |  3 +++
+ functions     | 16 +++++++++++++---
+ 3 files changed, 36 insertions(+), 3 deletions(-)
+diff --git a/debootstrap b/debootstrap
+index 9b547ad..14b031c 100755
+--- a/debootstrap
++++ b/debootstrap
+@@ -45,6 +45,7 @@ VERBOSE=""
+ CERTIFICATE=""
+ CHECKCERTIF=""
+ PRIVATEKEY=""
++CACHE_DIR=""
+ 
+ DEF_MIRROR="http://deb.debian.org/debian";
+ DEF_HTTPS_MIRROR="https://deb.debian.org/debian";
+@@ -109,6 +110,8 @@ usage()
+                              of a missing keyring), aborting otherwise
+       --no-resolve-deps      don't try to resolve dependencies automatically
+ 
++      --cachedir=DIR         Use DIR as package cache directory
++
+       --unpack-tarball=T     acquire .debs from a tarball instead of http
+       --make-tarball=T       download .debs and create a tarball (tgz format)
+       --second-stage-target=DIR
+@@ -238,6 +241,23 @@ if [ $# != 0 ] ; then
+ 			error 1 BADEXTRACTOR "%s: unknown extractor" "$EXTRACTOR_OVERRIDE"
+ 		fi
+ 		;;
++	    --cachedir|--cachedir=?*)
++		if [ "$1" = "--cachedir" ] && [ -n "$2" ] ; then
++			CACHE_DIR="$2"
++			shift 2
++		elif [ "$1" != "${1#--cachedir=}" ]; then
++			CACHE_DIR="${1#--cachedir=}"
++			shift
++		else
++			error 1 NEEDARG "option requires an argument %s" "$1"
++		fi
++		if [ ! -d "$CACHE_DIR" ] ; then
++			error 1 NOCACHEDIR "%s: No such directory" "$CACHE_DIR"
++		fi
++		if [ ! -z ${CACHE_DIR##/*} ]; then
++			error 1 NOTABSOLUTEPATH "cachedir should be specified as absolute path"
++		fi
++		;;
+ 	    --unpack-tarball|--unpack-tarball=?*)
+ 		if [ "$1" = "--unpack-tarball" -a -n "$2" ] ; then
+ 			UNPACK_TARBALL="$2"
+diff --git a/debootstrap.8 b/debootstrap.8
+index e802003..fe65d85 100644
+--- a/debootstrap.8
++++ b/debootstrap.8
+@@ -136,6 +136,9 @@ a foreign chroot) (requires \-\-second\-stage)
+ Don't delete the /debootstrap directory in the target after completing the
+ installation.
+ .IP
++.IP "\fB\-\-cachedir=DIR\fP"
++Cache .deb files under directory. It should be absolute path.
++.IP
+ .IP "\fB\-\-unpack\-tarball=FILE\fP"
+ Acquire .debs from tarball FILE instead of downloading via http.
+ .IP
+diff --git a/functions b/functions
+index b780488..309399b 100644
+--- a/functions
++++ b/functions
+@@ -337,7 +337,9 @@ get () {
+ 		    *)   from="$1"; dest="$2" ;;
+ 		esac
+ 
+-		if [ "${dest#/}" = "$dest" ]; then
++		if [ ! -z "$CACHE_DIR" ]; then
++			dest="${dest%%*/}"
++		elif [ "${dest#/}" = "$dest" ]; then
+ 			dest="./$dest"
+ 		fi
+ 		local dest2="$dest"
+@@ -347,7 +349,9 @@ get () {
+ 
+ 		while [ "$iters" -lt 10 ]; do
+ 			info RETRIEVING "Retrieving %s %s" "$displayname" "$versionname"
+-			if ! just_get "$from" "$dest2"; then continue 2; fi
++			if [ ! -e "$dest2" ]; then
++				if ! just_get "$from" "$dest2"; then continue 2; fi
++			fi
+ 			if [ "$checksum" != "" ]; then
+ 				info VALIDATING "Validating %s %s" "$displayname" "$versionname"
+ 				if verify_checksum "$dest2" "$checksum" "$siz"; then
+@@ -717,10 +721,16 @@ download_debs () {
+ 			else
+ 				progress_next "$(($dloaddebs + $size))"
+ 				local debdest="$($DLDEST deb "$p" "$ver" "$arc" "$m" "$fil")"
+-				if get "$m/$fil" "$TARGET/$debdest" "$checksum" "$size"; then
++				local debcache="$(echo "$p"_"$ver"_"$arc".deb | sed 's/:/%3a/')"
++				if [ -z "$CACHE_DIR" ] && get "$m/$fil" "$TARGET/$debdest" "$checksum" "$size"; then
++					dloaddebs="$(($dloaddebs + $size))"
++					echo >>$TARGET/debootstrap/deburis "$p $ver $m/$fil"
++					echo >>$TARGET/debootstrap/debpaths "$p $debdest"
++				elif [ -d "$CACHE_DIR" ] && get "$m/$fil" "$CACHE_DIR/$debcache" "$checksum" "$size"; then
+ 					dloaddebs="$(($dloaddebs + $size))"
+ 					echo >>$TARGET/debootstrap/deburis "$p $ver $m/$fil"
+ 					echo >>$TARGET/debootstrap/debpaths "$p $debdest"
++					cp "$CACHE_DIR/$debcache" "$TARGET/$debdest"
+ 				else
+ 					warning COULDNTDL "Couldn't download package %s (ver %s arch %s)" "$p" "$ver" "$arc"
+ 					leftover="$leftover $p"
+-- 
+2.16.3

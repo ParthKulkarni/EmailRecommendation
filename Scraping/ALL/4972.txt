@@ -1,0 +1,87 @@
+To : Karsten Merker <merker@debian.org>
+Subject : Bug#851469: flash-kernel: ARM new boot.scr does not allow the device to boot
+From : permondes - sagen <sagen@permondes.de>
+Date : Mon, 16 Jan 2017 20:07:50 +0100
+Message-id : 1484593670.1685.11.camel@permondes.de
+Reply-to : permondes - sagen <sagen@permondes.de>, 851469@bugs.debian.org
+In-reply-to : <[🔎] 20170115231409.GA4166@excalibur.cnev.de>
+References : <[🔎] 1484473529.13147.20.camel@permondes.de>	 <[🔎] 20170115104707.oramx4ivil7h263x@excalibur.cnev.de>	 <[🔎] 1484478176.13147.24.camel@permondes.de>	 <[🔎] 20170115113906.vslhhcav6glrzr27@excalibur.cnev.de>	 <[🔎] 1484508277.13147.47.camel@permondes.de>	 <[🔎] 20170115231409.GA4166@excalibur.cnev.de>
+
+
+Am Montag, den 16.01.2017, 00:14 +0100 schrieb Karsten Merker:
+> On Sun, Jan 15, 2017 at 08:24:37PM +0100, permondes - sagen wrote:
+> > Am Sonntag, den 15.01.2017, 12:39 +0100 schrieb Karsten Merker:
+> > > On Sun, Jan 15, 2017 at 12:02:56PM +0100, permondes - sagen wrote:
+> [...]
+> 
+> To make sure that we are talking about the same thing here: You
+> wrote before that you have no way to access the u-boot prompt, so
+> how do you know what your current u-boot environment looks like? 
+> Is it perhaps possible that you mix up the u-boot environment and
+> the Linux shell environment?  The boot.scr is not executed by a
+> Linux shell; u-boot has its own internal bourne-shell-style
+> scripting language and has its own shell environment, which is
+> completely separate from any Linux shell environment.
+You are right, I have been talking about the Linux shell not the u-boot
+environment. Sorry, my mistake.
+> 
+> > My understanding is, that this strange behavior is due to a transition
+> > that happened in the Freedombox project. So I will ask them to provide
+> > updated live images to start with a fresh and correct system instead of
+> > wasting time and trying to solve this particular case. 
+> 
+> Could you (after making an image backup of your SD card so that
+> you can easily restore the previous setup) please try the
+> following procedure on the LIME:
+> 
+> $ sudo apt-get install u-boot-sunxi
+> $ sudo dd if=/usr/lib/u-boot/A20-OLinuXino-Lime/u-boot-sunxi-with-spl.bin of=/dev/mmcblk0 bs=1k seek=8
+> $ sudo dd if=/dev/zero bs=1k count=128 seek=544 of=/dev/mmcblk0
+> $ sudo flash-kernel
+> $ sync
+> $ sudo reboot
+> 
+> This should (at least in theory) provide you with a booting
+> system, unless there is some freedombox-specific mechanism
+> that modifies the boot.scr behind flash-kernel's back.
+> 
+> Regards,
+> Karsten
+Hi Karsten,
+I followed your instructions to the letter:
+> $ sudo apt-get install u-boot-sunxi
+> u-boot-sunxi ist schon die neueste Version (2016.11+dfsg1-3).
+> 0 aktualisiert, 0 neu installiert, 0 zu entfernen und 0 nicht aktualisiert.
+> 
+> $ sudo dd if=/usr/lib/u-boot/A20-OLinuXino-Lime/u-boot-sunxi-with-spl.bin of=/dev/mmcblk0 bs=1k seek=8
+> 471+1 Datensätze ein
+> 471+1 Datensätze aus
+> 482846 Bytes (483 kB, 472 KiB) kopiert, 0,0468861 s, 10,3 MB/s
+> 
+> $ sudo dd if=/dev/zero bs=1k count=128 seek=544 of=/dev/mmcblk0
+> 128+0 Datensätze ein
+> 128+0 Datensätze aus
+> 131072 Bytes (131 kB, 128 KiB) kopiert, 0,0190237 s, 6,9 MB/s
+> 
+> $ sudo flash-kernel
+> DTB: sun7i-a20-olinuxino-lime.dtb
+> Installing /usr/lib/linux-image-4.8.0-2-armmp-lpae/sun7i-a20-olinuxino-lime.dtb into /boot/dtbs/4.8.0-2-armmp-lpae/sun7i-a20-olinuxino-lime.dtb
+> Taking backup of sun7i-a20-olinuxino-lime.dtb.
+> Installing new sun7i-a20-olinuxino-lime.dtb.
+> flash-kernel: installing version 4.8.0-2-armmp-lpae
+> Generating boot script u-boot image... done.
+> Taking backup of boot.scr.
+> Installing new boot.scr.
+> 
+> $ sync
+> 
+> $ sudo reboot
+> Connection to ... closed by remote host.
+> Connection to ... closed.
+As I could not ssh into it even after 5 minutes (usually it booted in 1-2 mins.), I tried with
+> nmap -p 80 --open -sV <IPadress>/24
+but the device was not shown. Also the router web interface did not show it. 
+I reverted to the old (Freedombox) boot.scr and it re-appeared. 
+We can give up any time. I have a work around for the moment and can ask the Freedombox people to generate a new image with the current u-boot environment.
+Thanks,
+Dietmar

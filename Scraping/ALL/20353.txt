@@ -1,0 +1,76 @@
+To : debian-devel@lists.debian.org
+Subject : RFC: Support for zstd in .deb packages?
+From : Guillem Jover <guillem@debian.org>
+Date : Fri, 27 Apr 2018 07:02:12 +0200
+Message-id : 20180427050212.GA9721@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org,	debian-dpkg@lists.debian.org,	Bálint Réczey <balint.reczey@canonical.com>,	Julian Andres Klode <jak@debian.org>
+
+
+Hi!
+In 2016 Paul Wise mentioned the Zstandard compressor on IRC [Z],
+and I briefly checked it out as a potential candidate for dpkg
+(while also mentioning it to Julian Andres Klode who was considering
+adding lz4 support to apt). At the time it looked like it was not
+worth it (apt went with lz4), so it got parked.
+Recently Julian mentioned it again on IRC, and we each started
+implementing support in dpkg and apt respectively, to allow easier
+evaluation. I stopped when I realized the code was getting too messy,
+but after few weeks Julian and Bálint Réczey ended up implementing
+the support for apt and dpkg [D], so that they could merge it in
+Ubuntu for their upcoming release, which they did.
+Their main driving reason (AFAICT) has been (de)compression speed.
+The following is a quick run-down of the items from [F], not all
+being important from Debian's perspective, but being for dpkg's:
+* License: Permissive (dual BSD + GPL-2), which makes universal
+  availability possible.
+* Portability: The code seems portable, and it's available on some
+  non-Linux systems.
+* Availability: I don't think it's as common as gzip/bzip2/xz are now,
+  say on non-Linux systems, perhaps not even on Linux distros.
+* Implementation size: The shared library and its package are quite
+  fatter than any of the other compressors dpkg uses.
+* Eternity contract: This would add yet another format that would need
+  to be supported pretty much forever, to be able to at least unpack
+  .deb's that might be available in the wild. This also increases the
+  (Build-)Essential-set.
+* Format stability: Although it's supposedly frozen now, it has
+  changed quite often in recent times. AFAIR it was also mentioned at
+  least in the past that the target was mainly real-time data streaming,
+  so long-term data storage might not be a priority? Would need
+  clarification from upstream I guess.
+* Memory usage: Seemed equivalent or less to current compressors, but
+  only as long as equal or less space was desired.
+* Space usage: Seemed worse.
+* (De)compression speed: Seemed better (compared only to the existing
+  supported formats) depending on the compression level used.
+I'm still quite skeptical about it being worth it though, given the costs
+implied (f.ex. [S]). That it trades space for speed, which could perhaps
+improve use-cases like CI or buildds, or rolling distribution users, but
+that still varies depending on the network speed, fsys/disk speed, etc,
+which might not be an universal improver (to get there we might need to
+tie this to delta debs, which would benefit xz too). It makes CD/DVD/BD
+images and the archive in general larger. It's not the fastest, and it
+doesn't have the highest compression ratio either; if we'd want way
+faster (de)compression I think we'd still be better off with something
+like lz4 anyway? And that most of the assumed benefits would only be
+gained if we switched to it as the new default compressor, which would
+require project-wide consensus. As a replacement for gzip, it would
+definitely make sense, but otherwise I'm not sure I see it.
+An area where there's still room for improvement with xz f.ex. when it
+comes to decompression speed, is lack of multi-threaded support, as
+liblzma currently only supports it for compression.
+In any case, I've CCed both Julian and Bálint, so that they can fill
+in with more details and numbers from what they have been trying out.
+But in any case, I'm still open to data and opinions given that this
+is in the end a matter of trade-offs, so → request for comments. :)
+(And BTW I do not consider the current support in Ubuntu a deciding
+factor in any way, while it could perhaps fragment the .deb ecosystem,
+that's something for them to deal with IMO; should really start adding
+the vendor to the generated .deb's. :)
+Thanks,
+Guillem
+[Z] <https://code.facebook.com/posts/1658392934479273/smaller-and-faster-data-compression-with-zstandard/>
+    <https://facebook.github.io/zstd/>
+[F] <https://wiki.debian.org/Teams/Dpkg/FAQ#Q:_Can_we_add_support_for_new_compressors_for_.deb_packages.3F>
+[D] <https://bugs.debian.org/892664>
+[S] <https://wiki.debian.org/Teams/Dpkg/DebSupport>

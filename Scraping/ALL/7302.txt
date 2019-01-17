@@ -1,0 +1,51 @@
+To : 890419@bugs.debian.org
+Subject : Bug#890419: [PATCH] Fix boostrapping libvirt LXC containers
+From : Lubomir Rintel <lkundrak@v3.sk>
+Date : Fri, 23 Mar 2018 00:05:38 +0100
+Message-id : 1521759938.8396.4.camel@v3.sk
+Reply-to : Lubomir Rintel <lkundrak@v3.sk>, 890419@bugs.debian.org
+In-reply-to : <1518619721.15296.6.camel@v3.sk>
+References : <1518619721.15296.6.camel@v3.sk> <1518619721.15296.6.camel@v3.sk>
+
+
+One more patch, to make debootstrap work in case the container has a
+separate userns, but not netns.
+This makes debootstrap work with virt-install with this branch [1],
+making it rather convenient to install a Debian container with virt-
+install:
+virt-install \
+        --debug \
+        --connect lxc:/// \
+        --name debian \
+        --memory 512 \
+        --idmap uid_start=0,uid_target=1000000,uid_count=65536,gid_start=0,gid_target=1000000,gid_count=65536 \
+        --filesystem /var/lib/libvirt/filesystems/debian,/ \
+        --location http://ftp.us.debian.org/debian/dists/testing/
+[1] https://github.com/lkundrak/virt-manager/tree/lr/lxc-installFrom f2524081ad9b9b10ab6b4d1b50f3f55cdc3c9375 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Tue, 20 Mar 2018 22:20:34 +0100
+Subject: [PATCH 4/4] Unshare the net namespace in LXC namespace
+If we're running without privnet but with a idmap we are CAP_SYS_ADMIN
+in the userns but not in the netns and therefore mounting a new sysfs
+instance is not allowed (since [7dc5dbc879bd sysfs: Restrict mounting
+sysfs] in kernel 3.11).
+---
+ debootstrap | 4 ++++
+ 1 file changed, 4 insertions(+)
+diff --git a/debootstrap b/debootstrap
+index fcdb20f..86d489a 100755
+--- a/debootstrap
++++ b/debootstrap
+@@ -468,6 +468,10 @@ else
+ 	CHROOT_CMD="chroot $TARGET"
+ fi
+ 
++if grep -q container=lxc-libvirt /proc/1/environ; then
++	CHROOT_CMD="unshare --net $CHROOT_CMD"
++fi
++
+ if [ -z "$SHA_SIZE" ]; then
+ 	SHA_SIZE=256
+ fi
+-- 
+2.14.3

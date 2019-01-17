@@ -1,0 +1,54 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#853927: debian-installer: Hang in os-prober in "dmsetup create -r osprober-linux-sda1"
+From : Bernhard Schmidt <berni@debian.org>
+Date : Fri, 10 Feb 2017 12:27:32 +0100
+Message-id : b048409d-2752-65f8-5763-4506cb36b600@debian.org
+Reply-to : Bernhard Schmidt <berni@debian.org>, 853927@bugs.debian.org
+In-reply-to : <[🔎] 20170210073249.GH17507@mraw.org>
+References : <[🔎] 148598352830.29157.16885692808004372139.reportbug@paver.krastavac> <[🔎] 20170202120414.GB9976@einval.com> <[🔎] 20170202160010.GF14512@mraw.org> <[🔎] 20170203111010.c4ia6ai7b7cwat5j@mail.sl.id.au> <[🔎] 20170203124216.GA24574@mraw.org> <[🔎] 20170204012303.ocafqxvppw2kyhbx@mail.sl.id.au> <[🔎] 20170204013240.GA23551@mraw.org> <[🔎] 20170207123440.GA10326@fliwatuet.svr02.mucip.net> <[🔎] 20170210071137.GG17507@mraw.org> <[🔎] 97178096-6fe9-42fb-f3e2-3e5e91c5e3a4@debian.org> <[🔎] 20170210073249.GH17507@mraw.org>
+
+
+Hi,
+>> The ~10 minute wait was not a timeout, I simply killed the process then.
+> 
+> Yes, sure, I had assumed that.
+> 
+>> I'm using RC2 netboot via PXE.
+> 
+> Thanks for the confirmation we're still having a big issue here (which I
+> still have to reproduce)…
+FYI, we are using this preseed configuration copied from our Jessie
+installation, might be related
+d-i partman-auto/method string lvm
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-md/device_remove_md boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+d-i partman-auto-lvm/new_vg_name string sysvg
+d-i partman-auto/expert_recipe string                         \
+      boot-root ::                                            \
+              4000 10000 16000 ext4                           \
+                      method{ format } format{ } $lvmok{ }    \
+                      use_filesystem{ } filesystem{ ext4 }    \
+                      mountpoint{ / }                         \
+              .                                               \
+              512 512 2048 linux-swap                         \
+                      method{ swap } format{ } $lvmok{ }      \
+              .                                               \
+              1 1 1000000000 ext3                             \
+                      method{ keep }                          \
+                      use_filesystem{ }                       \
+                      $lvmok{ } lv_name{ remove }             \
+              .
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+d-i partman-basicmethods/method_only boolean false
+partman-auto-lvm partman-auto-lvm/no_boot boolean true
+d-i partman-md/confirm boolean true
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+Bernhard

@@ -1,0 +1,59 @@
+To : Kurt Roeckx <kurt@roeckx.be>
+Subject : Re: OpenSSL disables TLS 1.0 and 1.1
+From : Wouter Verhelst <w@uter.be>
+Date : Fri, 11 Aug 2017 11:33:55 -0400
+Message-id : 20170811153355.sv5ddasbbbzaelde@grep.be
+In-reply-to : <[🔎] 20170811142403.y3f5z5x63b76rfip@roeckx.be>
+References : <20170807014238.mf64rdvgpdkpaiwa@roeckx.be> <[🔎] 8737932yic.fsf@delenn.ganneff.de> <[🔎] 20170807183552.m6ufe3dl5ywztusd@roeckx.be> <[🔎] 20170811124110.p4prbvkih3t3qgg6@grep.be> <[🔎] 20170811142403.y3f5z5x63b76rfip@roeckx.be>
+
+
+On Fri, Aug 11, 2017 at 04:24:03PM +0200, Kurt Roeckx wrote:
+> On Fri, Aug 11, 2017 at 08:41:10AM -0400, Wouter Verhelst wrote:
+> > On Mon, Aug 07, 2017 at 08:35:52PM +0200, Kurt Roeckx wrote:
+> > > On Mon, Aug 07, 2017 at 05:22:51PM +0200, Joerg Jaspert wrote:
+> > > > I wonder if there is a middle way that ensures that all new stuff does
+> > > > go TLS1.2 (or later, whenever), but does allow older stuff still to
+> > > > work. Which isnt the case if they are just disabled.
+> > > 
+> > > I could change the default settings to set the minimum supported
+> > > version as TLS 1.2. That is, act like
+> > > SSL_CTX_set_min_proto_version() was called with TLS1_2_VERSION.
+> > > That would allow applications to override this this by calling
+> > > SSL_CTX_set_min_proto_version(). But then those are new
+> > > functions in 1.1.0 and they probably aren't supported by many
+> > > applications.
+> > > 
+> > > An other alternative is to use the deprecated SSL_CTX_set_options
+> > > options (SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1) by default, but then
+> > > there is probably no software that has support for clearing those
+> > > with SSL_CTX_clear_options()
+> > 
+> > Would it instead be possible to create an item in the openssl.conf file
+> > to disable TLS1.2 by default? That way, users can re-enable TLS1.{0,1}
+> > in cases where that's required, and you can drop TLS1.0 and 1.1 (and
+> > possibly 1.2 even, if 1.3 has enough traction) in bullseye.
+> 
+> I prefer this to be enabled on application basis, which is why I
+> suggested the above ways.
+Sure. If I read "man 5 config" correctly though, openssl should allow
+per-application configuration file snippets to be read. A proper howto
+page on the wiki or elsewhere could then explain users how they should
+add such a snippet for their applications (and *only* for those
+applications where it is required).
+I'm afraid that if you leave this to application developers, some
+applications will not do it, leading uninformed users to simply
+recompile OpenSSL themselves (with TLS1.0 and TLS1.1 enabled), thereby
+resulting in a system with reduced security for *all* applications,
+rather than just the one where they need TLS1.0.
+> OpenSSL has support for setting such a mimimum in a config file,
+> I'm just not sure if it reads any section related to it by
+> default, I think it doesn't.
+That might be a good feature request then, I suppose.
+Alternatively, you could make the default in the absense of any
+configuration file be to *not* enable TLS1.2, but allow it to be enabled
+by an openssl configuration change (which AIUI is not the current state
+of affairs). That would work too.
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

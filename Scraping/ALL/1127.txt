@@ -1,0 +1,75 @@
+To : Bruno Bierbaumer <list@bierbaumer.net>, 865425@bugs.debian.org
+Subject : Bug#865425: debian-installer-9-netboot-mips64el: mips64el Malta netboot installer finds no installable kernel
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 24 Jun 2017 02:12:03 +0200
+Message-id : 20170624001203.GT17297@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 865425@bugs.debian.org
+In-reply-to : <[🔎] 20170621112210.19201.97375.reportbug@j191014.servers.jiffybox.net>
+References : <[🔎] 20170621112210.19201.97375.reportbug@j191014.servers.jiffybox.net>
+
+
+Control: reassign -1 libdebian-installer 0.110
+Control: affects -1 debian-installer-9-netboot-mips64el
+Bruno Bierbaumer <list@bierbaumer.net> (2017-06-21):²
+> Package: debian-installer-9-netboot-mips64el
+> Severity: normal
+> Tags: d-i
+> 
+> Dear Maintainer,
+> 
+> I wanted to install Debian Stretch mips64el in QEMU.
+> It seems that the netboot installer can't find any installable kernel for this architecture.
+> There is definitely linux-images for 5kc-malta in the repo and the same install procedure worked for both mips and mipsel.
+> 
+> Steps to reproduce:
+> 
+> qemu-system-mips64el -M malta -m 256 -cpu MIPS64R2-generic  \
+> -drive file=hda.qcow2,if=virtio,format=qcow2,index=0 \
+> -kernel vmlinux-4.9.0-3-5kc-malta \
+> -initrd initrd.gz \
+> -net user,hostfwd=tcp::22222-:22 \
+> -net nic \
+> -nographic \
+> -append "nokaslr"
+> 
+> The installer will show the error: No installable kernel was found in the defined APT sources
+Some info about this:
+~ # archdetect 
+mips64el/unknown
+and “unknown” is why base-installer isn't able to pick the right kernel.
+Looking at the hwmap structure in src/system/subarch-mips-linux.c (from
+the libdebian-installer package), where architecture detection happens,
+I initially thought we were missing some MIPS64 pattern there, but that
+doesn't seem the case, as /proc/cpuinfo reports this:
+| system type             : MIPS Malta
+…
+| cpu model               : MIPS GENERIC QEMU V0.0  FPU V0.0
+(Full contents below for reference.)
+and those are the ones which are searched through the hwmap…
+I'm not sure how to fix libdebian-installer here, adding debian-mips@
+and qemu maintainers in copy.
+It might make sense to update the bug report title as well at some
+point, since this is likely an issue on QEMU only?
+KiBi.
+----
+~ # cat /proc/cpuinfo 
+system type             : MIPS Malta
+machine                 : mti,malta
+processor               : 0
+cpu model               : MIPS GENERIC QEMU V0.0  FPU V0.0
+BogoMIPS                : 1271.80
+wait instruction        : yes
+microsecond timers      : yes
+tlb_entries             : 64
+extra interrupt vector  : yes
+hardware watchpoint     : yes, count: 1, address/irw mask: [0x0ff8]
+isa                     : mips1 mips2 mips3 mips4 mips5 mips32r1
+mips32r2 mips64r1 mips64r2
+ASEs implemented        : mips3d
+shadow register sets    : 1
+kscratch registers      : 0
+package                 : 0
+core                    : 0
+VCED exceptions         : not available
+VCEI exceptions         : not available
+signature.asc

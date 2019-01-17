@@ -1,0 +1,74 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#879591: apt: warns about main/debian-installer/i18n/Translation-en
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 23 Oct 2017 10:17:13 +0200
+Message-id : 150874663383.11901.11190430804623508942.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 879591@bugs.debian.org
+
+
+Package: apt
+Version: 1.5~alpha1
+Severity: normal
+[ X-D-Cc: debian-boot@ and jrtc27@debian.org ]
+Hi,
+Finally reporting this, which started a while ago:
+| root@wodi:/# apt-get update
+| Get:1 http://localhost/debian buster InRelease [136 kB]
+| Get:2 http://localhost/debian buster/main Translation-en [5530 kB]
+| Get:3 http://localhost/debian buster/main/debian-installer amd64
+| Packages [50.5 kB]
+| Fetched 5716 kB in 1s (5065 kB/s)                                
+| Reading package lists... Done
+| W: Skipping acquire of configured file 'main/debian-installer/i18n/Translation-en' as repository 'http://localhost/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+which is obtained by adding main/debian-installer to sources.list:
+| deb http://localhost/debian buster main main/debian-installer
+There's no reason for translations to be present in the archive for the
+main/debian-installer component, so it's perfectly OK not to find this
+file.
+James Clarke traced this to the following commit, that's why I'm filing
+this against 1.5~alpha1:
+| commit d7c92411dc1f4c6be098d1425f9c1c075e0c2154
+| Author: David Kalnischkies <david@kalnischkies.de>
+| Date:   Sun May 28 19:18:30 2017 +0200
+| 
+|     warn if an expected file can't be acquired
+|     
+|     If we couldn't find an entry for a Sources file we would generate an
+|     error while for a Packages file we would silently skip it due to
+|     assuming it is missing because it is empty. We can do better by checking
+|     if the repository declares that it supports a component we want to get
+|     the file from and if not say so and hint at the user making a typo.
+|     
+|     An example were this helps is mozilla.debian.net which dropped the
+|     firefox-aurora component (as upstream did) meaning no upgrades until the
+|     user notices manually that the repository doesn't provide packages
+|     anymore. With this commit warnings are raised hopefully causing the user
+|     to investigate what is wrong (sooner).
+I understand the sentiment behind this warning but it's slightly painful
+to stumble upon this in any chroot used for d-i development purposes.
+It can get worse depending on locales and installed packages, e.g.:
+| W: Skipping acquire of configured file 'main/debian-installer/i18n/Translation-en' as repository 'http://ftp.fr.debian.org/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+| W: Skipping acquire of configured file 'main/debian-installer/i18n/Translation-en_GB' as repository 'http://ftp.fr.debian.org/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+| W: Skipping acquire of configured file 'main/debian-installer/Contents-amd64' as repository 'http://ftp.fr.debian.org/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+The latter being likely due to having apt-file installed in that chroot.
+It seems buggy anyway: installing apt-file in a clean buster chroot,
+enabling the Contents-udeb stanza in /etc/apt/apt.conf.d/50apt-file.conf
+then running apt-get update leads to:
+| root@wodi:/# apt-get update
+| Hit:1 http://localhost/debian buster InRelease
+| Get:2 http://localhost/debian buster/main amd64 Contents (deb) [32.2 MB]
+| Get:3 http://localhost/debian buster/main amd64 Contents (udeb) [38.0 kB]
+| Fetched 32.2 MB in 4s (6659 kB/s)                                           
+| Reading package lists... Done
+| W: Skipping acquire of configured file 'main/debian-installer/i18n/Translation-en' as repository 'http://localhost/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+| W: Skipping acquire of configured file 'main/debian-installer/Contents-amd64' as repository 'http://localhost/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+| W: Skipping acquire of configured file 'main/debian-installer/Contents-udeb-amd64' as repository 'http://localhost/debian buster InRelease' doesn't have the component 'main/debian-installer' (component misspelt in sources.list?)
+so Contents files were fetched anyway, from the correct locations.
+I'm not sure what could be done. Handling debian-installer specifically
+doesn't sound too good. Maybe you could look whether a matching Packages
+or Sources file (depending on what you're fetching) exists, and disable
+warnings for extra files (Translations, Contents) if files were found in
+the first place. You would still catch obvious typos without generating
+noise when those extra files aren't found?
+Thanks for considering.
+KiBi.

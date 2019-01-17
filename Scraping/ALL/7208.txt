@@ -1,0 +1,46 @@
+To : debian-boot@lists.debian.org
+Subject : NMU for debootstrap (1.0.93+nmu2)
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Wed, 7 Mar 2018 20:35:32 +0900
+Message-id : 20180307203532.42747a6f865b956c655a0afd@iijmio-mail.jp
+
+
+Hi,
+ I've prepared next NMU for debootstrap package. I'll put it to repository
+ after previous NMU reached to testing. Please check attached patches and
+ below changelog.
+----------------------------------------------------------------------------
+debootstrap (1.0.93+nmu2) unstable; urgency=medium
+  * Non-maintainer Upload.
+  [ Hideki Yamane ]
+  * Avoid pre-exist directory causes failure (Closes: #864734)
+  * Split common code from scripts/sid to scripts/debian-common and share it
+    between distributions (Closes: #798562)
+  [ Lubomir Rintel ]
+  * Don't let host PATH leak into the target commands. It works on chroots
+    that have different PATH like Arch Linux and Fedora (Closes: #718632,
+    #770658, #890418)
+ -- Hideki Yamane <henrich@debian.org>  Wed, 07 Mar 2018 16:40:07 +0900
+>From abd372951fb24fcbcba8d99b6ffc40f96ca37958 Mon Sep 17 00:00:00 2001
+From: Hideki Yamane <h-yamane@m3.com>
+Date: Wed, 7 Mar 2018 16:32:39 +0900
+Subject: [PATCH 1/4] Avoid pre-exist directory causes failure (Bug#864734)
+---
+ functions | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+diff --git a/functions b/functions
+index 3cfa0d4..43969ee 100644
+--- a/functions
++++ b/functions
+@@ -1170,7 +1170,8 @@ setup_devices_simple () {
+ 	mknod -m 666 $TARGET/dev/random	c 1 8
+ 	mknod -m 666 $TARGET/dev/urandom	c 1 9
+ 	mknod -m 666 $TARGET/dev/tty	c 5 0
+-	mkdir $TARGET/dev/pts/ $TARGET/dev/shm/
++	# To avoid pre-exist directory causes error, specify "-p" option
++	mkdir -p $TARGET/dev/pts/ $TARGET/dev/shm/
+ 	# Inside a container, we might not be allowed to create /dev/ptmx.
+ 	# If not, do the next best thing.
+ 	if ! mknod -m 666 $TARGET/dev/ptmx c 5 2; then
+-- 
+2.16.2

@@ -1,0 +1,51 @@
+To : Marco d'Itri <md@Linux.IT>, debian-devel@lists.debian.org, 	904019@bugs.debian.org
+Subject : Re: Bug#904019: ITP: libxcrypt -- Extended crypt library for DES, MD5, Blowfish and others
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Sat, 21 Jul 2018 02:35:59 +0100
+Message-id : 6dc7911d760aab23e004349a978c6e4dce163d56.camel@decadent.org.uk
+In-reply-to : <[🔎] 20180720131201.GA26427@bongo.bofh.it>
+References : <[🔎] 20180718113542.GA14230@bongo.bofh.it>	 <[🔎] 20180720001851.GA10044@bongo.bofh.it>	 <[🔎] 20180720110301.GB6647@gaara.hadrons.org>	 <[🔎] 20180720131201.GA26427@bongo.bofh.it>
+
+
+On Fri, 2018-07-20 at 15:12 +0200, Marco d'Itri wrote:
+> On Jul 20, Guillem Jover <guillem@debian.org> wrote:
+> 
+> > > And this means that perl (a libcrypt dependency) would be broken between 
+> > > 1 and 5 (or maybe 1 and 3): is this ever going to work?
+> > 
+> > Given that this new package is going to replace a part of glibc, it
+> > will need to behave as if it was part of the pseudo-Essential package
+> > set. When it comes to the diversion that means it needs to be added
+> > *without* the rename, so that we always have the libcrypt.so.1 present.
+> 
+> I am not sure about how this would work: can you point me to an example 
+> package?
+> 
+> > But otherwise why would it be broken?
+> 
+> Because indeed when using dpkg-divert --rename the file would be missing 
+> for some time.
+[...]
+I think you can do something like:
+# build time: install libraries in a subdirectory to avoid conflict
+	make install libdir=/lib/$DEB_HOST_MULTIARCH/libxcrypt1
+# postinst time: use link & rename to replace working version atomically.
+# $DEB_HOST_MULTIARCH actually needs to be substituted at build time.
+for src in /lib/$DEB_HOST_MULTIARCH/libxcrypto/libcrypt.so.*; do
+	dst=/lib/$DEB_HOST_MULTIARCH/$(basename $src)
+	dpkg-divert --package libxcrypt1 --add --divert $dst $dst.glibc
+	ln $dst $dst.glibc
+	ln $src $dst.xcrypto
+	mv $dst.xcrypto $dst
+done
+# prerm time: just rename
+for src in /lib/$DEB_HOST_MULTIARCH/libxcrypto/libcrypt.so.*; do
+	dst=/lib/$DEB_HOST_MULTIARCH/$(basename $src)
+	dpkg-divert --package libxcrypt1 --remove --divert $dst $dst.glibc
+	mv $dst.glibc $dst
+done
+Ben.
+-- 
+Ben Hutchings
+Anthony's Law of Force: Don't force it, get a larger hammer.
+signature.asc

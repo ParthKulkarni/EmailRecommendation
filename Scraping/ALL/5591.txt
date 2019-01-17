@@ -1,0 +1,65 @@
+To : Santiago Vila <sanvila@unex.es>, 902226@bugs.debian.org
+Subject : Bug#902226: debian-installer-netboot-images: FTBFS in stretch, even when allowing network access
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 24 Jun 2018 20:30:36 +0200
+Message-id : 20180624183023.xwg6uipufu3njacm@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 902226@bugs.debian.org
+In-reply-to : <[🔎] alpine.DEB.2.20.1806231631270.14257@tulipan.isla-invisible.es>
+References : <[🔎] alpine.DEB.2.20.1806231631270.14257@tulipan.isla-invisible.es> <[🔎] alpine.DEB.2.20.1806231631270.14257@tulipan.isla-invisible.es>
+
+
+Hi Santiago,
+Santiago Vila <sanvila@unex.es> (2018-06-23):
+> Without using any special flag or environment variable, what I would
+> expect is that it downloads things from stretch as well, as every
+> point release of stretch should ideally be "self-contained" for
+> building purposes.
+> 
+> I see this line in debian/rules:
+> 
+> export DISTRIBUTION?=stretch-proposed-updates
+> 
+> Maybe that's the problem.
+Right, that allows us to build from s-p-u when catching up with d-i
+changes staged into s-p-u, which happens for each and every point
+release where d-i gets updated (I don't remember any where it was
+skipped, but my memory is not to be trusted), starting right after r0.
+> I'm putting all my build logs here for you to see:
+> 
+> https://people.debian.org/~sanvila/build-logs/debian-installer-netboot-images/
+> 
+> You will see that version 20170615 of this package used to build ok in
+> the past.
+Right, see commit 5a0d0847c8a12e2dd3f13ce86aff797f4472dbd6 for stretch;
+previous releases should have something similar.
+> [ Note: I fear that this could be another wontfix bug, like the one
+>   complaining about network access, so I will not bother to set a
+>   severity, but I still believe that for consistency, packages in
+>   stretch should be buildable in stretch by default, even when they
+>   need network access ].
+Well, I've seen a fair share of “complaints”, but no solutions, so I
+fear this isn't going to be fixed any time soon indeed. Needless to say,
+I'm not a huge fan of this specific requirement / policy violation, but
+I have yet to see actual, viable solutions. From my rather self-centered
+point of view, d-i releases are a sufficient burden already that I don't
+wish to make this worse by adding some extra layers of complexity or
+indirections.
+>   If, after all, you consider that the cure is worse than the disease,
+>   then please consider this as a documentation bug and if possible
+>   explain somewhere why we are not expected to build this package
+>   without failures ].
+At first glance, it seems to me this bug could be addressed in two
+different ways, which don't seem to be too convoluted. The first way
+would be to try the s-p-u download and fall back to s download, for each
+and every download. But this could (probably only theoretically) lead to
+inconsistent downloads, mixing bits and pieces from s-p-u and from s.
+Plus plenty of errors when the default location isn't the right one.
+I suppose a better way would be to figure out with an early test if the
+target version is available in s-p-u or in s, and then pick the right
+suite for all downloads. Patches for this second approach are welcome.
+(Currently travelling, not easy to test things needed network access.)
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

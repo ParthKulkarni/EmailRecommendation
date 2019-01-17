@@ -1,0 +1,44 @@
+To : debian-boot@lists.debian.org
+Subject : Re: Trouble stacking mdadm, multipath and lvm at boot
+From : E V <eliventer@gmail.com>
+Date : Mon, 26 Jun 2017 16:24:06 -0400
+Message-id : CAJtFHUT7ZhtL+jn05neQ5X=TwKMw3+zAGMX2xFMxGoxEu2fOcQ@mail.gmail.com
+In-reply-to : <[🔎] CAJtFHUTneW=6mDi_XOf5mM+zCiFbDcks59G=FKHFwfYwpmQoxQ@mail.gmail.com>
+References : <[🔎] CAJtFHUTneW=6mDi_XOf5mM+zCiFbDcks59G=FKHFwfYwpmQoxQ@mail.gmail.com>
+
+
+On Mon, Jun 26, 2017 at 2:21 PM, E V <eliventer@gmail.com> wrote:
+> I'm trying to get mdadm to assemble an array on some multipath disks
+> at boot. System is a fresh install of stretch. By default it seems the
+> mdadm array auto assembles before the multipath devices are created
+> and thus doesn't use the dm- multi path devices but just the sdx
+> devices, which prevents the multipath devices from ever getting
+> created. Adding the DEVICE lines in mdadm.conf for the
+> /dev/mapper/mpathx devices kind of reverses the problem. Now the
+> multipath devices do get created, but the array(and thus the lvol &
+> filesystem) never gets assembled on boot. In the old init days I'd
+> probably add a script that runs mdadm --assemble and mount at the end
+> of boot, but not sure what the right way to handle this in systemd is.
+> mdadm.conf lines:
+>
+> DEVICE /dev/mapper/mpathb /dev/mapper/mpathc /dev/mapper/mpathd
+> /dev/mapper/mpathe
+> ARRAY /dev/md/0
+> devices=/dev/mapper/mpathb,/dev/mapper/mpathc,/dev/mapper/mpathd,/dev/mapper/mpathe
+> metadata=1.2 spares=1 name=tst3:0
+> UUID=7809f500:667e7a8f:45222d03:7405415b
+>
+>
+> Thoughts or suggestions?
+>
+> Thanks,
+> -Eli
+Looks like adding:
+ExecStartPost=/sbin/mdadm --assemble /dev/md/0
+to /etc/systemd/system/multipath-tools.service, and also pushing
+lvm2-lvmetad to after multipath-tools seems to work via:
+cat /etc/systemd/system/lvm2-lvmetad.service.d/ordering.conf
+[Unit]
+After=multipath-tools.service
+Doesn't seem great editing the multipath-tools service file, but it's
+working ATM. Suggestions on a better way would be great, thanks.

@@ -1,0 +1,72 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Updating the policy for conflicting binaries names ? [was: Re: Re: New package netgen-lvs with binary /usr/bin/netgen - already taken]
+From : Guillem Jover <guillem@debian.org>
+Date : Sun, 9 Sep 2018 03:46:02 +0200
+Message-id : 20180909014602.GA24213@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org,	Ruben Undheim <lists@beebeetle.com>,	guardians@namespace.hadrons.org
+In-reply-to : <[🔎] d1f66651-a6e1-6ace-4d73-fd333b5fdd5b@debian.org>
+References : <[🔎] 20180907201021.a5sdi6eyqjwi2kig@macbookair> <[🔎] 87worwt02s.fsf@iris.silentflame.com> <[🔎] d1f66651-a6e1-6ace-4d73-fd333b5fdd5b@debian.org>
+
+
+Hi!
+On Sat, 2018-09-08 at 20:18:10 +0200, Sylvestre Ledru wrote:
+> Le 08/09/2018 à 18:39, Sean Whitton a écrit :
+> > On Fri 07 Sep 2018 at 10:10PM +0200, Ruben Undheim wrote:
+> > > However, I think the policy gives us a lot of freedom to choose (it
+> > > is not very strict in this case).
+> > 
+> > I don't understand.  This seems pretty strict:
+> > 
+> >     Two different packages must not install programs with different
+> >     functionality but with the same filenames.
+> I think the policy should be changed.
+I'd very very strongly oppose any such change.
+It's also sad to see that the tech-ctte decision on the node non-problem
+seems to have created, for some, such very bad precedent. :(
+> It was possible to accommodate that when the archive was a few thousand
+> packages. Now that it is much bigger, that floss are everywhere,
+> packages are being forked, we might want to update the policy to give
+> more flexibility.
+Precisely now, with so many packages, it's way more important than ever
+to keep such policy, compared to earlier times where such potential
+conflicts could have been possibly tracked and managed more easily.
+> Renaming binaries is a big pain, it is confusing for the user, making
+> the life of the maintainer harder, the documentations won't reflect
+> the Debian-reality.
+With a shared namespace like PATH, and a global uncoordinated amount
+of upstreams assigning names autonomously, user confusion is guaranteed
+outside of the realms of Debian, where we are the designated guardians
+of this namespace. Let's not make it worse for ourselves, just because
+that mess is uncontrollable outside our boundaries.
+> The wording should be changed from "must" to "should":
+> ---
+> Two different packages should not install programs with different
+> functionality but with the same filenames.
+> ---
+> and give more flexibility to maintainers.
+That would, IMO, be catastrophic.
+> Or am I missing a key reason for this?
+Yes. The PATH namespace provides a (time-bound) contract with a set of
+interfaces. Those interfaces are exposed by name. When we use something
+like update-alternatives, dpkg-divert or Conflicts we do that only for
+compatible interfaces, even though the underlying implementations might
+support more functionality (such as dash vs bash for /bin/sh).
+Using any of the above methods to provide different interfaces on the
+same name would cause untold breakage and confusion in user minds,
+systems, programs and subvert the dependency system.
+Say for example a user has local program relying on such interface, and
+one admin replaces it with a conflicting interface; one thing is the
+interface going missing the other is it starting to do something
+completely different. Or a package Recommends/Suggests one of these
+alternative interfaces, now you'd need to track any such recommends
+and add Conflicts to any of these packages, otherwise they might
+optionally try to use them and stop working, or cause damage, etc. This
+then would leak this information all over the dependency graph. Not to
+mention making different subgraphs completely unavailable due to do
+those Conflicts.
+Also, above I say time-bound, because it's actually fine (if handled
+correctly) to reuse a specific name for different interfaces in different
+Debian releases, because the contracts are different and non-changing
+within those time-boundaries.
+Thanks,
+Guillem

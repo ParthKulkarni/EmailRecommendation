@@ -1,0 +1,79 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : Re: Depends/Recommends from libraries
+From : Thibaut Paumard <thibaut@debian.org>
+Date : Fri, 10 Mar 2017 10:33:53 +0100
+Message-id : 5f11b1df-6ed4-38e0-84de-b2958ce8348c@debian.org
+In-reply-to : <[🔎] 22721.37736.162098.118645@chiark.greenend.org.uk>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] f2adcdf1-9832-a9a2-f9f3-7736ab4adcdf@debian.org> <[🔎] 22721.37736.162098.118645@chiark.greenend.org.uk>
+
+
+Dear Ian,
+Le 09/03/2017 à 18:39, Ian Jackson a écrit :
+> Thibaut Paumard writes ("Re: Depends/Recommends from libraries"):
+>> There are quite legitimate uses for dependencies or recommendations in
+>> libraries. For instance, tne library that I maintain (libgyoto) has the
+>> option to provide MPI paralellisation. This requires an external
+>> executable, which is provided in a separate package. The external tool
+>> is in a separate package because it can exist only for one architecture
+>> at a time on the system (it lives in /usr/bin), while the library lives
+>> in a multi-arch directory.
+> 
+> This is perhaps a nice example.  Mind if I ask some questions ?
+> 
+> You say "an option to provide MPI paralellisation".  Is this option
+> enabled by default ?  Does it occur with all useful functions in the
+> library ?  Do library callers control over whether it occurs ?
+The option can be turned off completely at build time, but the default
+build-time behaviour is to enable it. The default run-time behaviour is
+to not use MPI parallelisation, but the user can switch it on. It is not
+used by all the functions. Actually there is only one high-level
+function that makes use of this possibility (the function that executes
+the ray-tracing for all pixels of an image, see below).
+> Are there any programs linked against libgyoto which actually call
+> into libgyoto only some of the time (perhaps, rarely) ?  (I did a
+> quick search and it seems that libgyoto's rdependency stack is quite
+> short.  There's some python modules and something to do with yorick,
+> but they are all explicitly gyoto-related; and there are some blend
+> metapackages, which are fine.  So maybe the answer to this is no, but
+> maybe it will become yes in the future.)
+> 
+Indeed, Gyoto is somewhat of an academic example, because it is
+currently only used by binary packages built from the same source. All
+of the programs currently linked with Gyoto are low or high level
+interfaces to the library, they do nothing else than calling the library.
+However it is meant to be usable by third party applications. libgyoto
+is a library to compute the trajectory of bodies in general relativity,
+including photons to perform ray-traycing in curved spacetimes. Its
+primary (and currently unique) audience is researchers. However I would
+find it quite cool if games, for instance, would start using it to
+produce realistic images of black-holes (which could benefit from MPI
+parallelisation) or to implement realistic physics for space-crafts
+(which could not). One could also easily use libgyoto or its Python
+bindings to build applications for educational or artistic purposes.
+In any case, I think the mechanics at work in this package is a good
+example of why a library may need to call external programs:
+The MPI parallelisation comes almost for free for any program that uses
+libgyoto. The main program needs to initialise the MPI environment and
+let libgyoto know to use it. The user typically needs to call the
+application through 'mpirun'. That's all. The main program does not need
+to have any parallel computing semantics in it. The cost is that the
+additional processes needed to work in parallel are spawned by libgyoto
+itself, so the corresponding executable needs to be somewhere where
+libgyoto can find it reliably, even in an heterogeneous environment.
+In conclusion: the generic part of my example is that a library may
+implement a multiprocess algorithm using the singleton paradigm (i.e. a
+single process is started, this process spawns workers). Since clusters
+can be heterogeneous, it is not necessarily desirable to hard-code the
+location of the worker process, so it must be in the PATH. We don't have
+any multi-arch location for executables, that is in the PATH by default.
+So the executable cannot be in a multi-arch package. If you want your
+library to be multi-arch, the executable that is called from the library
+cannot be in the same package. The lib package need to recommend the
+'worker' executable package. Their are a few niche cases that I have not
+worked out, specifically I am not sure whether on a single machine, it
+is possible for an i386 process to spawn an amd64 process using
+MPI_Comm_Spawn. I think not but I may be wrong. I do believe it is
+possible over the network, though.
+Yes, I think my use-case boils down to that. There are certainly other
+legitimate uses of library-calls-executable, but that's mine.
+Regards, Thibaut.

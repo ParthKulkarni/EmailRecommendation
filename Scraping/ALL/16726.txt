@@ -1,0 +1,137 @@
+To : debian-arm@lists.debian.org
+Subject : Summary of the Arm ports BoF at DC18
+From : Steve McIntyre <steve@einval.com>
+Date : Thu, 20 Sep 2018 09:24:02 +0100
+Message-id : 20180920082402.cjjriv2zxzvyobgj@tack.einval.com
+Reply-to : debian-arm@lists.debian.org
+
+
+[ Please note the cross-post and Reply-To ]
+Hi folks,
+As promised, here's a quick summary of what was discussed at the Arm
+ports BoF session in Hsinchu. Apologies for the delay in posting...
+Thanks to the awesome efforts of our video team, the session is
+already online [1]. I've taken a copy of the Gobby notes too,
+alongside my small set of slides for the session. [2]
+Ports update
+============
+arm64
+  * Current port, first released with Jessie
+  * Working well
+  * More devices available now, more coming
+  * Real server hardware!
+  * Simple choice of kernel with DTB and/or ACPI
+armhf
+  * Current port, first released with Wheezy
+  * Hard-float ABI, v7, VFPv3-D16
+    + Standard for 32-bit Arm Linux distros, so we should have binary
+      compatibility with other distros
+  * armmp kernel & DTBs
+    + Potentially massive set of supported devices
+  * UEFI is becoming more of a thing on armhf, and will make it easier
+    to run armhf VMs on top of arm64 hardware
+armel
+  * Current port, first released with Lenny
+  * Soft-float ABI, used to be v4t, now v5te
+  * I'd been planning to drop from testing/release, but others have
+    stepped up to keep armel running
+  * Still supported upstream for most languages, but can also be a
+    problem where things newer language runtimes expect v7 as a
+    minimum baseline. Fixable, but takes effort. People will need to
+    keep working on this. We'll need to manage expectations as to what
+    is supported/supportable in armel
+Buildds and hardware
+====================
+ * Existing Marvell Armada XP hardware we're using for armel/armhf is
+   not great in terms of supportability, e.g. needs a manual button
+   press to reboot after power failure. The machines are quite fast
+   and powerful, but they're still development boards and are missing
+   features we'd like such as support for more than one disk to do
+   RAID.
+ * There's a wider choice of arm64 machines available, e.g. Seattle,
+   X-Gene, ThunderX, Macchiatobin, Centriq, Synquacer, to suit a range
+   of budgets and requirements. I'm hoping that we'll soon see a
+   commercially successful, readily available arm64 server machine
+   that we'll be able to just buy off the shelf...
+ * DSA would like to get rid of the Marvell machines, replacing them
+   with more manageable server machines. Supporting dev boards is hard
+   work. AFAICS there are not any worthwhile 32-bit Arm server
+   machines that we could sensibly use as buildds. Hence, we'll need
+   to start switching to using arm64 machines as buildds for our
+   32-bit ports too. There was already some discussion about this on
+   the mailing list - see the thread around [3]
+Building 32-bit software on arm64
+=================================
+There are some issues here :-(
+  * Some arm64 machine won’t run the A32 ISA; server vendors are often
+    targeting 64-bit only and cramming more cores into a CPU by
+    leaving out the 32-bit support
+  * We've started using an arm64 machine (arm-arm-01, a Seattle-based
+    machine which includes A32 support) to build armhf. Unfortunately,
+    there have been some problems detected already:
+    + Alignment - Arm CPUs care about alignment, but we've been
+      running the 32-bit buildds with kernel support enabled for
+      fixing up user-space alignment problems in software. No such
+      option exists in the arm64 kernel, so we get SIGBUS errors.
+    + #define mixups - glibc fails its testsuite due to a mismatch
+      in 32- and 64-bit definitions for SIGMINSTKSZ. Patch already
+      developed by the Arm kernel team, but not upstream yet.
+    + It seems that our armhf Haskell binaries are mis-targeted
+      (ARMv6, not ARMv7?), so as well as needing lots of alignment
+      fixups they're also using old-fashioned primitives for
+      barriers. Looks like it will need fixing up and completely
+      rebuilding...
+    + I'm doing rebuilds of the armhf *and* armel archive to check if
+      there are any other problems to be found. [UPDATE: very nearly
+      finished, expect results and analysis very shortly...]
+    + Possible that we could mask some of the building problems using
+      32-bit VMs running on the arm64 machines, but that won't solve
+      the problems properly - these binaries still won't run properly
+      on arm64 machines like they should. Much better to fix things
+      like alignment issues properly, IMHO.
+    + Fixing alignment problems also helps other ports like m68k and
+      sparc, which have long had the same issues. They only exist
+      because developers can get away with invalid assumptions on x86
+      where the hardware will fix things at runtime. Even there,
+      proper alignment will typically improve performance.
+Discussion
+==========
+ * arm64 hardware for reproducible builds? Use reproducible builds to
+   systematically detect arm64 vs. armhf issues
+ * Ubuntu are also building armhf on arm64 and are seeing the same
+   alignment problems we are. Should we disable the alignment fixups
+   on the armhf buildds? Probably, to get consistent behaviour. Even
+   better, turn on reporting of alignment fixups so we can find and
+   file bugs. We should also do this for autopkgtest to find more
+   alignment faults at runtime.
+ * I'm expecting to pick up several Synquacer machines (24-core Cortex
+   A53) to use for Debian, donated by Linaro. Some will become
+   buildds, wanting to get more to use for autopkgtest, debian-ci,
+   reproducible builds etc. [UPDATE: 3 of these are now in Vancouver,
+   ready to set up as buildds]
+ * When will people be able to get hold of arm64 server machines
+   readily? It's a depressing story - lots of vendors in theory, but
+   not much commercial success so far :-(
+ * We've had arm64 openstack images for a while now.
+ * Lots of the large cloud-based services (e.g. Travis) are starting
+   to support arm64 too. It's an ongoing process.
+ * Vagrant has been experimenting with newer U-Boot versions which
+   include the new UEFI support. Should make installation easier on
+   some arm64 and armhf devices, for example. Possible issues with
+   devicetree here - discussion about problems with the devicetree
+   moving target, and hence the move to ACPI for some devices like
+   arm64 servers. Standards like SBBR and EBBR are meant to help here,
+   defining lowest common standards for how systems should work.
+ * Is armel going to continue? Are the buildd support issues the only
+   blocking problems? Basically... Clarifying - the new arm64 builders
+   for armhf *should* also work for armel too. Wait for rebuild
+   results to see how that works, I'd expect it to be OK. We
+   apparently have offers of donations to help keep armel alive. Let's
+   see!
+[1] http://meetings-archive.debian.net/pub/debian-meetings/2018/DebConf18/2018-08-04/arm-ports-bof.webm
+[2] https://www.einval.com/~steve/talks/Debconf18-arm-BoF/
+[3] https://lists.debian.org/debian-arm/2018/06/msg00062.html
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"When C++ is your hammer, everything looks like a thumb." -- Steven M. Haflich
+signature.asc

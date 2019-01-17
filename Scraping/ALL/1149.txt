@@ -1,0 +1,71 @@
+To : 864246@bugs.debian.org
+Subject : Bug#864246: os-probe: Also skip over bcache partitions.
+From : Mike Mestnik <cheako@mikemestnik.net>
+Date : Mon, 5 Jun 2017 22:57:18 -0500
+Message-id : CAF8px57WTe=_xBdbsVy+Bdn-MoQhFQVy4pBhS6mypnqLQvi_Ug@mail.gmail.com
+Reply-to : Mike Mestnik <cheako@mikemestnik.net>, 864246@bugs.debian.org
+
+
+This patch also adds bcache to list of partitions types to skip.
+Note that linux-boot-probes/common/50mounted-tests is missing
+LVM2_member from said list.
+From 6439f5a40bd4e610a462292c646098eeb4d5bcb1 Mon Sep 17 00:00:00 2001
+From: Michael Mestnik <cheako+github_com@mikemestnik.net>
+Date: Mon, 5 Jun 2017 11:52:17 -0500
+Subject: [PATCH] Add in bcache devices
+---
+ linux-boot-probes/common/50mounted-tests |  3 +++
+ os-prober                                | 10 ++++++++++
+ os-probes/common/50mounted-tests         |  3 +++
+ 3 files changed, 16 insertions(+)
+diff --git a/linux-boot-probes/common/50mounted-tests b/linux-boot-probes/common/50mounted-tests
+index ad68874..937553a 100755
+--- a/linux-boot-probes/common/50mounted-tests
++++ b/linux-boot-probes/common/50mounted-tests
+@@ -25,6 +25,9 @@ elif [ "$types" = swap ]; then
+ elif [ "$types" = crypto_LUKS ]; then
+ 	debug "$1 is a LUKS partition; skipping"
+ 	exit 0
++elif [ "$types" = bcache ]; then
++	debug "$1 is an bcache partition; skipping"
++	exit 0
+ elif [ "$types" = ntfs ]; then
+ 	if type ntfs-3g >/dev/null 2>&1; then
+ 		types='ntfs-3g ntfs'
+diff --git a/os-prober b/os-prober
+index a48863e..ab2dee1 100755
+--- a/os-prober
++++ b/os-prober
+@@ -45,6 +45,16 @@ partitions () {
+ 			fi
+ 		done
+ 
++		# bcahce
++		for part in /sys/block/bcache*; do
++			if [ -f "$part/inflight" ]; then
++				name="$(echo "${part##*/}" | sed 's,[!.],/,g')"
++				if [ -e "/dev/$name" ]; then
++					echo "/dev/$name"
++				fi
++			fi
++		done
++
+ 		# Add Serial ATA RAID devices
+ 		if type dmraid >/dev/null 2>&1 && \
+ 		   dmraid -s -c >/dev/null 2>&1; then
+diff --git a/os-probes/common/50mounted-tests b/os-probes/common/50mounted-tests
+index fca15cb..09c88b3 100755
+--- a/os-probes/common/50mounted-tests
++++ b/os-probes/common/50mounted-tests
+@@ -27,6 +27,9 @@ elif [ "$types" = crypto_LUKS ]; then
+ elif [ "$types" = LVM2_member ]; then
+ 	debug "$1 is an LVM member; skipping"
+ 	exit 0
++elif [ "$types" = bcache ]; then
++	debug "$1 is an bcache partition; skipping"
++	exit 0
+ elif [ "$types" = ntfs ]; then
+ 	if type ntfs-3g >/dev/null 2>&1; then
+ 		types='ntfs-3g ntfs'
+-- 
+2.11.0

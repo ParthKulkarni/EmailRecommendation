@@ -1,0 +1,70 @@
+To : Colin Watson <cjwatson@debian.org>, 893300@bugs.debian.org
+Subject : Bug#893300: cdebconf: Adding support for a pkg.cdebconf.nogtk build-profile
+From : Karsten Merker <merker@debian.org>
+Date : Mon, 26 Mar 2018 12:50:26 +0200
+Message-id : 20180326105026.bgnwiyl5hu55fvow@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 893300@bugs.debian.org
+In-reply-to : <[🔎] 20180325234718.b3ixfjjngtdnkycg@riva.ucam.org>
+References : <[🔎] 20180317200911.tto7rcj6wuowql6y@excalibur.cnev.de> <[🔎] 20180317200911.tto7rcj6wuowql6y@excalibur.cnev.de> <[🔎] 20180325234718.b3ixfjjngtdnkycg@riva.ucam.org> <[🔎] 20180317200911.tto7rcj6wuowql6y@excalibur.cnev.de>
+
+
+On Mon, Mar 26, 2018 at 12:47:18AM +0100, Colin Watson wrote:
+> On Sat, Mar 17, 2018 at 09:09:11PM +0100, Karsten Merker wrote:
+> > I would like to add support for a "pkg.cdebconf.nogtk" build-profile
+> > to cdebconf.  Background for that is that cdebconf (in particular
+> > libdebconfclient0) is needed rather early in the process of
+> > bootstrapping a new Debian architecture, but getting it built during
+> > early architecture bootstrap is difficult due to its build-dependency
+> > on gtk+cairo, which pulls in an enormous list of transitive
+> > build-dependencies that are effectively impossible to fullfill in a
+> > bootstrap scenario.
+> 
+> This approach and patch looks good to me.  I'm OK with you committing
+> and uploading it, modulo the comments below.
+> 
+> > diff --git a/debian/rules b/debian/rules
+> > index b2b35f4d..8b85a7af 100755
+> > --- a/debian/rules
+> > +++ b/debian/rules
+> > @@ -21,6 +21,11 @@ LIBDEBCONF=libdebconfclient0
+> >  DEB_FRONTENDS=passthrough text newt gtk
+> >  UDEB_FRONTENDS=passthrough text newt gtk
+> >  
+> > +ifneq ($(filter pkg.cdebconf.nogtk,$(DEB_BUILD_PROFILES)),)
+> > +    DEB_FRONTENDS:=$(filter-out gtk,$(DEB_FRONTENDS))
+> > +    UDEB_FRONTENDS:=$(filter-out gtk,$(UDEB_FRONTENDS))
+> > +endif
+> 
+> I think this would be clearer reversed, i.e.:
+> 
+>   DEB_FRONTENDS=passthrough text newt
+>   UDEB_FRONTENDS=passthrough text newt
+> 
+>   ifeq ($(filter pkg.cdebconf.nogtk,$(DEB_BUILD_PROFILES)),)
+>       DEB_FRONTENDS+=gtk
+>       UDEB_FRONTENDS+=gtk
+>   endif
+That's probably a matter of taste :-).  I found it clearer to
+have the primary DEB_FRONTENDS and UDEB_FRONTENDS assignments to
+always represent the default case when no build-profiles are
+enabled and only modify them in the "non-standard" case of having
+a build-profile set.  If you have a strong preference for the
+"additive" version instead of the "subtractive" version, please
+let me know and I'll change that.
+ 
+> > +ifneq ($(filter pkg.cdebconf.nogtk,$(DEB_BUILD_PROFILES)),)
+> > +	dh_install -plibdebconfclient0-dev src/modules/frontend/gtk/cdebconf_gtk.h usr/include/cdebconf/
+> > +endif
+> 
+> I think I may understand what this is doing now after some confusion,
+> but it's pretty opaque and definitely needs at least a comment.  I think
+> you're trying to keep the package contents identical regardless of build
+> profile, since the main build system won't handle it in this case due to
+> the change in *_FRONTENDS?
+Exactly. I'll add a comment explaining that.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

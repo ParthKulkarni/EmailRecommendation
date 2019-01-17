@@ -1,0 +1,72 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#877735: busybox: m68k build broken due to "-Os" in CFLAGS
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Thu, 05 Oct 2017 01:16:37 +0200
+Message-id : 150715899716.21351.14956363415364529265.reportbug@stretch64.physik.fu-berlin.de
+Reply-to : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 877735@bugs.debian.org
+
+
+Source: busybox
+Version: 1:1.27.2-1
+Severity: important
+User: debian-68k@lists.debian.org
+Usertags: m68k
+Hi!
+Thanks for picking up the maintainership for busybox!
+Unfortunately, one of the changes introduced with the new package
+causes breakage on m68k with the built-in shell no longer working
+properly:
+Version 1:1.22.0-17:
+root@pacman:~# busybox |head
+BusyBox v1.22.1 (Debian 1:1.22.0-17) multi-call binary.
+BusyBox is copyrighted by many authors between 1998-2012.
+Licensed under GPLv2. See source distribution for detailed
+copyright notices.
+Usage: busybox [function [arguments]...]
+   or: busybox --list[-full]
+      or: busybox --install [-s] [DIR]
+         or: function [arguments]...
+root@pacman:~# busybox ash -c 'echo ${x}'
+root@pacman:~#
+----------------------------------------------------------
+Version 1:1.27.2-1:
+root@pacman:~# busybox |head
+BusyBox v1.27.2 (Debian 1:1.27.2-1) multi-call binary.
+BusyBox is copyrighted by many authors between 1998-2015.
+Licensed under GPLv2. See source distribution for detailed
+copyright notices.
+Usage: busybox [function [arguments]...]
+   or: busybox --list[-full]
+      or: busybox --install [-s] [DIR]
+         or: function [arguments]...
+root@pacman:~# busybox ash -c 'echo ${x}'
+ash: syntax error: missing '}'
+root@pacman:~#
+----------------------------------------------------------
+After some fiddling, I found out that the culprit is the -Os
+which is now in CFLAGS. Reverting the change from [1] fixes
+the problem:
+root@pacman:~# busybox |head
+BusyBox v1.27.2 (Debian 1:1.27.2-1) multi-call binary.
+BusyBox is copyrighted by many authors between 1998-2015.
+Licensed under GPLv2. See source distribution for detailed
+copyright notices.
+Usage: busybox [function [arguments]...]
+   or: busybox --list[-full]
+      or: busybox --install [-s] [DIR]
+         or: function [arguments]...
+root@pacman:~# busybox ash -c 'echo ${x}'
+root@pacman:~#
+----------------------------------------------------------
+Since busybox is very important to boot the system and get
+debian-installer working, I would like to ask to have the
+change from [1] reverted for m68k until we have fixed the
+potential bug in gcc which most likely mis-compiled busybox.
+Thanks,
+Adrian
+> [1] https://anonscm.debian.org/cgit/d-i/busybox.git/commit/?id=8a115a910fb3cd7a525972e150a32f8aeb1da492
+--
+  .''`.  John Paul Adrian Glaubitz
+ : :' :  Debian Developer - glaubitz@debian.org
+ `. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+   `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

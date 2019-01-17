@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Re: "not authorised" doing various desktoppy things [and 1 more messages]
+From : Michael Biebl <biebl@debian.org>
+Date : Thu, 5 Jan 2017 19:56:49 +0100
+Message-id : 9775dae2-0532-1437-8f8c-e3a0617cd7c8@debian.org
+In-reply-to : <[🔎] 22637.18715.665086.947008@chiark.greenend.org.uk>
+References : <[🔎] 22636.1061.523880.253029@chiark.greenend.org.uk> <[🔎] o4h6r9$9r$1@blaine.gmane.org> <[🔎] 20170104005720.zbxi7v4fgl4uma5k@perpetual.pseudorandom.co.uk> <[🔎] 1ca71a87-772b-f166-4b0d-38f0681f011e@debian.org> <[🔎] 22636.22960.591912.552238@chiark.greenend.org.uk> <[🔎] 87o9zndx2n.fsf@deep-thought.43-1.org> <[🔎] 22636.55176.664342.141414@chiark.greenend.org.uk> <[🔎] 9e773c11-7d37-fd3b-559c-770941a41889@debian.org> <[🔎] 22637.18715.665086.947008@chiark.greenend.org.uk>
+
+
+Am 04.01.2017 um 20:12 schrieb Ian Jackson:
+> Michael Biebl writes ("Re: "not authorised" doing various desktoppy things [and 1 more messages]"):
+>> Am 04.01.2017 um 12:07 schrieb Ian Jackson:
+>>> I think #844785 needs a fix though. 
+>>
+>> Agreed. Does anyone who uses sysvinit want to look into this?
+> 
+> Um, me ?  Well, I don't particularly want to but I intend to.
+> Help from all quarters gratefully accepted.
+Assuming you use amd64 (adjust the paths if necessary for i386):
+# mv /usr/lib/x86_64-linux-gnu/systemd-shim /usr/lib/x86_64-linux-gnu/systemd-shim.orig
+Then copy the attached wrapper script to /usr/lib/x86_64-linux-gnu/
+and make it executable.
+-- 
+Why is it that all of the instruments seeking intelligent life in the
+universe are pointed away from Earth?
+signature.asc#!/bin/sh
+# We rely on cgmanager to setup /sys/fs/cgroup
+if ! mountpoint -q /sys/fs/cgroup; then
+	echo "cgmanager has not setup /sys/fs/cgroup not running, exiting"
+	exit 1
+fi
+# Mount legacy cgroup controller at /sys/fs/cgroup/systemd
+if ! mountpoint -q /sys/fs/cgroup/systemd; then
+	mkdir -p /sys/fs/cgroup/systemd
+	mount -t cgroup -o nosuid,noexec,nodev,none,name=systemd systemd /sys/fs/cgroup/systemd
+fi
+mkdir -p /run/systemd
+exec /usr/lib/x86_64-linux-gnu/systemd-shim

@@ -1,0 +1,71 @@
+To : 731859@bugs.debian.org
+Subject : Bug#731859: Happens to me on stretch
+From : Russell Stuart <russell-debian@stuart.id.au>
+Date : Wed, 20 Jun 2018 12:16:30 +1000
+Message-id : 1529460990.7782.1.camel@stuart.id.au
+Reply-to : russell-debian@stuart.id.au, 731859@bugs.debian.org
+In-reply-to : <[🔎] 20180618202228.57b001b60cd13124a91489ba@iijmio-mail.jp>
+References : <20131210144833.27986.22338.reportbug@hoothoot>  <[🔎] 20180615161831.1d5063d557290d4389f87aed@iijmio-mail.jp>  <1529288151.8236.2.camel@stuart.id.au>  <20131210144833.27986.22338.reportbug@hoothoot>  <[🔎] 20180618202228.57b001b60cd13124a91489ba@iijmio-mail.jp> <20131210144833.27986.22338.reportbug@hoothoot>
+
+
+On Mon, 2018-06-18 at 20:22 +0900, Hideki Yamane wrote:
+> I've run it and got failure as below (my question is can we run
+> nested chroot without failure?)
+If I parse that correctly you as asking is it possible to possible to
+do a debootstrap inside of a chroot.  The answer is yes of course, but
+even if it wasn't I provided examples where it failed when not running
+in a chroot - it was running inside a container (ie, systemd-nspawn)
+and a VM (qemu-system-x86_64).
+Perhaps you are asking if it's possible to do it inside a fakechroot? 
+If so the answer is again yes.
+But first you have to understand the root cause of the failure.  It's
+this: fakechroot (and fakeroot for that matter) work by hacking Linux's
+dynamic loading system.  They insert a shim dll that intercepts some
+calls (eg, getuid() and chroot()) to make it appear as if the user is
+root.  But ldconfig doesn't use dll's, it's statically linked, so it
+doesn't see the hack.  So when the posinst scripts run by debootstrap
+invoke ldconfig it attempts to alter the real systems dll
+/etc/ld.so.conf, which fortunately gets a permission failure because
+the user isn't really root.
+The problem isn't insurmountable as ldconfig has a -r option, which
+changes the directory it uses as root.  SO the authors of ldconfig have
+done what they can to help us work around the problem.  If we can
+arrange all attempts to invoke "$TARGET/bin/ldconfig ..." inside of the
+debootstrap to instead run "$TARGET/bin/ldconfig -r $TARGET ..." it
+should all work, and indeed it does work.
+Unfortunately how to do that isn't obvious.  debootstrap moves
+/bin/ldconfig to /bin/ldconfig.REAL, and naively replaces /bin/ldconfig
+with:
+   #!/bin/sh
+   ...other stuff...
+That won't work because of the #!/bin/sh.  /bin/sh itself depends on
+dll's, and those dll's aren't set up until ldconfig is run so "...other
+stuff..." is never run.
+Here are options that will work:
+1.  Do what is done now in a way that will work, which boils down to
+    using no dynamically linked program inside of the debootstrap
+    environment until ldconfig has been run successfully.  Make
+    debootstrap depend on the statically linked busybox, place a copy
+    of it in $TARGET/debootstrap, move $TARGET/bin/ldconfig to
+    $TARGET/bin/ldconfig.REAL (as happens now), and change the
+    shell script put in the place of $TARGET/bin/ldconfig to:
+        #!/debootstrap/busybox sh
+        "$TARGET/bin/ldconfig.REAL" -r "$TARGET" "$@"
+2.  Use the FAKECHROOT_CMD_SUBST feature of fakechroot.  Set it to:
+        FAKECHROOT_CMD_SUBST=/bin/ldconfig=$TARGET/debootstrap/ldconfig
+    When you do that whenever a program attempts to invoke
+    /bin/ldconfig inside of the chroot fakeconfig instead runs
+    $TARGET/debootstrap/ldconfig outside of the chroot.  Write
+    the following script to $TARGET/debootstrap/ldconfig:
+        #!/bin/sh
+        "$TARGET/bin/ldconfig" -r "$TARGET" "$@"
+   
+This works because we are now using the hosts /bin/sh to hack
+    the
+ldconfig command line.
+3.  Move $TARGET/bin/ldconfig to $TARGET/bin/ldconfig.REAL (as happens
+    now), include a small statically linked C program as part of 
+    debootstrap that invokes $TARGET/bin/ldconfig.REAL -r $TARGET and
+    temporarily replace $TARGET/bin/ldconfig with that program.
+I used method 1 to verify the general approach works.
+signature.asc

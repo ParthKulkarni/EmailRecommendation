@@ -1,0 +1,103 @@
+To : Balint Reczey <balint.reczey@canonical.com>, 861300@bugs.debian.org
+Subject : Bug#861300: cdrom-detect: Please merge changes from Ubuntu
+From : Colin Watson <cjwatson@ubuntu.com>
+Date : Sun, 30 Apr 2017 01:31:13 +0100
+Message-id : 20170430003112.GA10601@riva.ucam.org
+Reply-to : Colin Watson <cjwatson@ubuntu.com>, 861300@bugs.debian.org
+In-reply-to : <[🔎] CAG+KjmMN6ctqKZ13PfExjmbrSEb3pX7SxfSAVy-y1bbtnFVQyA@mail.gmail.com>
+References : <[🔎] CAG+KjmMN6ctqKZ13PfExjmbrSEb3pX7SxfSAVy-y1bbtnFVQyA@mail.gmail.com>
+
+
+On Thu, Apr 27, 2017 at 09:42:47AM +0200, Balint Reczey wrote:
+> Please merge changes from the delta carried by Ubuntu:
+For the record, this does not have my approval even though some of the
+commits are in my name.  It would generally be polite to at least try to
+ask people named as committers before you send patches attributed to
+them (and also e.g. ask what email addresses they prefer to be used for
+the patches you've generated in their name: I never use
+colin.watson@canonical.com except in situations where it's been chosen
+for me and I have no alternative).
+> commit 44dc46c133fa5e87d27eeef4c936e44cb886602b
+> Author: Balint Reczey <balint.reczey@canonical.com>
+> Date:   Wed Apr 26 21:07:42 2017 +0200
+> 
+>     Show Ubuntu name on Ubuntu
+> 
+>     Build depend on dpkg-dev (>= 1.15.1) and patch to do so.
+This is thoroughly gross in a native package, and I don't think it
+should be accepted.  Branding patches are annoying but basically a
+necessary reality.
+The only sensible way to avoid carrying these patches in downstream
+distributions is to debrand altogether, i.e. not mention Debian in d-i
+strings.  In some cases that's reasonable, but I don't think it can be
+done everywhere.
+(And no, db_subst isn't a solution in the general case: while it isn't a
+problem in this specific case, in general, different proper names are
+translated in various ways in different languages, may undergo
+declension, etc.  My stock example of this is "a Debian image" vs. "an
+Ubuntu image", but there's a wide range of complexity here.)
+If I were putting the effort into figuring out how to merge this
+properly rather than just forwarding patches directly, I'd work out a
+rephrasing of the log messages that was more generic and didn't require
+branding, and I'd generate the cdrom/suite template at build time in a
+way that's reasonably easy to maintain (.in files or similar).
+Committing a patch file like this is right out: not only are they highly
+unconventional in native packages but in practice they're a pain to
+maintain and tend to bitrot.
+> commit 08cfa29937f3dfbe796cab4d7e05bf2dd8808f40
+> Author: Colin Watson <colin.watson@canonical.com>
+> Date:   Wed Apr 26 20:08:41 2017 +0200
+> 
+>     Update translations for using hdparm
+> 
+>     Those changes should be done in d-i master po files
+This should be disregarded and should not have been sent.  These are
+translations I fetched from Launchpad, and they may have different
+vocabulary standards etc.  d-i manages its own translations, and d-i
+translators are unlikely to thank you for committing unchecked
+translations to their languages.
+If the underlying hdparm change were committed (but see below), then it
+might make sense to send copies of the various translated strings to the
+list as a courtesy so that translators could use them as a reference if
+they wanted to, but not to commit them.
+> commit 5f509c6af43f90f8800490ae87287d69678c5445
+> Author: Colin Watson <colin.watson@canonical.com>
+> Date:   Wed Apr 26 20:02:14 2017 +0200
+> 
+>     Optionally set CD-ROM drive parameters with hdparm
+I have mixed feelings about this.  It's a low-priority question,
+probably of pretty limited use nowadays as apparently nobody ever
+thought to enable it on amd64, and I suspect it's largely unused.  It
+made some difference in 2004 but now it's 2017.  My inclination would be
+to just drop this from Ubuntu, which would substantially reduce the size
+of our delta.
+> commit c061fc52c2b5ff1dc2f720df7dc795d0e0b121a9
+> Author: Colin Watson <colin.watson@canonical.com>
+> Date:   Wed Apr 26 19:10:44 2017 +0200
+> 
+>     Extend device-scan delay to wait for usb-partition and mmc-partition
+> 
+> commit 2ea63bb2703436cfa7695fe27ce5042d1eaf67fd
+> Author: Loïc Minier <lool@dooz.org>
+> Date:   Wed Apr 26 19:08:40 2017 +0200
+> 
+>     Also check SD/MMC partitions ("list-devices mmc-partition")
+> 
+>     Closes: LP: #364604
+These rely (in part in the case of c061fc52, and in its entirety in the
+case of 2ea63bb2) on a change to debian-installer-utils, which you
+haven't forwarded.
+> commit 5414150bde29d7f1432ae91eeb62c5dad8e0e3a2
+> Author: Colin Watson <colin.watson@canonical.com>
+> Date:   Wed Apr 26 18:37:29 2017 +0200
+> 
+>     Copy /cdrom/.disk/info to /var/log/media-info
+> 
+>     in order that we get /var/log/installer/media-info on the installed
+>     system; doing this in save-logs is too late because /cdrom is already
+>     unmounted by that point.
+> 
+>     Closes: LP: #364649
+This is probably vaguely reasonable.
+-- 
+Colin Watson                                       [cjwatson@ubuntu.com]

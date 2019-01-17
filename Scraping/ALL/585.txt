@@ -1,0 +1,37 @@
+To : 902658@bugs.debian.org
+Subject : Bug#902658: apache2: apachectl graceful/restart results in  segfault
+From : Kai-Martin Knaak <kmk@familieknaak.de>
+Date : Tue, 24 Jul 2018 02:34:26 +0200
+Message-id : 20180724023426.675a1f57@swips.iqo.uni-hannover.de
+Reply-to : Kai-Martin Knaak <kmk@familieknaak.de>, 902658@bugs.debian.org
+In-reply-to : <[🔎] eef89003-b390-46a0-5383-d00b978adc9b@yahoo.at>
+References : <153026133281.6373.14208472717127920044.reportbug@sunnyserver.hellgate.at>
+
+
+Similar problem here. My apache2 server goes into a reload loop every
+time /etc/logrotate.d/apache2 is called. That is, daily a few minutes
+after midnight. The loop is triggered by the reload statement in the
+logrotate script. 
+As a band-aid I just replaced "reload" by "restart" in the logrotate script.
+In my case kern.log attributes the segfault to libglib-2.0:
+# tail -n 1 /var/log/kern.log
+Jul 24 02:22:39 bibo kernel: [175623.347801] /usr/sbin/apach[8662]: segfault at 7fb516473660 ip 00007fb516473660 sp 00007ffe8b10e508 error 14 in libglib-2.0.so.0.5600.1[7fb516dac000+113000]
+If I apply the /proc/$pid/maps|sort search with ldd I get:
+# pid=770; for i in $(awk '{ print $6 }' < /proc/$pid/maps|sort -u|grep /) ; do ldd -d  $i|grep libglib && echo $i ; done
+ldd: /dev/zero: not regular file
+ldd: /SYSV6405bf18: No such file or directory
+	libglib-2.0.so.0 => /usr/lib/x86_64-linux-gnu/libglib-2.0.so.0 (0x00007fcfb3308000)
+/usr/lib/php/20170718/imagick.so
+	libglib-2.0.so.0 => /usr/lib/x86_64-linux-gnu/libglib-2.0.so.0 (0x00007f0a395be000)
+/usr/lib/x86_64-linux-gnu/liblqr-1.so.0.3.2
+	libglib-2.0.so.0 => /usr/lib/x86_64-linux-gnu/libglib-2.0.so.0 (0x00007f2b15ea5000)
+/usr/lib/x86_64-linux-gnu/libMagickCore-6.Q16.so.5.0.0
+	libglib-2.0.so.0 => /usr/lib/x86_64-linux-gnu/libglib-2.0.so.0 (0x00007fa7bdb1c000)
+/usr/lib/x86_64-linux-gnu/libMagickWand-6.Q16.so.5.0.0
+---<)kaimartin(>---
+-- 
+Kai-Martin Knaak
+Email: kmk@familieknaak.de
+Öffentlicher PGP-Schlüssel:
+https://keyserver.ubuntu.com/pks/lookup?op=index&search=0x7B0F9882
+pgpssZXNU_CRf.pgp

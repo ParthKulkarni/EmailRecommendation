@@ -1,0 +1,87 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#859458: console-setup: Setup font on initrd
+From : Jörg Sommer <joerg@alea.gnuu.de>
+Date : Mon, 3 Apr 2017 21:12:21 +0200
+Message-id : 20170403191221.om3p3jh2iw7knzod@alea.gnuu.de
+Reply-to : Jörg Sommer <joerg@alea.gnuu.de>, 859458@bugs.debian.org
+
+
+Package: console-setup-linux
+Version: 1.163
+Severity: wishlist
+Hi,
+I have a display with a high resolution (280 dpi) and use full disk
+encryption. For the frame buffer console, I've changed the font to
+CODESET="Lat15"
+FONTFACE="Terminus"
+FONTSIZE="16x32"
+But the prompt for the master password before the system starts (and after
+grub) is still the default and very small.
+To fix this, I've added these scripts to initramfs-tools:
+------------- /etc/initramfs-tools/hooks/setup-console -------------
+#!/bin/sh
+case $1 in
+prereqs)
+     echo ''
+     exit 0
+     ;;
+esac
+. /usr/share/initramfs-tools/hook-functions
+# Begin real processing below this line
+copy_exec /bin/setfont
+cp /etc/console-setup/cached_Lat15-Terminus32x16.psf.gz "$DESTDIR"/etc/console-font.psf.gz
+------------- cat /etc/initramfs-tools/scripts/init-top/setup-console -------------
+#!/bin/sh
+case $1 in
+prereqs)
+     echo "udev"
+     exit 0
+     ;;
+esac
+. /scripts/functions
+# Begin real processing below this line
+if test -x /bin/setfont && test -e /etc/console-font.psf.gz
+then
+    setfont /etc/console-font.psf.gz
+    log_success_msg 'Set console font'
+fi
+-------------
+Can you add files like these to the package, please?
+Regards Jörg
+-- System Information:
+Debian Release: 9.0
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'unstable'), (1, 'experimental-debug'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.10.0-trunk-amd64 (SMP w/8 CPU cores)
+Locale: LANG=de_DE.UTF-8, LC_CTYPE=de_DE.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages console-setup-linux depends on:
+ii  init-system-helpers     1.47
+ii  initscripts             2.88dsf-59.9
+ii  kbd                     2.0.3-2+b1
+ii  keyboard-configuration  1.163
+console-setup-linux recommends no packages.
+Versions of packages console-setup-linux suggests:
+ii  console-setup  1.163
+Versions of packages keyboard-configuration depends on:
+ii  debconf                 1.5.60
+ii  liblocale-gettext-perl  1.07-3+b1
+Versions of packages console-setup depends on:
+ii  debconf                 1.5.60
+ii  keyboard-configuration  1.163
+ii  xkb-data                2.19-1
+Versions of packages console-setup suggests:
+ii  locales   2.24-9
+ii  lsb-base  9.20161125
+Versions of packages console-setup-linux is related to:
+ii  console-common        0.7.89
+ii  console-data          2:1.12-5
+pn  console-tools         <none>
+pn  gnome-control-center  <none>
+ii  kbd                   2.0.3-2+b1
+ii  systemd               232-22
+-- debconf information excluded
+signature.asc

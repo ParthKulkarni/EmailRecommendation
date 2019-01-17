@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Russ Allbery <rra@debian.org>
+Date : Tue, 06 Jun 2017 09:06:46 -0700
+Message-id : 87d1ahgkx5.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl> (Adam Borowski's	message of "Tue, 6 Jun 2017 15:55:48 +0200")
+References : <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk>	<[🔎] 20170606000242.333F97C6433@relay.mailchannels.net>	<[🔎] 871sqyueya.fsf@hope.eyrie.org>	<[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl>
+
+
+Adam Borowski <kilobyte@angband.pl> writes:
+> More seriously, though, let's go through the list of 94 unsatisfied ones
+> on my desktop; the list below is transposed to collate recommendees.
+And what happens here is, I think, typical: any one person often thinks
+choices of recommends make no sense, but a broader perspective provides
+quite a bit of justification.  A good example:
+> dnsmasq-base: lxc
+> * BAD: how often are you on a network without a DNS server?
+Your question here indicates to me that you've missed the point of this
+dependency entirely.  lxc uses the dnsmasq program (not service, hence
+-base) for *DHCP* for containers on the container network.  If you do a
+search for lxc dnsmasq, you'll see tons of justification for this
+Recommends.  lxc is already pulling in tons of stuff; it would be dumb to
+make it harder to use by omitting this small recommends of a few binaries.
+> gsfonts: libmagickcore-6.q16-3 libwmf0.2-7
+> * BAD: see ghostscript
+Your concept of what file formats are obsolete is not even remotely
+similar to mine.
+> libgnomeui-0: xscreensaver
+> * BAD: Gnome users won't run xscreensaver
+What?  The hell they won't.
+> libmail-sendmail-perl: po-debconf
+> * BAD: why would po stuff want to send mail?
+This is for podebconf-report-po.  I assume you've not packaged something
+with translations?
+> libpam-systemd: xfce4-power-manager xfce4-session
+> * BAD: Depends:systemd, utterly pointless without it.
+This is a whole other discussion, but we had *endless* discussions of
+this, and there are very sound technical reasons for structuring the
+dependency chain this way.
+> libpurple-bin: libpurple0
+> * BAD: a library has no reason to install programs
+This, like all other lib*-bin packages in Debian, are external helper
+utilities *run by the library* under specific situations, which are split
+into a separate package to avoid SONAME issues.  This is an entirely
+correct packaging strategy for optional library APIs (in this case, things
+like opening remote URLs).
+I'm going to stop here, since at this point I think this is just going to
+turn into a thread educating you about Debian packaging conventions you've
+apparently not encountered before, which is really not a good use of
+everyone's time.
+I am completely unconvinced that there is any real problem here.  There
+are doubtless some bugs, most of them minor, in our separation between
+Recommends and Suggests, and there's probably some opportunity to craft
+better language to guide packagers to do the right thing, but mostly
+there's an opportunity for people to file a few bugs after a *thoughtful*
+analysis of package Recommends and why they might be there.  There
+certainly doesn't seem to be a problem large enough to warrant TC
+involvement.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

@@ -1,0 +1,58 @@
+To : debian-devel@lists.debian.org
+Subject : Re: RFC: Support for selective usage of (fake)root during package build (R³)
+From : Adrian Bunk <bunk@debian.org>
+Date : Sat, 11 Nov 2017 13:04:09 +0200
+Message-id : 20171111110409.ogsq6qwlkvx5uh47@localhost
+In-reply-to : <[🔎] b1a5a83a-807d-33f2-be13-745a2e1ed8c9@thykier.net>
+References : <572f273d-06b6-14c1-b56d-3f0f45e7d5fa@thykier.net> <[🔎] b4a0f34e-bc21-60ae-99f5-caba6db20923@thykier.net> <[🔎] 20171104232541.ld5c6avimi5qvexc@angband.pl> <[🔎] b1a5a83a-807d-33f2-be13-745a2e1ed8c9@thykier.net>
+
+
+On Sun, Nov 05, 2017 at 08:03:00AM +0000, Niels Thykier wrote:
+>...
+>  * Even if we could use a debhelper compat level to introduce R³, it
+>    would have neutered the adoption rate.  We got plenty of packages,
+>    where maintainers want to have their package backportable to stable,
+>    oldstable and even oldoldstable (not to mention various Ubuntu LTS
+>    releases).
+>...
+What adoption rate and in what timeframe are you aiming at?
+The oldest non-deprecated debhelper compat level 9 became the 
+recommended level in January 2012.
+Despite lintian warning for all older compat levels and RC bugs for
+some of the oldest compat levels (< 5), currently 26% of all debhelper
+using packages still use older (deprecated) compat levels.
+Based on this data, 75% of all packages using R³ in bullseye+2
+(ETA: 2025) is the most optimistic adoption rate I can imagine
+with opt-in plus lintian warning.
+If you are aiming at a faster adoption rate, I'd suggest opt-in only for 
+early adopters testing the new feature and then switching to opt-out:
+"Rules-Requires-Root: no" is an opt-in only
+into testing the new feature already today.
+Packages can already opt-out with "Rules-Requires-Root: binary-targets" 
+or "Rules-Requires-Root: <implementations-keywords>".
+Remaining issues like the MakeMaker issue you mentioned get sorted out, 
+ideally before buster.
+A build of all currently reproducible packages with the second build 
+defaulting to "Rules-Requires-Root: no" might be helpful for finding 
+remaining problems.
+At some later date (ideally shortly after the release of buster)
+is flag day where "Rules-Requires-Root: no" becomes the default,
+including RC bugs for all packages that have to opt out but do
+not yet opt out.
+Since dh compat < 9 is problematic for R³, it might make sense to find
+a solution for dpkg to use the old default for older dh compat levels
+if the number of actual problems caused by this is not small.
+Twice per release cycle we have a flag day change with 300-500 RC bugs 
+for a new gcc version (including some hard to resolve bugs), so assuming 
+there are < 1k packages that have to be fixed with the trivial one-line 
+opt-out change "Rules-Requires-Root: binary-targets" a flag day would
+be doable.
+> Thanks,
+> ~Niels
+cu
+Adrian
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

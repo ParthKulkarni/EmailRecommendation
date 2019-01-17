@@ -1,0 +1,79 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Replacing apt's http method (dropping curl)
+From : Bob Weber <bob2969685@gmail.com>
+Date : Tue, 27 Jun 2017 16:13:33 -0400
+Message-id : c7b95544-6fca-c811-5030-1a6551de42fb@gmail.com
+In-reply-to : <[🔎] 20170627194055.GA8639@debian.org>
+References : <[🔎] 20170627194055.GA8639@debian.org>
+
+
+On 6/27/17 2:00 PM, Julian Andres Klode wrote:
+> Hi everyone,
+>
+> as we discussed before in IRC, we plan to eventually replace
+> our existing curl-based https method with our http method,
+> by adding TLS support to it. This will move HTTPS support
+> into apt proper, removing the apt-transport-https package.
+>
+> I'm not sure how long this will take, I hope we get something
+> useful next month.
+>
+> Rationale
+> =========
+> * The https method is split out of apt because curl has a lot
+>   of dependencies (29 vs 7 on my test setup, 15.9 vs 4 MB of
+>   disk space)
+> * We want https to be a default these days, even if it provides
+>   only minor security improvements.
+> * Our http method is actually tested a lot because it is the
+>   default and supports advanced features, the https method just
+>   does curl easy stuff sequentially.
+>
+> Transition plan
+> ===============
+> I plan to do this in two stages, both of which I expect to
+> happen in unstable if all features have been implemented
+> quickly. There might be feature-incomplete alphas in
+> experimental.
+>
+> In the first stage, the "https" method is renamed to
+> "https+curl", and a https->http symlink is added in apt.
+>
+> If no significant regressions are reported (we might drop
+> some options or increase some checks), and the package has
+> been in testing for some time, the apt-transport-https
+> package is removed.
+>
+> This ensures that (a) we get proper testing and (b) users
+> have a workaround if something fails in that testing period.
+>
+> Implementation
+> ==============
+> I so far implemented basic https support using GnuTLS, including
+> SNI and certificate validation, and one (!) local CA file (as our
+> tests need that). The code is incredibly hacky right now. And
+> https->http redirects don't work yet.
+>
+> Alternatives would be to use libnss or openssl. In the latter
+> case, we'd have to build a separate helper binary that does not
+> link to the GPLed code, and just unwraps a TLS connection into
+> a pipe (similar to stunnel) - we could also use a helper generally,
+> it would allow us to run the TLS stack as nobody (!!!) [OK,
+> we have to open the socket in the parent process and pass it
+> down to the TLS stack, so _apt opens the connection for firewalls].
+>
+> The existing shitty proof of concept is available on GitHub:
+>
+> https://github.com/Debian/apt/compare/master...julian-klode:feature/http-https?expand=1
+>
+> But as I said it's ugly. It also does not yet link the http
+> binary to the https binary.
+>
+This may not be the place or time to ask this but will https  work with 
+apt-cacher-ng?  Most caches just pass the data through them and can't store the
+original files like apt-cacher-ng can.  Would the local machines connect to
+ap-acacher-ng over http and apt-cacher-ng connect to the debian mirrors using
+https?  Or could the apt-cacher-ng install generate a local certificate that the
+local machines could be set to accept as a valid debian cache/mirror and have
+apt-cacher-ng use https to the debian mirrors?
+...Bob

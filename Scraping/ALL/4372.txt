@@ -1,0 +1,38 @@
+To : 859385@bugs.debian.org, 859384@bugs.debian.org, 859386@bugs.debian.org
+Subject : Bug#859386: current behaviour looks correct to me
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Tue, 25 Apr 2017 04:42:06 +0200
+Message-id : 20170425024206.bmuu3f2f4yndxpx3@angband.pl
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 859386@bugs.debian.org
+
+
+> The HOME environment variable does not have to be present, programs
+> must fall back to the value in the passwd file. $SHELL does not do this
+> in the following two places.
+>
+>  * When running cd without any argument
+>  * When expanding tilde (~) characters
+Nope, there's nothing that says they "must" fall back to anything.  The very
+docs you linked to:
+> http://pubs.opengroup.org/onlinepubs/9699919799/utilities/cd.html
+> http://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_01
+explicitly say the results are unspecified.  $HOME should be set by the
+login environment, but if it's not set, you get to keep the pieces.
+You filed copies of this bug on three shells: busybox[sh], dash, bash.
+Their policies are:
+* busybox: no superfluous features are added, often even required but
+  non-important features get skipped
+* dash: POSIXLY_CORRECT, even when POSIX and common sense disagree
+Upstreams of those two will thus almost certainly reject such a change.
+* bash: no particular policy
+Yet, because the two other shells don't invent a fallback for missing $HOME,
+adding it bash would introduce a difference in behaviour that can be avoided
+by keeping status quo.
+Thus, while I understand your reason (extra robustness for user error), I'd
+recommend WONTFIXing all three copies of this bug.
+Please say if I missed something.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ Meow!
+⣾⠁⢠⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ Collisions shmolisions, let's see them find a collision or second
+⠈⠳⣄⠀⠀⠀⠀ preimage for double rot13!

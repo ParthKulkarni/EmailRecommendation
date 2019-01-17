@@ -1,0 +1,53 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Adrian Bunk <bunk@debian.org>
+Date : Thu, 9 Mar 2017 16:52:40 +0200
+Message-id : 20170309145240.poazqgk3frypupca@localhost
+In-reply-to : <[🔎] 22720.38081.180001.474815@chiark.greenend.org.uk>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 22720.38081.180001.474815@chiark.greenend.org.uk>
+
+
+On Wed, Mar 08, 2017 at 11:33:21PM +0000, Ian Jackson wrote:
+> Adam Borowski writes ("Depends/Recommends from libraries"):
+> > I'd like to discuss (and then propose to -policy) the following rule:
+> > 
+> > # Libraries which don't provide a convenient means of conditionally loading
+> > # at runtime (this includes most libraries for languages such as C), SHOULD
+> > # NOT declare a "Depends:" or "Recommends:" relationship, directly or
+> > # indirectly, on packages containing anything more than dormant files. 
+> > # Those include, among others, daemons, executables in $PATH, etc.  Any such
+> > # relationship should be instead declared by programs that use the library
+> > # in question -- it is up to them to decide how important the relationship
+> > # is.
+> 
+> This seems like a non-brainer to me.  Can anyone come up with a reason
+> why this would be wrong in general ?
+>...
+I can even come up with two:
+First, it sounds like a layering violation, forcing programs to know 
+about implementation details several layers of dependencies away.
+As an example, look at the "libdbus-1-3 -> dbus" Recommends.
+When libdbus-1-3 itself is used by a library, I don't see any reasonable
+way to push the implementation detail that dbus is used all the way up
+to all applications.
+Second, what should this achieve?
+The mentioned usbmuxd is 0.1 MB.
+libglib2.0-0 recommends libglib2.0-data.
+The sole contents of libglib2.0-data are 9.5 MB translations.
+This recommends would still be permitted, and by default these
+translations should be installed.
+In the common case disk space is plenty and not a problem.
+Except for some cases of daemons, installing too much is
+therefore usually not a problem.[1]
+Recommends are basically dependencies you are allowed to break when
+you know what you are doing, and that's the level of expertise someone 
+is expected to have when optimizing disk space usage.
+> Ian.
+cu
+Adrian
+[1] "libfoo pulls in 100 MB of data" cases are rare
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

@@ -1,0 +1,94 @@
+To : Julien Cristau <jcristau@debian.org>
+Subject : Bug#854801: Network Manager, Stretch and ipv6
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 26 May 2017 18:55:02 +0200
+Message-id : 20170526165502.GA19180@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 854801@bugs.debian.org
+In-reply-to : <[🔎] 52647145-eb28-ea5c-4f17-761d418646fc@debian.org>
+References : <1495546150.3104636.985803400.2F1C483D@webmail.messagingengine.com> <[🔎] 35c481b9-ecb3-b15b-b43d-8a1c1cbca95f@debian.org> <[🔎] 20170526163328.GE9052@mraw.org> <[🔎] 52647145-eb28-ea5c-4f17-761d418646fc@debian.org>
+
+
+Julien Cristau <jcristau@debian.org> (2017-05-26):
+> On 05/26/2017 06:33 PM, Cyril Brulebois wrote:
+> > Hi,
+> > 
+> > Michael Biebl <biebl@debian.org> (2017-05-23):
+> >> Control: severity 854801 serious
+> >> Control: reassign 854801 netcfg
+> >>
+> >> Hi
+> >>
+> >> This is https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=854801
+> >>
+> >> Since this issue is now cropping up regularly, I'd say it's something
+> >> which needs to be fixed for stretch, thus marking the bug as RC.
+> >>
+> >> Regards,
+> >> Michael
+> > 
+> > This issue is indeed (too) well known, but I need to grow a better
+> > understanding of various IPv6 configurations to get this fixed properly
+> > in stable suites. (I'm making progress on this front but I have a few
+> > busy weeks in front of me before getting back to this.)
+> > 
+> > In any case, this feels like something that might need to wait until
+> > after r0 (can-defer in release team speak IIRC, cc'd).
+> > 
+> IMO we should change d-i/netcfg to just never install rdnssd.  I guess
+> that might negatively impact systems on ipv6-only networks that don't
+> have any other means to pick up name servers, but that seems strictly
+> better than installing a package which conflicts with NM.
+Based on Julien's feedback (which matches my initial impressions from
+last time I looked into this), I've moved to preparing a new netcfg
+upload with the attached change. Leaving a debug message behind will
+make it possible to figure out what happens when users complain about
+the lack of this rdnssd package, so that we might adjust if needed.
+IIRC this issue is also affecting jessie so I'll make a note for
+possibly pushing this for a later point release.
+KiBi.
+signature.ascFrom ee0a5467181ff2f3a816ecc1230ba5e60bb5926b Mon Sep 17 00:00:00 2001
+From: Cyril Brulebois <kibi@debian.org>
+Date: Fri, 26 May 2017 18:52:26 +0200
+Subject: [PATCH] Stop queueing rdnssd's installation with IPv6 setups (Closes:
+ #854801).
+This component conflicts with network-manager and installing it from the
+network configuration step might prevents large parts of desktop
+environments from being installed. This isn't a perfect solution but
+this should be way better than the current status quo.
+---
+ autoconfig.c     |  2 +-
+ debian/changelog | 10 ++++++++++
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+diff --git a/autoconfig.c b/autoconfig.c
+index a603f62..f254cf3 100644
+--- a/autoconfig.c
++++ b/autoconfig.c
+@@ -470,7 +470,7 @@ int netcfg_autoconfig(struct debconfclient *client, struct netcfg_interface *int
+ 	if (ipv6) {
+ 		read_rdnssd_nameservers(interface);
+ 		if (nameserver_count(interface) > 0) {
+-			di_exec_shell_log("apt-install rdnssd");
++			di_debug("Not queueing rdnssd installation to make sure not to interfere with network-manager");
+ 		}
+ 	}
+ 	
+diff --git a/debian/changelog b/debian/changelog
+index 9132b33..6aa71b0 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,13 @@
++netcfg (1.143) UNRELEASED; urgency=medium
++
++  * Stop queueing rdnssd's installation with IPv6 setups. This component
++    conflicts with network-manager and installing it from the network
++    configuration step might prevents large parts of desktop environments
++    from being installed. This isn't a perfect solution but this should be
++    way better than the current status quo (Closes: #854801).
++
++ -- Cyril Brulebois <kibi@debian.org>  Fri, 26 May 2017 18:45:55 +0200
++
+ netcfg (1.142) unstable; urgency=medium
+ 
+   * IPv6 autoconfiguration: fix NTP server name handling, which would be
+-- 
+2.1.4

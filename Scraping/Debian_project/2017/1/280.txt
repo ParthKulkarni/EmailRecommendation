@@ -1,0 +1,72 @@
+To : Riku Voipio <riku.voipio@iki.fi>
+Subject : Re: Hiding library packages from apt searches by default? (was: Re: Worthless node-* package descriptions in ITPs)
+From : Mike Hommey <mh@glandium.org>
+Date : Sun, 8 Jan 2017 07:02:40 +0900
+Message-id : 20170107220240.kuhzryt4abcuzpia@glandium.org
+Mail-followup-to : Riku Voipio <riku.voipio@iki.fi>,	Debian Development <debian-devel@lists.debian.org>,	deity@lists.debian.org
+In-reply-to : <[🔎] 20170107193212.GA31059@kos.to>
+References : <[🔎] CAJNncBhohAfrQfeOkvqxKQbf1LyE+TpSmhFDw4MzJ1bU3Yf6ag@mail.gmail.com> <[🔎] 8760ltsuhr.fsf@whist.hands.com> <[🔎] 20170105115316.GA18418@kos.to> <[🔎] 148362157194.1828.12968920250180520780@auryn.jones.dk> <[🔎] c2a7a26e-4a96-6a33-d0d7-f491ba1ef065@iwakd.de> <[🔎] 20170107193212.GA31059@kos.to>
+
+
+On Sat, Jan 07, 2017 at 07:32:12PM +0000, Riku Voipio wrote:
+> On Thu, Jan 05, 2017 at 02:32:45PM +0100, Christian Seiler wrote:
+> > On 01/05/2017 02:06 PM, Jonas Smedegaard wrote:
+> > > Quoting Riku Voipio (2017-01-05 12:53:16)
+> > >> Vast majority of users would only install this via dependencies. It's 
+> > >> hardly a node-specific problem that debian package searches output 
+> > >> large amount of packages that are not useful unless you happen to be a 
+> > >> programmer.
+> > > 
+> > > ...and I agree that the issue is not specific to node-* packages, but I 
+> > > find it is quite common there.  Quite likely due to recent inclusion of 
+> > > lots of packages, prepared semi-automated - as Philip pointed out very 
+> > > well.
+>  
+> > Could we maybe hide library packages from apt searches by default? 
+> 
+> > I think most users don't care about libraries in any language (be it
+> > Perl, C, JS, Python, ...), but only care about software they
+> > use directly. And developers that do care about libraries could pass
+> > a flag to APT to say "yeah, please show me all packages that match
+> > this". And maybe even indicated how many library packages were not
+> > shown in the default search results?
+>  
+> After some thinking, instead of hiding better to group by:
+> 
+> $ apt search gif
+> 
+> [ GUI applicatoins ]
+> gimp
+> mirage
+> ...
+> [ CLI applications ]
+> gif2png 
+> gnuift
+> imagemagick
+> ..
+> [ programming libraries ]
+> libgif
+> libsdl-image
+> python-pil
+> ..
+> [ documentation ]
+> libgif-doc 
+> ...
+> $ 
+> 
+> I think the data for grouping can be theoretically mined from debtags.
+I think one of the main problems with `apt(-cache) search` is that what
+it takes is a regexp, and that most of the time, you're better served by
+doing your search with \b as both prefix and suffix.
+$ apt-cache search '\bgif\b' | wc -l
+138
+$ apt-cache search gif | wc -l
+198
+More extreme example, which actually happened to me a couple days ago
+because I was checking whether there is a package for the KAGE engine (a
+glyph generator for chinese characters ; http://fonts.jp/engine.html)
+$ apt-cache search kage | wc -l
+31104
+$ apt-cache search '\bkage\b' | wc -l
+1
+Mike

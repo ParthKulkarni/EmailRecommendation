@@ -1,0 +1,32 @@
+To : Dirk Eddelbuettel <edd@debian.org>, Debian Developers <debian-devel@lists.debian.org>
+Subject : Re: Our build system may be broken: /bin vs /usr/bin
+From : David Bremner <david@tethera.net>
+Date : Mon, 19 Nov 2018 14:10:33 -0400
+Message-id : 87h8gd2b1i.fsf@tethera.net
+In-reply-to : <[🔎] 6ef35fde-9b63-16de-3ac7-6103407e97d8@debian.org>
+References : <[🔎] 23538.52963.365294.710701@rob.eddelbuettel.com> <[🔎] 6ef35fde-9b63-16de-3ac7-6103407e97d8@debian.org>
+
+
+Michael Biebl <biebl@debian.org> writes:
+>
+> Most packages which are affected by this issue I've seen so far search
+> for the binaries in $PATH and encode the full path of the first find.
+> Since PATH is typically set to something like
+>
+> PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games
+>
+> the first find will be /usr/bin/sed on a merged-/usr system.
+> I suspect if you had a locally installed sed in /usr/local/bin, your
+> package would encode that as full path, i.e. would be misbuilt.
+> In the end it's a bug in your package which should be fixed there.
+>
+> As Marco said, the obvious and simplest approach is to nail down the
+> paths during build to a path that is known to work everywhere, i.e. in
+> your case /bin/sed.
+> A more elaborate fix would be, to not use any hard-coded paths.
+For scripts this conflicts with the requirement/suggestion to hardcode
+the shebang line. I don't know a good general solution, it seems to
+require ad hoc extra configuration to fix interpreter paths at build
+time (i.e. upstream build system cannot really expect to find
+interpreter paths if we move them between build and execution).
+d

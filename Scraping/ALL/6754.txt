@@ -1,0 +1,75 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#912820: stretch-pu: package pkgsel/0.45+deb9u2
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Sun, 04 Nov 2018 02:29:28 +0000
+Message-id : 154129856899.22311.17244834756275140705.reportbug@deadeye.wl.decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 912820@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+Tags: stretch
+User: release.debian.org@packages.debian.org
+Usertags: pu
+During installation with network sources enabled, security updates are
+normally installed.  However, this currently doesn't include updates
+that depend on a new binary package, due to a kernel or library ABI
+change.  This is bug #908711.
+This is fixed by adding the --with-new-pkgs option to the apt-get
+command line.  The full debdiff is below.
+Ben.
+diff -Nru pkgsel-0.45/debian/changelog pkgsel-0.45+deb9u2/debian/changelog
+--- pkgsel-0.45/debian/changelog	2016-12-24 12:49:01.000000000 +0000
++++ pkgsel-0.45+deb9u2/debian/changelog	2018-10-27 23:58:05.000000000 +0100
+@@ -1,3 +1,16 @@
++pkgsel (0.45+deb9u2) stretch; urgency=medium
++
++  * Fix target suite
++
++ -- Ben Hutchings <ben@decadent.org.uk>  Sat, 27 Oct 2018 23:58:05 +0100
++
++pkgsel (0.45+deb9u1) unstable; urgency=medium
++
++  * Install new dependencies when safe-upgrade (default) is selected
++    (Closes: #908711)
++
++ -- Ben Hutchings <ben@decadent.org.uk>  Sat, 27 Oct 2018 23:27:26 +0100
++
+ pkgsel (0.45) unstable; urgency=medium
+ 
+   * Export DEBIAN_TASKS_ONLY=1 when running tasksel in target, to make
+diff -Nru pkgsel-0.45/debian/postinst pkgsel-0.45+deb9u2/debian/postinst
+--- pkgsel-0.45/debian/postinst	2016-12-24 03:07:09.000000000 +0000
++++ pkgsel-0.45+deb9u2/debian/postinst	2018-10-27 23:27:12.000000000 +0100
+@@ -78,16 +78,16 @@
+ 	upgrade_type="$RET"
+ 	# Convert to apt-get command names.
+ 	case "$RET" in
+-	safe-upgrade) upgrade_type=upgrade;;
++	safe-upgrade) upgrade_type='upgrade --with-new-pkgs';;
+ 	full-upgrade) upgrade_type=dist-upgrade;;
+ 	esac
+ 	db_progress INFO pkgsel/progress/upgrade
+ 	sleep 2 # allow the message to be seen
+ 
+ 	log "checking for (security) updates to the base system"
+-	# Exclude Recommends to avoid installing new packages as part of
+-        # an upgrade.
+-	in-target sh -c "debconf-apt-progress --from 50 --to 100 --logstderr -- apt-get -q --no-install-recommends -y -o DPkg::options=--force-confnew '$upgrade_type'" || aptfailed
++	# Exclude Recommends to avoid installing new recommended packages
++	# as part of an upgrade
++	in-target sh -c "debconf-apt-progress --from 50 --to 100 --logstderr -- apt-get -q --no-install-recommends -y -o DPkg::options=--force-confnew $upgrade_type" || aptfailed
+ 	tasksel_start=100
+ fi
+ 
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'stable-updates'), (500, 'unstable'), (500, 'stable'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.18.0-2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8), LANGUAGE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled

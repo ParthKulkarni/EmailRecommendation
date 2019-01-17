@@ -1,0 +1,39 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : Re: Our build system may be broken: /bin vs /usr/bin
+From : Russ Allbery <rra@debian.org>
+Date : Mon, 19 Nov 2018 09:18:11 -0800
+Message-id : 87o9alm1f0.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 23538.60491.124954.425121@chiark.greenend.org.uk> (Ian Jackson's	message of "Mon, 19 Nov 2018 17:00:59 +0000")
+References : <[🔎] 23538.52963.365294.710701@rob.eddelbuettel.com>	<[🔎] 20181119161004.GA2045@bongo.bofh.it> <[🔎] 87sgzxm2gj.fsf@hope.eyrie.org>	<[🔎] 23538.60491.124954.425121@chiark.greenend.org.uk>
+
+
+Ian Jackson <ijackson@chiark.greenend.org.uk> writes:
+> Russ Allbery writes ("Re: Our build system may be broken: /bin vs /usr/bin"):
+>> Marco d'Itri <md@Linux.IT> writes:
+>>> Actually this is the root problem: policy says that packages should
+>>> use the $PATH to search for commands, but your package (like many
+>>> others) hardcodes their full path.
+>> Policy only says that for maintainer scripts.  I agree that it's not a
+>> good idea in any location, but I don't believe we've explicitly
+>> forbidden it anywhere.
+> We don't even have consensus that it is a bug!  We have, for example,
+> at least one important component which *requires* hardcoded paths in
+> their critical configuration files.
+Sorry, my "not a good idea" phrase needs more nuance.
+I think the general argument against hard-coding paths in maintainer
+scripts generally applies here as well.  However, there are going to be
+exceptions that need to hard-code specific paths for other reasons, so
+it's going to have to be a case-by-case determination.  A good
+counter-example where we do want to hard-code paths is to interpreters
+(see previous debian-devel discussion).
+I would be pretty dubious of Policy language here stronger than "should."
+I would also consider anything other than /bin/sh, /bin/bash, etc. in
+shell scripts to be a bug, and I'm worried that some upstream build
+systems will generate /usr/bin/sh or /usr/bin/bash if they decide to use
+Autoconf to find shells.
+Tactically, I'm in favor of not using usrmerge on buildds.  I feel like
+this is the *last* place we should enable usrmerge, since it's likely to
+require all systems consuming the built packages to also have usrmerge
+enabled.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

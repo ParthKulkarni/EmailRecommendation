@@ -1,0 +1,42 @@
+To : submit@bugs.debian.org
+Subject : Bug#905864: Ubuntu trusty and xenial are installed with merged-/usr by default
+From : Derek Poon <derekp+debian@ece.ubc.ca>
+Date : Fri, 10 Aug 2018 14:56:41 -0700
+Message-id : D05973F3-34F7-4675-9AE9-EDD9B11244F8@ece.ubc.ca
+Reply-to : Derek Poon <derekp+debian@ece.ubc.ca>, 905864@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.106
+Tags: patch
+Since debootstrap 1.0.102, merged-/usr installs are the default, except when installing blacklisted suites.  The blacklist was established in https://salsa.debian.org/installer-team/debootstrap/commit/4a1b3ca, whose commit message says:
+    Set non merged-usr release
+    
+    We do not apply merged-usr until Debian stretch and Ubuntu cosmic.
+However, the actual blacklist is (from scripts/gutsy):
+    case "$CODENAME" in
+        …|quantal|raring|saucy|utopic|vivid|wily|yakkety|zesty|artful|bionic|cosmic)
+Note that trusty and xenial are missing.  This causes their installation to fail due to file conflicts in certain packages.
+My speculation is that the omission was due to a copy-paste error from line 4 of scripts/gutsy.
+From: Derek Poon <derekp+debian@ece.ubc.ca>
+Date: Fri, 10 Aug 2018 14:47:05 -0700
+Subject: [PATCH] Added trusty and xenial to merged-/usr blacklist
+The blacklist should include all Ubuntu releases up to cosmic.
+---
+ scripts/gutsy | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/scripts/gutsy b/scripts/gutsy
+index b460e90..82c59c5 100644
+--- a/scripts/gutsy
++++ b/scripts/gutsy
+@@ -68,7 +68,7 @@ work_out_debs () {
+ first_stage_install () {
+ 	case "$CODENAME" in
+ 		# "merged-usr" blacklist for past releases
+-		gutsy|hardy|intrepid|jaunty|karmic|lucid|maverick|natty|oneiric|precise|quantal|raring|saucy|utopic|vivid|wily|yakkety|zesty|artful|bionic|cosmic)
++		gutsy|hardy|intrepid|jaunty|karmic|lucid|maverick|natty|oneiric|precise|quantal|raring|saucy|trusty|utopic|vivid|wily|xenial|yakkety|zesty|artful|bionic|cosmic)
+ 			[ -z "$MERGED_USR" ] && MERGED_USR="no"
+ 			;;
+ 		*)
+-- 
+2.17.1

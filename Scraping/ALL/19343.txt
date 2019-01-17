@@ -1,0 +1,41 @@
+To : debian-devel@lists.debian.org
+Subject : Re: intended MBF: wrong redirections in maintainer scripts
+From : Ralf Treinen <treinen@free.fr>
+Date : Thu, 9 Aug 2018 21:48:22 +0200
+Message-id : 20180809194822.GA2936@seneca.home.org
+Mail-followup-to : debian-devel@lists.debian.org,	Nicolas Jeannerod <nicolas.jeannerod@irif.fr>
+In-reply-to : <[🔎] 20180807103832.GB18245@grep.be>
+References : <[🔎] 20180804051557.GA1335@mobrt> <[🔎] 20180807103832.GB18245@grep.be>
+
+
+Hello Wouter,
+On Tue, Aug 07, 2018 at 12:38:32PM +0200, Wouter Verhelst wrote:
+> On Sat, Aug 04, 2018 at 01:15:57PM +0800, Ralf Treinen wrote:
+> > Hi,
+> > 
+> > as announced in our talk at debconf'18 [1] we intend a MBF about wrong
+> > redirections in maintainer scripts. In general these are of the form
+> > 
+> >   foo 2>&1 1> /dev/null
+> > 
+> > Here it was probably intended to send both stderr and stdout to /dev/null.
+> 
+> What makes you say that? ;-)
+> 
+> It may be that the maintainer did indeed want stdout to be discarded,
+> but stderr not; for instance because they wanted to parse the stderr
+> output.
+> 
+> (not saying this is the most likely case, but you might want to
+> double-check that before filing the bugs)
+We were assuming that the author of the script wanted to send both 1 and 2
+to /dev/null and was victim to the common mistake of getting the order of
+redirections wrong.
+You are absolutely right that our assumption about the authors intention
+may be wrong, and that they really intended the redirection the way they
+wrote it. This means that we should be more careful, and ignore cases in
+which the above pattern occurs in a context which has itself a redirection.
+As a consequence, we wouldn't detect a bug in a case like this one:
+ (foo 2>&1 1> /dev/null) | /some/processing
+This should be enough to eliminate false positives, right?
+-Ralf.

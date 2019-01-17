@@ -1,0 +1,73 @@
+To : 700368@bugs.debian.org
+Subject : Bug#700368: debootstrap does not work with local file mirror (apt-move)
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sat, 17 Mar 2018 20:42:09 +0900
+Message-id : 20180317204209.303c913153c2ed206a70e5b8@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 700368@bugs.debian.org
+In-reply-to : <5119BE8F.1050209@syn-net.org>
+References : <5119BE8F.1050209@syn-net.org>
+
+
+control: tags -1 +confirmed
+On Tue, 12 Feb 2013 05:01:19 +0100 Darshaka Pathirana <dpat@syn-net.org> wrote:
+> 2. I then tried to use the local file mirror with debootstrap
+> 
+> % debootstrap --arch amd64 --no-check-gpg wheezy /mnt/test file:///opt/apt-mirror
+> 
+> I: Retrieving InRelease
+> I: Failed to retrieve InRelease
+> I: Retrieving Release
+> E: Invalid Release file, no entry for main/binary-amd64/Packages
+> 
+> The Release file in /opt/apt-mirror/dists/wheezy/Release looks like:
+> 
+> Origin: APT-Move
+> Label: APT-Move
+> Suite: wheezy
+> Codename: unknown
+> Date: Mon, 11 Feb 2013 22:04:48 UTC
+> Architectures: amd64
+> Components: main contrib non-free
+> Description: unknown
+> MD5Sum:
+>  c44087a2947345e53ad77acb6e1e1137          1420853 main/binary-amd64/Packages
+>  b11ea469384e3eb1768254cd30688b6f           365497 main/binary-amd64/Packages.gz
+>  db1ad326cd5b23c672799f9b9c8016c8               85 main/binary-amd64/Release
+>  b4b5d9fa3fe62a17a7c03ccb466e4c26             2704 contrib/binary-amd64/Packages
+>  afc4118e90e063a0301b5c75f3e9eaf6             1326 contrib/binary-amd64/Packages.gz
+>  eb7767fb225316c2a5df26d7a164dc44               88 contrib/binary-amd64/Release
+>  aa594c3e1a4776480b0dbcbcd7992098             2883 non-free/binary-amd64/Packages
+>  e342c7267a808dd9fe8aff31b9829762             1088 non-free/binary-amd64/Packages.gz
+>  d59693d446c475da6670bb7638f5ca6a               89 non-free/binary-amd64/Release
+> SHA1:
+>  2126d979f9c8b1e70bb0186c04014c40a6ee9531          1420853 main/binary-amd64/Packages
+>  c7063cef7a381cc2770f93423624876d48108191           365497 main/binary-amd64/Packages.gz
+>  7df7ab3097cd1125839cc2839ceb5273d315f8c5               85 main/binary-amd64/Release
+>  c7f5871575136c4cb96c9147667c963c95f99008             2704 contrib/binary-amd64/Packages
+>  5595ffcba40fb3a81becbb4e35a841869efe49ef             1326 contrib/binary-amd64/Packages.gz
+>  b74f8d11da5ca2afc19230017c9f7b96c7b0e379               88 contrib/binary-amd64/Release
+>  1d7fb1ac7d6baeee5a373ce0fe7d71a34722dc5b             2883 non-free/binary-amd64/Packages
+>  9c05cdfb4461589d30dca13a578a86b83dda7ffb             1088 non-free/binary-amd64/Packages.gz
+>  edec9eeb9c55dd3f999cc6abdd50615ec4129c1a               89 non-free/binary-amd64/Release
+ In functions,
+> get_release_checksum () {
+>         local reldest="$1"
+>         local path="$2"
+>         if [ "$DEBOOTSTRAP_CHECKSUM_FIELD" = MD5SUM ]; then
+>                 local match="^[Mm][Dd]5[Ss][Uu][Mm]"
+>         else
+>                 local match="^[Ss][Hh][Aa]$SHA_SIZE:"
+>         fi
+>         sed -n "/$match/,/^[^ ]/p" < "$reldest" | \
+>                 while read a b c; do
+>                         if [ "$c" = "$path" ]; then echo "$a $b"; fi
+>                 done | head -n 1
+> }
+ So, it would check md5sum first then check sha256 and finish, not
+ about sha1.
+ However, I doubt to change this code since it's only issue with apt-move,
+ and we already drop sha1 checksums (just md5sum and sha256sum) now.
+ 
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp

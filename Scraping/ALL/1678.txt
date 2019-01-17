@@ -1,0 +1,71 @@
+To : Philip Hands <phil@hands.com>
+Subject : Bug#850802: Add s= as a command-line alias for url=https://
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Sat, 4 Feb 2017 10:16:37 +0100
+Message-id : 20170204091637.vrsq2n7keetziqfb@x
+Reply-to : Josh Triplett <josh@joshtriplett.org>, 850802@bugs.debian.org
+In-reply-to : <[🔎] 87k296xw7g.fsf@whist.hands.com>
+References : <148404195993.12718.16328705099198623892.reportbug@x> <[🔎] 20170204014646.GB23551@mraw.org> <[🔎] 20170204035634.d5kgktzojiqhu6oi@x> <[🔎] 87k296xw7g.fsf@whist.hands.com>
+
+
+On Sat, Feb 04, 2017 at 08:16:03AM +0100, Philip Hands wrote:
+> Josh Triplett <josh@joshtriplett.org> writes:
+> > On Sat, Feb 04, 2017 at 02:46:46AM +0100, Cyril Brulebois wrote:
+> >> Josh Triplett <josh@joshtriplett.org> (2017-01-10):
+> >> > Package: preseed
+> >> > Severity: wishlist
+> >> > Tags: patch
+> >> > 
+> >> > The attached patch adds s= as a command-line alias for url=https://
+> >> > 
+> >> > url=example.org will assume "http://example.org";, but specifying an https:// URL
+> >> > requires typing out url=https://example.org .  Add an alias s= , mapping
+> >> > to the template preseed/https_url, which assumes https:// instead; this
+> >> > shortens the kernel command-line parameter to s=example.org .
+> >> 
+> >> Just as a comment while going through my debian-boot/ folder: This seems
+> >> too short/not descriptive enough to me.
+> >
+> > Do you mean the name "s"?  "short" was the primary intent here, since
+> > this serves as an alias; making it longer would defeat the purpose.  I
+> > intended 's' to stand for "secure" (and "seed").
+> >
+> > Do you have an alternate suggestion that you consider more evocative of
+> > its purpose, without defeating that purpose?
+> 
+> It strikes me as wrong to be introducing a new alias for this purpose.
+> 
+> The problem you want fixed is that the magic expansion is defaulting to
+> a protocol of http rather than https, so it seems to me that we need a
+> way of making it use https instead, rather than setting up a parallel
+> url thing that only deals with https.
+> 
+> I think that we should make sure that we can at some point change the
+> default protocol to be https, and still have a sensible result.
+> 
+> The two approaches that occur to me is to have some sort of flags
+> variable (debian-installer/flags) with an alias of flags, flg, or just f
+> if you're desperate to be brief.  Then a flag of 's' could make d-i
+> prefer secure options where available.  That way you'd just specify:
+> 
+>   f=s url=example.org
+> 
+> Alternatively, we could allow the protocol to be specified, but leave
+> the magic expansion in place if the : is not followed by a /, so that in
+> that case you'd specify:
+> 
+>   url=https:example.org
+> 
+> (I've not yet convinced myself that there are no problems with that idea
+> though)
+> 
+> That way we can decide to switch to defaulting to https for some future
+> release, and then tell people to either do f=i (for insecure), or
+> url=http:... to keep the old behaviour.
+What about adding a new, shorter alias for url ("u=") that defaults to
+https, but still supports http if explicitly specified as such?  That
+would allow switching the default sooner, but would also avoid having to
+pass two separate options or an explicit scheme, and would avoid needing
+a future flag day to change the default.
+I'd be happy to submit a patch for that.
+- Josh Triplett

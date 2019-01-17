@@ -1,0 +1,56 @@
+To : Christian Seiler <christian@iwakd.de>
+Subject : Re: A radically different proposal for differential updates
+From : Julian Andres Klode <jak@debian.org>
+Date : Tue, 15 Aug 2017 20:51:23 +0200
+Message-id : 20170815185123.p4g53tm77kndy4ny@jak-x230
+In-reply-to : <[🔎] b0b1a98f-9b65-b405-8ac4-42e136dd69a5@iwakd.de>
+References : <[🔎] 20170812135640.GA6037@debian.org> <[🔎] b0b1a98f-9b65-b405-8ac4-42e136dd69a5@iwakd.de>
+
+
+On Tue, Aug 15, 2017 at 09:26:24AM +0200, Christian Seiler wrote:
+> Hi there,
+> 
+> I've come to believe that binary diff packages are not the best way of
+> solving this issue. Intead I'd like to propse a radically different
+> solution to this issue.
+> 
+> The gist of it: instead of adding a format for how deltas work, I
+> propose to introduce a new format for storing Debian packages that will
+> be used for both the initial installation _and_ incremental updates.
+> 
+> This idea was inspired by the following talk given by Lennart
+> Poettering about a new tool he's written (which is already packaged for
+> Debian by the way):
+> https://www.youtube.com/watch?v=JnNkBJ6pr9s
+> 
+> 
+> 
+> Now to my proposal:
+> 
+> A Debian package currently consists of two files: control.tar.gz and
+> data.tar.xz (or .gz). What I want to propose is a new format that does
+> not contain a data.tar.xz at all. Instead I'd like to split the
+> data.tar.xz into chunks and have the new format only contain an index
+> that references these chunks. Let me call this new format "cdeb" for
+> "chunked deb".
+> 
+[...]
+> Anyway: thoughts? Regards, Christian
+It's of course an awesome idea. But:
+I generally agree with the idea of chunk stores. They'd improve
+things a lot. Now, instead of chunking the tarfiles, chunk both
+the individual files, and the tarfiles. Then, with an index for
+the individual files in control.tar listing the chunks, you can
+easily reconstruct just the files that changed on your system
+and avoid any rebuilding of debs for upgrades :D
+That said, I believe that this change won't sell. Replacing the
+basic format the repository is made of won't fare well. Too many
+tools (most of which probably are not known) rely on the presence
+of deb files in archives.
+So as sad as it might be, I think we probably have to settle for
+delta files.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

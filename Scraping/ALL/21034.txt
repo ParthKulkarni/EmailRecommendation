@@ -1,0 +1,48 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Effect of build profiles
+From : Johannes Schauer <josch@debian.org>
+Date : Thu, 11 Jan 2018 23:11:09 +0100
+Message-id : 151570866960.1442.16078241614047796299@localhost
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 87d12gnlkv.fsf_-_@vostro.rath.org>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 4de2303e-f4dd-11e7-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180109050326.hxksmt53vp32ndcu@mail.wookware.org> <[🔎] 151550682194.1442.3057583478420582272@localhost> <[🔎] 20180110205244.324gmwqsa3qnrjs7@virgil.dodds.net> <[🔎] 151562120531.1442.1047216250141964080@localhost> <[🔎] 281eaed112c55bee78b841da6bfb0a42@debian.org> <[🔎] 151562916639.1442.13657051973104313118@localhost> <[🔎] 87d12gnlkv.fsf_-_@vostro.rath.org>
+
+
+Quoting Nikolaus Rath (2018-01-11 22:15:44)
+> On Jan 11 2018, Johannes Schauer <josch@debian.org> wrote:
+> > We can check whether two binary packages built with a different set of
+> > build profiles active are actually the same by using the tools from
+> > the reproducible builds project.
+> Now I'm mightily confused. What's the point of build profiles if they result
+> in identical binary packages? It seems to me in that case we could just
+> always use the "simplest" build profile.
+> 
+> I guess with "the same" you must mean something other than "bitwise
+> identical" - but it's not clear to me what.
+I must admit that I indeed have a hard time to formulate this in precise
+language. So let me instead use more simple words to explain this paragraph in
+a more verbose fashion.
+A source package can be built with zero or more build profiles active. Each
+binary package in debian/control can have a Build-Profiles field. The content
+of the field is a condition which must be fulfilled for the respective binary
+package to be built with a certain set (including the empty set) of build
+profiles active. For example:
+Package: python-foo
+Build-Profiles: <!nopython>
+This annotation means, that the python-foo package is generated all the time
+except when the "nopython" build profile is active during the source package
+build.
+What I meant to say above is: Independent with which set of build profiles we
+build this source package, every time python-foo ends up being generated, it
+has to be the exact same.
+So if we build this source package with "nodoc", then we generate python-foo
+and that binary package has to be the same as when we build the source package
+with "nocheck".
+So I did not mean to say that the set of binary packages that is built must be
+the same independent of which set of profiles is active. But if a binary
+package is built under two different sets of build profiles (including the
+empty set) then its contents must be the same.
+I hope this clears things up!
+Thanks!
+cheers, josch
+signature.asc

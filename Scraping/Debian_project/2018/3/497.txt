@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Enhanced syntax for Architecture field (Was: Usage of real m68k hardware)
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Wed, 28 Mar 2018 22:21:07 +0200
+Message-id : 20180328202107.nolzy4ejvq2hsdoo@angband.pl
+In-reply-to : <[🔎] 20180328182823.2w4kszictcb5ahim@an3as.eu>
+References : <[🔎] 20180328063809.6omgul5dh5yq4nek@an3as.eu> <[🔎] 20180328115314.4ykk4klwxbiyrmf3@layer-acht.org> <[🔎] 871sg4qfgb.fsf@hope.eyrie.org> <[🔎] 20180328182412.GP9516@localhost> <[🔎] 20180328182823.2w4kszictcb5ahim@an3as.eu>
+
+
+On Wed, Mar 28, 2018 at 08:28:23PM +0200, Andreas Tille wrote:
+> On Wed, Mar 28, 2018 at 09:24:12PM +0300, Adrian Bunk wrote:
+> > 
+> > Dependency fields have negative syntax like !m68k, for the Architecture: 
+> > field this is only possible with a complete list of all architectures
+> > except the one you want to exclude.
+> 
+> I agree this could really simplify things and I would have used this
+> syntax in several cases.
+Note that pretty much every place we have a list of architectures expects a
+different syntax.  This causes confusion, and, as you say, is painful due to
+a lack of such functionality.
+I don't remember the details, but IIRC dependencies also have a limit of not
+allowing both positive and negative specifiers.
+Thus, if we'd change this, what about changing the rules to:
+an architecture is allowed iff:
+it matches at least one positive specifier -or- there's none,
+and it doesn't match any negative specifier.
+(Ie, negatives have priority, no positives assumes "any".)
+The other change I'd make would be adding extra wildcards:
+* {big,little}-endian
+* {32,64,128¹}-bit
+* "fast" (and/or it's near-complement "slow")
+Thus, Andreas would mark his package, avoiding wasting time of either his or
+small-arch porters.
+Meow!
+[1]. riscv128 already exists, although not in dpkg's arch table.  And at
+least Google has enough storage in its servers to require more than 64-bits
+to address if you use it as virtual memory.  And, recent extension to la57
+was just 12 years after la48, which gives an estimate for when 64 bits won't
+be enough for anyone even for a single machine.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢠⠒⠀⣿⡁ A dumb species has no way to open a tuna can.
+⢿⡄⠘⠷⠚⠋⠀ A smart species invents a can opener.
+⠈⠳⣄⠀⠀⠀⠀ A master species delegates.

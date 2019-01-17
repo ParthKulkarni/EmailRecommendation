@@ -1,0 +1,65 @@
+To : Michael Biebl <biebl@debian.org>
+Subject : Re: Declarative packaging (Was: Re: Intended MBF: maintainer scripts not using strict mode) [and 1 more messages]
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Mon, 3 Jul 2017 13:58:15 +0100
+Message-id : 22874.16231.275040.106747@chiark.greenend.org.uk
+In-reply-to : <6af707a8-71b9-da87-4a83-634564811b0e@debian.org>,	<[🔎] 31544e98-f748-51e0-8b5e-c84e2478382d@debian.org>
+References : <20170626202356.qmywnd2ufmyn3brl@seneca.home.org>	<1498515922@msgid.manchmal.in-ulm.de>	<d4c5803b-760e-7bac-f71b-568b65b4bd59@thykier.net>	<6af707a8-71b9-da87-4a83-634564811b0e@debian.org>	<[🔎] 20170701152512.bhb56fq5ve4cudy7@zephyr.silentflame.com>	<[🔎] 31544e98-f748-51e0-8b5e-c84e2478382d@debian.org>
+
+
+(adding debian-dpkg)
+I think it would be worth stepping back a moment and thinking about
+why we don't have declarative machinery for things like this.  (And
+also about why we have ucf as well as dpkg conffile prompts.)
+* There is a potential difficulty with sequencing of the
+  install/removal-time actions requested by declarative configuration:
+  some of them may need to be interleaved with maintscript actions or
+  dpkg actions.
+  Figuring out exactly how this should be done needs to be done
+  separately for each proposed new declarative mechanism.  It's
+  nontrivial work.
+* New declarative schemes can be implemented in dpkg.  But that means
+  implementing them in C, and is awkward.  It also involves engaging
+  with the necessarily-conservative dpkg upstream.  Both of these
+  factors make experimentation awkward.
+* Alternatively, we could try to design some kind of extension
+  mechanism.  The design troubles and possible pitfalls here are
+  obvious...
+I suggest the following approach:
+Create an extension mechanism which allows dpkg's primary C code to
+retain responsibility for sequencing (and which prevents out-of-tree
+extensions from causing havoc).
+Something like a set of ordered tables in dpkg's C code which contains
+information about declarative extensions.  Each kind of maintscript
+would have a "before" table and an "after" table.
+When running a maintainer script, dpkg would walk the "before" and
+"after" tables before and after running the script.  For each table
+entry NAME
+   - if the .deb contains no control member NAME, skip the entry
+   - look for /usr/lib/dpkg/declarative/NAME
+   - if ENOENT, skip the entry
+   - otherwise, execute
+      /usr/lib/dpkg/declarative/NAME < /var/lib/dpkg/info/P.NAME
+     with env vars set to various helpful values.
+   - if it fails, treat it like a maintscript failure.
+   - the extension is permitted to write to
+      /var/lib/dpkg/declarative/NAME/
+This scheme allows an declarative extension to be implemented in a
+separate package, with dpkg's cooperation.  The extensions' users need
+to (pre-)Depend on the extension and the relevant dpkg version.
+Michael Biebl writes ("Re: Declarative packaging (Was: Re: Intended MBF: maintainer scripts not using strict mode)"):
+> systemd provides a facility called systemd-sysusers which allows to
+> describe system user accounts declaratively. Maybe we could leverage that.
+Not unless it can be decoupled from the rest of systemd, of course.
+Michael Biebl writes ("Re: Declarative packaging (Was: Re: Intended MBF: maintainer scripts not using strict mode)"):
+> To avoid any confusion: The dh_sysuser helper has no relationship with
+> systemd-sysuser.
+Thanks for the clarification.
+> They work quite differently from what I can see. dh_sysuser is simply a
+> helper which automates generating maintainer scripts code calling adduser.
+That is good, because it means that if we invent a new declarative
+format to be used in .debs, dh_sysuser could be changed to take
+advantage of it.  So we could get the benefits (reduced fragility,
+better management, etc. etc.) of declarative configuration without
+needing to go through all the source packages up-front.
+Ian.

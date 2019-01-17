@@ -1,0 +1,38 @@
+To : Vagrant Cascadian <vagrant@debian.org>, 893154@bugs.debian.org
+Subject : Bug#893154: #893154: installation-reports: pine64+ difficult install
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Fri, 16 Mar 2018 23:45:30 +0000
+Message-id : 1521243930.2495.169.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 893154@bugs.debian.org
+In-reply-to : <[🔎] 87sh8zipyl.fsf@aikidev.net>
+References : <[🔎] 87woybirhr.fsf@aikidev.net> <[🔎] 87woybirhr.fsf@aikidev.net>  <[🔎] 87sh8zipyl.fsf@aikidev.net> <[🔎] 87woybirhr.fsf@aikidev.net>
+
+
+Control: reassign -1 src:linux 4.13~rc5-1~exp1
+On Fri, 2018-03-16 at 16:02 -0700, Vagrant Cascadian wrote:
+> On 2018-03-16, Vagrant Cascadian wrote:
+> > I'm looking into enabling EFI emulation in u-boot to allow this
+> > part to "just work" with the current grub-EFI images.
+> 
+> I built a new version of u-boot with EFI emulation support enabled, and
+> successfully booted the mini.iso, but still have the problems with
+> missing modules in the installer. These modules were insufficient to get
+> the USB network adapter to work:
+[...]
+> That could be compared against the list from the initial report to see
+> if anything obvious is missing.
+phy_sun4i_usb is missing.  That used to be included in usb-modules by
+this pattern:
+    drivers/phy/phy-*-usb* ?
+Unfortunately in 4.13 most of the USB PHY drivers were moved into per-
+vendor sudbirectories, so this pattern stopped matching them.  (A few
+were still included due to static module dependencies; more on armhf
+than on arm64.)
+Ben.
+> Interestingly enough, the microSD is detected; there must be differences
+> in the device-tree that u-boot loads when doing EFI emulation and the
+> one provided with the kernel package.
+-- 
+Ben Hutchings
+The program is absolutely right; therefore, the computer must be wrong.
+signature.asc

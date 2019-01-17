@@ -1,0 +1,48 @@
+To : debian-devel@lists.debian.org, Marco d'Itri <md@Linux.IT>
+Subject : Re: Reducing the attack surface caused by Berkeley DB...
+From : Lionel Debroux <lionel_debroux@yahoo.fr>
+Date : Fri, 26 Jan 2018 23:43:39 +0100
+Message-id : c6d3d863-1a79-9965-2f38-48cf5ecc339d@yahoo.fr
+In-reply-to : <[🔎] 20180126004640.GA11478@bongo.bofh.it>
+References : <[🔎] 20bd977f-1d31-cc17-358d-98d150098fbe@yahoo.fr> <[🔎] 20180126004640.GA11478@bongo.bofh.it>
+
+
+Hi Marco,
+On 1/26/18 1:46 AM, Marco d'Itri wrote:
+> On Jan 25, Lionel Debroux <lionel_debroux@yahoo.fr> wrote:
+> > Several days ago, jmm from the security team suggested that I start
+> > a discussion on debian-devel about Berkeley DB, which has known
+> > security issues, because doing so may enable finding a consensus on
+> > how to move
+> Can you clarify the threat model?
+I'll try to; admittedly, the threat model is less clear to me than the
+number of publicly known weaknesses in a source package unmaintained
+upstream (at least publicly), the ease of hanging or crashing the code
+with corrupted input, and to some extent, the mild ease of creating such
+corrupted input in non-fuzzing conditions (though it would probably have
+been somewhat fixed earlier if it were frequent enough) :)
+> E.g. is libdb attackable by user-supplied data from the program using
+> it or do attacks require write access to the db files?
+Most attacks I can imagine require write access to the DB files, but I'm
+not convinced that most of the programs / libraries which use BDBs do it
+in a read-only fashion, if that is possible.
+As shown by the original reporter of #652036, BDB can (or could, at some
+point) be programmatically caused to corrupt a DB file in such a way
+that later opens, by e.g. a repair tool such as db_dump, causes an
+infinite loop. I'm obviously unqualified to tell whether any of the many
+callers of libdb can be locally, or remotely, caused to trigger such
+data corruption.
+Later, what got me interested in BDB as my first fuzzing target was DoS
+following external data corruption caused by forced power off on a
+laptop (<=> power outage for desktops, in theory), when launching `mocp`
+from the package of the same name.
+External data corruption could also infrequently occur on aging mass
+storage (non-backup transfers of BDBs are probably infrequent), and bite
+when restoring data, e.g. archived SVN repositories from the era before
+FSFS became recommended. I got that thought because having a peek at
+data from old backup tapes is relevant, once in every while, to some
+people I know. I'll grant that the data sets these persons are
+interested in are likely too old to be in a SVN in the first place, but
+you get the idea.
+Bye,
+Lionel.

@@ -1,0 +1,79 @@
+To : Leif Lindholm <leif.lindholm@linaro.org>
+Subject : Bug#883580: debian-installer: arm64: please ship dtb files
+From : Karsten Merker <merker@debian.org>
+Date : Tue, 5 Dec 2017 22:47:12 +0100
+Message-id : 20171205214712.gc757xcq4en7vcck@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 883580@bugs.debian.org
+In-reply-to : <[🔎] 20171205140746.3476rx6c526dqfc2@bivouac.eciton.net>
+References : <[🔎] faf90a27-597b-08e3-5646-a0c96f4fd902@gmail.com> <[🔎] 20171205140746.3476rx6c526dqfc2@bivouac.eciton.net> <[🔎] faf90a27-597b-08e3-5646-a0c96f4fd902@gmail.com>
+
+
+Andre Heider <a.heider@gmail.com> wrote:
+> Some arm64 devices (like espressobin) boot using u-boot and not
+> using efi.  For these the kernel's corresponding dtb is
+> required to boot.
+>
+> I only checked the latest daily netboot.tar.gz, and while armhf
+> ships those files, arm64 does not.
+>
+> When fishing out the dtb out of the binary kernel package and
+> using that for netboot, the installer works just fine -
+> including its flash-kernel run, which makes the freshly
+> installed system bootable using dtb.
+On Tue, Dec 05, 2017 at 02:07:46PM +0000, Leif Lindholm wrote:
+> X-Debbugs-CC: glikely@secretlab.ca
+> 
+> Please don't ship dtb files at all, including the kernel images.
+> 
+> If firmware does not come with hardware description, that is a
+> shortcoming of the firmware. If a newer kernel cannot be booted with
+> an existing device tree, then that is a bug and the kernel should be
+> patched.
+Hello,
+it appears to me that this argument assumes a situation that we
+simply don't have for many devices.  A lot of the ARM-based
+devices that Debian supports don't come with any preinstalled
+firmware at all.  Many of them don't even have permanent onboard
+storage (such as an SPI NOR flash) in which such a firmware could
+be stored, so the firmware is commonly a user-supplied u-boot
+image on an SD card.
+In practice, for most of the devices supported by Debian/armhf,
+the canonical source for the devicetree _is_ the Linux kernel. 
+The SoC-manufacturers commonly ship years-old, often
+pre-devicetree android kernels and stone-aged hacked-up u-boot
+versions without any notion of device-tree for their hardware and
+don't really care about mainline Linux.  AIUI, the situation for
+arm64-based SBCs appears to be roughly similar - server-class
+arm64 hardware is another topic, but Debian doesn't only cater
+for server-class hardware but also for a broad base of cheap SBCs
+based on SoCs built for the android market.  In some cases the
+manufacturer ships a hacked-up 3.10-based android kernel that
+even has a device-tree, but the bindings used in there are
+partially "homemade" and incompatible with the mainline bindings,
+i.e. the device-tree provided by the manufacturer is effectively
+unusable with mainline kernels.
+For systems supported by mainline u-boot we are slowly getting to
+a situation where more and more devices are converted to the
+"new" u-boot device-model and use device-tree internally, and
+u-boot can provide the u-boot-internal device-tree to the kernel,
+but even for many of those the situation is that the support in
+the mainline kernel as well as in u-boot is reverse-engineered
+and new features get added to the device-tree with every kernel
+release as the reverse-engineering efforts go on.
+I understand your argument and from the view of server-class
+systems it makes sense, but in the field of SBCs that would only
+work if we had a proper, fully-featured, standards-compliant
+device-tree from the manufacturer right from the start for every
+device, which is a situation that we unfortunately don't have
+and probably won't have for the forseeable future.
+> By all means, put a tree of verified actually working device trees
+> somewhere for platforms known to be provided with bad versions from
+> their manufacturer.
+The common case for SBCs is that there is _no_ working
+device-tree from the manufacturer.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

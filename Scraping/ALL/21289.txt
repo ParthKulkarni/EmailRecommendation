@@ -1,0 +1,103 @@
+To : Wookey <wookey@wookware.org>, 886238@bugs.debian.org
+Subject : Bug#886238: Build-Profiles purpose, mechanism vs policy (was Re: Bug#886238: Please introduce official nosystemd build profile)
+From : Guillem Jover <guillem@debian.org>
+Date : Tue, 9 Jan 2018 13:23:32 +0100
+Message-id : 20180109122332.GA7872@thunder.hadrons.org
+Reply-to : Guillem Jover <guillem@debian.org>, 886238@bugs.debian.org
+In-reply-to : <[🔎] 20180108183711.2vrs643yrokpapuq@mail.wookware.org>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108183711.2vrs643yrokpapuq@mail.wookware.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com>
+
+
+Hi!
+[ Thanks, I also wanted to chime in and mention this, because it seems
+  other people might not be clear on the history and motivations for
+  build-profiles! ]
+On Mon, 2018-01-08 at 18:37:11 +0000, Wookey wrote:
+> On 2018-01-03 13:30 +0000, Simon McVittie wrote:
+> > On Wed, 03 Jan 2018 at 15:12:51 +0300, Hleb Valoshka wrote:
+> > > Please introduce official nosystemd build profile so downstream
+> > > distributions can send patches to package maintainers with
+> > > systemd-less build instead of keep them in home.
+> > 
+> > In general, build profiles are not meant
+> > to result in functional changes to packages
+> > (<https://wiki.debian.org/BuildProfileSpec#Profile_built_binary_packages>),
+> 
+> This is correct for the mechanism's main/original purpose of
+> bootstrapping/removing cyclic dependencies.  The idea is that you
+> can't change functionality and still use a dependency with the same
+> name, if you actually want to automate the bootstrap process (because
+> you don't know which features of a package the depending-on package
+> uses).
+Exactly, pretty much because otherwise doing automatic bootstrapping
+(reusing existing package names and dependency relationships) becomes
+either very hard or impossible to handle or reason about.
+But, indeed, when I first envisioned build-profiles [B] it was due to
+the embedded case, as a way to trim down packages and dependencies,
+and trying come up with something that could make things like
+debian/control.in (or worse :) unnecessary. Of course I also had
+bootstrapping in mind, but it was secondary at the time. Which is
+funny because, the reason this got finally implemented and deployed
+in Debian was due to the boostrapping side, when an alternative and
+less general proposal was put forward.
+  [B] <https://www.hadrons.org/~guillem/debian/docs/embedded.proposal>
+So, yes, the distinction between the tooling implenting just mechanism,
+and letting the distribution specify policy was very much on purpose.
+And while we were drafting the current spec, we also had in mind making
+it powerful enough to be able to handle Gentoo USE flags cases, or
+provide the features necessary to make things like openembedded and
+co, unnecessary.
+> > The speculation about a possible nosystemd profile in
+> > <https://wiki.debian.org/BuildProfileSpec#Derivative_specific_profiles> is
+> > not consistent with that design principle. 
+> 
+> Right. But I'm not sure that the principles developed around
+> bootstrapping necessarily have to apply to profiles developed for
+> other purposes, and especially not for downstream distros who can
+> define their own policy (within reason).
+> 
+> The other similar example is 'embedded'. You could have an 'embedded'
+> profile that did more rigorous minimisation of packages for space or
+> functionality, and exactly what that meant in local policy terms would
+> be defined by the derivative using it.
+Yes, build-profiles can be used any way we want to. Of course reusing
+package-names while breaking the package-visible interface can be
+dangerous or might outright break the dependency system. So that's
+why we have tried to make that very clear on the spec.
+There's also a distinction (which might not always be very clear)
+between user-visible and package-visible interfaces. Say if something
+is exclusively a user-visible interface, then disabling it via
+build-profiles could be fine.
+But in any case, nothing says we cannot introduce a namespace for such
+interface breaking build-profiles, say: mutable.nosystemd, mutable.nopam,
+mutable.nokrb5, mutable.nonls, mutable.noselinux, etc.
+> > If the nosystemd profile is (exceptionally) allowed to cause functional
+> > changes, what would the policy be for this build profile? Would it be
+> > acceptable for a package built with nosystemd to be unusable or have
+> > incompatible behaviour if it is used on a system booted with systemd?
+> 
+> I think that is up to the derivative to define.
+Yes and no. When we specified that specific build-profiles are
+distribution policies, that means that whoever defines those
+build-profiles specifies their semantics. In case downstream want to
+integrate those upstream (that is, Debian for example), then we'd
+need to collectively agree on the semantics. But if a downstream or
+independent project defines their own profiles, because they use their
+own packaging or diverge w/o problem, then they can do whatever they
+want, obviously.
+Given the background of build-profiles, I'm very much in favor of
+introducing the equivalent usage as Gentoo USE flags, which was its
+main intention! :) It could make Debian a viable source-based
+distribution to use or base on, could make many of the embedded specific
+distribution solutions obsolete, and might make some downstreams life
+easier. Of course using one of these mutable profiles might imply some
+kind of flag day for their users, because either everything you want to
+use is annotated or the dependency system might be broken, but given that
+Debian does not enable any build-profiles by default, that'd be safe for
+us.
+TBH, I think several of us have had that in the backburner for some time,
+but were testing the waters in the project with something tangible first
+with bootstrapping. Because introducing this kind of disruptive change in
+Debian might feel traumatic if rushing it too much. :)
+Thanks,
+Guillem

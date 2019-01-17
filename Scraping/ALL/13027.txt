@@ -1,0 +1,50 @@
+To : debian-devel@lists.debian.org
+Subject : Re: sse{2,3,4.2}, altivec, neon, ...
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sat, 5 Aug 2017 22:28:36 +0200
+Message-id : 20170805202836.tmrt2dzpiawkwdxe@angband.pl
+In-reply-to : <[🔎] debc4db7-4b37-eb36-b542-dddea5f6056e@debian.org>
+References : <[🔎] 20170805175302.ewj5jks7sbl6ukyl@angband.pl> <[🔎] debc4db7-4b37-eb36-b542-dddea5f6056e@debian.org>
+
+
+On Sat, Aug 05, 2017 at 10:04:28PM +0200, Philipp Kern wrote:
+> On 08/05/2017 07:53 PM, Adam Borowski wrote:
+> > Thus, here's a proposed solution: in unstable, there's now a bunch of
+> > packages that do such checking in preinst, and thus refuse (overridably) to
+> > even install such software.
+> > 
+> > Currently this includes:
+> > * sse2: i386 (inc. hurd-i386, kfreebsd-i386)
+> > * sse3: i386, amd64, x32 (〃, kfreebsd-amd64)
+> > * sse4.2: i386, amd64, x32 (〃)
+> > * neon: armhf
+> > * altivec: powerpc
+> 
+> I suppose it wouldn't be possible to add autodetection to debhelper or
+> at least lintian based on instructions present in the binary? For the
+> latter I'd imagine something with a low certainty suggesting that you
+> depend on a certain meta package. (To catch the cases where there's
+> actually autodetection at runtime.)
+It's easy to quite reliably detect the presence of such instructions
+(probably no one JITs such code).  There's no real way to check if it's
+executed unconditionally, though -- a lot of software has optimized code
+paths that are chosen at runtime.
+I guess we could apply such check to the archive: for example, if any of
+these instructions are present in a code section:
+orpd cvtdq2ps andpd cmpnltpd addpd psubq cmpeqsd cvtpd2dq punpcklqdq pshuflw
+cvttpd2dq paddq cvttps2dq cmpneqpd cmpordpd cvtpd2ps cmpneqsd xorpd pmuludq
+cmplesd subpd cvtpd2pi pshufhw cvttsd2si psrldq movupd movmskpd cmpunordsd
+cmpnltsd movq2dq maskmovdqu cvtsi2sd cmppd cvttpd2pi sqrtsd movnti cmpltsd
+comisd minpd ucomisd cmpnlepd minsd maxsd mfence pshufd unpckhpd cmplepd
+punpckhqdq divsd mulpd cmpltpd cmpunordpd maxpd lfence shufpd subsd movhpd
+mulsd cvtps2pd unpcklpd movntdq movapd cvtsd2ss movdqu andnpd cvtps2dq
+movdqa cvtsd2si cmpordsd movdq2q divpd sqrtpd cvtpi2pd movntpd pslldq
+cvtss2sd cmpeqpd cmpnlesd movlpd addsd cvtdq2pd
+then the program may need sse2.  But there's no good way to weed out false
+positives automatically, so all we'd get is a list of candidates to check.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ What Would Jesus Do, MUD/MMORPG edition:
+⣾⠁⢰⠒⠀⣿⡁ • multiplay with an admin char to benefit your mortal
+⢿⡄⠘⠷⠚⠋⠀ • abuse item cloning bugs (the five fishes + two breads affair)
+⠈⠳⣄⠀⠀⠀⠀ • use glitches to walk on water

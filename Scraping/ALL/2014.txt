@@ -1,0 +1,233 @@
+To : Vagrant Cascadian <vagrant@debian.org>, 876773@bugs.debian.org
+Subject : Bug#876773: flash-kernel: Please add support for the original SolidRun CuBox (Dove)
+From : Josua Mayer <josua.mayer97@gmail.com>
+Date : Tue, 26 Sep 2017 12:49:27 +0200
+Message-id : 7e5ac58e-e0fe-7a13-2550-6e9cfb18e77d@gmail.com
+Reply-to : Josua Mayer <josua.mayer97@gmail.com>, 876773@bugs.debian.org
+In-reply-to : <[🔎] 87zi9iwpkl.fsf@aikidev.net>
+References : <[🔎] 150636229001.682.3893554561366307423.reportbug@cubox> <[🔎] 87zi9iwpkl.fsf@aikidev.net> <[🔎] 150636229001.682.3893554561366307423.reportbug@cubox>
+
+
+Hi Vagrant,
+thanks for your reply!
+I have now come up with a revised script taking your comments into
+consideration.
+Am 25.09.2017 um 21:22 schrieb Vagrant Cascadian:
+> On 2017-09-25, Josua Mayer wrote:
+>> The SolidRun CuBox has very good support in Mainline Linux.
+>> Thus it is a great candidate for supporting it in Debian.
+> ...
+>> I have come up with the database entry below, and this preliminary boot-script:
+>> setenv loadaddr   0x02000000
+>> setenv loadaddrrd 0x20000000
+>> setenv bootargs console=ttyS0,115200n8
+>> ${fstype}load ${device_name} 0:${partition} ${loadaddr} /boot/uImage
+>> ${fstype}load ${device_name} 0:${partition} ${loadaddrrd} /boot/uInitrd
+>> bootm $loadaddr $loadaddrrd
+> loaddr is already set in your environment, no need to set it again.
+Yes. I just wanted to be verbose.
+>
+> If you use:
+>
+>   setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} ${console} @@LINUX_KERNEL_CMDLINE@@
+>
+> Then flash-kernel can be configured with options from
+> /etc/default/flash-kernel.
+Ack
+>
+> And have this before the load/bootm parts:
+>
+>   @@UBOOT_ENV_EXTRA@@
+>
+> Then local environment overrides can be set from
+> /etc/flash-kerenel/ubootenv.d or /usr/share/flash-kernel/ubootenv.d.
+Ack
+>
+>
+>> I am running U-Boot 2009.08-dirty (Mar 09 2013 - 18:15:45) Marvell version: 5.4.4 NQ SR1.
+>> It comes with a prepopulated bootcmd environment variable that tries out:
+>> - usb sata(ide) mmc
+>> - partitions 1,2
+>> - directores / and /boot
+>> to find a boot.scr.
+>> At the time of loading it, these variables are set accordingly:
+>> device_name, partition, directory, fstype
+>> which can be used in our boot.scr.
+> You also *might* want to emulate upstream u-boot conventions and use the
+> variables consistant with other boot scripts, and set up a thin
+> compatibility layer:
+>
+>   setenv kernel_addr_r $loadaddr
+>   setenv ramdisk_addr_r 0x20000000
+>   setenv devtype $device_name
+>   setenv devnum 0
+>   setenv bootpart $partition
+>   setenv distro_bootpart $partition
+>   setenv prefix $directory
+>
+> With that at the top of your file, you could probably copy the
+> uboot-generic script and make minor modifications to get it working
+> (change "load" to "${fstype}load" and "bootz" to "bootm", change "/boot"
+> to "${prefix}"), and it would be more similar to the standard boot
+> scripts, and it'd be easier to adapt if upstream u-boot support was
+> later added with distro_bootcmd support.
+True.
+I decided to structure it very similar, but avoid the copy.
+>
+>
+>> One important thing that is missing, is bootargs!
+>> We need to set: console, root, rootfstype, rootwait
+> Your bootscript already sets the console in bootargs, so I'm not sure
+> what you mean...
+That is what I meant.
+It would be neat using just console=${console}, but the console variable
+in u-boot is set to
+console=console=ttyS0,115200useNandHal=single
+which is not nice style.
+So I hardcoded it  now.
+>
+>> - rootfstype could be gathered from fstype
+> I would not assume that the / fs and /boot fs are the same. But, you
+> shouldn't need to set that if you're using an initrd that can detect the
+> filesystem on it's own (e.g. initramfs-tools).
+Ack
+>
+>> - any ideas how to generate the root= option?
+>>   Ideally we could use UUID= there!
+>>   Or does Bootloader-Sets-Incorrect-Root: yes help here?
+> Again, with initramfs-tools, flash-kernel adds a root= entry based on
+> fstab in the initrd, so that in that case, you don't need root= defined
+> in the u-boot environment.
+Ack.
+After regenerating my initrd, I managed to boot with cmdline:
+console=ttyS0,115200n8 quiet
+>
+>
+> live well,
+>   vagrant
+br
+Josua Mayer
+ ** LOADER **
+U-Boot 2009.08-dirty (Mar 09 2013 - 18:15:45) Marvell version: 5.4.4 NQ SR1
+BootROM:
+       Version on chip: 2.33
+       Status: OK
+       Retries #: 0
+Board: CuBox
+SoC:   88AP510 (A1)
+CPU:   Marvell Sheeva (Rev 5)
+       CPU @ 800Mhz, L2 @ 400Mhz
+       DDR3 @ 400Mhz, TClock @ 166Mhz
+PEX 0: interface detected no Link.
+PEX 1: interface detected no Link.
+DRAM:   1 GB
+       CS 0: base 0x00000000 size 512 MB
+       CS 1: base 0x20000000 size 512 MB
+       Addresses 60M - 0M are saved for the U-Boot usage.
+SF: Detected W25Q32 with page size  4 kB, total  4 MB
+*** Warning - bad CRC, using default environment
+Streaming disabled 
+L2 Cache Prefetch disabled
+L2 Cache ECC disabled
+Modifying CPU/CORE/DDR power rails to 1.0(+2.5%) / 1.0(-5%) / 1.5(-5%)
+USB 0: Host Mode
+USB 1: Host Mode
+Setting VPU power OFF.
+Setting GPU power ON.
+MMC:   MV_SDHCI: 0, MV_SDHCI: 1
+Net:   egiga0 [PRIME]
+Hit any key to stop autoboot:  0 
+===> Executing ext4load usb 0:1 0x02000000 /boot.scr
+(Re)start USB...
+USB:   Register 10011 NbrPorts 1
+USB EHCI 1.00
+scanning bus for devices... 1 USB Device(s) found
+Waiting for storage device(s) to settle before scanning...
+       scanning bus for storage devices... 0 Storage Device(s) found
+** Bad partition 1 **
+===> Executing ext4load usb 1:1 0x02000000 /boot.scr
+** Bad partition 1 **
+===> Executing fatload usb 0:1 0x02000000 /boot.scr
+** Can't read from device 0 **
+** Unable to use usb 0:1 for fatload **
+===> Executing fatload usb 1:1 0x02000000 /boot.scr
+** Can't read from device 1 **
+** Unable to use usb 1:1 for fatload **
+===> Executing ext4load usb 0:1 0x02000000 /boot/boot.scr
+** Bad partition 1 **
+===> Executing ext4load usb 1:1 0x02000000 /boot/boot.scr
+** Bad partition 1 **
+===> Executing fatload usb 0:1 0x02000000 /boot/boot.scr
+** Can't read from device 0 **
+** Unable to use usb 0:1 for fatload **
+===> Executing fatload usb 1:1 0x02000000 /boot/boot.scr
+** Can't read from device 1 **
+** Unable to use usb 1:1 for fatload **
+===> Executing ext4load usb 0:2 0x02000000 /boot.scr
+** Bad partition 2 **
+===> Executing ext4load usb 1:2 0x02000000 /boot.scr
+** Bad partition 2 **
+===> Executing fatload usb 0:2 0x02000000 /boot.scr
+** Can't read from device 0 **
+** Unable to use usb 0:2 for fatload **
+===> Executing fatload usb 1:2 0x02000000 /boot.scr
+** Can't read from device 1 **
+** Unable to use usb 1:2 for fatload **
+===> Executing ext4load usb 0:2 0x02000000 /boot/boot.scr
+** Bad partition 2 **
+===> Executing ext4load usb 1:2 0x02000000 /boot/boot.scr
+** Bad partition 2 **
+===> Executing fatload usb 0:2 0x02000000 /boot/boot.scr
+** Can't read from device 0 **
+** Unable to use usb 0:2 for fatload **
+===> Executing fatload usb 1:2 0x02000000 /boot/boot.scr
+** Can't read from device 1 **
+** Unable to use usb 1:2 for fatload **
+===> Executing ext4load mmc 0:1 0x02000000 /boot.scr
+Device: MV_SDHCI
+Manufacturer ID: 2
+OEM: 544d
+Name: SD02G 
+Tran Speed: 25000000
+Rd Block Len: 512
+SD version 2.0
+High Capacity: No
+Capacity: 2013265920
+Bus Width: 4-bit
+Loading file "/boot.scr" from mmc device 0:1 mmcda1
+** File not found /boot.scr
+===> Executing fatload mmc 0:1 0x02000000 /boot.scr
+reading /boot.scr
+** Unable to read "/boot.scr" from mmc 0:1 **
+===> Executing ext4load mmc 0:1 0x02000000 /boot/boot.scr
+Loading file "/boot/boot.scr" from mmc device 0:1 mmcda1
+1297 bytes read
+## Executing script at 02000000
+Loading file "/boot/uImage" from mmc device 0:1 mmcda1
+3727237 bytes read
+Loading file "/boot/uInitrd" from mmc device 0:1 mmcda1
+16189635 bytes read
+Booting Debian from mmc 0:1...
+## Booting kernel from Legacy Image at 02000000 ...
+   Image Name:   
+   Created:      2017-09-25  16:04:31 UTC
+   Image Type:   ARM Linux Kernel Image (uncompressed)
+   Data Size:    3727173 Bytes =  3.6 MB
+   Load Address: 00008000
+   Entry Point:  00008000
+   Verifying Checksum ... OK
+## Loading init Ramdisk from Legacy Image at 20000000 ...
+   Image Name:   
+   Created:      2017-09-26  10:27:27 UTC
+   Image Type:   ARM Linux RAMDisk Image (gzip compressed)
+   Data Size:    16189571 Bytes = 15.4 MB
+   Load Address: 00000000
+   Entry Point:  00000000
+   Verifying Checksum ... OK
+   Loading Kernel Image ... OK
+OK
+Starting kernel ...
+[    1.517688] sr_init: platform driver register failed for SR
+[    1.783806] i2c-mux-pinctrl i2c-mux: Cannot find parent bus
+Debian GNU/Linux 9 cubox ttyS0
+cubox login:

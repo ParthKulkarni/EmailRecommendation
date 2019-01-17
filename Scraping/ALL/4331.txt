@@ -1,0 +1,37 @@
+To : Raphael Hertzog <hertzog@debian.org>, 868848@bugs.debian.org
+Subject : Bug#868848: debian-installer-utils: "list-devices partition" should report LVM logical volumes too
+From : Colin Watson <cjwatson@debian.org>
+Date : Sun, 29 Oct 2017 15:43:32 +0000
+Message-id : 20171029154332.gnifgwzlkcdctnxo@riva.ucam.org
+Reply-to : Colin Watson <cjwatson@debian.org>, 868848@bugs.debian.org
+In-reply-to : <20170719082959.vc4u4bp26guxkzgu@home.ouaza.com>
+References : <20170719082959.vc4u4bp26guxkzgu@home.ouaza.com> <20170719082959.vc4u4bp26guxkzgu@home.ouaza.com>
+
+
+On Wed, Jul 19, 2017 at 10:29:59AM +0200, Raphael Hertzog wrote:
+> Just like "list-devices partition" reports back RAID partitions, it should
+> also report LVM logical volumes. The attached patch does this.
+I think this is basically a reasonable thing to do, but it seems to me
+that it's going to cause rescue-mode to list LVs twice (see the
+choose_root function).  Could you fix that?  A sensible approach would
+probably be to exclude entries from LVMPARTS that are already in
+PARTITIONS, and we can simplify that later once the new list-devices is
+in place.
+> My goal is to extend the "hd-media" image to be able to find the ISO image
+> within an LVM logical volume too. This is a preliminary step in this
+> project.
+> 
+> Currently, I'm not hiding the partitions used by the various volume
+> groups. This is unlike what has been done for RAID partitions. But
+> I don't know all the places where list-devices is used
+"mr grep" is useful here, as there aren't all that many.
+> and I'm not convinced that it's really required either (it's not a
+> requirement for iso-scan at least). I'm ccing Colin, he might have
+> some insight to share on this.
+I could go either way on this, but I think it would probably make most
+sense to exclude partitions already in use by VGs.  "list-devices
+partition" is generally used to offer menus of partitions to find
+various files on, for which in-use PVs aren't going to be eligible; and
+the LVM assembly code uses its own code to find partitions.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

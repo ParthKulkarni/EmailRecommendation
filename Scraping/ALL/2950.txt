@@ -1,0 +1,44 @@
+To : YunQiang Su <wzssyqa@gmail.com>
+Subject : Bug#854588: debian-installer: recognize arrow keys as esc in serial console
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Sun, 19 Mar 2017 11:11:33 +0100
+Message-id : fc359fd3-9702-ea65-b594-9b9ba6fc0f63@physik.fu-berlin.de
+Reply-to : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 854588@bugs.debian.org
+In-reply-to : <[🔎] 23a72ed8-ece7-a8bc-cdfd-de2228dd5b77@physik.fu-berlin.de>
+References : <[🔎] 23a72ed8-ece7-a8bc-cdfd-de2228dd5b77@physik.fu-berlin.de>
+
+
+Hi!
+On 03/15/2017 10:45 AM, John Paul Adrian Glaubitz wrote:
+>> For most keys, it seems works well, while when press
+>> arrow keys "up"/"down"/"left"/"right",
+>> they are recognized as 'ESC' key.
+> 
+> We are seeing this issue on sparc64 now as well when using a serial
+> console for the installation. Using the arrow keys in the serial
+> console leads to random key presses (not sure whether it's <ESC>
+> or <RETURN> here), it did work fine in the past.
+Michael Karcher (CC'ed) has had a go at this and it seems it is an issue
+with the serial connection dropping some characters during transmission.
+Since the cursor keys generate escape sequences in the terminal, the
+transmission for a cursor key press needs to be stable over several
+characters.
+Invoking "infocmp ansi" will print out the escape sequences for various
+terminal actions. The cursor movement is controlled by these sequences:
+        cr=^M, cub=\E[%p1%dD, cub1=\E[D, cud=\E[%p1%dB, cud1=\E[B,
+        cuf=\E[%p1%dC, cuf1=\E[C, cup=\E[%i%p1%d;%p2%dH,
+        cuu=\E[%p1%dA, cuu1=\E[A, dch=\E[%p1%dP, dch1=\E[P,
+As you can see, these sequences usually involve <ESCAPE> plus additional
+characters. So, what happens in the case of Debian installer is that the
+characters after the <ESCAPE> are dropped and instead of the escape sequence,
+the terminal application (debian-installer) is receiving <ESCAPE> only
+which results in an escape key press.
+As possible cause for the issue might be a bug in the FIFO implementation
+of the serial connection. Michael will hopefully correct me if I am wrong.
+Thanks,
+Adrian
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

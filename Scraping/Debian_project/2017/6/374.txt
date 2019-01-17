@@ -1,0 +1,40 @@
+To : debian-devel@lists.debian.org
+Subject : Declarative packaging (Was: Re: Intended MBF: maintainer scripts not using strict mode)
+From : Niels Thykier <niels@thykier.net>
+Date : Tue, 27 Jun 2017 07:34:00 +0000
+Message-id : d4c5803b-760e-7bac-f71b-568b65b4bd59@thykier.net
+In-reply-to : <[🔎] 1498515922@msgid.manchmal.in-ulm.de>
+References : <[🔎] 20170626202356.qmywnd2ufmyn3brl@seneca.home.org> <[🔎] 1498515922@msgid.manchmal.in-ulm.de>
+
+
+Christoph Biedl:
+> [...] Niels has mentioned declarative approaches which seem
+> like a good idea. No idea about the status, though, and I'm interested
+> in details if there already are some.
+> 
+>     Christoph
+> 
+Hi,
+Up till now, we deal with some easy wins by converting debhelper
+maintscripts to triggers.  I plan to phase out the maintscripts from one
+more helper in buster (if everything turns out nicely).
+ * But then we are out of easy wins.
+ * Plus none of this would rid us of manually written scripts (like the
+   ones Ralf brought up)
+After this, we need something other than triggers.  Triggers are great
+for regenerating global caches but they are not good at delegating
+targeted functionality out like:
+ * This package needs user X to be created dynamically with home set
+   to H with login shell S.
+ * This package wants to enable and start service Y, but obviously first
+   after creating user X (which the service runs as)
+ * The user X also needs to own a few files or directories at location
+   Z (possibly including the home directory H).  Ideally, this should
+   be done before starting the service Y.
+Furthermore, we also need to fix some paper-cuts such as #822462, so we
+do not regress every time a conffile is removed or changes it name.
+The next items in this topic basically all requires changes to dpkg,
+which I have not done at this scale yet.  I will probably spend most of
+buster on other items (like a few release team processes).
+Thanks,
+~Niels

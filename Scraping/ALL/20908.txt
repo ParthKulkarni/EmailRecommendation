@@ -1,0 +1,63 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Comma in Maintainer field
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 19 Apr 2018 09:06:36 +0100
+Message-id : 20180419080636.GA30781@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180419063706.iw5dipf62yqcz3jk@an3as.eu>
+References : <[🔎] 0d0ed463-dfb2-ace0-5fd9-772672ba8d9c@rolf.leggewie.biz> <[🔎] 2369130.YcAjvQKqO2@merkaba> <[🔎] 20180418095510.GF1711@belkar.wrar.name> <[🔎] 5AD75A21.8080502@fastmail.fm> <[🔎] 23255.23971.253689.782302@chiark.greenend.org.uk> <[🔎] 20180418165218.GI1711@belkar.wrar.name> <[🔎] 20180419063706.iw5dipf62yqcz3jk@an3as.eu>
+
+
+On Thu, 19 Apr 2018 at 08:37:07 +0200, Andreas Tille wrote:
+> Out of these there are clearly two bugs that violate our current [practices]:
+> 
+> udd=# select distinct package, maintainer from packages where maintainer like '%>%,%'order by maintainer;
+>      package      |                                                  maintainer                                                   
+> ------------------+---------------------------------------------------------------------------------------------------------------
+>  gir1.0-gdata-0.0 | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+>  libgdata7        | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+>  libgdata-common  | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+>  libgdata-dev     | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+>  libgdata-doc     | Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>, Sebastian Dröge <slomo@debian.org>
+>  youtube-dl       | Rogério Brito <rbrito@ime.usp.br>,                                                                          +
+>                   |  Holger Levsen <holger@debian.org>
+> (6 rows)
+src:libgdata had this bug in squeeze-security (version 0.6.4-2+squeeze1)
+but in no other version tracked by UDD. That version has been outside
+its support lifetime for years and will not be uploaded again, even if
+this is considered to be a release-critical bug. I've checked that all
+versions tracked by tracker.debian.org have a correct Maintainer. This
+might have been a bug in the version of gnome-pkg-tools in squeeze,
+or it might have been a mistake by the security team uploader.
+youtube-dl seems to have this bug in jessie-backports only. It could be
+fixed by a re-upload with only one maintainer. Bugs in backports are not
+tracked in the Debian BTS[1] but I've contacted the backports mailing list
+and the maintainers.
+> I think we should start filing bug reports against packages 
+> that do not match our current understanding of that field
+> (and lintian should throw an error about this).
+It already does:
+E: youtube-dl source: maintainer-address-malformed Rog??rio Brito <rbrito@ime.usp.br>, Holger Levsen <holger@debian.org>
+(and I assume it would do the same for the ancient version of src:libgdata
+that is affected) but lintian.debian.org doesn't check backports,
+(old)*stable(-security)? and other non-development suites.
+> Currently that definitely fits the last query but if we
+> intend to enhance the maintainer field to some later point
+> in time we should also ask the other 5 maintainers above
+> to add quotes around their names.
+Policy doesn't actually define a quoting mechanism, and neither do
+deb-src-control(5) or deb-control(5), so it's ambiguous whether a name
+or name part in double quotes is to be taken literally or treated as a
+quoted string. (See also src:openarena, co-maintained by
+«Bruno "Fuddl" Kleinert <fuddl@debian.org>», whose name gets interpreted
+as «Bruno Fuddl Kleinert» by tracker.debian.org.)
+Perhaps the designers of dpkg intended the Maintainer and each
+comma-separated Uploader to be an RFC 822 "mailbox", but Policy doesn't
+actually *say* they are, and neither do the format man pages; so it
+would seem to be a valid interpretation that a package with
+    Uploaders: "William H. Gates, III" <...>, Steve Ballmer <...>
+has *three* uploaders of which the first is syntactically invalid, namely:
+* «"William H. Gates»
+* «III" <...>»
+* «Steve Ballmer <...>»
+(This is clearly not what was intended.)
+    smcv

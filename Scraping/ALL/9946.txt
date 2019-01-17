@@ -1,0 +1,47 @@
+To : debian-devel@lists.debian.org
+Subject : Re: changelog practice, unfinalised vs UNRELEASED vs ~version
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 23 Feb 2017 14:58:54 +0000
+Message-id : 20170223145854.i3sk7m6g7pd6ofga@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 22702.56148.104509.618413@chiark.greenend.org.uk>
+References : <[🔎] 22688.22947.749751.138991@chiark.greenend.org.uk> <[🔎] 20170218170802.rmetedgkbknyyajz@bogon.m.sigxcpu.org> <[🔎] 22699.19438.761643.442987@chiark.greenend.org.uk> <[🔎] 20170223112753.356pjefxwqvobz5r@bogon.m.sigxcpu.org> <[🔎] 22702.56148.104509.618413@chiark.greenend.org.uk>
+
+
+On Thu, 23 Feb 2017 at 12:53:40 +0000, Ian Jackson wrote:
+> We could
+> decorate the suite instead, but that does not have any effect on
+> generated binaries.
+It does have an effect on the changelog inside the source and binary
+packages, and on the changes file (which is precisely the signed
+instruction to the archive, "please add the sources and/or
+binaries referenced in Files/Checksums-* to the suite referenced in
+Distribution"). One of the advantages of decorating the suite is that
+tools like dak and reprepro will already reject a changes file with a
+wrong suite, without even needing explicit code for it, because their
+configuration presumably doesn't include a suite named UNRELEASED or
+jessie-backports-UNRELEASED.
+Unfortunately, if you build your release binaries with sbuild, a
+common configuration will overwrite the Distribution in the changes file
+with an unintended one. I wrote a patch for Lintian to detect this
+back in 2010 (#542747), but it hasn't landed yet.
+Because changes files are exactly an instruction to dak (or similar)
+to include the built sources/binaries in the designated suite, I think
+it's probably a bad idea to encourage DDs to produce changes files
+that will say "Distribution: unstable" (or some other valid suite)
+for unfinished packages.
+As I noted on #542747, this property of changes files also means that if
+a Debian derivative (or an addon repository like apt.postgresql.org) has
+DD contributors, then that derivative should avoid using a Debian suite
+name as its suite name. This is because anyone obtaining a DD-signed
+.changes file for that addon repository could upload it to the main
+Debian repository, and it would normally be accepted into the suite
+of the same name. apt.postgresql.org seems to be one of the few addon
+repositories that does this (IMO) correctly, by using a distinct suite
+name (in their case jessie-pgdg).
+I can't help wondering whether changes files ought to include some
+globally unique indication of the project in which the change is
+requested (for instance debian.org, ubuntu.com or [apt.]postgresql.org);
+but at the moment they don't, and I don't see an obvious place in the
+workflow to declare "this is really for Debian" vs. "this is for
+apt.postgresql.org". Maybe at debsign time?
+    S

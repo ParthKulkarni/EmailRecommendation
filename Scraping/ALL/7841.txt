@@ -1,0 +1,86 @@
+To : Stuart Prescott <stuart@debian.org>
+Subject : Bug#907292: Can't find package list on server
+From : David Lawyer <davylawyer1@gmail.com>
+Date : Mon, 27 Aug 2018 22:25:56 -0700
+Message-id : 20180828052556.GA2747@daveslinux
+Reply-to : David Lawyer <davylawyer1@gmail.com>, 907292@bugs.debian.org
+In-reply-to : <[🔎] 7592501.9Rmo5JTFpj@simurgh>
+References : <[🔎] 20180826021910.GA2690@daveslinux> <[🔎] 7592501.9Rmo5JTFpj@simurgh> <[🔎] 20180826021910.GA2690@daveslinux>
+
+
+On Sun, Aug 26, 2018 at 01:16:19PM +1000, Stuart Prescott wrote:
+> Control: tags -1 + moreinfo unreproducible
+> 
+> > Running debootstrap fails because it tries to fetch the package list
+> > shown in /var/lib/apt/lists named binary-i386_Packages.  But there is no
+> > such file on the server.  Instead there are files: binary-i386_Packages.gz
+> > and binary-i386_Packages.xz but it doesn't look for them.  I've run strace
+> > on it.  Here's the command I gave and results:
+> > 
+> > debootstrap --variant=minbase --verbose stretch /minboot
+> > http://debian.usu.edu/debian
+> 
+> Running this same command works just fine here. 
+> 
+> If 'unxz' from xz-utils is found, then the .xz version is used; bunzip2 will 
+> similarly be tried (but isn't on the mirror) and then gunzip is searched for 
+> and the .gz file is used.
+> 
+> From debootstrap.log:
+> 
+> Resolving debian.usu.edu (debian.usu.edu)... 129.123.104.15
+> Connecting to debian.usu.edu (debian.usu.edu)|129.123.104.15|:80... connected.
+> HTTP request sent, awaiting response... 200 OK
+> Length: 7098644 (6.8M) [application/octet-stream]
+> Saving to: '«tmpdir»/mini/var/lib/apt/lists/partial/
+> debian.usu.edu_debian_dists_stretch_main_binary-amd64_Packages.xz'
+> 
+> And stracing: 
+> 
+> execve("/usr/bin/wget", ["wget", "-O", "/home/stuart/tmp/mini/var/lib/apt/
+> lists/partial/debian.usu.edu_debian_dists_stretch_main_binary-
+> i386_Packages.xz", "http://debian.usu.edu/debian/dists/stretch/main/binary-i386/by-hash/SHA256/
+> d07f5e29da93524d0956a1bc00581413e5560156c3350bc22560ee633fb29b3a"]
+> 
+> Removing xz-utils, strace shows:
+> 
+> execve("/usr/bin/wget", ["wget", "-O", "«tmpdir»/mini/var/lib/apt/lists/
+> partial/debian.usu.edu_debian_dists_stretch_main_binary-amd64_Packages.gz", 
+> "http://debian.usu.edu/debian/dists/stretch/main/binary-amd64/by-hash/
+> SHA256/9e7870c3c3b5b0a7f8322c323a3fa641193b1eee792ee7e2eedb6eeebf9969f3"]
+> 
+> (tested against both i386 and amd64)
+> 
+> > debootstrap needs to find one of the compressed files. download it, and
+> > unconpress it.  But it doesn't.
+> 
+> That is what is supposed to happen (and does for me). Is it possible that you 
+> somehow do not have unxz and gunzip available in PATH? 
+> 
+strace shows them found.  I'll have to look into it more.  wget is never
+executed.
+> I see that you've created this bug report without using reportbug and from 
+> what looks like a non-Debian system -- is the version against which you have 
+> reported this bug incorrect? Is there additional information you can provide?
+I use Debian but for over 20 years have never done a clean install.  The
+last try at updating corrupted my system and some packages will not
+configure.  That's why I'm now trying to reinstall linux from scratch.
+Running aptitude to try to fetch reportbug (or anything else) just
+displays many screenfulls of configuration errors and doesn't fetch
+anything.  I got debootstrap via downloading using the Firefox browser and
+installed with dpkg.  I downloaded twice and got identical dbootstrap's
+(108).  The new drive that I'm trying to bootstrap is in the bay that
+contained a failed cd drive so it wouldn't be too easy to boot from cd if
+I had one (actually DVDs).  My PC is 12 years old and doesn't boot from a
+flash drive.  I'm connecting via free dial-up provided by Southern
+California Freenet (I think it's the last FreeNet left in the USA).  Slow
+but I'm willing to wait days for upgrading.
+> 
+> Cheers
+> Stuart
+> 
+> -- 
+> Stuart Prescott    http://www.nanonanonano.net/   stuart@nanonanonano.net
+> Debian Developer   http://www.debian.org/         stuart@debian.org
+> GPG fingerprint    90E2 D2C1 AD14 6A1B 7EBB 891D BBC1 7EBB 1396 F2F7
+			David Lawyer

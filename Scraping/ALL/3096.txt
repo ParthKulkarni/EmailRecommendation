@@ -1,0 +1,158 @@
+To : 857132@bugs.debian.org
+Subject : Bug#857132: console-setup: additional info needed ?
+From : Karsten Hilbert <Karsten.Hilbert@gmx.net>
+Date : Fri, 24 Mar 2017 11:52:32 +0100
+Message-id : 20170324105232.32ta2x7pq34j4rvi@hermes.hilbert.loc
+Reply-to : Karsten Hilbert <Karsten.Hilbert@gmx.net>, 857132@bugs.debian.org
+In-reply-to : <[🔎] 20170323180612.GA6323@logic>
+References : <[🔎] 149017858840.23048.7220154904975481356.reportbug@hermes.hilbert.loc> <[🔎] 20170322111851.GA1617@debian.lan> <[🔎] 20170322120016.xigufsgrjq36z4zb@hermes.hilbert.loc> <[🔎] 20170322130228.GA27537@logic> <[🔎] 87d1d8gvcd.fsf@turtle.gmx.de> <[🔎] 20170323130437.GA2628@logic> <[🔎] 16df1c0d-7d35-a771-13fc-5f686cea692b@debian.org> <[🔎] 20170323135831.GB3641@logic> <[🔎] CAAfdZj_6_3+n7c3OXUGTShONuSVeP1y5Yw8TTUHZOxo-eGWhyw@mail.gmail.com> <[🔎] 20170323180612.GA6323@logic>
+
+
+I have done some more experimentation and it shows fairly
+strange results.
+I edited the file /etc/console-setup/cached_setup_font.sh
+to look like this:
+	#!/bin/sh
+	# added
+	SEMAPHORE="/cached_setup_font.sh.running"
+	LOG="/console-cached_setup_font.sh-tracing.log"
+	TS=`date --rfc-3339=ns`
+	if test ! -f ${SEMAPHORE} ; then
+	    > ${SEMAPHORE} ;
+	    echo "$$ / $TS" > ${SEMAPHORE} ;
+	    echo "$$ - $TS: ${SEMAPHORE} created" >> $LOG ;
+	else
+	    VAL=`cat ${SEMAPHORE}` ;
+	    echo "$$ - $TS: ${SEMAPHORE} exists and contains [$VAL], exiting" >> $LOG ;
+	    exit 0 ;
+	fi
+	# ---
+	setfont '/etc/console-setup/Lat15-Terminus16.psf.gz'
+	if ls /dev/fb* >/dev/null 2>/dev/null; then
+	    for i in /dev/vcs[0-9]*; do
+	        { :
+	            setfont '/etc/console-setup/Lat15-Terminus16.psf.gz'
+	        } < /dev/tty${i#/dev/vcs} > /dev/tty${i#/dev/vcs}
+	    done
+	fi
+	mkdir -p /run/console-setup
+	> /run/console-setup/font-loaded
+	for i in /dev/vcs[0-9]*; do
+	    { :
+	printf '\033%%G'
+	    } < /dev/tty${i#/dev/vcs} > /dev/tty${i#/dev/vcs}
+	done
+	# added
+	rm -f ${SEMAPHORE} >> $LOG
+	TS=`date --rfc-3339=ns`
+	echo "$$ - $TS: ${SEMAPHORE} deleted" >> $LOG
+	# ---
+the idea being to prevent it from running in parallel.
+Observations after many reboots with neither semaphore nor
+log existing:
+Sometimes cached_setup_font.sh does not seem to get run AT
+ALL -- the log file simply does not exist after a clean boot.
+When the log file DOES exist it does indeed show
+cached_setup_font.sh to run in parallel "early" in the boot
+process and once more "later":
+	421 - 2017-03-24 11:31:44.262310078+01:00: /cached_setup_font.sh.running created
+	423 - 2017-03-24 11:31:44.262785627+01:00: /cached_setup_font.sh.running created
+	421 - 2017-03-24 11:31:45.721488930+01:00: /cached_setup_font.sh.running deleted
+	423 - 2017-03-24 11:31:45.721489699+01:00: /cached_setup_font.sh.running deleted
+	659 - 2017-03-24 11:31:47.733106958+01:00: /cached_setup_font.sh.running created
+	659 - 2017-03-24 11:31:47.755347426+01:00: /cached_setup_font.sh.running deleted
+Note how the two early runs even manage to race each other
+within a few (4) microseconds:
+	421 - 2017-03-24 11:31:44.262*3*10078+01:00: /cached_setup_font.sh.running created
+	423 - 2017-03-24 11:31:44.262*7*85627+01:00: /cached_setup_font.sh.running created
+which means that this code:
+	#!/bin/sh
+	# added
+	SEMAPHORE="/cached_setup_font.sh.running"
+	LOG="/console-cached_setup_font.sh-tracing.log"
+	TS=`date --rfc-3339=ns`
+	if test ! -f ${SEMAPHORE} ; then
+	    > ${SEMAPHORE} ;
+	    echo "$$ / $TS" > ${SEMAPHORE} ;
+runs in less than 4 µs because it manages to race inbetween
+	if test ! -f ${SEMAPHORE} ; then
+	    > ${SEMAPHORE} ;
+(that's why I first create the semaphore before taking the
+time to pipe data into it).
+Here's what journalctl -b records for that time span:
+	Mär 24 11:31:43 hermes systemd[1]: Starting Load/Save RF Kill Switch Status...
+	Mär 24 11:31:44 hermes systemd[1]: Started Load/Save Screen Backlight Brightness of backlight:intel_backlight.
+	Mär 24 11:31:44 hermes systemd[1]: Started Load/Save Screen Backlight Brightness of backlight:acpi_video0.
+	Mär 24 11:31:44 hermes kernel: psmouse serio4: elantech: assuming hardware version 2 (with firmware version 0x040101)
+	Mär 24 11:31:44 hermes kernel: ath: phy0: Enable LNA combining
+	Mär 24 11:31:44 hermes kernel: ath: phy0: ASPM enabled: 0x42
+	Mär 24 11:31:44 hermes kernel: ath: EEPROM regdomain: 0x60
+	Mär 24 11:31:44 hermes kernel: ath: EEPROM indicates we should expect a direct regpair map
+	Mär 24 11:31:44 hermes kernel: ath: Country alpha2 being used: 00
+	Mär 24 11:31:44 hermes kernel: ath: Regpair used: 0x60
+	Mär 24 11:31:44 hermes kernel: psmouse serio4: elantech: Synaptics capabilities query result 0x7e, 0x13, 0x0d.
+	Mär 24 11:31:44 hermes kernel: psmouse serio4: elantech: Elan sample query result 19, 00, 00
+	Mär 24 11:31:44 hermes kernel: input: ETPS/2 Elantech Touchpad as /devices/platform/i8042/serio4/input/input15
+	Mär 24 11:31:44 hermes kernel: ieee80211 phy0: Selected rate control algorithm 'minstrel_ht'
+	Mär 24 11:31:44 hermes kernel: ieee80211 phy0: Atheros AR9285 Rev:2 mem=0xf89b0000, irq=17
+	Mär 24 11:31:44 hermes kernel: iTCO_vendor_support: vendor-support=0
+	Mär 24 11:31:44 hermes kernel: iTCO_wdt: Intel TCO WatchDog Timer Driver v1.11
+	Mär 24 11:31:44 hermes kernel: iTCO_wdt: Found a ICH9M TCO device (Version=2, TCOBASE=0x0860)
+	Mär 24 11:31:44 hermes kernel: iTCO_wdt: initialized. heartbeat=30 sec (nowayout=0)
+	Mär 24 11:31:45 hermes mtp-probe[477]: checking bus 7, device 2: "/sys/devices/pci0000:00/0000:00:1a.7/usb7/7-3"
+	Mär 24 11:31:45 hermes mtp-probe[477]: bus: 7, device: 2 was not an MTP device
+	Mär 24 11:31:45 hermes systemd[1]: Reached target Sound Card.
+	Mär 24 11:31:45 hermes mtp-probe[541]: checking bus 4, device 3: "/sys/devices/pci0000:00/0000:00:1d.0/usb4/4-2"
+	Mär 24 11:31:45 hermes mtp-probe[541]: bus: 4, device: 3 was not an MTP device
+	Mär 24 11:31:46 hermes systemd[1]: Started Load/Save RF Kill Switch Status.
+	Mär 24 11:31:46 hermes systemd[1]: Found device ST9320325AS 5.
+	Mär 24 11:31:46 hermes systemd[1]: Activating swap /dev/disk/by-uuid/d6e3928c-5468-449e-a777-af84dbc668ff...
+	Mär 24 11:31:47 hermes kernel: Adding 6014972k swap on /dev/sda5.  Priority:1 extents:1 across:6014972k FS
+	Mär 24 11:31:47 hermes systemd[1]: Activated swap /dev/disk/by-uuid/d6e3928c-5468-449e-a777-af84dbc668ff.
+	Mär 24 11:31:47 hermes systemd[1]: Reached target Swap.
+	Mär 24 11:31:47 hermes systemd[1]: Reached target System Initialization.
+	Mär 24 11:31:47 hermes systemd[1]: Listening on CUPS Scheduler.
+	Mär 24 11:31:47 hermes systemd[1]: Listening on Avahi mDNS/DNS-SD Stack Activation Socket.
+	Mär 24 11:31:47 hermes systemd[1]: Listening on D-Bus System Message Bus Socket.
+	Mär 24 11:31:47 hermes systemd-udevd[290]: Process '/sbin/crda' failed with exit code 249.
+	Mär 24 11:31:47 hermes systemd[1]: apt-daily.timer: Adding 8h 27min 31.003476s random time.
+	Mär 24 11:31:47 hermes systemd[1]: Started Daily apt activities.
+	Mär 24 11:31:47 hermes systemd[1]: Listening on GPS (Global Positioning System) Daemon Sockets.
+	Mär 24 11:31:47 hermes systemd[1]: Listening on PC/SC Smart Card Daemon Activation Socket.
+	Mär 24 11:31:47 hermes systemd[1]: Listening on ACPID Listen Socket.
+	Mär 24 11:31:47 hermes systemd[1]: Listening on ACPI fakekey daemon FIFO.
+	Mär 24 11:31:47 hermes systemd[1]: Reached target Sockets.
+	Mär 24 11:31:47 hermes systemd[1]: Started Daily Cleanup of Temporary Directories.
+	Mär 24 11:31:47 hermes systemd[1]: Reached target Timers.
+	Mär 24 11:31:47 hermes systemd[1]: Started ACPI Events Check.
+	Mär 24 11:31:47 hermes systemd[1]: Reached target Paths.
+	Mär 24 11:31:47 hermes systemd[1]: Reached target Basic System.
+	Mär 24 11:31:47 hermes systemd[1]: Started Regular background program processing daemon.
+	Mär 24 11:31:47 hermes systemd[1]: Starting Avahi mDNS/DNS-SD Stack...
+	Mär 24 11:31:47 hermes systemd[1]: Starting Save/Restore Sound Card State...
+	Mär 24 11:31:47 hermes systemd[1]: Started Run anacron jobs.
+	Mär 24 11:31:47 hermes systemd[1]: Starting Restore /etc/resolv.conf if the system crashed before the ppp link was shut down...
+	Mär 24 11:31:47 hermes cron[694]: (CRON) INFO (pidfile fd = 3)
+	Mär 24 11:31:48 hermes anacron[701]: Anacron 2.3 started on 2017-03-24
+Here are console related messages:
+	Mär 24 11:31:35 hermes kernel: console [tty0] enabled
+	Mär 24 11:31:35 hermes kernel: NMI watchdog: enabled on all CPUs, permanently consumes one hw-PMU counter.
+	Mär 24 11:31:35 hermes kernel: mtrr: your CPUs had inconsistent variable MTRR settings
+	Mär 24 11:31:36 hermes systemd[1]: Started Set the console keyboard layout.
+	Mär 24 11:31:36 hermes systemd[1]: Starting Set console font and keymap...
+	Mär 24 11:31:37 hermes systemd[1]: Started Set console font and keymap.
+	Mär 24 11:31:41 hermes kernel: [drm] Replacing VGA console driver
+	Mär 24 11:32:21 hermes rc.local[1010]: adjusting default console log level
+	Mär 24 11:34:26 hermes /usr/sbin/gpm[806]: Request on 6 (console 2)
+	Mär 24 11:44:29 hermes /usr/sbin/gpm[806]: Request on 7 (console 6)
+	...
+	Mär 24 11:31:43 hermes kernel: fbcon: inteldrmfb (fb0) is primary device
+	...
+	Mär 24 11:31:43 hermes kernel: Console: switching to colour frame buffer device 170x48
+	Mär 24 11:31:43 hermes kernel: i915 0000:00:02.0: fb0: inteldrmfb frame buffer device
+Anything else I can try ?
+HTH,
+Karsten
+-- 
+GPG key ID E4071346 @ eu.pool.sks-keyservers.net
+E167 67FD A291 2BEA 73BD  4537 78B9 A9F9 E407 1346

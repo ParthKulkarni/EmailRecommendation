@@ -1,0 +1,68 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Wouter Verhelst <wouter@debian.org>
+Date : Thu, 22 Feb 2018 17:39:20 +0100
+Message-id : 20180222163920.GD17838@grep.be
+In-reply-to : <[🔎] 20180216151129.GB18296@home.ouaza.com>
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com> <[🔎] 20180216151129.GB18296@home.ouaza.com>
+
+
+On Fri, Feb 16, 2018 at 04:11:29PM +0100, Raphael Hertzog wrote:
+> Hello everybody,
+> 
+> the fact that I had to request the removal of dolibarr from Debian makes
+> me sad (see below for the reasons) and I believe that we should be able
+> to do better to provide complex applications to our end users.
+So, I think the problem here is not "complex applications" -- we have
+many complex applications packaged for Debian -- but instead,
+"applications written in languages that have an ecosystem which does not
+align with Debian's procedures and technology very well".
+I think the proper answer is not something along the lines of "they
+suck, they should clean up their act". It is *also* not something along
+the lines of "we suck, we should change our whole infrastructure".
+Instead, I think the proper way to fix this issue is to engage with the
+community behind the language that we currently can't package very well,
+and see how we can improve that situation. I'm sure that having minified
+javascript be part of a build system isn't necessarily something they'd
+be opposed to -- after all, if you do that then you can limit the size
+of the resulting .min.js files that you ship even more, which is good
+for performance -- and then you end up with a situation of "static
+libraries", which while not ideal is better than the status quo (we'd
+just need to make sure that the security team's tools track
+build-depends on javascript libraries, and they'd know which packages to
+rebuild when a security update is necessary).
+That's just an example; I'm sure there are other situations where we can
+improve the situation on both sides and result in something that makes
+everyone a little happier.
+> Dolibarr is not alone:
+> 
+> - while gitlab is packaged in Debian, its packaging took years and the
+>   result is brittle because it can break in many ways whenever one the 
+>   dozens of dependencies gets updated to some new upstream version
+>   (BTW salsa.debian.org does not use the official package)
+Which I think is a shame, but given that gitlab doesn't really have any
+"long term support" versions, not unsurprising either.
+> - I have the Debian packaging of distro-tracker (the code behind
+>   tracker.debian.org) available in the git repository for years
+>   but I never released it into Debian because it embeds a few javascript
+>   libraries (bootstrap, jquery) and I don't want to validate that
+>   it does work with the versions currently in Debian
+To do so, you can use something like the libjs-qunit package which
+should allow you to run unit tests on the files in question. Given
+enough unit tests, changing out a javascript library from under the rest
+of your code shouldn't be too problematic (barring any bugs, which may
+always appear and for which we have a very good bug tracker).
+In addition, I think that the two specific things you mention here have
+a static API, and thus that you shouldn't be afraid to use a different
+version in production as compared to the one you used during
+development.
+After all, if even Debian Developers, while writing code specifically
+for Debian, are not doing the things that we expect external developers
+to do in order for them to see their code packaged in Debian, then who
+are we to request that they do those things?
+(this is why I chose to use the packaged versions of jQuery and
+bootstrap for SReview rather than embedding them, FWIW)
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

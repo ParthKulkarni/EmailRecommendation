@@ -1,0 +1,44 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#860116: RFH: cargo -- Rust package manager
+From : Ximin Luo <infinity0@debian.org>
+Date : Tue, 11 Apr 2017 17:24:55 +0200
+Message-id : 149192429535.19936.5019264498555947667.reportbug@pdeb1
+Reply-to : Ximin Luo <infinity0@debian.org>, 860116@bugs.debian.org
+
+
+Package: wnpp
+Severity: normal
+We request assistance with maintaining the cargo package, as well as Rust
+packaging in general.
+Firefox's next versions[1] will require rust, but the Debian pkg-rust team is
+severely short on time to maintain these packages.
+sylvestre@ and I are just about managing to keep rustc in Debian up-to-date
+in our spare time.
+lucab@ and gus@ know more about the rust ecosystem than either of us, but they
+have not been very active recently. lucab@ had been maintaining cargo.
+Right now, cargo needs to be updated to the next version, there are some open
+bugs about it:
+https://bugs.debian.org/cgi-bin/pkgreport.cgi?src=cargo
+I have not yet looked at this package myself but if there are any questions you
+can probably prod lucab@ to answer them. He has a different handle on IRC, you
+can join #debian-rust on OFTC to talk to us.
+After this, we will need to update rustc to 1.16.0. This is packaged in git,
+and it works (doko@ has already uploaded it to Ubuntu) however it uses some
+deprecated Makefiles which are to be removed in the next 1.17.0 release.
+Therefore, we should try to upload 1.16.0 using the new "rustbuild" buildsystem
+which also build-depends on cargo. (To try this out, remove --disable-rustbuild
+from d/rules.)
+After that, we will have to figure out how to cross-compile cargo and rust
+for other architectures. So far, we have been bootstrapping rustc on other
+arches by using upstream's binary blobs, but this is not the ideal approach,
+and will become even harder once we have the rustc<->cargo cyclic build
+dependency. Upstream themselves prefer the cross-compilation approach, and had
+previously given me some tips that I need to go dig out again from my IRC logs.
+At some point we should also start packaging actual rust packages. Josh
+Triplett had been planning to automate a large part of this, the work is still
+incomplete but we have a Rust Packaging policy already:
+https://wiki.debian.org/Teams/RustPackaging/Policy
+Package automation tools:
+https://anonscm.debian.org/cgit/pkg-rust/dh-cargo.git (low-level dh glue)
+https://crates.io/crates/debcargo (high-level automater)
+[1] https://buildd.debian.org/status/package.php?p=firefox&suite=experimental

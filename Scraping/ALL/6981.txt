@@ -1,0 +1,117 @@
+To : Luca Falavigna <dktrkranz@debian.org>, 898738@bugs.debian.org
+Subject : Bug#898738: debootstrap fails when specifying components
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 15 May 2018 21:19:16 +0200
+Message-id : 20180515191916.tr23kuvfo23d5pc6@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 898738@bugs.debian.org
+In-reply-to : <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com>
+References : <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com> <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com>
+
+
+Hi,
+Luca Falavigna <dktrkranz@debian.org> (2018-05-15):
+> Source: debootstrap
+> Version: 1.0.98
+> Severity: serious
+Thanks for the heads-up.
+> debootstrap fails when specifying components on command line:
+> 
+> # debootstrap --components=main,contrib,non-free unstable unstable
+> http://deb.debian.org/debian
+> I: Target architecture can be executed
+> I: Checking Release signature
+> I: Valid Release signature (key id 126C0D24BD8A2942CC7DF8AC7638D0442B90D010)
+> I: Validating Packages
+> I: Retrieving Packages
+> I: Retrieving Packages
+> I: Validating Packages
+> W: Retrying failed download of
+> http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages
+> I: Retrieving Packages
+> I: Validating Packages
+> W: Retrying failed download of
+> http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages
+> I: Retrieving Packages
+> I: Validating Packages
+> W: Retrying failed download of
+> http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages
+> I: Retrieving Packages
+> I: Validating Packages
+> W: Retrying failed download of
+> http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages
+> I: Retrieving Packages
+> I: Validating Packages
+> W: Retrying failed download of
+> http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages.gz
+> W: http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages.gz
+> was corrupt
+> I: Retrieving Packages
+> E: Couldn't download
+> http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages
+This is likely due to recent changes to add by-hash support, which makes
+such errors fatal? (Low on time, can't really check right away.)
+Anyway, before, we could see such errors but they wouldn't be fatal.
+I've tracked this with the test case you suggested and with “git
+bisect”, to this commit:
+| commit d45ca044136553c9ef9ca194e8b48668aa6e694f
+| Author: Hideki Yamane <henrich@debian.org>
+| Date:   Mon Apr 9 22:10:59 2018 +0900
+| 
+|     Clean up with shellcheck
+The following patch highlights the issue:
+| kibi@wodi:~/debian-installer/packages/debootstrap$ git diff
+| diff --git a/functions b/functions
+| index 3fc7a7c..847f853 100644
+| --- a/functions
+| +++ b/functions
+| @@ -358,6 +358,7 @@ get () {
+|                         fi
+|                         if [ "$checksum" != "" ]; then
+|                                 info VALIDATING "Validating %s %s" "$displayname" "$versionname"
+| +                               info TOTO "verify_checksum $dest2 $checksum $siz"
+|                                 if verify_checksum "$dest2" "$checksum" "$siz"; then
+|                                         checksum=""
+|                                 fi
+See the output:
+| I: Retrieving InRelease 
+| I: Checking Release signature
+| I: Valid Release signature (key id 126C0D24BD8A2942CC7DF8AC7638D0442B90D010)
+| I: Retrieving Packages 
+| I: Validating Packages 
+| I: verify_checksum /scratch/unstable/var/lib/apt/lists/partial/debootstrap.invalid_dists_unstable_main_binary-amd64_Packages.xz 51576750586b79c6814c968a610c2f15fb3288bf569fe2f7ce86cadaaa7e5a8b 8063628
+| I: Retrieving Packages 
+| I: Validating Packages 
+| I: verify_checksum /scratch/unstable/var/lib/apt/lists/partial/debootstrap.invalid_dists_unstable_contrib_binary-amd64_Packages.xz 78dd59c641a2fec36aef9017a1f0cbbb150a6f3b151024b7fa4aba473a6bada0 63160
+| I: Retrieving Packages 
+| I: Validating Packages 
+| I: verify_checksum /scratch/unstable/var/lib/apt/lists/partial/debootstrap.invalid_dists_unstable_non-free_binary-amd64_Packages.xz 78dd59c641a2fec36aef9017a1f0cbbb150a6f3b151024b7fa4aba473a6bada0 63160
+| W: Retrying failed download of http://ftp.fr.debian.org/debian/dists/unstable/non-free/binary-amd64/Packages.xz
+| I: Retrieving Packages 
+| I: Validating Packages 
+| I: verify_checksum /scratch/unstable/var/lib/apt/lists/partial/debootstrap.invalid_dists_unstable_non-free_binary-amd64_Packages.xz 78dd59c641a2fec36aef9017a1f0cbbb150a6f3b151024b7fa4aba473a6bada0 63160
+| W: Retrying failed download of http://ftp.fr.debian.org/debian/dists/unstable/non-free/binary-amd64/Packages.xz
+[repeated]
+The issue seems to be the non-free Packages file being checked against
+the checksum of the contrib one (both sha256 checksum and size in fact),
+so that can't work.
+Going back to the previous commit (73b0bd2ce6), with the same one-line
+patch:
+| I: Retrieving InRelease 
+| I: Checking Release signature
+| I: Valid Release signature (key id 126C0D24BD8A2942CC7DF8AC7638D0442B90D010)
+| I: Retrieving Packages 
+| I: Validating Packages 
+| I: verify_checksum /scratch/unstable/var/lib/apt/lists/partial/debootstrap.invalid_dists_unstable_main_binary-amd64_Packages.xz 51576750586b79c6814c968a610c2f15fb3288bf569fe2f7ce86cadaaa7e5a8b 8063628
+| I: Retrieving Packages 
+| I: Validating Packages 
+| I: verify_checksum /scratch/unstable/var/lib/apt/lists/partial/debootstrap.invalid_dists_unstable_contrib_binary-amd64_Packages.xz 78dd59c641a2fec36aef9017a1f0cbbb150a6f3b151024b7fa4aba473a6bada0 63160
+| I: Retrieving Packages 
+| I: Validating Packages 
+| I: verify_checksum /scratch/unstable/var/lib/apt/lists/partial/debootstrap.invalid_dists_unstable_non-free_binary-amd64_Packages.xz f6adfb191061801cf8c8f764a362bee6aae2816d6f06c78337c5dbd4c039410e 82288
+I'm not sure why that's the case with the shellcheck patch, and I can't
+really dig further into it right now.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

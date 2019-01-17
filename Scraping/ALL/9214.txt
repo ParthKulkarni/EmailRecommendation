@@ -1,0 +1,13 @@
+To : "debian-boot@lists.debian.org" <debian-boot@lists.debian.org>
+Subject : Re: Throttle dev.raid.speed_limit_max to 1000 during preseed for package installs
+From : Gabriel Evanoff <gevanoff@pandora.com>
+Date : Fri, 7 Dec 2018 00:45:34 +0000
+Message-id : 9E803443-148F-4383-90CB-3DC37BF8AB2F@contoso.com
+In-reply-to : <<9D40CF66-9530-4A34-BCAB-7BE578529AE7@pandora.com>>
+
+
+I wanted to follow up on this post for anyone who might be interested in a work-around for Bug#838503 (also mentioned in the bug thread here: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=838503 -- thanks to Steve McIntyre!).
+The key here is to use "partman/early_command" to load the md_mod kernel module and then set the value in /proc/sys/dev/raid/speed_limit_max once it actually exists. 
+Using "partman/early_command" appears to be the only way to feed arbitrary commands into preseed around the time of the disk partitioning, but before it is far too late to be of any use performance-wise (eg as with "preseed/late_command"). There is no "partman/late_command", sadly, which would make this easier. When "partman/early_command" runs, the md_mod kernel module has not yet been loaded, so that needs to be done first. Just add the following to your preseed configuration:
+d-i partman/early_command string modprobe md_mod ; echo 1000 > /proc/sys/dev/raid/speed_limit_max
+This sets the raid sync for the duration of the preseed process.

@@ -1,0 +1,36 @@
+To : maintonly@bugs.debian.org
+Subject : Bug#866267: discover: maintainer script(s) not using strict mode
+From : treinen@debian.org
+Date : Wed, 28 Jun 2017 21:02:48 +0200
+Message-id : E1dQIEi-00046K-9Q@seneca.home.org
+Reply-to : treinen@debian.org, 866267-maintonly@bugs.debian.org
+
+
+Package: discover
+Version: 2.1.2-7.1
+Severity: normal
+User: treinen@debian.org
+Usertags: colis-shparser
+Dear maintainer,
+at least one of the maintainer scripts (preinst, postinst, prerm,
+postrm) of the package discover does not use strict mode. Policy
+section 10.4 says:
+"Shell scripts (sh and bash) [..] should almost certainly start with
+set -e so that errors are detected."
+"Every script should use set -e or check the exit status of every
+command."
+Please insert a "set -e" at the beginning of your script to enable
+strict mode. You should not replace this by a first line "#!/bin/sh
+-e" as it is not effective when your script is executed by an
+explicit invocation of sh.
+Note that this might make your script fail in cases where it did not
+fail before. This is the purpose of strict mode - make it fail when
+any unexpected error is encountered. You should make sure that you
+catch any error (non-zero exit codes of commands) that you decide to
+tolerate. Techniques to locally catch an error include using
+appropriate options to your command when available, adding a " ||
+true" at the end of the command, or selectively switching off strict
+mode by "set +e" and switching it back on again later by "set -e". 
+This bug filing has been discussed and approved in thread [1].
+-Ralf.
+[1] https://lists.debian.org/debian-devel/2017/06/msg00342.html

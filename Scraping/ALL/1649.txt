@@ -1,0 +1,119 @@
+To : Emilio Pozuelo Monfort <pochu@debian.org>
+Subject : Re: Bug#853809: unblock: e2fsprogs/1.43.4-2
+From : Theodore Ts'o <tytso@mit.edu>
+Date : Wed, 8 Feb 2017 11:44:42 -0500
+Message-id : 20170208164442.aw6mngpr64dekozb@thunk.org
+In-reply-to : <[🔎] ca7d9764-03d7-874a-050c-d4d9b4163b2a@debian.org>
+References : <148592090041.17477.13898104853292874397.reportbug@callcc.thunk.org> <[🔎] ca7d9764-03d7-874a-050c-d4d9b4163b2a@debian.org>
+
+
+On Fri, Feb 03, 2017 at 10:34:09PM +0100, Emilio Pozuelo Monfort wrote:
+> 
+> This seems fine to me, unblocked. Cc'ing debian-boot@/Cyril for the udeb unblock.
+>
+Hi, I've since found a regression that I would like to fix via a
+cherry pick from upstream.  The e2fsprogs/1.43.4-2 package hasn't
+transitioned into testing yet (it will in 3 more days).
+Enclosed please find the source debdiff.  Would you prefer that I wait
+for 1.43.4-2 to transition into testing, and then upload 1.43.4-3 and
+then file a new unblock request?
+Many thanks!!
+						- Ted
+dpkg-source: warning: extracting unsigned source package (/build/debian/e2fsprogs_1.43.4-2.dsc)
+dpkg-source: warning: extracting unsigned source package (/build/jessie/e2fsprogs_1.43.4-3.dsc)
+diff -Nru e2fsprogs-1.43.4/debian/changelog e2fsprogs-1.43.4/debian/changelog
+--- e2fsprogs-1.43.4/debian/changelog	2017-01-31 19:54:55.000000000 -0500
++++ e2fsprogs-1.43.4/debian/changelog	2017-02-05 20:46:55.000000000 -0500
+@@ -1,3 +1,10 @@
++e2fsprogs (1.43.4-3) UNRELEASED; urgency=medium
++
++  * Fix tune2fs regression introduced in 1.43.4 --- enabling additional
++    quota types has become a no-op.
++
++ -- Theodore Y. Ts'o <tytso@mit.edu>  Sun, 05 Feb 2017 20:46:55 -0500
++
+ e2fsprogs (1.43.4-2) unstable; urgency=medium
+ 
+   * Re-enable metadata_csum for Debian (which was accidentally disabled
+diff -Nru e2fsprogs-1.43.4/debian/patches/series e2fsprogs-1.43.4/debian/patches/series
+--- e2fsprogs-1.43.4/debian/patches/series	2017-01-31 19:54:55.000000000 -0500
++++ e2fsprogs-1.43.4/debian/patches/series	2017-02-05 20:46:55.000000000 -0500
+@@ -1,2 +1,3 @@
+ e2fsprogs-1.43.4-release-fixup
+ enable-metadata_csum-by-default
++tune2fs-fix-quota-enablement-regression
+diff -Nru e2fsprogs-1.43.4/debian/patches/tune2fs-fix-quota-enablement-regression e2fsprogs-1.43.4/debian/patches/tune2fs-fix-quota-enablement-regression
+--- e2fsprogs-1.43.4/debian/patches/tune2fs-fix-quota-enablement-regression	1969-12-31 19:00:00.000000000 -0500
++++ e2fsprogs-1.43.4/debian/patches/tune2fs-fix-quota-enablement-regression	2017-02-05 20:46:55.000000000 -0500
+@@ -0,0 +1,71 @@
++From: Eric Whitney <enwlinux@gmail.com>
++Description: tune2fs: fix quota enablement regression
++ Commit 5c2a665afa (Avoid dereferencing beyond allocated memory in quota
++ handling) induced a quota enablement regression in tune2fs.  Attempts
++ to enable a particular quota type (tune2fs -O project <dev>, for
++ example) set the appropriate feature flag in the superblock but the
++ quota file for the type is not initialized.
++ . 
++ The regression prevents the current version of xfstests from running
++ generic/383, 384, 385, and 386 (all project quota tests) with e2fsprogs
++ 1.43.4.  These tests exit with the message "Installed kernel does not
++ support project quotas", but the actual problem is that the project
++ quota file is not present.
++Origin: upstream, commit: 5f82cc95b31f87c62f18848142597d094fe966ee
++---
++ misc/tune2fs.c | 20 ++++++++++----------
++ 1 file changed, 10 insertions(+), 10 deletions(-)
++
++diff --git a/misc/tune2fs.c b/misc/tune2fs.c
++index 62395776..f1bad606 100644
++--- a/misc/tune2fs.c
+++++ b/misc/tune2fs.c
++@@ -1483,7 +1483,7 @@ static void handle_quota_options(ext2_filsys fs)
++ 	quota_ctx_t qctx;
++ 	ext2_ino_t qf_ino;
++ 	enum quota_type qtype;
++-	int enable = 0;
+++	unsigned int qtype_bits = 0;
++ 
++ 	for (qtype = 0 ; qtype < MAXQUOTAS; qtype++)
++ 		if (quota_enable[qtype] != 0)
++@@ -1492,19 +1492,19 @@ static void handle_quota_options(ext2_filsys fs)
++ 		/* Nothing to do. */
++ 		return;
++ 
++-	retval = quota_init_context(&qctx, fs, 0);
+++	for (qtype = 0; qtype < MAXQUOTAS; qtype++) {
+++		if (quota_enable[qtype] == QOPT_ENABLE)
+++			qtype_bits |= 1 << qtype;
+++	}
+++
+++	retval = quota_init_context(&qctx, fs, qtype_bits);
++ 	if (retval) {
++ 		com_err(program_name, retval,
++ 			_("while initializing quota context in support library"));
++ 		exit(1);
++ 	}
++-	for (qtype = 0 ; qtype < MAXQUOTAS; qtype++) {
++-		if (quota_enable[qtype] == QOPT_ENABLE) {
++-			enable = 1;
++-			break;
++-		}
++-	}
++-	if (enable)
+++
+++	if (qtype_bits)
++ 		quota_compute_usage(qctx);
++ 
++ 	for (qtype = 0 ; qtype < MAXQUOTAS; qtype++) {
++@@ -1540,7 +1540,7 @@ static void handle_quota_options(ext2_filsys fs)
++ 
++ 	quota_release_context(&qctx);
++ 
++-	if (enable) {
+++	if (qtype_bits) {
++ 		ext2fs_set_feature_quota(fs->super);
++ 		ext2fs_mark_super_dirty(fs);
++ 	} else {
++-- 
++2.11.0.rc0.7.gbe5a750
++

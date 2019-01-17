@@ -1,0 +1,62 @@
+To : debian-boot@lists.debian.org
+Subject : [PATCH] Cope with more unset/disabled root password options
+From : Steve McIntyre <steve@einval.com>
+Date : Fri,  7 Jul 2017 16:20:10 +0100
+Message-id : 20170707152010.22247-1-steve@einval.com
+
+
+Recognise and cope with a different *disabled* root password ("!*") in
+/etc/shadow as well as the normal unset one ("*"). Closes: #866206,
+fixing a major bug in the live installer.
+---
+ debian/changelog | 10 ++++++++++
+ debian/control   |  2 +-
+ functions.sh     |  3 ++-
+ 3 files changed, 13 insertions(+), 2 deletions(-)
+diff --git a/debian/changelog b/debian/changelog
+index 3448f4d..73aa161 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,13 @@
++user-setup (1.69) UNRELEASED; urgency=medium
++
++  [ Steve McIntyre ]
++  * Add myself to uploaders
++  * Cope with a different *disabled* root password ("!*") in /etc/shadow as
++    well as the normal unset one ("*"). Closes: #866206, fixing a major
++    bug in the live installer.
++
++ -- Steve McIntyre <93sam@debian.org>  Fri, 07 Jul 2017 16:14:20 +0100
++
+ user-setup (1.68) unstable; urgency=medium
+ 
+   [ Updated translations ]
+diff --git a/debian/control b/debian/control
+index 5fb0685..ff4a2b3 100644
+--- a/debian/control
++++ b/debian/control
+@@ -2,7 +2,7 @@ Source: user-setup
+ Section: debian-installer
+ Priority: extra
+ Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+-Uploaders: Christian Perrier <bubulle@debian.org>, Colin Watson <cjwatson@debian.org>
++Uploaders: Christian Perrier <bubulle@debian.org>, Colin Watson <cjwatson@debian.org>, Steve McIntyre <93sam@debian.org>
+ Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.7.0), po-debconf (>= 0.5.0)
+ Standards-Version: 3.9.5
+ Vcs-Browser: https://anonscm.debian.org/cgit/d-i/user-setup.git
+diff --git a/functions.sh b/functions.sh
+index 7093dcc..ad4efc5 100644
+--- a/functions.sh
++++ b/functions.sh
+@@ -30,7 +30,8 @@ root_password () {
+ 
+ 	if [ -e $ROOT/etc/shadow ] && \
+ 	   [ -n "`grep ^root: $ROOT/etc/shadow | cut -d : -f 2`" ] && \
+-	   [ "x`grep ^root: $ROOT/etc/shadow | cut -d : -f 2`" != 'x*' ]; then
++	   [ "x`grep ^root: $ROOT/etc/shadow | cut -d : -f 2`" != 'x*' ] && \
++	   [ "x`grep ^root: $ROOT/etc/shadow | cut -d : -f 2`" != 'x!*' ]; then
+ 		return 0
+ 	fi
+ 	
+-- 
+2.11.0

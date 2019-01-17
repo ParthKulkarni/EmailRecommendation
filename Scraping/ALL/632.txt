@@ -1,0 +1,105 @@
+To : 895237@bugs.debian.org
+Subject : Bug#895237: apache2: apachectl does not use systemd for restarts
+From : Jan Heitkötter <jan@heitkoetter.net>
+Date : Sun, 15 Apr 2018 21:50:57 +0200
+Message-id : 1523821857.3190.4.camel@heitkoetter.net
+Reply-to : Jan Heitkötter <jan@heitkoetter.net>, 895237@bugs.debian.org
+In-reply-to : <[🔎] 1626229.q8V5VFdcH1@k>
+References : <152320627314.25713.4008837136041031360.reportbug@wolke.in.heitkoetter.net>  <[🔎] 20180412095603.GG28806@sym.noone.org> <[🔎] 1626229.q8V5VFdcH1@k> <152320627314.25713.4008837136041031360.reportbug@wolke.in.heitkoetter.net>
+
+
+Hallo Stefan,
+Am Samstag, den 14.04.2018, 11:50 +0200 schrieb Stefan Fritsch:
+> Using apachectl stop / start / restart works fine for me with
+> systemd. The 
+> issue is somewhere else.
+This is what happens here:
+root@wolke:/# systemctl status --no-pager apache2
+● apache2.service - The Apache HTTP Server
+   Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor
+preset: enabled)
+   Active: active (running) since Sun 2018-04-15 21:42:42 CEST; 1s ago
+  Process: 54785 ExecStop=/usr/sbin/apachectl stop (code=exited,
+status=0/SUCCESS)
+  Process: 52569 ExecReload=/usr/sbin/apachectl graceful (code=exited,
+status=0/SUCCESS)
+  Process: 54793 ExecStart=/usr/sbin/apachectl start (code=exited,
+status=0/SUCCESS)
+ Main PID: 54797 (apache2)
+   CGroup: /system.slice/apache2.service
+           ├─54797 /usr/sbin/apache2 -k start
+           ├─54798 /usr/sbin/apache2 -k start
+           ├─54799 /usr/sbin/apache2 -k start
+           ├─54800 /usr/sbin/apache2 -k start
+           ├─54801 /usr/sbin/apache2 -k start
+           └─54802 /usr/sbin/apache2 -k start
+Apr 15 21:42:42 wolke systemd[1]: Starting The Apache HTTP Server...
+Apr 15 21:42:42 wolke systemd[1]: Started The Apache HTTP Server.
+root@wolke:/# apachectl -k stop
+root@wolke:/# apachectl -k start
+root@wolke:/# systemctl status --no-pager apache2
+● apache2.service - The Apache HTTP Server
+   Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor
+preset: enabled)
+   Active: inactive (dead) since Sun 2018-04-15 21:42:49 CEST; 6s ago
+  Process: 54807 ExecStop=/usr/sbin/apachectl stop (code=exited,
+status=0/SUCCESS)
+  Process: 52569 ExecReload=/usr/sbin/apachectl graceful (code=exited,
+status=0/SUCCESS)
+  Process: 54793 ExecStart=/usr/sbin/apachectl start (code=exited,
+status=0/SUCCESS)
+ Main PID: 54797 (code=exited, status=0/SUCCESS)
+Apr 15 21:42:42 wolke systemd[1]: Starting The Apache HTTP Server...
+Apr 15 21:42:42 wolke systemd[1]: Started The Apache HTTP Server.
+Apr 15 21:42:49 wolke apachectl[54807]: httpd (no pid file) not running
+The hooks in Let’s Encrypt’s conffile say “apachectl -k”; the manpage
+does not explain this option. Omitting -k makes things work:
+root@wolke:/# systemctl status --no-pager apache2
+● apache2.service - The Apache HTTP Server
+   Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor
+preset: enabled)
+   Active: active (running) since Sun 2018-04-15 21:46:49 CEST; 1s ago
+  Process: 54831 ExecStop=/usr/sbin/apachectl stop (code=exited,
+status=0/SUCCESS)
+  Process: 52569 ExecReload=/usr/sbin/apachectl graceful (code=exited,
+status=0/SUCCESS)
+  Process: 54845 ExecStart=/usr/sbin/apachectl start (code=exited,
+status=0/SUCCESS)
+ Main PID: 54849 (apache2)
+   CGroup: /system.slice/apache2.service
+           ├─54849 /usr/sbin/apache2 -k start
+           ├─54850 /usr/sbin/apache2 -k start
+           ├─54851 /usr/sbin/apache2 -k start
+           ├─54852 /usr/sbin/apache2 -k start
+           ├─54853 /usr/sbin/apache2 -k start
+           └─54854 /usr/sbin/apache2 -k start
+Apr 15 21:46:49 wolke systemd[1]: Starting The Apache HTTP Server...
+Apr 15 21:46:49 wolke systemd[1]: Started The Apache HTTP Server.
+root@wolke:/# apachectl stop
+root@wolke:/# apachectl start
+Invoking 'systemctl start apache2'.
+Use 'systemctl status apache2' for more info.
+root@wolke:/# systemctl status --no-pager apache2
+● apache2.service - The Apache HTTP Server
+   Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor
+preset: enabled)
+   Active: active (running) since Sun 2018-04-15 21:47:00 CEST; 2s ago
+  Process: 54859 ExecStop=/usr/sbin/apachectl stop (code=exited,
+status=0/SUCCESS)
+  Process: 52569 ExecReload=/usr/sbin/apachectl graceful (code=exited,
+status=0/SUCCESS)
+  Process: 54870 ExecStart=/usr/sbin/apachectl start (code=exited,
+status=0/SUCCESS)
+ Main PID: 54874 (apache2)
+   CGroup: /system.slice/apache2.service
+           ├─54874 /usr/sbin/apache2 -k start
+           ├─54875 /usr/sbin/apache2 -k start
+           ├─54876 /usr/sbin/apache2 -k start
+           ├─54877 /usr/sbin/apache2 -k start
+           ├─54878 /usr/sbin/apache2 -k start
+           └─54879 /usr/sbin/apache2 -k start
+Apr 15 21:47:00 wolke systemd[1]: Starting The Apache HTTP Server...
+Apr 15 21:47:00 wolke systemd[1]: Started The Apache HTTP Server.
+For the time being I will remove -k from the hooks.
+Regards
+Jan

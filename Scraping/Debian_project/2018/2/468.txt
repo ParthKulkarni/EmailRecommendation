@@ -1,0 +1,98 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 27 Feb 2018 14:14:02 +0000
+Message-id : 20180227141402.GA3441@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 1747528.3EBMEs4rXA@odyx.org>
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com> <[🔎] 20180216151129.GB18296@home.ouaza.com> <[🔎] 1747528.3EBMEs4rXA@odyx.org>
+
+
+Here is a different straw man, which I think might be similarly effective
+and a lot less work:
+On Tue, 27 Feb 2018 at 14:13:41 +0100, Didier 'OdyX' Raboud wrote:
+> As Debian, we
+> are insisting that our releases ideally only contain a single version of a
+> software, that we insist is made available at system-level.
+...
+> In other words, vendorization is the tool that allows developers to get rid of 
+> distribution constraints and get on with their development through installing 
+> the dependencies from their ecosystem as they see fit (non-root), in the 
+> (eventually precise) version they need.
+I can't help wondering whether vendorizing dependencies (embedded code
+copies) would be a better route for ecosystems like npm that we might
+categorise as "aggressively modular" - package the app, but not the
+dependencies, and treat the vendorized/embedded dependencies as part
+of the app. Not embedding or duplicating libraries is already an ideal
+that we have to compromise on for pragmatic reasons - browsers use
+system libraries in testing/unstable but gradually make increasing use
+of embedded code copies in stable[1], drifting further away from the
+"no embedded code copies" ideal as time goes on and the latest browser
+version becomes increasingly unbuildable against the increasingly old
+libraries in stable. It's also how many Rust dependencies are already
+managed, as far as I'm aware.
+Similarly, we are willing to tolerate embedded code copies for C libraries
+that are specifically designed to be "copylibs", such as GNU's gnulib[2],
+GNOME's libglnx[3], libgd[4] and (historically) libegg, and the stb_image
+micro-library used in multiple game engines, as well as many Autoconf
+macros, CMake modules and other supporting files. We do that because these
+copylibs are explicitly unstable (updating may require code changes in
+the consuming code), or because consumers require a very new version,
+or both. Is that really a million miles away from the npm ecosystem?
+The obvious retort is "but what about security updates?". Well, what
+about security updates? What would happen if there was a security
+vulnerability in gnulib code? I'm fairly sure the answer is that the
+upstream maintainers of packages that had imported the relevant code,
+or the downstream maintainers of those packages, would be expected to
+patch the vulnerability - just like what would happen if they had
+pasted individual functions into their codebase. (Some nodejs modules
+*are* individual functions, for that matter.)
+Also, the security team specifically don't provide security
+support for libv8, which apparently extends to node-* packages like
+<https://security-tracker.debian.org/tracker/CVE-2015-8855>, so it's
+hard to see how tolerating embedded code copies of nodejs modules in
+particular would make their security support situation a whole lot worse:
+it's already the case that the upstream and downstream maintainers of
+these modules (or the applications that bundle them, or both) provide
+the only security maintenance they'll get. In practice, this isn't as
+awful as it first appears, because nodejs modules are often very small,
+so an individual nodejs module is relatively unlikely to contain security
+vulnerabilities even if its defect density is high, simply because there
+isn't very much code to be vulnerable.
+There is nothing to stop us from enforcing our quality and freeness
+standards equally thoroughly for embedded/vendorized code copies -
+they're just code, after all. If the process works for the main package,
+then extending it to a bundle of vendorized dependencies that share
+an orig tarball (or cluster of multiple orig tarballs in 3.0 source
+formats) is a matter of scale rather than an entirely separate process,
+and if a maintainer or maintainer team can't cope with that scale,
+then the same actions need to be taken as for any other package that
+can't be maintained to our community standards.
+I'm not saying that we should vendorize everything: for large codebases
+that are an identifiably separate module with an API (like libjpeg
+and zlib) and/or have a history of security vulnerabilities that can
+be fixed centrally without breaking ABI (like libjpeg and zlib), it is
+of course often absolutely the right course of action to use a system
+copy. Similarly, if a maintainer feels that "unvendorizing" a particular
+part of the code and using a shared system-wide copy would make their
+life easier, they should be welcome to do so.
+I'm just not sure that taking the rules we follow for C/C++ shared
+libraries and applying them to every other language's ecosystem is either
+feasible or desirable - nodejs libraries are not the same as C libraries,
+and their tradeoffs are not the same tradeoffs.
+This approach is also not a million miles away from the approach taken
+in Flatpak, where every dependency is either the runtime vendor's
+responsibility (system libraries like libjpeg, zlib, SDL, GTK+) or the
+app vendor's responsibility (embedded/bundled/vendorized libraries),
+and if the app vendor has chosen poorly, it's their responsibility to fix
+the resulting CVEs. (See the videos of my Debconf 17 or FOSDEM 2018 talks
+for more background on Flatpak.) I don't think this is a terrible model.
+Regards,
+    smcv
+[1] https://tracker.debian.org/media/packages/f/firefox/rules-58.0.1-1
+    Firefox 58 uses system zlib, bz2, libffi, libevent everywhere, but
+    uses embedded code copies of hunspell, nspr, nss, sqlite in stretch
+    and older, and an embedded code copy of vpx in jessie and older.
+[2] https://www.gnu.org/software/gnulib/
+[3] https://git.gnome.org/browse/libglnx
+[4] https://git.gnome.org/browse/libgd, not to be confused with the
+    graphics library of the same name

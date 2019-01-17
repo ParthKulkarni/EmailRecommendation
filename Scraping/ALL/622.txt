@@ -1,0 +1,44 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#910979: libapache2-mod-proxy-uwsgi: copyright file missing after upgrade (policy 12.5)
+From : Andreas Beckmann <anbe@debian.org>
+Date : Sun, 14 Oct 2018 10:09:36 +0200
+Message-id : 153950457655.12834.4989840750179112663.reportbug@zam581.zam.kfa-juelich.de
+Reply-to : Andreas Beckmann <anbe@debian.org>, 910979@bugs.debian.org
+
+
+Package: libapache2-mod-proxy-uwsgi
+Version: 2.4.34-1
+Severity: serious
+User: debian-qa@lists.debian.org
+Usertags: piuparts
+Hi,
+a test with piuparts revealed that your package misses the copyright
+file after an upgrade, which is a violation of Policy 12.5:
+https://www.debian.org/doc/debian-policy/ch-docs.html#copyright-information
+After the upgrade /usr/share/doc/$PACKAGE/ is just an empty directory.
+This was observed on the following upgrade paths:
+  stretch -> buster
+>From the attached log (scroll to the bottom...):
+0m43.3s ERROR: WARN: Inadequate results from running adequate!
+  libapache2-mod-proxy-uwsgi: missing-copyright-file /usr/share/doc/libapache2-mod-proxy-uwsgi/copyright
+  MISSING COPYRIGHT FILE: /usr/share/doc/libapache2-mod-proxy-uwsgi/copyright
+  # ls -lad /usr/share/doc/libapache2-mod-proxy-uwsgi
+  drwxr-xr-x 2 root root 40 Aug  2 15:26 /usr/share/doc/libapache2-mod-proxy-uwsgi
+  # ls -la /usr/share/doc/libapache2-mod-proxy-uwsgi/
+  total 0
+  drwxr-xr-x   2 root root   40 Aug  2 15:26 .
+  drwxr-xr-x 140 root root 2940 Aug  2 15:26 ..
+Additional info may be available here:
+https://wiki.debian.org/MissingCopyrightFile
+Note that dpkg intentionally does not replace directories with symlinks
+and vice versa, you need the maintainer scripts to do this.
+See in particular the end of point 4 in
+https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html#details-of-unpack-phase-of-installation-or-upgrade
+It is recommended to use the dpkg-maintscript-helper commands
+'dir_to_symlink' and 'symlink_to_dir' (available since dpkg 1.17.14)
+to perform the conversion, ideally using d/$PACKAGE.maintscript.
+Do not forget to add 'Pre-Depends: ${misc:Pre-Depends}' in d/control.
+See dpkg-maintscript-helper(1) and dh_installdeb(1) for details.
+cheers,
+Andreas
+libapache2-mod-proxy-uwsgi_2.4.34-1.log.gz

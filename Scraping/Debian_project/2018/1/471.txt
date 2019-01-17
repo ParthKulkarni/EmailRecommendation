@@ -1,0 +1,83 @@
+To : Kumar Appaiah <a.kumar@alumni.iitm.ac.in>, debian-devel@lists.debian.org
+Subject : Re: Maintaining a custom out-of-tree patched Debian kernel for specific hardware
+From : Daniel Reichelt <debian@nachtgeist.net>
+Date : Tue, 23 Jan 2018 01:34:32 +0100
+Message-id : 93147a09-bee6-0f98-36b1-301ad79f8c9c@nachtgeist.net
+In-reply-to : <[🔎] 20180122140840.GA4580@odessa>
+References : <[🔎] 20180122140840.GA4580@odessa>
+
+
+Hi,
+what about ripping out the affected kernel modules and provide the
+patched sources in a separate package and have them built at install
+time via DKMS?
+In order to not interfere with the modules provided by the linux-image-*
+packages, you could
+- rename the kernel modules provided by your module package
+- add the original module names to a blacklist in /etc/modprobe.d
+- add your modules to /etc/modules-load.d/something
+- and finally add the blacklist and load list to your package as well.
+(An alternative to changing module names might be to use
+update-alternatives or dpkg-divert and just provide/integrate the
+renamed .ko files)
+The initial setup of the packaging/build script will require a bit of
+fiddling around but in the long run you'll be able to provide your users
+with updates much faster and without havingt to go through the
+time-consuming kernel build process. Moreover, the required storage and
+bandwith for the infrastructure holding your repository will be tiny
+compared to those for holding a full-blown kernel package.
+Cheers
+Daniel
+On 01/22/2018 03:08 PM, Kumar Appaiah wrote:
+> Dear Debian Developers,
+> 
+> I am part of a team working on getting Debian on low cost laptops (see
+> http://www.rdp.in for details) so that they can be sold with Debian
+> preinstalled. While vanilla Debian largely works, unfortunately,
+> making Bluetooth and sound work require kernel rebuilding. The patches
+> and config changes are not likely to be upstreamed any time soon, so
+> we would have to ship the laptop with a patched (non-Debian
+> kernel). Our team is, thus, taking up the responsibility of ensuring
+> that up-to-date kernel (with security fixes) are made available to the
+> users of our laptop. The patches and configs are adapted from here:
+> https://github.com/sundarnagarajan/kernel_build
+> 
+> The unfortunate situation is that I am forced to issue this patched
+> kernel. Since I'd like to be a good citizen of the ecosystem, I'd like
+> to outline the solution I have in mind. I'd like your opinion and
+> suggestion on this. All code being developed for this purpose will be
+> released under a DFSG compliant license, and all packages I refer to
+> that aren't in Debian will lie in our custom (outside of Debian)
+> repository. If there are any things I can do to make things better,
+> please do let me know.
+> 
+> 1. The laptop will ship with stretch preinstalled, but with a custom
+> kernel built using the linux-source-x.xx.xx package with a custom
+> version number, such as linux-image-4.14.13-iitb-amd64.
+> 
+> 2. The installation will contain a package called
+> linux-image-iitb-amd64 that conflicts with linux-image-amd64, and this
+> package will depend on the latest patched kernel built in the previous
+> step.
+> 
+> 3. The sources.list on the installation will have an entry pointing to
+> my custom repository in addition to the regular http://deb.debian.org,
+> and will be pinned so that the kernel and kernel related packages are
+> obtained from my custom repository. Needless to say, the custom
+> repository's public key will also be pre-shipped with the laptop.
+> 
+> 4. Users will be made aware of the fact that this is Debian with a
+> custom kernel without ambiguity.
+> 
+> Now, whenever there is a kernel update in Debian, our team will fetch
+> the source of the updated kernel, patch, rebuild and make it available
+> in our repository.
+> 
+> Please let me know if the proposed solution is good, else I am open to
+> suggestions.
+> 
+> Thanks.
+> 
+> Kumar
+> 
+signature.asc

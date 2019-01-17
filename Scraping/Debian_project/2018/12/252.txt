@@ -1,0 +1,50 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Removing conflicts of init system
+From : Colin Watson <cjwatson@debian.org>
+Date : Fri, 21 Dec 2018 20:35:47 +0000
+Message-id : 20181221203547.vpqiorbq4z4umw6a@riva.ucam.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20181221193120.GA11262@localhost>
+References : <[🔎] E1gaPwU-0002fD-Bb@eggs.gnu.org> <[🔎] 20181221193120.GA11262@localhost>
+
+
+On Fri, Dec 21, 2018 at 11:31:24AM -0800, Josh Triplett wrote:
+> Dmitry Bogatov wrote:
+> > Currently, init system packages (sysvinit-core, runit-init,
+> > systemd-sysv) are mutually exclusive -- each of them provides,
+> > among other, /sbin/init file and as such, conflicts with rest.
+> > 
+> > This scheme has following drawbacks:
+> > 
+> >  * switching between init systems is destructive:
+> >    once you switch, old /sbin/init is gone; should things go wrong, you
+> >    have no easy recover via init=/sbin/old-init kernel option.
+> > 
+> >    Side note: switching from systemd is more safe, since systemd-sysv
+> >    provides only link to /lib/systemd.
+> 
+> sysvinit works similarly, with /lib/sysvinit/init. And GRUB has built-in
+> support for these. See /etc/grub.d/10_linux; if you have more than one
+> init system package installed, you will get separate boot options to
+> boot each of the inits that /sbin/init doesn't link to.
+> 
+> You might consider submitting a patch to GRUB to add runit to that list,
+I'm fine with taking care of this if somebody tells me which file to
+look for.  (The current mapping is "sysvinit:/lib/sysvinit/init
+systemd:/lib/systemd/systemd upstart:/sbin/upstart"; the value needs to
+be a path that can be coinstalled with other init systems and that can
+be passed as the argument to "init=" on the kernel command line.)
+> or better yet making that behavior look for symlinks in /lib/inits/ or
+> similar and make an entry for every link that doesn't match /sbin/init.
+> (If you do so with fallbacks to the existing entries for systemd and
+> sysvinit, that'll make a transition simpler, and GRUB can remove the
+> fallbacks as soon as systemd and sysvinit add links in /lib/inits/.)
+This feels like overengineering and really not worth it; new inits don't
+come along all that often.  I think we'd spend more time on transitional
+mechanics than we'd ever save.
+> (Meanwhile, I don't think it's necessarily a good idea to handle
+> /sbin/init and associated programs with alternatives, not least of which
+> because of the complications of switching the running system's init.)
+I quite agree.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

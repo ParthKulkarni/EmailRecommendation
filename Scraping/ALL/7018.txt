@@ -1,0 +1,89 @@
+To : submit@bugs.debian.org
+Subject : Bug#898303: setupcon always uses the cached font, doesn't update it when called with --save
+From : Алексей Шилин <rootlexx@mail.ru>
+Date : Wed, 09 May 2018 23:57:41 +0300
+Message-id : 2969674.LC4kMkn1vS@debian
+Reply-to : Алексей Шилин <rootlexx@mail.ru>, 898303@bugs.debian.org
+
+
+Package: console-setup
+Version: 1.184
+Tags: patch
+Hi,
+After upgrading the console-setup package to version 1.184 to get the fix for 
+bug #895047 [1], I found that the issue was still there. I had to remove the 
+cached font in /etc/console-setup and then run 'setupcon --save' in order to 
+finally get rid of it.
+It turned out that findfile() function used 'ls' to get available file matches, 
+and then simply picked the first one. But 'ls' sorts its output alphabetically 
+by default, hence the cached font in /etc always won despite the normal one 
+being available in /usr. As the result, setupcon never updated the cached font 
+while always using it for setting up ttys, rendering font updates (like the 
+one in #895047) useless.
+A proposed fix is attached.
+ [1] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=895047>From 92b4f2f4252a168962fefbdcb6ff007f27811962 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=D0=90=D0=BB=D0=B5=D0=BA=D1=81=D0=B5=D0=B9=20=D0=A8=D0=B8?=
+ =?UTF-8?q?=D0=BB=D0=B8=D0=BD?= <rootlexx@mail.ru>
+Date: Wed, 9 May 2018 17:11:35 +0300
+Subject: [PATCH] setupcon: Make findfile() respect location priorities
+findfile() used 'ls' to create a list of available file matches, and
+then picked the first one. But 'ls' sorts the result alphabetically
+which led to findfile() always picking the cached version in /etc even
+if the normal one was available.
+As one of the consequences, the cached font was not updated on package
+upgrades. Given that the cached version was used all of the time, any
+font updates in the new version of the package had no effect until one
+manually removed the cached one.
+This commit makes findfile() respect the given order of possible file
+paths, which fixes the issues. It moves away from using 'ls' (which
+doesn't have a usable and portable way to switch off sorting) to a
+POSIX-compliant for-loop.
+---
+ setupcon | 26 +++++++++++++++-----------
+ 1 file changed, 15 insertions(+), 11 deletions(-)
+diff --git a/setupcon b/setupcon
+index 6121632..f0d6734 100755
+--- a/setupcon
++++ b/setupcon
+@@ -228,7 +228,7 @@ run () {
+ # Example: findfile share/consolefonts Uni3-*.psf.gz
+ # Result: /usr/share/consolefonts/Uni3-Fixed13.psf.gz
+ findfile () {
+-    local x
++    local f
+     case "$2" in
+         /*)
+             if [ -f "$2" ]; then
+@@ -237,16 +237,20 @@ findfile () {
+             fi
+             ;;
+     esac
+-    x=`(ls "$installdir"/$1/$2 \
+-           /usr/local/$1/$2 \
+-	   /usr/$1/$2 \
+-           /etc/console-setup/cached_$2 \
+-           /etc/console-setup/$2 \
+-           "$installdir"/etc/console-setup/cached_$2 \
+-           "$installdir"/etc/console-setup/$2) 2>/dev/null`
+-    x=`echo $x`
+-    [ "${x%% *}" ] || report Unable to find "$2".
+-    echo "${x%% *}"
++    for f in "$installdir"/$1/$2 \
++             /usr/local/$1/$2 \
++             /usr/$1/$2 \
++             /etc/console-setup/cached_$2 \
++             /etc/console-setup/$2 \
++             "$installdir"/etc/console-setup/cached_$2 \
++             "$installdir"/etc/console-setup/$2
++    do
++        if [ -f "$f" ]; then
++            echo "$f"
++            return 0
++        fi
++    done
++    report Unable to find "$2".
+ }
+ 
+ # Return code 0: we are on the console; 1: we are not on the console
+-- 
+2.11.0

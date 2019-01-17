@@ -1,0 +1,98 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#902288: general: GNOME/nautilus thumbnail helper script from /usr/share/thumbnailers fails with ENOENT due to bwrap
+From : Marco Ippolito <maroloccio@gmail.com>
+Date : Sun, 24 Jun 2018 16:41:45 +0200
+Message-id : 152985130565.26662.28719390873955749.reportbug@sanctuary
+Reply-to : Marco Ippolito <maroloccio@gmail.com>, 902288@bugs.debian.org
+
+
+Package: general
+Severity: important
+Dear Maintainer,
+I have a GNOME/nautilus thumbnail helper shell script written in Bash under
+/usr/bin/calibre-thumbnailer, with executable permissions and an appropriate
+shebang, which delegates extraction of e-book thumbnails to Calibre and used to
+work until recently, when I upgraded to Testing (buster) and started using a
+couple of packages from Unstable (sid).
+Upon noticing failed thumbnailing attempts under
+~/.cache/thumbnails/fail/gnome-thumbnail-factory I straced the process
+following forked children and noticed the bwrap container within which
+thumbnail helpers are launched, e.g.:
+bwrap
+    --bind /tmp/gnome-desktop-thumbnailer-5I6VKZ /tmp
+    --chdir /
+    --dev /dev
+    --die-with-parent
+    --proc /proc
+    --ro-bind /E-Books/MyBook.epub
+    --ro-bind /lib /lib
+    --ro-bind /lib64 /lib64
+    --ro-bind /usr /usr
+    --seccomp 23
+    --setenv GIO_USE_VFS local
+    --symlink usr/bin /bin
+    --symlink usr/sbin /sbin
+    --unshare-all
+        calibre-thumbnailer
+            /tmp/gnome-desktop-file-to-thumbnail.epub
+            /tmp/gnome-desktop-thumbnailer.png
+Given the complex interaction between the helper metadata file registered under
+/usr/share/thumbnailers, which could mention a full path or not, calling execve
+for each $PATH entry otherwise:
+/usr/share/thumbnailers/calibre.thumbnailer:
+[Thumbnailer Entry]
+TryExec=(...)calibre-thumbnailer
+Exec=(...)calibre-thumbnailer %i %o %s
+MimeType=application/epub+zip;application/vnd.ms-
+htmlhelp;application/x-chm;application/x-mobi8-ebook;application/vnd.amazon.mobi8-ebook;application/x-mobipocket-
+ebook;
+and the shell script shebang formulation, which could be many things including:
+#! bash, #! /bin/bash, #! /usr/bin/env bash, etc.
+and the other required paths needing to be resolved inside the container's
+filesystem namespace for everything to work (e.g. /sbin/ldconfig, ...), it
+seems like the read-only bind mounts set up for the container after starting
+from a clean slate sandbox (--unshare-all) are too restrictive and will more
+often than not result in ENOENT errors.
+I tried a bit of "manual patching", such as copying the bash executable to
+/usr/bin, which we see above is mounted by bwrap inside the container from
+/usr, with a symlink to /bin, and pointing the shebang to that, but realised
+there would be too much manual work to do to make this script run:
+/usr/bin/calibre-thumbnailer:
+#! /usr/bin/env bash
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+ebook_filepath=$1
+[[ -r $ebook_filepath && -f $ebook_filepath ]] || exit "$EXIT_FAILURE"
+thumbnail_filepath=$2
+[[ $thumbnail_filepath ]] || exit "$EXIT_FAILURE"
+thumbnail_size=$3
+[[ $thumbnail_size ]] || exit "$EXIT_FAILURE"
+temporary_directory=$(mktemp --directory)
+cd "$temporary_directory" || exit "$EXIT_FAILURE"
+ebook-meta "$ebook_filepath" --get-cover=cover
+if gm convert \
+    -size "$thumbnail_size" \
+        cover \
+        "$thumbnail_filepath"
+then
+    exit 0
+else
+    # Coalesce all failed exit codes into the recognised one
+    exit "$EXIT_FAILURE"
+fi
+I like very much sandboxing of thumbnail extraction, as media vulnerabilities
+are common and just browsing a directory in the Nautilus GUI shouldn't be an
+opportunity for an exploit to run and compromise the system, but the list of
+mounts needs to be tweaked to allow shell scripts to run, I think. If you
+tested with the actual script above, that would be great.
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.16.0-2-amd64 (SMP w/8 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8), LANGUAGE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled

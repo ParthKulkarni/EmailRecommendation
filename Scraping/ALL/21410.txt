@@ -1,0 +1,41 @@
+To : Johannes Schauer <josch@debian.org>
+Subject : Re: [yay for broken usage of was: in the Subject header]
+From : Guillem Jover <guillem@debian.org>
+Date : Thu, 11 Jan 2018 01:55:47 +0100
+Message-id : 20180111005547.GB12715@thunder.hadrons.org
+Mail-followup-to : Johannes Schauer <josch@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 151562916639.1442.13657051973104313118@localhost>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108200909.7o6ovj2ajzseik2m@virgil.dodds.net> <[🔎] 4de2303e-f4dd-11e7-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180109050326.hxksmt53vp32ndcu@mail.wookware.org> <[🔎] 151550682194.1442.3057583478420582272@localhost> <[🔎] 20180110205244.324gmwqsa3qnrjs7@virgil.dodds.net> <[🔎] 151562120531.1442.1047216250141964080@localhost> <[🔎] 281eaed112c55bee78b841da6bfb0a42@debian.org> <[🔎] 151562916639.1442.13657051973104313118@localhost>
+
+
+On Thu, 2018-01-11 at 01:06:06 +0100, Johannes Schauer wrote:
+> Quoting Philipp Kern (2018-01-11 00:20:17)
+> > Why is it making comparing packages with each other difficult?
+> 
+> What I meant here was what I mentioned elsewhere in this thread. We can check
+> whether two binary packages built with a different set of build profiles active
+> are actually the same by using the tools from the reproducible builds project.
+> And the easiest way to do the comparison is to compare their hashes. If the
+> build profile would be included, then comparing the packages would be made more
+> difficult.
+Or IOW:
+  cmp a.deb b.deb
+vs
+  dpkg-deb -R a.deb a
+  dpkg-deb -R b.deb b
+  sed -i -e '/^Built-For-Profiles/d' a/DEBIAN/control
+  sed -i -e '/^Built-For-Profiles/d' b/DEBIAN/control
+  diff -Naur a b
+While then not comparing the actual .deb, for any other suspicious
+members, difference in format, strange padding, etc, or control.tar
+metadata changes.
+> > At the same time for a stable port the archive can ensure that the build
+> > profile was actually the default one (or accept divergences with a conscious
+> > decision, like using NEW or BYHAND).
+> 
+> The archive can already do this check by investigating the buildinfo file that
+> was uploaded together with the binary packages.
+Actually this information is also readily available in the .changes
+file which DAK is already parsing.
+Thanks,
+Guillem

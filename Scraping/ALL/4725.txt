@@ -1,0 +1,59 @@
+To : 851429@bugs.debian.org
+Subject : Bug#851429: installation-reports: mounting CD fails on qemu-system-aarch64
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sun, 15 Jan 2017 15:05:11 +0100
+Message-id : 20170115140511.kv4wzb7vtiaig2zz@angband.pl
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 851429@bugs.debian.org
+In-reply-to : <[🔎] 20170115011252.GP22812@einval.com>
+References : <[🔎] 148442965839.32252.12528216777923176246.reportbug@umbar.angband.pl> <[🔎] 20170115011252.GP22812@einval.com>
+
+
+On Sun, Jan 15, 2017 at 01:12:53AM +0000, Steve McIntyre wrote:
+> On Sat, Jan 14, 2017 at 10:34:18PM +0100, Adam Borowski wrote:
+> >I'm afraid that regular arm64 d-i images fail to detect qemu's CD-ROM, and
+> >there's apparently no way to direct it to load udebs from a network mirror
+> >like mini.iso does.  On the other hand, installation with mini.iso works
+> >well.
+> >
+> >The failing step is "Detecting hardware to find CD-ROM drives".
+> >
+> >CD=debian-stretch-DI-rc1-arm64-netinst.iso
+> >NET="-net bridge -net nic"
+> >
+> >qemu-system-aarch64 -machine virt -nographic -cpu cortex-a57 \
+> > -bios /usr/share/qemu-efi/QEMU_EFI.fd -m 2048 $NET \
+> > -drive file="$DISK",cache=writeback,index=0,media=disk,format=raw \
+> > -drive file="$CD",cache=writeback,index=1,media=cdrom -boot d
+> 
+> I think the problem is with your setup. I've just booted that exact
+> netinst image happily using
+> 
+> qemu-system-aarch64 -m 4G -cpu cortex-a57 -M virt -smp 8 -nographic
+> -pflash AAVMF_CODE.fd -pflash AAVMF_VARS.fd -drive
+> file=/scratch/iso/debian-stretch-DI-rc1-arm64-netinst.iso,id=cdrom,if=none,media=cdrom
+> -device virtio-scsi-device -device scsi-cd,drive=cdrom -k en-gb
+> -netdev user,id=eth0 -device virtio-net-device,netdev=eth0
+Ie, virtio vs emulating a real piece of hardware.
+The problem here, though, is that qemu picked a piece of hardware that's old
+crap that's not expected in any physical arm64 gardware.  I guess it'd be
+good to ask them to upgrade, like they did with the Cirrus card on x86.
+Ordinarily I'd want you to support this "hardware" as QEMU is a major
+platform (at least the one most available), but in this case, with the
+extensive incantations required to get it running, requiring virtio might be
+acceptable.  I refuse to say "arguments" rather than "incantations" as
+the former is for specifying what the program should do and what you want
+altered from reasonable defaults, rather than a massive ritual that needs to
+be performed just to get basic functionality, with every piece involving
+lengthy research and breakage/data loss if you skip it.  Like, my line lacks
+a flash for storing EFI vars, meaning that it will install correctly (with
+mini.iso), work when rebooted, even upon multiple reboots, then fail to work
+anymore once you shut down qemu and start it again.
+So I wonder what's the best way to proceed.  Probably documenting what's
+needed might be a good step.
+> and it's running the installer right now with udebs from the netinst
+> iso. What version of qemu-efi are you using for
+> /usr/share/qemu-efi/QEMU_EFI.fd?
+0~20161202.7bbe0b3e-1 (current unstable and stretch).
+-- 
+Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
+  ./configure --host=zx-spectrum --build=pdp11

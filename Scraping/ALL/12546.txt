@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org
+Subject : Re: User-installable Debian packages?
+From : Niels Thykier <niels@thykier.net>
+Date : Sat, 22 Jul 2017 12:54:00 +0000
+Message-id : b7ab4657-a5a6-9912-0fcd-2bb9050510a7@thykier.net
+Reply-to : Debhelper Maintainers <debhelper-devel@lists.alioth.debian.org>
+In-reply-to : <[🔎] 20170722120006.hmu2uiwnld4onk75@perpetual.pseudorandom.co.uk>
+References : <[🔎] b6683708-9b2b-289d-6686-82fcf7bbbeff@gmx.de> <[🔎] 20170722120006.hmu2uiwnld4onk75@perpetual.pseudorandom.co.uk>
+
+
+Simon McVittie:
+> On Sat, 22 Jul 2017 at 12:28:04 +0200, Steffen Möller wrote:
+>> And quite some packages in our
+>> distribution do not really need to be installed as root if they were
+>> installed where the user has write permissions. There would hence be
+>> little overhead over what we have now. Should we not somehow find ways
+>> to tag any such location-agnostic packages and prepare dpkg for
+>> installing e.g. in $HOME/.debian when it is executed as non-root?
+> 
+> [...]
+> 
+> [...] I believe Fedora and Endless are already doing this. Debian could too.
+> 
+I believe that Endless have a patched version of debhelper to do
+this[1].  FWIW, I am happy to work with people who are interested in
+improving debhelper's support for flatpak et al.
+  I have mostly been stuck with making this generally applicable without
+doing "magic" rewrites of all paths (a la [2]).
+> [...] Non-relocatable packages (those
+> that hard-code paths) need rebuilding from source, but I have some ideas
+> about using dh-exec to parameterize the packaging (a bit like the way it
+> works in RPM spec files, but simpler) so that can be done automatically.
+> 
+Do you have an example of these ideas/parameterizations?
+I personally toyed with the following two models for doing this:
+ 1) Merge back the substitution that dh-exec supports and have packages
+    replace usr/bin/X with ${bindir}/X, OR
+ 2) Move from "Install path X" to
+    "Install (program|doc|...) basename(X)".  Then debhelper would be
+    responsible for figuring out where "basename(X)" was based on what
+    it requested from the build system.
+Either approach would be combined with alternative paths for --prefix
+etc. when building the package.  For most packagers, I think 2) approach
+would be easier compared to having to remember the 10+ substitution
+variables that are in play for 1).  Though, I think 2) will be a lot
+harder to get right for special cases or for items put in locations not
+known by debhelper.
+Anyway, lets move technical debhelper related follow ups to
+debhelper-devel@l.a.d.o (Reply-To accordingly).
+Thanks,
+~Niels
+[1] https://github.com/endlessm/debhelper/
+[2]
+https://github.com/endlessm/debhelper/commit/25cfa6fc7f974ea799fc6e5ccca469919f233e64

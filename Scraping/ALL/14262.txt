@@ -1,0 +1,67 @@
+To : Russ Allbery <rra@debian.org>
+Subject : Re: Feedback on 3.0 source format problems
+From : Guido Günther <agx@sigxcpu.org>
+Date : Tue, 10 Jan 2017 11:04:05 +0100
+Message-id : 20170110100405.mcarzcdlf3h3thfw@bogon.m.sigxcpu.org
+Mail-followup-to : Guido Günther <agx@sigxcpu.org>,	Russ Allbery <rra@debian.org>, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 87o9zn4ie5.fsf@hope.eyrie.org>
+References : <[🔎] 87h95ght4g.fsf@hope.eyrie.org> <[🔎] 20170103201509.s3swo4w666qeieow@iris.silentflame.com> <[🔎] 87fukzbkwl.fsf@vostro.rath.org> <[🔎] 87o9zn4ie5.fsf@hope.eyrie.org>
+
+
+On Tue, Jan 03, 2017 at 07:24:18PM -0800, Russ Allbery wrote:
+> Nikolaus Rath <Nikolaus@rath.org> writes:
+> 
+> > Are there really upstreams that do that? I'd expect that the primary
+> > consumer of Debian patches are other distributions, downstreams, and
+> > users.
+> 
+> > I'd think that anything that's relevant for upstream development is
+> > forwarded to upstream by the maintainer in whatever format upstream
+> > prefers. This requires extra time, but I would be surprised to hear if
+> > there are maintainers that have sufficient time to create patches that
+> > are suitable for upstream, but don't have the little extra time to send
+> > them upstream.
+> 
+> There are definitely upstreams who like to look at what patches Debian is
+> shipping at their convenience, rather than having to ask the maintainer.
+> The maintainer may have already sent along the patches, but it's easy to
+> lose track of what patches are still being applied.
+> The other case where being able to point upstream at a directory of
+> patches is very nice is when upstream has been dormant for a long time and
+> then comes back to life.  It's an easy way for them to pull a bunch of
+> changes at once for a new development cycle.
+> 
+> I've also found it significantly smooth over relations with upstreams who
+> are otherwise quite prickly about modifications to their distributed
+> releases.  Having all the patches be published and clearly documented
+> somewhere without anyone having to ask wins points for transparency and
+> makes them feel like the whole process is less out of control and more
+> congenial and collaborative, even if you were also in the habit of sending
+> changes upstream.  It eliminates the fear that you're also applying other
+> ugly hacks you're not telling them about that might be maintenance burdens
+> for them.
+Thanks for the nice summary. I now wonder:
+If we want a way to present this as a git view for a 3.0 (quilt)
+packages one could make gbp pq create a branch that contains the patched
+tree (like "gbp pq import" but on top of upstream branch and not on top
+of the debian branch). This branch would be directly mergeable by
+upstream.  If we tag after the import these histories would be stable
+and if one wants these to be fast-forwardable then the topmost commits
+can be joined by pseudo merges and one could track the history of each
+commit. I did not yet see the point to add this since:
+a) these branches usually have debian specific upstream modifications,
+cherry-picks _from_ upstream and new fixes _for_ upstream intermixed so
+upstream would cherry-pick at best but never merge
+b) upstream usually wants specific patches on top of its current version
+not of the version we're currently working in Debian. This can be done
+with gbp pq import and git cherry-pick or rebase already.
+so I usually:
+* use tarballs (since uscan is so convenient)
+* add upstreams history as a detached history
+* cherry pick between the debian branch and upstreams master (or any
+  other of upstream's branches)
+* point upstream to debian/patches on alioth (or much more often
+  git-send-email directly)
+so would adding such a view make any sense nevertheless?
+Cheers
+ -- Guido

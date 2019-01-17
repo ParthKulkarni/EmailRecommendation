@@ -1,0 +1,87 @@
+To : Raphael Hertzog <hertzog@debian.org>
+Subject : Bug#861343: debootstrap: hardcodes mawk as awk provider
+From : Sven Joachim <svenjoac@gmx.de>
+Date : Sat, 23 Jun 2018 11:25:26 +0200
+Message-id : 87muvlsvll.fsf@turtle.gmx.de
+Reply-to : Sven Joachim <svenjoac@gmx.de>, 861343@bugs.debian.org
+In-reply-to : <20180319211254.GC15786@home.ouaza.com> (Raphael Hertzog's	message of "Mon, 19 Mar 2018 22:12:54 +0100")
+References : <87zif1aecq.fsf@turtle.gmx.de> <20180319220615.ea8ada36bedbe30f1cee9959@iijmio-mail.jp> <87zif1aecq.fsf@turtle.gmx.de> <20180319211254.GC15786@home.ouaza.com> <87zif1aecq.fsf@turtle.gmx.de>
+
+
+On 2018-03-19 22:12 +0100, Raphael Hertzog wrote:
+> On Mon, 19 Mar 2018, Hideki Yamane wrote:
+>>  However, in scripts/*, there's unnecessary mawk hardcode line and
+>>  we can remove it safely as attached patch.
+> [...]
+>> -	ln -sf mawk "$TARGET/usr/bin/awk"
+>> +	ln -sf awk "$TARGET/usr/bin/awk"
+>
+> Huh? This doesn't make any sense. You are creating a symlink named "awk" that
+> points to itself. And you will have broken everything.
+>
+> The problem is the lack of /usr/bin/awk because that file is handled by
+> update-alternatives which can't be run in the early steps. So it's
+> manually created and it needs to point to the awk alternative that
+> has been unpacked earlier.
+>
+> At best you can try to match /usr/bin/*awk to try to guess how the
+> awk executable is named and use that to look up the package name
+> (for the x_core_install call that also hardcodes the mawk name)
+> and create the appropriate symlink (which will get replaced by
+> the update-alternatives managed one).
+Attached is a patch which tries to do that.  Unfortunately I could not
+test it, since I don't have a local mirror where I could swap the
+priorities of mawk and original-awk (or gawk).
+Cheers,
+       Sven
+>From 52b84c8693d99fe877d9e612881503fe28c39210 Mon Sep 17 00:00:00 2001
+From: Sven Joachim <svenjoac@gmx.de>
+Date: Fri, 28 Apr 2017 09:23:20 +0200
+Subject: [PATCH] Handle case where some other awk than mawk is required
+Set up original-awk or gawk, if they had been downloaded instead of
+mawk.  This should make it possible to let either of those have
+"Priority: required" and downgrade mawk's priority.
+---
+ scripts/debian-common | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+diff --git a/scripts/debian-common b/scripts/debian-common
+index 211a4c4..88dbc07 100644
+--- a/scripts/debian-common
++++ b/scripts/debian-common
+@@ -9,6 +9,13 @@ case $ARCH in
+ 	*)          LIBC="libc6" ;;
+ esac
+ 
++find_awk () {
++	if [ -x "$TARGET/usr/bin/mawk" ]; then AWK=mawk
++	elif [ -x "$TARGET/usr/bin/original-awk" ]; then AWK=original-awk
++	elif [ -x "$TARGET/usr/bin/gawk" ]; then AWK=gawk
++	fi
++}
++
+ work_out_debs () {
+ 	required="$(get_debs Priority: required)"
+ 
+@@ -117,7 +124,8 @@ Status: install ok installed" >> "$TARGET/var/lib/dpkg/status"
+ 	info INSTCORE "Installing core packages..."
+ 
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #2
+-	ln -sf mawk "$TARGET/usr/bin/awk"
++	find_awk
++	[ -n "$AWK" ] && ln -sf $AWK "$TARGET/usr/bin/awk"
+ 	x_core_install base-passwd
+ 	x_core_install base-files
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #3
+@@ -138,8 +146,8 @@ Status: install ok installed" >> "$TARGET/var/lib/dpkg/status"
+ 	x_core_install perl-base
+ 
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #6
+-	rm "$TARGET/usr/bin/awk"
+-	x_core_install mawk
++	rm -f "$TARGET/usr/bin/awk"
++	[ -n "$AWK" ] && x_core_install $AWK
+ 
+ 	p; progress $baseprog $bases INSTCORE "Installing core packages" #7
+ 	if doing_variant -; then
+-- 
+2.18.0

@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : TTF or OTF, bad behavior on upgraded systems
+From : Daniel Pocock <daniel@pocock.pro>
+Date : Fri, 19 Jan 2018 18:44:37 +0100
+Message-id : 6973f1af-8291-72b1-5854-55b546b8e6eb@pocock.pro
+
+
+Hi all,
+I was looking at the fonts page[1] on the wiki and it mentions:
+"For most uses, you’ll want TrueType (TTF) and OpenType (OTF) fonts"
+In fact, is it necessary to install both, or just OTF if the same font
+is available as both?
+On a system that has been upgraded from etch through several Debian
+versions up to stretch, I found Firefox was behaving badly, especially
+when printing pages containing Helvetica.  It is a little chunky on
+screen but almost unreadable when rendered on the printer.
+Can anything be done to make this easier for users who have upgraded?
+Looking on the web page, I used "Inspect Element" to identify the font
+(Helvetica)
+and then I checked which font is used:
+$ fc-match helvetica
+helvR12-ISO8859-1.pcf.gz: "Helvetica" "Regular"
+That is a bitmap font in xfonts-100dpi and xfonts-75dpi on my system.
+I tried installing the OTF and TTF packages (which were missing) with:
+apt install fonts-freefont-otf fonts-freefont-ttf
+but that still didn't work.
+Next I tried adding the MS fonts with
+apt install ttf-mscorefonts-installer
+and that didn't resolve it either, next I tried
+sudo fc-cache -v
+but it was still using the PCF bitmap font.
+Finally, I saw the suggestion on the wiki to run:
+sudo dpkg-reconfigure fontconfig fontconfig-config
+and that fixed the problem.
+Can anything be done to make this easier for users who have upgraded?
+Regards,
+Daniel
+1. https://wiki.debian.org/Fonts

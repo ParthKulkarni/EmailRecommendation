@@ -1,0 +1,218 @@
+To : Pirate Praveen <praveen@onenetbeyond.org>
+Subject : Re: Proposal: Repository for fast-paced package backports
+From : Alexander Wirt <formorer@formorer.de>
+Date : Wed, 26 Dec 2018 16:32:28 +0100
+Message-id : 20181226153228.GA10476@congress
+Mail-followup-to : Pirate Praveen <praveen@onenetbeyond.org>,	debian-backports@lists.debian.org, debian-devel@lists.debian.org,	debian-release@lists.debian.org
+In-reply-to : <[🔎] 12697F3A-585A-45EF-9DC1-287004D5F5B6@onenetbeyond.org>
+References : <[🔎] 20181225204607.GD32147@portux.naturalnet.de> <[🔎] 12697F3A-585A-45EF-9DC1-287004D5F5B6@onenetbeyond.org>
+
+
+On Wed, 26 Dec 2018, Pirate Praveen wrote:
+> 
+> 
+> On 2018, ഡിസംബർ 26 2:16:07 AM IST, Dominik George <natureshadow@debian.org> wrote:
+> >Heisann, alle sammen,
+> >
+> >as announced in the recent thread about maintaining, I hereby propose a
+> >repository that allows making “backports” of packages available to
+> >users
+> >of the stable distribution, if those packages cannot be maintained in
+> >testing and backported in the usual way. If you are interested in what
+> >lead up to that, please see bug #915050. I will give a short summary of
+> >it here.
+> >
+> >
+> >Reasons for having a special place for some packages
+> >====================================================
+> >
+> >(You may want to skip this part if you are familiar with the
+> >situation.)
+> >
+> >As all developers know (but passers-by may not), for software to enter
+> >the Debian archive, it is always uploaded to the unstable distribution,
+> >then migrates to testing (hopefully ;)), which is at some point
+> >snapshot
+> >and made the new stable release. From there on, maintainers have two
+> >obligations: Firstly, keep the package in stable good and secure, e.g.
+> >by uploading security fixes for it once they become available upstream,
+> >or even backport fixes themselves. Secondly, provide the package in
+> >unstable with updates and ensure its migration, to keep it ready for
+> >the
+> >next stable release.
+> >
+> >Now, for some software packages, this process is problematic, because
+> >upstream may have another idea about software lifecycles. Concerning
+> >the
+> >GitLab example, upstream provides security fixes for three months for
+> >their stable releases. Backporting fixes from newer versions is very
+> >hard or impossible because the massive amounts of changes to the
+> >software in every new versions. This is something that also affects
+> >other packages, like Mozilla Firefox, which has a firefox package in
+> >unstable, and a separate firefox-esr package, with the ESR version of
+> >Firefox. Only the latter migrates to testing.
+> >
+> >Users of Debian honour it for its stability, but as an agile software
+> >lifecycle is adapted by more and more very popular software packages,
+> >not being able to install these packages in the trusted, well-known
+> >fashion through the official apt repositories is becoming more and more
+> >of a drawback.
+> >
+> >It can easily be assumed that the normal release and maintenance cycle
+> >of Debian stable will not change, which is very good, so we should find
+> >a way to still provide such software as described above to users.
+> >
+> >
+> >Why backports is not enough
+> >===========================
+> >
+> >This also is well-known, but for completeness: Formal backports in
+> >stable-backports are required to be direct backports from testing, and
+> >are a stepping stone within the upgrade from stable to stable+1. Thus,
+> >a
+> >version of a package that is not in testing can never be in
+> >stable-backports.
+> >
+> >
+> >Name of the new repository
+> >==========================
+> >
+> >In the past, the name “volatile” was used for a similar repository, but
+> >with a different scope (limited to data packages for things like virus
+> >scanners). I will thus use the working title volatile throughout this
+> >proposal, although this may change.
+> >
+> >Other ideas: fastlane, unsupported
+> >
+> >(Please feel free to add other ideas.)
+> >
+> >
+> >Requirements for a package to go into stable-volatile
+> >=====================================================
+> >
+> >The new volatile proposal is not intended to ease life for package
+> >maintainers who want to bypass the migration and QA requirements of the
+> >regular stable lifecycle, so special need must be taken to ensure only
+> >packages that need it go into volatile. I want to summarise the
+> >requirements like so:
+> >
+> >- The package must be maintained in unstable, like every other package.
+> > - The package must not be in testing, and care must be taken for the
+> >   package not to migrate to testing.
+> > - Regular maintenance for the lifetime of stable must be impossible
+> >   or unnecessarily hard, and this requirement should be assessed in
+> >   a verifiable manner, e.g. referring to upstream’s lifecycle model.
+> > - There must be notable need for the package. Like for backports, user
+> >   requests might be an indicator.
+> > - Should the package be removed from unstable, it must also be removed
+> >   from volatile.
+> > - Should the package begin to migrate to testing again, it must
+> >   be moved to stable-backports.
+> >
+> >Before starting to maintain a volatile package, the maintainer shall
+> >seek consent (or doubt) on debian-devel.
+> >
+> >
+> >Building packages and package dependencies
+> >==========================================
+> >
+> >Packages for volatile are built the same way as formal backports, only
+> >that the source is taken from unstable rather than testing. In
+> >particular:
+> >
+> > - Changes shall be kept as small as possible.
+> > - The package is rebuilt against stable.
+> >- The package may depend on packages in stable, stable-backports or
+> >stable-volatile.
+> >
+> >Dependencies on other packages in volatile should be avoided if
+> >possible. Especially, dependencies of the package that also need
+> >backporting must not be added to volatile just because they are
+> >dependencies — every dependency that is needed to be backported to
+> >support the volatile package must be considered on its own and in all
+> >but unprobable edge cases be maintained as a formal backport.
+> >Obviously,
+> >the unprobable edge case occurs when the package depends on another
+> >package that also fully qualifies for volatile, as described above.
+> >
+> >
+> >Versions of packages in volatile
+> >================================
+> >
+> >I am not yet certain about this. As stressed before, volatile should be
+> >an extension of backports, so starting with the well-known backports
+> >suffix ~bpoN seems reasonable. I’d even say this is enough, as a
+> >package
+> >is never both in volatile and backports, and if maintenance changes to
+> >the regular lifecycle, it can easily be moved to backports.
+> >
+> >
+> >Responsibility and location of the repository
+> >=============================================
+> >
+> >I propose to add the volatile repository next to the backports
+> >repository, and treat it as part of backports. This should not impose
+> >new workload on the backports ftp-masters, so this needs people who
+> >volunteer to do the extra work. It should, however, be not too much of
+> >a
+> >workload anyway, as the number of packages qualifying for volatile is
+> >quite limited. (I do volunteer for the backports team, not only for my
+> >own proposal, but also in general.)
+> >
+> >This implies that new binary uploads to volatile have to undergo the
+> >same NEW queue as backports.
+> >
+> >
+> >volatile repositories for other distributions
+> >=============================================
+> >
+> >You guessed it: Same as for backports, but in green ;).
+> >
+> >
+> >Technical requirements
+> >======================
+> >
+> >Apart from the new section in the repository, care needs to be taken to
+> >ensure removal from volatile if a package moves to -backports again.
+> >The
+> >mechanisms used for decrufting experimental might apply.
+> >
+> >
+> >Implications for the situation at hand (gitlab)
+> >===============================================
+> >
+> >As there were quite a few concerns raised (some of which I share, and
+> >some I don’t): Of course, if a software intended for volatile has a ton
+> >of dependencies (intended to go into backports), all backports rules
+> >and
+> >powers of the ftp-masters apply. Repeating myself: volatile is not
+> >meant
+> >to ease the life of maintainers.
+> >
+> >
+> >
+> >I ask the community, the backports team and the release team for their
+> >opinions.
+> >
+> >Cheers, ha det bra,
+> >Nik
+> 
+> Hi Dominik,
+> 
+> Thanks for the detailed proposal. Some changes suggested already could be incorporated.
+> 
+> Just a note about it being an extension of backports. I will take example of gitlab here.
+> 
+> A large number of core packages in both JavaScript and ruby team is maintained by people who care about gitlab (a large part by me personally).
+> 
+> rails (its previous uploader  moved on to other stuff and we took a large portion of work required for rails 5 transition), rollup (28 reverse build deps), webpack (38 reverse dependencies), gulp (15 reverse build deps), grunt (25 reverse build deps), babel (32 reverse dependencies), npm (it was not updated for over 3 years), npm2deb (tool to create new node packages) to name a few. And the other libraries we keep up-to-date because we also need it for gitlab. Also the number of new contributors we bring to Debian because the work is large. If you are excluding these from properly maintained in normal release cycle and instead embed them inside gitlab, it will be a big loss to Debian as a whole as these packages are core components that many other packages depend on.
+> 
+> If JavaScript team and ruby team does not care about the work I do in the team, I can just bundle the whole dependencies inside gitlab and be done with that as proposed by Moritz. That will definitely make my life easier.
+> 
+> I was under the impression that as long as there are people willing to do the work and it meets dfsg, it can be part of Debian. It seems quite a lot of people prefer to keep these outside Debian as a solution.
+> 
+> Can't new volunteers to -backports team solve the extra burden problem? Dominik and I volunteered already.
+As I said, gitlab was not about manpower. This new repo is completly against
+our vision of what backports is. Therefore we don't want it within the
+backports suite. 
+Alex

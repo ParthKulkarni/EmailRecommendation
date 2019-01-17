@@ -1,0 +1,45 @@
+To : Matti Pöllä <mpo@iki.fi>
+Subject : Bug#899240: debian-installer: blank screen on boot (6th Gen. ThinkPad X1)
+From : Emanuele Rocca <ema@debian.org>
+Date : Tue, 29 May 2018 16:28:01 +0200
+Message-id : 20180529142759.GA7693@ariel
+Reply-to : Emanuele Rocca <ema@debian.org>, 899240@bugs.debian.org
+In-reply-to : <[🔎] CABxOGQ2_T2ne9Y_T=46K=MR5wirEUZ9OxKWGHjS8L1f-sxhq5g@mail.gmail.com>
+References : <[🔎] CABxOGQ2_T2ne9Y_T=46K=MR5wirEUZ9OxKWGHjS8L1f-sxhq5g@mail.gmail.com> <[🔎] CABxOGQ2_T2ne9Y_T=46K=MR5wirEUZ9OxKWGHjS8L1f-sxhq5g@mail.gmail.com>
+
+
+On 21/05 03:47, Matti Pöllä wrote:
+> booting to Debian Installer fails on a 6th Generation Lenovo ThinkPad
+> X1 (type 20KH-006MMX) with the following symptoms:
+> 
+> * Boot from a Debian installation media (mini.iso 2018-05-18 on a USB
+>   drive). Also tested with Wheezy, Jessie, Stretch and Testing amd64
+>   ISOs.
+> 
+> * GRUB menu (version 2.02-2) shows options "Install", "Advanced
+>   options" and "Install with speech synthesis".
+> 
+> * On entering "Install", the screen goes blank. The machine is still
+>   powered on and the keyboard leds respond to, e.g., the "mute"
+>   button. Switching to virtual terminals does not help as the screen
+>   appears dead.
+This issue is reproducible if the installer is starting in UEFI mode
+(grub says "Debian GNU/Linux UEFI Installer menu") but CSM Support is
+disabled in the Thinkpad Setup screen, which is the one you access by
+pressing F1 at boot.
+Set CSM Support to "Yes" under Startup -> UEFI/Legacy Boot to get past
+this.
+Alternatively, set "UEFI/Legacy Boot" to "Legacy Only", in which case
+the installer will start in BIOS mode.
+> Booting to a live environment using debian-live-9.3.0-amd64-gnome.iso
+> is not affected by the bug. The live system uses a full 2560x1440
+> resolution on a 4.9.0-4-amd64 kernel. However, the "Install" option on
+> the same ISO results in a blank screen.
+This might be due to the live image including i915.ko in its initrd? It
+seems to get loaded pretty early on, much earlier than X. To
+doublecheck, remove boot=live from the kernel parameters. You'll be
+dropped into a initramfs shell and by running lsmod you'll see that i915
+is loaded already.
+Also I've tried booting the live image with modprobe.blacklist=i915 and
+it behaves exactly like the installer with CSM Support disabled
+(immediate blank screen).

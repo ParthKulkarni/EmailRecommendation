@@ -1,0 +1,184 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#902423: debian-installer: clean up arm64/armhf configuration
+From : "Andreas B. Mundt" <andi.mundt@web.de>
+Date : Tue, 26 Jun 2018 14:56:38 +0200
+Message-id : 153001779843.16292.89422716045499969.reportbug@fuzi.localdomain
+Reply-to : "Andreas B. Mundt" <andi.mundt@web.de>, 902423@bugs.debian.org
+
+
+Package: debian-installer
+Severity: wishlist
+Hi all,
+as a follow-up on #902020, I looked into the build process of armhf
+installation media.  As I am not very familliar with the build process
+and the history of the different components, I would like to post some
+observations and a draft patch addressing some but not all issues
+here.  It might perhaps be helpful for someone with more insight to
+clean up the code.
+The draft patch moves most of the stuff done from the armhf netboot
+configuration in 'build/config/armhf/netboot.cfg' to the more general
+'build/config/arm.cfg'.  However there are still some issues I do not
+understand:
+ • Both 'build/config/armhf/netboot.cfg' and
+   'build/config/armhf/hd-media.cfg' contain the same recipe code in
+   the 'netboot_images_concatenateable' and respectively the
+   'hd-media_images_concatenateable' target.
+ • The use of GRUB and U-Boot is not clear to me.  armhf seems to use
+   GRUB for the miniiso but U-Boot for all other media.  GRUB is
+   referencing the kernel under '…/linux', U-BOOT prefers '…/vmlinuz'.
+Best regards,
+  Andi
+diff --git a/build/config/arm.cfg b/build/config/arm.cfg
+index 28d81e37f..f687af48c 100644
+--- a/build/config/arm.cfg
++++ b/build/config/arm.cfg
+@@ -10,6 +10,13 @@ ifeq ($(GRUB_EFI),y)
+ 	efi-image $(TEMP_GRUB_EFI) $(GRUB_PLATFORM) $(GRUB_EFI_NAME) $(NETBOOT_PATH)
+ endif
+ 
++.PHONY: netboot_ubootscript_tftp
++netboot_ubootscript_tftp:
++ifeq ($(UBOOT),y)
++	mkimage -T script -A arm -d boot/arm/bootscr.tftpboot $(SOME_DEST)/$(EXTRANAME)tftpboot.scr
++	update-manifest $(SOME_DEST)/$(EXTRANAME)tftpboot.scr "TFTP boot script for mainline u-boot (>= v2014.10)"
++endif
++
+ # Supply GRUB EFI configuration.
+ .PHONY: arch_cd_info_dir
+ arch_cd_info_dir: arm_grub_efi
+@@ -54,9 +61,7 @@ arch_miniiso: arm_grub_efi
+ 		cp -a $(GRUB_FONT) $(TEMP_CD_TREE)/boot/grub/font.pf2; \
+ 		cp -a $(TEMP_GRUB_EFI)/boot/grub/$(GRUB_PLATFORM)/* \
+ 			$(TEMP_CD_TREE)/boot/grub/$(GRUB_PLATFORM)/; \
+-	fi
+-
+-	if [ "$(GRUB_EFI)" = y ]; then \
++		\
+ 		xorriso -as mkisofs -r -J -c boot.cat \
+ 			-boot-load-size 4 -boot-info-table \
+ 			-eltorito-alt-boot \
+@@ -65,14 +70,14 @@ arch_miniiso: arm_grub_efi
+ 	fi
+ 
+ .PHONY: arch_netboot_dir
+-arch_netboot_dir: arm_grub_efi
++arch_netboot_dir: arm_grub_efi netboot_ubootscript_tftp
+ 	-rm -f $(TEMP_NETBOOT_DIR)
+ 	mkdir -p $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)
+-	cp $(TEMP_KERNEL) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/linux
+ 	cp $(TEMP_INITRD) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/initrd.gz
+ 
+-	if [ "$(GRUB_EFI)" = y ]; then \
++	if [ "$(GRUB_EFI)" = y ] && [ "$(UBOOT)" = n ]; then \
+ 		set -e; \
++		cp $(TEMP_KERNEL) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/linux; \
+ 		mkdir -p $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/grub/$(GRUB_PLATFORM); \
+ 		cp -a $(TEMP_GRUB_EFI)/bootnet$(GRUB_EFI_NAME).efi $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH); \
+ 		cp -a $(GRUB_FONT) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/grub/font.pf2; \
+@@ -84,3 +89,11 @@ arch_netboot_dir: arm_grub_efi
+ 			HEADER boot/$(ARCH)/grub/grub-efi.cfg \
+ 		> $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/grub/grub.cfg; \
+ 	fi
++
++	if [ "$(UBOOT)" = y ]; then \
++		set -e; \
++		cp $(TEMP_KERNEL) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/vmlinuz; \
++		cp -r $(TEMP_DTBS) $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH)/dtbs/; \
++		cp $(SOME_DEST)/$(EXTRANAME)tftpboot.scr $(TEMP_NETBOOT_DIR)/$(NETBOOT_PATH); \
++		( cd $(TEMP_NETBOOT_DIR); ln -s $(NETBOOT_PATH)/tftpboot.scr boot.scr.uimg ) \
++	fi
+diff --git a/build/config/arm64.cfg b/build/config/arm64.cfg
+index d9e782df9..de4a89628 100644
+--- a/build/config/arm64.cfg
++++ b/build/config/arm64.cfg
+@@ -9,6 +9,8 @@ GRUB_EFI=y
+ GRUB_PLATFORM=arm64-efi
+ GRUB_EFI_NAME=aa64
+ 
++UBOOT=n
++
+ arch_boot_screens:
+ arch_tree:
+ 
+diff --git a/build/config/armhf.cfg b/build/config/armhf.cfg
+index 598644460..d7a76debe 100644
+--- a/build/config/armhf.cfg
++++ b/build/config/armhf.cfg
+@@ -11,6 +11,8 @@ GRUB_EFI=y
+ GRUB_PLATFORM=arm-efi
+ GRUB_EFI_NAME=arm
+ 
++UBOOT=y
++
+ arch_boot_screens:
+ arch_tree:
+ 
+diff --git a/build/config/armhf/netboot.cfg b/build/config/armhf/netboot.cfg
+index 93ea03870..077df1ef4 100644
+--- a/build/config/armhf/netboot.cfg
++++ b/build/config/armhf/netboot.cfg
+@@ -1,60 +1,9 @@
+ MEDIA_TYPE = netboot image
+ 
+-CONCATENATEABLE_SUFFIX =
+-TFTP_INSTALLER_PATH = debian-installer/armhf/
+-
+-TARGET = $(KERNEL) $(INITRD) $(MINIISO) netboot_bootscript_sd netboot_bootscript_tftp netboot_tarball netboot_images_concatenateable
+-
++NETBOOT_DIR_TARGETS = $(TEMP_INITRD) $(TEMP_KERNEL) $(TEMP_DTBS)
++TARGET = $(NETBOOT_DIR) $(NETBOOT_TAR) $(MINIISO)
+ EXTRANAME = $(MEDIUM)/
+ 
+-MANIFEST-INITRD = "netboot initrd"
+-MANIFEST-KERNEL = "kernel image to netboot"
++MANIFEST-NETBOOT_DIR = "PXE boot directory for tftp server"
++MANIFEST-NETBOOT_TAR = "tarball of PXE boot directory"
+ MANIFEST-MINIISO = "tiny CD image that boots the netboot installer"
+-
+-FLOPPY_SIZE = 100000
+-
+-GZIPPED = .gz
+-
+-.PHONY: netboot_bootscript_sd
+-netboot_bootscript_sd:
+-	mkimage -T script -A arm -d boot/arm/bootscr.mainline_common $(SOME_DEST)/$(EXTRANAME)boot.scr
+-	update-manifest $(SOME_DEST)/$(EXTRANAME)boot.scr "Universal boot script for mainline u-boot (>= v2014.10)"
+-
+-.PHONY: netboot_bootscript_tftp
+-netboot_bootscript_tftp:
+-	mkimage -T script -A arm -d boot/arm/bootscr.tftpboot $(SOME_DEST)/$(EXTRANAME)tftpboot.scr
+-	update-manifest $(SOME_DEST)/$(EXTRANAME)tftpboot.scr "TFTP boot script for mainline u-boot (>= v2014.10)"
+-
+-.PHONY: netboot_tarball
+-netboot_tarball: $(KERNEL) $(INITRD) $(TEMP_DTBS) netboot_bootscript_tftp
+-	rm -rf $(TEMP)/netboot_tarball
+-	mkdir -p $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)
+-	echo 'Debian version:  $(DEBIAN_VERSION)' > $(TEMP)/netboot_tarball/version.info
+-	echo 'Installer build: $(BUILD_DATE)' >> $(TEMP)/netboot_tarball/version.info
+-	cp $(KERNEL) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)vmlinuz
+-	cp $(INITRD) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)initrd.gz
+-	cp -r $(TEMP_DTBS) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)dtbs/
+-	cp $(SOME_DEST)/$(EXTRANAME)tftpboot.scr $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)
+-	( cd $(TEMP)/netboot_tarball; ln -s $(TFTP_INSTALLER_PATH)tftpboot.scr boot.scr.uimg )
+-	tar -C $(TEMP)/netboot_tarball/ -zcf $(SOME_DEST)/$(EXTRANAME)netboot.tar.gz ./$(TFTP_INSTALLER_PATH)tftpboot.scr ./$(TFTP_INSTALLER_PATH)initrd.gz ./$(TFTP_INSTALLER_PATH)vmlinuz ./$(TFTP_INSTALLER_PATH)dtbs/ ./boot.scr.uimg ./version.info
+-
+-.PHONY: netboot_images_concatenateable
+-netboot_images_concatenateable: $(KERNEL) $(INITRD) $(TEMP_DTBS) netboot_bootscript_sd
+-	-rm -rf $(TEMP)/netboot_images_concatenateable
+-	mkdir $(TEMP)/netboot_images_concatenateable
+-	cp $(KERNEL) $(TEMP)/netboot_images_concatenateable/vmlinuz
+-	cp $(INITRD) $(TEMP)/netboot_images_concatenateable/initrd.gz
+-	cp $(SOME_DEST)/$(EXTRANAME)boot.scr $(TEMP)/netboot_images_concatenateable/boot.scr
+-	cp -r $(TEMP_DTBS) $(TEMP)/netboot_images_concatenateable/dtbs/
+-	cp boot/README.device-tree $(TEMP)/netboot_images_concatenateable/dtbs/README
+-	mkdir -p $(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)
+-	set -e; while read LINE; \
+-	do \
+-	  if [ -n "$${LINE}" ] && ! echo $${LINE}|grep -q -e "^#"; then \
+-	    set -- $${LINE} ;\
+-	    gen-hd-image -v -z -b firmware -s "$(FLOPPY_SIZE)" -o "$(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)/firmware.$${1}.img" "$$2" "$$3" "$$4" "$$5" ;\
+-	  fi ;\
+-	done < boot/arm/u-boot-image-config
+-	gen-hd-image -v -z -b firmware -s "$(FLOPPY_SIZE)" -o "$(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)/firmware.none.img"
+-	gen-hd-image -v -z -b partition -s "$(FLOPPY_SIZE)" -i "$(TEMP)/netboot_images_concatenateable" -o "$(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)/partition.img"
+-	cp boot/README.concatenateable_images "$(SOME_DEST)/$(EXTRANAME)/SD-card-images/$(CONCATENATEABLE_SUFFIX)/"

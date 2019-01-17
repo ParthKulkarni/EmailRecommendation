@@ -1,0 +1,58 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#902020: debian-installer: netboot.tar.gz archives should have identical structure, include version.info file
+From : "Andreas B. Mundt" <andi.mundt@web.de>
+Date : Thu, 21 Jun 2018 17:58:57 +0300
+Message-id : 152959313782.857.2127359759277198252.reportbug@fuzi.localdomain
+Reply-to : "Andreas B. Mundt" <andi.mundt@web.de>, 902020@bugs.debian.org
+
+
+Package: debian-installer
+Severity: wishlist
+Tags: d-i
+Hi,
+when comparing netboot.tar.gz images for different architectures, I
+noticed a difference in the structure of the archives.  For the armhf
+netboot archive [1], I get:
+   $ tar tzf netboot_armhf.tar.gz
+   debian-installer/armhf/tftpboot.scr
+   debian-installer/armhf/initrd.gz
+   debian-installer/armhf/vmlinuz
+   debian-installer/armhf/dtbs/
+   […]
+   debian-installer/armhf/dtbs/am335x-baltos-ir5221.dtb
+   debian-installer/armhf/dtbs/am335x-baltos-ir3220.dtb
+   debian-installer/armhf/dtbs/am335x-baltos-ir2110.dtb
+   boot.scr.uimg
+For the amd64 achive [2] (the same for i386 with s/amd64/i386/, but
+also for arm64 with s/amd64/arm64/):
+   $ tar tzf netboot_amd64.tar.gz
+   ./
+   ./debian-installer/
+   ./debian-installer/amd64/
+   ./debian-installer/amd64/boot-screens/
+   ./debian-installer/amd64/boot-screens/adtxt.cfg
+   […]
+   ./debian-installer/amd64/initrd.gz
+   ./debian-installer/amd64/linux
+   ./debian-installer/amd64/pxelinux.0
+   ./debian-installer/amd64/pxelinux.cfg/
+   ./debian-installer/amd64/pxelinux.cfg/default
+   ./ldlinux.c32
+   ./pxelinux.0
+   ./pxelinux.cfg
+   ./version.info
+Note the absent './'-directory in the armhf archive paths as well as
+the missing 'version.info'.
+The first issue is relevant when unpacking the archives with
+'--strip-components=X', where armhf needs X-1 compared to
+amd64/arm64/i386.
+Including the 'version.info' would ease handling all archives
+automatically in the same way (for example in 'di-netboot-assistant').
+Thanks and best regards,
+   Andi
+[1] wget
+https://deb.debian.org/debian/dists/stable/main/installer-armhf/current/images/netboot/netboot.tar.gz
+-O netboot_armhf.tar.gz
+[2] wget
+https://cdn-aws.deb.debian.org/debian/dists/stable/main/installer-amd64/current/images/netboot/netboot.tar.gz
+-O netboot_amd64.tar.gz

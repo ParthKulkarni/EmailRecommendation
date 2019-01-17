@@ -1,0 +1,59 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#864246: os-prober: Add bcache support.
+From : Mike Mestnik <cheako@mikemestnik.net>
+Date : Mon, 5 Jun 2017 11:56:56 -0500
+Message-id : CAF8px57_Vp-_RLCByEO-LtUKayqEGti5ni8_vnb7bLEE1OAgXg@mail.gmail.com
+Reply-to : Mike Mestnik <cheako@mikemestnik.net>, 864246@bugs.debian.org
+
+
+Package: os-prober
+Version: 1.75
+Severity: normal
+Tags: patch
+Looks like bcache devices are not detected.
+- -- System Information:
+Debian Release: 8.7
+  APT prefers stable
+  APT policy: (500, 'stable'), (490, 'testing'), (480, 'unstable'),
+(470, 'experimental')
+Architecture: i386 (x86_64)
+Kernel: Linux 4.2.0-19-generic (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages os-prober depends on:
+ii  grub-common  2.02~beta3-5
+ii  libc6        2.24-9
+os-prober recommends no packages.
+os-prober suggests no packages.
+- -- no debconf information
+From c297939ba83ae45f0a0eb6bee10b9641d4f2d798 Mon Sep 17 00:00:00 2001
+From: Michael Mestnik <cheako+github_com@mikemestnik.net>
+Date: Mon, 5 Jun 2017 11:52:17 -0500
+Subject: [PATCH] Add in bcache devices
+---
+ os-prober | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+diff --git a/os-prober b/os-prober
+index a48863e..ab2dee1 100755
+--- a/os-prober
++++ b/os-prober
+@@ -45,6 +45,16 @@ partitions () {
+ 			fi
+ 		done
+ 
++		# bcahce
++		for part in /sys/block/bcache*; do
++			if [ -f "$part/inflight" ]; then
++				name="$(echo "${part##*/}" | sed 's,[!.],/,g')"
++				if [ -e "/dev/$name" ]; then
++					echo "/dev/$name"
++				fi
++			fi
++		done
++
+ 		# Add Serial ATA RAID devices
+ 		if type dmraid >/dev/null 2>&1 && \
+ 		   dmraid -s -c >/dev/null 2>&1; then
+-- 
+2.11.0

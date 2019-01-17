@@ -1,0 +1,50 @@
+To : submit@bugs.debian.org
+Subject : Bug#853994: initramfs parameters invalid for IPv6 portal
+From : Kevin Otte <nivex@nivex.net>
+Date : Thu, 2 Feb 2017 16:37:15 -0500
+Message-id : 09d68f27-8095-1386-a1eb-1660f57c4fc7@nivex.net
+Reply-to : Kevin Otte <nivex@nivex.net>, 853994@bugs.debian.org
+
+
+Package: partman-iscsi
+Version: 44
+Tags: ipv6
+In init.d/iscsi the portal address is collected thusly:
+echo "$(cat "$connectiondev/persistent_address"):$(cat
+"$connectiondev/persistent_port"),$(cat "/sys/$sessiondev/tpgt")"
+>iscsi_portal
+resulting in an iscsi_portal file looking like
+2606:a000:a449:5900::4:3260,1
+In finish.d/iscsi_settings, this string is then picked apart:
+        group="${portal##*,}"
+        portal="${portal%,*}"
+        ip="${portal%%:*}"
+        port="${portal#*:}"
+These variables are then used to populate iscsi.initramfs, which ends up
+looking like this:
+ISCSI_TARGET_NAME="iqn.2016-11.net.nivex:storage.istest"
+ISCSI_TARGET_IP="2606"
+ISCSI_TARGET_PORT="a000:a449:5900::4:3260"
+ISCSI_TARGET_GROUP="1"
+ISCSI_USERNAME="istest"
+ISCSI_PASSWORD="123456789012"
+I think the easiest fix would be to switch the greed of the matching, as in:
+        ip="${portal%:*}"
+        port="${portal##*:}"
+though I worry about naively splitting on colon when dealing with IPv6
+addresses like this.
+(This bug originally filed in Ubuntu
+[https://bugs.launchpad.net/ubuntu/+source/partman-iscsi/+bug/1641656].)
+--- iscsi_settings	2015-12-02 11:26:47.000000000 -0500
++++ iscsi_settings-fixed	2016-11-17 02:12:24.609586718 -0500
+@@ -61,8 +61,8 @@
+ if [ "$portal" ]; then
+ 	group="${portal##*,}"
+ 	portal="${portal%,*}"
+-	ip="${portal%%:*}"
+-	port="${portal#*:}"
++	ip="${portal%:*}"
++	port="${portal##*:}"
+ 	mkdir -p /target/etc/iscsi
+ 	get_default_interface
+ 	if [ -f "/sys/class/net/$default_interface/address" ]; then

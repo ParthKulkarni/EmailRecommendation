@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: dlopen()ing shared libraries considered harmful (was Re: Depends/Recommends from libraries)
+From : Wouter Verhelst <wouter@debian.org>
+Date : Tue, 28 Mar 2017 20:41:34 +0200
+Message-id : 20170328184134.sr4zeu3gi5p3zoqj@grep.be
+In-reply-to : <[🔎] 20170326034420.okdimd2hgqfewwii@gaara.hadrons.org>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org> <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk> <[🔎] 87d1dqfh41.fsf@hope.eyrie.org> <[🔎] 20170309225205.trfsko4cxx26stht@basil.wdw> <[🔎] 20170310101658.yiq6e2l4x6zmlbzv@perpetual.pseudorandom.co.uk> <[🔎] 20170326034420.okdimd2hgqfewwii@gaara.hadrons.org>
+
+
+On Sun, Mar 26, 2017 at 05:44:20AM +0200, Guillem Jover wrote:
+> As I've also noted in the past [B], I'd go even further and say that
+> we need at least to very strongly discourage, but ideally outright ban
+> the dlopen()ing of shared libraries that are not part of the same
+> source package or at least under the control of the same upstream
+> project, or are shared libraries that define themselves to the ABI
+> and SONAME level (but those are very few and rare).
+This wording as written bans third-party plugins. I'm sure you didn't mean
+that, and meant instead something like wanting to have .so files be used
+*either* for dlopen() *or* for compile-time dynamic linking.
+Unfortunately, that too would forbid some legitimate uses. For example,
+the PKCS#11 standard defines an API which can be used to access
+cryptographic routines and is popular for accessing hardware security
+modules (HSMs) or smart cards. It's supported by OpenSSL (using an
+engine), OpenSSH (for converting RSA keys on smartcards to SSH keys),
+Firefox, Libreoffice, and Thunderbird, as well as various other bits of
+non-free software. OpenSC is one example of a package in Debian which
+ships a PKCS#11 module. An application would typically use the PKCS#11
+module by dlopen()ing it, based on configuration related to the specific
+piece of hardware you're trying to use.
+At the same time, the API is flexible enough that it can be used by a
+specific implementation to export extra data beyond the cryptographic
+material. An application using the API in that way would probably be
+written for one specific device, rather than any random device, and
+hence it might be easier for the programmer to link to the shared object
+at compile time.
+I realize this is a bit extreme, but it's not a hypothetical scenario;
+the support software for the Belgian electronic ID card that I work on
+at $DAYJOB works in the above-described fashion. Having said that, I
+would agree with the general feeling that in most cases dlopen()ing
+random shared libraries is a bad idea; but at best, this can be
+specified as a SHOULD (in the RFC sense, not the Policy sense).
+-- 
+< ron> I mean, the main *practical* problem with C++, is there's like a dozen
+       people in the world who think they really understand all of its rules,
+       and pretty much all of them are just lying to themselves too.
+ -- #debian-devel, OFTC, 2016-02-12

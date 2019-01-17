@@ -1,0 +1,47 @@
+To : openchrome-users@lists.freedesktop.org
+Subject : openchrome and "Modules" section [was: Re: [Openchrome-users] How to say No!! in a polite though ridiculous way]
+From : Tzafrir Cohen <tzafrir@cohens.org.il>
+Date : Wed, 18 Jan 2017 12:10:15 +0100
+Message-id : 20170118111015.GA18690@lemon.cohens.org.il
+In-reply-to : <[🔎] CAK1tUJ1prkt1oeqZ=4SJkz8G8-EWMaccS-XtX0fxJj1EJfvWPA@mail.gmail.com>
+References : <[🔎] trinity-d990c2ea-d326-4bf2-9d50-eb329ab5d877-1484347660556@3capp-mailcom-bs06> <[🔎] 20170115195105.GY18690@lemon.cohens.org.il> <[🔎] 20170118091430.GZ18690@lemon.cohens.org.il> <[🔎] CAK1tUJ1prkt1oeqZ=4SJkz8G8-EWMaccS-XtX0fxJj1EJfvWPA@mail.gmail.com>
+
+
+On Wed, Jan 18, 2017 at 10:26:11AM +0100, Tamás Gajdos wrote:
+> Hi,
+> 
+> I don't know if this is a packaging problem or not. But I had the same
+> issue with Ubuntu 17.04 around 2017.01.10.
+> 
+> I solved the problem by adding some extra modules to the xorg.conf.
+> 
+> Section "Module"
+>     Load    "vgahw"
+>     Load    "shadowfb"
+>     Load    "shadow"
+>     Load    "exa"
+>     Load    "fb"
+>     Load    "drm"
+>     Load    "ramdac"
+> EndSection
+> 
+> Maybe not all of them is needed as I was trying to debug another issue.
+OK. So just to complete the report:
+With just "vgahw" and "shadow": libshadow now loads OK, and the next
+error is:
+[  5933.945] (EE) Failed to load /usr/lib/xorg/modules/drivers/openchrome_drv.so: /usr/lib/xorg/modules/drivers/openchrome_drv.so: undefined symbol: exaWaitSync
+Next, add "exa". Now I get:
+[  6218.682] (EE) Failed to load /usr/lib/xorg/modules/drivers/openchrome_drv.so: /usr/lib/xorg/modules/drivers/openchrome_drv.so: undefined symbol: fbScreenInit
+If I add "fb", the openchrome_drv loads fine. Thus the following seems
+to work for me:
+Section "Module"
+    Load    "vgahw"
+    Load    "shadow"
+    Load    "exa"
+    Load    "fb"
+EndSection
+-- 
+Tzafrir Cohen         | tzafrir@jabber.org | VIM is
+http://tzafrir.org.il |                    | a Mutt's
+tzafrir@cohens.org.il |                    |  best
+tzafrir@debian.org    |                    | friend

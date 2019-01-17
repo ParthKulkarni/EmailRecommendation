@@ -1,0 +1,61 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#855008: Squeeze writable thumb drive goes into infinite loop
+From : David Griffith <dave@661.org>
+Date : Mon, 13 Feb 2017 07:26:41 +0000
+Message-id : 20170213072641.2800.11376.reportbug@nyx.feedle.net
+Reply-to : David Griffith <dave@661.org>, 855008@bugs.debian.org
+
+
+Package: installation-reports
+Version: Stretch RC 2
+Severity: normal
+Boot method: Writable USB thumb drive
+Image version: http://cdimage.debian.org/cdimage/weekly-builds/amd64/iso-cd/debian-testing-amd64-netinst.iso
+Date: Sun Feb 12 23:12:53 PST 2017
+Machine: QEMU
+Processor:
+Memory:
+Partitions:
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [O]
+Load installer modules: [E]
+Detect hard drives:     [ ]
+Partition hard drives:  [ ]
+Install base system:    [ ]
+Clock/timezone setup:   [ ]
+User/password setup:    [ ]
+Install tasks:          [ ]
+Install boot loader:    [ ]
+Overall install:        [ ]
+Comments/Problems:
+The process described in 
+https://www.debian.org/releases/stretch/amd64/ch04s03.html.en, 
+specifically section 4.3.3, to create a writable thumb drive for 
+installing Debian Stretch does not work as described.
+I added these and only these files to the drive:
+	debian-testing-amd64-netinst.iso[1]
+	initrd.gz
+	syslinux.cfg
+	vmlinuz
+initrd.gz and vmlinuz were taken from http://http.us.debian.org/debian/dists/stretch/main/installer-amd64/current/images/hd-media/
+syslinux.cfg contains this:
+	default vmlinuz initrd=initrd.gz
+I dismounted the thumb drive and typed "sudo syslinux /dev/sdX1".  Then 
+I booted with "sudo qemu-system-x86_64 -hdb /dev/sdX".  The resulting 
+drive booted up until the point the "Loading additional components"[2] 
+progressed to mentioning "netcfg".  The console turns black with a grey 
+bar along the bottom.  A few seconds later, the bar disappears.  A few 
+seconds after that, the screen briefly turns grey.  The cycle then 
+repeats.
+Calling to mind #853918, I did try syslinux version 4.06 and 4.07 and 
+the old grammar for syslinux.cfg to see if the change to 5.00 broke 
+something that only the Stretch installer is tickling.  This made no 
+difference.
+[1] I also tried debian-stretch-DI-rc2-amd64-DVD-1.iso to no effect.
+[2] The complete sequence until buggy behavior is "Configure the 
+keyboard", "Detecting hardware", "Searching drives for an installer ISO 
+image", and "Loading addional components".

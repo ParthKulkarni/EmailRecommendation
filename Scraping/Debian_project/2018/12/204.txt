@@ -1,0 +1,51 @@
+To : debian-devel@lists.debian.org
+Subject : Handling of entropy during boot
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Mon, 17 Dec 2018 21:46:42 +0100
+Message-id : 5877331.emXNK5WogZ@k
+
+
+Hi,
+since the getrandom() system call is used more and more, there have been bugs 
+that services that use it block for a long time at startup and/or get killed 
+by systemd because they don't start fast enough [1, 2]
+There is a random seed file stored by systemd-random-seed.service that saves 
+entropy from one boot and loads it again after the next reboot. The random 
+seed file is re-written immediately after the file is read, so the system not 
+properly shutting down won't cause the same seed file to be used again. The 
+problem is that systemd (and probably /etc/init.d/urandom, too) does not set 
+the flag that allows the kernel to credit the randomness and so the kernel does 
+not know about the entropy contained in that file. Systemd upstream argues that 
+this is supposed to protect against the same OS image being used many times 
+[3]. (More links to more discussion can be found at [4]).
+But an identical OS image needs to be modified anyway in order to be secure 
+(re-create ssh host keys, change root password, re-create ssl-cert's private 
+keys, etc.). Injecting some entropy in some way is just another task that 
+needs to be done for that use case.  So basically the current implementation 
+of systemd-random-seed.service breaks stuff for everyone while not fixing the 
+thing they are claiming to fix. Also, the breakage will cause people to invent 
+their own workarounds which will probably create more security issues than 
+those that are fixed by the systemd behavior. Therefore I think it should be 
+the default to credit the entropy of the saved random seed when loading it, 
+and the special needs of identical OS images used many times should be 
+documented in the release notes. 
+A refinement of the random seed handling could be to check if the hostname/
+virtual machine-id is the same when saving the seed, and only credit the 
+entropy if it is unchanged since the last boot.
+In case that the random seed file is not present (or the hostname/machine-id 
+check fails), services may still block for a long time until they start. To 
+avoid that they are killed by systemd because of timeouts, there should be a 
+oneshot service that waits for getrandom to unblock and that other services 
+can use as a dependency. (This is not neccessary with /etc/init.d/urandom 
+because there are no timeouts).
+The systemd maintainers argue that individual services should handle this 
+problem [1,2]. But this does not scale and the whole point of the getrandom() 
+syscall is that it cannot fail and that its users do not need fallback code 
+that is not well-tested and probably buggy. [5]
+Cheers,
+Stefan
+[1] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=912087
+[2] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=914297
+[3] https://github.com/systemd/systemd/issues/4271
+[4] https://daniel-lange.com/archives/152-Openssh-taking-minutes-to-become-available,-booting-takes-half-an-hour-...-because-your-server-waits-for-a-few-bytes-of-randomness.html
+[5] https://lwn.net/Articles/605828/

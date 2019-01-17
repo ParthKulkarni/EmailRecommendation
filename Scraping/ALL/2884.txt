@@ -1,0 +1,54 @@
+To : Michael Biebl <biebl@debian.org>
+Subject : Re: Bug#862992: systemd: avoid attempt to re-create /etc/mtab by systemd-tmpfiles-setup.service
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 26 May 2017 18:29:21 +0200
+Message-id : 20170526162921.GD9052@mraw.org
+In-reply-to : <[🔎] 8d41143e-1f6a-84d2-2e86-cdbf6db05b2b@debian.org>
+References : <1010dceb-3079-06f9-3fd0-55f57fa85c6f@steiny.biz> <[🔎] 8d41143e-1f6a-84d2-2e86-cdbf6db05b2b@debian.org>
+
+
+Hi,
+Michael Biebl <biebl@debian.org> (2017-05-19):
+> In jessie we handled this slightly differently [1]. We had a dedicated
+> service unit which checked if /etc/mtab was a symlink. So we didn't run
+> into the issue there, that the symlink can be absolute or relative and
+> point to either /proc/mounts or /proc/self/mounts.
+> 
+> We chose ../proc/self/mounts in debian.conf since that's also what's
+> used by systemd upstream [2], i.e. we are consistent with other distros
+> in that aspect.
+> 
+> Maybe we can change debootstrap to use ../proc/self/mounts or is there a
+> good reason why it should point to ../proc/mounts?
+> 
+> CCed the debootstrap maintainers for their input.
+I'm not exactly sure about the situation you describe, d-i does this
+through a finish-install script (finish-install.d/70mtab):
+| #! /bin/sh
+| 
+| # some things inside d-i will make an /etc/mtab file, but it shouldn't
+| # be there in the installed system. Systemd will be desperately unhappy.
+| if [ -f /target/etc/mtab ]; then
+|     ln -sf /proc/self/mounts /target/etc/mtab
+| fi
+debootstrap itself does this:
+| clear_mtab () {
+|         if [ -f "$TARGET/etc/mtab" ] && [ ! -h "$TARGET/etc/mtab" ]; then
+|                 rm -f "$TARGET/etc/mtab"
+|         fi
+| }
+[ which matches its changelog entry → “On Linux, clear out /etc/mtab on
+  exit if it's not a symlink.” ]
+and there's no /proc/*mounts in debootstrap's code.
+Back to the original bug report:
+Just performed a stretch debootststrap from a jessie system (with 1.0.67
+version), no /etc/mtab afterwards. Did the same with debootstrap upgraded
+to 1.0.90, same story.
+Both times, with this command:
+  sudo debootstrap stretch /scratch/stretch http://localhost/debian
+with /scratch being a tmpfs and localhost being my local, partial mirror.
+Maximilian: If you're seeing a /etc/mtab inside a debootstrap'd
+environment, you'll have to be more specific about the way you're
+generating it.
+KiBi.
+signature.asc

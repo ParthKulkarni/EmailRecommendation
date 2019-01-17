@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Rant about Debian reproducibility environment
+From : Steffen Nurpmeso <steffen@sdaoden.eu>
+Date : Thu, 01 Mar 2018 19:49:13 +0100
+Message-id : 20180301184913.UScP6%steffen@sdaoden.eu
+Mail-followup-to : debian-devel@lists.debian.org, Steffen Nurpmeso <steffen@sdaoden.eu>
+In-reply-to : <[🔎] 20180301180413.GA800@espresso.pseudorandom.co.uk>
+References : <[🔎] 20180301171720.-UWOz%steffen@sdaoden.eu> <[🔎] 20180301180413.GA800@espresso.pseudorandom.co.uk>
+
+
+Hello Simon,
+Simon McVittie <smcv@debian.org> wrote:
+ |On Thu, 01 Mar 2018 at 18:17:20 +0100, Steffen Nurpmeso wrote:
+ |>   And, of course, if there is a different kernel version, or
+ |>   a different uname(1) output as such, then how could a dumb end
+ |>   producer[consumer, the author] like S-nail deal with that?  We
+ |>   hardwire those attributes into the binary, like many other
+ |>   programs do, e.g., "mutt(1) -v" output.
+ |
+ |Why is the kernel version on the machine where s-nail was compiled useful
+ |to you? If you're looking for more information about a bug report from
+ |your users, for example if you are concerned that a syscall might have
+ |changed behaviour, the kernel version on the machine where s-nail was
+ |*used* seems far more useful - but you can't know that at compile time,
+ |only at runtime (via uname(2) which is the same system call that uname(1)
+ |uses).
+This is indeed correct, and i have changed $OSENV to go for
+uname(1) -sm instead of -srm.
+It was more about completeness, and, in times of rolling releases,
+an indication of whatever.  I do not know what if have thought, if
+at all anything. :)
+ |Similarly, on 32-bit x86 and ARM systems, the architecture reported by
+ |uname is (unfortunately) variable, because it's more specific than just
+ |the machine architecture (i686 or i586 or armv5te or armv7hl, not just
+ |i386 or arm). Again, if you pick this up at build-time and bake it into
+ |your binary, it's misleading: a Debian binary built on an i686 autobuilder
+ |could be used on an i586 machine, or vice versa[1]. If you want this
+ |information for debugging, the architecture of the machine where s-nail
+ |is running seems a lot more interesting than the architecture where it
+ |happens to have been compiled.
+ |
+ |If you want "s-nail --version" or similar to give information about the
+ |machine for debugging purposes, consider using uname(2) instead.
+ |That's what mutt -v does, at least on Debian: you can see this by running
+ |
+ |    mutt -v
+ |    setarch x86_64 --uname-2.6 mutt -v
+ |
+ |and noting that the kernel version that was reported changes.
+The additional usage of uname(2) to gain information on the
+actually running system is interesting, but possibly overkill for
+the things i care about.
+Until know i have always been able to track the error to myself or
+at least the software i maintain anyway.  (Except for an iconv(3)
+bug i think of GNU LibC that i reported in fact today, that is.)
+I hope we can stick with "uname -sm".
+Be warned you have been credited.
+Ciao,
+--steffen
+|
+|Der Kragenbaer,                The moon bear,
+|der holt sich munter           he cheerfully and one by one
+|einen nach dem anderen runter  wa.ks himself off
+|(By Robert Gernhardt)

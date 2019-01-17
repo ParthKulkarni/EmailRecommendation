@@ -1,0 +1,256 @@
+To : 916264@bugs.debian.org, 916264-submitter@bugs.debian.org
+Subject : Bug#916264: apache2: stopping or restarting apache often causes segfault when fcgid is enabled
+From : Bernhard Übelacker <bernhardu@mailbox.org>
+Date : Sat, 29 Dec 2018 15:53:31 +0100
+Message-id : 5e14b963-5e49-a49d-8961-e23ba5a97ab7@mailbox.org
+Reply-to : Bernhard Übelacker <bernhardu@mailbox.org>, 916264@bugs.debian.org
+In-reply-to : <[🔎] 154461239293.4621.673474008026247015.reportbug@lampdev>
+References : <[🔎] 154461239293.4621.673474008026247015.reportbug@lampdev> <[🔎] 154461239293.4621.673474008026247015.reportbug@lampdev> <[🔎] 154461239293.4621.673474008026247015.reportbug@lampdev>
+
+
+Dear Maintainer, hello Mark Buranyi,
+tried to reproduce inside a Stretch amd64 qemu VM.
+I assume the first <signal handler called> is calling the
+SIGTERM handler [frame #9].
+Unfortunately it looks like the module containing sig_term was already
+unloaded at that time (mod_mpm_event.so).
+Therefore executing that now unloaded memory causes now a signal 11-SIGSEGV
+to be received, that I guess ends up executing some function pointer whose
+shared library is already gone (and just by "accident" contained most
+of the time in libexpat.so).
+So the main problem seems to be executing a signal handler residing
+in an already unloaded module.
+That signal handler does not exist in testing version 2.4.37-1 of apache.
+It looks like it get moved in upstream commit [1], released with 2.4.26:
+    MPMs unix: Place signals handlers and helpers out of DSOs to avoid
+    a possible crash if a signal is caught during (graceful) restart.
+    PR 60487.
+This bug looks like an duplicate of #867565.
+Kind regards,
+Bernhard
+[1]     https://github.com/apache/httpd/commit/c6ca4f85b722f0abab183c94a8e550eeb87934c6#diff-895d7e9f8add746606c82027dabc04d4
+#867565 https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=867565
+(gdb) bt
+#0  0x00007ff5fd64b7a0 in ?? ()
+#1  0x000055d899cbf15e in ap_run_mpm_query (query_code=query_code@entry=2, result=result@entry=0x7fff2c8361ec, _rv=_rv@entry=0x7fff2c8361c4) at mpm_common.c:97
+#2  0x000055d899cbfeee in ap_mpm_query (query_code=query_code@entry=2, result=result@entry=0x7fff2c8361ec) at mpm_common.c:419
+#3  0x000055d899cdfeb4 in log_tid (info=<optimized out>, arg=<optimized out>, buf=0x7fff2c83633e "", buflen=8130) at log.c:612
+#4  0x000055d899ce0dd6 in do_errorlog_default (buflen=8192, args=0x7fff2c83a380, errstr_fmt=0x55d899d077d8 "AH00060: seg fault or similar nasty error detected in the parent process", errstr_end=<synthetic pointer>, errstr_start=<synthetic pointer>, buf=0x7fff2c836300 "[Sat Dec 29 14:57:57.340512 2018] [core:notice] [pid 2517:tid ", info=0x7fff2c8362b0) at log.c:944
+#5  log_error_core (file=0x55d899d076ac "mpm_unix.c", line=989, module_index=0, level=<optimized out>, status=0, s=<optimized out>, c=<optimized out>, r=0x0, pool=0x0, fmt=0x55d899d077d8 "AH00060: seg fault or similar nasty error detected in the parent process", args=0x7fff2c83a380) at log.c:1270
+#6  0x000055d899ce12b7 in ap_log_error_ (file=file@entry=0x55d899d076ac "mpm_unix.c", line=line@entry=989, module_index=module_index@entry=0, level=level@entry=5, status=status@entry=0, s=<optimized out>, fmt=0x55d899d077d8 "AH00060: seg fault or similar nasty error detected in the parent process") at log.c:1319
+#7  0x000055d899ce8080 in sig_coredump (sig=11) at mpm_unix.c:986
+#8  <signal handler called>
+#9  0x00007ff5fd64b8d0 in ?? ()
+#10 <signal handler called>
+#11 0x00007ff6004213a3 in __select_nocancel () at ../sysdeps/unix/syscall-template.S:84
+#12 0x00007ff600924245 in apr_sleep (t=t@entry=46875) at ./time/unix/time.c:246
+#13 0x00007ff600917ea3 in free_proc_chain (procs=0x7ff60113b718) at ./memory/unix/apr_pools.c:2483
+#14 0x00007ff600918b90 in apr_pool_destroy (pool=0x7ff6011de028) at ./memory/unix/apr_pools.c:817
+#15 0x00007ff600918b55 in apr_pool_destroy (pool=0x7ff6011e0028) at ./memory/unix/apr_pools.c:811
+#16 0x000055d899cb7ed8 in destroy_and_exit_process (process_exit_value=0, process=<optimized out>) at main.c:264
+#17 0x000055d899cb7c97 in main (argc=<optimized out>, argv=<optimized out>) at main.c:796
+(gdb) info share
+0x00007ff5fd64b080  0x00007ff5fd651ce5  Yes         /usr/lib/apache2/modules/mod_mpm_event.so
+(gdb) disassemble 0x00007ff5fd64b8d0,0x00007ff5fd64b8d0+0x30
+Dump of assembler code from 0x7ff5fd64b8d0 to 0x7ff5fd64b900:
+   0x00007ff5fd64b8d0 <sig_term+0>:     mov    0x20a7fe(%rip),%eax        # 0x7ff5fd8560d4 <shutdown_pending>
+# Stretch amd64 qemu VM
+apt update
+apt dist-upgrade
+apt install systemd-coredump psmisc gdb apache2 libapache2-mod-fcgid apache2-dbg libapr1-dbg
+root@debian:~# a2enmod fcgid 
+Module fcgid already enabled
+root@debian:~# systemctl restart apache2
+root@debian:~# pstree -p
+systemd(1)─┬─agetty(477)
+           ├─apache2(2517)─┬─apache2(2518)
+           │               ├─apache2(2522)─┬─{apache2}(2525)
+           │               │               ├─{apache2}(2526)
+...
+           │               │               └─{apache2}(2568)
+           │               └─apache2(2524)─┬─{apache2}(2533)
+           │                               ├─{apache2}(2535)
+...
+           │                               └─{apache2}(2578)
+...
+root@debian:~# gdb -q --pid 2517
+Attaching to process 2517
+...
+(gdb) generate-core-file /root/core.2517.while-running
+warning: target file /proc/2517/cmdline contained unexpected null characters
+Saved corefile /root/core.2517.while-running
+(gdb) detach
+Detaching from program: target:/usr/sbin/apache2, process 2517
+(gdb) q
+root@debian:~# systemctl restart apache2
+root@debian:~# journalctl -f
+...
+Dez 29 14:57:57 debian systemd-coredump[2650]: Process 2517 (apache2) of user 0 dumped core.
+                                               
+                                               Stack trace of thread 2517:
+                                               #0  0x00007ff5fd64b7a0 n/a (n/a)
+...
+root@debian:~# dmesg
+...
+[ 1790.344555] apache2[2517]: segfault at 7ff5fd64b7a0 ip 00007ff5fd64b7a0 sp 00007fff2c836188 error 14 in libexpat.so.1.6.2[7ff5ff8cd000+27000]
+...
+root@debian:~# coredumpctl list
+TIME                            PID   UID   GID SIG COREFILE EXE
+Sat 2018-12-29 14:57:57 CET    2517     0     0  11 present  /usr/sbin/apache2
+root@debian:~# coredumpctl gdb 2517
+           PID: 2517 (apache2)
+           UID: 0 (root)
+           GID: 0 (root)
+        Signal: 11 (SEGV)
+     Timestamp: Sat 2018-12-29 14:57:57 CET (50s ago)
+  Command Line: /usr/sbin/apache2 -k start
+    Executable: /usr/sbin/apache2
+ Control Group: /system.slice/apache2.service
+          Unit: apache2.service
+         Slice: system.slice
+       Boot ID: 362650001d86463697e1773573845bea
+    Machine ID: 9e5901179cfe4b73bc18669e6a6e0ab9
+      Hostname: debian
+       Storage: /var/lib/systemd/coredump/core.apache2.0.362650001d86463697e1773573845bea.2517.1546091877000000000000.lz4
+       Message: Process 2517 (apache2) of user 0 dumped core.
+                
+                Stack trace of thread 2517:
+                #0  0x00007ff5fd64b7a0 n/a (n/a)
+GNU gdb (Debian 7.12-6) 7.12.0.20161007-git
+...
+Core was generated by `/usr/sbin/apache2 -k start'.
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x00007ff5fd64b7a0 in ?? ()
+(gdb) bt
+#0  0x00007ff5fd64b7a0 in ?? ()
+#1  0x000055d899cbf15e in ap_run_mpm_query ()
+#2  0x000055d899cbfeee in ap_mpm_query ()
+#3  0x000055d899cdfeb4 in ?? ()
+#4  0x000055d899ce0dd6 in ?? ()
+#5  0x000055d899ce12b7 in ap_log_error_ ()
+#6  0x000055d899ce8080 in ?? ()
+#7  <signal handler called>
+#8  0x00007ff5fd64b8d0 in ?? ()
+#9  <signal handler called>
+#10 0x00007ff6004213a3 in __select_nocancel () at ../sysdeps/unix/syscall-template.S:84
+#11 0x00007ff600924245 in apr_sleep () from /usr/lib/x86_64-linux-gnu/libapr-1.so.0
+#12 0x00007ff600917ea3 in ?? () from /usr/lib/x86_64-linux-gnu/libapr-1.so.0
+#13 0x00007ff600918b90 in apr_pool_destroy () from /usr/lib/x86_64-linux-gnu/libapr-1.so.0
+#14 0x00007ff600918b55 in apr_pool_destroy () from /usr/lib/x86_64-linux-gnu/libapr-1.so.0
+#15 0x000055d899cb7ed8 in ?? ()
+#16 0x000055d899cb7c97 in main ()
+# With debug symbols and the same core:
+Core was generated by `/usr/sbin/apache2 -k start'.
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x00007ff5fd64b7a0 in ?? ()
+(gdb) set width 0
+(gdb) set pagination off
+(gdb) bt
+#0  0x00007ff5fd64b7a0 in ?? ()
+#1  0x000055d899cbf15e in ap_run_mpm_query (query_code=query_code@entry=2, result=result@entry=0x7fff2c8361ec, _rv=_rv@entry=0x7fff2c8361c4) at mpm_common.c:97
+#2  0x000055d899cbfeee in ap_mpm_query (query_code=query_code@entry=2, result=result@entry=0x7fff2c8361ec) at mpm_common.c:419
+#3  0x000055d899cdfeb4 in log_tid (info=<optimized out>, arg=<optimized out>, buf=0x7fff2c83633e "", buflen=8130) at log.c:612
+#4  0x000055d899ce0dd6 in do_errorlog_default (buflen=8192, args=0x7fff2c83a380, errstr_fmt=0x55d899d077d8 "AH00060: seg fault or similar nasty error detected in the parent process", errstr_end=<synthetic pointer>, errstr_start=<synthetic pointer>, buf=0x7fff2c836300 "[Sat Dec 29 14:57:57.340512 2018] [core:notice] [pid 2517:tid ", info=0x7fff2c8362b0) at log.c:944
+#5  log_error_core (file=0x55d899d076ac "mpm_unix.c", line=989, module_index=0, level=<optimized out>, status=0, s=<optimized out>, c=<optimized out>, r=0x0, pool=0x0, fmt=0x55d899d077d8 "AH00060: seg fault or similar nasty error detected in the parent process", args=0x7fff2c83a380) at log.c:1270
+#6  0x000055d899ce12b7 in ap_log_error_ (file=file@entry=0x55d899d076ac "mpm_unix.c", line=line@entry=989, module_index=module_index@entry=0, level=level@entry=5, status=status@entry=0, s=<optimized out>, fmt=0x55d899d077d8 "AH00060: seg fault or similar nasty error detected in the parent process") at log.c:1319
+#7  0x000055d899ce8080 in sig_coredump (sig=11) at mpm_unix.c:986
+#8  <signal handler called>
+#9  0x00007ff5fd64b8d0 in ?? ()
+#10 <signal handler called>
+#11 0x00007ff6004213a3 in __select_nocancel () at ../sysdeps/unix/syscall-template.S:84
+#12 0x00007ff600924245 in apr_sleep (t=t@entry=46875) at ./time/unix/time.c:246
+#13 0x00007ff600917ea3 in free_proc_chain (procs=0x7ff60113b718) at ./memory/unix/apr_pools.c:2483
+#14 0x00007ff600918b90 in apr_pool_destroy (pool=0x7ff6011de028) at ./memory/unix/apr_pools.c:817
+#15 0x00007ff600918b55 in apr_pool_destroy (pool=0x7ff6011e0028) at ./memory/unix/apr_pools.c:811
+#16 0x000055d899cb7ed8 in destroy_and_exit_process (process_exit_value=0, process=<optimized out>) at main.c:264
+#17 0x000055d899cb7c97 in main (argc=<optimized out>, argv=<optimized out>) at main.c:796
+(gdb) info share
+From                To                  Syms Read   Shared Object Library
+0x00007ff600d595d0  0x00007ff600dabab1  Yes (*)     /lib/x86_64-linux-gnu/libpcre.so.3
+0x00007ff600b39790  0x00007ff600b4ec67  Yes (*)     /usr/lib/x86_64-linux-gnu/libaprutil-1.so.0
+0x00007ff600908d90  0x00007ff6009249cc  Yes         /usr/lib/x86_64-linux-gnu/libapr-1.so.0
+0x00007ff6006e4ab0  0x00007ff6006f1811  Yes         /lib/x86_64-linux-gnu/libpthread.so.0
+0x00007ff60035f940  0x00007ff6004893d3  Yes         /lib/x86_64-linux-gnu/libc.so.6
+0x00007ff60013c570  0x00007ff60013dc41  Yes (*)     /lib/x86_64-linux-gnu/libuuid.so.1
+0x00007ff5fff350e0  0x00007ff5fff37ecf  Yes         /lib/x86_64-linux-gnu/librt.so.1
+0x00007ff5ffcfbb70  0x00007ff5ffd00f45  Yes         /lib/x86_64-linux-gnu/libcrypt.so.1
+0x00007ff5ffaf7d80  0x00007ff5ffaf894e  Yes         /lib/x86_64-linux-gnu/libdl.so.2
+0x00007ff5ff8d0b10  0x00007ff5ff8e9269  Yes (*)     /lib/x86_64-linux-gnu/libexpat.so.1
+0x00007ff600fcbaa0  0x00007ff600fe7070  Yes         /lib64/ld-linux-x86-64.so.2
+0x00007ff5fcc292b0  0x00007ff5fcc2d745  Yes         /lib/x86_64-linux-gnu/libnss_compat.so.2
+0x00007ff5fca13fd0  0x00007ff5fca1f271  Yes         /lib/x86_64-linux-gnu/libnsl.so.1
+0x00007ff5fc8060e0  0x00007ff5fc80c3f7  Yes         /lib/x86_64-linux-gnu/libnss_nis.so.2
+0x00007ff5fc5f41d0  0x00007ff5fc5f9e91  Yes         /lib/x86_64-linux-gnu/libnss_files.so.2
+(*): Shared library is missing debugging information.
+# Where does the singal handler in frame #9 come from ... lets see in our core we took before the restart ...
+root@debian:~# gdb -q /usr/sbin/apache2 --core core.2517.while-running
+Reading symbols from /usr/sbin/apache2...Reading symbols from /usr/lib/debug/.build-id/d9/3dcd3490b9c2baf95b05871e0bcec0274725bd.debug...done.
+done.
+[New LWP 2517]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+Core was generated by `/usr/sbin/apache2'.
+#0  0x00007ff6004213a3 in __select_nocancel () at ../sysdeps/unix/syscall-template.S:84
+84      ../sysdeps/unix/syscall-template.S: Datei oder Verzeichnis nicht gefunden.
+(gdb) info share
+From                To                  Syms Read   Shared Object Library
+0x00007ff600d595d0  0x00007ff600dabab1  Yes (*)     /lib/x86_64-linux-gnu/libpcre.so.3
+0x00007ff600b39790  0x00007ff600b4ec67  Yes (*)     /usr/lib/x86_64-linux-gnu/libaprutil-1.so.0
+0x00007ff600908d90  0x00007ff6009249cc  Yes         /usr/lib/x86_64-linux-gnu/libapr-1.so.0
+0x00007ff6006e4ab0  0x00007ff6006f1811  Yes         /lib/x86_64-linux-gnu/libpthread.so.0
+0x00007ff60035f940  0x00007ff6004893d3  Yes         /lib/x86_64-linux-gnu/libc.so.6
+0x00007ff60013c570  0x00007ff60013dc41  Yes (*)     /lib/x86_64-linux-gnu/libuuid.so.1
+0x00007ff5fff350e0  0x00007ff5fff37ecf  Yes         /lib/x86_64-linux-gnu/librt.so.1
+0x00007ff5ffcfbb70  0x00007ff5ffd00f45  Yes         /lib/x86_64-linux-gnu/libcrypt.so.1
+0x00007ff5ffaf7d80  0x00007ff5ffaf894e  Yes         /lib/x86_64-linux-gnu/libdl.so.2
+0x00007ff5ff8d0b10  0x00007ff5ff8e9269  Yes (*)     /lib/x86_64-linux-gnu/libexpat.so.1
+0x00007ff600fcbaa0  0x00007ff600fe7070  Yes         /lib64/ld-linux-x86-64.so.2
+0x00007ff5fcc292b0  0x00007ff5fcc2d745  Yes         /lib/x86_64-linux-gnu/libnss_compat.so.2
+0x00007ff5fca13fd0  0x00007ff5fca1f271  Yes         /lib/x86_64-linux-gnu/libnsl.so.1
+0x00007ff5fc8060e0  0x00007ff5fc80c3f7  Yes         /lib/x86_64-linux-gnu/libnss_nis.so.2
+0x00007ff5fc5f41d0  0x00007ff5fc5f9e91  Yes         /lib/x86_64-linux-gnu/libnss_files.so.2
+0x00007ff5ff6cac00  0x00007ff5ff6cb4e3  Yes         /usr/lib/apache2/modules/mod_access_compat.so
+0x00007ff5ff4c6120  0x00007ff5ff4c761f  Yes         /usr/lib/apache2/modules/mod_alias.so
+0x00007ff5ff2c1e20  0x00007ff5ff2c2dc8  Yes         /usr/lib/apache2/modules/mod_auth_basic.so
+0x00007ff5ff0bee50  0x00007ff5ff0bf5f2  Yes         /usr/lib/apache2/modules/mod_authn_core.so
+0x00007ff5feebba20  0x00007ff5feebbf7a  Yes         /usr/lib/apache2/modules/mod_authn_file.so
+0x00007ff5fecb6480  0x00007ff5fecb7fda  Yes         /usr/lib/apache2/modules/mod_authz_core.so
+0x00007ff5feab1d50  0x00007ff5feab278c  Yes         /usr/lib/apache2/modules/mod_authz_host.so
+0x00007ff5fe8ae8d0  0x00007ff5fe8aecca  Yes         /usr/lib/apache2/modules/mod_authz_user.so
+0x00007ff5fe6a6170  0x00007ff5fe6aa71a  Yes         /usr/lib/apache2/modules/mod_autoindex.so
+0x00007ff5fe49c770  0x00007ff5fe4a088a  Yes         /usr/lib/apache2/modules/mod_deflate.so
+0x00007ff5fe2831c0  0x00007ff5fe293afe  Yes (*)     /lib/x86_64-linux-gnu/libz.so.1
+0x00007ff5fe07ddf0  0x00007ff5fe07e85f  Yes         /usr/lib/apache2/modules/mod_dir.so
+0x00007ff5fde7aa60  0x00007ff5fde7adcb  Yes         /usr/lib/apache2/modules/mod_env.so
+0x00007ff5fdc67c00  0x00007ff5fdc72015  Yes (*)     /usr/lib/apache2/modules/mod_fcgid.so
+0x00007ff5fda5d050  0x00007ff5fda5ec14  Yes         /usr/lib/apache2/modules/mod_filter.so
+0x00007ff5fd858580  0x00007ff5fd859cbc  Yes         /usr/lib/apache2/modules/mod_mime.so
+0x00007ff5fd64b080  0x00007ff5fd651ce5  Yes         /usr/lib/apache2/modules/mod_mpm_event.so           <<<<<< seems to come from here?
+0x00007ff5fd43fc10  0x00007ff5fd443ea5  Yes         /usr/lib/apache2/modules/mod_negotiation.so
+0x00007ff5fd23af60  0x00007ff5fd23c0a1  Yes         /usr/lib/apache2/modules/mod_reqtimeout.so
+0x00007ff5fd036fd0  0x00007ff5fd037e55  Yes         /usr/lib/apache2/modules/mod_setenvif.so
+0x00007ff5fce310f0  0x00007ff5fce333ff  Yes         /usr/lib/apache2/modules/mod_status.so
+(*): Shared library is missing debugging information.
+(gdb) disassemble 0x00007ff5fd64b8d0,0x00007ff5fd64b8d0+0x30
+Dump of assembler code from 0x7ff5fd64b8d0 to 0x7ff5fd64b900:
+   0x00007ff5fd64b8d0 <sig_term+0>:     mov    0x20a7fe(%rip),%eax        # 0x7ff5fd8560d4 <shutdown_pending>
+   0x00007ff5fd64b8d6 <sig_term+6>:     movl   $0x2,0x20a880(%rip)        # 0x7ff5fd856160 <mpm_state>
+   0x00007ff5fd64b8e0 <sig_term+16>:    cmp    $0x1,%eax
+   0x00007ff5fd64b8e3 <sig_term+19>:    je     0x7ff5fd64b906 <sig_term+54>
+   0x00007ff5fd64b8e5 <sig_term+21>:    mov    0x20a834(%rip),%rax        # 0x7ff5fd856120 <retained>
+   0x00007ff5fd64b8ec <sig_term+28>:    movl   $0x1,0x20a7de(%rip)        # 0x7ff5fd8560d4 <shutdown_pending>
+   0x00007ff5fd64b8f6 <sig_term+38>:    test   %rax,%rax
+   0x00007ff5fd64b8f9 <sig_term+41>:    je     0x7ff5fd64b906 <sig_term+54>
+   0x00007ff5fd64b8fb <sig_term+43>:    xor    %edx,%edx
+   0x00007ff5fd64b8fd <sig_term+45>:    cmp    $0x1c,%edi
+End of assembler dump.
+(gdb) list sig_term
+697     event.c: Datei oder Verzeichnis nicht gefunden.
+#############
+apt install dpkg-dev devscripts mc
+mkdir source/apache2/orig -p
+cd    source/apache2/orig
+apt source apache2
+cd
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=867565
+https://github.com/apache/httpd/commit/c6ca4f85b722f0abab183c94a8e550eeb87934c6#diff-895d7e9f8add746606c82027dabc04d4

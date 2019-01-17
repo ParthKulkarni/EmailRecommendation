@@ -1,0 +1,91 @@
+To : Lars Wirzenius <liw@liw.fi>, debian-devel@lists.debian.org
+Subject : Re: Limiting the power of packages
+From : "Enrico Weigelt, metux IT consult" <lkml@metux.net>
+Date : Thu, 4 Oct 2018 13:17:48 +0200
+Message-id : b858cc86-a418-0bbf-a179-a6e287104492@metux.net
+In-reply-to : <[🔎] 20181003171917.GB2043@exolobe1.liw.fi>
+References : <[🔎] 20181003171917.GB2043@exolobe1.liw.fi>
+
+
+On 03.10.2018 19:19, Lars Wirzenius wrote:
+> Sometimes what they do is an unwelcome surprise to the user. For
+> example, the Microsoft Skype .deb and the Google Chrome .deb add to
+> the APT sources lists and APT accepted signing keys. Some users do not
+> realise this, and are unpleasantly surprise.
+https://seclists.org/fulldisclosure/2018/Sep/53
+> (Note that I'm not saying Microsoft or Google are doing something
+> nefarious here: 
+But I do think that. If they really wanted to do that in a reasonably
+secure and safe way (assuming they're not completely incompetent),
+they'd split off the sources.list part from the actual package (there're
+many good ways to do that), and added proper pinning to reduce the
+attack surface.
+And they would have talked to the Distros about a proper process of
+bringing Skype into Distro repos.
+OTOH, considering the tons of other bugs and design flaws, I'm not
+really sure whether they're nefarious or incompetent, maybe a mix of
+both ...
+> they're trying to make sure security updates for their
+> packages will be deployed to user's system; this seems like a worthy
+> goal. But it's a surprise to some users.)
+The goal is nice, but that's what Distros are for. But it's always
+the same since aeons: commercial vendors tend to work against the
+distros.
+> I don't think it's good enough to say the user shouldn't install
+> third-party packages. 
+Actually, I do think so (unless the user knows exactly what he does).
+It's not about proprietary software in general - this can (and is)
+also handled by Distros. But the Distro (or some other neutral
+project, that provides an extra repo) is needed as quality gate.
+> It's not even good enough to say the user should
+> use flatpaks or snaps instead: not everything can be packaged that
+> way. Debian's own packages can have equally unwelcome surprises.
+Haven't really looked deeper into flatpak, but I'm doing a lot with
+docker and lxc containers.
+As those proprietary vendors tend to be completely overstrained with
+the whole concept of package management (no idea why, but I've seen
+this a thousand times w/ my clients), it seems to be the most pragmatic
+solution to put everything into strictly isolated containers.
+Those packages are only few special cases anyways. (for the average
+end-user I don't see much more candidates besides Skype, but there's
+still a lot very special business applications each having a petty tiny
+user base).
+That way, the vendors could just pick some minimal base system (maybe
+apline or devuan based) and step by step learn how to use package
+management, in their own confined microcosmos. At least they wouldn't
+have to cope w/ many different distros, as long as they haven't
+understood the whole concept behind (if they did, it would be pretty
+trivial for them, and we wouldn't need this this discussion).
+> Imagine a package that accidentally removes /var, but only under
+> specific conditions. You'd hope that Debian's testing during a release
+> cycle would catch that, but there's not guarantee it will. (That's a
+> safety issue more than a security issue.)
+Did this ever happen ? Why should anybody write such things into a
+maintainer script in the first place ?
+> A suggestion: we restrict where packages can install files and what
+> maintainer scripts can do. The default should be as safe as we can
+> make it, and packages that need to do things not allowed by the
+> default should declare they that they intend to do that.
+Rebuild flatpak+friends ?
+Point is: maintainer scripts can do anything they want.
+What we can (and should) do is doing most things in a purely declarative
+way - at deployment time, instead of autogenerating mnt scripts or
+calling predefined functions - so we can concentrate on more careful
+reviews of the remaining special cases.
+By the way: at lot of the demand for mnt scripts, IMHO, comes from
+upstream's bad sw architecture (interestingly, GUI stuff again tends
+to be the ugliest area). Usually, good packages should be fine with just
+unpacking some files into proper places.
+> This could be done, for example, by having each package labelled with
+> an installation profile, which declares what the package intends to do
+> upon installation, upgrade, or removal.
+Who defines these labels ? The packager ? Is there any extra quality
+gate (before the user) ?
+> * default: install files in /usr only
+That's bad enough, if the package is of bad quality or even malicious.
+Finally, I'd really like to reduce complexity, not introduce even more.
+--mtx
+-- 
+Enrico Weigelt, metux IT consult
+Free software and Linux embedded engineering
+info@metux.net -- +49-151-27565287

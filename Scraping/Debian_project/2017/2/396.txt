@@ -1,0 +1,26 @@
+To : Santiago Vila <sanvila@unex.es>, 848063@bugs.debian.org
+Subject : Re: Help requested: Packages which FTBFS randomly
+From : Steve Cotton <steve@s.cotton.clara.co.uk>
+Date : Sun, 19 Feb 2017 16:09:56 +0100
+Message-id : 20170219150956.ekf3tw7pcevyzhb3@s.cotton.clara.co.uk
+Mail-followup-to : Santiago Vila <sanvila@unex.es>, 848063@bugs.debian.org,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] alpine.DEB.2.20.1702151742180.26301@cantor.unex.es>
+References : <[🔎] alpine.DEB.2.20.1702151742180.26301@cantor.unex.es>
+
+
+On Wed, Feb 15, 2017 at 06:26:51PM +0100, Santiago Vila wrote:
+> The following packages FTBFS for me randomly. First column is the bug
+> number, second column is the estimated probability of failure in my
+> build environment, which is described here:
+> 
+> https://people.debian.org/~sanvila/my-building-environment.txt
+Hi Santiago and everyone trying to debug these FTBFSes,
+For ri-li, and hopefully many of the other bugs on the list, there's a much
+simpler way to replicate the bug in developers' normal dev environments, using
+the taskset command from package util-linux to run the build on CPU #0 only:
+$ taskset --cpu-list 0 dpkg-buildpackage -A
+For ri-li, the failure can be isolated from the build:
+ri-li/data-src$ taskset --cpu-list 0 xvfb-run -a --server-args="-screen 0 1024x768x24" ./MakeDat
+Impossible d'initialiser SDL:Couldn't open X11 display
+Thanks,
+Steve

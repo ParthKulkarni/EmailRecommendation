@@ -1,0 +1,70 @@
+To : Marco d'Itri <md@Linux.IT>
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Wouter Verhelst <wouter@debian.org>
+Date : Tue, 25 Apr 2017 19:59:22 +0200
+Message-id : 20170425175922.zi5cifef5ub7aohh@grep.be
+In-reply-to : <[🔎] 20170424091748.umfoto7lrjiumvqb@bongo.bofh.it>
+References : <[🔎] 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net> <[🔎] 20170423190041.x6slcy7vpaqw245z@grep.be> <[🔎] 20170424091748.umfoto7lrjiumvqb@bongo.bofh.it>
+
+
+On Mon, Apr 24, 2017 at 11:17:48AM +0200, Marco d'Itri wrote:
+> On Apr 23, Wouter Verhelst <wouter@debian.org> wrote:
+> 
+> > The "packages drop files in /usr/*, sysadmins override in /etc" way of
+> > doing things is prevalent in the RPM world; in Debian, however, we
+> > traditionally have packages drop files in /etc, and let the maintainer
+>
+> While this scheme was probably instigated by limitations in RPM, at this 
+> point we have had multiple packages (kmod, systemd, udev for a start) 
+> using it for years.
+True, never contested that. I merely pointed out that *traditionally*, we've
+been doing it differently.
+> Moving the sysctl.d default settings to /etc would be:
+> - a waste of developers time
+There are many other things that are a waste of developers time (dropping
+minified javascript, for example) which we still expect our developers to do.
+By itself, that is not a good argument.
+> - a gratuitous incompatibility with other distributions
+> - inconsistent with the documentation both inside and outside Debian
+These are good arguments, on the other hand. If upstream implements one
+way of doing things, and it is publically documented to be so, then it
+is not necessarily a good idea to divert from that just because Debian
+traditionally does things in a different way.
+However, this question was not about what upstream should do; the
+original question was about what package maintainers should do when they
+want to configure something not directly related to their own packages
+(in casu, a sysctl setting). In that case, it makes sense to look at
+what Debian would traditionally do, which here is to ship a file in
+/etc, not in /usr.
+> - inconsistent with other configuration files implementing this scheme
+That is an argument which can equally well be turned around: shipping
+configuration in /usr is equally inconsistent with other configuration
+files that ship all of their configuration in /etc.
+> > There are things to be said to have the whole default configuration live
+> > in /etc; IMO, it makes it easier for a system administrator to figure
+> > out what the current configuration is, rather than having to mentally
+> > merge configuration files from several locations. Additionally, when a
+>
+> There are also good arguments for having the whole default configuration 
+> live in /usr and only local changes in /etc: e.g. this allows supporting 
+> systems with an empty /etc, which greatly reduces the administrative 
+> time needed to manage a large number of servers/containers.
+I disagree that this is a major benefit, but that isn't my point.
+> > configuration file that had been edited by a user is now also edited by
+> > the package maintainer, on Debian the system will ask how to handle it,
+> > rather than changing the defaults and not telling people (which can
+> > break in some circumstances).
+>
+> In my experience as the maintainer of the packages which introduced this 
+> scheme this has not been a noticeable problem.
+Unfortunately for that argument, SC4 does not state that our priority is
+Package Maintainers and Free Software ;-)
+In my experience as a user of some of those packages, it is intensely
+annoying that a package upgrade suddenly changes some behaviour in ways
+that I dislike and it's difficult to figure out what changed, because
+the configuration is not in /etc.
+-- 
+< ron> I mean, the main *practical* problem with C++, is there's like a dozen
+       people in the world who think they really understand all of its rules,
+       and pretty much all of them are just lying to themselves too.
+ -- #debian-devel, OFTC, 2016-02-12

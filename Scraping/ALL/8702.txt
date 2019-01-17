@@ -1,0 +1,54 @@
+To : Martin Michlmayr <tbm@cyrius.com>, Heinrich Schuchardt <xypron.glpk@gmx.de>, 849532@bugs.debian.org
+Subject : Bug#849532: flash-kernel does not remove dtb backups
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Fri, 19 Jan 2018 22:46:42 -0800
+Message-id : 87shb1uiwd.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 849532@bugs.debian.org
+In-reply-to : <20170102232129.GA915@jirafa.cyrius.com>
+References : <148291621407.32135.16054072795985729267.reportbug@family.fritz.box> <20170102232129.GA915@jirafa.cyrius.com> <148291621407.32135.16054072795985729267.reportbug@family.fritz.box>
+
+
+On 2017-01-02, Martin Michlmayr wrote:
+> * Heinrich Schuchardt <xypron.glpk@gmx.de> [2016-12-28 10:10]:
+>> The .bak file should not be created on the first install of a Linux kernel.
+>
+> Yeah, that's a separate issue but it's definitely something I noticed
+> too.  The DTB handling code is run several times under some
+> circumstances, see e.g. the log below.
+For one thing, flash-kernel has hooks in both the kernel and
+initramfs-tools directories:
+  $ dpkg -L flash-kernel | grep -E 'post' | grep flash-kernel
+  /etc/initramfs/post-update.d/flash-kernel
+  /etc/kernel/postinst.d/zz-flash-kernel
+  /etc/kernel/postrm.d/zz-flash-kernel
+So, at the very least, on a new kernel install, it's likely to be called
+at least twice.
+> I'm afraid to touch that code and hope Ian will look into it at some
+> point.
+>
+> ...
+> Taking backup of tegra210-p2371-2180.dtb.
+> Installing new tegra210-p2371-2180.dtb.
+> flash-kernel: deferring update (trigger activated)
+> /etc/kernel/postinst.d/zz-flash-kernel:
+> DTB: tegra210-p2371-2180.dtb
+> Installing /usr/lib/linux-image-4.9.0-trunk-arm64/nvidia/tegra210-p2371-2180.dtb into /boot/dtbs/4.9.0-trunk-arm64/tegra210-p2371-2180.dtb
+> Taking backup of tegra210-p2371-2180.dtb.
+> Installing new tegra210-p2371-2180.dtb.
+> Installing /usr/lib/linux-image-4.9.0-trunk-arm64/nvidia/tegra210-p2371-2180.dtb into /boot/dtbs/4.9.0-trunk-arm64/tegra210-p2371-2180.dtb
+> Taking backup of tegra210-p2371-2180.dtb.
+> Installing new tegra210-p2371-2180.dtb.
+> flash-kernel: deferring update (trigger activated)
+> Processing triggers for flash-kernel (3.73) ...
+> DTB: tegra210-p2371-2180.dtb
+> Installing /usr/lib/linux-image-4.9.0-trunk-arm64/nvidia/tegra210-p2371-2180.dtb into /boot/dtbs/4.9.0-trunk-arm64/tegra210-p2371-2180.dtb
+> Taking backup of tegra210-p2371-2180.dtb.
+> Installing new tegra210-p2371-2180.dtb.
+> flash-kernel: installing version 4.9.0-trunk-arm64
+> Generating boot script u-boot image... done.
+> Taking backup of boot.scr.
+> Installing new boot.scr.
+But this is obviously more than just that... and I've seen it too. *sigh*
+live well,
+  vagrant
+signature.asc

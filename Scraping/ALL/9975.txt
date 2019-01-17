@@ -1,0 +1,40 @@
+To : debian-devel@lists.debian.org, 856033@bugs.debian.org
+Subject : Re: Bug#856033: ITP: brailleimg -- produce text images and graphs abusing Braille glyphs
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 27 Feb 2017 23:39:38 +0100
+Message-id : 20170227223938.jwt2nhh5x2zzxx5x@angband.pl
+In-reply-to : <[🔎] 20170227151804.GS12827@yuggoth.org>
+References : <[🔎] 148794333668.3763.17093112744065284614.reportbug@umbar.angband.pl> <[🔎] 20170224134531.j4nhyzihwve6t2l2@var.youpi.perso.aquilenet.fr> <[🔎] 20170224144438.wzuidgjfhxkxupmu@angband.pl> <[🔎] 20170225134657.diyqm6ou6ockqetm@var.youpi.perso.aquilenet.fr> <[🔎] 20170225172433.g4akpzpz6yundvki@angband.pl> <[🔎] 20170227151804.GS12827@yuggoth.org>
+
+
+On Mon, Feb 27, 2017 at 03:18:04PM +0000, Jeremy Stanley wrote:
+> It's not packaged for Debian yet nor do I see any RFP/ITP, but I've
+> been happily using https://github.com/tehmaze/diagram for a few
+> years (installable from PyPI via pip so probably easy enough to
+> package). Its default mode uses 8-dot Braille patterns for axis
+> graphs.
+Alas, that tool works on terminals only.  It uses ncurses and its output
+can't be trivially converted to text, at least programmatically (you can run
+it in a terminal then copy&paste the result).  But even if you do that, you
+lose parts that are implemented as attributes (like, a horizontal line is
+done via underlining).
+And even if you use a graph mode that doesn't need attributes, it does mix
+character ranges -- especially bad is using U+20 (ie, real ASCII space) as
+on a typical non-terminal setup it has only a width of ~2/3 of U+28XX
+glyphs, making everything totally misaligned.
+Even on actual terminals, it works only if lowered dots are rendered as
+blank.  This goes contrary to what Unicode requires.  Most fonts do so as on
+a low-DPI display the text tends to end up in an unreadable jumble of pixels
+(see FreeMono before stretch), but with some fancy logic it _is_ possible to
+do so in a way closer to what the standard requires.  Please see what Fedora
+implements in their default terminals -- when using U+2800 like braillegraph
+does you get a white graph in a dark gray rectangle, with tehmaze's diagram
+the graph is surrounded by ugly blocks.
+Likewise the embedded labels: they're too likely to cause misalignment or
+even word wrapping.  A mail or a commit message is going to be seen by too
+many diverse clients you can't control.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ Meow!
+⣾⠁⢰⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ I was born a dumb, ugly and work-loving kid, then I got swapped on
+⠈⠳⣄⠀⠀⠀⠀ the maternity ward.

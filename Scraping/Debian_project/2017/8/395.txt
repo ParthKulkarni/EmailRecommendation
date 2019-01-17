@@ -1,0 +1,47 @@
+To : Peter Silva <peter@bsqt.homeip.net>
+Subject : Re: Proposal: A new approach to differential debs
+From : Julian Andres Klode <jak@debian.org>
+Date : Wed, 16 Aug 2017 01:31:11 +0200
+Message-id : 20170816012859.GA32501@debian.org
+Mail-followup-to : Peter Silva <peter@bsqt.homeip.net>,	Paul Wise <pabs@debian.org>, debian-dpkg@lists.debian.org,	deity@lists.debian.org, debian-devel@lists.debian.org
+In-reply-to : <[🔎] CANpLOiTfiW0uxxMHuRDpxwCFt=P88=7zD+C4NMyqjG8RqZ8SPw@mail.gmail.com>
+References : <[🔎] 20170812135640.GA6037@debian.org> <[🔎] 20170813093856.2kk7zwy4u4qb2xpf@localhost> <[🔎] CAKTje6E+dd3c5RQbTVH8ZnVS0Dc5ZJ9aeTocE6et+GUSkC_PRw@mail.gmail.com> <[🔎] CANpLOiTfiW0uxxMHuRDpxwCFt=P88=7zD+C4NMyqjG8RqZ8SPw@mail.gmail.com>
+
+
+On Sun, Aug 13, 2017 at 10:53:16AM -0400, Peter Silva wrote:
+> You are assuming the savings are substantial.  That's not clear.  When
+> files are compressed, if you then start doing binary diffs, well it
+> isn't clear that they will consistently be much smaller than plain new
+> files.  it also isn't clear what the impact on repo disk usage would
+> be.
+> 
+> The most straigforward option:
+> The least intrusive way to do this is to add differential files in
+> addition to the existing binaries, and any time the differential file,
+> compared to a new version exceeds some threhold size (for example:
+> 50%) of the original file, then you end up adding the sum total of the
+> diff files in addition to the regular files to the repos.  I haven't
+> done the math, but it's clear to me that it ends up being about double
+> the disk space with this approach. it's also costly in that all those
+> files have to be built and managed, which is likely a substantial
+> ongoing load (cpu/io/people)  I think this is what people are
+> objecting to.
+> 
+> A more intrusive and less obvious way to do this is to use zsync (
+> http://zsync.moria.org.uk/. ) With zsync, you build tables of content
+> for each file, using the same 4k blocking that rsync does. To handle
+> compression efficiently, there needs to be an understanding of
+> blocking, so a customized gzip needs to be used.  With such a format,
+> you produce the same .deb's as today, with the .zsyncs (already in
+> use?) and the author already provides some debian Packages files as
+> examples.  The space penalty here is probably only a few percent.
+Today's research has shown that rolling hashes do not perform well
+on executables because of changing offsets and so on destroying the
+hashes. There were no measurable space savings when adding fairly
+similar firefox releases to either a casync or borg repository -
+and that's on uncompressed tarballs of the latest 2 firefox uploads.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

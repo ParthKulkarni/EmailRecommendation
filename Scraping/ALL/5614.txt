@@ -1,0 +1,44 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#902123: finish-install: `update-initramfs -u` needs proc(5) and sysfs(5) resp. mounted to /proc and /sys for the cryptsetup hook
+From : Guilhem Moulin <guilhem@debian.org>
+Date : Fri, 22 Jun 2018 17:30:43 +0200
+Message-id : 20180622153043.GA7258@localhost.localdomain
+Reply-to : Guilhem Moulin <guilhem@debian.org>, 902123@bugs.debian.org
+
+
+Package: finish-install
+Version: 2.94
+Severity: important
+Hi there,
+Upgrading to cryptsetup ≥2:2.0.3-2 from d-i might yield an unbootable system
+if the initramfs image is updated at finish-install stage.
+That's because the cryptroot hook script is now relying on pseudo-filesystems
+proc(5) (for /proc/{mounts,cpuinfo,cmdline}) and sysfs(5) (to generate the
+block device hierarchy and determine which devices need to be unlocked at
+initramfs stage).  These pseudo-filesystems are respectively mounted to
+/target/proc and /target/sys during the installation of the base system, but
+unmounted before finish-install's postinst script runs /usr/lib/finish-install.d/*.
+So if the target system's root FS is on an encrypted system, and console-setup
+is installed, then /usr/lib/finish-install.d/10update-initramfs triggers
+`in-target update-initramfs -u -k all` without mountpoints /proc and /sys,
+hence the cryptsetup(8) binaries and crypto modules aren't included in the
+generated initramfs image, and the new system can't boot.  (I assume most
+users won't see the big warning in the log file.)
+A dirty fix would be to make the cryptsetup hook file mount /proc and /sys if
+needed, but I'm quite reluctant to do that :-P  Is there a reason why proc(5)
+and sysfs(5) are unmounted before finish-install stage?  Adding
+`mount`/`umount` to /usr/lib/finish-install.d/10update-initramfs would not be
+enough since other udebs might want to update the initramfs as well at
+finish-install stage; for instance /usr/lib/finish-install.d/10open-iscsi from
+open-iscsi-udeb.
+Another thing, since the cryptsetup package split (≥2:2.0.3-1),
+/usr/lib/finish-install.d/10update-initramfs should `dpkg-query -s
+cryptsetup-initramfs` not cryptsetup.  If the target system has no encrypted
+devices that need to be unlocked at initramfs stage (for instance, if only the
+FS holding /home is on an encrypted device) then there is no need to deploy
+cryptsetup's initramfs integration, but the cryptsetup scripts and binaries
+might be installed regardless.
+Cheers,
+-- 
+Guilhem.
+signature.asc

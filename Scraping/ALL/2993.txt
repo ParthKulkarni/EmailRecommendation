@@ -1,0 +1,406 @@
+To : Debian Bug Tracking System <696755@bugs.debian.org>
+Subject : Bug#696755: installation-reports: confirmation of this bug in testing
+From : Dennis Crunkilton <dcrunkilton@gmail.com>
+Date : Sun, 05 Mar 2017 13:36:53 -0600
+Message-id : 148874261308.2963.3736508107255195421.reportbug@debian.home
+Reply-to : Dennis Crunkilton <dcrunkilton@gmail.com>, 696755@bugs.debian.org
+
+
+Package: installation-reports
+Followup-For: Bug #696755
+Dear Maintainer,
+*** Reporter, please consider answering these questions, where appropriate ***
+   * What led up to the situation?
+   * What exactly did you do (or not do) that was effective (or
+     ineffective)?
+   * What was the outcome of this action?
+   * What outcome did you expect instead?
+*** End of the template - remove these template lines ***
+-- Package-specific info:
+Boot method: network install
+Image version: http://ftp.nl.debian.org/debian/dists/testing/main/installer-i386/current/images/netboot/debian-installer/i386/linux http://ftp.nl.debian.org/debian/dists/testing/main/installer-i386/current/images/netboot/debian-installer/i386/initrd.gz http://cdimage.debian.org/cdimage/unofficial/non-free/firmware/testing/current/firmware.tar.gz 09:57 30-01-17	
+Date: <March 4, 2017, 2200CST >
+Machine: headless, old not normally used fanless VIA Nehemiah, small ram, CF card for HD
+Partitions: <df -Tl will do; the raw partition table is preferred>
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [ ]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [O]
+Comments/Problems:
+<Description of the install, in prose, and any thoughts, comments
+      and ideas you had during the initial install.>
+I performed 3-installations because of the symptoms. First install
+ was edit /etc/.apt/sources.lst to testing or maybe strech; apt-get
+ update; apt-get dist-upgrade. Symptoms: lost network on re-boot.  
+ Connected monitor and keyborad. /sbin/ifconfig showed no wlan0 .
+ ip a showed a long string wlx000272ac8d9b instead of wlan0. 
+-ip link set wlx000272ac8d9b up; 
+ iwconfig wlx000272ac8d9b mode managed essid beegeet key 1234567890;
+ ifconfig wlx000272ac8d9b 192.168.1.109-
+ route add defalut gw 192.168.1.1;
+ brought up the network, which was then reachable  via ssh from
+ a work station. This was left running for about a week. Since this
+ proceedure seemed tedious to bring up the network, I proceeded to
+ do a new from scratch network install.
+ The 2nd install, a network install,  produced a seemingly un-useable 
+ installation due to lack of network after reboot. This time no 
+ /sbin/ifconfig; no /sbin/route. It looked to me like I had a badly
+ broken installation without the utilities to bring up the network.
+Suspecting a bad CF disk, I started a 3rd install, network install, 
+with another CF card. Installed grub to CF card. Downloaded net boot
+imaged files to CF card. Edited grub to boot images. Inserted into 
+target machine. Proceeded with a mostly normal installation. However,
+the detected network eth and wlan devices were listed as long strings,
+e.g. wlx000272ac8d9b. (maybe this is normal?)Proceeded with nework 
+install via the wireless usb device. Installed only ssh server and unilities. 
+No network on reboot. No /sbin/ifconfig. No /sbin/route. After
+consulting references on use of /sbin/ip, brought up network:
+ip a # observer device name long string
+ip link set wlx000272ac8d9b up
+iwconfig wlx000292ac8d9b mode managed essid beegeet2 key 1234567890
+ip a add 192.168.1.108/24 dev wlx000272ac8d9b
+ip route add default via 192.168.1.1
+Installation was now reachable from a workstation via ssh.
+Further investigation revealed:
+no /etc/udev/rules.d/70-persistent-net.rules; no such file
+After apt-get install net-tools , I was able to get the network 
+to come up automatical with the following section in
+/etc/network/interfaces:
+auto wlx000272ac8d9b
+allow-hotplug wlx000272ac8d9b
+iface wlx000272ac8d9b inet static 
+	address 192.168.1.108
+	broadcast 192.168.1.255
+	netmask 255.255.255.0
+	gateway 192.168.1.1
+	wireless-mode managed
+	wireless-key 1234567890
+	wireless-essid beegeet2
+	wireless-channel 11
+At this point I had a network after reboot. However, this not what I
+would want on production system. Too much typing of long net device
+name. I expect network device names like eth0 , wlan0 , etc.
+The one pleasant surprise is that I did not have to apt-get install
+any firmware for wireless devices after first boot.
+Please make sure that the hardware-summary log file, and any other
+installation logs that you think would be useful are attached to this
+report. Please compress large files using gzip.
+Once you have filled out this report, mail it to submit@bugs.debian.org.
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="9 (stretch) - installer build 20170127"
+X_INSTALLATION_MEDIUM=netboot
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux debian 4.9.0-1-686 #1 SMP Debian 4.9.2-2 (2017-01-12) i686 GNU/Linux
+lspci -knn: 00:00.0 Host bridge [0600]: VIA Technologies, Inc. VT8601 [Apollo ProMedia] [1106:0601] (rev 05)
+lspci -knn: 	Subsystem: VIA Technologies, Inc. Device [1106:6010]
+lspci -knn: 	Kernel driver in use: agpgart-via
+lspci -knn: 00:01.0 PCI bridge [0604]: VIA Technologies, Inc. VT8601 [Apollo ProMedia AGP] [1106:8601]
+lspci -knn: 00:11.0 ISA bridge [0601]: VIA Technologies, Inc. VT8231 [PCI-to-ISA Bridge] [1106:8231] (rev 10)
+lspci -knn: 	Subsystem: VIA Technologies, Inc. Device [1106:6010]
+lspci -knn: 00:11.1 IDE interface [0101]: VIA Technologies, Inc. VT82C586A/B/VT82C686/A/B/VT823x/A/C PIPC Bus Master IDE [1106:0571] (rev 06)
+lspci -knn: 	Subsystem: VIA Technologies, Inc. Device [1106:6010]
+lspci -knn: 	Kernel driver in use: pata_via
+lspci -knn: 	Kernel modules: pata_via, ata_generic
+lspci -knn: 00:11.2 USB controller [0c03]: VIA Technologies, Inc. VT82xx/62xx UHCI USB 1.1 Controller [1106:3038] (rev 1e)
+lspci -knn: 	Subsystem: VIA Technologies, Inc. (Wrong ID) Device [0925:1234]
+lspci -knn: 	Kernel driver in use: uhci_hcd
+lspci -knn: 	Kernel modules: uhci_hcd
+lspci -knn: 00:11.3 USB controller [0c03]: VIA Technologies, Inc. VT82xx/62xx UHCI USB 1.1 Controller [1106:3038] (rev 1e)
+lspci -knn: 	Subsystem: VIA Technologies, Inc. (Wrong ID) Device [0925:1234]
+lspci -knn: 	Kernel driver in use: uhci_hcd
+lspci -knn: 	Kernel modules: uhci_hcd
+lspci -knn: 00:11.4 Bridge [0680]: VIA Technologies, Inc. VT8235 ACPI [1106:8235] (rev 10)
+lspci -knn: 	Subsystem: VIA Technologies, Inc. Device [1106:6010]
+lspci -knn: 00:11.5 Multimedia audio controller [0401]: VIA Technologies, Inc. VT82C686 AC97 Audio Controller [1106:3058] (rev 40)
+lspci -knn: 	Subsystem: VIA Technologies, Inc. Device [1106:6010]
+lspci -knn: 00:12.0 Ethernet controller [0200]: VIA Technologies, Inc. VT6102/VT6103 [Rhine-II] [1106:3065] (rev 51)
+lspci -knn: 	Subsystem: VIA Technologies, Inc. Device [1106:0102]
+lspci -knn: 	Kernel driver in use: via-rhine
+lspci -knn: 	Kernel modules: via_rhine
+lspci -knn: 01:00.0 VGA compatible controller [0300]: Trident Microsystems CyberBlade/i1 [1023:8500] (rev 6a)
+lspci -knn: 	Subsystem: Trident Microsystems CyberBlade/i1 [1023:8500]
+usb-list: 
+usb-list: Bus 01 Device 01: UHCI Host Controller [1d6b:0001]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.9.0-1-686 uhci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 01 Device 02: RTL8187B_WLAN_Adapter [0bda:8189]
+usb-list:    Level 01 Parent 01 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Manufacturer_Realtek
+usb-list:    Interface 00: Class ff(vend.) Subclass ff Protocol ff Driver rtl8187
+usb-list: 
+usb-list: Bus 02 Device 01: UHCI Host Controller [1d6b:0001]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.9.0-1-686 uhci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+lsmod: Module                  Size  Used by
+lsmod: ufs                    73728  0
+lsmod: qnx4                   16384  0
+lsmod: hfsplus                94208  0
+lsmod: hfs                    53248  0
+lsmod: minix                  36864  0
+lsmod: msdos                  20480  0
+lsmod: fuse                   90112  0
+lsmod: ntfs                   98304  0
+lsmod: battery                16384  0
+lsmod: dm_mod                 94208  0
+lsmod: md_mod                118784  0
+lsmod: xfs                   954368  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   172032  0
+lsmod: btrfs                1044480  0
+lsmod: xor                    28672  1 btrfs
+lsmod: raid6_pq              106496  1 btrfs
+lsmod: vfat                   20480  0
+lsmod: fat                    57344  2 msdos,vfat
+lsmod: ext4                  495616  1
+lsmod: crc16                  16384  1 ext4
+lsmod: jbd2                   77824  1 ext4
+lsmod: crc32c_generic         16384  4
+lsmod: fscrypto               24576  1 ext4
+lsmod: ecb                    16384  0
+lsmod: mbcache                16384  2 ext4
+lsmod: sd_mod                 40960  3
+lsmod: ata_generic            16384  0
+lsmod: pata_via               16384  2
+lsmod: libata                192512  2 pata_via,ata_generic
+lsmod: usb_storage            53248  0
+lsmod: scsi_mod              180224  3 sd_mod,usb_storage,libata
+lsmod: vga16fb                24576  2
+lsmod: vgastate               20480  1 vga16fb
+lsmod: arc4                   16384  2
+lsmod: rtl8187                36864  0
+lsmod: eeprom_93cx6           16384  1 rtl8187
+lsmod: mac80211              548864  1 rtl8187
+lsmod: cfg80211              450560  2 mac80211,rtl8187
+lsmod: rfkill                 20480  1 cfg80211
+lsmod: uhci_hcd               40960  0
+lsmod: ehci_hcd               65536  0
+lsmod: usbcore               184320  4 usb_storage,ehci_hcd,uhci_hcd,rtl8187
+lsmod: via_rhine              28672  0
+lsmod: mii                    16384  1 via_rhine
+lsmod: usb_common             16384  1 usbcore
+lsmod: fan                    16384  0
+lsmod: thermal                20480  0
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                     18344        60     18284   0% /run
+df: devtmpfs                 80596         0     80596   0% /dev
+df: /dev/sda1              7309376    792248   6126116  11% /target
+df: /dev/sda1              7309376    792248   6126116  11% /dev/.static/dev
+df: devtmpfs                 80596         0     80596   0% /target/dev
+free:              total         used         free       shared      buffers
+free: Mem:        183424       139632        43792        29644         7328
+free: -/+ buffers:             132304        51120
+free: Swap:       385020        65808       319212
+/proc/cmdline: BOOT_IMAGE=/boot/linux
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: vendor_id	: CentaurHauls
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 9
+/proc/cpuinfo: model name	: VIA Nehemiah
+/proc/cpuinfo: stepping	: 8
+/proc/cpuinfo: cpu MHz		: 533.370
+/proc/cpuinfo: cache size	: 64 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 1
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 1
+/proc/cpuinfo: apicid		: 0
+/proc/cpuinfo: initial apicid	: 0
+/proc/cpuinfo: fdiv_bug	: no
+/proc/cpuinfo: f00f_bug	: no
+/proc/cpuinfo: coma_bug	: no
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 1
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr cx8 sep mtrr pge cmov pat mmx fxsr sse eagerfpu rng rng_en ace ace_en
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 1066.74
+/proc/cpuinfo: clflush size	: 32
+/proc/cpuinfo: cache_alignment	: 32
+/proc/cpuinfo: address sizes	: 32 bits physical, 32 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/ioports: 0000-001f : dma1
+/proc/ioports: 0020-0021 : pic1
+/proc/ioports: 0040-0043 : timer0
+/proc/ioports: 0050-0053 : timer1
+/proc/ioports: 0060-0060 : keyboard
+/proc/ioports: 0061-0061 : PNP0800:00
+/proc/ioports: 0064-0064 : keyboard
+/proc/ioports: 0070-0073 : rtc0
+/proc/ioports: 0080-008f : dma page reg
+/proc/ioports: 00a0-00a1 : pic2
+/proc/ioports: 00c0-00df : dma2
+/proc/ioports: 00f0-00ff : PNP0C04:00
+/proc/ioports:   00f0-00ff : fpu
+/proc/ioports: 0170-0177 : 0000:00:11.1
+/proc/ioports:   0170-0177 : pata_via
+/proc/ioports: 01f0-01f7 : 0000:00:11.1
+/proc/ioports:   01f0-01f7 : pata_via
+/proc/ioports: 0376-0376 : 0000:00:11.1
+/proc/ioports:   0376-0376 : pata_via
+/proc/ioports: 03c0-03df : vga+
+/proc/ioports: 03f6-03f6 : 0000:00:11.1
+/proc/ioports:   03f6-03f6 : pata_via
+/proc/ioports: 03f8-03ff : serial
+/proc/ioports: 04d0-04d1 : pnp 00:01
+/proc/ioports: 0cf8-0cff : PCI conf1
+/proc/ioports: 4000-4003 : ACPI PM1a_EVT_BLK
+/proc/ioports: 4008-400b : ACPI PM_TMR
+/proc/ioports: 4010-4015 : ACPI CPU throttle
+/proc/ioports: 4020-4023 : ACPI GPE0_BLK
+/proc/ioports: 40f0-40f1 : ACPI PM1a_CNT_BLK
+/proc/ioports: d000-d00f : 0000:00:11.1
+/proc/ioports:   d000-d00f : pata_via
+/proc/ioports: d400-d41f : 0000:00:11.2
+/proc/ioports:   d400-d41f : uhci_hcd
+/proc/ioports: d800-d81f : 0000:00:11.3
+/proc/ioports:   d800-d81f : uhci_hcd
+/proc/ioports: dc00-dcff : 0000:00:11.5
+/proc/ioports: e000-e003 : 0000:00:11.5
+/proc/ioports: e400-e403 : 0000:00:11.5
+/proc/ioports: e800-e8ff : 0000:00:12.0
+/proc/ioports:   e800-e8ff : via-rhine
+/proc/iomem: 00000000-00000fff : reserved
+/proc/iomem: 00001000-0009ffff : System RAM
+/proc/iomem: 000a0000-000bffff : Video RAM area
+/proc/iomem: 000c0000-000cbfff : Video ROM
+/proc/iomem: 000cc000-000d5fff : Adapter ROM
+/proc/iomem: 000d6000-000d7fff : pnp 00:00
+/proc/iomem: 000f0000-000fffff : reserved
+/proc/iomem:   000f0000-000fffff : System ROM
+/proc/iomem: 00100000-0bdeffff : System RAM
+/proc/iomem:   06000000-0657cf44 : Kernel code
+/proc/iomem:   0657cf45-067c1a3f : Kernel data
+/proc/iomem:   0687a000-068f9fff : Kernel bss
+/proc/iomem: 0bdf0000-0bdf2fff : ACPI Non-volatile Storage
+/proc/iomem: 0bdf3000-0bdfffff : ACPI Tables
+/proc/iomem: 0be00000-0bffffff : RAM buffer
+/proc/iomem: 0c000000-0c0fffff : PCI Bus 0000:01
+/proc/iomem: d0000000-dfffffff : 0000:00:00.0
+/proc/iomem: e0000000-e2ffffff : PCI Bus 0000:01
+/proc/iomem:   e1000000-e17fffff : 0000:01:00.0
+/proc/iomem:   e1800000-e1ffffff : 0000:01:00.0
+/proc/iomem:   e2000000-e201ffff : 0000:01:00.0
+/proc/iomem: e3000000-e30000ff : 0000:00:12.0
+/proc/iomem:   e3000000-e30000ff : via-rhine
+/proc/iomem: fee00000-fee00fff : pnp 00:00
+/proc/iomem: ffff0000-ffffffff : reserved
+/proc/iomem:   ffff0000-ffffffff : pnp 00:00
+/proc/interrupts:            CPU0       
+/proc/interrupts:   0:     744836    XT-PIC  timer
+/proc/interrupts:   1:       1152    XT-PIC  i8042
+/proc/interrupts:   2:          0    XT-PIC  cascade
+/proc/interrupts:   5:          0    XT-PIC  acpi
+/proc/interrupts:   8:          1    XT-PIC  rtc0
+/proc/interrupts:  12:     523180    XT-PIC  uhci_hcd:usb1, uhci_hcd:usb2
+/proc/interrupts:  14:          0    XT-PIC  pata_via
+/proc/interrupts:  15:     101774    XT-PIC  pata_via
+/proc/interrupts: NMI:          0   Non-maskable interrupts
+/proc/interrupts: LOC:          0   Local timer interrupts
+/proc/interrupts: SPU:          0   Spurious interrupts
+/proc/interrupts: PMI:          0   Performance monitoring interrupts
+/proc/interrupts: IWI:          0   IRQ work interrupts
+/proc/interrupts: RTR:          0   APIC ICR read retries
+/proc/interrupts: RES:          0   Rescheduling interrupts
+/proc/interrupts: CAL:          0   Function call interrupts
+/proc/interrupts: TLB:          0   TLB shootdowns
+/proc/interrupts: TRM:          0   Thermal event interrupts
+/proc/interrupts: THR:          0   Threshold APIC interrupts
+/proc/interrupts: DFR:          0   Deferred Error APIC interrupts
+/proc/interrupts: MCE:          0   Machine check exceptions
+/proc/interrupts: MCP:          0   Machine check polls
+/proc/interrupts: ERR:          0
+/proc/interrupts: MIS:          0
+/proc/interrupts: PIN:          0   Posted-interrupt notification event
+/proc/interrupts: PIW:          0   Posted-interrupt wakeup event
+/proc/meminfo: MemTotal:         183424 kB
+/proc/meminfo: MemFree:           43764 kB
+/proc/meminfo: MemAvailable:     123244 kB
+/proc/meminfo: Buffers:            7328 kB
+/proc/meminfo: Cached:            96048 kB
+/proc/meminfo: SwapCached:         5808 kB
+/proc/meminfo: Active:            31912 kB
+/proc/meminfo: Inactive:          79988 kB
+/proc/meminfo: Active(anon):       7892 kB
+/proc/meminfo: Inactive(anon):    30276 kB
+/proc/meminfo: Active(file):      24020 kB
+/proc/meminfo: Inactive(file):    49712 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: HighTotal:             0 kB
+/proc/meminfo: HighFree:              0 kB
+/proc/meminfo: LowTotal:         183424 kB
+/proc/meminfo: LowFree:           43764 kB
+/proc/meminfo: SwapTotal:        385020 kB
+/proc/meminfo: SwapFree:         319212 kB
+/proc/meminfo: Dirty:               540 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:          3020 kB
+/proc/meminfo: Mapped:             3416 kB
+/proc/meminfo: Shmem:             29644 kB
+/proc/meminfo: Slab:              18488 kB
+/proc/meminfo: SReclaimable:      12952 kB
+/proc/meminfo: SUnreclaim:         5536 kB
+/proc/meminfo: KernelStack:         568 kB
+/proc/meminfo: PageTables:          284 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:      476732 kB
+/proc/meminfo: Committed_AS:     102788 kB
+/proc/meminfo: VmallocTotal:     837688 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:         0 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       4096 kB
+/proc/meminfo: DirectMap4k:       34752 kB
+/proc/meminfo: DirectMap4M:      159744 kB
+/proc/bus/input/devices: I: Bus=0011 Vendor=0001 Product=0001 Version=ab41
+/proc/bus/input/devices: N: Name="AT Translated Set 2 keyboard"
+/proc/bus/input/devices: P: Phys=isa0060/serio0/input0
+/proc/bus/input/devices: S: Sysfs=/devices/platform/i8042/serio0/input/input0
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=sysrq kbd leds 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=120013
+/proc/bus/input/devices: B: KEY=4 2000000 3803078 f800d001 feffffdf ffefffff ffffffff fffffffe
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: B: LED=7
+/proc/bus/input/devices: 
+-- System Information:
+Debian Release: 9.0
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: i386 (i686)
+Kernel: Linux 4.9.0-1-686 (SMP w/1 CPU core)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

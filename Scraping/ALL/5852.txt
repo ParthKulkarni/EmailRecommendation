@@ -1,0 +1,76 @@
+To : submit@bugs.debian.org
+Subject : Bug#901851: Dell LATITUDE E7250 unattended network install failure
+From : Donald Buczek <buczek@molgen.mpg.de>
+Date : Tue, 19 Jun 2018 13:22:29 +0200
+Message-id : fac14a00-be53-79cb-1744-fe5db75521e5@molgen.mpg.de
+Reply-to : it+debian@molgen.mpg.de, 901851@bugs.debian.org
+
+
+Package: installation-reports
+Boot method: network
+Image version: http://ftp.nl.debian.org/debian/dists/stretch/main/installer-amd64/current/images/netboot/netboot.tar.gz ( Installer build: 20170615+deb9u3 )
+Date: Tue Jun 19 12:05:57 CEST 2018
+Machine: Dell LATITUDE E7250
+Processor: Intel Core i7-5600U
+Memory: 16GB
+Partitions: none
+Output of lspci -knn (or lspci -nn):
+    00:00.0 Host bridge [0600]: Intel Corporation Broadwell-U Host Bridge -OPI [8086:1604] (rev 09)
+    00:02.0 VGA compatible controller [0300]: Intel Corporation HD Graphics 5500 [8086:1616] (rev 09)
+    00:03.0 Audio device [0403]: Intel Corporation Broadwell-U Audio Controller [8086:160c] (rev 09)
+    00:04.0 Signal processing controller [1180]: Intel Corporation Broadwell-U Processor Thermal Subsystem [8086:1603] (rev 09)
+    00:14.0 USB controller [0c03]: Intel Corporation Wildcat Point-LP USB xHCI Controller [8086:9cb1] (rev 03)
+    00:16.0 Communication controller [0780]: Intel Corporation Wildcat Point-LP MEI Controller #1 [8086:9cba] (rev 03)
+    00:19.0 Ethernet controller [0200]: Intel Corporation Ethernet Connection (3) I218-LM [8086:15a2] (rev 03)
+    00:1b.0 Audio device [0403]: Intel Corporation Wildcat Point-LP High Definition Audio Controller [8086:9ca0] (rev 03)
+    00:1c.0 PCI bridge [0604]: Intel Corporation Wildcat Point-LP PCI Express Root Port #1 [8086:9c90] (rev e3)
+    00:1c.3 PCI bridge [0604]: Intel Corporation Wildcat Point-LP PCI Express Root Port #4 [8086:9c96] (rev e3)
+    00:1d.0 USB controller [0c03]: Intel Corporation Wildcat Point-LP USB EHCI Controller [8086:9ca6] (rev 03)
+    00:1f.0 ISA bridge [0601]: Intel Corporation Wildcat Point-LP LPC Controller [8086:9cc3] (rev 03)
+    00:1f.2 RAID bus controller [0104]: Intel Corporation 82801 Mobile SATA Controller [RAID mode] [8086:282a] (rev 03)
+    00:1f.3 SMBus [0c05]: Intel Corporation Wildcat Point-LP SMBus Controller [8086:9ca2] (rev 03)
+    01:00.0 SD Host controller [0805]: O2 Micro, Inc. SD/MMC Card Reader Controller [1217:8520] (rev 01)
+    02:00.0 Network controller [0280]: Intel Corporation Wireless 7265 [8086:095a] (rev 59)
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [ ]
+Load installer modules: [O]
+Detect hard drives:     [E]
+Partition hard drives:  [ ]
+Install base system:    [ ]
+Clock/timezone setup:   [ ]
+User/password setup:    [ ]
+Install tasks:          [ ]
+Install boot loader:    [ ]
+Overall install:        [ ]
+Comments/Problems:
+Interactive install works, unattended install stops, because it can't find the system disk on first attempt.
+pxeboot commands used for unattended install:
+    kernel debian-installer/amd64/linux
+    append DEBCONF_DEBUG=5 auto=true netcfg/choose_interface=auto netcfg/get_hostname=debianXX netcfg/get_domain=molgen.mpg.de hw-detect/load_firmware=false url=tftp://wtf.molgen.mpg.de/tftpboot/preseed/debbix vga=788 initrd=debian-installer/amd64/initrd.gz
+preseed file ( preseed/debbix ):
+    d-i debian-installer/language string en
+    d-i debian-installer/country string DE
+    d-i debian-installer/locale string en_US.UTF-8
+    d-i keyboard-configuration/xkb-keymap select us
+    d-i passwd/root-password password CENSORED
+    d-i passwd/user-fullname string CENSORED
+    d-i partman-auto/init_automatically_partition select biggest_free
+    d-i mirror/country string manual
+    d-i apt-setup/cdrom/set-first boolean false
+    d_i tasksel/first multiselect standard, desktop, xfce-desktop
+    d-i grub-installer/only_debian boolean true
+    d-i finish-install/reboot_in_progress note
+    d-i preseed/late_command string in-target wget -O /tmp/debbix.sh https://CENSORED && in-target chmod +x /tmp/debbix.sh && in-target /tmp/debbix.sh && in-target rm /tmp/debbix.sh
+    No disk drive was detected, If you know the name of the driver needed by your disk drive,
+Take note of `hw-detect/load_firmware=false` (from the kernel command line) which might play a role here. Without it, the installer would prompt for firmware because of the wifi interface, which we don't use for the network install.
+`/bin/disk-detect` calls `update-dev` ( which does a `udevadm trigger` ) after the module select question, which might explain, why everything works when it is called a second time.
+Thanks
+  Donald
+--
+Donald Buczek
+buczek@molgen.mpg.de
+Tel: +49 30 8413 1433

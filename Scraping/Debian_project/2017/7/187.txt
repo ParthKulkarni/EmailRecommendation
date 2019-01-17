@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Naming of network devices - how to improve it in buster
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 17 Jul 2017 05:12:07 +0200
+Message-id : 20170717031207.tapeptwpsepq52ds@angband.pl
+In-reply-to : <[🔎] 20170716115427.peuq7btalmnrqqsh@sliepen.org>
+References : <[🔎] 20170710162228.v4teqev5vx3xxgj5@angband.pl> <[🔎] 12214332.2fR4hsN12g@merkaba> <[🔎] 658546a9-4ecf-18d0-4fb2-1e8d1a9c2dcc@debian.org> <[🔎] 20170711101459.uglna6qjj7jd5zq7@sliepen.org> <[🔎] 87bmorb3je.fsf@miraculix.mork.no> <[🔎] 20170711160429.2huwxkmlhgsd6vpk@sliepen.org> <[🔎] 20170715203059.ydiz55npkqce7qth@sliepen.org> <[🔎] 20170715211241.aacc63jga4lnxz5j@angband.pl> <[🔎] 20170716012522.ebzbyqslybuk54cx@khazad-dum.debian.net> <[🔎] 20170716115427.peuq7btalmnrqqsh@sliepen.org>
+
+
+On Sun, Jul 16, 2017 at 01:54:27PM +0200, Guus Sliepen wrote:
+> On Sat, Jul 15, 2017 at 10:25:22PM -0300, Henrique de Moraes Holschuh wrote:
+> > It is indeed Very Cool, but it might not solve one little thing:
+> > iptables firewalling.
+> > 
+> > Is that a way to trigger an ifrename using this, so that the network
+> > device ends up being named "foo" ?
+> 
+> That's indeed an interesting issue. Currently, ifupdown doesn't rename
+> interfaces. You could add a line like:
+> 
+> 	post-up ip link set $IFACE name $LOGICAL
+> 
+> Which will do what you want, except ifupdown doesn't track interface
+> renames this way and will get very confused. In particular, ifdown will
+> not work anymore. So some code should be added to ifupdown to support
+> interface renaming.
+This is what I assumed your new code does -- it seemed an obvious and
+natural thing to do.
+As Ben noticed, the post-up stanza above can't work as Linux doesn't allow
+renaming interfaces at that point.  It can't work in pre-up either as
+ifupdown wouldn't know about the rename.
+Thus, what about this:
+auto mac/00:16:0a:26:99:c6/=en0
+iface en0 inet6 static
+	address 3:1415:9265:3589:7932:3846:2643:3832/64
+	gateway 3:1415:9265:3589::1
+	rename
+With the rename command taking an optional argument (the new name) that
+defaults to the logical name (ie, after =).
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢠⠒⠀⣿⡁ A dumb species has no way to open a tuna can.
+⢿⡄⠘⠷⠚⠋⠀ A smart species invents a can opener.
+⠈⠳⣄⠀⠀⠀⠀ A master species delegates.

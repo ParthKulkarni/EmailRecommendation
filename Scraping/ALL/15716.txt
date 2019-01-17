@@ -1,0 +1,35 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Which checks should we mandate for source operations in shell scripts
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 20 Jun 2018 22:01:41 +0100
+Message-id : 20180620210141.GA12870@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] E1fVj6f-00053J-RL@drop.zugschlus.de>
+References : <[🔎] E1fVj6f-00053J-RL@drop.zugschlus.de>
+
+
+On Wed, 20 Jun 2018 at 21:49:29 +0200, Marc Haber wrote:
+> It has (finally, and to late) occurred to me that
+> 
+> |# back up /etc/default/foo
+> |cp /etc/default/foo ~/foo
+> |(try something in /etc/default)
+> |sudo mv ~/foo /etc/default/foo
+> 
+> will place a file owned by my "normal" user into /etc/default where it
+> might be used from an (unchanged) init script[1].
+If you can do that, then your normal user has already escalated privileges
+to execute arbitrary code (in this case mv) as root, so I'm not sure
+that it's a new thing that the same user can repeat that escalation?
+Either your user account is trusted to execute code of their choice as
+root or they aren't.
+(Yes, sudo prompts for a password, which puts a small barrier between
+"your normal user" and "your normal user, sudoing"; but if a hostile
+actor ever gains control over your normal user account, there are various
+things they can do to escalate from there to having control over the
+sudoing state of your normal user account, for example putting a sudo
+on your $PATH that logs your password for next time or making sudo an
+alias for a similar trojaned sudo binary.)
+For your use-case above, I'd suggest sudoedit(8), which copies the file
+to be edited into /var/tmp, runs your $EDITOR as you, and if the file
+was modified by the time your editor exits, copies it back.
+    smcv

@@ -1,0 +1,627 @@
+To : submit@bugs.debian.org
+Subject : Bug#857743: installation-report: Jessie stable ++ all Backports cause kernel-panic on HP EliteBook 8440p
+From : Andreas Glaeser <bugs.andreas.glaeser@freenet.de>
+Date : Tue, 14 Mar 2017 17:05:48 +0100
+Message-id : 20170314170548.3bb55f1b@a68n.lokal
+Reply-to : Andreas Glaeser <bugs.andreas.glaeser@freenet.de>, 857743@bugs.debian.org
+
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+Package: installation-reports
+Version: 2.58
+Severity: minor
+Dear Maintainer,
+*** Reporter, please consider answering these questions, where appropriate ***
+   * What led up to the situation?
+   * What exactly did you do (or not do) that was effective (or
+     ineffective)?
+   * What was the outcome of this action?
+   * What outcome did you expect instead?
+*** End of the template - remove these template lines ***
+- -- Package-specific
+info: 
+Boot method: USB 
+Image version: >
+http://cdimage.debian.org/debian-cd/current/multi-arch/iso-cd/debian-8.7.1-amd64-i386-netinst.iso
+Date: 2017-03-14, afternoon
+Machine: HP EliteBook 8440p
+Partitions:
+ 
+Filesystem     Type     1K-blocks    Used Available Use% Mounted on
+udev           devtmpfs     10240       0     10240   0% /dev
+tmpfs          tmpfs       767796    9368    758428   2% /run
+/dev/md0       xfs        1940480  463584   1476896  24% /
+tmpfs          tmpfs      1919484       0   1919484   0% /dev/shm
+tmpfs          tmpfs         5120       4      5116   1% /run/lock
+tmpfs          tmpfs      1919484       0   1919484   0% /sys/fs/cgroup
+/dev/sda4      btrfs     37109760   17024  36026880   1% /home
+/dev/sda3      btrfs     21484544 4766932  16566412  23% /mnt/bsys
+/dev/sda1      xfs         972460   90548    881912  10% /boot
+tmpfs          tmpfs       383900       4    383896   1% /run/user/119
+tmpfs          tmpfs       383900       0    383900   0% /run/user/0
+/dev/sdb1      xfs       30712168 3630864  27081304  12% /mnt/usb
+                                                                                           
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [o]
+Detect network card:    [o]
+Configure network:      [o]
+Detect CD:              [o]
+Load installer modules: [o]
+Clock/timezone setup:   [o]
+User/password setup:    [o]
+Detect hard drives:     [o]
+Partition hard drives:  [o]
+Install base system:    [o]
+Install tasks:          [o]
+Install boot loader:    [o]
+Overall install:        [o]
+Comments/Problems:
+The installation itself was fine, I did in fact check Stretch-Testing first on the device
+in order to check basic hardware-functionality, but Jessie-stable together with Backports
+ist not workable on this device. I installed several times in the last days, doing a
+post-install procedure as follows:
+> # cd /target
+> target/ # btrfs subvolume create mnt/bsys/tmp
+> target/ # rm -Rf tmp/
+> target/ # ln -s mnt/bsys/tmp/ tmp
+> target/ # btrfs subvolume create mnt/bsys/var
+> target/ # cp -av var/* mnt/bsys/var/
+> target/ # rm -Rf var/
+> target/ # ln -s mnt/bsys/var/ var
+> target/ # btrfs subvolume create mnt/bsys/usr
+> target/ # cp -av usr/* mnt/bsys/usr/
+> target/ # rm -Rf usr/
+> target/ # ln -s mnt/bsys/usr/ usr
+> target/ # exit
+So the root-filesystem looks like this:
+> drwxr-xr-x   2 root root 4096 Mar 14 16:02 bin
+> drwxr-xr-x   3 root root 4096 Mar 14 16:32 boot
+> drwxr-xr-x  20 root root 3520 Mar 14 16:35 dev
+> drwxr-xr-x 139 root root 8192 Mar 14 16:34 etc
+> drwxr-xr-x   1 root root    8 Mar 14 14:33 home
+> lrwxrwxrwx   1 root root   35 Mar 14 14:43 initrd.img ->
+> boot/initrd.img-4.9.0-0.bpo.2-amd64
+lrwxrwxrwx   1 root root   30 Mar 14 14:43 initrd.img.old ->
+boot/initrd.img-3.16.0-4-amd64
+> drwxr-xr-x  18 root root 4096 Mar 14 16:16 lib
+> drwxr-xr-x   2 root root   33 Mar 14 14:21 lib64
+> drwxr-xr-x   3 root root   31 Mar 14 14:21 media
+> drwxr-xr-x   4 root root   27 Mar 14 16:35 mnt
+> drwxr-xr-x   2 root root    6 Mar 14 14:21 opt
+> dr-xr-xr-x 236 root root    0 Mar 14 16:34 proc
+> drwx------   3 root root   71 Mar 14 14:49 root
+> drwxr-xr-x  23 root root  860 Mar 14 16:34 run
+> drwxr-xr-x   2 root root 8192 Mar 14 16:07 sbin
+> drwxr-xr-x   2 root root    6 Mar 14 14:21 srv
+> dr-xr-xr-x  13 root root    0 Mar 14 16:34 sys
+> lrwxrwxrwx   1 root root   13 Mar 14 14:35 tmp -> mnt/bsys/tmp/
+> lrwxrwxrwx   1 root root   13 Mar 14 14:37 usr -> mnt/bsys/usr/
+> lrwxrwxrwx   1 root root   13 Mar 14 14:36 var -> mnt/bsys/var/
+> lrwxrwxrwx   1 root root   32 Mar 14 14:43 vmlinuz -> boot/vmlinuz-4.9.0-0.bpo.2-amd64
+> lrwxrwxrwx   1 root root   27 Mar 14 14:43 vmlinuz.old -> boot/vmlinuz-3.16.0-4-amd64
+[output of # ls -l / ]
+Kernel-Panic appears both with Kernel 3.16 and 4.9, when all backports are installed,
+see attachment [k-panic-sshot.JPG], dmesg-output is also attached [dmsg.txt.xz]. 
+- -- 
+Please make sure that the hardware-summary log file, and any other
+installation logs that you think would be useful are attached to this
+report. Please compress large files using gzip.
+Once you have filled out this report, mail it to submit@bugs.debian.org.
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="8 (jessie) - installer build 20150422+deb8u4+b2"
+X_INSTALLATION_MEDIUM=cdrom
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux eb8440 3.16.0-4-amd64 #1 SMP Debian 3.16.39-1 (2016-12-30) x86_64
+GNU/Linux lspci -knn: 00:00.0 Host bridge [0600]: Intel Corporation Core Processor DRAM
+Controller [8086:0044] (rev 02) lspci -knn:     Subsystem: Hewlett-Packard Company Device
+[103c:172a] lspci -knn:     Kernel driver in use: agpgart-intel
+lspci -knn: 00:02.0 VGA compatible controller [0300]: Intel Corporation Core Processor
+Integrated Graphics Controller [8086:0046] (rev 02) lspci -knn:     Subsystem:
+Hewlett-Packard Company Device [103c:172a] lspci -knn: 00:16.0 Communication controller
+[0780]: Intel Corporation 5 Series/3400 Series Chipset HECI Controller [8086:3b64] (rev
+06) lspci -knn:     Subsystem: Hewlett-Packard Company Device [103c:172a] lspci -knn:
+00:19.0 Ethernet controller [0200]: Intel Corporation 82577LM Gigabit Network Connection
+[8086:10ea] (rev 05) lspci -knn:     Subsystem: Hewlett-Packard Company Device
+[103c:172a] lspci -knn:     Kernel driver in use: e1000e lspci -knn: 00:1a.0 USB
+controller [0c03]: Intel Corporation 5 Series/3400 Series Chipset USB2 Enhanced Host
+Controller [8086:3b3c] (rev 05) lspci -knn:     Subsystem: Hewlett-Packard Company Device
+[103c:172a] lspci -knn:     Kernel driver in use: ehci-pci lspci -knn: 00:1b.0 Audio
+device [0403]: Intel Corporation 5 Series/3400 Series Chipset High Definition Audio
+[8086:3b56] (rev 05) lspci -knn:     Subsystem: Hewlett-Packard Company Device
+[103c:172a] lspci -knn: 00:1c.0 PCI bridge [0604]: Intel Corporation 5 Series/3400 Series
+Chipset PCI Express Root Port 1 [8086:3b42] (rev 05) lspci -knn:     Kernel driver in
+use: pcieport lspci -knn: 00:1c.1 PCI bridge [0604]: Intel Corporation 5 Series/3400
+Series Chipset PCI Express Root Port 2 [8086:3b44] (rev 05) lspci -knn:     Kernel driver
+in use: pcieport lspci -knn: 00:1c.3 PCI bridge [0604]: Intel Corporation 5 Series/3400
+Series Chipset PCI Express Root Port 4 [8086:3b48] (rev 05) lspci -knn:     Kernel driver
+in use: pcieport lspci -knn: 00:1d.0 USB controller [0c03]: Intel Corporation 5
+Series/3400 Series Chipset USB2 Enhanced Host Controller [8086:3b34] (rev 05) lspci
+- -knn:     Subsystem: Hewlett-Packard Company Device [103c:172a] lspci -knn:     Kernel
+driver in use: ehci-pci lspci -knn: 00:1e.0 PCI bridge [0604]: Intel Corporation 82801
+Mobile PCI Bridge [8086:2448] (rev a5) lspci -knn: 00:1f.0 ISA bridge [0601]: Intel
+Corporation Mobile 5 Series Chipset LPC Interface Controller [8086:3b07] (rev 05) lspci
+- -knn:     Subsystem: Hewlett-Packard Company Device [103c:172a] lspci -knn: 00:1f.2 SATA
+controller [0106]: Intel Corporation 5 Series/3400 Series Chipset 6 port SATA AHCI
+Controller [8086:3b2f] (rev 05) lspci -knn:     Subsystem: Hewlett-Packard Company Device
+[103c:172a] lspci -knn:     Kernel driver in use: ahci lspci -knn: 00:1f.6 Signal
+processing controller [1180]: Intel Corporation 5 Series/3400 Series Chipset Thermal
+Subsystem [8086:3b32] (rev 05) lspci -knn:     Subsystem: Hewlett-Packard Company Device
+[103c:172a] lspci -knn: 43:00.0 Network controller [0280]: Intel Corporation Centrino
+Advanced-N 6200 [8086:4239] (rev 35) lspci -knn:     Subsystem: Intel Corporation Device
+[8086:1311] lspci -knn: 44:06.0 FireWire (IEEE 1394) [0c00]: Ricoh Co Ltd R5C832 IEEE
+1394 Controller [1180:0832] (rev 06) lspci -knn:     Subsystem: Hewlett-Packard Company
+Device [103c:172a] lspci -knn:     Kernel driver in use: firewire_ohci lspci -knn:
+44:06.1 SD Host controller [0805]: Ricoh Co Ltd R5C822 SD/SDIO/MMC/MS/MSPro Host Adapter
+[1180:0822] (rev 25) lspci -knn:     Subsystem: Hewlett-Packard Company Device
+[103c:172a] lspci -knn:     Kernel driver in use: sdhci-pci lspci -knn: 44:06.2 CardBus
+bridge [0607]: Ricoh Co Ltd RL5c476 II [1180:0476] (rev bb) lspci -knn:     Subsystem:
+Hewlett-Packard Company Device [103c:172a] lspci -knn:     Kernel driver in use:
+yenta_cardbus lspci -knn: ff:00.0 Host bridge [0600]: Intel Corporation Core Processor
+QuickPath Architecture Generic Non-core Registers [8086:2c62] (rev 02) lspci -knn:
+Subsystem: Intel Corporation Device [8086:8086] lspci -knn: ff:00.1 Host bridge [0600]:
+Intel Corporation Core Processor QuickPath Architecture System Address Decoder
+[8086:2d01] (rev 02) lspci -knn:     Subsystem: Intel Corporation Device [8086:8086]
+lspci -knn: ff:02.0 Host bridge [0600]: Intel Corporation Core Processor QPI Link 0
+[8086:2d10] (rev 02) lspci -knn:     Subsystem: Intel Corporation Device [8086:8086]
+lspci -knn: ff:02.1 Host bridge [0600]: Intel Corporation 1st Generation Core Processor
+QPI Physical 0 [8086:2d11] (rev 02) lspci -knn:     Subsystem: Intel Corporation Device
+[8086:8086] lspci -knn: ff:02.2 Host bridge [0600]: Intel Corporation 1st Generation Core
+Processor Reserved [8086:2d12] (rev 02) lspci -knn:     Subsystem: Intel Corporation
+Device [8086:8086] lspci -knn: ff:02.3 Host bridge [0600]: Intel Corporation 1st
+Generation Core Processor Reserved [8086:2d13] (rev 02) lspci -knn:     Subsystem: Intel
+Corporation Device [8086:8086] usb-list: usb-list: Bus 01 Device 01: EHCI Host Controller
+[1d6b:0002] usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol
+00 usb-list:    Manufacturer: Linux 3.16.0-4-amd64 ehci_hcd usb-list:    Interface 00:
+Class 09(hub  ) Subclass 00 Protocol 00 Driver hub usb-list: 
+usb-list: Bus 01 Device 02: EHCI Host Controller [8087:0020]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 01 Device 03: HP Integrated Module [03f0:231d]
+usb-list:    Level 02 Parent 02 Port 00  Class e0(wlcon) Subclass 01 Protocol 01
+usb-list:    Manufacturer: Broadcom Corp
+usb-list:    Interface 00: Class e0(wlcon) Subclass 01 Protocol 01 Driver <none>
+usb-list:    Interface 01: Class e0(wlcon) Subclass 01 Protocol 01 Driver <none>
+usb-list:    Interface 02: Class ff(vend.) Subclass ff Protocol ff Driver <none>
+usb-list:    Interface 03: Class fe(app. ) Subclass 01 Protocol 01 Driver <none>
+usb-list: 
+usb-list: Bus 01 Device 04: HP Webcam [2 MP Macro] [04f2:b15e]
+usb-list:    Level 02 Parent 02 Port 04  Class ef(misc ) Subclass 02 Protocol 01
+usb-list:    Manufacturer: Chicony Electronics Co., Ltd.
+usb-list:    Interface 00: Class 0e(video) Subclass 01 Protocol 00 Driver <none>
+usb-list:    Interface 01: Class 0e(video) Subclass 02 Protocol 00 Driver <none>
+usb-list: 
+usb-list: Bus 02 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 3.16.0-4-amd64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 02: EHCI Host Controller [8087:0020]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 03: Flash Card Reader/Writer [058f:6366]
+usb-list:    Level 02 Parent 02 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Generic
+usb-list:    Interface 00: Class 08(mstor) Subclass 06 Protocol 50 Driver usb-storage
+lsmod: Module                  Size  Used by
+lsmod: ufs                    73443  0 
+lsmod: qnx4                   13036  0 
+lsmod: hfsplus               101391  0 
+lsmod: hfs                    53845  0 
+lsmod: minix                  31387  0 
+lsmod: msdos                  17046  0 
+lsmod: fuse                   83350  0 
+lsmod: ntfs                  194605  0 
+lsmod: dm_mod                 89405  0 
+lsmod: raid1                  34596  1 
+lsmod: md_mod                107672  2 raid1
+lsmod: xfs                   800590  2 
+lsmod: libcrc32c              12426  1 xfs
+lsmod: jfs                   172859  0 
+lsmod: crc32c_generic         12656  2 
+lsmod: btrfs                 867674  2 
+lsmod: xor                    21040  1 btrfs
+lsmod: raid6_pq               95238  1 btrfs
+lsmod: ext4                  477894  0 
+lsmod: crc16                  12343  1 ext4
+lsmod: mbcache                17171  1 ext4
+lsmod: jbd2                   82514  1 ext4
+lsmod: iwlwifi                96547  0 
+lsmod: cfg80211              413730  1 iwlwifi
+lsmod: rfkill                 18867  1 cfg80211
+lsmod: vfat                   17135  0 
+lsmod: fat                    61986  2 vfat,msdos
+lsmod: e1000e                212128  0 
+lsmod: ptp                    17692  1 e1000e
+lsmod: pps_core               17225  1 ptp
+lsmod: nls_utf8               12456  0 
+lsmod: isofs                  38965  0 
+lsmod: sg                     29973  0 
+lsmod: sd_mod                 44356  6 
+lsmod: sr_mod                 21903  0 
+lsmod: crc_t10dif             12431  1 sd_mod
+lsmod: cdrom                  47424  1 sr_mod
+lsmod: crct10dif_common       12356  1 crc_t10dif
+lsmod: usb_storage            56215  0 
+lsmod: pata_pcmcia            16796  1 
+lsmod: mmc_block              35031  2 
+lsmod: pcmcia                 49012  1 pata_pcmcia
+lsmod: ahci                   33334  5 
+lsmod: libahci                27158  1 ahci
+lsmod: libata                177508  3 ahci,libahci,pata_pcmcia
+lsmod: firewire_ohci          39523  0 
+lsmod: scsi_mod              191405  5 sg,usb_storage,libata,sd_mod,sr_mod
+lsmod: firewire_core          56665  1 firewire_ohci
+lsmod: sdhci_pci              22097  0 
+lsmod: yenta_socket           38994  0 
+lsmod: sdhci                  35161  1 sdhci_pci
+lsmod: pcmcia_rsrc            17433  1 yenta_socket
+lsmod: crc_itu_t              12347  1 firewire_core
+lsmod: ehci_pci               12512  0 
+lsmod: mmc_core              102374  3 mmc_block,sdhci,sdhci_pci
+lsmod: pcmcia_core            18392  3 pcmcia,pcmcia_rsrc,yenta_socket
+lsmod: ehci_hcd               69837  1 ehci_pci
+lsmod: usbcore               195468  3 usb_storage,ehci_hcd,ehci_pci
+lsmod: usb_common             12440  1 usbcore
+lsmod: thermal                17559  0 
+lsmod: thermal_sys            27642  1 thermal
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                    384716       104    384612   0% /run
+df: devtmpfs               1919276         0   1919276   0% /dev
+df: /dev/md0               1940480    269448   1671032  14% /target
+df: /dev/sda1               972460     64980    907480   7% /target/boot
+df: /dev/sda4             37109760       512  34983680   0% /target/home
+df: /dev/sda3             21484544    818168  18622312   4% /target/mnt/bsys
+df: /dev/md0               1940480    269448   1671032  14% /dev/.static/dev
+df: devtmpfs               1919276         0   1919276   0% /target/dev
+free:              total         used         free       shared      buffers
+free: Mem:       3847136      1219024      2628112            0         3396
+free: -/+ buffers:            1215628      2631508
+free: Swap:      3906556            0      3906556
+/proc/cmdline: BOOT_IMAGE=/install.amd/vmlinuz vga=788 initrd=/install.amd/initrd.gz ---
+quiet /proc/cpuinfo: processor        : 0
+/proc/cpuinfo: vendor_id        : GenuineIntel
+/proc/cpuinfo: cpu family       : 6
+/proc/cpuinfo: model            : 37
+/proc/cpuinfo: model name       : Intel(R) Core(TM) i5 CPU       M 520  @ 2.40GHz
+/proc/cpuinfo: stepping : 5
+/proc/cpuinfo: microcode        : 0x2
+/proc/cpuinfo: cpu MHz          : 2394.543
+/proc/cpuinfo: cache size       : 3072 KB
+/proc/cpuinfo: physical id      : 0
+/proc/cpuinfo: siblings : 4
+/proc/cpuinfo: core id          : 0
+/proc/cpuinfo: cpu cores        : 2
+/proc/cpuinfo: apicid           : 0
+/proc/cpuinfo: initial apicid   : 0
+/proc/cpuinfo: fpu              : yes
+/proc/cpuinfo: fpu_exception    : yes
+/proc/cpuinfo: cpuid level      : 11
+/proc/cpuinfo: wp               : yes
+/proc/cpuinfo: flags            : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge
+mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm
+constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni
+pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2
+popcnt aes lahf_lm ida arat dtherm tpr_shadow vnmi flexpriority ept vpid /proc/cpuinfo:
+bogomips : 4789.08 /proc/cpuinfo: clflush size     : 64 /proc/cpuinfo: cache_alignment  :
+64 /proc/cpuinfo: address sizes    : 36 bits physical, 48 bits virtual /proc/cpuinfo:
+power management: /proc/cpuinfo: /proc/cpuinfo: processor        : 1
+/proc/cpuinfo: vendor_id        : GenuineIntel
+/proc/cpuinfo: cpu family       : 6
+/proc/cpuinfo: model            : 37
+/proc/cpuinfo: model name       : Intel(R) Core(TM) i5 CPU       M 520  @ 2.40GHz
+/proc/cpuinfo: stepping : 5
+/proc/cpuinfo: microcode        : 0x2
+/proc/cpuinfo: cpu MHz          : 2394.543
+/proc/cpuinfo: cache size       : 3072 KB
+/proc/cpuinfo: physical id      : 0
+/proc/cpuinfo: siblings : 4
+/proc/cpuinfo: core id          : 0
+/proc/cpuinfo: cpu cores        : 2
+/proc/cpuinfo: apicid           : 1
+/proc/cpuinfo: initial apicid   : 1
+/proc/cpuinfo: fpu              : yes
+/proc/cpuinfo: fpu_exception    : yes
+/proc/cpuinfo: cpuid level      : 11
+/proc/cpuinfo: wp               : yes
+/proc/cpuinfo: flags            : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge
+mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm
+constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni
+pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2
+popcnt aes lahf_lm ida arat dtherm tpr_shadow vnmi flexpriority ept vpid /proc/cpuinfo:
+bogomips : 4789.08 /proc/cpuinfo: clflush size     : 64 /proc/cpuinfo: cache_alignment  :
+64 /proc/cpuinfo: address sizes    : 36 bits physical, 48 bits virtual /proc/cpuinfo:
+power management: /proc/cpuinfo: /proc/cpuinfo: processor        : 2
+/proc/cpuinfo: vendor_id        : GenuineIntel
+/proc/cpuinfo: cpu family       : 6
+/proc/cpuinfo: model            : 37
+/proc/cpuinfo: model name       : Intel(R) Core(TM) i5 CPU       M 520  @ 2.40GHz
+/proc/cpuinfo: stepping : 5
+/proc/cpuinfo: microcode        : 0x2
+/proc/cpuinfo: cpu MHz          : 2394.543
+/proc/cpuinfo: cache size       : 3072 KB
+/proc/cpuinfo: physical id      : 0
+/proc/cpuinfo: siblings : 4
+/proc/cpuinfo: core id          : 2
+/proc/cpuinfo: cpu cores        : 2
+/proc/cpuinfo: apicid           : 4
+/proc/cpuinfo: initial apicid   : 4
+/proc/cpuinfo: fpu              : yes
+/proc/cpuinfo: fpu_exception    : yes
+/proc/cpuinfo: cpuid level      : 11
+/proc/cpuinfo: wp               : yes
+/proc/cpuinfo: flags            : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge
+mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm
+constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni
+pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2
+popcnt aes lahf_lm ida arat dtherm tpr_shadow vnmi flexpriority ept vpid /proc/cpuinfo:
+bogomips : 4789.08 /proc/cpuinfo: clflush size     : 64 /proc/cpuinfo: cache_alignment  :
+64 /proc/cpuinfo: address sizes    : 36 bits physical, 48 bits virtual /proc/cpuinfo:
+power management: /proc/cpuinfo: /proc/cpuinfo: processor        : 3
+/proc/cpuinfo: vendor_id        : GenuineIntel
+/proc/cpuinfo: cpu family       : 6
+/proc/cpuinfo: model            : 37
+/proc/cpuinfo: model name       : Intel(R) Core(TM) i5 CPU       M 520  @ 2.40GHz
+/proc/cpuinfo: stepping : 5
+/proc/cpuinfo: microcode        : 0x2
+/proc/cpuinfo: cpu MHz          : 2394.543
+/proc/cpuinfo: cache size       : 3072 KB
+/proc/cpuinfo: physical id      : 0
+/proc/cpuinfo: siblings : 4
+/proc/cpuinfo: core id          : 2
+/proc/cpuinfo: cpu cores        : 2
+/proc/cpuinfo: apicid           : 5
+/proc/cpuinfo: initial apicid   : 5
+/proc/cpuinfo: fpu              : yes
+/proc/cpuinfo: fpu_exception    : yes
+/proc/cpuinfo: cpuid level      : 11
+/proc/cpuinfo: wp               : yes
+/proc/cpuinfo: flags            : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge
+mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm
+constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni
+pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2
+popcnt aes lahf_lm ida arat dtherm tpr_shadow vnmi flexpriority ept vpid /proc/cpuinfo:
+bogomips : 4789.08 /proc/cpuinfo: clflush size     : 64 /proc/cpuinfo: cache_alignment  :
+64 /proc/cpuinfo: address sizes    : 36 bits physical, 48 bits virtual /proc/cpuinfo:
+power management: /proc/cpuinfo: /proc/ioports: 0000-0cf7 : PCI Bus 0000:00
+/proc/ioports:   0000-001f : dma1
+/proc/ioports:   0020-0021 : pic1
+/proc/ioports:   0040-0043 : timer0
+/proc/ioports:   0050-0053 : timer1
+/proc/ioports:   0060-0060 : keyboard
+/proc/ioports:   0062-0062 : PNP0C09:00
+/proc/ioports:     0062-0062 : EC data
+/proc/ioports:   0064-0064 : keyboard
+/proc/ioports:   0066-0066 : PNP0C09:00
+/proc/ioports:     0066-0066 : EC cmd
+/proc/ioports:   0070-0077 : rtc0
+/proc/ioports:   0080-008f : dma page reg
+/proc/ioports:   00a0-00a1 : pic2
+/proc/ioports:   00c0-00df : dma2
+/proc/ioports:   00f0-00ff : fpu
+/proc/ioports:     00f0-00f0 : PNP0C04:00
+/proc/ioports:   0200-027f : pnp 00:02
+/proc/ioports:   03c0-03df : vesafb
+/proc/ioports:   0400-047f : pnp 00:02
+/proc/ioports:     0400-0403 : ACPI PM1a_EVT_BLK
+/proc/ioports:     0404-0405 : ACPI PM1a_CNT_BLK
+/proc/ioports:     0408-040b : ACPI PM_TMR
+/proc/ioports:     0420-042f : ACPI GPE0_BLK
+/proc/ioports:     0450-0450 : ACPI PM2_CNT_BLK
+/proc/ioports:   0500-057f : pnp 00:02
+/proc/ioports: 0cf8-0cff : PCI conf1
+/proc/ioports: 0d00-ffff : PCI Bus 0000:00
+/proc/ioports:   1000-100f : pnp 00:02
+/proc/ioports:   2000-2fff : PCI Bus 0000:44
+/proc/ioports:     2000-20ff : PCI CardBus 0000:45
+/proc/ioports:     2100-210f : pcmcia_socket0
+/proc/ioports:       2100-210f : pcmcia0.0
+/proc/ioports:     2400-24ff : PCI CardBus 0000:45
+/proc/ioports:   3000-4fff : PCI Bus 0000:02
+/proc/ioports:   5000-501f : 0000:00:1f.2
+/proc/ioports:     5000-501f : ahci
+/proc/ioports:   5020-503f : 0000:00:19.0
+/proc/ioports:   5040-5047 : 0000:00:1f.2
+/proc/ioports:     5040-5047 : ahci
+/proc/ioports:   5048-504f : 0000:00:1f.2
+/proc/ioports:     5048-504f : ahci
+/proc/ioports:   5050-5057 : 0000:00:02.0
+/proc/ioports:   5058-505b : 0000:00:1f.2
+/proc/ioports:     5058-505b : ahci
+/proc/ioports:   505c-505f : 0000:00:1f.2
+/proc/ioports:     505c-505f : ahci
+/proc/ioports:   ef80-ef9f : pnp 00:02
+/proc/ioports:   ffff-ffff : pnp 00:02
+/proc/ioports:     ffff-ffff : pnp 00:02
+/proc/iomem: 00000000-00000fff : reserved
+/proc/iomem: 00001000-0009fbff : System RAM
+/proc/iomem: 0009fc00-0009ffff : reserved
+/proc/iomem: 000a0000-000bffff : PCI Bus 0000:00
+/proc/iomem: 000c0000-000c7fff : Video ROM
+/proc/iomem: 000d0000-000d0fff : Adapter ROM
+/proc/iomem: 000d1000-000d1fff : Adapter ROM
+/proc/iomem: 000e0000-000fffff : reserved
+/proc/iomem:   000f0000-000fffff : System ROM
+/proc/iomem: 00100000-bafc1fff : System RAM
+/proc/iomem:   01000000-0151fff0 : Kernel code
+/proc/iomem:   0151fff1-018ecfbf : Kernel data
+/proc/iomem:   01a22000-01af3fff : Kernel bss
+/proc/iomem: bafc2000-bb6c1fff : reserved
+/proc/iomem: bb6c2000-bb7c1fff : ACPI Non-volatile Storage
+/proc/iomem: bb7c2000-bb7fefff : ACPI Tables
+/proc/iomem: bb7ff000-bb7fffff : System RAM
+/proc/iomem: bb800000-bbffffff : reserved
+/proc/iomem: be000000-bfffffff : reserved
+/proc/iomem: c0000000-dfffffff : PCI Bus 0000:00
+/proc/iomem:   c0000000-cfffffff : 0000:00:02.0
+/proc/iomem:     c0000000-c1feffff : vesafb
+/proc/iomem:   d0000000-d03fffff : 0000:00:02.0
+/proc/iomem:   d0400000-d04fffff : PCI Bus 0000:44
+/proc/iomem:     d0400000-d0400fff : 0000:44:06.2
+/proc/iomem:       d0400000-d0400fff : yenta_socket
+/proc/iomem:     d0401000-d04017ff : 0000:44:06.0
+/proc/iomem:       d0401000-d04017ff : firewire_ohci
+/proc/iomem:     d0403000-d04030ff : 0000:44:06.1
+/proc/iomem:       d0403000-d04030ff : mmc0
+/proc/iomem:     d0410000-d0410fff : pcmcia_socket0
+/proc/iomem:   d0500000-d05fffff : PCI Bus 0000:43
+/proc/iomem:     d0500000-d0501fff : 0000:43:00.0
+/proc/iomem:   d0600000-d45fffff : PCI Bus 0000:02
+/proc/iomem:   d4600000-d46fffff : PCI Bus 0000:01
+/proc/iomem:   d4700000-d471ffff : 0000:00:19.0
+/proc/iomem:     d4700000-d471ffff : e1000e
+/proc/iomem:   d4720000-d4723fff : 0000:00:1b.0
+/proc/iomem:   d4724000-d472400f : 0000:00:16.0
+/proc/iomem:   d4725000-d4725fff : Intel Flush Page
+/proc/iomem:   d4726000-d4726fff : 0000:00:1f.6
+/proc/iomem:   d4727000-d47277ff : 0000:00:1f.2
+/proc/iomem:     d4727000-d47277ff : ahci
+/proc/iomem:   d4728000-d47283ff : 0000:00:1d.0
+/proc/iomem:     d4728000-d47283ff : ehci_hcd
+/proc/iomem:   d4729000-d47293ff : 0000:00:1a.0
+/proc/iomem:     d4729000-d47293ff : ehci_hcd
+/proc/iomem:   d472a000-d472afff : 0000:00:19.0
+/proc/iomem:     d472a000-d472afff : e1000e
+/proc/iomem:   d4800000-d4800fff : pnp 00:00
+/proc/iomem:   d4900000-d4afffff : PCI Bus 0000:02
+/proc/iomem:   d8000000-dbffffff : PCI CardBus 0000:45
+/proc/iomem:   dc000000-dfffffff : PCI CardBus 0000:45
+/proc/iomem: e0000000-efffffff : PCI MMCONFIG 0000 [bus 00-ff]
+/proc/iomem:   e0000000-efffffff : reserved
+/proc/iomem:     e0000000-efffffff : pnp 00:00
+/proc/iomem: f0000000-fedfffff : PCI Bus 0000:00
+/proc/iomem:   fec00000-fec00fff : reserved
+/proc/iomem:     fec00000-fec003ff : IOAPIC 0
+/proc/iomem:   fed00000-fed003ff : HPET 0
+/proc/iomem:     fed00000-fed003ff : PNP0103:00
+/proc/iomem:   fed10000-fed13fff : reserved
+/proc/iomem:     fed10000-fed13fff : pnp 00:00
+/proc/iomem:   fed19000-fed19fff : reserved
+/proc/iomem:     fed19000-fed19fff : pnp 00:00
+/proc/iomem:   fed1b000-fed1ffff : reserved
+/proc/iomem:     fed1b000-fed1bfff : pnp 00:00
+/proc/iomem:     fed1c000-fed1ffff : pnp 00:00
+/proc/iomem:   fed20000-fed3ffff : pnp 00:00
+/proc/iomem:   fed45000-fed8ffff : pnp 00:00
+/proc/iomem: fee00000-fee00fff : Local APIC
+/proc/iomem:   fee00000-fee00fff : reserved
+/proc/iomem: fee01000-ffffffff : PCI Bus 0000:00
+/proc/iomem:   ff000000-ffffffff : INT0800:00
+/proc/iomem:     ffd00000-ffffffff : reserved
+/proc/iomem: 100000000-137ffffff : System RAM
+/proc/interrupts:            CPU0       CPU1       CPU2       CPU3       
+/proc/interrupts:   0:         46          0          0          0   IO-APIC-edge
+timer /proc/interrupts:   1:        466        449        472        487
+IO-APIC-edge      i8042 /proc/interrupts:   8:         22         21         20
+22   IO-APIC-edge      rtc0 /proc/interrupts:   9:         20         19
+20         19   IO-APIC-fasteoi   acpi /proc/interrupts:  12:          3
+2          1          3   IO-APIC-edge      i8042 /proc/interrupts:  16:
+24         30         29         22   IO-APIC-fasteoi   ehci_hcd:usb1 /proc/interrupts:
+20:       4367       4341       4335       4349   IO-APIC-fasteoi   ehci_hcd:usb2,
+firewire_ohci /proc/interrupts:  22:      75453      75840      75758      75466
+IO-APIC-fasteoi   yenta, mmc0, pata_pcmcia /proc/interrupts:  40:          0
+0          0          0   PCI-MSI-edge      PCIe PME /proc/interrupts:  41:
+0          0          0          0   PCI-MSI-edge      PCIe PME,
+pciehp /proc/interrupts:  42:          0          0          0          0
+PCI-MSI-edge      PCIe PME /proc/interrupts:  43:      28182      27844      27921
+28211   PCI-MSI-edge      ahci /proc/interrupts:  44:      19002      18991
+18983      18956   PCI-MSI-edge      eth0 /proc/interrupts: NMI:        100
+70         85         83   Non-maskable interrupts /proc/interrupts: LOC:     286286
+154195     295112     122565   Local timer interrupts /proc/interrupts: SPU:
+0          0          0          0   Spurious interrupts /proc/interrupts: PMI:
+100         70         85         83   Performance monitoring
+interrupts /proc/interrupts: IWI:          0          0          1          0   IRQ work
+interrupts /proc/interrupts: RTR:          3          0          0          0   APIC ICR
+read retries /proc/interrupts: RES:       6043       3270       4541       2597
+Rescheduling interrupts /proc/interrupts: CAL:        620        571        503
+646   Function call interrupts /proc/interrupts: TLB:        231        439
+230        498   TLB shootdowns /proc/interrupts: TRM:          0          0
+0          0   Thermal event interrupts /proc/interrupts: THR:          0
+0          0          0   Threshold APIC interrupts /proc/interrupts: MCE:
+0          0          0          0   Machine check exceptions /proc/interrupts:
+MCP:          6          6          6          6   Machine check polls /proc/interrupts:
+HYP:          0          0          0          0   Hypervisor callback
+interrupts /proc/interrupts: ERR:          0 /proc/interrupts: MIS:
+0 /proc/meminfo: MemTotal:        3847136 kB /proc/meminfo: MemFree:         2627884
+kB /proc/meminfo: MemAvailable:    3435952 kB /proc/meminfo: Buffers:            3396
+kB /proc/meminfo: Cached:          1029292 kB /proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           343356 kB
+/proc/meminfo: Inactive:         713748 kB
+/proc/meminfo: Active(anon):      90596 kB
+/proc/meminfo: Inactive(anon):    40324 kB
+/proc/meminfo: Active(file):     252760 kB
+/proc/meminfo: Inactive(file):   673424 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:       3906556 kB
+/proc/meminfo: SwapFree:        3906556 kB
+/proc/meminfo: Dirty:              1320 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         24308 kB
+/proc/meminfo: Mapped:             4944 kB
+/proc/meminfo: Shmem:            106504 kB
+/proc/meminfo: Slab:             122848 kB
+/proc/meminfo: SReclaimable:     101636 kB
+/proc/meminfo: SUnreclaim:        21212 kB
+/proc/meminfo: KernelStack:        3264 kB
+/proc/meminfo: PageTables:          728 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:     5830124 kB
+/proc/meminfo: Committed_AS:     137424 kB
+/proc/meminfo: VmallocTotal:   34359738367 kB
+/proc/meminfo: VmallocUsed:      295976 kB
+/proc/meminfo: VmallocChunk:   34359431168 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:         0 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+/proc/meminfo: DirectMap4k:       81676 kB
+/proc/meminfo: DirectMap2M:     3899392 kB
+/proc/bus/input/devices: I: Bus=0011 Vendor=0001 Product=0001 Version=ab41
+/proc/bus/input/devices: N: Name="AT Translated Set 2 keyboard"
+/proc/bus/input/devices: P: Phys=isa0060/serio0/input0
+/proc/bus/input/devices: S: Sysfs=/devices/platform/i8042/serio0/input/input0
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=sysrq kbd 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=120013
+/proc/bus/input/devices: B: KEY=402000000 3803078f800d001 feffffdfffefffff
+fffffffffffffffe /proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: B: LED=7
+/proc/bus/input/devices: 
+- -- System Information:
+Debian Release: 8.7
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-0.bpo.2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+installation-report depends on no packages.
+Versions of packages installation-report recommends:
+ii  pciutils   1:3.2.1-3
+ii  reportbug  6.6.3
+installation-report suggests no packages.
+- -- no debconf information
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+iEYEARECAAYFAljIFOgACgkQ5+rBHyUt5ws/MQCdGhbpvJVX1H2KmMDmLq+7L12W
+DC8AoKJLvVw1rvHJ7/NTbVsz9SUxhT15
+=ptYS
+-----END PGP SIGNATURE-----
+k-panic-sshot.JPGdmsg.txt.xz

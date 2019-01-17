@@ -1,0 +1,47 @@
+To : Cyril Brulebois <kibi@debian.org>, 898468@bugs.debian.org
+Subject : Bug#898468: debian-installer: black screen/long delay in graphical installer after switching from linux 4.15 to 4.16
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Tue, 05 Jun 2018 19:30:22 +0100
+Message-id : 8048203e786c18af6cdf108f21abb5899151db5d.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 898468@bugs.debian.org
+In-reply-to : <[🔎] 20180605172047.ont4aq4cop5fsmvf@mraw.org>
+References : <152609616539.5532.12788664828751075148.reportbug@armor.home>  <152609616539.5532.12788664828751075148.reportbug@armor.home>  <e3847385474aa3f7243ab1bf0a43eeb5c48d1628.camel@decadent.org.uk>  <152609616539.5532.12788664828751075148.reportbug@armor.home>  <[🔎] 20180605172047.ont4aq4cop5fsmvf@mraw.org> <152609616539.5532.12788664828751075148.reportbug@armor.home>
+
+
+On Tue, 2018-06-05 at 19:20 +0200, Cyril Brulebois wrote:
+> Hi,
+> 
+> Ben Hutchings <ben@decadent.org.uk> (2018-05-13):
+> > This sounds similar to the regression seen in stable affecting gnome-
+> > session.  libICE has a function for generating the MIT-MAGIC-COOKIE-1
+> > cookie, which now uses libbsd's arc4random_buf() which now uses
+> > getrandom().  getrandom() is documented to block (by default) when not
+> > much entropy is available, but until recently it could return too early
+> > after boot.
+> > 
+> > I don't know whether the cookie is generated this way when d-i starts
+> > the X server.
+> > 
+> > I opened bug #898088 against libbsd because arc4random_buf() is
+> > documented to return "very quickly".
+> 
+> Many thanks for the initial pointer and the libbsd bugfix. Unfortunately
+> that wasn't our issue at all (we don't use libICE and there's no udeb
+> for it anyway). I've documented my findings in a blog post:
+>   https://debamax.com/blog/2018/05/25/debugging-black-screen-in-debian-installer/
+> 
+> 
+> Summary: The issue is rather that we have fontconfig needing UUIDs for
+> font handling, calling uuid_generate_random() from util-linux, which
+> uses getrandom(), trying a few times with a little delay between each
+> attempts when EAGAIN has been returned, before finally falling back to
+> reading from /dev/{u,}random.
+[...]
+plymouth had the same problem, fixed in version 0.9.3-3.  You should be
+able to avoid it by running fc-cache as part of the initramfs build
+process.
+Ben.
+-- 
+Ben Hutchings
+Larkinson's Law: All laws are basically false.
+signature.asc

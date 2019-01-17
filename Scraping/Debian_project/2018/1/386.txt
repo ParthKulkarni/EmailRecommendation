@@ -1,0 +1,30 @@
+To : "Paul R. Tagliamonte" <paultag@gmail.com>
+Subject : Re: Debian 9: FAILED to start Network Time Synchronization. systemd-timesyncd.service' with boot...
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 14 Jan 2018 12:50:09 +0000
+Message-id : 20180114124603.GA7941@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] CAO6P2QQX7zghFxgPdPqfZcASNZ2Wv+B0rnTFhkvrXTfbFp76_A@mail.gmail.com>
+References : <[🔎] 8908035a-be06-9681-a14a-67f31da322e7@yahoo.com> <[🔎] 20180113164010.GB3727@perpetual.pseudorandom.co.uk> <[🔎] CAO6P2QQX7zghFxgPdPqfZcASNZ2Wv+B0rnTFhkvrXTfbFp76_A@mail.gmail.com>
+
+
+On Sat, 13 Jan 2018 at 19:54:10 -0500, Paul R. Tagliamonte wrote:
+> I had a similar bug on my machine that was due to a missing systemd-timesyncd
+> user. I didn't report it because I assumed it was user error
+If you are using testing/unstable (unlike André) then that might be a
+regression caused by this change:
+systemd (236-1) unstable; urgency=medium
+  DynamicUser=yes has been enabled for systemd-journal-upload.service,
+  systemd-journal-gatewayd.service and systemd-timesyncd.service.
+  This means we no longer need to statically allocate a systemd-journal-upload,
+  systemd-journal-gateway and systemd-timesync user and you can now safely
+  remove those system users along with their associated groups.
+and
+systemd (236-1) unstable; urgency=medium
+  ...
+  * Stop creating systemd-timesync system user.
+    DynamicUser=yes has been enabled for systemd-timesyncd.service so
+    allocating a system user statically is no longer necessary.
+I would suggest reporting a (separate) bug.
+(That change was not present in Debian 9, so if there's a regression
+there it shouldn't be affecting André.)
+    smcv

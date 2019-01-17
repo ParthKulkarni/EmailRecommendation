@@ -1,0 +1,31 @@
+To : debian-devel@lists.debian.org, debian-mentors@lists.debian.org
+Subject : Re: Systemd user instance equivalent of dh_systemd_enable?
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 8 Apr 2018 12:28:02 +0100
+Message-id : 20180408112802.GA27186@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 11a6698c-4947-e4be-03b9-27abfae00110@grinta.net>
+References : <[🔎] 11a6698c-4947-e4be-03b9-27abfae00110@grinta.net>
+
+
+On Sat, 07 Apr 2018 at 18:18:11 -0600, Daniele Nicolodi wrote:
+> I'm working on a package that installs a systemd user instance unit file
+> that needs to be enabled with
+> 
+> # systemctl --global enable foo.service
+I believe the only way to do this is currently to make
+it be statically enabled for all users (ship a symlink in
+/usr/lib/systemd/user/${something}.wants).
+What is the package?
+Is it something that all users are going to want?
+Is it something that makes sense to run every time any user logs in in
+any way (ssh, console login, graphical login) or only on entry to a
+graphical session?
+Would it make sense to arrange for it to be socket-activated (like
+dbus-user-session, gpg-agent, pulseaudio) or D-Bus-activated (like
+gnome-terminal-server) or autostarted on login to a graphical session (via
+/etc/xdg/autostart), rather than being started eagerly on every login?
+(The way packages like dbus-user-session, gpg-agent and pulseaudio set
+themselves up for socket activation is to have their *.socket unit be
+statically enabled in sockets.target, but not their *.service unit in
+default.target.)
+    smcv

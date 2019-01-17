@@ -1,0 +1,73 @@
+To : Cyril Brulebois <kibi@debian.org>, Julian Andres Klode <jak@debian.org>, 851774@bugs.debian.org, Marga Manterola <marga@google.com>, deity@bugs.debian.org
+Subject : Bug#851774: [pkg-gnupg-maint] Bug#851774: Stop using apt-key add to add keys in generators/60local
+From : Daniel Kahn Gillmor <dkg@fifthhorseman.net>
+Date : Sat, 04 Feb 2017 19:35:58 -0500
+Message-id : 87k295pj81.fsf@alice.fifthhorseman.net
+Reply-to : Daniel Kahn Gillmor <dkg@fifthhorseman.net>, 851774@bugs.debian.org
+In-reply-to : <[🔎] 20170204232552.GA22682@mraw.org>
+References : <CAM+PWT0Yx4YK63J=84zA2dvhXwjGROxC72AhEE=7uGnOs+mbcg@mail.gmail.com> <91472e5c-7c1b-b017-536d-541b563716cb@philkern.de> <20170121183343.GA31901@debian.org> <[🔎] 20170204232552.GA22682@mraw.org>
+
+
+Hi all--
+On Sat 2017-02-04 18:25:52 -0500, Cyril Brulebois wrote:
+> I'm adding gnupg maintainers in cc since they might have interesting
+> tips for the implementation. Context: we need to replace apt-key add
+> calls with dropping files under the appropriate names for extra
+> repositories in a Debian Installer context.
+Thanks for the Cc, KiBi.
+I think that extra repositories should *not* have their keys added to
+/etc/apt/trusted.gpg.d/*.gpg ("the fragment directory") by default,
+since that authorizes the extra key to make valid signatures for the
+main archive.
+If the extra repo has its own key, it should be authorized to make
+signatures only for the extra repo, and nothing else (similarly, the
+official debian archive keys *shouldn't* be authorized to make
+signatures for the extra repo).
+So if we're talking about adding extra repositories for a debian stretch
+installer, as i said over on #853858:
+  for Debian 9 ("stretch") and later, you should place these keys (in
+  binary form) someplace within /usr/local/share/keyrings/ and add a
+  "Signed-By:" option to the relevant apt sources (see sources.list(5)).
+Does that strategy sound right overall to the rest of you?
+Regardless of the choice of filesystem location (fragment directory or
+elsewhere), gpgv does want to see the curated keyrings it depends on in
+binary format, so on to the next bit:
+> so I think we need to have some kind of autodetection code. gnupg
+> maintainers: is grepping for “BEGIN PGP PUBLIC KEY BLOCK” enough to
+> decide between armored and non-armored? Or do you have any better
+> solutions?
+If the keyring is non-armored, i assume that we're just going to try to
+use it as-is, without transformation.  So the question is: which
+incoming keys do we want to try to transform?
+I'd err on the strict side and say that we really only want files that
+contain nothing but a public key block.  That is, if there's any garbage
+text before the ASCII-armored header, we probably want to reject the
+file rather than trying to transform it.  This strictness avoids
+tripping up in really bizarre corner cases (like if someone provides an
+non-armored key that contains a notation, uid, uat, or other embedded
+data that itself has the string "BEGIN PGP PUBLIC KEY BLOCK" in it).  I
+can cook up such a perversity if it would make anyone happy ;)
+The strictness does mean that people who'd, say, copied and pasted an
+entire e-mail message that includes a key and expected it to JustWork™
+might be disappointed, but i might be OK with that.  Being clean about
+what's in your repo keyrings is a habit we want to cultivate.
+If you agree with being strict, then the following pipeline should
+return 0 if the keyring is ASCII-armored:
+    head -n1 | grep -Fxq -e '-----BEGIN PGP PUBLIC KEY BLOCK-----'
+If you want to be a little less strict and permit arbitrary whitespace
+before the block, you could do:
+    awk '/[^[:space:]]/{ print $0; exit }' | grep -Fxq -e '-----BEGIN PGP PUBLIC KEY BLOCK-----'
+I've tested and both of these pipelines appear to work with their
+busybox variants using busybox 1:1.22.0-19+b1 on amd64.
+So if you're OK with that test, then you need the transformation:
+Over in #831409, i mentioned this simple pipeline to perform the actual
+transformation:
+     awk '/^$/{ x = 1; } /^[^=-]/{ if (x) { print $0; } ; }' | base64 -d
+Unfortunately, it looks to me like busybox doesn't offer a base64 applet
+at the moment, which would otherwise allow d-i to do the de-armoring
+entirely with busybox.  I could probably knock that applet together if
+people want it -- it looks like busybox already has b64 subroutines in
+it.
+Hope this helps!  I'm happy to follow up on it with you.
+        --dkg
+signature.asc

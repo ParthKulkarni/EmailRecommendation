@@ -1,0 +1,59 @@
+To : Russ Allbery <rra@debian.org>, debian-devel@lists.debian.org
+Subject : Re: Debian part of a version number when epoch is bumped
+From : Wouter Verhelst <wouter@debian.org>
+Date : Thu, 15 Feb 2018 11:09:08 +0100
+Message-id : 20180215100908.GC3203@grep.be
+In-reply-to : <[🔎] 37eb50f6-11cc-11e8-9b6a-00163eeb5320@msgid.mathom.us>
+References : <[🔎] 20180214135407.on325smdsbofe4qm@khazad-dum.debian.net> <[🔎] 1518617345.25962.6.camel@liw.fi> <[🔎] m3a7wbo3vy.fsf@luffy.cx> <[🔎] 1518635464.22059.1.camel@liw.fi> <[🔎] m3vaezl4lq.fsf@luffy.cx> <[🔎] 8aea61ec-11c3-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] m3r2pnl3q3.fsf@luffy.cx> <[🔎] 6d2296dc-11c5-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 87k1vfthqq.fsf@hope.eyrie.org> <[🔎] 37eb50f6-11cc-11e8-9b6a-00163eeb5320@msgid.mathom.us>
+
+
+On Wed, Feb 14, 2018 at 04:28:41PM -0500, Michael Stone wrote:
+> On Wed, Feb 14, 2018 at 12:54:05PM -0800, Russ Allbery wrote:
+> > Since there are two goals, a more correct implementation would be to split
+> > these into two versions.  The simplest would be to have an integer
+> > "version epoch" field in the package metadata separate from the version
+> > number.  So instead of:
+> > 
+> > Version: 1.8-1
+> > 
+> > Version: 1:1.6-1
+> > 
+> > you'd have:
+> > 
+> > Version: 1.8-1
+> > 
+> > Version: 1.6-1
+> > Epoch: 1
+> > 
+> > We then could implement the separate semantics: only the version field
+> > would be used for interpackage dependencies, so 1.6-1 with epoch 1 would
+> > not satisfy >= 1.8 dependencies, but DAK and apt clients would know that
+> > any package with epoch 1 supersedes packages with no epoch for archive and
+> > default installation purposes.
+> > 
+> > Of course, getting to that from where we are now may be substantially more
+> > trouble than it's worth, and it would necessarily be a very slow rollout
+> > process (and there are still issues with unique filenames).
+> 
+> I don't think you'd need to change the package metadata for this, just
+> change the comparison rules. I'm not entirely sure what the semantics should
+> be, though--a simple depends >= is easy, but what about conflicts and breaks
+> with <<? I agree that it's probably more trouble than it's worth.
+I was thinking it might be better to go to a "wildcard" epoch:
+Depends: X (>= *:1.8)
+would mean
+"For this comparison, ignore the epoch, and make sure that the version
+is at least 1.8 or above".
+Beyond that, the usual semantics of all the operators would apply. No
+need for "special" operators or metadata format changes.
+I was thinking for a moment that it might be useful to have that
+implemented as a "general" thing, but then I cannot think of any
+situation where a dependency of the form "any version of this package,
+as long as it has a Debian revision of 2 or above" might be useful.
+Given that, it might also be good to state that wildcard version
+comparisons may not include the debian revision, only the upstream
+version number.
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

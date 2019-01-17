@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Henrique de Moraes Holschuh <hmh@debian.org>
+Date : Fri, 2 Jun 2017 16:05:51 -0300
+Message-id : 20170602190551.GA18421@khazad-dum.debian.net
+In-reply-to : <[🔎] af2d4098-0fcb-bc3d-74a1-7b24b29f035a@derobert.net>
+References : <87tw424kxc.fsf@deep-thought.43-1.org> <5A3F252E-1B3C-4968-BEE9-ED9D5CE32883@derobert.net> <20170531075133.fmgxgiigrevfe4yi@perpetual.pseudorandom.co.uk> <[🔎] 819832B7-6531-4786-A152-DF635A44C085@derobert.net> <[🔎] 20170601170037.GA4766@khazad-dum.debian.net> <[🔎] af2d4098-0fcb-bc3d-74a1-7b24b29f035a@derobert.net>
+
+
+On Fri, 02 Jun 2017, Anthony DeRobertis wrote:
+> On 06/01/2017 01:00 PM, Henrique de Moraes Holschuh wrote:
+> >Anything on the top three priorities (critical, alert and emergency) is
+> >supposed to be displayed immediately to all logged-in users (including
+> >remote ones), no matter what.
+> 
+> Only LOG_EMERG does that, at least on my machine and I'm pretty sure that's
+> the default rsyslog config. Unfortunately, a RAID member failure is only
+> legitimately LOG_ALERT. Sort of a moot point though...
+Hmm, true.  I misrecalled this detail and failed to check it to be
+correct before posting.
+We should consider changing that to at least include ALERT as well.
+> >>It would be great it we had an alert program to use instead of email
+> >KDE displays high-priority system alerts as high priority notifications
+> >by default (maybe some of it because of the default configuration of
+> >rsyslog).
+> 
+> Running KDE here, so familiar with them. The first problem with those is
+> they automatically vanish after a few seconds. They remain around, if you
+> pull up the alert notifier, but that little (1) in the systray is easy to
+> miss.
+Yes.  I just tested it in Debian stable with "logger -p EMERG
+this_is_only_a_test".
+It would be far better if KDE used the (!) pictogram at least for ALERT
+and EMERG priorities, but it seems to be getting the messages from the
+ttys instead of from journald or the syslog daemon.  I did not test this
+throughoutly, though.
+And yes, I stand corrected. It does not display ALERT or CRIT priorities
+by default, only EMERG.  Which is Not Good Enough as far as I am
+concerned.
+> Second problem is that only works if you're logged in. Even on a typical
+> desktop where the main user is the admin, it's not safe to assume a that
+> user will always be logged in:
+Well, yes.  Remote syslog (wherever deployed) will receive the messages
+quasi-real-time, though.  And the messages *are* going to be recorded on
+the journal and /var/log/syslog.
+Whether someone will read the logs or not, well... it is the same issue
+with notifications over local email to root: one has to assume the
+system has been properly configured as an Unix workstation (and thus it
+has local email routing that goes somewhere it will be read).
+I am for doing the three by default: email (for stuff like mdadm),
+proper syslog or journald (for everything), and proper desktop-
+environment notifications for whomever is logged in.
+>  * Turn on machine, go grab coffee or tea while it's booting. Disk
+>    failure occurs before you get back and log in.
+In the older days, you'd have the messages on the login tty, even if it
+screwed up the graphical screen (Solaris and Sun-OS style ;p).
+Or you'd have a xconsole window open, even on the xdm screen (which I
+never tried to do, I wonder if this was a local xdm change...)
+-- 
+  Henrique Holschuh

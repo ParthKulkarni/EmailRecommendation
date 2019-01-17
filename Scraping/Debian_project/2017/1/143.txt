@@ -1,0 +1,62 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Converting to dgit
+From : Russ Allbery <rra@debian.org>
+Date : Tue, 03 Jan 2017 22:17:33 -0800
+Message-id : 874m1f4ade.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 87shoz9yo8.fsf@vostro.rath.org> (Nikolaus Rath's message of	"Tue, 03 Jan 2017 21:33:43 -0800")
+References : <[🔎] 20170103194117.7bal6rcnv4v2yhus@iris.silentflame.com>	<[🔎] 87zij7hdek.fsf@hope.eyrie.org>	<[🔎] 9F7A6681-A43A-4950-BC90-522BCDF880A7@kitterman.com>	<[🔎] 877f6bbjuk.fsf@vostro.rath.org> <[🔎] 87eg0j4hlm.fsf@hope.eyrie.org>	<[🔎] 87shoz9yo8.fsf@vostro.rath.org>
+
+
+Nikolaus Rath <Nikolaus@rath.org> writes:
+> On Jan 03 2017, Russ Allbery <rra@debian.org> wrote:
+>> Speaking as a Debian user who frequently has to apply local patches or
+>> produce local versions of Debian packages for my job (usually weird
+>> backports or bizarre local requirements), I cannot express to you how
+>> much I prefer a Debian source package with patches in debian/patches
+>> over a Git repository with patches as commits.
+> Yeah, but I was not talking about the strength of preferences but the
+> number of users that have them :-). Also, you happen to be a Debian
+> developer and are therefore already familiar with the Debian source
+> format...
+Sure, but my reasons for wanting this are pretty common ones, I think.
+Maybe it will help to show an example.
+Usually what I have to do (and I think this is a pretty common use case
+for anyone who customizes Debian packages) is that I need to start from a
+package from unstable (or at least newer than stable, or oldstable, or
+ancient Ubuntu, or whatever crap I'm having to work on), apply some local
+patches, and backport it.  So I:
+1. Start from the Debian Git repository and make my own branch.
+2. Add some new patches for local shit, maybe remove some packages.
+3. Hack up the packaging in horrible ways for weird local requirements.
+4. Usually get rid of a bunch of stuff that doesn't work in a backport.
+All this is roughly equally easy with either patches applied or a separate
+tree of patches.  Then, suppose there's a security release of the package
+I started with, which adds more patches.
+If I'm lucky, those upstream changes don't conflict with local changes,
+and then this continues to be equally easy either way.  But what happens
+to me a lot is that they *do* conflict, or maybe the new upstream is a
+completely new version of the package (and then it's pretty much
+guaranteed to conflict).
+With a patch tree, I merge in the new Debian packaging tree, and I get new
+patches, some conflicts on patches I deleted (which I can just resolve by
+deleting), and maybe conflicts on patches I modified (worst case), which I
+generally resolve by deleting the patch entirely, switching to the
+patch-queue branch, and then carefully add back in the patch and fix
+whatever conflicts.  Then I have to rebase my patches against the latest
+upstream, which may require a bit more Git work.
+With patches applied, I merge in the new Debian packaging tree, and I get
+conflicts all over the upstream source.  The conflicts come from multiple
+different patches, some of the conflicts are from patches I backed out of
+that have been modified, and single files have merge conflicts from three
+or four different conceptual changes at the same time.  The whole thing is
+a total disaster that takes hours to unwind.
+Now, git-dpm gives both, as I've found out in this thread, which is great,
+since that means I can basically throw away the patched tree and do my
+normal thing with the patches.  But without having those separated
+patches, the whole thing is an utter nightmare.  (And I say that from
+having done it several times.)
+None of this is unique to me or requires any deep knowledge of the Debian
+package format.  It's that individual patches are a way easier unit to
+work with when resolving conflicts than a patched tree.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

@@ -1,0 +1,148 @@
+To : Martin Michlmayr <tbm@cyrius.com>, 864525@bugs.debian.org
+Subject : Bug#864525: flash-kernel: fails on fat32
+From : Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date : Sat, 10 Jun 2017 00:59:21 +0200
+Message-id : 467a3d50-e88c-fcba-475e-6b9381d90ba0@gmx.de
+Reply-to : Heinrich Schuchardt <xypron.glpk@gmx.de>, 864525@bugs.debian.org
+In-reply-to : <[🔎] 20170609223114.cmgjxtkfefn56rho@jirafa.cyrius.com>
+References : <[🔎] a63a4b89-29af-0e57-e258-7039672d0664@gmx.de> <[🔎] 20170609223114.cmgjxtkfefn56rho@jirafa.cyrius.com>
+
+
+On 06/10/2017 12:31 AM, Martin Michlmayr wrote:
+> * Heinrich Schuchardt <xypron.glpk@gmx.de> [2017-06-09 23:18]:
+>> flash-kernel currently fails if the boot partition is FAT32.
+>>
+>> On FAT32 symbolic links cannot be created.
+>
+> Unless something has changed, FAT for /boot isn't supported anyway.
+>
+> See https://lists.debian.org/debian-boot/2014/01/msg00188.html
+>
+That information seems to be outdated.
+dpkg -i linux-image-4.11.0-trunk-arm64_4.11.3-1~exp1_arm64.deb
+worked without any trouble until reaching flash-kernel:
+sudo dpkg -i linux-image-4.11.0-trunk-arm64_4.11.3-1~exp1_arm64.deb
+Selecting previously unselected package linux-image-4.11.0-trunk-arm64.
+(Reading database ... 16415 files and directories currently installed.)
+Preparing to unpack
+linux-image-4.11.0-trunk-arm64_4.11.3-1~exp1_arm64.deb ...
+Unpacking linux-image-4.11.0-trunk-arm64 (4.11.3-1~exp1) ...
+Setting up linux-image-4.11.0-trunk-arm64 (4.11.3-1~exp1) ...
+I: /vmlinuz is now a symlink to boot/vmlinuz-4.11.0-trunk-arm64
+I: /initrd.img is now a symlink to boot/initrd.img-4.11.0-trunk-arm64
+/etc/kernel/postinst.d/initramfs-tools:
+update-initramfs: Generating /boot/initrd.img-4.11.0-trunk-arm64
+Using DTB: meson-gxbb-odroidc2.dtb
+Installing
+/usr/lib/linux-image-4.11.0-trunk-arm64/amlogic/meson-gxbb-odroidc2.dtb
+into /boot/dtbs/4.11.0-trunk-arm64/meson-gxbb-odroidc2.dtb
+Installing new meson-gxbb-odroidc2.dtb.
+ln: failed to create symbolic link '/boot/dtb-4.11.0-trunk-arm64':
+Operation not permitted
+run-parts: /etc/initramfs/post-update.d//flash-kernel exited with return
+code 1
+run-parts: /etc/kernel/postinst.d/initramfs-tools exited with return code 1
+dpkg: error processing package linux-image-4.11.0-trunk-arm64 (--install):
+ subprocess installed post-installation script returned error exit status 1
+Errors were encountered while processing:
+ linux-image-4.11.0-trunk-arm64
+With the suggested patch no error occurs.:
+# dpkg -i linux-image-4.11.0-trunk-arm64_4.11.3-1~exp1_arm64.deb
+Selecting previously unselected package linux-image-4.11.0-trunk-arm64.
+(Reading database ... 16427 files and directories currently installed.)
+Preparing to unpack
+linux-image-4.11.0-trunk-arm64_4.11.3-1~exp1_arm64.deb ...
+Unpacking linux-image-4.11.0-trunk-arm64 (4.11.3-1~exp1) ...
+Setting up linux-image-4.11.0-trunk-arm64 (4.11.3-1~exp1) ...
+I: /vmlinuz is now a symlink to boot/vmlinuz-4.11.0-trunk-arm64
+I: /initrd.img is now a symlink to boot/initrd.img-4.11.0-trunk-arm64
+/etc/kernel/postinst.d/initramfs-tools:
+update-initramfs: Generating /boot/initrd.img-4.11.0-trunk-arm64
+Using DTB: meson-gxbb-odroidc2.dtb
+Installing
+/usr/lib/linux-image-4.11.0-trunk-arm64/amlogic/meson-gxbb-odroidc2.dtb
+into /boot/dtbs/4.11.0-trunk-arm64/meson-gxbb-odroidc2.dtb
+Installing new meson-gxbb-odroidc2.dtb.
+ln: failed to create symbolic link '/boot/dtb-4.11.0-trunk-arm64':
+Operation not permitted
+ln: failed to create symbolic link '/boot/dtb': Operation not permitted
+Ignoring old or unknown version 4.11.0-trunk-arm64 (latest is
+4.11.1-R005-arm64)
+Use --force if you want version 4.11.0-trunk-arm64.
+Installing
+/usr/lib/linux-image-4.11.1-R005-arm64/amlogic/meson-gxbb-odroidc2.dtb
+into /boot/dtbs/4.11.1-R005-arm64/meson-gxbb-odroidc2.dtb
+Taking backup of meson-gxbb-odroidc2.dtb.
+Installing new meson-gxbb-odroidc2.dtb.
+ln: failed to create symbolic link '/boot/dtb-4.11.1-R005-arm64':
+Operation not permitted
+ln: failed to create symbolic link '/boot/dtb': Operation not permitted
+flash-kernel: deferring update (trigger activated)
+/etc/kernel/postinst.d/zz-flash-kernel:
+Using DTB: meson-gxbb-odroidc2.dtb
+Installing
+/usr/lib/linux-image-4.11.0-trunk-arm64/amlogic/meson-gxbb-odroidc2.dtb
+into /boot/dtbs/4.11.0-trunk-arm64/meson-gxbb-odroidc2.dtb
+Taking backup of meson-gxbb-odroidc2.dtb.
+Installing new meson-gxbb-odroidc2.dtb.
+ln: failed to create symbolic link '/boot/dtb-4.11.0-trunk-arm64':
+Operation not permitted
+ln: failed to create symbolic link '/boot/dtb': Operation not permitted
+Ignoring old or unknown version 4.11.0-trunk-arm64 (latest is
+4.11.1-R005-arm64)
+Processing triggers for flash-kernel (3.79) ...
+Using DTB: meson-gxbb-odroidc2.dtb
+Installing
+/usr/lib/linux-image-4.11.1-R005-arm64/amlogic/meson-gxbb-odroidc2.dtb
+into /boot/dtbs/4.11.1-R005-arm64/meson-gxbb-odroidc2.dtb
+Taking backup of meson-gxbb-odroidc2.dtb.
+Installing new meson-gxbb-odroidc2.dtb.
+ln: failed to create symbolic link '/boot/dtb-4.11.1-R005-arm64':
+Operation not permitted
+ln: failed to create symbolic link '/boot/dtb': Operation not permitted
+flash-kernel: installing version 4.11.1-R005-arm64
+Generating boot script u-boot image... done.
+Taking backup of boot.scr.
+Installing new boot.scr.
+flashkernel --force 4.11.0-trunk-arm64
+writes the desired files.
+# flash-kernel --force 4.11.0-trunk-arm64
+Using DTB: meson-gxbb-odroidc2.dtb
+Installing
+/usr/lib/linux-image-4.11.0-trunk-arm64/amlogic/meson-gxbb-odroidc2.dtb
+into /boot/dtbs/4.11.0-trunk-arm64/meson-gxbb-odroidc2.dtb
+Taking backup of meson-gxbb-odroidc2.dtb.
+Installing new meson-gxbb-odroidc2.dtb.
+ln: failed to create symbolic link '/boot/dtb-4.11.0-trunk-arm64':
+Operation not permitted
+ln: failed to create symbolic link '/boot/dtb': Operation not permitted
+flash-kernel: forcing install of 4.11.0-trunk-arm64 instead of
+4.11.1-R005-arm64.
+flash-kernel: WARNING: Installing any new kernel package might override
+this.
+flash-kernel: installing version 4.11.0-trunk-arm64
+Generating boot script u-boot image... done.
+Taking backup of boot.scr.
+Installing new boot.scr.
+Booting the newly installed kernel works like a charm:
+Scanning mmc 0:1...
+Found U-Boot script /boot.scr
+reading /boot.scr
+2254 bytes read in 11 ms (199.2 KiB/s)
+## Executing script at 1f000000
+reading /vmlinuz-4.11.0-trunk-arm64
+15038976 bytes read in 1330 ms (10.8 MiB/s)
+reading /dtbs/4.11.0-trunk-arm64/meson-gxbb-odroidc2.dtb
+16119 bytes read in 17 ms (925.8 KiB/s)
+reading /initrd.img-4.11.0-trunk-arm64
+17544953 bytes read in 1534 ms (10.9 MiB/s)
+Booting Debian 4.11.0-trunk-arm64 from mmc 0:1...
+## Flattened Device Tree blob at 01000000
+   Booting using the fdt blob at 0x1000000
+   Loading Ramdisk to 7ce9c000, end 7df576f9 ... OK
+   Loading Device Tree to 000000007ce95000, end 000000007ce9bef6 ... OK
+Starting kernel ...
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 4.11.0-trunk-arm64
+(debian-kernel@lists.debian.org) (gcc version 6.3.0 20170516 (Debian 6
+.3.0-18) ) #1 SMP Debian 4.11.3-1~exp1 (2017-06-05)

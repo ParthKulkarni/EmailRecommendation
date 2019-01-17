@@ -1,0 +1,192 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Tainted builds (was Re: usrmerge -- plan B?)
+From : Guillem Jover <guillem@debian.org>
+Date : Sun, 2 Dec 2018 22:25:36 +0100
+Message-id : 20181202212535.GC11687@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org,	Antonio Terceiro <terceiro@debian.org>
+In-reply-to : <20181128164832.GA10033@debian.org>
+References : <878t1esau1.fsf@hope.eyrie.org> <2d3113fc-e79b-babe-4981-b1bc24fadfd7@gmail.com> <20181128135752.GA21401@thunder.hadrons.org> <20181128164832.GA10033@debian.org>
+
+
+On Wed, 2018-11-28 at 14:48:32 -0200, Antonio Terceiro wrote:
+> On Wed, Nov 28, 2018 at 02:57:52PM +0100, Guillem Jover wrote:
+> > This is actually a great idea! I went ahead and implemented this, see
+> > attached tentative patch which I'm planning on including in dpkg 1.19.3.
+> 
+> Would you be willing to also implement
+> 
+> 	Tainted-By: not-built-in-a-chroot
+> 
+> ?
+I also agree with what others have mentioned down-thread, that this is
+not really a tainting reason. Tainting would involve say, programs
+or libraries under /usr/local/{bin,sbin/lib}/, perhaps even configs
+under /usr/local/etc, or even /etc with conffiles diverged from the
+defaults, say output from «dpkg --verify», files unowned by a package
+(in the sense of either being tracked in dpkg database or whether the
+package manually manages the pathnames) being present in directories
+in the executable or linker search paths, etc.
+While some of these might be reliable, easy to emit and cheap to
+compute, doing for example «dpkg --verify» before every build would
+be IMO unnacceptably slow, but would be a definitive answer to one
+kind of tainted system.
+Whether a package is being built within a chroot or not, has nothing
+to do with how that installation is being managed IMO. It feels a bit
+like recording what's the form factor of the machine being run on? :)
+> a few nits in the manpage:
+Great! Thanks for the review, I've tried to reword and improve several
+of the docs, attached updated patch.
+Thanks,
+Guillem
+From ca2b0f9710867f3d8e8bca3a6654b9dd67db3539 Mon Sep 17 00:00:00 2001
+From: Guillem Jover <guillem@debian.org>
+Date: Sun, 2 Dec 2018 03:35:49 +0100
+Subject: [PATCH] dpkg-genbuildinfo: Include a new Build-Tainted-By field
+This field will contain a list of tainting reason tags, which can denote
+that the current build has potentially been broken.
+On Debian and derivatives it can emit now merged-usr-via-symlinks as a
+tainting reason tag.
+Suggested-by: Alexander E. Patrakov <patrakov@gmail.com>
+---
+ man/deb-buildinfo.man              | 19 +++++++++++++++++++
+ scripts/Dpkg/Control/FieldsCore.pm |  7 ++++++-
+ scripts/Dpkg/Vendor/Debian.pm      | 20 ++++++++++++++++++++
+ scripts/Dpkg/Vendor/Default.pm     | 10 ++++++++++
+ scripts/dpkg-genbuildinfo.pl       |  2 ++
+ 5 files changed, 57 insertions(+), 1 deletion(-)
+diff --git a/man/deb-buildinfo.man b/man/deb-buildinfo.man
+index 5013aa047..0708fa319 100644
+--- a/man/deb-buildinfo.man
++++ b/man/deb-buildinfo.man
+@@ -149,6 +149,25 @@ via some pattern match to avoid leaking possibly sensitive information.
+ On Debian and derivatives only build paths starting with \fI/build/\fP
+ will emit this field.
+ .TP
++.B Build\-Tainted\-By:
++.TQ
++.I " taint-reason-list"
++This folded field contains a space-separated list of reason tags (formed by
++alphanumeric and dash characters) which identify why the current build has
++been tainted (since dpkg 1.19.3).
++.IP
++On Debian and derivatives the following reason tags can be emitted:
++.RS
++.TP
++.B merged\-usr\-via\-symlinks
++The system has a merged \fI/usr\fP via symlinks.
++This will confuse \fBdpkg\-query\fP as it messes with the understanding
++of the filesystem that \fBdpkg\fP has recorded in its database.
++For build systems that hardcode pathnames to specific binaries or libraries
++on the resulting artifacts, it can also produce packages that will be
++incompatible with non-/usr-merged filesystems.
++.RE
++.TP
+ .BR Installed\-Build\-Depends: " (required)"
+ .TQ
+ .I " package-list"
+diff --git a/scripts/Dpkg/Control/FieldsCore.pm b/scripts/Dpkg/Control/FieldsCore.pm
+index b100366e1..f460433fc 100644
+--- a/scripts/Dpkg/Control/FieldsCore.pm
++++ b/scripts/Dpkg/Control/FieldsCore.pm
+@@ -176,6 +176,11 @@ our %FIELDS = (
+         allowed => CTRL_INFO_PKG,
+         separator => FIELD_SEP_SPACE,
+     },
++    'build-tainted-by' => {
++        name => 'Build-Tainted-By',
++        allowed => CTRL_FILE_BUILDINFO,
++        separator => FIELD_SEP_SPACE,
++    },
+     'built-for-profiles' => {
+         name => 'Built-For-Profiles',
+         allowed => ALL_PKG | CTRL_FILE_CHANGES,
+@@ -634,7 +639,7 @@ our %FIELD_ORDER = (
+         qw(format source binary architecture version binary-only-changes),
+         @src_checksums_fields,
+         qw(build-origin build-architecture build-kernel-version build-date
+-        build-path installed-build-depends environment),
++        build-path build-tainted-by installed-build-depends environment),
+     ],
+     CTRL_FILE_CHANGES() => [
+         qw(format date source binary binary-only built-for-profiles architecture
+diff --git a/scripts/Dpkg/Vendor/Debian.pm b/scripts/Dpkg/Vendor/Debian.pm
+index 7d4b6d802..6948bdc16 100644
+--- a/scripts/Dpkg/Vendor/Debian.pm
++++ b/scripts/Dpkg/Vendor/Debian.pm
+@@ -81,6 +81,8 @@ sub run_hook {
+         $self->_add_build_flags(@params);
+     } elsif ($hook eq 'builtin-system-build-paths') {
+         return qw(/build/);
++    } elsif ($hook eq 'build-tainted-by') {
++        return $self->_build_tainted_by();
+     } else {
+         return $self->SUPER::run_hook($hook, @params);
+     }
+@@ -439,6 +441,24 @@ sub _add_build_flags {
+     }
+ }
+ 
++sub _build_tainted_by {
++    my $self = shift;
++    my %tainted;
++
++    foreach my $pathname (qw(/bin /sbin /lib /lib32 /libo32 /libx32 /lib64)) {
++        next unless -l $pathname;
++
++        my $linkname = readlink $pathname;
++        if ($linkname eq "usr$pathname") {
++            $tainted{'merged-usr-via-symlinks'} = 1;
++            last;
++        }
++    }
++
++    my @tainted = sort keys %tainted;
++    return @tainted;
++}
++
+ =head1 CHANGES
+ 
+ =head2 Version 0.xx
+diff --git a/scripts/Dpkg/Vendor/Default.pm b/scripts/Dpkg/Vendor/Default.pm
+index 40815efde..761358f34 100644
+--- a/scripts/Dpkg/Vendor/Default.pm
++++ b/scripts/Dpkg/Vendor/Default.pm
+@@ -140,6 +140,14 @@ field will be created if the current directory is "/build/dpkg-1.18.0". If
+ the list contains "/", the path will always be recorded. If the list is
+ empty, the current path will never be recorded.
+ 
++=item build-tainted-by ()
++
++The hook is called by dpkg-genbuildinfo to determine if the current system
++has been tainted in some way that could affect the resulting build, which
++will be recorded in the B<Build-Tainted-By> field (since dpkg 1.19.3). It
++takes no parameters, but returns a (possibly empty) list of tainted reason
++tags (formed by alphanumeric and dash characters).
++
+ =back
+ 
+ =cut
+@@ -172,6 +180,8 @@ sub run_hook {
+ 	my $flags = shift @params;
+     } elsif ($hook eq 'builtin-system-build-paths') {
+         return ();
++    } elsif ($hook eq 'build-tainted-by') {
++        return ();
+     }
+ 
+     # Default return value for unknown/unimplemented hooks
+diff --git a/scripts/dpkg-genbuildinfo.pl b/scripts/dpkg-genbuildinfo.pl
+index fe296506e..827b6679f 100755
+--- a/scripts/dpkg-genbuildinfo.pl
++++ b/scripts/dpkg-genbuildinfo.pl
+@@ -437,6 +437,8 @@ if ($use_feature{path}) {
+     }
+ }
+ 
++$fields->{'Build-Tainted-By'} = "\n" . join "\n", run_vendor_hook('build-tainted-by');
++
+ $checksums->export_to_control($fields);
+ 
+ $fields->{'Installed-Build-Depends'} = collect_installed_builddeps($control);
+-- 
+2.20.0.rc1.387.gf8505762e3

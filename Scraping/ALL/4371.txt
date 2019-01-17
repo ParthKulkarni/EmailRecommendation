@@ -1,0 +1,51 @@
+To : Matt Kraai <kraai@ftbfs.org>
+Subject : Bug#861083: Fails to boot installed system
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 25 Apr 2017 03:10:14 +0200
+Message-id : 20170425011014.GE3979@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 861083@bugs.debian.org
+In-reply-to : <20170425001426.hnwyfrrzdurcmqri@ftbfs.org>
+References : <[🔎] 20170424135711.cdeo663gkpyzbocm@ftbfs.org> <[🔎] 20170424213026.GB3979@mraw.org> <20170425001426.hnwyfrrzdurcmqri@ftbfs.org>
+
+
+Matt Kraai <kraai@ftbfs.org> (2017-04-24):
+> On Mon, Apr 24, 2017 at 11:30:26PM +0200, Cyril Brulebois wrote:
+> > Matt Kraai <kraai@ftbfs.org> (2017-04-24):
+> > > When I install Debian using the Stretch RC 3 release of the Debian
+> > > installer on a Dell Inspiron 7348 2-in-1, the installer appears to be
+> > > successful.  When I reboot the system and try to boot the installed
+> > > system, however, the screen goes black after displaying "Loading
+> > > initial ramdisk ..." and nothing else ever appears.  When I press a
+> > > key, the keyboard lights up.  When I boot from a rescue disk, there
+> > > are no post-installation log files in /var/log.
+> > 
+> > We're talking about /var/log/installer being missing? That would be a
+> > first for me for an installation when the “Installation complete” screen
+> > is displayed (that's shown by finish-install).
+> 
+> Sorry, I wasn't clear enough.  /var/log/installer exists, but there
+> aren't any log messages in, say /var/log/messages or /var/log/syslog
+> from when I tried to boot the installed system.  I've attached a tar
+> file containing the contents of /var/log/installer.
+Ah, OK. Thanks for the logs, they look rather good to me…
+sda doesn't look like something too tricky:
+    Apr 24 13:07:58 kernel: [    5.681021] ata1.00: configured for UDMA/133
+    Apr 24 13:07:58 kernel: [    5.682381] scsi 0:0:0:0: Direct-Access     ATA      ST500LT012-1DG14 SDM1 PQ: 0 ANSI: 5
+    Apr 24 13:07:58 kernel: [    5.713032] sd 0:0:0:0: [sda] 976773168 512-byte logical blocks: (500 GB/466 GiB)
+    Apr 24 13:07:58 kernel: [    5.713035] sd 0:0:0:0: [sda] 4096-byte physical blocks
+    Apr 24 13:07:58 kernel: [    5.713133] sd 0:0:0:0: [sda] Write Protect is off
+    Apr 24 13:07:58 kernel: [    5.713136] sd 0:0:0:0: [sda] Mode Sense: 00 3a 00 00
+    Apr 24 13:07:58 kernel: [    5.713179] sd 0:0:0:0: [sda] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA
+    Apr 24 13:07:58 kernel: [    5.775904]  sda: sda1 sda2 < sda5 >
+Did you try some kernel command line parameters, like enabling debug,
+disabling quiet, maybe disabling modesetting? You could also try adding
+netconsole parameters to send kernel messages elsewhere if you're
+getting no output at all.
+Differences between installation and installed systems include: plain
+init versus systemd, fbdev being used for Xorg in d-i; also, sometimes,
+some modules are missing from the initrd because initramfs-tools didn't
+include them (while d-i uses different codepaths to enable hardware
+support). I assume yours is using the default MODULES=most anyway
+(unless you tweaked it)?
+KiBi.
+signature.asc

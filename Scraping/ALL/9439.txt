@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Subject: UMASK 002 or 022?
+From : Simon Richter <sjr@debian.org>
+Date : Wed, 28 Jun 2017 11:03:42 +0200
+Message-id : 994d6254-a7a7-3c79-3d21-79a28ce37d19@debian.org
+In-reply-to : <[🔎] 1861c59558861ef871b4baa493053b61@openmailbox.org>
+References : <[🔎] 1861c59558861ef871b4baa493053b61@openmailbox.org>
+
+
+Hi,
+On 27.06.2017 19:11, gwmfms6@openmailbox.org wrote:
+> I'd like to know why giving the world (Other) read access is even under
+> consideration. If user wants a file to have Other readability this
+> should be on the user to set it, but it should not be the default.
+That can be solved by excluding people from the directory the files are
+in -- in order to access a file, all directories on the way there need
+to have at least 'x' permission for the current user.
+So, an umask of 022 and having each user in a single-member primary
+group gives the user all options:
+ - To make your home directory completely private, chmod it to 750 (the
+group permissions don't matter really, because there is no one else in
+the group).
+ - To allow other users to pass through your home directory (e.g. the
+webserver on the way to ~/public_html), chmod your home to 751.
+ - To create a directory that a group of users may write to, use chgrp
+and then set permissions to 2770 (or 2775, if others should also be able
+to read).
+The Debian installation used to ask whether home directories should be
+private by default, IIRC that question still exists but is too low
+priority to be shown outside of expert mode. You can use
+    dpkg-reconfigure adduser
+to set this up, then new user home directories will be created with 750
+permissions.
+This method allows a one-time setup of desired behaviour, while the
+umask would need to be set at every login, and if it weren't set up
+correctly, this would lead to files having the wrong permission with no
+warning -- that's why it's more robust to just create files as readable
+for others and lock them out of the entire home directory.
+> What is the justification that every user be able to read everyone
+> else's documents?
+That depends on your use case. At university, we generally left the home
+directory open, and kept a separate ~/private directory with restrictive
+permissions, because it allowed us to easily share non-private files by
+just telling people to get them from our home directories.
+   Simon
+signature.asc

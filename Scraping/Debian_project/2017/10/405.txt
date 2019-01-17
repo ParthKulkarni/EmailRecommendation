@@ -1,0 +1,33 @@
+To : debian-devel@lists.debian.org
+Subject : getconf(1) interface considered cross-harmful
+From : Guillem Jover <guillem@debian.org>
+Date : Thu, 19 Oct 2017 10:50:36 +0200
+Message-id : 20171019085036.j6iw7avqaob2qtur@thunder.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org,	debian-cross@lists.debian.org
+
+
+Hi!
+I recently noticed that the getconf(1) interface is broken by design
+when it comes to cross-compiling. It always returns the information
+for the build system (GNU/dpkg terms), via the build system libc.
+This means that any package using getconf(1) to get build-specific
+information such as LFS_CFLAGS, LONG_BIT, or many of the other
+constants will produce at least unexpected results, and at worst can
+produce broken builds. The exceptions would be for stuff like the
+_NPROCESSORS_* variables, but not much more.
+When it comes to LFS, starting with dpkg 1.19.0 you can now use the
+new «lfs» feature from the «future» feature area (documented in the
+dpkg-buildflags man page), which properly supports cross-building:
+  ,---
+  $ export DEB_BUILD_OPTIONS=future=+lfs
+  $ DEB_HOST_ARCH=amd64 dpkg-buildflags --get CPPFLAGS
+  -Wdate-time -D_FORTIFY_SOURCE=2
+  $ DEB_HOST_ARCH=x32 dpkg-buildflags --get CPPFLAGS
+  -Wdate-time -D_FORTIFY_SOURCE=2
+  $ DEB_HOST_ARCH=i386 dpkg-buildflags --get CPPFLAGS
+  -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wdate-time -D_FORTIFY_SOURCE=2
+  `---
+I'll be filing a lintian report to emit a tag for any broken use of
+getconf(1).
+Thanks,
+Guillem

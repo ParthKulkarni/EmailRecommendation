@@ -1,0 +1,85 @@
+To : maintonly@bugs.debian.org
+Subject : Bug#897718: cdebconf: ftbfs with GCC-8
+From : Matthias Klose <doko@debian.org>
+Date : Fri, 04 May 2018 12:21:01 +0000
+Message-id : E1fEZht-0000eM-9u@paradis.debian.org
+Reply-to : Matthias Klose <doko@debian.org>, 897718-maintonly@bugs.debian.org
+
+
+Package: src:cdebconf
+Version: 0.243
+Severity: normal
+Tags: sid buster
+User: debian-gcc@lists.debian.org
+Usertags: ftbfs-gcc-8
+Please keep this issue open in the bug tracker for the package it
+was filed for.  If a fix in another package is required, please
+file a bug for the other package (or clone), and add a block in this
+package. Please keep the issue open until the package can be built in
+a follow-up test rebuild.
+The package fails to build in a test rebuild on at least amd64 with
+gcc-8/g++-8, but succeeds to build with gcc-7/g++-7. The
+severity of this report will be raised before the buster release.
+The full build log can be found at:
+http://aws-logs.debian.net/2018/05/01/gcc8/cdebconf_0.243_unstable_gcc8.log.gz
+The last lines of the build log are at the end of this report.
+To build with GCC 8, either set CC=gcc-8 CXX=g++-8 explicitly,
+or install the gcc, g++, gfortran, ... packages from experimental.
+  apt-get -t=experimental install g++ 
+Common build failures are new warnings resulting in build failures with
+-Werror turned on, or new/dropped symbols in Debian symbols files.
+For other C/C++ related build failures see the porting guide at
+http://gcc.gnu.org/gcc-8/porting_to.html
+[...]
+make[5]: Leaving directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules/frontend/passthrough'
+cp passthrough/passthrough.so .
+make -C text
+make[5]: Entering directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules/frontend/text'
+gcc -Wdate-time -D_FORTIFY_SOURCE=2 -Wall -g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security  -O2 -D_GNU_SOURCE -g -D_DEBUG_ -I. -I/<<PKGBUILDDIR>>/debian/build-deb/src -I/<<PKGBUILDDIR>>/src  -I/<<PKGBUILDDIR>>/debian/build-deb -fPIC -o text.opic -c /<<PKGBUILDDIR>>/src/modules/frontend/text/text.c
+/<<PKGBUILDDIR>>/src/modules/frontend/text/text.c: In function 'get_answer':
+/<<PKGBUILDDIR>>/src/modules/frontend/text/text.c:194:2: warning: ignoring return value of 'fgets', declared with attribute warn_unused_result [-Wunused-result]
+  fgets(answer, size, stdin);
+  ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/<<PKGBUILDDIR>>/src/modules/frontend/text/text.c: In function 'printlist':
+/<<PKGBUILDDIR>>/src/modules/frontend/text/text.c:308:3: warning: ignoring return value of 'asprintf', declared with attribute warn_unused_result [-Wunused-result]
+   asprintf(&(fchoices[i]), "%3d: %s,    ", i+1, choices->choices_translated[i]);
+   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating DSO text.so from text.opic
+gcc -Wdate-time -D_FORTIFY_SOURCE=2 -Wall -g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security  -O2 -D_GNU_SOURCE -g -D_DEBUG_ -I. -I/<<PKGBUILDDIR>>/debian/build-deb/src -I/<<PKGBUILDDIR>>/src  -shared -o text.so text.opic -Wl,-z,relro -lpthread -Wl,--as-needed  
+make[5]: Leaving directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules/frontend/text'
+cp text/text.so .
+make -C newt
+make[5]: Entering directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules/frontend/newt'
+gcc -Wdate-time -D_FORTIFY_SOURCE=2 -Wall -g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security  -O2 -D_GNU_SOURCE -g -D_DEBUG_ -I. -I/<<PKGBUILDDIR>>/debian/build-deb/src -I/<<PKGBUILDDIR>>/src  -I/<<PKGBUILDDIR>>/debian/build-deb -fPIC -o newt.opic -c /<<PKGBUILDDIR>>/src/modules/frontend/newt/newt.c
+/<<PKGBUILDDIR>>/src/modules/frontend/newt/newt.c: In function 'show_multiselect_window':
+/<<PKGBUILDDIR>>/src/modules/frontend/newt/newt.c:719:21: warning: ignoring return value of 'asprintf', declared with attribute warn_unused_result [-Wunused-result]
+                     asprintf(&tmp, "%s, %s", ans, choices[i]);
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating DSO newt.so from newt.opic
+gcc -Wdate-time -D_FORTIFY_SOURCE=2 -Wall -g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security  -O2 -D_GNU_SOURCE -g -D_DEBUG_ -I. -I/<<PKGBUILDDIR>>/debian/build-deb/src -I/<<PKGBUILDDIR>>/src  -shared -o newt.so newt.opic -Wl,-z,relro -lpthread -Wl,--as-needed  -lnewt -lslang -ltextwrap
+make[5]: Leaving directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules/frontend/newt'
+cp newt/newt.so .
+make -C gtk
+make[5]: Entering directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules/frontend/gtk'
+gcc -Wdate-time -D_FORTIFY_SOURCE=2 -Wall -g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security  -O2 -D_GNU_SOURCE -g -D_DEBUG_ -I. -I/<<PKGBUILDDIR>>/debian/build-deb/src -I/<<PKGBUILDDIR>>/src -pthread -I/usr/include/gtk-2.0 -I/usr/lib/x86_64-linux-gnu/gtk-2.0/include -I/usr/include/gio-unix-2.0/ -I/usr/include/cairo -I/usr/include/pango-1.0 -I/usr/include/atk-1.0 -I/usr/include/cairo -I/usr/include/pixman-1 -I/usr/include/pango-1.0 -I/usr/include/harfbuzz -I/usr/include/uuid -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/pango-1.0 -I/usr/include/fribidi -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/libpng16 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -DGSEAL_ENABLE -funsigned-char -fstrict-aliasing -Wall -W -Werror -Wno-error=unused-result -Wno-error=deprecated-declarations -Wundef -Wwrite-strings -Wsign-compare -Wno-unused-parameter -Winit-self -Wpointer-arith -Wredundant-decls -Wno-format-z
+ ero-length -Wmissing-prototypes -Wmissing-format-attribute -I/<<PKGBUILDDIR>>/debian/build-deb -fPIC -o cdebconf_gtk.opic -c /<<PKGBUILDDIR>>/src/modules/frontend/gtk/cdebconf_gtk.c
+gcc -Wdate-time -D_FORTIFY_SOURCE=2 -Wall -g -O2 -fdebug-prefix-map=/<<PKGBUILDDIR>>=. -fstack-protector-strong -Wformat -Werror=format-security  -O2 -D_GNU_SOURCE -g -D_DEBUG_ -I. -I/<<PKGBUILDDIR>>/debian/build-deb/src -I/<<PKGBUILDDIR>>/src -pthread -I/usr/include/gtk-2.0 -I/usr/lib/x86_64-linux-gnu/gtk-2.0/include -I/usr/include/gio-unix-2.0/ -I/usr/include/cairo -I/usr/include/pango-1.0 -I/usr/include/atk-1.0 -I/usr/include/cairo -I/usr/include/pixman-1 -I/usr/include/pango-1.0 -I/usr/include/harfbuzz -I/usr/include/uuid -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/pango-1.0 -I/usr/include/fribidi -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/libpng16 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -DGSEAL_ENABLE -funsigned-char -fstrict-aliasing -Wall -W -Werror -Wno-error=unused-result -Wno-error=deprecated-declarations -Wundef -Wwrite-strings -Wsign-compare -Wno-unused-parameter -Winit-self -Wpointer-arith -Wredundant-decls -Wno-format-z
+ ero-length -Wmissing-prototypes -Wmissing-format-attribute -I/<<PKGBUILDDIR>>/debian/build-deb -fPIC -o select_handlers.opic -c /<<PKGBUILDDIR>>/src/modules/frontend/gtk/select_handlers.c
+/<<PKGBUILDDIR>>/src/modules/frontend/gtk/select_handlers.c: In function 'connect_signal_to_row':
+/<<PKGBUILDDIR>>/src/modules/frontend/gtk/select_handlers.c:531:34: error: cast between incompatible function types from 'void (*)(GtkTreeRowReference *)' {aka 'void (*)(struct _GtkTreeRowReference *)'} to 'void (*)(void *, GClosure *)' {aka 'void (*)(void *, struct _GClosure *)'} [-Werror=cast-function-type]
+                                  (GClosureNotify) gtk_tree_row_reference_free,
+                                  ^
+cc1: all warnings being treated as errors
+make[5]: *** [../../../../globalmakeflags:34: select_handlers.opic] Error 1
+make[5]: Leaving directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules/frontend/gtk'
+make[4]: *** [Makefile:11: gtk] Error 2
+make[4]: Leaving directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules/frontend'
+make[3]: *** [Makefile:10: frontend] Error 2
+make[3]: Leaving directory '/<<PKGBUILDDIR>>/debian/build-deb/src/modules'
+make[2]: *** [Makefile:31: all] Error 2
+make[2]: Leaving directory '/<<PKGBUILDDIR>>/debian/build-deb/src'
+make[1]: *** [Makefile:9: cdebconf] Error 2
+make[1]: Leaving directory '/<<PKGBUILDDIR>>/debian/build-deb'
+dh_auto_build: cd debian/build-deb && make -j1 returned exit code 2
+make: *** [debian/rules:68: build-deb-stamp] Error 2
+dpkg-buildpackage: error: debian/rules build-arch subprocess returned exit status 2

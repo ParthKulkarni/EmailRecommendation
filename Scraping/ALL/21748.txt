@@ -1,0 +1,29 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Testing init.d script
+From : Colin Watson <cjwatson@debian.org>
+Date : Wed, 26 Dec 2018 12:09:13 +0000
+Message-id : 20181226120912.nbefcwsghihsb5ic@riva.ucam.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 5b2552b56d1e898d81e0876f507e008cc49cc9d6.camel@thevertigo.com>
+References : <[🔎] 5b2552b56d1e898d81e0876f507e008cc49cc9d6.camel@thevertigo.com>
+
+
+On Tue, Dec 25, 2018 at 08:52:19PM -0800, Kip Warner wrote:
+> My package has an LSB friendly init.d script it distributes to manage
+> the daemon it ships as a system service. I'd like to use it during unit
+> testing so the daemon can be started, stopped, and various unit tests
+> performed on it between starting and stopping.
+> 
+> What is the best practice for this kind of scenario? There are some
+> caveats, of course, because the init.d script cannot be run as root
+> when my project's build environment runs its unit tests.
+Unit tests can normally use some kind of temporary test harness instead
+of the full-blown init script, and that's usually the best first line of
+defence since it's typically simpler and faster.
+Of course it's also worth testing the init script itself, or other
+behaviours of the package when it's in its installed state rather than
+just running out of the build tree.  For that purpose, have you
+considered autopkgtest (https://ci.debian.net/doc/)?  A test with the
+"needs-root" restriction can start and stop services.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

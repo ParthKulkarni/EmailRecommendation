@@ -1,0 +1,53 @@
+To : submit@bugs.debian.org
+Subject : Bug#869897: [debian-installer] Please add support for the TRIM command for SSDs
+From : Matthias Heinz <mh@familie-heinz.name>
+Date : Thu, 27 Jul 2017 15:17:13 +0200
+Message-id : 7016722.qJqWRdF2gp@egalite
+Reply-to : Matthias Heinz <mh@familie-heinz.name>, 869897@bugs.debian.org
+
+
+Package: debian-installer
+Version: 20170615+deb9u1
+Severity: wishlist
+--- Please enter the report below this line. ---
+Hi,
+since SSDs are becoming more and more common it would be great to see support 
+for TRIM command enabled in the debian-installer. It took me quite some time 
+to figure out how to do this (again, because the last time I had to look up the 
+commands was four years ago).
+Since not everyone likes to have TRIM support enabled, it would be apropriate 
+to have this as an option if an SSD is detected, maybe even only in the expert 
+install option. (In my opinion TRIM should be enabled by default, because 
+regular users don't know what TRIM is, but still want it enabled)
+To figure out if a device has TRIM capability you can use hdparm:
+hdparm -I /dev/sdX | grep 'TRIM'
+If the user is using LVM then TRIM has also enabled in the lvm.conf by adding 
+issue_discards = 1 to the devices section.
+If the user is using dmcrypt (and this is be the point where it might be 
+problematic to use TRIM, see [0]) then it has to be enabled in the crypttab 
+file by adding "discard" to the target options.
+As final step it is necessary to enable the discard feature for the filesystem 
+or run fstrim regularly, if the filesystem supports it.
+It is recommend to run fstrim regularly, because the discard feature is said 
+to be slow, because it runs a trim on every file deletion. It should be better 
+to run fstrim daily or weekly by a script.
+Please see [1] for more detailed information about how to enable TRIM. There's 
+also a script shown that does fstrim. It does it's job, although I recommed to 
+whitelist the supported filesystems, since fstrim fails for vfat, which is used 
+for EFI partitions everywhere now and lsblk lists them as valid targets to 
+fstrim.
+Best regards
+Matthias
+[0] http://asalor.blogspot.de/2011/08/trim-dm-crypt-problems.html
+[1] http://blog.neutrino.es/2013/howto-properly-activate-trim-for-your-ssd-on-linux-fstrim-lvm-and-dmcrypt/
+--- System information. ---
+Architecture: 
+Kernel:       Linux 4.11.0-trunk-amd64
+Debian Release: buster/sid
+  500 unstable        ftp.de.debian.org 
+  500 oldstable-proposed-updates ftp.de.debian.org 
+    1 experimental    ftp.de.debian.org 
+--- Package information. ---
+Package's Depends field is empty.
+Package's Recommends field is empty.
+Package's Suggests field is empty.

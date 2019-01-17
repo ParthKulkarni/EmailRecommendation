@@ -1,0 +1,110 @@
+To : Jaikumar Sharma <jaikumar.sharma@gmail.com>
+Subject : Bug#884304: Debian 8.10 is not installable via PXE
+From : Steve McIntyre <steve@einval.com>
+Date : Sat, 23 Jun 2018 18:37:19 +0100
+Message-id : 20180623173719.ckwrisftefkbbcwy@tack.einval.com
+Reply-to : Steve McIntyre <steve@einval.com>, 884304@bugs.debian.org
+In-reply-to : <[🔎] CAFGagvdJ31rCfrYqdJa4kLDq9LX8io8fc+8o99-sH1HCXVJoNg@mail.gmail.com>
+References : <CAFGagvfaMa+Nt2FqAVGb3F0oY50VYfHq-P4XwGWgHtnASaK=5Q@mail.gmail.com> <CACFfqWv4rcCBFGnmEgso+0ub3NhMKBMf4Z=K93FR5BqJ3RiHZA@mail.gmail.com> <[🔎] CAFGagve6vj_Xo0G7JU43X22K0nto2y7EV603H=W+5oV1ETyQug@mail.gmail.com> <[🔎] 20180623123513.vpla2747zhrpce7p@tack.einval.com> <[🔎] CAFGagvc=f7dxXe8KLzvse68tPfS=Eb+4f014=Mp8VA_5UxNb0A@mail.gmail.com> <[🔎] 20180623153724.k2ocubk4fe7l5dfx@tack.einval.com> <[🔎] CAFGagvdJ31rCfrYqdJa4kLDq9LX8io8fc+8o99-sH1HCXVJoNg@mail.gmail.com> <CACFfqWv4rcCBFGnmEgso+0ub3NhMKBMf4Z=K93FR5BqJ3RiHZA@mail.gmail.com>
+
+
+Hi Jaikumar,
+AFAICS the problem you're facing is that the d-i kernel modules and
+the kernel you're running don't match up. Here's the kernel version
+you have:
+On Sat, Jun 23, 2018 at 09:47:39PM +0530, Jaikumar Sharma wrote:
+>
+>Jun 23 14:20:40 syslogd started: BusyBox v1.22.1
+>Jun 23 14:20:40 kernel: klogd started: BusyBox v1.22.1 (Debian
+>1:1.22.0-9+deb8u1)
+>Jun 23 14:20:40 kernel: [    0.000000] Initializing cgroup subsys cpuset
+>Jun 23 14:20:40 kernel: [    0.000000] Initializing cgroup subsys cpu
+>Jun 23 14:20:40 kernel: [    0.000000] Initializing cgroup subsys cpuacct
+>Jun 23 14:20:40 kernel: [    0.000000] Linux version 3.16.0-4-586 (
+>debian-kernel@lists.debian.org) (gcc version 4.8.4 (Debian 4.8.4-1) ) #1 Debian
+>3.16.7-ckt9-2 (2015-04-13)
+...
+and here are lots of "Unknown symbol" errors when d-i is trying to
+load various filesystem modules:
+>Jun 23 14:22:42 preseed: running preseed command partman/early_command: wget -P
+>/tmp ftp://192.168.1.34/localrepo/install.scripts/scripts/config.sh
+>Jun 23 14:22:42 log-output: Connecting to 192.168.1.34 (192.168.1.34:21)
+>Jun 23 14:22:42 log-output: ^Mconfig_backup.sh     100% |
+>*******************************|  2515   0:00:00 ETA
+>Jun 23 14:22:42 kernel: [  139.713269] ext4: Unknown symbol setattr_prepare
+>(err 0)
+>Jun 23 14:22:42 kernel: [  139.713731] ext4: Unknown symbol __bread_gfp (err 0)
+>Jun 23 14:22:42 kernel: [  139.713779] ext4: Unknown symbol __getblk_gfp (err
+>0)
+>Jun 23 14:22:42 kernel: [  139.713809] ext4: Unknown symbol
+>posix_acl_update_mode (err 0)
+>Jun 23 14:22:42 kernel: [  139.814438] raid6: mmxx1     5762 MB/s
+>Jun 23 14:22:42 md-devices: mdadm: No devices listed in partitions
+>Jun 23 14:22:42 md-devices: mdadm: No devices listed in conf file were found.
+>Jun 23 14:22:42 kernel: [  139.882447] raid6: mmxx2     6136 MB/s
+>Jun 23 14:22:42 kernel: [  139.950455] raid6: sse1x1    4760 MB/s
+>Jun 23 14:22:42 kernel: [  140.018463] raid6: sse1x2    5924 MB/s
+>Jun 23 14:22:42 kernel: [  140.086474] raid6: sse2x1    9564 MB/s
+>Jun 23 14:22:42 kernel: [  140.154484] raid6: sse2x2   12018 MB/s
+>Jun 23 14:22:42 kernel: [  140.154485] raid6: using algorithm sse2x2 (12018 MB/
+>s)
+>Jun 23 14:22:42 kernel: [  140.154486] raid6: using ssse3x1 recovery algorithm
+>Jun 23 14:22:42 kernel: [  140.220352] xor: automatically using best
+>checksumming function:
+>Jun 23 14:22:42 kernel: [  140.258486]    avx       : 20146.000 MB/sec
+>Jun 23 14:22:42 kernel: [  140.259696] btrfs: Unknown symbol setattr_prepare
+>(err 0)
+>Jun 23 14:22:42 kernel: [  140.260185] btrfs: Unknown symbol
+>posix_acl_update_mode (err 0)
+>Jun 23 14:22:42 kernel: [  140.264461] ext4: Unknown symbol setattr_prepare
+>(err 0)
+>Jun 23 14:22:42 kernel: [  140.264915] ext4: Unknown symbol __bread_gfp (err 0)
+>Jun 23 14:22:42 kernel: [  140.264965] ext4: Unknown symbol __getblk_gfp (err
+>0)
+>Jun 23 14:22:42 kernel: [  140.265008] ext4: Unknown symbol
+>posix_acl_update_mode (err 0)
+>Jun 23 14:22:42 kernel: [  140.265748] ext4: Unknown symbol setattr_prepare
+>(err 0)
+>Jun 23 14:22:42 kernel: [  140.266191] ext4: Unknown symbol __bread_gfp (err 0)
+>Jun 23 14:22:42 kernel: [  140.266239] ext4: Unknown symbol __getblk_gfp (err
+>0)
+>Jun 23 14:22:42 kernel: [  140.266270] ext4: Unknown symbol
+>posix_acl_update_mode (err 0)
+>Jun 23 14:22:42 kernel: [  140.270835] jfs: Unknown symbol setattr_prepare (err
+>0)
+>Jun 23 14:22:42 kernel: [  140.270975] jfs: Unknown symbol __bread_gfp (err 0)
+>Jun 23 14:22:42 kernel: [  140.271009] jfs: Unknown symbol __getblk_gfp (err 0)
+>Jun 23 14:22:42 kernel: [  140.271022] jfs: Unknown symbol
+>posix_acl_update_mode (err 0)
+>Jun 23 14:22:42 kernel: [  140.276230] xfs: Unknown symbol setattr_prepare (err
+>0)
+>Jun 23 14:22:42 kernel: [  140.276555] xfs: Unknown symbol
+>posix_acl_update_mode (err 0)
+>Jun 23 14:22:42 kernel: [  140.451316] device-mapper: uevent: version 1.0.3
+>Jun 23 14:22:42 kernel: [  140.451490] device-mapper: ioctl: 4.27.0-ioctl
+>(2013-10-30) initialised: dm-devel@redhat.com
+>Jun 23 14:22:42 partman:   No matching physical volumes found
+>Jun 23 14:22:42 partman:   Reading all physical volumes.  This may take a
+>while...
+>Jun 23 14:22:42 partman:   
+>Jun 23 14:22:42 partman: No volume groups found
+>Jun 23 14:22:42 partman: 
+>Jun 23 14:22:42 partman-lvm:   
+>Jun 23 14:22:42 partman-lvm: No volume groups found
+>Jun 23 14:22:42 partman-lvm: 
+>Jun 23 14:22:42 kernel: [  140.486141] efivars: Unknown symbol ucs2_as_utf8
+>(err 0)
+>Jun 23 14:22:42 kernel: [  140.486163] efivars: Unknown symbol ucs2_utf8size
+>(err 0)
+>Jun 23 14:22:42 kernel: [  140.486164] efivars: disagrees about version of
+>symbol efivar_validate
+>Jun 23 14:22:42 kernel: [  140.486165] efivars: Unknown symbol efivar_validate
+>(err -22)
+>Jun 23 14:22:50 init: starting pid 146, tty '/dev/tty2': '-/bin/sh'
+The most common cause of this kind of problem for people netbooting is
+them updating *some* of the installer (i.e. the modules in the Debian
+archive) without also updating the kernel that's being served by
+tftp. Please go and check that...
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+< liw> everything I know about UK hotels I learned from "Fawlty Towers"

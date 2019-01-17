@@ -1,0 +1,90 @@
+To : Steven Chamberlain <steven@pyro.eu.org>
+Subject : Bug#856210: libdebian-installer: please parse SHA256 field and add it to di_* structs
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 28 Feb 2017 20:31:46 +0100
+Message-id : 20170228193146.GG5630@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 856210@bugs.debian.org
+In-reply-to : <[🔎] 20170228130750.GC53239@pyro.eu.org>
+References : <[🔎] 20170226162506.GB86601@pyro.eu.org> <[🔎] 20170226183030.GG86601@pyro.eu.org> <[🔎] 20170226210653.GA15975@shell.thinkmo.de> <[🔎] 20170227154044.GG68952@pyro.eu.org> <[🔎] 20170228031150.GD5630@mraw.org> <[🔎] 20170228130750.GC53239@pyro.eu.org>
+
+
+Hi,
+Steven Chamberlain <steven@pyro.eu.org> (2017-02-28):
+> Changing the name, causes reverse-deps using that field to FTBFS.  I
+> think that is just anna and cdebootstrap, which we'd patch anyway.
+Sure.
+> The md5sum/sha256 field is a pointer to a dynamically-allocated field.
+> The struct size, and the offset of other members does not change, so
+> nothing else should need rebuilding with the newer package.h
+> 
+> "If" somehow, we missed something, which tries to dereference
+> package->md5sum at run-time with a new version of libdebian-installer,
+> it would find a sha256 hash there instead of md5.  That should fail
+> "safely" by complaining of a md5sum mismatch (even if it only compares
+> the first 32 bytes, as cdebootstrap does currently).
+> 
+> That's why I think an ABI bump could be safely avoided.  (And I think
+> Bastian agrees now?)
+I only glanced quickly over the “minimal patch” you sent as a follow-up,
+and I think that should do just fine at this point of the release cycle,
+yes.
+Maybe Bastian will comment before I do (not sure I'll be able to look
+into it before a few days).
+> > Bumping the ABI seems reasonable to me, even if that's effectively
+> > starting a mini-transition from a release point of view.
+> 
+> [...]
+> 
+> > > -Package: libdebian-installer4-dev
+> > > +Package: libdebian-installer5-dev
+> > 
+> > Please don't!
+> 
+> You suggest to "bump the ABI" but not rename the packages?  or...?
+But not rename *this* particular binary.
+There's no reason to have a versioned -dev package, unless you're
+maintaining various src:fooX, src:fooY packages at the same time, and so
+that one can choose between libfooX-dev and libfooY-dev (hello openssl).
+That's not what's happening here.
+> Maybe the argument above is convincing enough to just not bump the ABI?
+> 
+> > > --- a/include/debian-installer/release.h
+> > > +++ b/include/debian-installer/release.h
+> > > @@ -40,7 +40,7 @@ struct di_release
+> > >    char *origin;                                 /**< Origin field */
+> > >    char *suite;                                  /**< Suite field */
+> > >    char *codename;                               /**< Codename field */
+> > > -  di_hash_table *md5sum;                        /**< checksum fields, includes di_release_file */
+> > > +  di_hash_table *sha256;                        /**< checksum fields, includes di_release_file */
+> > >    di_mem_chunk *release_file_mem_chunk;         /**< @internal */
+> > >  };
+> > 
+> > So md5sum goes away from the di_release struct…
+> 
+> Yes, the same as with di_package;  that preserves ABI compatibility,
+> and getting rid of md5sum is also our intent.
+FWIW I'm not sure I'm convinced changing semantics for a given field can
+be advertised as keeping “ABI compatibility” (even if one can decide to
+ignore this issue).
+> > > @@ -55,7 +55,7 @@ struct di_release_file
+> > >      di_rstring key;                             /**< @internal */
+> > >    };
+> > >    unsigned int size;                            /**< size */
+> > > -  char *sum[2];                                 /**< checksums, currently md5 and sha1 */
+> > > +  char *sum[2];                                 /**< checksums, currently md5 and sha256 */
+> > 
+> > … but is kept in the di_release_file one?
+> 
+> Right, this struct currently contains:
+> 
+> char *sum[0] -> dynamically allocated md5sum field
+> char *sum[1] -> dynamically allocated sha1 field
+> 
+> so that is what reverse-depends expect to be in those fields,
+> currently.  To keep ABI comptibility, I should keep two items there.
+Well, your initial patch was bumping the ABI, so it looked to me like it
+could have been cleaned up at the same time, and that's why I asked. But
+nevermind, going a different route now. Someone can rethink this with a
+dynamic checksum mapping in a later release (see people/waldi branch).
+KiBi.
+signature.asc

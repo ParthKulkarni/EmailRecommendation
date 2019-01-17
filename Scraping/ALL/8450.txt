@@ -1,0 +1,40 @@
+To : Ben Hutchings <ben@decadent.org.uk>
+Subject : Bug#891393: debootstrap: Should warn about distributions that need vsyscall enabled
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Tue, 10 Apr 2018 10:55:46 +0900
+Message-id : 20180410105546.833d71a12b57d2babfcb1333@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 891393@bugs.debian.org
+In-reply-to : <20180226231943.eac65af2d2209c8308fff5b0@iijmio-mail.jp>
+References : <20180225161401.c6113b97480cc94f1c843c5d@iijmio-mail.jp>
+
+
+Hi,
+On Mon, 26 Feb 2018 23:19:43 +0900 Hideki Yamane <henrich@iijmio-mail.jp> wrote:
+> > debootstrap could perhaps warn about the need to enable vsyscalls for
+> > old amd64 distributions.  (Annoyingly, there's no easy way to detect
+> > whether they are currently enabled.)
+> 
+>  Just showing some errors about it is fine, IMO.
+ And here's a proposed patch. Could you check it, please?
+diff --git a/scripts/debian-common b/scripts/debian-common
+index 4ab1fe8..830a99e 100644
+--- a/scripts/debian-common
++++ b/scripts/debian-common
+@@ -59,6 +59,17 @@ first_stage_install () {
+ }
+ 
+ second_stage_install () {
++       case "$CODENAME" in
++               etch|etch-m68k|jessie|jessie-kfreebsd|lenny|squeeze|wheezy|hoary|breezy|dapper|edgy|feisty|gusty|hardy|interpid|jaunty|karmic)
++                       if [ "$ARCH" = amd64 ] && [ "$HOST_ARCH" = amd64 ] && \
++                               [ $(uname -r | awk 'BEGIN{FS="."}{printf("%d%03d", $1, $2)}') -gt 4009 ]; then
++                               warning VIRTUALSYSCALL "You're trying to create an old amd64 release on newer one, and it may cause segfault due to incompatibility.\n   If you'd face such case, you should add 'vsyscall=emulate' to your kernel parametar.\n   For detail, see /usr/share/doc/linux-image-amd64/NEWS.Debian.gz"
++                       fi
++                       ;;
++               *)
++                       ;;
++       esac
++
+        in_target /bin/true
+ 
+        setup_dynamic_devices

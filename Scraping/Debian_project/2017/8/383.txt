@@ -1,0 +1,78 @@
+To : debian-dpkg@lists.debian.org
+Subject : Proposal: A new approach to differential debs
+From : Julian Andres Klode <jak@debian.org>
+Date : Sat, 12 Aug 2017 14:16:21 -0400
+Message-id : 20170812135640.GA6037@debian.org
+Mail-followup-to : debian-dpkg@lists.debian.org, deity@lists.debian.org,	debian-devel@lists.debian.org
+
+
+Hi everyone,
+(I CCed -devel and deity, but we probably should just discuss
+ that on -dpkg)
+while breakfast here at DebConf, the topic of delta upgrades
+came up. I think delta debs are generally a thing we should
+aim to have, but debdelta is not the implementation we want:
+* It is not integrated into APT or dpkg
+* It relies on a script shipped in the debdelta to generate
+  a new deb from and old deb
+We guessed that generating the new deb from the old deb is
+actually the slowest part of the whole debdelta process. I
+propose a new solution, which does not really have a name
+yet.
+# Scope
+Patching installed packages to match new state
+# Not scope
+Generating new package from old package
+# Design
+Introduce a new format 'ddeb' (delta/differential deb)[1], the
+format shall contain a control.tar member and a version member
+as in a .deb file. Instead of a data.tar member, it contains
+a diff.tar member, however.
+The .diff.tar member contains patches to apply to individual
+files of the old package. No idea about specific algorithm
+to choose here, yet.
+The control.tar's control file is extended with an Old-Version
+field, so we get some sanity checking. Alternatively, it may
+be extended with an mtree of the source we are patching.
+The delta files are stored alongside their debs, and referenced
+in the packages files in a Patches-<hash> section:
+	Patches-SHA256:
+		<hash of delta> <size of delta> <old version> <path>
+APT can then grab the delta, if it fails with a 404, it would
+fall back to the full delta. 
+The deltas are not incremental, my suggestion is to do the following ones:
+unstable: (1) against testing (2) against previous unstable
+experimental: (1) against unstable (2) against previous experimental
+stable:   (1) against last point release (2) against previous security update
+              (or rather current one)
+All these files will always be around when dak runs anyway, so we do not
+need to keep additional historical packages around.
+We probably want to make this opt-in, so packages set a field like
+Generate-Patches: yes (there might be problems with applying patches to
+live systems and bad maintainer scripts).
+[1] name should probably change
+# Requisites / Extensions to .deb and dpkg database
+We need to keep data about the file tree in packages and
+in the database, from what I gathered, there already is
+a plan to use mtree for that, so that would fit us well.
+# Applying a delta deb
+Maintainer scripts are run as normally from the
+control tarball. The unpack phase is different: Instead
+of unpacking a file <file> from the tarball into <file>.dpkg-new,
+we apply archive's <file> as a patch to the installed <file>
+and store the result in .dpkg-new.
+Files not listed in the new mtree but listed in the old
+one will be deleted.
+# Issues
+We need a way to check if we can apply the diff.tar member; and
+if we can't, have to download the full deb in APT. This might need
+some kind of new patch-prepare state where we basically generate the
+.dpkg-new files, but don't apply them (or run any maintscripts).
+# Further work
+I guess I should do a proof of concept and then we can look if that
+is worthwhile, and how it performs.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.

@@ -1,0 +1,961 @@
+To : debian-boot@lists.debian.org
+Subject : Call for tests: busybox point release updates
+From : Christoph Biedl <debian.axhn@manchmal.in-ulm.de>
+Date : Mon, 27 Nov 2017 08:54:14 +0100
+Message-id : 1511769173@msgid.manchmal.in-ulm.de
+
+
+Hello,
+in continuation of
+  #877258: stretch-pu: package busybox/1:1.22.0-19+deb9u1
+  #877260: jessie-pu: package busybox/1:1.22.0-9+deb8u2
+The busybox package has seen several issues¹ tagged minor/non-DSA, and
+eventually I'd like to fix these through the upcoming point release.
+However, due to private reason I couldn't focus on this as planned and
+wished - after loosing several days because of this I don't want to
+skip another point release - so I'm asking for review and tests
+instead.
+So, besides "Does the patch fix the issue", there's also wording,
+spacing, Debian BTS and/or CVE numbers that might be wrong or missing.
+Also: In the # mentioned above, SRM asked for a d-i RM ack. Can you
+provide this in time? My plan is to update the above bugs by Thursday
+the latest.
+Debdiff for stretch, jessie, and wheezy are attached. Treat the whezy
+version as FYI as LTS has no such thing as a point release
+unfortunately - I'd upload during that weekend then, after coordination
+with debian-lts.
+    Christoph
+¹ https://security-tracker.debian.org/busybox
+signature.ascdiff -Nru busybox-1.22.0/debian/changelog busybox-1.22.0/debian/changelog
+--- busybox-1.22.0/debian/changelog	2015-02-17 18:30:02.000000000 +0100
++++ busybox-1.22.0/debian/changelog	2017-11-27 08:13:06.000000000 +0100
+@@ -1,3 +1,20 @@
++busybox (1:1.22.0-9+deb8u2) UNSTABLE; urgency=medium
++
++  * Reject module names with slashes. Closes: #776186 [CVE-2014-9645]
++  * Fix pointer misuse unziping files. Closes: #803097
++  * Fix Heap-based buffer overflow in the DHCP client.
++    Closes: #818497 [CVE-2016-2148]
++  * Fix integer overflow in the DHCP client (udhcpc).
++    Closes: #818499 [CVE-2016-2147]
++  * Fix directory traversal vulnerability in tar implementation.
++    Closes: #802702 [CVE-2011-5325]
++  * Fix integer overflow in bzip2 decompresson.
++    Closes: #879732 [CVE-2017-15874]
++  * Filter out terminal escape sequence filtering in autocompletion.
++    Closes: #882258 [CVE-2017-16544]
++
++ -- Christoph Biedl <debian.axhn@manchmal.in-ulm.de>  Mon, 25 Sep 2017 22:42:41 +0200
++
+ busybox (1:1.22.0-9+deb8u1) jessie; urgency=medium
+ 
+   * Non-maintainer upload.
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_22_0-220-g4e314fa.modprobe-rmmod-reject-module-names-with-slashes.patch busybox-1.22.0/debian/patches/cherry-pick.1_22_0-220-g4e314fa.modprobe-rmmod-reject-module-names-with-slashes.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_22_0-220-g4e314fa.modprobe-rmmod-reject-module-names-with-slashes.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_22_0-220-g4e314fa.modprobe-rmmod-reject-module-names-with-slashes.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,27 @@
++Subject: Modprobe,rmmod: reject module names with slashes
++ID: CVE-2014-9645
++Origin: 1_22_0-220-g4e314fa
++Upstream-Author: Denys Vlasenko <vda.linux@googlemail.com>
++Date: Thu Nov 20 18:24:33 2014 +0100
++Bug-Debian: https://bugs.debian.org/776186
++
++--- a/modutils/modprobe.c
+++++ b/modutils/modprobe.c
++@@ -239,6 +239,17 @@
++ {
++ 	struct module_entry *m;
++ 
+++	/*
+++	 * get_or_add_modentry() strips path from name and works
+++	 * on remaining basename.
+++	 * This would make "rmmod dir/name" and "modprobe dir/name"
+++	 * to work like "rmmod name" and "modprobe name",
+++	 * which is wrong, and can be abused via implicit modprobing:
+++	 * "ifconfig /usbserial up" tries to modprobe netdev-/usbserial.
+++	 */
+++	if (strchr(name, '/'))
+++		bb_error_msg_and_die("malformed module name '%s'", name);
+++
++ 	m = get_or_add_modentry(name);
++ 	if (!(option_mask32 & (OPT_REMOVE | OPT_SHOW_DEPS))
++ 	 && (m->flags & (MODULE_FLAG_LOADED | MODULE_FLAG_BUILTIN))
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_24_0-139-g352f79a.udhcpc-fix-option-6rd-parsing-could-overflow-its-malloced-buffer.patch busybox-1.22.0/debian/patches/cherry-pick.1_24_0-139-g352f79a.udhcpc-fix-option-6rd-parsing-could-overflow-its-malloced-buffer.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_24_0-139-g352f79a.udhcpc-fix-option-6rd-parsing-could-overflow-its-malloced-buffer.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_24_0-139-g352f79a.udhcpc-fix-option-6rd-parsing-could-overflow-its-malloced-buffer.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,58 @@
++Subject: Udhcpc: fix OPTION_6RD parsing (could overflow its malloced buffer)
++ID: CVE-2016-2148
++Origin: 1_24_0-139-g352f79a
++Upstream-Author: Denys Vlasenko <vda.linux@googlemail.com>
++Date: Fri Feb 26 15:54:56 2016 +0100
++Bug-Debian: https://bugs.debian.org/818497 
++
++--- a/networking/udhcp/common.c
+++++ b/networking/udhcp/common.c
++@@ -140,7 +140,7 @@
++  * udhcp_str2optset: to determine how many bytes to allocate.
++  * xmalloc_optname_optval: to estimate string length
++  * from binary option length: (option[LEN] / dhcp_option_lengths[opt_type])
++- * is the number of elements, multiply in by one element's string width
+++ * is the number of elements, multiply it by one element's string width
++  * (len_of_option_as_string[opt_type]) and you know how wide string you need.
++  */
++ const uint8_t dhcp_option_lengths[] ALIGN1 = {
++@@ -160,7 +160,18 @@
++ 	[OPTION_S32] =     4,
++ 	/* Just like OPTION_STRING, we use minimum length here */
++ 	[OPTION_STATIC_ROUTES] = 5,
++-	[OPTION_6RD] =    22,  /* ignored by udhcp_str2optset */
+++	[OPTION_6RD] =    12,  /* ignored by udhcp_str2optset */
+++	/* The above value was chosen as follows:
+++	 * len_of_option_as_string[] for this option is >60: it's a string of the form
+++	 * "32 128 ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 255.255.255.255 ".
+++	 * Each additional ipv4 address takes 4 bytes in binary option and appends
+++	 * another "255.255.255.255 " 16-byte string. We can set [OPTION_6RD] = 4
+++	 * but this severely overestimates string length: instead of 16 bytes,
+++	 * it adds >60 for every 4 bytes in binary option.
+++	 * We cheat and declare here that option is in units of 12 bytes.
+++	 * This adds more than 60 bytes for every three ipv4 addresses - more than enough.
+++	 * (Even 16 instead of 12 should work, but let's be paranoid).
+++	 */
++ };
++ 
++ 
++--- a/networking/udhcp/dhcpc.c
+++++ b/networking/udhcp/dhcpc.c
++@@ -99,7 +99,7 @@
++ 	[OPTION_IP              ] = sizeof("255.255.255.255 "),
++ 	[OPTION_IP_PAIR         ] = sizeof("255.255.255.255 ") * 2,
++ 	[OPTION_STATIC_ROUTES   ] = sizeof("255.255.255.255/32 255.255.255.255 "),
++-	[OPTION_6RD             ] = sizeof("32 128 ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 255.255.255.255 "),
+++	[OPTION_6RD             ] = sizeof("132 128 ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 255.255.255.255 "),
++ 	[OPTION_STRING          ] = 1,
++ 	[OPTION_STRING_HOST     ] = 1,
++ #if ENABLE_FEATURE_UDHCP_RFC3397
++@@ -206,7 +206,7 @@
++ 	type = optflag->flags & OPTION_TYPE_MASK;
++ 	optlen = dhcp_option_lengths[type];
++ 	upper_length = len_of_option_as_string[type]
++-		* ((unsigned)(len + optlen - 1) / (unsigned)optlen);
+++		* ((unsigned)(len + optlen) / (unsigned)optlen);
++ 
++ 	dest = ret = xmalloc(upper_length + strlen(opt_name) + 2);
++ 	dest += sprintf(ret, "%s=", opt_name);
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_24_0-152-gd474ffc.udhcp-fix-a-segv-on-malformed-rfc1035-encoded-domain-name.patch busybox-1.22.0/debian/patches/cherry-pick.1_24_0-152-gd474ffc.udhcp-fix-a-segv-on-malformed-rfc1035-encoded-domain-name.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_24_0-152-gd474ffc.udhcp-fix-a-segv-on-malformed-rfc1035-encoded-domain-name.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_24_0-152-gd474ffc.udhcp-fix-a-segv-on-malformed-rfc1035-encoded-domain-name.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,45 @@
++Subject: Udhcp: fix a SEGV on malformed RFC1035-encoded domain name
++ID: CVE-2016-2147
++Origin: 1_24_0-152-gd474ffc
++Upstream-Author: Denys Vlasenko <vda.linux@googlemail.com>
++Date: Thu Mar 10 11:47:58 2016 +0100
++Bug-Debian: https://bugs.debian.org/818499
++
++--- a/networking/udhcp/domain_codec.c
+++++ b/networking/udhcp/domain_codec.c
++@@ -63,11 +63,10 @@
++ 				if (crtpos + *c + 1 > clen) /* label too long? abort */
++ 					return NULL;
++ 				if (dst)
++-					memcpy(dst + len, c + 1, *c);
+++					/* \3com ---> "com." */
+++					((char*)mempcpy(dst + len, c + 1, *c))[0] = '.';
++ 				len += *c + 1;
++ 				crtpos += *c + 1;
++-				if (dst)
++-					dst[len - 1] = '.';
++ 			} else {
++ 				/* NUL: end of current domain name */
++ 				if (retpos == 0) {
++@@ -78,7 +77,10 @@
++ 					crtpos = retpos;
++ 					retpos = depth = 0;
++ 				}
++-				if (dst)
+++				if (dst && len != 0)
+++					/* \4host\3com\0\4host and we are at \0:
+++					 * \3com was converted to "com.", change dot to space.
+++					 */
++ 					dst[len - 1] = ' ';
++ 			}
++ 
++@@ -228,6 +230,9 @@
++ 	int len;
++ 	uint8_t *encoded;
++ 
+++        uint8_t str[6] = { 0x00, 0x00, 0x02, 0x65, 0x65, 0x00 };
+++        printf("NUL:'%s'\n",   dname_dec(str, 6, ""));
+++
++ #define DNAME_DEC(encoded,pre) dname_dec((uint8_t*)(encoded), sizeof(encoded), (pre))
++ 	printf("'%s'\n",       DNAME_DEC("\4host\3com\0", "test1:"));
++ 	printf("test2:'%s'\n", DNAME_DEC("\4host\3com\0\4host\3com\0", ""));
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_24_0-44-ga960748.tar-add-a-test-that-we-dont-write-into-symlinks.patch busybox-1.22.0/debian/patches/cherry-pick.1_24_0-44-ga960748.tar-add-a-test-that-we-dont-write-into-symlinks.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_24_0-44-ga960748.tar-add-a-test-that-we-dont-write-into-symlinks.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_24_0-44-ga960748.tar-add-a-test-that-we-dont-write-into-symlinks.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,59 @@
++Subject: Tar: add a test that we don't write into symlinks
++Origin: 1_24_0-44-ga960748
++Upstream-Author: Denys Vlasenko <vda.linux@googlemail.com>
++Date: Thu Oct 22 16:37:01 2015 +0200
++
++    [ Prerequisite for CVE-2011-5325 fix ]
++
++--- a/testsuite/tar.tests
+++++ b/testsuite/tar.tests
++@@ -246,6 +246,49 @@
++ "" ""
++ SKIP=
++ 
+++# attack.tar.bz2 has symlink pointing to a system file
+++# followed by a regular file with the same name
+++# containing "root::0:0::/root:/bin/sh":
+++#  lrwxrwxrwx root/root passwd -> /tmp/passwd
+++#  -rw-r--r-- root/root passwd
+++# naive tar implementation may end up creating the symlink
+++# and then writing into it.
+++# The correct implementation unlinks target before
+++# creating the second file.
+++# We test that /tmp/passwd remains empty:
+++optional UUDECODE FEATURE_SEAMLESS_BZ2
+++testing "tar does not extract into symlinks" "\
+++>>/tmp/passwd && uudecode -o input && tar xf input 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
+++" "\
+++0
+++" \
+++"" "\
+++begin-base64 644 attack.tar.bz2
+++QlpoOTFBWSZTWRVn/bIAAKt7hMqwAEBAAP2QAhB0Y96AAACACCAAlISgpqe0
+++po0DIaDynqAkpDRP1ANAhiYNSPR8VchKhAz0AK59+DA6FcMKBggOARIJdVHL
+++DGllrjs20ATUgR1HmccBX3EhoMnpMJaNyggmxgLDMz54lBnBTJO/1L1lbMS4
+++l4/V8LDoe90yiWJhOJvIypgEfxdyRThQkBVn/bI=
+++====
+++"
+++SKIP=
+++# And same with -k
+++optional UUDECODE FEATURE_SEAMLESS_BZ2
+++testing "tar -k does not extract into symlinks" "\
+++>>/tmp/passwd && uudecode -o input && tar xf input -k 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
+++" "\
+++tar: can't open 'passwd': File exists
+++0
+++" \
+++"" "\
+++begin-base64 644 attack.tar.bz2
+++QlpoOTFBWSZTWRVn/bIAAKt7hMqwAEBAAP2QAhB0Y96AAACACCAAlISgpqe0
+++po0DIaDynqAkpDRP1ANAhiYNSPR8VchKhAz0AK59+DA6FcMKBggOARIJdVHL
+++DGllrjs20ATUgR1HmccBX3EhoMnpMJaNyggmxgLDMz54lBnBTJO/1L1lbMS4
+++l4/V8LDoe90yiWJhOJvIypgEfxdyRThQkBVn/bI=
+++====
+++"
+++SKIP=
+++
++ 
++ cd .. && rm -rf tar.tempdir || exit 1
++ 
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_24_0-68-g1de25a6.unzip-test-for-bad-archive-segving.patch busybox-1.22.0/debian/patches/cherry-pick.1_24_0-68-g1de25a6.unzip-test-for-bad-archive-segving.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_24_0-68-g1de25a6.unzip-test-for-bad-archive-segving.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_24_0-68-g1de25a6.unzip-test-for-bad-archive-segving.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,96 @@
++Subject: Unzip: test for bad archive SEGVing
++ID: TEMP-0803097-A74121
++Origin: 1_24_0-68-g1de25a6
++Upstream-Author: Denys Vlasenko <vda.linux@googlemail.com>
++Date: Mon Oct 26 19:33:05 2015 +0100
++Bug-Debian: https://bugs.debian.org/803097
++
++--- a/archival/libarchive/decompress_gunzip.c
+++++ b/archival/libarchive/decompress_gunzip.c
++@@ -305,11 +305,12 @@
++ 	unsigned i;             /* counter, current code */
++ 	unsigned j;             /* counter */
++ 	int k;                  /* number of bits in current code */
++-	unsigned *p;            /* pointer into c[], b[], or v[] */
+++	const unsigned *p;      /* pointer into c[], b[], or v[] */
++ 	huft_t *q;              /* points to current table */
++ 	huft_t r;               /* table entry for structure assignment */
++ 	huft_t *u[BMAX];        /* table stack */
++ 	unsigned v[N_MAX];      /* values in order of bit length */
+++	unsigned v_end;
++ 	int ws[BMAX + 1];       /* bits decoded stack */
++ 	int w;                  /* bits decoded */
++ 	unsigned x[BMAX + 1];   /* bit offsets, then code stack */
++@@ -324,7 +325,7 @@
++ 
++ 	/* Generate counts for each bit length */
++ 	memset(c, 0, sizeof(c));
++-	p = (unsigned *) b; /* cast allows us to reuse p for pointing to b */
+++	p = b;
++ 	i = n;
++ 	do {
++ 		c[*p]++; /* assume all entries <= BMAX */
++@@ -365,12 +366,14 @@
++ 	}
++ 
++ 	/* Make a table of values in order of bit lengths */
++-	p = (unsigned *) b;
+++	p = b;
++ 	i = 0;
+++	v_end = 0;
++ 	do {
++ 		j = *p++;
++ 		if (j != 0) {
++ 			v[x[j]++] = i;
+++			v_end = x[j];
++ 		}
++ 	} while (++i < n);
++ 
++@@ -432,7 +435,7 @@
++ 
++ 			/* set up table entry in r */
++ 			r.b = (unsigned char) (k - w);
++-			if (p >= v + n) {
+++			if (p >= v + v_end) { // Was "if (p >= v + n)" but v[] can be shorter!
++ 				r.e = 99; /* out of values--invalid code */
++ 			} else if (*p < s) {
++ 				r.e = (unsigned char) (*p < 256 ? 16 : 15);	/* 256 is EOB code */
++--- a/testsuite/unzip.tests
+++++ b/testsuite/unzip.tests
++@@ -7,7 +7,7 @@
++ 
++ . ./testing.sh
++ 
++-# testing "test name" "options" "expected result" "file input" "stdin"
+++# testing "test name" "commands" "expected result" "file input" "stdin"
++ #   file input will be file called "input"
++ #   test can create a file "actual" instead of writing to stdout
++ 
++@@ -30,6 +30,27 @@
++ rmdir foo
++ rm foo.zip
++ 
+++# File containing some damaged encrypted stream
+++testing "unzip (bad archive)" "uudecode; unzip bad.zip 2>&1; echo \$?" \
+++"Archive:  bad.zip
+++  inflating: ]3j½r«IK-%Ix
+++unzip: inflate error
+++1
+++" \
+++"" "\
+++begin-base64 644 bad.zip
+++UEsDBBQAAgkIAAAAIQA5AAAANwAAADwAAAAQAAcAXTNqwr1ywqtJGxJLLSVJ
+++eCkBD0AdKBk8JzQsIj01JC0/ORJQSwMEFAECCAAAAAAhADoAAAAPAAAANgAA
+++AAwAAQASw73Ct1DCokohPXQiNjoUNTUiHRwgLT4WHlBLAQIQABQAAggIAAAA
+++oQA5AAAANwAAADwAAAAQQAcADAAAACwAMgCAAAAAAABdM2rCvXLCq0kbEkst
+++JUl4KQEPQB0oGSY4Cz4QNgEnJSYIPVBLAQIAABQAAggAAAAAIQAqAAAADwAA
+++BDYAAAAMAAEADQAAADIADQAAAEEAAAASw73Ct1DKokohPXQiNzA+FAI1HCcW
+++NzITNFBLBQUKAC4JAA04Cw0EOhZQSwUGAQAABAIAAgCZAAAAeQAAAAIALhM=
+++====
+++"
+++
+++rm *
+++
++ # Clean up scratch directory.
++ 
++ cd ..
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_26_0-189-g8762512fd.replace-int-uint-to-avoid-signed-integer-overflow.patch busybox-1.22.0/debian/patches/cherry-pick.1_26_0-189-g8762512fd.replace-int-uint-to-avoid-signed-integer-overflow.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_26_0-189-g8762512fd.replace-int-uint-to-avoid-signed-integer-overflow.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_26_0-189-g8762512fd.replace-int-uint-to-avoid-signed-integer-overflow.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,92 @@
++Subject: Replace int -> uint to avoid signed integer overflow
++Origin: 1_26_0-189-g8762512fd
++Upstream-Author: Rostislav Skudnov <rostislav@tuxera.com>
++Date: Wed Feb 1 18:35:13 2017 +0000
++Comment: Prerequisite for 1_27_0-438-g0402cb32d
++
++    An example of such an error (should be compiled with DEBUG_SANITIZE):
++    
++    runtime error: left shift of 1 by 31 places cannot be represented in
++    type 'int'
++    
++    Signed-off-by: Rostislav Skudnov <rostislav@tuxera.com>
++    Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
++
++--- a/archival/libarchive/decompress_bunzip2.c
+++++ b/archival/libarchive/decompress_bunzip2.c
++@@ -134,7 +134,7 @@
++ 
++ 		/* Avoid 32-bit overflow (dump bit buffer to top of output) */
++ 		if (bit_count >= 24) {
++-			bits = bd->inbufBits & ((1 << bit_count) - 1);
+++			bits = bd->inbufBits & ((1U << bit_count) - 1);
++ 			bits_wanted -= bit_count;
++ 			bits <<= bits_wanted;
++ 			bit_count = 0;
++@@ -158,11 +158,11 @@
++ {
++ 	struct group_data *hufGroup;
++ 	int dbufCount, dbufSize, groupCount, *base, *limit, selector,
++-		i, j, t, runPos, symCount, symTotal, nSelectors, byteCount[256];
+++		i, j, runPos, symCount, symTotal, nSelectors, byteCount[256];
++ 	int runCnt = runCnt; /* for compiler */
++ 	uint8_t uc, symToByte[256], mtfSymbol[256], *selectors;
++ 	uint32_t *dbuf;
++-	unsigned origPtr;
+++	unsigned origPtr, t;
++ 
++ 	dbuf = bd->dbuf;
++ 	dbufSize = bd->dbufSize;
++--- a/libbb/crc32.c
+++++ b/libbb/crc32.c
++@@ -24,7 +24,7 @@
++ {
++ 	uint32_t polynomial = endian ? 0x04c11db7 : 0xedb88320;
++ 	uint32_t c;
++-	int i, j;
+++	unsigned i, j;
++ 
++ 	if (!crc_table)
++ 		crc_table = xmalloc(256 * sizeof(uint32_t));
++--- a/libbb/getopt32.c
+++++ b/libbb/getopt32.c
++@@ -376,7 +376,7 @@
++ 		if (c >= 32)
++ 			break;
++ 		on_off->opt_char = *s;
++-		on_off->switch_on = (1 << c);
+++		on_off->switch_on = (1U << c);
++ 		if (*++s == ':') {
++ 			on_off->optarg = va_arg(p, void **);
++ 			while (*++s == ':')
++@@ -419,7 +419,7 @@
++ 			if (c >= 32)
++ 				break;
++ 			on_off->opt_char = l_o->val;
++-			on_off->switch_on = (1 << c);
+++			on_off->switch_on = (1U << c);
++ 			if (l_o->has_arg != no_argument)
++ 				on_off->optarg = va_arg(p, void **);
++ 			c++;
++--- a/libbb/pw_encrypt.c
+++++ b/libbb/pw_encrypt.c
++@@ -30,7 +30,7 @@
++ int FAST_FUNC crypt_make_salt(char *p, int cnt /*, int x */)
++ {
++ 	/* was: x += ... */
++-	int x = getpid() + monotonic_us();
+++	unsigned x = getpid() + monotonic_us();
++ 	do {
++ 		/* x = (x*1664525 + 1013904223) % 2^32 generator is lame
++ 		 * (low-order bit is not "random", etc...),
++--- a/miscutils/rx.c
+++++ b/miscutils/rx.c
++@@ -84,7 +84,7 @@
++ 		int blockBegin;
++ 		int blockNo, blockNoOnesCompl;
++ 		int cksum_or_crc;
++-		int expected;
+++		unsigned expected;
++ 		int i, j;
++ 
++ 		blockBegin = read_byte(timeout);
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_27_0-148-gb920a38.tar-postpone-creation-of-symlinks-with-suspicious-targets.patch busybox-1.22.0/debian/patches/cherry-pick.1_27_0-148-gb920a38.tar-postpone-creation-of-symlinks-with-suspicious-targets.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_27_0-148-gb920a38.tar-postpone-creation-of-symlinks-with-suspicious-targets.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_27_0-148-gb920a38.tar-postpone-creation-of-symlinks-with-suspicious-targets.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,347 @@
++Subject: Tar: postpone creation of symlinks with "suspicious" targets. Closes 8411
++ID: CVE-2011-5325
++Origin: 1_27_0-148-gb920a38dc
++Upstream-Author: Denys Vlasenko <vda.linux@googlemail.com>
++Date: Mon Jul 24 17:20:13 2017 +0200
++Bug-Debian: https://bugs.debian.org/802702
++
++--- a/archival/libarchive/data_extract_all.c
+++++ b/archival/libarchive/data_extract_all.c
++@@ -143,6 +143,34 @@
++ 	case S_IFLNK:
++ 		/* Symlink */
++ //TODO: what if file_header->link_target == NULL (say, corrupted tarball?)
+++
+++		/* To avoid a directory traversal attack via symlinks,
+++		 * for certain link targets postpone creation of symlinks.
+++		 *
+++		 * For example, consider a .tar created via:
+++		 *  $ tar cvf bug.tar anything.txt
+++		 *  $ ln -s /tmp symlink
+++		 *  $ tar --append -f bug.tar symlink
+++		 *  $ rm symlink
+++		 *  $ mkdir symlink
+++		 *  $ tar --append -f bug.tar symlink/evil.py
+++		 *
+++		 * This will result in an archive that contains:
+++		 *  $ tar --list -f bug.tar
+++		 *  anything.txt
+++		 *  symlink [-> /tmp]
+++		 *  symlink/evil.py
+++		 *
+++		 * Untarring bug.tar would otherwise place evil.py in '/tmp'.
+++		 */
+++		if (file_header->link_target[0] == '/'
+++		 || strstr(file_header->link_target, "..")
+++		) {
+++			llist_add_to(&archive_handle->symlink_placeholders,
+++				xasprintf("%s%c%s", file_header->name, '\0', file_header->link_target)
+++			);
+++			break;
+++		}
++ 		res = symlink(file_header->link_target, file_header->name);
++ 		if ((res == -1)
++ 		 && !(archive_handle->ah_flags & ARCHIVE_EXTRACT_QUIET)
++--- a/archival/tar.c
+++++ b/archival/tar.c
++@@ -22,24 +22,6 @@
++  *
++  * Licensed under GPLv2 or later, see file LICENSE in this source tree.
++  */
++-/* TODO: security with -C DESTDIR option can be enhanced.
++- * Consider tar file created via:
++- * $ tar cvf bug.tar anything.txt
++- * $ ln -s /tmp symlink
++- * $ tar --append -f bug.tar symlink
++- * $ rm symlink
++- * $ mkdir symlink
++- * $ tar --append -f bug.tar symlink/evil.py
++- *
++- * This will result in an archive which contains:
++- * $ tar --list -f bug.tar
++- * anything.txt
++- * symlink
++- * symlink/evil.py
++- *
++- * Untarring it puts evil.py in '/tmp' even if the -C DESTDIR is given.
++- * This doesn't feel right, and IIRC GNU tar doesn't do that.
++- */
++ 
++ //config:config TAR
++ //config:	bool "tar"
++@@ -309,6 +291,23 @@
++ 	xwrite(fd, hp, sizeof(*hp));
++ }
++ 
+++static void replace_symlink_placeholders(llist_t *list)
+++{
+++	while (list) {
+++		char *target;
+++
+++		target = list->data + strlen(list->data) + 1;
+++		if (symlink(target, list->data)) {
+++			/* shared message */
+++			bb_error_msg_and_die("can't create %slink '%s' to '%s'",
+++				"sym",
+++				list->data, target
+++			);
+++		}
+++		list = list->link;
+++	}
+++}
+++
++ #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
++ static void writeLongname(int fd, int type, const char *name, int dir)
++ {
++@@ -1205,6 +1204,8 @@
++ 	while (get_header_tar(tar_handle) == EXIT_SUCCESS)
++ 		bb_got_signal = EXIT_SUCCESS; /* saw at least one header, good */
++ 
+++	replace_symlink_placeholders(tar_handle->symlink_placeholders);
+++
++ 	/* Check that every file that should have been extracted was */
++ 	while (tar_handle->accept) {
++ 		if (!find_list_entry(tar_handle->reject, tar_handle->accept->data)
++--- /dev/null
+++++ b/archival/tar_symlink_attack
++@@ -0,0 +1,16 @@
+++#!/bin/sh
+++# Makes "symlink attack" tarball (needs GNU tar for --append)
+++
+++true >anything.txt
+++tar cvf tar_symlink_attack.tar anything.txt
+++rm anything.txt
+++
+++ln -s /tmp symlink
+++tar --append -f tar_symlink_attack.tar symlink
+++rm symlink
+++
+++mkdir symlink
+++echo BUG >symlink/bb_test_evilfile
+++tar --append -f tar_symlink_attack.tar symlink/bb_test_evilfile
+++rm symlink/bb_test_evilfile
+++rmdir symlink
++--- a/include/bb_archive.h
+++++ b/include/bb_archive.h
++@@ -64,6 +64,9 @@
++ 	/* Currently processed file's header */
++ 	file_header_t *file_header;
++ 
+++	/* List of symlink placeholders */
+++	llist_t *symlink_placeholders;
+++
++ 	/* Process the header component, e.g. tar -t */
++ 	void FAST_FUNC (*action_header)(const file_header_t *);
++ 
++--- a/testsuite/tar.tests
+++++ b/testsuite/tar.tests
++@@ -10,9 +10,6 @@
++ unset LC_ALL
++ umask 022
++ 
++-rm -rf tar.tempdir 2>/dev/null
++-mkdir tar.tempdir && cd tar.tempdir || exit 1
++-
++ # testing "test name" "script" "expected result" "file input" "stdin"
++ 
++ testing "Empty file is not a tarball" '\
++@@ -53,9 +50,18 @@
++ "" ""
++ SKIP=
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
+++# "tar cf test.tar input input_dir/ input_hard1 input_hard2 input_hard1 input_dir/ input":
+++# GNU tar 1.26 records as hardlinks:
+++#  input_hard2 -> input_hard1
+++#  input_hard1 -> input_hard1 (!!!)
+++#  input_dir/file -> input_dir/file
+++#  input -> input
+++# As of 1.24.0, we don't record last two: for them, nlink==1
+++# and we check for "hardlink"ness only files with nlink!=1
+++# We also don't use "hrw-r--r--" notation for hardlinks in "tar tv" listing.
++ optional FEATURE_TAR_CREATE FEATURE_LS_SORTFILES
++ testing "tar hardlinks and repeated files" '\
++-rm -rf input_* test.tar 2>/dev/null
++ >input_hard1
++ ln input_hard1 input_hard2
++ mkdir input_dir
++@@ -64,6 +70,7 @@
++ chmod    755 input_dir
++ tar cf test.tar input input_dir/ input_hard1 input_hard2 input_hard1 input_dir/ input
++ tar tvf test.tar | sed "s/.*[0-9] input/input/"
+++rm -rf input_dir
++ tar xf test.tar 2>&1
++ echo Ok: $?
++ ls -l . input_dir/* | grep input_ | sed "s/\\(^[^ ]*\\) .* input/\\1 input/"
++@@ -85,10 +92,11 @@
++ " \
++ "" ""
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ optional FEATURE_TAR_CREATE FEATURE_LS_SORTFILES
++ testing "tar hardlinks mode" '\
++-rm -rf input_* test.tar 2>/dev/null
++ >input_hard1
++ chmod 741 input_hard1
++ ln input_hard1 input_hard2
++@@ -118,10 +126,11 @@
++ " \
++ "" ""
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ optional FEATURE_TAR_CREATE FEATURE_LS_SORTFILES
++ testing "tar symlinks mode" '\
++-rm -rf input_* test.tar 2>/dev/null
++ >input_file
++ chmod 741 input_file
++ ln -s input_file input_soft
++@@ -149,10 +158,11 @@
++ " \
++ "" ""
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ optional FEATURE_TAR_CREATE FEATURE_TAR_LONG_OPTIONS
++ testing "tar --overwrite" "\
++-rm -rf input_* test.tar 2>/dev/null
++ ln input input_hard
++ tar cf test.tar input_hard
++ echo WRONG >input
++@@ -164,12 +174,13 @@
++ " \
++ "Ok\n" ""
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ test x"$SKIP_KNOWN_BUGS" = x"" && {
++ # Needs to be run under non-root for meaningful test
++ optional FEATURE_TAR_CREATE
++ testing "tar writing into read-only dir" '\
++-rm -rf input_* test.tar 2>/dev/null
++ mkdir input_dir
++ >input_dir/input_file
++ chmod 550 input_dir
++@@ -191,7 +202,9 @@
++ "" ""
++ SKIP=
++ }
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ # Had a bug where on extract autodetect first "switched off" -z
++ # and then failed to recognize .tgz extension
++ optional FEATURE_TAR_CREATE FEATURE_SEAMLESS_GZ
++@@ -207,7 +220,9 @@
++ " \
++ "" ""
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ # Do we detect XZ-compressed data (even w/o .tar.xz or txz extension)?
++ # (the uuencoded hello_world.txz contains one empty file named "hello_world")
++ optional UUDECODE FEATURE_TAR_AUTODETECT FEATURE_SEAMLESS_XZ
++@@ -226,7 +241,9 @@
++ ====
++ "
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ # On extract, everything up to and including last ".." component is stripped
++ optional FEATURE_TAR_CREATE
++ testing "tar strips /../ on extract" "\
++@@ -245,7 +262,9 @@
++ " \
++ "" ""
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ # attack.tar.bz2 has symlink pointing to a system file
++ # followed by a regular file with the same name
++ # containing "root::0:0::/root:/bin/sh":
++@@ -256,10 +275,11 @@
++ # The correct implementation unlinks target before
++ # creating the second file.
++ # We test that /tmp/passwd remains empty:
++-optional UUDECODE FEATURE_SEAMLESS_BZ2
+++optional UUDECODE FEATURE_TAR_AUTODETECT FEATURE_SEAMLESS_BZ2
++ testing "tar does not extract into symlinks" "\
++ >>/tmp/passwd && uudecode -o input && tar xf input 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
++ " "\
+++tar: can't create symlink 'passwd' to '/tmp/passwd'
++ 0
++ " \
++ "" "\
++@@ -271,12 +291,15 @@
++ ====
++ "
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
+++
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
++ # And same with -k
++-optional UUDECODE FEATURE_SEAMLESS_BZ2
+++optional UUDECODE FEATURE_TAR_AUTODETECT FEATURE_SEAMLESS_BZ2
++ testing "tar -k does not extract into symlinks" "\
++ >>/tmp/passwd && uudecode -o input && tar xf input -k 2>&1 && rm passwd; cat /tmp/passwd; echo \$?
++ " "\
++-tar: can't open 'passwd': File exists
+++tar: can't create symlink 'passwd' to '/tmp/passwd'
++ 0
++ " \
++ "" "\
++@@ -288,8 +311,45 @@
++ ====
++ "
++ SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
+++optional UNICODE_SUPPORT FEATURE_TAR_GNU_EXTENSIONS FEATURE_SEAMLESS_BZ2 FEATURE_TAR_AUTODETECT
+++testing "Pax-encoded UTF8 names and symlinks" '\
+++tar xvf ../tar.utf8.tar.bz2 2>&1; echo $?
+++" \
+++"" ""
+++SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
++-cd .. && rm -rf tar.tempdir || exit 1
+++mkdir tar.tempdir && cd tar.tempdir || exit 1
+++optional FEATURE_SEAMLESS_BZ2 FEATURE_TAR_AUTODETECT
+++testing "Symlink attack: create symlink and then write through it" '\
+++exec 2>&1
+++uudecode -o input && tar xvf input; echo $?
+++ls /tmp/bb_test_evilfile
+++ls bb_test_evilfile
+++ls symlink/bb_test_evilfile
+++' "\
+++anything.txt
+++symlink
+++symlink/bb_test_evilfile
+++tar: can't create symlink 'symlink' to '/tmp'
+++1
+++ls: /tmp/bb_test_evilfile: No such file or directory
+++ls: bb_test_evilfile: No such file or directory
+++symlink/bb_test_evilfile
+++" \
+++"" "\
+++begin-base64 644 tar_symlink_attack.tar.bz2
+++QlpoOTFBWSZTWZgs7bQAALT/hMmQAFBAAf+AEMAGJPPv32AAAIAIMAC5thlR
+++omAjAmCMADQT1BqNE0AEwAAjAEwElTKeo9NTR6h6gaeoA0DQNLVdwZZ5iNTk
+++AQwCAV6S00QFJYhrlfFkVCEDEGtgNVqYrI0uK3ggnt30gqk4e1TTQm5QIAKa
+++SJqzRGSFLMmOloHSAcvLiFxxRiQtQZF+qPxbo173ZDISOAoNoPN4PQPhBhKS
+++n8fYaKlioCTzL2oXYczyUUIP4u5IpwoSEwWdtoA=
+++====
+++"
+++SKIP=
+++cd .. || exit 1; rm -rf tar.tempdir 2>/dev/null
++ 
++ exit $FAILCOUNT
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_27_0-438-g0402cb32d.bunzip2-fix-runcnt-overflow-from-bug-10431.patch busybox-1.22.0/debian/patches/cherry-pick.1_27_0-438-g0402cb32d.bunzip2-fix-runcnt-overflow-from-bug-10431.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_27_0-438-g0402cb32d.bunzip2-fix-runcnt-overflow-from-bug-10431.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_27_0-438-g0402cb32d.bunzip2-fix-runcnt-overflow-from-bug-10431.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,92 @@
++Subject: Bunzip2: fix runCnt overflow from bug 10431
++ID: CVE-2017-15874
++Origin: 1_27_0-438-g0402cb32d
++Upstream-Author: Denys Vlasenko <vda.linux@googlemail.com>
++Date: Sun Oct 22 18:23:23 2017 +0200
++Bug-Debian: https://bugs.debian.org/879732
++
++    This particular corrupted file can be dealth with by using "unsigned".
++    If there will be cases where it genuinely overflows, there is a disabled
++    code to deal with that too.
++    
++    function                                             old     new   delta
++    get_next_block                                      1678    1667     -11
++    
++    Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
++
++--- a/archival/libarchive/decompress_bunzip2.c
+++++ b/archival/libarchive/decompress_bunzip2.c
++@@ -157,15 +157,15 @@
++ static int get_next_block(bunzip_data *bd)
++ {
++ 	struct group_data *hufGroup;
++-	int dbufCount, dbufSize, groupCount, *base, *limit, selector,
++-		i, j, runPos, symCount, symTotal, nSelectors, byteCount[256];
++-	int runCnt = runCnt; /* for compiler */
+++	int groupCount, *base, *limit, selector,
+++		i, j, symCount, symTotal, nSelectors, byteCount[256];
++ 	uint8_t uc, symToByte[256], mtfSymbol[256], *selectors;
++ 	uint32_t *dbuf;
++ 	unsigned origPtr, t;
+++	unsigned dbufCount, runPos;
+++	unsigned runCnt = runCnt; /* for compiler */
++ 
++ 	dbuf = bd->dbuf;
++-	dbufSize = bd->dbufSize;
++ 	selectors = bd->selectors;
++ 
++ /* In bbox, we are ok with aborting through setjmp which is set up in start_bunzip */
++@@ -188,7 +188,7 @@
++ 	   it didn't actually work. */
++ 	if (get_bits(bd, 1)) return RETVAL_OBSOLETE_INPUT;
++ 	origPtr = get_bits(bd, 24);
++-	if ((int)origPtr > dbufSize) return RETVAL_DATA_ERROR;
+++	if (origPtr > bd->dbufSize) return RETVAL_DATA_ERROR;
++ 
++ 	/* mapping table: if some byte values are never used (encoding things
++ 	   like ascii text), the compression code removes the gaps to have fewer
++@@ -436,7 +436,14 @@
++ 			   symbols, but a run of length 0 doesn't mean anything in this
++ 			   context).  Thus space is saved. */
++ 			runCnt += (runPos << nextSym); /* +runPos if RUNA; +2*runPos if RUNB */
++-			if (runPos < dbufSize) runPos <<= 1;
+++//The 32-bit overflow of runCnt wasn't yet seen, but probably can happen.
+++//This would be the fix (catches too large count way before it can overflow):
+++//			if (runCnt > bd->dbufSize) {
+++//				dbg("runCnt:%u > dbufSize:%u RETVAL_DATA_ERROR",
+++//						runCnt, bd->dbufSize);
+++//				return RETVAL_DATA_ERROR;
+++//			}
+++			if (runPos < bd->dbufSize) runPos <<= 1;
++ 			goto end_of_huffman_loop;
++ 		}
++ 
++@@ -446,14 +453,15 @@
++ 		   literal used is the one at the head of the mtfSymbol array.) */
++ 		if (runPos != 0) {
++ 			uint8_t tmp_byte;
++-			if (dbufCount + runCnt > dbufSize) {
++-				dbg("dbufCount:%d+runCnt:%d %d > dbufSize:%d RETVAL_DATA_ERROR",
++-						dbufCount, runCnt, dbufCount + runCnt, dbufSize);
+++			if (dbufCount + runCnt > bd->dbufSize) {
+++				dbg("dbufCount:%u+runCnt:%u %u > dbufSize:%u RETVAL_DATA_ERROR",
+++						dbufCount, runCnt, dbufCount + runCnt, bd->dbufSize);
++ 				return RETVAL_DATA_ERROR;
++ 			}
++ 			tmp_byte = symToByte[mtfSymbol[0]];
++ 			byteCount[tmp_byte] += runCnt;
++-			while (--runCnt >= 0) dbuf[dbufCount++] = (uint32_t)tmp_byte;
+++			while ((int)--runCnt >= 0)
+++				dbuf[dbufCount++] = (uint32_t)tmp_byte;
++ 			runPos = 0;
++ 		}
++ 
++@@ -467,7 +475,7 @@
++ 		   first symbol in the mtf array, position 0, would have been handled
++ 		   as part of a run above.  Therefore 1 unused mtf position minus
++ 		   2 non-literal nextSym values equals -1.) */
++-		if (dbufCount >= dbufSize) return RETVAL_DATA_ERROR;
+++		if (dbufCount >= bd->dbufSize) return RETVAL_DATA_ERROR;
++ 		i = nextSym - 1;
++ 		uc = mtfSymbol[i];
++ 
+diff -Nru busybox-1.22.0/debian/patches/cherry-pick.1_27_0-456-gc3797d40a.lineedit-do-not-tab-complete-any-strings-which-have-control-characters.patch busybox-1.22.0/debian/patches/cherry-pick.1_27_0-456-gc3797d40a.lineedit-do-not-tab-complete-any-strings-which-have-control-characters.patch
+--- busybox-1.22.0/debian/patches/cherry-pick.1_27_0-456-gc3797d40a.lineedit-do-not-tab-complete-any-strings-which-have-control-characters.patch	1970-01-01 01:00:00.000000000 +0100
++++ busybox-1.22.0/debian/patches/cherry-pick.1_27_0-456-gc3797d40a.lineedit-do-not-tab-complete-any-strings-which-have-control-characters.patch	2017-11-27 08:13:06.000000000 +0100
+@@ -0,0 +1,33 @@
++Subject: Lineedit: do not tab-complete any strings which have control characters
++ID: CVE-2017-16544
++Origin: 1_27_0-456-gc3797d40a
++Upstream-Author: Denys Vlasenko <vda.linux@googlemail.com>
++Date: Tue Nov 7 18:09:29 2017 +0100
++Bug-Debian: https://bugs.debian.org/882258
++
++    function                                             old     new   delta
++    add_match                                             41      68     +27
++    
++    Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
++
++--- a/libbb/lineedit.c
+++++ b/libbb/lineedit.c
++@@ -631,6 +631,18 @@
++ 
++ static void add_match(char *matched)
++ {
+++	unsigned char *p = (unsigned char*)matched;
+++	while (*p) {
+++		/* ESC attack fix: drop any string with control chars */
+++		if (*p < ' '
+++		 || (!ENABLE_UNICODE_SUPPORT && *p >= 0x7f)
+++		 || (ENABLE_UNICODE_SUPPORT && *p == 0x7f)
+++		) {
+++			free(matched);
+++			return;
+++		}
+++		p++;
+++	}
++ 	matches = xrealloc_vector(matches, 4, num_matches);
++ 	matches[num_matches] = matched;
++ 	num_matches++;
+diff -Nru busybox-1.22.0/debian/patches/series busybox-1.22.0/debian/patches/series
+--- busybox-1.22.0/debian/patches/series	2015-02-17 18:29:23.000000000 +0100
++++ busybox-1.22.0/debian/patches/series	2017-11-27 08:13:06.000000000 +0100
+@@ -7,6 +7,7 @@
+ libbb-open_zipped-should-not-fail-on-non-compressed-files.diff
+ zcat:-complain-if-input-is-not-compressed.diff
+ lzop-add-overflow-check-CVE-2014-4607.patch
++cherry-pick.1_27_0-456-gc3797d40a.lineedit-do-not-tab-complete-any-strings-which-have-control-characters.patch
+ 
+ # submitted fixes
+ do-not-fail-on-missing-SIGPWR.patch
+@@ -27,3 +28,12 @@
+ stop-checking-ancient-kernel-version.patch
+ iproute-support-onelink-route-option-and-print-route-flags.patch
+ update-deb-format-support.patch
++
++cherry-pick.1_22_0-220-g4e314fa.modprobe-rmmod-reject-module-names-with-slashes.patch
++cherry-pick.1_24_0-68-g1de25a6.unzip-test-for-bad-archive-segving.patch
++cherry-pick.1_24_0-139-g352f79a.udhcpc-fix-option-6rd-parsing-could-overflow-its-malloced-buffer.patch
++cherry-pick.1_24_0-152-gd474ffc.udhcp-fix-a-segv-on-malformed-rfc1035-encoded-domain-name.patch
++cherry-pick.1_24_0-44-ga960748.tar-add-a-test-that-we-dont-write-into-symlinks.patch
++cherry-pick.1_26_0-189-g8762512fd.replace-int-uint-to-avoid-signed-integer-overflow.patch
++cherry-pick.1_27_0-148-gb920a38.tar-postpone-creation-of-symlinks-with-suspicious-targets.patch
++cherry-pick.1_27_0-438-g0402cb32d.bunzip2-fix-runcnt-overflow-from-bug-10431.patch

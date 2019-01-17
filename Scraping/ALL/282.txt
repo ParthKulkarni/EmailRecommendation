@@ -1,0 +1,58 @@
+To : Stefan Fritsch <sf@sfritsch.de>
+Subject : Re: testing and review requested for Wheezy update of apache2
+From : Antoine Beaupré <anarcat@orangeseeds.org>
+Date : Mon, 23 Jan 2017 17:03:55 -0500
+Message-id : 87r33tqvqs.fsf@curie.anarc.at
+In-reply-to : <[🔎] 87wpdlr0t5.fsf@curie.anarc.at>
+References : <20161223225643.GA24261@inguza.net> <[🔎] 87fukh7hcq.fsf@curie.anarc.at> <[🔎] 1894087.UjISrH0e0J@k> <[🔎] 1671189.9cX05MgSZt@k> <[🔎] 87wpdlr0t5.fsf@curie.anarc.at>
+
+
+On 2017-01-23 15:14:30, Antoine Beaupré wrote:
+> On 2017-01-22 11:25:08, Stefan Fritsch wrote:
+>>  Test Summary Report
+>>  -------------------
+>>  t/apache/chunkinput.t             (Wstat: 0 Tests: 37 Failed: 1)
+>>    Failed test:  3
+>>  t/apache/contentlength.t          (Wstat: 0 Tests: 24 Failed: 8)
+>>    Failed tests:  2, 4, 14, 16, 18, 20, 22, 24
+>> +t/apache/http_strict.t            (Wstat: 0 Tests: 85 Failed: 3)
+>> +  Failed tests:  2, 8, 26
+>
+> here are those tests:
+>
+> 2: [ "GET / HTTP/1.0\n\n"                          => 400],
+> 8: [ "GET / HTTP/1.0\0\r\n\r\n"                    => 400],
+> 26: [ "GET / HTTP/1.0\r\nFoo: b\0ar\r\n\r\n"        => 400],
+turns out the latter two here are unrelated issues. 2.2.32 includes this
+code:
+    /* PR#43039: We shouldn't accept NULL bytes within the line */
+    if (strlen(*s) < bytes_handled) {
+        return APR_EINVAL;
+    }
+which is fair, but not directly part of this rewrite, as far as I know
+- this seems more related to this patch:
+http://svn.apache.org/viewvc?view=revision&revision=1758671
+http://svn.apache.org/viewvc/httpd/httpd/branches/2.2.x/server/protocol.c?r1=1757394&r2=1758671&pathrev=1758671&diff_format=h
+I am not sure we should factor this into the package, but without it,
+test case #2 is so broken that I am worried it introduces other
+regressions, so I bundled it in.
+It does mean that "echo GET / | nc localhost 80" now fails, but that
+seems to be the design of the Apache team, unfortunately. :( No more
+"telnet into port 80" it seems?
+I am really wondering why we shouldn't just package 2.2.32 after
+all. the change is kind of massive, but it would make me feel much
+better than the current patch set:
+ 136 files changed, 1738 insertions(+), 4409 deletions(-)
+I'm running out of hours for this month, unfortunately. I will be able
+to continue the work in february, but it would probably be better for
+others to pick that up before that.
+I have reuploaded a new version of the package with the extra above
+patch, and I believe it passes the test suite correctly now.
+I am not confident enough to upload the result as is, so I would like
+another LTS worker to look into this before a final upload.
+Thanks so much for the review and feedback, Stefan!
+A.
+-- 
+How inappropriate to call this planet 'Earth' when it is quite clearly
+'Ocean'.
+                        - Arthur C. Clarke

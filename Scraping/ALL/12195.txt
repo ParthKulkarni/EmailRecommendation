@@ -1,0 +1,88 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Naming of network devices
+From : Vincent Bernat <bernat@debian.org>
+Date : Mon, 10 Jul 2017 22:24:26 +0200
+Message-id : m3eftoghvp.fsf@luffy.cx
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170710195328.gox67unssibfoqpf@basil.wdw> (Marvin Renich's	message of "Mon, 10 Jul 2017 15:53:28 -0400")
+References : <[🔎] 5962B743.8030702@landfreak.com>	<[🔎] 20170709234920.GA15631@DigitalMercury.dynalias.net>	<[🔎] 59636880.9020609@landfreak.com>	<[🔎] 20170710115708.GC13590@rene-engelhard.de>	<[🔎] 20170710134714.33b4rbp4gqo4xj5r@sliepen.org>	<[🔎] 20170710162228.v4teqev5vx3xxgj5@angband.pl>	<[🔎] 20170710171158.ceif6hcseguo5amn@bongo.bofh.it>	<[🔎] 20170710183653.seynvdj4fjn5ysoj@basil.wdw> <[🔎] m3o9ssglzy.fsf@luffy.cx>	<[🔎] 20170710195328.gox67unssibfoqpf@basil.wdw>
+
+
+❦ 10 juillet 2017 15:53 -0400, Marvin Renich <mrvn@renich.org> :
+>> > With the new scheme, if I want to rename the interface to something more
+>> > meaningful, I have to go find an older machine that already has a
+>> > persistent-net.rules file or read through a lot of documentation to
+>> > figure out the correct syntax.  I then have to determine the correct
+>> > ATTR elements to identify the interface in question, and type all of
+>> > that information by hand, hoping I type everything correctly.
+>> 
+>> Have a look at systemd.link(5) which enables you to do that without
+>> debugging udev.
+>
+> Okay, I had a look on a six-weeks-before-release stretch VM, and I don't
+> see anything there that makes this easier than with the udev .rules
+> file.  There is still no skeleton .link file that already has the
+> appropriate attributes already filled in.  It looks like I still have to
+> create a .link file and manually type the appropriate attributes.  Am I
+> missing something?
+Not really.
+In /etc/systemd/network/whatever.link, put:
+#v+
+[Match]
+MACAddress=00:11:22:33:44:55
+[Link]
+Name=em0
+#v-
+Note the manual page has a similar example. I don't see exactly how this
+is more complex than the udev rules we had:
+#v+
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*",
+ATTR{address}=="00:11:22:33:44:55", ATTR{type}=="1", KERNEL=="eth*",
+NAME="em0"
+#v-
+>
+> BTW, there seems to be a typo in the man page:  it refers to a
+> /run/systemd/network directory; should that be /run/systemd/netif/links?
+> I'll leave you to file a bug if appropriate.
+No, it seems correct. All systemd-related stuff look at /lib/systemd/X
+(shipped with a package), /run/systemd/X (added by a third-party
+program) and /etc/systemd/X (added by the user).
+>> > There is an easy fix to revert the default behavior while still allowing
+>> > knowledgeable sysadmins to get the new behavior.  On the other hand,
+>> > those who need to administer systems but are not sysadmins by trade (and
+>> > thus will have to do significantly more research to even know that the
+>> > older behavior is possible) are the ones who need the older behavior as
+>> > the default.
+>> 
+>> Having a default behavior that's unreliable doesn't seem great
+>> either. The change is surprising (and not expected on non-new systems),
+>> but there is nothing difficult in identifying the right interface with
+>> the new naming scheme. Other major distributions are using this new
+>> scheme (notably Ubuntu which has no reason to have users smarter than
+>> ours) and I don't see a lot of drama on their side. It seems that for
+>> some reason, we are the only ones making a fuss about any change.
+>
+> I don't get this at all.  The previous behavior was neither unreliable
+> nor unpredictable (unless you are talking about much older systems
+> before persistent-net.rules).
+It was unreliable. Google for "eth0_rename", you'll get ton of examples
+of people with hosts that don't boot reliably because of the inherent
+race conditions. Udev people didn't invent all this just to get people
+pissed. They have fixed a real problem.
+> What change is surprising?  The change between jessie and stretch?
+> Absolutely.
+Yes.
+> You have completely sidestepped the question, which is about the
+> relative importance of the two goals, simple names _all the time_ vs
+> avoiding a state file.  The previous behavior sacrifices the second,
+> much less important goal in favor of the first.  The new behavior
+> sacrifices the first in favor of the second.  Until you address this
+> issue, all your explanations look like attempts to ameliorate bad
+> behavior.
+Predictable names are more important to me. Simple name should also work
+for most people (using the eno*) scheme. Maybe it's not available as
+widely as it should be.
+-- 
+Make sure input cannot violate the limits of the program.
+            - The Elements of Programming Style (Kernighan & Plauger)
+signature.asc

@@ -1,0 +1,307 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#893154: installation-reports: pine64+ difficult install
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Fri, 16 Mar 2018 15:29:36 -0700
+Message-id : 87woybirhr.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 893154@bugs.debian.org
+
+
+Package: installation-reports
+Severity: normal
+This install, while successful, was a bit of a challenge. I had to
+manually create the boot media, customize the initrd to append
+additional kernel modules, and the microSD wasn't available to install
+the OS. More details below.
+live well,
+  vagrant
+Boot method: microSD image
+Image version: https://d-i.debian.org/daily-images/arm64/20180314-02:10/netboot/netboot.tar.gz
+Date: 2018-03-16
+Machine: Pine64+
+Partitions:
+Filesystem     Type     1K-blocks    Used Available Use% Mounted on
+udev           devtmpfs    980740       0    980740   0% /dev
+tmpfs          tmpfs       205032    2800    202232   2% /run
+/dev/sda3      ext4       9546944 1477040   7565228  17% /
+tmpfs          tmpfs      1025144       0   1025144   0% /dev/shm
+tmpfs          tmpfs         5120       0      5120   0% /run/lock
+tmpfs          tmpfs      1025144       0   1025144   0% /sys/fs/cgroup
+tmpfs          tmpfs       205028       0    205028   0% /run/user/1000
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [E]
+Detect network card:    [E]
+Configure network:      [O]
+Detect CD:              [ ]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [E]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [E]
+Comments/Problems:
+I had to manually craft the microSD image used to boot this, by
+downloading the netboot.tar.gz image for the
+linux/initrd.gz. Separately, I had to download the .dtb for this
+board, which is available, but not included in the netboot.tar.gz.
+Had to use the install-sunxi64 script from atf-allwinner and install
+u-boot-sunxi:arm64 in order to make the image bootable.
+Since this doesn't support EFI boot out of the box, I had to manually
+craft an extlinux.conf (or boot.scr), since those are not provided on
+arm64. I'm looking into enabling EFI emulation in u-boot to allow this
+part to "just work" with the current grub-EFI images.
+The on-board network card didn't detect at all, and using a
+usb-ethernet adapter didn't detect at all either; I don't think USB
+was working. Appending all the kernel modules to the initrd allowed it
+to detect the USB ethernet adapter and proceed with the install.
+It failed to detect the microSD card as a disk to install to; worked
+around by installing to a USB SSD.
+-- 
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="10 (buster) - installer build 20180314-02:07"
+X_INSTALLATION_MEDIUM=netboot
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux p64z 4.15.0-1-arm64 #1 SMP Debian 4.15.4-1 (2018-02-18) aarch64 GNU/Linux
+usb-list: 
+usb-list: Bus 01 Device 01: Generic Platform OHCI controller [1d6b:0001]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.15.0-1-arm64 ohci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.15.0-1-arm64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 01: Generic Platform OHCI controller [1d6b:0001]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.15.0-1-arm64 ohci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 04 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.15.0-1-arm64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 04 Device 02: USB 2.0 Hub [MTT] [1a40:0201]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 02
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 02 Driver hub
+usb-list: 
+usb-list: Bus 04 Device 03: USB 10/100 LAN [0bda:8152]
+usb-list:    Level 02 Parent 02 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Realtek
+usb-list:    Interface 00: Class ff(vend.) Subclass ff Protocol 00 Driver r8152
+usb-list: 
+usb-list: Bus 04 Device 04: FX-C0002 [174c:55aa]
+usb-list:    Level 02 Parent 02 Port 01  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: FX
+usb-list:    Interface 00: Class 08(mstor) Subclass 06 Protocol 50 Driver usb-storage
+lsmod: Module                  Size  Used by
+lsmod: dm_mod                143360  0
+lsmod: md_mod                159744  0
+lsmod: xfs                  1241088  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   196608  0
+lsmod: btrfs                1257472  0
+lsmod: zstd_decompress        77824  1 btrfs
+lsmod: zstd_compress         163840  1 btrfs
+lsmod: xxhash                 16384  2 zstd_compress,zstd_decompress
+lsmod: xor                    20480  1 btrfs
+lsmod: raid6_pq              102400  1 btrfs
+lsmod: ntfs                  122880  0
+lsmod: fuse                  114688  0
+lsmod: vfat                   24576  0
+lsmod: fat                    81920  1 vfat
+lsmod: ext4                  667648  1
+lsmod: crc16                  16384  1 ext4
+lsmod: mbcache                16384  1 ext4
+lsmod: jbd2                  114688  1 ext4
+lsmod: crc32c_generic         16384  0
+lsmod: fscrypto               32768  1 ext4
+lsmod: ecb                    16384  0
+lsmod: sd_mod                 53248  3
+lsmod: uas                    24576  0
+lsmod: cdc_ether              16384  0
+lsmod: usbnet                 45056  1 cdc_ether
+lsmod: r8152                  69632  0
+lsmod: mii                    20480  2 usbnet,r8152
+lsmod: usb_storage            73728  3 uas
+lsmod: scsi_mod              241664  3 sd_mod,usb_storage,uas
+lsmod: aes_ce_blk             24576  0
+lsmod: crypto_simd            16384  1 aes_ce_blk
+lsmod: cryptd                 28672  1 crypto_simd
+lsmod: aes_ce_cipher          16384  1 aes_ce_blk
+lsmod: ghash_ce               20480  0
+lsmod: gf128mul               16384  1 ghash_ce
+lsmod: aes_arm64              16384  3 ghash_ce,aes_ce_cipher,aes_ce_blk
+lsmod: sha2_ce                16384  0
+lsmod: sha256_arm64           24576  1 sha2_ce
+lsmod: sha1_ce                16384  0
+lsmod: phy_sun4i_usb          20480  2
+lsmod: i2c_mv64xxx            20480  0
+lsmod: ohci_platform          16384  0
+lsmod: ohci_hcd               61440  1 ohci_platform
+lsmod: ehci_platform          16384  0
+lsmod: ehci_hcd               90112  1 ehci_platform
+lsmod: dwmac_sun8i            20480  0
+lsmod: mdio_mux               16384  1 dwmac_sun8i
+lsmod: stmmac_platform        20480  1 dwmac_sun8i
+lsmod: stmmac                131072  2 stmmac_platform,dwmac_sun8i
+lsmod: ptp                    24576  1 stmmac
+lsmod: pps_core               20480  1 ptp
+lsmod: of_mdio                16384  3 stmmac,mdio_mux,stmmac_platform
+lsmod: usbcore               274432  9 usbnet,usb_storage,ehci_hcd,cdc_ether,uas,ohci_hcd,r8152,ehci_platform,ohci_platform
+lsmod: fixed_phy              16384  1 of_mdio
+lsmod: libphy                 65536  4 of_mdio,stmmac,mdio_mux,fixed_phy
+lsmod: sunxi_mmc              28672  0
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                    205032        72    204960   0% /run
+df: devtmpfs                957012         0    957012   0% /dev
+df: /dev/sda3              9546944   1040696   8001572  12% /target
+df: /dev/sda3              9546944   1040696   8001572  12% /dev/.static/dev
+df: devtmpfs                957012         0    957012   0% /target/dev
+free:              total       used       free     shared    buffers     cached
+free: Mem:       2050292    1466356     583936     227700      75540    1216524
+free: -/+ buffers/cache:     174292    1876000
+free: Swap:      2097116          0    2097116
+/proc/cmdline: 
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/device-tree/model: Pine64+./proc/iomem: 01c19400-01c19413 : phy_ctrl
+/proc/iomem: 01c1a000-01c1a0ff : usb@1c1a000
+/proc/iomem: 01c1a400-01c1a4ff : usb@1c1a400
+/proc/iomem: 01c1a800-01c1a803 : pmu0
+/proc/iomem: 01c1b000-01c1b0ff : usb@1c1b000
+/proc/iomem: 01c1b400-01c1b4ff : usb@1c1b400
+/proc/iomem: 01c1b800-01c1b803 : pmu1
+/proc/iomem: 01c20000-01c203ff : clock@1c20000
+/proc/iomem: 01c20800-01c20bff : pinctrl@1c20800
+/proc/iomem: 01c28000-01c2801f : serial
+/proc/iomem: 01c2b000-01c2b3ff : i2c@1c2b000
+/proc/iomem: 01f00000-01f00053 : rtc@1f00000
+/proc/iomem: 01f00c00-01f00fff : interrupt-controller@1f00c00
+/proc/iomem: 01f01400-01f014ff : clock@1f01400
+/proc/iomem: 01f02c00-01f02fff : pinctrl@1f02c00
+/proc/iomem: 01f03400-01f037ff : rsb@1f03400
+/proc/iomem: 40000000-bfffffff : System RAM
+/proc/iomem:   40080000-40baffff : Kernel code
+/proc/iomem:   41020000-41227fff : Kernel data
+/proc/interrupts:            CPU0       CPU1       CPU2       CPU3       
+/proc/interrupts:   1:          0          0          0          0     GICv2  25 Level     vgic
+/proc/interrupts:   4:     207526     152170     162535     157295     GICv2  30 Level     arch_timer
+/proc/interrupts:   5:          0          0          0          0     GICv2  27 Level     kvm guest timer
+/proc/interrupts:  10:          0          0          0          0     GICv2 104 Level     ehci_hcd:usb2
+/proc/interrupts:  11:          0          0          0          0     GICv2 105 Level     ohci_hcd:usb1
+/proc/interrupts:  12:     446319          0          0          0     GICv2 106 Level     ehci_hcd:usb4
+/proc/interrupts:  13:          1          0          0          0     GICv2 107 Level     ohci_hcd:usb3
+/proc/interrupts:  17:      17842          0          0          0     GICv2  32 Level     ttyS0
+/proc/interrupts:  18:          0          0          0          0     GICv2  39 Level     mv64xxx_i2c
+/proc/interrupts:  20:          0          0          0          0     GICv2  72 Level     1f00000.rtc
+/proc/interrupts:  23:          1          0          0          0     GICv2  71 Level     sunxi-rsb
+/proc/interrupts: IPI0:    139614     171755     174000     157131       Rescheduling interrupts
+/proc/interrupts: IPI1:        56        456        444        414       Function call interrupts
+/proc/interrupts: IPI2:         0          0          0          0       CPU stop interrupts
+/proc/interrupts: IPI3:         0          0          0          0       CPU stop (for crash dump) interrupts
+/proc/interrupts: IPI4:         0          0          0          0       Timer broadcast interrupts
+/proc/interrupts: IPI5:         1          0          0          0       IRQ work interrupts
+/proc/interrupts: IPI6:         0          0          0          0       CPU wake-up interrupts
+/proc/interrupts: Err:          0
+/proc/meminfo: MemTotal:        2050292 kB
+/proc/meminfo: MemFree:          584060 kB
+/proc/meminfo: MemAvailable:    1664480 kB
+/proc/meminfo: Buffers:           75540 kB
+/proc/meminfo: Cached:          1216524 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           536280 kB
+/proc/meminfo: Inactive:         779996 kB
+/proc/meminfo: Active(anon):     205200 kB
+/proc/meminfo: Inactive(anon):    46708 kB
+/proc/meminfo: Active(file):     331080 kB
+/proc/meminfo: Inactive(file):   733288 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:       2097116 kB
+/proc/meminfo: SwapFree:        2097116 kB
+/proc/meminfo: Dirty:               932 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         24212 kB
+/proc/meminfo: Mapped:             4372 kB
+/proc/meminfo: Shmem:            227700 kB
+/proc/meminfo: Slab:             121916 kB
+/proc/meminfo: SReclaimable:     106164 kB
+/proc/meminfo: SUnreclaim:        15752 kB
+/proc/meminfo: KernelStack:        1584 kB
+/proc/meminfo: PageTables:          696 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:     3122260 kB
+/proc/meminfo: Committed_AS:     257056 kB
+/proc/meminfo: VmallocTotal:   135290290112 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:     16384 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: CmaTotal:          65536 kB
+/proc/meminfo: CmaFree:           65240 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: arm64 (aarch64)
+Kernel: Linux 4.15.0-1-arm64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled
+signature.asc

@@ -1,0 +1,99 @@
+To : Holger Wansing <linux@wansing-online.de>
+Subject : Re: [preseed] strings waiting to be made translatable
+From : Christian PERRIER <bubulle@debian.org>
+Date : Tue, 26 Jun 2018 06:27:00 +0200
+Message-id : 20180626042700.GU1901@mykerinos.kheops.frmug.org
+In-reply-to : <[🔎] 20180625231259.c1f0815bf4c139b9c1d0dad9@wansing-online.de>
+References : <[🔎] 20180624192912.8f54d3dfb712e03a11a90580@wansing-online.de> <[🔎] 20180624180220.rgywnt7q3x7b4cfe@mraw.org> <[🔎] 20180625231259.c1f0815bf4c139b9c1d0dad9@wansing-online.de>
+
+
+Quoting Holger Wansing (linux@wansing-online.de):
+> [Putting Christian in CC, since he did commits on this in 2016, and he knows
+> the workflow]
+> 
+> 
+> Hi,
+> 
+> Cyril Brulebois <kibi@debian.org> wrote:
+> > Hi,
+> > 
+> > Holger Wansing <linux@wansing-online.de> (2018-06-24):
+> > > I just found two strings in the templates.pot file for preseed, which
+> > > seem to be added in a rush, but made non-translatable at that time:
+> > 
+> > Right, this matches my recollection of this feature's addition…
+> > 
+> > > We should make them translatable now, right?
+> > > Now that Stretch is out since some days ... ;-)
+> > 
+> > That makes sense, yeah.
+> > 
+> > Thanks for noticing. This really should have been tracked in a more
+> > serious manner than just a comment in the source files…
+> 
+> Looking into this, I'm unsure how the status is:
+> 
+> In d-i repo (packages/preseed/debian/preseed-common.templates)
+> we have
+> 
+> 	Template: preseed/checksum_error
+> 	Type: error
+> 	# Translators : DO NOT TRANSLATE variable names : ALGORITHM, LOCATION
+> 	# and CHECKSUM
+> 	# :sl2:
+> 	_Description: Checksum error
+> 	 The ${ALGORITHM} checksum of the file retrieved from <${LOCATION}> fails
+> 	 to match the expected value of "${CHECKSUM}". The file may be corrupt,
+> 	 or the provided checksums may be out of date.
+> 
+> 
+> 
+> 
+> In the master po files, the strings are included in sublevel 1,
+> packages/po/sublevel1/templates.pot has:
+> 
+> 	#. Type: error
+> 	#. Description
+> 	#. XXX: should be made translatable after Stretch
+> 	#: ../preseed-common.templates:1001
+> 	msgid "Checksum error"
+> 	msgstr ""
+> 	
+> 	#. Type: error
+> 	#. Description
+> 	#. XXX: should be made translatable after Stretch
+> 	#: ../preseed-common.templates:1001
+> 	msgid ""
+> 	"The ${ALGORITHM} checksum of the file retrieved from <${LOCATION}> fails to "
+> 	"match the expected value of \"${CHECKSUM}\".  The file may be corrupt, or "
+> 	"the provided checksums may be out of date."
+> 	msgstr ""
+> 
+> But the strings are marked as XXX
+> 
+> 
+> 
+> And two old commits from 2016 onto the preseed package
+> https://salsa.debian.org/installer-team/preseed/commit/a4d54b54845ccf2165edda16b699e7822f986de2
+> and
+> https://salsa.debian.org/installer-team/preseed/commit/a4d54b54845ccf2165edda16b699e7822f986de2
+> mention, that the new strings should be in sublevel2 (sl2).
+> Indeed, the second commit by bubulle adds the strings to sublevel2.
+> 
+> 
+> 
+> So, are the strings active and set as translatable, or not?
+> And in which sublevel?
+> 
+> I'm curious how this works together...
+I think this is a glitch in the l10n-sync script. Given that these
+strings are in sublevel 1 in the package's POT files AND in the master
+files, they are NOT automatically moved to SL2.
+My aadvice would be to :
+- manually drop them from the package's templates.pot file
+- run debconf-updatepo in the paackage (not mandatory, just helps
+checking that the proper comments go to the templates.pot file)
+- manually drop them from the sublevel 1 POT file
+- run l10n-sync script again
+--> then they should be moved to sublevel 2 POT file and PO files
+signature.asc

@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org, debian-arm@lists.debian.org,	pkg-kde-talk@lists.alioth.debian.org
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Steve Langasek <vorlon@debian.org>
+Date : Tue, 27 Nov 2018 15:39:58 -0800
+Message-id : 20181127233958.GA3201@virgil.dodds.net
+Mail-followup-to : debian-devel@lists.debian.org,	debian-arm@lists.debian.org, pkg-kde-talk@lists.alioth.debian.org
+In-reply-to : <[🔎] 1739322.4binucu7PP@tonks>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] 1978113.NGEtsr0Vo0@tonks> <[🔎] 20181127220627.GC6167@virgil.dodds.net> <[🔎] 1739322.4binucu7PP@tonks>
+
+
+On Tue, Nov 27, 2018 at 07:58:17PM -0300, Lisandro Damián Nicanor Pérez Meyer wrote:
+> > https://launchpad.net/ubuntu/+source/qtbase-opensource-src-gles/5.7.1+dfsg-> 2ubuntu4~1
+> > And here is the list of all packages that required dual-stack at least as of
+> > 2017, when Ubuntu stopped development on this:
+> > $ wget -O - -q
+> > http://old-releases.ubuntu.com/ubuntu/dists/zesty/universe/source/Sources.g
+> > z \ zcat | grep-dctrl -FPackage -r qt.*gles -sPackage
+> > Package: qt3d-opensource-src-gles
+> > Package: qtbase-opensource-src-gles
+> > Package: qtdeclarative-opensource-src-gles
+> > Package: qtlocation-opensource-src-gles
+> > Package: qtmir-gles
+> > Package: qtmultimedia-opensource-src-gles
+> > Package: qtubuntu-gles
+> > $
+> > i.e. 7 source packages total, and 2 of them Ubuntu-Touch-specific (qtmir,
+> > qtubuntu).
+> And to be honest two of those packages where exclusive to ubuntu: qtmir-gles 
+> and qtubuntu-gles.
+> > Maybe you were already aware of this, but it didn't come across to me in
+> > your mail, sorry. 
+> Yes, we are :-) Dmitry has been working on them (he is also an Ubuntu Qt
+> maintainer).  He points me out that those 7 packages were needed for the
+> Ubuntu Touch port which, I presume, does not counts KDE's Plasma or KF
+> libraries.  The question is then: how would this affect other stacks like
+> the ones I mentioned before?  And then there might be other libraries
+> involved.  Granted, we do not know exactly which ones but...
+It is actually fairly easy to answer this question as well: simply identify
+all the packages in the archive that depend on one of the known dual-stack
+libraries, prepare dual stack packages that use the symbols file magic from
+Ubuntu, rebuild all the reverse-dependencies, and identify all those
+packages which are libraries and which end up with a dependency only on the
+GL version of the package instead of a dependency on GL | GLES.
+A fair amount of compile time required to do this analysis, but relatively
+little human time.
+If someone was interested in volunteering to ensure both GL and GLES were
+supported by Qt, this is where I would suggest they start, in order to
+accurately size the effort involved and know what they're signing up for.
+-- 
+Steve Langasek                   Give me a lever long enough and a Free OS
+Debian Developer                   to set it on, and I can move the world.
+Ubuntu Developer                                   https://www.debian.org/
+slangasek@ubuntu.com                                     vorlon@debian.org
+signature.asc

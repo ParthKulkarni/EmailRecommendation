@@ -1,0 +1,138 @@
+To : submit@bugs.debian.org
+Subject : Bug#894588: apache2: "apache2ctl start" leads to severe errors in cgi scripts
+From : Bernd Gonsior <bernd.gonsior@fsfe.org>
+Date : Mon, 02 Apr 2018 02:38:34 +0200
+Message-id : 2106282.dT5eTI7sol@pc12
+Reply-to : Bernd Gonsior <bernd.gonsior@fsfe.org>, 894588@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3+deb9u3
+Severity: normal
+Dear Maintainer,
+"apache2ctl start" disables a perl cgi script to read the content of
+/var/tmp, whereas "apache2ctl graceful" after "apache2ctl stop" (the
+stop is necessary) does not.
+There are other symptoms, probably related to bug 879571:
+OK:
+apache2 -h
+Usage: apache2 [-D name] [-d directory] [-f file]
+...
+ERROR:
+apache2 --help
+[Sun Apr 01 23:58:25.445067 2018] [core:warn] [pid 2373] AH00111: Config variable ${APACHE_RUN_DIR} is not defined
+apache2: Syntax error on line 80 of /etc/apache2/apache2.conf: DefaultRuntimeDir must be a valid directory, absolute or relative to ServerRoot
+At my system following temporary workaround enabled proper working of
+cgi scripts, the error of "apache2 --help" persisted:
+--------------------------------------------------------------------------------
+Map the call of "apache2ctl start" to "apache2ctl graceful".
+Modify /usr/sbin/apache2ctl like this:
+1. add "start" to the "restart|graceful)" condition (originally in line 183):
+start|restart|graceful)
+2. delete the whole start condition (originally lines 151 - 178)
+Then call:
+1. apache2ctl stop
+this "stop" is important - only an "apache2ctl graceful" is not sufficient
+2. apache2ctl graceful
+--------------------------------------------------------------------------------
+For testing that script was used:
+--------------------------------------------------
+#!/usr/bin/perl
+use strict;
+use warnings;
+my $var = qx#/bin/ls -1 /var#;
+my $var_tmp = qx#/bin/ls -1 /var/tmp#;
+if (length($var_tmp) < 1) {
+    $var_tmp = "ERROR: failed to list /var/tmp\n";
+}
+my $body =
+    "---- var:\n" .
+    "$var\n" .
+    "---- var_tmp:\n" .
+    "$var_tmp";
+my $len = length($body);
+print
+    "Content-Length: $len\r\n" .
+    "Content-Type: text/plain\r\n" .
+    "\r\n" .
+    $body .
+    "\r\n";
+--------------------------------------------------
+output after
+apache2ctl stop
+apache2ctl start:
+------------------------------
+---- var:
+backups
+cache
+...
+www
+---- var_tmp:
+ERROR: failed to list /var/tmp
+------------------------------
+output after
+apache2ctl stop
+apache2ctl graceful:
+------------------------------
+---- var:
+backups
+cache
+...
+www
+---- var_tmp:
+systemd-private-1c3c5355c1234a4396389329c99a5a90-rtkit-daemon.service-xJby4F
+systemd-private-1c3c5355c1234a4396389329c99a5a90-systemd-timesyncd.service-HCQsKU
+------------------------------
+Regards, Bernd
+-- Package-specific info:
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-6-amd64 (SMP w/4 CPU cores)
+Locale: LANG=C, LC_CTYPE=C (charmap=ANSI_X3.4-1968), LANGUAGE=C (charmap=ANSI_X3.4-1968)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages apache2 depends on:
+ii  apache2-bin          2.4.25-3+deb9u3
+ii  apache2-data         2.4.25-3+deb9u3
+ii  apache2-utils        2.4.25-3+deb9u3
+ii  dpkg                 1.18.24
+ii  init-system-helpers  1.48
+ii  lsb-base             9.20161125
+ii  mime-support         3.60
+ii  perl                 5.24.1-3+deb9u2
+ii  procps               2:3.3.12-3
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.39
+Versions of packages apache2 suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  chromium [www-browser]                           64.0.3282.119-1~deb9u1
+ii  firefox-esr [www-browser]                        52.7.3esr-1~deb9u1
+ii  w3m [www-browser]                                0.5.3-34+deb9u1
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.5.2-5
+ii  libaprutil1              1.5.4-3
+ii  libaprutil1-dbd-sqlite3  1.5.4-3
+ii  libaprutil1-ldap         1.5.4-3
+ii  libc6                    2.24-11+deb9u3
+ii  libldap-2.4-2            2.4.44+dfsg-5+deb9u1
+ii  liblua5.2-0              5.2.4-1.1+b2
+ii  libnghttp2-14            1.18.1-1
+ii  libpcre3                 2:8.39-3
+ii  libssl1.0.2              1.0.2l-2+deb9u3
+ii  libxml2                  2.9.4+dfsg1-2.2+deb9u2
+ii  perl                     5.24.1-3+deb9u2
+ii  zlib1g                   1:1.2.8.dfsg-5
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  chromium [www-browser]                           64.0.3282.119-1~deb9u1
+ii  firefox-esr [www-browser]                        52.7.3esr-1~deb9u1
+ii  w3m [www-browser]                                0.5.3-34+deb9u1
+Versions of packages apache2 is related to:
+ii  apache2      2.4.25-3+deb9u3
+ii  apache2-bin  2.4.25-3+deb9u3
+-- no debconf information

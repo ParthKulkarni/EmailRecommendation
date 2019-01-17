@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Re: (was: Re: Bug#886238: Please introduce official nosystemd build profile)
+From : Johannes Schauer <josch@debian.org>
+Date : Wed, 10 Jan 2018 22:53:25 +0100
+Message-id : 151562120531.1442.1047216250141964080@localhost
+Mail-followup-to : Wookey <wookey@wookware.org>, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20180110205244.324gmwqsa3qnrjs7@virgil.dodds.net>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108183711.2vrs643yrokpapuq@mail.wookware.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108200909.7o6ovj2ajzseik2m@virgil.dodds.net> <[🔎] 4de2303e-f4dd-11e7-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180109050326.hxksmt53vp32ndcu@mail.wookware.org> <[🔎] 151550682194.1442.3057583478420582272@localhost> <[🔎] 20180110205244.324gmwqsa3qnrjs7@virgil.dodds.net>
+
+
+Hi,
+Quoting Steve Langasek (2018-01-10 21:52:44)
+> On Tue, Jan 09, 2018 at 03:07:01PM +0100, Johannes Schauer wrote:
+> > Such a header could be introduced but that would be undesirable for two
+> > reasons:
+> 
+> >  - it would make it hard to check whether the binary packages a source package
+> >    produces are really not different with a certain build profile active. Right
+> >    now, because of the lack of such a header, we can use the tools from the
+> >    reproducible builds project to verify that a build profile does not tamper
+> >    with package contents
+> 
+> >  - right now, a package is uniquely defined by dependency solvers through their
+> >    the name/version/architecture tuple. It would be possible to make this a
+> >    quadruplet and let packages be unique by their
+> >    name/version/architecture/profile property but that would require massive
+> >    changes in even more parts of our infrastructure than the introduction of
+> >    build profiles already required.
+> 
+> I think this is an unfortunate case of designing the solution to fit the
+> particular set of tools.
+> 
+> Build profiles, as a general thing (which they are supposed to be - this is
+> a major reason support took as long to land in dpkg as it did!), are
+> significantly less usable if the build profile doesn't follow the resulting
+> .deb as a tag.
+Right now, the big difference between build profiles and Gentoo USE flags is,
+that build profiles only work for source packages. In contrast to USE flags, it
+is (currently) impossible to declare dependencies on binary packages built with
+a certain set of build profiles active (or not active). The current crutch we
+employ is to make use of the binary package name. By building binary packages
+with different names when certain profiles are activated we can use our
+existing dependency system.
+Our current solution to build profiles does not forbid any future development
+that extends the uniqueness of binary packages from name/version/arch to
+name/version/arch/profile and introduces a new syntax that allows dependencies
+on binary packages with a certain set of profiles activated or deactivated.
+This is possible with Gentoo USE flags.
+So if we ever decide that we want to make Debian more of a source distribution
+and pull a full Gentoo, then we can:
+ - come up with a nice syntax for binary package dependencies
+ - modify all tools involved in dependency resolution accordingly
+ - add the Build-Profiles field to all generated binary packages
+If the project at some point in the future decides that this shall be the way
+to go, then I shall not stand in the way of such a development. I don't think
+that the current way that build profiles work maneuvered us into a dead end if
+you have such a future in mind.
+But unless we want to pull a full Gentoo here and really make the information
+with which build profile a given binary package was built part of the binary
+package and thus overhaul all our dependency resolvers, unless the plan is to
+do that, I don't see why binary packages should contain this information.
+Either it is used for dependency resolution and then we should have the field
+or it isn't and then the field is rather making things like comparing packages
+with each other difficult. We already accept that the uniqueness of packages
+with respect to their name/version/arch only holds within a certain
+distribution. But that distribution will also always know with which build
+profiles they built all their packages.
+So I'm still not convinced.
+Thanks!
+cheers, josch
+signature.asc

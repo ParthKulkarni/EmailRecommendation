@@ -1,0 +1,64 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#868222: stretch-pu: package partman-base/191+deb9u1
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 13 Jul 2017 09:56:54 +0200
+Message-id : 20170713075654.9103.27466.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 868222@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+Tags: stretch
+User: release.debian.org@packages.debian.org
+Usertags: pu
+Hi,
+I'd like to fix an installation issue where some devices get their boot
+firmware area clobbered. We guard against mmcblk0 only, and this fix
+extends the guard to any mmcblk device. Tiny fix for the relevant log
+included along in the same commit.
+Changelog entry:
+| partman-base (191+deb9u1) stretch; urgency=medium
+| 
+|   [ Karsten Merker ]
+|   * For systems that are known to have their boot firmware on an mmcblk
+|     device, protect the firmware area on all mmcblk devices (and not
+|     only on mmcblk0) from being clobbered during guided partitioning
+|     and add missing whitespace to the corresponding log output.
+|     (Closes: #854822)
+| 
+|  -- Cyril Brulebois <kibi@debian.org>  Thu, 13 Jul 2017 09:45:14 +0200
+Thanks for considering.
+KiBi.
+diff -Nru partman-base-191/debian/changelog partman-base-191+deb9u1/debian/changelog
+--- partman-base-191/debian/changelog	2017-02-10 19:24:30.000000000 +0100
++++ partman-base-191+deb9u1/debian/changelog	2017-07-13 09:45:15.000000000 +0200
+@@ -1,3 +1,14 @@
++partman-base (191+deb9u1) stretch; urgency=medium
++
++  [ Karsten Merker ]
++  * For systems that are known to have their boot firmware on an mmcblk
++    device, protect the firmware area on all mmcblk devices (and not
++    only on mmcblk0) from being clobbered during guided partitioning
++    and add missing whitespace to the corresponding log output.
++    (Closes: #854822)
++
++ -- Cyril Brulebois <kibi@debian.org>  Thu, 13 Jul 2017 09:45:14 +0200
++
+ partman-base (191) unstable; urgency=medium
+ 
+   [ Mathieu Trudel-Lapierre ]
+diff -Nru partman-base-191/parted_server.c partman-base-191+deb9u1/parted_server.c
+--- partman-base-191/parted_server.c	2017-02-03 18:56:10.000000000 +0100
++++ partman-base-191+deb9u1/parted_server.c	2017-07-13 09:44:49.000000000 +0200
+@@ -1374,9 +1374,9 @@
+          * the firmware area, resulting in an unbootable system (see
+          * bug #751704).
+          */
+-        if (is_system_with_firmware_on_disk() && !strcmp(disk->dev->path, "/dev/mmcblk0")) {
++        if (is_system_with_firmware_on_disk() && !strncmp(disk->dev->path, "/dev/mmcblk", 11)) {
+                 disk->needs_clobber = 0;
+-                log("Sunxi/Freescale/AM33XX detected. Disabling ped_disk_clobber" \
++                log("Sunxi/Freescale/AM33XX detected. Disabling ped_disk_clobber " \
+                     "for the boot device %s to protect the firmware " \
+                     "area.", disk->dev->path);
+         }

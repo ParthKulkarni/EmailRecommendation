@@ -1,0 +1,59 @@
+To : Tollef Fog Heen <tfheen@err.no>
+Subject : Re: concerns about Salsa
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Sat, 9 Jun 2018 13:52:35 +0100
+Message-id : 23323.52627.675939.733125@chiark.greenend.org.uk
+In-reply-to : <[🔎] 87o9gkl8wg.fsf@err.no>
+References : <[🔎] 3155612.nf7Q4P6B6c@deblab>	<[🔎] 23317.10360.626230.429328@chiark.greenend.org.uk>	<[🔎] 20180604215221.s6ravo5kgmrgysmn@scru.org>	<[🔎] 20180604221230.xp2kyr2do5hvb7lf@mail.wookware.org>	<[🔎] 23318.41424.965984.242582@chiark.greenend.org.uk>	<[🔎] 1528243905.7414.3.camel@stuart.id.au>	<[🔎] 878t7qmv5j.fsf@err.no>	<[🔎] 1528411610.5006.1.camel@stuart.id.au>	<[🔎] 87o9gkl8wg.fsf@err.no>
+
+
+Tollef Fog Heen writes ("Re: concerns about Salsa"):
+> Russell Stuart :
+> > [on service owners not having root on DSA-managed service hosts:]
+> >
+> > I accept that's doesn't leave the Salsa team with much choice, but it
+> > still leaves me scratching my head.  Containers / VPS's / VM have been
+> > a thing for years now.  They solve this separation problem in a way
+> > that reduces the workload for everyone.
+> 
+> At the risk of extrapolating from a single data point, I think Alioth
+> showed that using VMs does not fix this automatically.  (I'm not picking
+> on the Alioth maintainers, I used to be one of them. The job of
+> maintaining your own separate infrastructure has a non-trivial cost.)
+I don't think VMs or containers are the answer here because these
+service "hosts" are VMs already.  The real question is whether it is
+necessary or desirable for service owners to sometimes have root on
+service VMs.
+As a service owner who has chosen to run the service out of git
+for other reasons, I don't really care.  But someone who wants to run
+the service from packages might have a different view.
+I don't know if DSA have a document which explains why they are
+reluctant to give root access to service owners, but, speculating:
+* If service owners have root, the logfiles, firewalls, etc., on the
+  VM will be less trustworthy.  This might mean that measures need to
+  be taken *outside* the VM to protect the rest of the Internet (and,
+  the reputation of *.debian.org) from any problems on the host.
+* Sharing root privilege between DSA and service owners in an
+  effective way will require a level of cooperation and communication,
+  and responsiveness by service owners, which DSA might quite
+  reasonably feel many service owners are not able to maintain.
+One possible approach would be to provide service owners with a
+restricted ability to install, operate and configure a package other
+than as root.
+For example, userv (or restricted sudo command) facilities could be
+provided to:
+  * Install the .deb for some set of package(s) out of any
+    Debian suite including experimental or
+    foo-backports-sloppy-proposed or whatever
+  * git pull into the local etckeeper a set of changes which are
+    only to files in /etc for the service in question
+  * run    service start/stop/reload
+(Service owners on DSA administered machines are already provided with
+a way su to the service owner user.)
+It would only be worth doing the work to set that up if there are
+actually service owners who want to run their service out of packages.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

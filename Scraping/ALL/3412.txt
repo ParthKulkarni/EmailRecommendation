@@ -1,0 +1,48 @@
+To : "Paschedag, Robert" <paschedag.netlution@swr.de>,	867898@bugs.debian.org
+Subject : Bug#867898: debian-installer-netboot-images: debian-installer-9-netboot-amd64 scsi modules missing. Netboot image unusable
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 10 Jul 2017 20:16:18 +0200
+Message-id : 20170710181618.GA30464@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 867898@bugs.debian.org
+In-reply-to : <[🔎] VI1PR08MB0863164E0A11844C3B64A4C299A90@VI1PR08MB0863.eurprd08.prod.outlook.com>
+References : <[🔎] VI1PR08MB0863164E0A11844C3B64A4C299A90@VI1PR08MB0863.eurprd08.prod.outlook.com>
+
+
+Control: severity -1 important
+Hi Robert & kernel maintainers,
+Paschedag, Robert <paschedag.netlution@swr.de> (2017-07-10):
+> Package: debian-installer-netboot-images
+> Version: 20170615
+> Severity: serious
+> 
+> Trying to perform a PXE installation with the debian 9 (stretch)
+> netboot image and a Debian 9.0.0 Release DVD 1 (amd64) fails, because
+> no disks get detected by the installer.
+> 
+> There are no "scsi" module .udeb files downloaded by the installer.
+> Also the scsi-core-modules udeb package is missing on the realease
+> image disk (DVD). I also cannot find it within your cd image search
+> tool (https://cdimage-search.debian.org/). Searching
+> "scsi-core-modules" does not find a package for the "amd64"
+> architecture.
+There's a udeb for amd64 anyway:
+  https://packages.debian.org/stretch/amd64/scsi-core-modules-4.9.0-3-amd64-di/download
+It seems to be used to build the cdrom initramfses on the following archs:
+| kibi@armor:~/debian-installer/installer/build$ git grep scsi-core-modules|sort
+| pkg-lists/cdrom/alpha.cfg:scsi-core-modules-${kernel:Version}
+| pkg-lists/cdrom/amd64.cfg:scsi-core-modules-${kernel:Version}
+| pkg-lists/cdrom/arm64.cfg:scsi-core-modules-${kernel:Version}
+| pkg-lists/cdrom/i386.cfg:scsi-core-modules-${kernel:Version}
+| pkg-lists/hd-media/armhf.cfg:scsi-core-modules-${kernel:Version}
+(That's in src:debian-installer)
+So it looks to me we only need to have the extra module in this udeb, and
+the release images will automatically get it.
+> The installation has been tried on a simple VMware VM with the LSI
+> logic parallel controller. The driver that is used is the "mptspi.ko"
+> module. This module (and other scsi) modules are missing.)
+Kernel maintainers (in copy): maybe this wasn't added to one of the scsi
+udebs because the module is below the drivers/message/fusion directory?
+Feel free to steal the bug report away from us if the required change is
+just about shipping extra .ko('s) into your udebs.
+KiBi.
+signature.asc

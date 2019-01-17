@@ -1,0 +1,30 @@
+To : 913523@bugs.debian.org
+Subject : Bug#913523: working workaround
+From : Carl Karsten <carl@personnelware.com>
+Date : Fri, 16 Nov 2018 22:47:56 -0600
+Message-id : CADmzSSi6Lrm84VbYx7x6B8dpd3p69YOA6_aXvsLsKVA0=L2Tvg@mail.gmail.com
+Reply-to : Carl Karsten <carl@personnelware.com>, 913523@bugs.debian.org
+References : <[🔎] 154196805607.14921.13973304460288227266.reportbug@voctomix1>
+
+
+using files from the syslinux package and 2 from
+kernel.org/.../syslinux-6.04-pre1.tar
+target=/media/sdc
+sudo apt install syslinux
+wget -N https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/Testing/6.04/syslinux-6.04-pre1.tar.gz
+tar xf syslinux-6.04-pre1.tar.gz
+mkdir -p $target/EFI/syslinux $target/EFI/BOOT
+cp syslinux-6.04-pre1/efi64/efi/syslinux.efi $target/EFI/BOOT/BOOTX64.EFI
+cp syslinux-6.04-pre1/efi64/com32/elflink/ldlinux/ldlinux.e64 $target/EFI/BOOT/
+cp /usr/lib/syslinux/modules/efi64/* $target/EFI/syslinux
+I think the fix will be something like the above (sans wget) and the
+cp lines be added around here:
+https://salsa.debian.org/installer-team/debian-installer/blob/master/build/config/x86.cfg#L113-115
+mcopy -i$(TEMP_BOOT) /usr/lib/syslinux/modules/bios/vesamenu.c32
+::vesamenu.c32; \
+mcopy -i$(TEMP_BOOT) /usr/lib/syslinux/modules/bios/libcom32.c32
+::libcom32.c32; \
+mcopy -i$(TEMP_BOOT) /usr/lib/syslinux/modules/bios/libutil.c32
+::libutil.c32 ; \
+-- 
+Carl K

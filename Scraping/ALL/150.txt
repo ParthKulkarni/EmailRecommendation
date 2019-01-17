@@ -1,0 +1,74 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#868861: apache2: Package upgrade does not play well with multiple instances and restarting them
+From : Matt Hoskins <matt@nipltd.com>
+Date : Wed, 19 Jul 2017 10:42:30 +0100
+Message-id : aedee6bb-f1c1-2f67-6df3-aef694b226ab@nipltd.com
+Reply-to : Matt Hoskins <matt@nipltd.com>, 868861@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.10-10+deb8u10
+Severity: normal
+Dear Maintainer,
+I use multiple apache2 instances facility on several of my servers using the
+debian example script to set them up - i.e. they're set up using
+/usr/share/doc/apache2/examples/setup-instance
+When doing security updates via apt-get upgrade then the postinst
+script doesn't restart anything other than the default instance.
+This obviously isn't much of a surprise (although it would be nice
+if there was a way of registering them for restart on upgrade).
+However it strikes me that this behaviour might be something worth
+noting in the README.multiple-instances file though as it means the
+admin will need to notice when apache2 is upgraded and manually restart
+the other instances.
+That's not the main reason for this report though - the main reason is
+that after the postinst script has restarted the main instance if you
+then try manually restart the other instances via any mechanism which
+uses /etc/init.d/apache2 and if the /usr/sbin/apache2 binary has been
+updated by the upgrade then you get:
+[FAIL] Restarting web server: apache2 failed!
+[....] There are processes named 'apache2' running which do not match your pid file which are left untouched in the name of safety,|Please review the situation by hand. |
+The reason for this appears to be down to the behaviour of pidof which
+the /etc/init.d/apache2 script uses to perform this safety check.
+It appears that debian's pidof will first try find process matches by device/inode
+pair (i.e. where the process executable's device/inode pair matches the device/inode
+pair of the binary, if it's located on a local filesystem). Only if it finds no
+matches that way does it then try to find matches based on full path name instead.
+Straight after upgrading apache the binary /usr/sbin/apache2
+has a different device/inode pair to that of all the running /usr/sbin/apache
+processes (as they were run from the prior binary version which is now deleted).
+So when the postinst script for apache triggers a restart of the main instance
+then pidof in the safety check will list pids of the all instances (because it finds none
+matching the exact device/incode pair, so falls back on finding ones matching
+the path). Thus that restart will pass the check and proceed ok.
+After that restart the main apache2 instance is running from the new binary
+and so its device/inode pair matches /usr/sbin/apache. Running pidof
+/usr/sbin/apache2 will now thus only list the pids of the main apache instance
+processes because it finds at least one matching the device/inode pair in
+a running process and so it doesn't list those processes from the other instances
+(because they're still running off the old now-deleted binary with a different
+device/inode pair). Hence when you try use the init script for the instance to
+stop/restart apache you now get the error about not matching the pidfile.
+E.g. these will error while the system is in that state:
+service apache2-instancename restart
+/etc/init.d/apache2-instancename restart
+The apache2ctl command has no such check on the contents of the pidfile I believe
+and so will still work, so e.g. this will work:
+/usr/local/sbin/apache2ctl-instancename stop
+/usr/local/sbin/apache2ctl-instancename start
+And also you can manually kill the old process using the pid in the pidfile and then
+use service start or the init.d script for the instance.
+Once the other instances running off the previous binary have been restarted using either
+of these interventions then pidof will start listing them again.
+I've no idea how you might resolve the issue though other than maybe weakening
+the pidof check in the init script to just check for "apache2" instead
+of the full path of "/usr/sbin/apache2" or alternatively just document
+this issue in the README so at least people using multiple-instances know that upgrading the
+apache2 package need to watch out for this (and perhaps just stop all
+instances prior to doing the package upgrade so they don't have any
+running off the prior binary).
+I've had a quick look at the apache2 source in experimental and it seems to have
+the same check in the apache2 init script, so this report should be valid against
+the latest version.
+Regards,
+Matt

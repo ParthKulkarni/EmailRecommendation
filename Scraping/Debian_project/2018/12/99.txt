@@ -1,0 +1,92 @@
+To : terceiro@debian.org, debian-devel@lists.debian.org
+Subject : Re: Would be possible to have a ".treeinfo" file added to the installers' page?
+From : Fabiano Fidêncio <fabiano@fidencio.org>
+Date : Fri, 7 Dec 2018 11:36:46 +0100
+Message-id : CAK9pz9KXod48jkcpv-Kx6THjbT-U_YNWKwNHAFxW2mnPgVm3-Q@mail.gmail.com
+In-reply-to : <[🔎] 20181207101027.GA3726@debian.org>
+References : <[🔎] CAK9pz9+D2W2+5x1Nwe_+vXhmafOKe3gehrycudPHm38YKX75FQ@mail.gmail.com> <[🔎] 20181207101027.GA3726@debian.org>
+
+
+Antonio,
+On Fri, Dec 7, 2018 at 11:10 AM Antonio Terceiro <terceiro@debian.org> wrote:
+>
+> On Fri, Dec 07, 2018 at 10:45:31AM +0100, Fabiano Fidêncio wrote:
+> > Howdy!
+> >
+> > Firstly, sorry if I'm sending the message to the wrong mailing list.
+> > If that's the case, please, point me to the right one.
+> >
+> > Although the subject says it all, let me explain the background of the
+> > change so you all can get the idea of why it'd help a few projects
+> > and/or even come up with a better solution than adding a  ".treeinfo"
+> > file.
+> >
+> > I'm one of the maintainers of libosinfo[0], which is a project that,
+> > basically, keeps info about OSes as such: the hardware they support,
+> > the location for downloading ISOs, the location of online installation
+> > trees, the minimum/recommended/maximum resources for an OS, scripts
+> > for automating "JEOS"/"Desktop" installations and so on.
+> >
+> > One of the APIs provided by libosinfo is to guess an OS from its
+> > online installation tree and it's easily done by a treeinfo file like
+> > the ones that can seen here[1], here[2] and here[3]. For the Debian
+> > case however, as the ".treeinfo" file is not used, we're struggling
+> > about having a reliable way to guess the OS from its tree because we
+> > didn't find a specific file that we could try to inspect in order to
+> > decide whether the installation tree is for debian7, debian8, debian9,
+> > debian-testing ...
+>
+> Does this work for you?
+>
+> on Debian 9:
+>
+> $ cat /etc/os-release
+> PRETTY_NAME="Debian GNU/Linux 9 (stretch)"
+> NAME="Debian GNU/Linux"
+> VERSION_ID="9"
+> VERSION="9 (stretch)"
+> ID=debian
+> HOME_URL="https://www.debian.org/";
+> SUPPORT_URL="https://www.debian.org/support";
+> BUG_REPORT_URL="https://bugs.debian.org/";
+>
+> and on Debian unstable:
+>
+> $ cat /etc/os-release
+> PRETTY_NAME="Debian GNU/Linux buster/sid"
+> NAME="Debian GNU/Linux"
+> ID=debian
+> HOME_URL="https://www.debian.org/";
+> SUPPORT_URL="https://www.debian.org/support";
+> BUG_REPORT_URL="https://bugs.debian.org/";
+Thanks for the answer! But, unfortunately, this is not related to what
+I'm looking for. Your suggestion would work well for an *installed*
+system. What we're trying to do is recognize an installation tree and
+match it the OS that *will* be installed.
+So, what I'm looking for is something like:
+http://ftp.debian.org/debian/dists/stretch/main/installer-amd64/.treeinfo,
+where the .treeinfo would  have something like:
+```
+[header]
+version = 1.0
+[release]
+name = Debian Stretch
+version = 9
+[general]
+arch = amd64
+family = Debian
+name = Debian Stretch
+version = 9
+platforms = amd64
+[images-amd64]
+kernel = current/images/netboot/debian-installer/amd64/linux
+initrd = current/images/netboot/debian-installer/amd64/initrd.gz
+```
+With that, we (as libosinfo) could easily match which Debian version
+we're dealing with and, even more, exactly know the location from
+where we could fetch the kernel and the initrd in order to perform a
+"tree" based installation.
+Is it more clear now?
+Best Regards,
+-- 
+Fabiano Fidêncio

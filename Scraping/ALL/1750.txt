@@ -1,0 +1,33 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#854924: clock-setup: produces bogus /etc/default/rcS then doesn't set hwclock
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sun, 12 Feb 2017 01:56:16 +0100
+Message-id : 148686097690.8112.10065316717808631309.reportbug@umbar.angband.pl
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 854924@bugs.debian.org
+
+
+Package: clock-setup
+Version: 0.131
+Severity: serious
+Justification: Policy 10.7.3
+Upon installation with current d-i (stretch RC 2), clock-setup produces an
+empty /etc/default/rcS with 000 permissions.  This breaks subsequent
+upgrades from systemd to sysvinit, unless the user knows how to fix this
+manually.  Well, answering 'i' to conffile conflict prompt is not rocket
+surgery, but it's not possible when unattended/etc, and such prompts for
+conffiles unmodified by the user are considered RC.
+Moreover, because of "set -e", clock-setup then fails to process the
+remaining of the script, which would set the hwclock.  This failure is not
+displayed to the user.
+The first part is caused by #854923 in busybox, but even if that bug is
+fixed, "set -e" will make the second part fail.
+-- System Information:
+Debian Release: 9.0
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'unstable'), (500, 'testing'), (150, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.10.0-rc7-debug-ssd-abort+ (SMP w/6 CPU cores)
+Locale: LANG=C.UTF-8, LC_CTYPE=C.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: sysvinit (via /sbin/init)

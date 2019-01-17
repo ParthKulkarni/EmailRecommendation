@@ -1,0 +1,54 @@
+To : Russ Allbery <rra@debian.org>
+Subject : Re: wicd-daemon-run_1.0_amd64.changes REJECTED
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Thu, 29 Nov 2018 14:27:28 +0000
+Message-id : 23551.63312.978571.555797@chiark.greenend.org.uk
+In-reply-to : <[🔎] 87lg5c25dw.fsf@hope.eyrie.org>
+References : <[🔎] CAOEhTLyKDu4QuVaatJ1Yh4P6k59ms7dv7+tFRKi_X9uFLsNCtQ@mail.gmail.com>	<[🔎] 87lg5c25dw.fsf@hope.eyrie.org>
+
+
+Russ Allbery writes ("Re: wicd-daemon-run_1.0_amd64.changes REJECTED"):
+> I think a command would work for that case as well.  What I'm imagining
+> would look something like this:
+Stepping back a bit I think the ideal situation is this:
+ * All packages have sysvinit scripts for compatibility.
+ * Some packages have metadata for additional init systems,
+   including systemd and/or runit.
+ * When runit-INITSYSTEM is installed (where INITSYSTEM is sysvinit or
+   systemd), and a package is installed that provides runit metadata,
+   the daemon is run via runit.
+ * When runit-init is installed, obviously, the runit metadata is
+   used for packages that provide runit metadata.
+ * Packages might provide `sysvinit scripts' which actually work
+   via runit, and Depend on runit (but not runit-init).  That is fine
+   since they will work with all init systems.
+> - If runit-init is installed, it installs a trigger that runs the command
+>   for any change to the runit metadata directory.  That command sets up
+>   the users, runit configuration, and does whatever other actions are
+>   needed to maintain a consistent system.
+I think some of this should be done by runit-INITSYSTEM packages too,
+since in those cases the daemon should be run via runit and all the
+things should be set up.
+> Note that a lot of the runit metadata can probably be derived from
+> systemd units for services that have unit files.  For example, if
+> the systemd unit runs the daemon as a different user, runit can
+> probably use the same user, and the systemd unit may well also run
+> the daemon in the foreground since systemd prefers that for the same
+> reasons runit does.  So it's conceivable that you could get out of
+> shipping explicit runit data for a lot of packages, or ship
+> something that just notes that the unit file can be autoconverted.
+> This would cut down on the maintenance burden of the primary package
+> maintainer a lot.
+It might be worth doing this as a dh_* command.  It is generally
+better to do these things at build time where a greater variety of
+tooling is available, and debugging is easier, than shipping input
+files to be converted on end user systems.
+Cf the emacsen compilation stuff, which I was just debugging a
+package's interaction with yesterday.  I understand why it is that way
+and I don't want to change it, but we should avoid that approach where
+we can.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

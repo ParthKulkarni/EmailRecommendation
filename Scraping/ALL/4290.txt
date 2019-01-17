@@ -1,0 +1,66 @@
+To : <debian-boot@lists.debian.org>
+Subject : debconf/priority=low has no effect on pxeboot
+From : "Raymond Burkholder" <ray@oneunified.net>
+Date : Mon, 16 Oct 2017 15:52:33 -0300
+Message-id : 118201d346af$edce2e90$c96a8bb0$@oneunified.net
+
+
+I picked up today's netboot:
+https://d-i.debian.org/daily-images/amd64/daily/netboot/netboot.tar.gz
+This is my pxeboot process via the dnsmasq tftp boot daemon:
+Oct 16 15:28:53 dnsmasq dnsmasq-dhcp[2032]: PXE(ens160) 10.1.0.24
+00:50:56:ae:8d:15 pxelinux.0
+Oct 16 15:28:54 dnsmasq dnsmasq-tftp[2032]: error 0 TFTP Aborted received
+from 10.1.0.24
+Oct 16 15:28:54 dnsmasq dnsmasq-tftp[2032]: failed sending
+/srv/tftp/pxelinux.0 to 10.1.0.24
+Oct 16 15:28:54 dnsmasq dnsmasq-tftp[2032]: sent /srv/tftp/pxelinux.0 to
+10.1.0.24
+Oct 16 15:28:54 dnsmasq dnsmasq-tftp[2032]: sent /srv/tftp/ldlinux.c32 to
+10.1.0.24
+Oct 16 15:28:54 dnsmasq dnsmasq-tftp[2032]: file
+/srv/tftp/pxelinux.cfg/422e2a4d-d50d-aa32-cf98-2e9abec076f2 not found
+Oct 16 15:28:54 dnsmasq dnsmasq-tftp[2032]: sent
+/srv/tftp/pxelinux.cfg/01-00-50-56-ae-8d-15 to 10.1.0.24
+Oct 16 15:28:55 dnsmasq dnsmasq-tftp[2032]: sent
+/srv/tftp/debian-installer/amd64/linux to 10.1.0.24
+Oct 16 15:28:59 dnsmasq dnsmasq-tftp[2032]: sent
+/srv/tftp/debian-installer/amd64/initrd.gz to 10.1.0.24
+This is the pxeboot parameter file:
+===========
+p# cat /srv/tftp/pxelinux.cfg/01-00-50-56-ae-8d-15
+ D-I config version 2.0
+default debian-installer/amd64/boot-screens/vesamenu.c32
+DEFAULT auto
+  SAY Booting new build ....
+LABEL auto
+        menu label ^Auto
+# provides an expert style manual installation menu for creating seed files
+        kernel debian-installer/amd64/linux TERM=linux
+boot-installer/install-recommends=false debconf/priority=low BOOT_DEBUG=3
+# common append for all
+        append initrd=debian-installer/amd64/initrd.gz
+prompt 0
+timeout 3
+=====================
+With the debug=3, I get two or three command lines, but once I hit the
+screen of selecting a language, no more Debug screens come available.
+I am using files via port 3142 from a server providing apt-cacher-ng
+service.  Maybe I need to purge packages there.
+When I get to the partioner screen, I choose the default of everything on
+one partition.
+Once partitioning is done, the installation is automatic.  I don't even get
+the screen that asks me if I want security packages or not (which blocks the
+rest of the install, because when it ocmes time to install the security
+packages, the installer can't reach that site, as it is blocked on our
+network).
+So are these known issues being worked through?
+Looks like I may need to revert to using stretch until these netboot issues
+are resolved, as I posted
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=878553. Which is
+preventing a fully automated boot.  
+Thanx.
+-- 
+This message has been scanned for viruses and
+dangerous content by MailScanner, and is
+believed to be clean.

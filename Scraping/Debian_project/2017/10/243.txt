@@ -1,0 +1,78 @@
+To : Matthias Klose <doko@debian.org>
+Subject : Re: Mandates explicit -std=c++XY for c++ projects
+From : Mathieu Malaterre <malat@debian.org>
+Date : Tue, 10 Oct 2017 12:38:03 +0200
+Message-id : CA+7wUsx8zOCCj0niXLVHkGFTG4_yhrVEvYbCMPQFwm9dGKPSxw@mail.gmail.com
+In-reply-to : <[🔎] b8e26041-66e8-3d90-acc8-af3c4288e8e1@debian.org>
+References : <[🔎] CA+7wUswrdZpVKkhuxU+njE82AH8OHcT+ccAdVp84zC8NjJ67zQ@mail.gmail.com> <[🔎] 6518a210-a591-6e5b-c4af-4e9de76783ab@debian.org> <[🔎] CA+7wUsyik5Q2Yd5zudRt2PY5mk_bCA4vhAQMQsgsdg+vv7=muQ@mail.gmail.com> <[🔎] b8e26041-66e8-3d90-acc8-af3c4288e8e1@debian.org>
+
+
+Mathias,
+On Tue, Oct 10, 2017 at 12:25 PM, Matthias Klose <doko@debian.org> wrote:
+> On 10.10.2017 11:42, Mathieu Malaterre wrote:
+>> On Tue, Oct 10, 2017 at 11:38 AM, Matthias Klose <doko@debian.org> wrote:
+>>> On 10.10.2017 08:45, Mathieu Malaterre wrote:
+>>>> Dear all,
+>>>>
+>>>> Since the GCC 6 release [1], the default mode for C++ is now
+>>>> -std=gnu++14 instead of -std=gnu++98. What this means is that upon
+>>>> (re)compilation a library written for c++98 will be recompiled using a
+>>>> different c++ standard (c++14 in this case), unless of course the
+>>>> upstream package explicitly set the -std= flags with the appropriate
+>>>> c++ version.
+>>>>
+>>>> The ISO committee generally describe the change in between different
+>>>> standards [2] and in some case, one can find examples of subtle change
+>>>> in behaviors [3] and [4].
+>>>>
+>>>> With this mind I'd like to make mandatory the -std=c++XY flags when
+>>>> compiling either a c++ library or a stand-alone c++ program:
+>>>>
+>>>> 1. Either upstream define the explicit -std=c++XY flags by mean of its
+>>>> build system,
+>>>> 2. Or the package maintainers needs to explicit change the CXXFLAGS to
+>>>> pass the appropriate version of the c++ standard. In which case this
+>>>> should be documented in the README.Debian file.
+>>>> 3. As a fallback, dh should initialize the CXXFLAGS with -std=gnu++98
+>>>>
+>>>> If there is a consensus on the following change, I'll go ahead and
+>>>> also file a bug for lintian to scan the compilation logs in search for
+>>>> missing -std=c++ expression when g++ command line are issued.
+>>>
+>>> I don't think this is a good idea, and I'm still trying to understand what
+>>> problem you are trying to solve.  It took a while until GCC had stable c++11
+>>> support, and now you want to fallback to a 20 year old standard by default?
+>>
+>> As said above, this is simply a fallback, I am fine with any value as
+>> long as I can see it in the log clearly.
+>>
+>> My point was about making the flag *explicit*, whatever value is
+>> chosen, so that upon recompilation we gets the same symbols, the same
+>> behavior, no FTBFS (because of deprecated feature).
+>
+> Various libraries do error out on deprecated functions/macros, which you can
+> override by preprocessor macros.  This is usually done in the package.  Why
+> should that be different for the compiler?
+>
+>>> It would be better to spend some time to prepare for -std=gnu++17 instead ;)
+>>
+>> So you have no major objection against my proposal,
+>
+> No, I have objections, because after a while this will become a debt to maintain ...
+Thanks for taking the time to answer.
+As with Gert's answer, I fail to understand your point: You would
+prefer to see packages being (re)compiled *without* an explicit -std=
+flag, so that it always gets recompiled using whatever is the current
+c++ standard used by gcc, correct ?
+>> I feared you may
+>> have an issue with mixed combination of stdc++ runtime lib (not sure
+>> exactly how this is handled at low level).
+>
+> There's only one runtime library in use. Yes, there are more or less subtle
+> issues which we address by library package renames for issues we cannot or do
+> not want to handle by renaming libstdc++ itself.  But it's always the same
+> runtime library used, independent of the standard.
+Ah nice.
+I may be slamming open door, but could you confirm that you see no
+objection in maintaining a complex stdc++ package where the c++98 ABI
+(eg. std::string) will not be used by any packages in the near future.

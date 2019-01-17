@@ -1,0 +1,51 @@
+To : Maximilian Althaus <althaus.maximilian@landfreak.com>
+Subject : Re: P.S. Re: Debian 9 in a VM with Proxmox 5 system
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 10 Jul 2017 14:48:59 +0200
+Message-id : 20170710124858.j2s6r53t7f6q6voo@angband.pl
+In-reply-to : <[🔎] 20170710115708.GC13590@rene-engelhard.de>
+References : <[🔎] 5962B743.8030702@landfreak.com> <[🔎] 20170709234920.GA15631@DigitalMercury.dynalias.net> <[🔎] 59636880.9020609@landfreak.com> <[🔎] 20170710115708.GC13590@rene-engelhard.de>
+
+
+On Mon, Jul 10, 2017 at 01:57:08PM +0200, Rene Engelhard wrote:
+> On Mon, Jul 10, 2017 at 01:44:00PM +0200, Maximilian Althaus wrote:
+> >    Okay, I understand! But I have the problem that the Debian 9 VM can not
+> 
+> No, you don't. You already got told about ip -r. "route" and "ifconfig" are not
+> installed per default anymore.
+All packages shipped by Debian[1] either don't require net-tools anymore, or
+pull them in via dependency.  If you wrote a custom script, you might need
+to either migrate to ip or a friend (like, netstat -> ss), or install
+net-tools.  The latter has been deprecated since a long, long time, so the
+time to finally pull the plug had to come sooner or later.
+> >    get an internet connection. This is because the network configuration
+> >    (/etc/network/interfaces) fail, because Debian 9.0 could not found a
+> >    device named eth0, but with Debian 8.8 with the same configuration I have
+> https://www.debian.org/releases/stable/amd64/release-notes/ch-whats-new.de.html#new-interface-names
+> 
+> eth0 will be kept on upgrades, but new installs get new interface names
+> (that is good, that removed unpredictability if you add a new network card.)
+Not sure how is it possible to argue that "eth0" is _less_ predictable than
+ensp3 or wlxf81a671bcfae.  If you replace a network card, all your network
+settings go wrong.  Same if you reconnect a removable card.  Or upgrade your
+kernel.  Or, dist-upgrade.  Or, in case of a VM, use a slightly different
+command line.  Or, on some hardware, on every boot.  The random number after
+that "ensp" or "wlxf" can be re-rolled unexpectedly -- hope you have an
+out-of-band way to reach that machine (ilo and iDrac are not really
+trustworthy).
+To fix this problem, you can:
+ln -s /dev/null /etc/udev/rules.d/80-net-setup-link.rules
+update-initramfs -u
+Also it's worth noting that if you do rename interfaces on your own (kind of
+a must if there's more than one of its type -- both eth0 vs eth1 or ensp42
+vs ensp78 require documentation that's guaranteed to be misplaced while out0
+vs lan0 are self-describing even to an outsider), in jessie this overruled
+the above "predictable" rule, in stretch it apparently does not.
+HTH, meow!
+[1]. At least popular ones -- there's a possibility something obscure has
+slipped through, in which case, please install net-tools and report a bug.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢠⠒⠀⣿⡁ A dumb species has no way to open a tuna can.
+⢿⡄⠘⠷⠚⠋⠀ A smart species invents a can opener.
+⠈⠳⣄⠀⠀⠀⠀ A master species delegates.

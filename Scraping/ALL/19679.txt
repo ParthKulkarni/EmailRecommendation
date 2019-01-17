@@ -1,0 +1,57 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: Questions about packaging systemd unit files
+From : "Theodore Y. Ts'o" <tytso@mit.edu>
+Date : Mon, 6 Aug 2018 09:14:50 -0400
+Message-id : 20180806131450.GA16126@thunk.org
+In-reply-to : <[🔎] 20180805212033.GA20552@espresso.pseudorandom.co.uk>
+References : <[🔎] 20180805205246.GA13347@thunk.org> <[🔎] 20180805212033.GA20552@espresso.pseudorandom.co.uk>
+
+
+On Sun, Aug 05, 2018 at 10:20:38PM +0100, Simon McVittie wrote:
+> On Sun, 05 Aug 2018 at 16:52:46 -0400, Theodore Y. Ts'o wrote:
+> > 1) Am I right in understanding that after modifying or adding any
+> >    systemd unit or timer files, I must run "systemctl daemon-reload"?
+> 
+> Yes, but preferably via dh_installinit (if you also have a corresponding
+> LSB/sysvinit script, like most daemons) or dh_installsystemd (if not,
+> like e.g. systemd-cron or quake4-server) rather than directly.
+There's a comment in the dh_installinit man page:
+  dh_installinit is a debhelper program that is responsible for
+  installing init scripts with associated defaults files.  In
+  compatibility levels up to 11, dh_installinit also handled upstart
+  job files and systemd service files.
+I realize that compat level 11 is the recommended, and since level 12
+is still open for development, but it sounds like in the future level
+12 isn't going to do automatically handle init scripts automatically?
+One of the reasons why I hadn't considered using dh_installinit or
+dh_installsystemd is because the patches submitted upstream for
+e2scrub[1] currently install the systemd unit as part of Makefile
+rules.  I could move them out of Makefile install rules into the
+debian directory, but that would be kind of a pain, and would mean
+trying to keep the files in the debian directory in sync with the ones
+in the upstream source directory.
+[1] This is a script to do on-line, background scrubbing of ext4 file
+systems to looking for file system problems.
+Also, for a package which is either essential or required, using
+debhelper commands in the maintainer scripts would mean adding a
+dependency, which would mean what is currently an "optional" package
+would end up getting dragged in automatically.  Is this acceptable?  I
+would think it might be considered undesirable.
+Finally, if I have a systemd timer file, as well as a crontab entry,
+what is the recommended way to decide whether to install/use the
+crontab versus the timer unit file?  Should package maintainers try to
+use systemd timer files at all, given that complexity and the fact
+that the right thign won't happen on sysvinit-only systems at all?
+I've never been a fan of systemd, but it's what Debian is chosen, and
+my intention is to provide first class support for systemd.  What's
+not clear to me how much support are maintainers obliged to give for
+non-systemd installations, and what's considered best practices for
+supporting them.
+For example, we could say that timer files are strongly discouraged
+and everyone MUST use crontab entries.  Or we could say that on
+systemd systems, the cron package may not exist and crontab entries
+are now deprecated.  Or we could say that package maintainers must try
+their best to support both.
+There's nothing in Debian Policy to give guidance, and I suspect it's
+too early for that.  Any suggestions though would be appreciated.
+    	      	     	 	     	    - Ted

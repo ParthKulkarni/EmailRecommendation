@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org
+Subject : Follow-up: Alioth: the future of mailing lists
+From : Alex Muntada <alexm@debian.org>
+Date : Sun, 17 Sep 2017 13:52:34 +0200
+Message-id : 20170917115234.ien7odjtwlauhx2m@xps
+In-reply-to : <20170917093843.czq6kxxgqcgi2dom@smithers.snow-crash.org>
+References : <20170917093843.czq6kxxgqcgi2dom@smithers.snow-crash.org>
+
+
+Alexander Wirt:
+> - Distribution lists for use in the Maintainer: field.  We suggest
+>   that, with maybe some extra code, this use-case could be well served
+>   by the tracker.debian.org service for almost all purposes.  For
+>   larger teams, such as the Debian Perl Group, a list on lists.debian.org
+>   might be another option.
+These are a few numbers regarding affected source packages using
+an alioth mail address (find script attached):
+$ schroot -c sid perl count-alioth-packages.pl
+     88 alioth addresses have       0 < packages <=       1
+    140 alioth addresses have       1 < packages <=      10
+     66 alioth addresses have      10 < packages <=     100
+     16 alioth addresses have     100 < packages <=    1000
+      6 alioth addresses have    1000 < packages <=   10000
+      0 alioth addresses have   10000 < packages <=  100000
+Cheers,
+Alex
+signature.asc#!/usr/bin/perl
+use strict;
+use warnings;
+use autodie;
+# Grab first main sid source available
+my $source = (glob '/var/lib/apt/lists/*_debian_dists_{sid,unstable}_main_source_Sources')[0];
+# How to partition the counters
+my @ranges = (0, 1, 10, 100, 1_000, 10_000, 100_000);
+sub partition {
+    my ($min, $max, @values) = @_;
+    return scalar grep { $min < $_ && $_ <= $max } @values;
+}
+my %maintainers;
+open my $fd, '<', $source;
+while (<$fd>) {
+    $maintainers{$1}++ if /^Maintainer: .*<(.*\@.*)\.alioth\.debian\.org/;
+}
+my @counters = values %maintainers;
+while (@ranges > 1) {
+    my $min = shift @ranges;
+    my $max = $ranges[0];
+    print sprintf("% 7d", partition($min, $max, @counters)),
+          " alioth addresses have ",
+          sprintf("% 7d", $min),
+          " < packages <= ",
+          sprintf("% 7d", $max),
+          "\n";
+}

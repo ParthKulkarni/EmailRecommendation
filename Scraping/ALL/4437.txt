@@ -1,0 +1,96 @@
+To : Philipp Kern <pkern@debian.org>
+Subject : Bug#860809: installation-reports: ipv6 SLAAC autoconf not working with stretch's network install
+From : Frederic Bonnard <frediz@linux.vnet.ibm.com>
+Date : Mon, 24 Apr 2017 14:09:44 +0200
+Message-id : 20170424140944.GB13673@kin.test.toulouse-stg.fr.ibm.com
+Reply-to : Frederic Bonnard <frediz@linux.vnet.ibm.com>, 860809@bugs.debian.org
+In-reply-to : <[🔎] 1e6672888bfec8a5f38a28118972c47c@mail.kern.pm>
+References : <[🔎] 20170420140313.GD24749@kin.test.toulouse-stg.fr.ibm.com> <[🔎] 1e6672888bfec8a5f38a28118972c47c@mail.kern.pm>
+
+
+Hi Philipp, thanks for taking time to look at this,
+On Fri, 21 Apr 2017 14:33:45 +0200, Philipp Kern <pkern@debian.org> wrote:
+> On 2017-04-20 14:03, Frederic Bonnard wrote:
+> > ~ # ip addr
+> > 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue qlen 1
+> >     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+> >     inet 127.0.0.1/8 scope host lo
+> >        valid_lft forever preferred_lft forever
+> >     inet6 ::1/128 scope host
+> >        valid_lft forever preferred_lft forever
+> > 2: enP5p1s0f0: <BROADCAST,MULTICAST> mtu 1500 qdisc mq qlen 1000
+> >     link/ether 70:e2:84:14:24:ed brd ff:ff:ff:ff:ff:ff
+> > 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 
+> > 1000
+> >     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+> >     inet6 2002:903:15f:550:72e2:84ff:fe14:24ee/64 scope global dynamic
+> >        valid_lft 2591627sec preferred_lft 604427sec
+> >     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link
+> >        valid_lft forever preferred_lft forever
+> > 
+> > /etc/resolv.conf shows correct content with "search" field 
+> > corresponding to the
+> > domain I provided and "nameserver" is the one I provided also.
+> 
+> It's a bit unhelpful though that you didn't provide that information. 
+Sorry about that :-/
+> You seem to indicate that you need to use IPv4 to access the nameserver? 
+Yes, I actually was given only static IPv4 parameters to connect the
+network (and no DHCPv4 server is available on it).
+> Is the real failure you report that it did not configure IPv4 correctly? 
+> I.e. didn't show a prompt and continued without it?
+Well yes, at least I don't mind it tries to probe for DHCPv[46] (that
+makes sense) but if it fails like it seems to do here, shouldn't it
+propose a manual setup? In that case, I would have continue with a
+static IPv4 configuration and the installation.
+I managed to get the manual setup menus, by changing the priority of the
+installer, also undoing the IPv6 (if I remember correctly) and so on but
+that's not straightforward.
+Also when it asks for the nameserver in the ncurses gui, how am I
+supposed to know that it's trying to do an IPv6 setup ? (tell me if I'm
+wrong, but given the ip output, it seems it was in the middle of an IPv6
+setup after having failed the IPv4 dhcp probing and thus expecting an
+IPv6 nameserver)
+> Is a DHCPv4 server 
+> on the network where you tried this? Because the DHCP client seems to be 
+> unable to acquire an address.
+There is no DHCPv4 server on this network. So the installer correctly
+failed that part of the setup.
+> Does an IPv6 nameserver work? (Assuming your 6to4 connectivity actually works.)
+I don't know, I've not been provided that information, only IPv4 static
+configuration parameters.
+Does the fact that SLAAC autoconfiguration worked means that there is
+some IPv6 network available at some point ?
+Also,  I guess  that  the  installer was  expecting  an IPv6  nameserver
+because  it did  SLAAC autoconfiguration  after failing  DHCPv4. Do  you
+confirm that ?
+If so, shouldn't the installer gui let the user know for which kind of
+network setup it asks a parameter (such as the nameserver) ?
+> Also it'd be helpful to see "ip -6 route" and "ip route".
+No problem :
+~ # ip route
+~ # ip -6 route
+2002:903:15f:550::/64 dev enP5p1s0f1  metric 256  expires 0sec
+fe80::/64 dev enP5p1s0f1  metric 256 
+default via fe80::4e96:14ff:fe59:d7f0 dev enP5p1s0f1  metric 1024  expires 0sec
+unreachable default dev lo  metric -1  error -101
+ff00::/8 dev enP5p1s0f1  metric 256 
+unreachable default dev lo  metric -1  error -101
+~ # ip add
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enP5p1s0f0: <BROADCAST,MULTICAST> mtu 1500 qdisc mq qlen 1000
+    link/ether 70:e2:84:14:24:ed brd ff:ff:ff:ff:ff:ff
+3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+    link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+    inet6 2002:903:15f:550:72e2:84ff:fe14:24ee/64 scope global dynamic 
+       valid_lft 2591868sec preferred_lft 604668sec
+    inet6 fe80::72e2:84ff:fe14:24ee/64 scope link 
+       valid_lft forever preferred_lft forever
+Thanks a lot Philipp,
+F.
+pgpux3iWPGYjR.pgp

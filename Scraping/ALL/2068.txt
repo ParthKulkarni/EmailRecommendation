@@ -1,0 +1,45 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#874474: Not easy to rebuild KeyboardNames.pl on its own
+From : Iain Lane <laney@debian.org>
+Date : Wed, 06 Sep 2017 12:19:07 +0100
+Message-id : 150469674769.19007.7865695230801426623.reportbug@nightingale
+Reply-to : Iain Lane <laney@debian.org>, 874474@bugs.debian.org
+
+
+Package: console-setup
+Version: 1.166
+Severity: normal
+Tags: patch
+Hi there,
+In Ubuntu's installer (ubiquity), we want to generate KeyboardNames.pl.
+We do so in approximately this way:
+  $ make -C d-i/source/console-setup/Keyboard KeyboardNames.pl
+Unfortunately this stopped working once we got a release that included
+739ea571984c140fa7e2e5b5b12a9b8f8ca77992. This included the change:
+  -KeyboardNames.pl:
+  -     ./xmlreader $(xkbdir)/rules/xorg.xml >KeyboardNames.pl
+  +$./KeyboardNames.pl:
+  +  $(kbddir)/xmlreader $(xkbdir)/rules/xorg.xml >$@
+Now we get:
+  root@probable-ewe:~/console-setup/Keyboard# rm KeyboardNames.pl
+  root@probable-ewe:~/console-setup/Keyboard# make KeyboardNames.pl
+  make: *** No rule to make target 'KeyboardNames.pl'.  Stop.
+When trying to make the file. Is there an invocation we can use to generate the
+file? Otherwise, what about including a change like:
+diff --git a/Keyboard/Makefile b/Keyboard/Makefile
+index 08c9fef..ee12d96 100644
+--- a/Keyboard/Makefile
++++ b/Keyboard/Makefile
+@@ -82,5 +82,5 @@ maintainer-clean .PHONY : $~maintainer-clean
+ $~maintainer-clean: $~clean
+        cd $(kbddir) && ./xmlreader >KeyboardNames.pl
+ 
+-$./KeyboardNames.pl:
++KeyboardNames.pl $./KeyboardNames.pl:
+        $(kbddir)/xmlreader $(xkbdir)/rules/xorg.xml >$@
+please?
+Cheers,
+-- 
+Iain Lane                                  [ iain@orangesquash.org.uk ]
+Debian Developer                                   [ laney@debian.org ]
+Ubuntu Developer                                   [ laney@ubuntu.com ]

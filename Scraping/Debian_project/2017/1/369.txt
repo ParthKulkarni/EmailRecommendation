@@ -1,0 +1,33 @@
+To : foo fighter <lopiuh@gmx.net>
+Subject : Re: Bash different behaviour in jessie versus stretch (maybe a regression?)
+From : Jeff Epler <jepler@unpythonic.net>
+Date : Mon, 9 Jan 2017 09:19:22 -0600
+Message-id : 20170109151922.GA29220@unpythonic.net
+In-reply-to : <[🔎] trinity-e8c3cbb2-5eab-4be0-a897-c9146deb768b-1483919366497@3capp-gmx-bs59>
+References : <trinity-a48cd580-d34a-4150-8144-30ac7e599982-1483822474228@3capp-gmx-bs16> <[🔎] trinity-e8c3cbb2-5eab-4be0-a897-c9146deb768b-1483919366497@3capp-gmx-bs59>
+
+
+I'm no bash expert, but I did take a quick look at bash release notes.  One of
+the differences is called out under the heading "New Features In Bash" between
+4.4-beta2 and 4.4-rc2:
+a.  Using ${a[@]} or ${a[*]} with an array without any assigned elements when
+    the nounset option is enabled no longer throws an unbound variable error.
+http://git.savannah.gnu.org/cgit/bash.git/tree/CHANGES?id=a0c0a00fc419b7bc08202a79134fcd5bc0427071#n62
+I think this change explains the difference in "Version 3".
+With version 2, the difference is in how here-strings are handled.
+$ echo $BASH_VERSION; od -ta <<<$(echo -e "a\nb\nc")
+4.3.30(1)-release
+0000000   a  sp   b  sp   c  nl
+0000006
+$ echo $BASH_VERSION; od -ta <<<$(echo -e "a\nb\nc")
+4.4.5(1)-release
+0000000   a  nl   b  nl   c  nl
+0000006
+With this knowledge in hand, I returned to the change notes and found between
+4.4-alpha and 4.4-beta:
+z.  Bash no longer splits the expansion of here-strings, as the documentation
+    has always said.
+http://git.savannah.gnu.org/cgit/bash.git/tree/CHANGES?id=a0c0a00fc419b7bc08202a79134fcd5bc0427071#n437
+So for better or for worse, I think these changes are both deliberate and
+documented in the release notes.
+Jeff

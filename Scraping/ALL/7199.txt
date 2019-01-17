@@ -1,0 +1,73 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#893814: keyboard-configuration: Set the default XKB model to nokiarx51 for Nokia N900 devices
+From : David Derby <reportbug@dderby.com>
+Date : Wed, 21 Mar 2018 22:24:20 -0500
+Message-id : 152168906073.4479.963691655490010860.reportbug@cybertron
+Reply-to : David Derby <reportbug@dderby.com>, 893814@bugs.debian.org
+
+
+Package: keyboard-configuration
+Version: 1.180
+Severity: normal
+Tags: patch
+Dear Maintainer,
+When installing Debian on the Nokia N900, the keyboard-configuration
+package does not automatically configure the built-in keyboard in
+/etc/default/keyboard.  The xkb-data package already provides XKB
+configuration data for this device under the XKB model "nokiarx51".
+Please find attached a patch for the keyboard-configuration config
+script which will detect the Nokia N900 hardware and set XKBMODEL to
+"nokiarx51".
+I have tested this on the Nokia N900 itself and also on one other ARM
+device to ensure that it falls back and configures the default XKBMODEL
+as expected.
+I would appreciate your comments.
+Kind regards,
+David
+*** ~/console-setup/n900-xkbmodel.patch
+diff -ru a/console-setup-1.180/debian/keyboard-configuration.config b/console-setup-1.180/debian/keyboard-configuration.config
+--- a/console-setup-1.180/debian/keyboard-configuration.config	2018-03-20 12:26:54.560520833 -0500
++++ b/console-setup-1.180/debian/keyboard-configuration.config	2018-03-20 12:52:12.156520833 -0500
+@@ -272,6 +272,7 @@
+ # ppc/cell	pc		"platform: Cell"
+ # ppc/{bbox,mbx,ppc64,82xx,8xx} Not yet supported by Debian
+ 
++# arm*/n900	nokiarx51	"Hardware.*: Nokia RX-51 board"
+ # arm/*		pc		(refered to as 'arm' only)
+ 
+ guess_arch () {
+@@ -284,7 +285,7 @@
+ 
+     arch=`dpkg --print-architecture`
+     
+-    if [ "$arch" = 'powerpc' -o "$arch" = 'm68k' ]; then
++    if [ "$arch" = powerpc ] || [ "$arch" = m68k ] || [ "$arch" = armhf ] || [ "$arch" = armel ]; then
+ 	if [ "$arch" = powerpc ]; then
+ 	    line=`sed -n 's/^platform.*: *//p' /proc/cpuinfo`
+ 	    if [ "$line" = PS3 ] || [ "$line" = Cell ]; then
+@@ -304,6 +305,14 @@
+ 		return 0
+ 	    fi
+ 	    subarch=`echo $line|tr A-Z a-z`
++	elif [ "$arch" = armhf ] || [ "$arch" = armel ]; then
++	    line=`sed -n 's/^Hardware.*: *//p' /proc/cpuinfo`
++	    if [ "$line" = 'Nokia RX-51 board' ]; then
++		subarch=n900
++	    else
++		echo unknown
++		return 0
++	    fi
+ 	fi
+ 	case "$subarch" in
+ 	    *amiga*)
+@@ -404,6 +413,10 @@
+ 	XKBMODEL=pc105
+ 	model_priority=medium
+ 	;;
++    arm*/n900)
++	XKBMODEL=nokiarx51
++	model_priority=medium
++	;;
+     arm*)
+ 	XKBMODEL=pc105
+ 	model_priority=medium

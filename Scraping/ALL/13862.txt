@@ -1,0 +1,39 @@
+To : debian-devel@lists.debian.org
+Subject : Re: "Ask HN: What do you want to see in Ubuntu 17.10?"
+From : Paul Wise <pabs@debian.org>
+Date : Wed, 5 Apr 2017 11:18:31 +0800
+Message-id : CAKTje6Hvq1H5rX+0N1ceo0cjf3NpX=qHrA6uiAEXuu1+T9-OPg@mail.gmail.com
+In-reply-to : <[🔎] 20170404204755.hmyxuemon7fwyugm@iris.silentflame.com>
+References : <1490993298.3690201.930301544.52911C7B@webmail.messagingengine.com> <[🔎] 1491178200.3866.5.camel@stuart.id.au> <[🔎] 20170403225824.s6g2jhy2qdowgrkm@hephaestus.silentflame.com> <[🔎] CAKTje6H+CPRtDBHT8USWYCo7aGsPCDUMssVqDKoPshEn96o_jQ@mail.gmail.com> <[🔎] 20170404204755.hmyxuemon7fwyugm@iris.silentflame.com>
+
+
+On Wed, Apr 5, 2017 at 4:47 AM, Sean Whitton wrote:
+> Do you know if anyone is working on including this in the default
+> desktop install?  If it works well, it seems like an uncontroversial
+> inclusion that does not depend on the debate over unattended-upgrades.
+> I don't know which package would need to be changed, so I'm not sure
+> where to look for an existing wishlist bug.
+Not AFAIK. I would guess that needrestart would need to be promoted to
+standard priority and needrestart-session would need to be added to
+tasksel's task-desktop package, or to each of the task-*-desktop
+packages; this adds wxWidgets to the default install though. The
+latter would allow different desktops to add different
+implementations, for example if someone wrote a GNOME Shell extension
+to highlight windows of applications that need restarting.
+One important downside of needrestart/needrestart-session/systemd is
+that it can't automatically restart systemd user services and root
+systemctl can't restart user services, even via su/sudo and
+needrestart-session doesn't restart them AFAIK. I guess this should be
+fixed by needrestart-session doing restarts (or stops for
+RefuseManualStart=true) of user services when requested to start via
+the dbus call, plus adding a restart/stop button for processes
+corresponding to user services.
+Another downside of needrestart is that a lot of stuff doesn't support
+being restarted sanely, like dbus, display managers, networking stuff,
+/etc/rc.local, etc. There is a blacklist for that but it doesn't yet
+include rc.local (#852864):
+https://sources.debian.net/src/needrestart/2.11-2/ex/needrestart.conf/#L79
+-- 
+bye,
+pabs
+https://wiki.debian.org/PaulWise

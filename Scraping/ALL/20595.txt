@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Re: RFC: Support for zstd in .deb packages?
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Fri, 27 Apr 2018 13:45:07 +0200
+Message-id : 20180427114506.75z4swo2mjbfsbxm@angband.pl
+In-reply-to : <[🔎] 20180427050212.GA9721@gaara.hadrons.org>
+References : <[🔎] 20180427050212.GA9721@gaara.hadrons.org>
+
+
+(ZSTD)
+On Fri, Apr 27, 2018 at 07:02:12AM +0200, Guillem Jover wrote:
+> Recently Julian mentioned it again on IRC, and we each started
+> implementing support in dpkg and apt respectively, to allow easier
+> evaluation. I stopped when I realized the code was getting too messy,
+> but after few weeks Julian and Bálint Réczey ended up implementing
+> the support for apt and dpkg [D], so that they could merge it in
+> Ubuntu for their upcoming release, which they did.
+> 
+> Their main driving reason (AFAICT) has been (de)compression speed.
+With default level:
+	comp	decomp	size
+xz	8.038s	0.356s	4320292
+bz2	2.265s	0.730s	5234516
+zst	0.274s	0.102s	5657626
+gz	0.880s	0.152s	6515505
+Z	0.499s	0.133s	8932459
+lzo	0.100s	0.095s	9198874
+_Compression_ speed is insane; decompression is merely nice.  Obviously,
+tuneable level turns this single point into an envelope, but even xz at its
+lowest levels can be multiple times faster than gzip while delivering better
+compression.
+> * Implementation size: The shared library and its package are quite
+>   fatter than any of the other compressors dpkg uses.
+> * Eternity contract: This would add yet another format that would need
+>   to be supported pretty much forever, to be able to at least unpack
+>   .deb's that might be available in the wild. This also increases the
+>   (Build-)Essential-set.
+> I'm still quite skeptical about it being worth it though, given the costs
+> implied (f.ex. [S]). That it trades space for speed, which could perhaps
+> improve use-cases like CI or buildds
+As the guy who did most of testing of Nick Terrell's work in btrfs,
+implemented support in tar (accepted upstream, #894065[1]), mc (ditto),
+wages a propaganda campaign for zstd for vmlinuz+initrd, and is an obnoxious
+fanboy of zstd in a bunch of other places, I'd say:
+Don't.  For .debs, that is.
+A .deb that is getting processed goes through dpkg, whose status files
+writes and all those fsyncs are so slow that it's pointless to optimize
+every last bit of decompression.  If someone already goes as far as
+recompressing packages, we got two fine choices: "xz -0" and "none"; the
+former being faster than gzip while compressing better, and the latter being
+as fast as cat.  You don't get any further than cat on the size-vs-speed
+slider...
+On the other hand, adding .tar.zst [2] would be a much welcome addition for
+files referenced from .dsc.  A machine that installs dpkg-dev has enough
+storage that a half-MB library is beneath any notice, and zstd is a fine
+replacement for gzip and the likes.
+You'd also want to look into getting rid of bzip2 and gzip.  The former is a
+low-flying fruit: binNMUing remaining packages would allow retiring bzip2
+support in buster+3 or so[3], gzip is probably forever.
+Meow!
+[1]. Bdale, you know you want to take it, pretty please with a cherry on
+top. :)
+[2]. Somehow, someone stolen the 'd'.  I'd look at "umount", the culprit
+might be the same.
+[3]. Or possibly fork+exec("bzip2") for historic .debs, failing with an
+error message if not installed.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 
+⣾⠁⢰⠒⠀⣿⡁ 
+⢿⡄⠘⠷⠚⠋⠀ Certified airhead; got the CT scan to prove that!
+⠈⠳⣄⠀⠀⠀⠀

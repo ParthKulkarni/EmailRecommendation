@@ -1,0 +1,45 @@
+To : Hugh McMaster <hugh.mcmaster@outlook.com>
+Subject : Re: Mass bug filing for the removal of freetype-config and freetype.m4
+From : Simon McVittie <smcv@debian.org>
+Date : Fri, 2 Feb 2018 12:14:15 +0000
+Message-id : 20180202121415.GA32763@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] SL2P216MB0345EB6562EA47C560EBA07DF2F90@SL2P216MB0345.KORP216.PROD.OUTLOOK.COM> <[🔎] SLXP216MB0351361CA86186EBC7C8939DF2E40@SLXP216MB0351.KORP216.PROD.OUTLOOK.COM>
+
+
+On Thu, 01 Feb 2018 at 11:07:42 +0000, Hugh McMaster wrote:
+> Freetype-config has been considered deprecated for several years [1].
+By us, or by upstream?
+> With this in mind, I removed freetype-config and built all reverse 
+> build-dependencies. I have also searched codesearch.debian.net for use of 
+> AC_CHECK_FT2 in configure.ac and configure.in. (Thanks to Simon McVittie 
+> for the suggestion.)
+Is there a reason to prefer removing AC_CHECK_FT2, rather than patching
+it to provide enough of its historical functionality for (I'd guess) 90%
+of packages? Something like this should work (untested):
+AC_DEFUN([AC_CHECK_FT2],
+  [
+    PKG_CHECK_MODULES([FT2], [freetype2 >= $1], [$2], m4_if([$3], [], [:], [$3]))
+  ])
+(This doesn't do the sanity-checks that current AC_CHECK_FT2 does,
+and it respects PKG_CONFIG_PATH instead of --with-ft-prefix,
+--with-ft-exec-prefix and FT_CONFIG, but this shouldn't matter most of
+the time; and it seems better if simple packages still compile than if
+they don't.)
+Does Freetype's upstream developer consider AC_CHECK_FT2 to be deprecated
+too?
+On Fri, 02 Feb 2018 at 11:38:02 +0000, Hugh McMaster wrote:
+> On Friday, 2 February 2018 12:15 PM, Paul Wise wrote:
+> > Will you be asking upstream to remove it too?
+> 
+> I hadn't considered that, but it might be a good idea. Why do you ask?
+If we ask the upstream developers of various packages to make a change
+because otherwise their package won't compile on Debian, some of them
+will say "well, that's Debian's fault for removing APIs provided by
+Freetype's upstream developer" and do nothing. If we ask them to make a
+change because Freetype upstream has officially deprecated the macro/tool
+they're using, or because otherwise their package (eventually) won't
+compile against newer upstream Freetype releases, it seems more likely
+to happen.
+Not carrying long-term patches to the build systems of a large number of
+packages seems a good goal.
+    smcv

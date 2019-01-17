@@ -1,0 +1,67 @@
+To : Greg Wooledge <wooledg@eeg.ccf.org>, 868892@bugs.debian.org
+Subject : Bug#868892: tasksel: Unexpected mass package removal with no way to cancel
+From : Henrique de Moraes Holschuh <hmh@debian.org>
+Date : Wed, 19 Jul 2017 13:45:42 -0300
+Message-id : 20170719164542.tad4dzimplqmrl64@khazad-dum.debian.net
+Reply-to : Henrique de Moraes Holschuh <hmh@debian.org>, 868892@bugs.debian.org
+In-reply-to : <[🔎] 150047390303.21841.133733495801909564.reportbug@wooledg.eeg.ccf.org>
+References : <[🔎] 150047390303.21841.133733495801909564.reportbug@wooledg.eeg.ccf.org>
+
+
+tag 868892 + patch
+thanks
+On Wed, 19 Jul 2017, Greg Wooledge wrote:
+> I ran "sudo tasksel", and was given the dialog, without any "Standard"
+> task to choose.  So be it.  I reported that to the user.
+> 
+> But then there was no obvious way for me to escape from tasksel.  There
+> is no Cancel button -- just an OK button.  Ctrl-C did not work.
+The (proposed) attached patch seems to fix this issue in "standalone"
+mode.  However, it needs to be tested when tasksel is run from d-i to
+ensure it doesn't regress anything.  I have only tested it in
+"standalone" mode.
+Note: when testing it standalone, use "tasksel -t" to avoid changes to
+an installed system.
+> So I did what seemed obvious at the time -- I unselected all the tasks
+> (only one had been selected; I think it was ssh server), and then
+> selected OK.
+> 
+> Instead of just letting me out, it started deleting packages.  It happened
+> extremely quickly (on this computer), with no prompt, no warning of
+> any kind.  Ctrl-C still did not work.  When tasksel finally exited on
+> its own, there was a long string of ^C^C^C^C^C^C^C... on the terminal.
+Yeah.  The attached patch does not address either the blocking of SIGINT
+and SIGQUIT, nor does it address the lack of a "confirm action" dialog
+before tasksel will do its thing.
+But with the patch, at least there is now an "exit" button when it is
+run in standalone mode...
+-- 
+  Henrique Holschuh
+diff -Nru tasksel-3.39/debian/changelog tasksel-3.39+nmu1/debian/changelog
+--- tasksel-3.39/debian/changelog	2016-12-24 10:46:53.000000000 -0200
++++ tasksel-3.39+nmu1/debian/changelog	2017-07-19 12:57:07.000000000 -0300
+@@ -1,3 +1,12 @@
++tasksel (3.39+nmu1) UNRELEASED; urgency=medium
++
++  * Non-maintainer upload.
++  * Provide an exit path to tasksel, this partially fixes #868892 by using
++    the debconf "backup" capability to add an exit path to the multiselect
++    dialog.
++
++ -- Henrique de Moraes Holschuh <hmh@debian.org>  Wed, 19 Jul 2017 12:57:07 -0300
++
+ tasksel (3.39) unstable; urgency=medium
+ 
+   * Mention proper locations of *.desc files in tasksel's manpage, based
+diff -Nru tasksel-3.39/tasksel-debconf tasksel-3.39+nmu1/tasksel-debconf
+--- tasksel-3.39/tasksel-debconf	2014-08-02 10:55:47.000000000 -0300
++++ tasksel-3.39+nmu1/tasksel-debconf	2017-07-19 12:57:07.000000000 -0300
+@@ -2,6 +2,8 @@
+ # because debconf sucks
+ . /usr/share/debconf/confmodule
+ set -e
++# provide an exit path, and abort if none is possible
++db_capb backup
+ 
+ tmpfile=$1
+ choices="$2"

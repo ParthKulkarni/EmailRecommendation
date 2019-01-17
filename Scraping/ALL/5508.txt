@@ -1,0 +1,275 @@
+To : Andre Heider <a.heider@gmail.com>, 884003@bugs.debian.org
+Subject : Bug#884003: FDT overlay support
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Wed, 20 Dec 2017 13:32:15 -0800
+Message-id : 877eth6q74.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 884003@bugs.debian.org
+In-reply-to : <[🔎] 039fb165-1192-de01-0836-5dd830810648@gmail.com>
+References : <[🔎] d117fc6a-9da2-f6bd-43f8-85f7de5b4f03@gmail.com> <[🔎] 039fb165-1192-de01-0836-5dd830810648@gmail.com> <[🔎] d117fc6a-9da2-f6bd-43f8-85f7de5b4f03@gmail.com>
+
+
+On 2017-12-12, Andre Heider wrote:
+> Attached a patch series with an implementation.
+Thanks for the patches!
+> I added the ability to concatenate multiple scripts/snippets for the 
+> final boot script.
+> The new overlay handling snippet is supposed to be 
+> used with this. But the feature itself also allows nice cleanups, 
+> demonstrated on odroid-u3 and beaglebone (and there're quite some more 
+> cleanups possible).
+I very much like the idea of this; so many of the boot scripts
+copy-and-paste a lot of code between them, which makes maintenence more
+difficult as well as implementing features and changes across all the
+boot scripts...
+Unfortunately, I haven't had a chance to do more than a very cursory
+glance at your patches yet. Made some comments in-line on some of the
+individual patches below.
+> To test this, you need:
+> - u-boot with CONFIG_OF_LIBFDT_OVERLAY
+> - base dtb with symbols (-@)
+Would the symbols (-@) be harmful to enable in Debian's kernels by
+default?
+Is it feasible to use dtc to extract the .dts, rebuild it with -@, and
+then use that .dtb instead... or does it need more information from the
+original device tree(s)?
+> - your own overlays, again with symbols, in /boot/dtbs/overlays
+Are there some very basic example overlays that would be feasible to just test that
+this feature is working?
+I don't have much experience with overlays, but have a beagleboneblack
+and a CHIP that in theory support this, and some devices I can attach
+that require overlays...
+Will try to test myself sometime in the coming weeks.
+> With e.g. foo.dtb and bar.dtb in /boot/dtbs/overlays you can then set 
+> either set $fk_overlays on the u-boot prompt or OVERLAYS in 
+> /etc/defaults/flash-kernel to "foo bar".
+>
+> Testing on beaglebone looks promising so far ;)
+This is great!
+> From efaadbd96967674f2fb82eb530dd447a6b5c65ba Mon Sep 17 00:00:00 2001
+> From: Andre Heider <a.heider@gmail.com>
+> Date: Tue, 12 Dec 2017 09:23:37 +0100
+> Subject: [PATCH 01/10] bootscr.uboot-generic: quote bootargs
+>
+> Signed-off-by: Andre Heider <a.heider@gmail.com>
+> ---
+>  bootscript/all/bootscr.uboot-generic | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/bootscript/all/bootscr.uboot-generic b/bootscript/all/bootscr.uboot-generic
+> index db4066a..bcf6e96 100644
+> --- a/bootscript/all/bootscr.uboot-generic
+> +++ b/bootscript/all/bootscr.uboot-generic
+> @@ -25,7 +25,7 @@ if test -n "${console}"; then
+>    setenv bootargs "${bootargs} console=${console}"
+>  fi
+>  
+> -setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} @@LINUX_KERNEL_CMDLINE@@
+> +setenv bootargs "@@LINUX_KERNEL_CMDLINE_DEFAULTS@@ ${bootargs} @@LINUX_KERNEL_CMDLINE@@"
+>  @@UBOOT_ENV_EXTRA@@
+>  
+>  if test -z "${fk_kvers}"; then
+Why is this needed?
+> From 8dd287741e23ea06c6a8e480ab1f24689d36bf9b Mon Sep 17 00:00:00 2001
+> From: Andre Heider <a.heider@gmail.com>
+> Date: Tue, 12 Dec 2017 08:18:12 +0100
+> Subject: [PATCH 03/10] Add support for multiple scripts sources
+>
+> Allow multiple entries in 'U-Boot-Script-Name' and concatenate them
+> as the final boot script.
+>
+> Signed-off-by: Andre Heider <a.heider@gmail.com>
+> ---
+>  functions | 6 +++++-
+>  1 file changed, 5 insertions(+), 1 deletion(-)
+...
+> From 132dfdeb0e9a5a396ee543ee1386cb750929846f Mon Sep 17 00:00:00 2001
+> From: Andre Heider <a.heider@gmail.com>
+> Date: Tue, 12 Dec 2017 09:12:28 +0100
+> Subject: [PATCH 04/10] odroid-u3: clean up boot script
+>
+> bootscr.odroid first sets some compatibility variables and then contains
+> a full copy of bootscr.uboot-generic.
+>
+> Get rid of the copy and use the multiple scripts feature instead. This
+> results in the very same boot script.
+>
+> Signed-off-by: Andre Heider <a.heider@gmail.com>
+> ---
+>  bootscript/armhf/bootscr.odroid | 63 -----------------------------------------
+>  db/all.db                       |  2 +-
+>  2 files changed, 1 insertion(+), 64 deletions(-)
+Love these!
+> From b29052bfe4deaf359635347e1e0fc559059067e9 Mon Sep 17 00:00:00 2001
+> From: Andre Heider <a.heider@gmail.com>
+> Date: Tue, 12 Dec 2017 09:25:26 +0100
+> Subject: [PATCH 05/10] bootscr.uboot-generic: support multiple prefixes to
+>  load from
+>
+> Allow custom boot scripts to set $fk_image_locations as a list of
+> directories to load boot files from.
+>
+> If unset, $prefix will be the used - which is sufficient for all recent
+> u-boot versions.
+>
+> This allows the clean up of various custom boot scripts. Code borrowed
+> form the sunxi script.
+>
+> Signed-off-by: Andre Heider <a.heider@gmail.com>
+> ---
+>  bootscript/all/bootscr.uboot-generic | 38 +++++++++++++++++++++++++-----------
+>  1 file changed, 27 insertions(+), 11 deletions(-)
+>
+> diff --git a/bootscript/all/bootscr.uboot-generic b/bootscript/all/bootscr.uboot-generic
+> index bcf6e96..509efe7 100644
+> --- a/bootscript/all/bootscr.uboot-generic
+> +++ b/bootscript/all/bootscr.uboot-generic
+> @@ -48,14 +48,30 @@ else
+>    setenv partition ${distro_bootpart}
+>  fi
+>  
+> -load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${prefix}vmlinuz-${fk_kvers} \
+> -&& load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${prefix}${fdtpath} \
+> -&& load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${prefix}initrd.img-${fk_kvers} \
+> -&& echo "Booting Debian ${fk_kvers} from ${devtype} ${devnum}:${partition}..." \
+> -&& bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+> -
+> -load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${prefix}vmlinuz \
+> -&& load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${prefix}dtb \
+> -&& load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${prefix}initrd.img \
+> -&& echo "Booting Debian from ${devtype} ${devnum}:${partition}..." \
+> -&& bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+> +if test -z "${fk_image_locations}"; then
+> +  setenv fk_image_locations ${prefix}
+> +fi
+> +
+> +for pathprefix in ${fk_image_locations}
+> +do
+> +  if test -e ${devtype} ${devnum}:${partition} ${pathprefix}vmlinuz-${fk_kvers}
+> +  then
+> +    load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${pathprefix}vmlinuz-${fk_kvers} \
+> +    && load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${pathprefix}${fdtpath} \
+> +    && load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${pathprefix}initrd.img-${fk_kvers} \
+> +    && echo "Booting Debian ${fk_kvers} from ${devtype} ${devnum}:${partition}..." \
+> +    && bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+> +  fi
+> +done
+> +
+> +for pathprefix in ${fk_image_locations}
+> +do
+> +  if test -e ${devtype} ${devnum}:${partition} ${pathprefix}vmlinuz
+> +  then
+> +    load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${pathprefix}vmlinuz \
+> +    && load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${pathprefix}dtb \
+> +    && load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${pathprefix}initrd.img \
+> +    && echo "Booting Debian from ${devtype} ${devnum}:${partition}..." \
+> +    && bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+> +  fi
+> +done
+I don't really understand the need for this. Prefix is set to where the
+boot script is loaded from, so I don't see what use fk_image_locations
+really provides.
+I guess there are some vendor or legacy u-boot versions that don't
+support distro_bootcmd and thus don't set prefix, but I'm not sure this
+is the best way to resolve that.
+I think it might be better to ship legacy boot scripts that people
+enable on a case-by-case basis when needed. The legacy u-boot versions
+most likely do not support overlays anyways.
+> From 4a52b89ec529c4422acd8f4a3efab59a841a1280 Mon Sep 17 00:00:00 2001
+> From: Andre Heider <a.heider@gmail.com>
+> Date: Tue, 12 Dec 2017 09:36:04 +0100
+> Subject: [PATCH 06/10] beaglebone: clean up boot script
+>
+> Use $fk_image_locations and distro compatible variable names, get rid
+> of the duplicated code from bootscr.uboot-generic, and use that script
+> additionally instead.
+>
+> Signed-off-by: Andre Heider <a.heider@gmail.com>
+> ---
+>  bootscript/armhf/bootscr.beaglebone | 49 +++++--------------------------------
+>  db/all.db                           |  4 +--
+>  2 files changed, 8 insertions(+), 45 deletions(-)
+Other than my uncertainty about fk_image_locations mentioned earlier,
+this is great!
+> From 5c9883b455c93053b260ce73ccf4f5ca80e54cdf Mon Sep 17 00:00:00 2001
+> From: Andre Heider <a.heider@gmail.com>
+> Date: Tue, 12 Dec 2017 20:08:21 +0100
+> Subject: [PATCH 08/10] Add a hook to bootscr.uboot-generic for post fdt
+>  loading tasks
+>
+> The optional hook $fk_fdt_cmd gets run after loading a ftd.
+>
+> Signed-off-by: Andre Heider <a.heider@gmail.com>
+> ---
+>  bootscript/all/bootscr.uboot-generic | 6 +++++-
+>  1 file changed, 5 insertions(+), 1 deletion(-)
+>
+> diff --git a/bootscript/all/bootscr.uboot-generic b/bootscript/all/bootscr.uboot-generic
+> index 509efe7..6d40779 100644
+> --- a/bootscript/all/bootscr.uboot-generic
+> +++ b/bootscript/all/bootscr.uboot-generic
+> @@ -52,13 +52,17 @@ if test -z "${fk_image_locations}"; then
+>    setenv fk_image_locations ${prefix}
+>  fi
+>  
+> +if test -z "${fk_fdt_cmd}"; then
+> +  setenv fk_fdt_cmd true
+> +fi
+> +
+>  for pathprefix in ${fk_image_locations}
+>  do
+>    if test -e ${devtype} ${devnum}:${partition} ${pathprefix}vmlinuz-${fk_kvers}
+>    then
+>      load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${pathprefix}vmlinuz-${fk_kvers} \
+>      && load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${pathprefix}${fdtpath} \
+> -    && load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${pathprefix}initrd.img-${fk_kvers} \
+> +    && run fk_fdt_cmd && load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${pathprefix}initrd.img-${fk_kvers} \
+>      && echo "Booting Debian ${fk_kvers} from ${devtype} ${devnum}:${partition}..." \
+>      && bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+>    fi
+I'd give fk_fdt_cmd it's own line here.
+> From 02cdcab0d99ec8bc16e90ca5fd757fe81b6b32e6 Mon Sep 17 00:00:00 2001
+> From: Andre Heider <a.heider@gmail.com>
+> Date: Tue, 12 Dec 2017 11:42:19 +0100
+> Subject: [PATCH 09/10] Introduce fdt overlay support
+>
+> Add a new 'fdt-overlays' script snippet to handle overlays.
+>
+> This script utilizes the new bootscr.uboot-generic hook to load all
+> requested overlays. Per default this is the list specified with OVERLAYS
+> in /etc/defaults/flash-kernel, but can be overwritten using $fk_overlays.
+>
+> Overlay support needs to be enabled specifically for each machine entry.
+>
+> If an overlay fails to load, the untouched dtb is restored - meaning
+> that all overlays need to be valid (since they can depend on each other).
+>
+> Overlays need to be placed in /boot/dtbs/overlays.
+>
+> Signed-off-by: Andre Heider <a.heider@gmail.com>
+> ---
+>  bootscript/all/fdt-overlays | 12 ++++++++++++
+>  1 file changed, 12 insertions(+)
+>  create mode 100644 bootscript/all/fdt-overlays
+>
+> diff --git a/bootscript/all/fdt-overlays b/bootscript/all/fdt-overlays
+> new file mode 100644
+> index 0000000..407d4be
+> --- /dev/null
+> +++ b/bootscript/all/fdt-overlays
+> @@ -0,0 +1,12 @@
+> +if test -z "${fk_overlays}"; then
+> +  setenv fk_overlays "@@OVERLAYS@@"
+> +fi
+> +
+> +if test -z "${ftdo_addr_r}"; then
+> +  setenv ftdo_addr_r ${ramdisk_addr_r}
+> +fi
+> +
+> +setenv load_overlay_cmd 'echo loading overlay ${overlay}; load ${devtype} ${devnum}:${partition} ${ftdo_addr_r} ${pathprefix}dtbs/overlays/${overlay}.dtb && fdt apply ${ftdo_addr_r}'
+> +setenv load_overlays_cmd 'fdt addr ${fdt_addr_r} && fdt resize 8192 && for overlay in ${fk_overlays}; do run load_overlay_cmd; done'
+> +setenv restore_fdt_cmd 'echo "error loading overlays, using untouched dtb" && load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${pathprefix}${fdtpath}'
+> +setenv fk_fdt_cmd 'if test -n "${fk_overlays}"; then run load_overlays_cmd || run restore_fdt_cmd; else true; fi'
+At a quick glance this looks reasonable to me.
+live well,
+  vagrant
+signature.asc

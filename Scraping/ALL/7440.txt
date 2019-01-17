@@ -1,0 +1,53 @@
+To : Vincent Caron <vincent@zerodeux.net>, 903122@bugs.debian.org
+Subject : Bug#903122: debian-installer-9-netboot-amd64: Please add char/virtio_console module (paravirtualized serial) to netinst
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 8 Jul 2018 06:37:21 +0200
+Message-id : 20180708043721.6g5n4fciygivuijj@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 903122@bugs.debian.org
+In-reply-to : <[🔎] 1530880301.28531.0.camel@zerodeux.net>
+References : <[🔎] 1530880301.28531.0.camel@zerodeux.net> <[🔎] 1530880301.28531.0.camel@zerodeux.net>
+
+
+Hi Vincent,
+Vincent Caron <vincent@zerodeux.net> (2018-07-06):
+> Package: debian-installer-9-netboot-amd64
+> Severity: wishlist
+> Tags: d-i
+> 
+> Dear Maintainer,
+> 
+> while automating Debian image creations thru netinst + KVM, I stumbled
+> upon a limitation from the emulated UARTs (if one sends back from the
+> guest to the host large logs, it might overrun the UART buffer which
+> complains with kernel messages about overused IRQ).
+> 
+> While turning to paravirtualized serial, I realized that the
+> char/virtio_console kernel module is missing in the netinst's initrd,
+> and this driver is required very early. Obviously I still use the UART
+> emulation for kernel messages since it's the only _very early_ output
+> medium, thus emulated UART and paravirtualized serials should be used
+> together.
+You mention netinst a few times, but you seem to be talking about
+netboot really. netinst is an ISO image with a bunch of packages, enough
+to configure everything needed to pull the rest of the system from a
+network mirror; netboot is kernel+initrd for PXE boots and similar
+minimalistic approaches.
+> If this module makes it to netinst's initrd, one would use those kvm
+> args:
+> 
+> -chardev file,path=virtiocon0.log,id=virtiocon0
+> -device virtio-serial
+> -device virtconsole,chardev=virtiocon0
+> 
+> ... and in the guest a /dev/hvc0 would appear. Anything the guest would
+> write to /dev/hv0 would en up in the host's vitriocon0.log file.
+So it seems we're talking about kernel/drivers/char/virtio_console.ko
+that could be added to either the serial-modules udeb or the
+virtio-modules one. Kernel maintainers, what do you think?
+This might be worth backporting to stretch too. I can send patches when
+you've selected the udeb we should be adding this module to.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

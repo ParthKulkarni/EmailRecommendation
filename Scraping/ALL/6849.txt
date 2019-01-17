@@ -1,0 +1,53 @@
+To : 586158@bugs.debian.org
+Subject : Bug#586158: #586158 : some quotes possibly forgotten
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Tue, 1 May 2018 20:29:08 +0200
+Message-id : 20180501182908.GA3147@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 586158@bugs.debian.org
+References : <20100616222002.25755.52008.reportbug@base.local>
+
+
+Hi,
+The variable DEBOOTSTRAP_DIR may contain some white spaces
+if the option --second-stage-target is given. $DEBOOTSTRAP_DIR
+may be surrounded with quotes in second stage too.
+I hope it will help !
+Regards,
+JH Chatenet
+diff -Naur a/debootstrap b/debootstrap
+--- a/debootstrap	2018-04-17 04:06:32.000000000 +0200
++++ b/debootstrap	2018-05-01 20:16:03.822658829 +0200
+@@ -416,10 +416,10 @@
+ ###########################################################################
+ 
+ if [ "$SECOND_STAGE_ONLY" = "true" ]; then
+-	SUITE=$(cat $DEBOOTSTRAP_DIR/suite)
+-	ARCH=$(cat $DEBOOTSTRAP_DIR/arch)
+-	if [ -e $DEBOOTSTRAP_DIR/variant ]; then
+-		VARIANT=$(cat $DEBOOTSTRAP_DIR/variant)
++	SUITE=$(cat "$DEBOOTSTRAP_DIR/suite")
++	ARCH=$(cat "$DEBOOTSTRAP_DIR/arch")
++	if [ -e "$DEBOOTSTRAP_DIR/variant" ]; then
++		VARIANT=$(cat "$DEBOOTSTRAP_DIR/variant")
+ 		SUPPORTED_VARIANTS="$VARIANT"
+ 	fi
+ 	if [ -z "$CHROOTDIR" ]; then
+@@ -427,7 +427,7 @@
+ 	else
+ 		TARGET=$CHROOTDIR
+ 	fi
+-	SCRIPT=$DEBOOTSTRAP_DIR/suite-script
++	SCRIPT="$DEBOOTSTRAP_DIR/suite-script"
+ else
+ 	if [ -z "$1" ] || [ -z "$2" ]; then
+ 		usage_err 1 NEEDSUITETARGET "You must specify a suite and a target."
+@@ -721,8 +721,8 @@
+ 
+ if am_doing_phase second_stage; then
+ 	if [ "$SECOND_STAGE_ONLY" = true ]; then
+-		required="$(cat $DEBOOTSTRAP_DIR/required)"
+-		base="$(cat $DEBOOTSTRAP_DIR/base)"
++		required=$(cat "$DEBOOTSTRAP_DIR/required")
++		base=$(cat "$DEBOOTSTRAP_DIR/base")
+ 		all_debs="$required $base"
+ 	fi

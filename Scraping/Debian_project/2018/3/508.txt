@@ -1,0 +1,50 @@
+To : debian-devel@lists.debian.org
+Subject : What problem might happen when bumping soname without adding Conflicts:/Breaks:?
+From : Boyuan Yang <073plan@gmail.com>
+Date : Thu, 29 Mar 2018 10:35:33 +0800
+Message-id : 2481913.Ug9B2u56FU@hosiet-tp
+
+
+Hello debian-devel and mentors,
+Recently I found a disagreement with my mentor about proper handling of 
+library transition (bumping SONAME) and we agreed that we need some 
+suggestions.
+Transition documentation (written by Release Team) can be found at [1].
+Some quick facts:
+* We have a libdframeworkdbus1 with soname 1; it is a standard Multi-Arch 
+library:
+    % dpkg -L libdframeworkdbus1 
+    /. 
+    /usr 
+    /usr/lib 
+    /usr/lib/x86_64-linux-gnu 
+    /usr/lib/x86_64-linux-gnu/libdframeworkdbus.so.1.0.0 
+    /usr/share 
+    /usr/share/doc 
+    /usr/share/doc/libdframeworkdbus1 
+    /usr/share/doc/libdframeworkdbus1/changelog.Debian.gz 
+    /usr/share/doc/libdframeworkdbus1/changelog.gz 
+    /usr/share/doc/libdframeworkdbus1/copyright 
+    /usr/lib/x86_64-linux-gnu/libdframeworkdbus.so.1 
+    /usr/lib/x86_64-linux-gnu/libdframeworkdbus.so.1.0 
+    /usr/share/doc/libdframeworkdbus1/CHANGELOG.md.gz
+* Upstream released new version and bumped SONAME to 2
+* -dev package didn't change its name
+* My mentor suggests that the new library package (libdframeworkdbus2) should 
+add the relationship "Conflicts: libdframeworkdbus1"
+...and such necessity is not reflected in the documentation. My personal 
+thought is that with "smooth updates" (as described in [1]), the old library 
+and the new library (with different SONAME) should be able to installed 
+simultaneously on any Debian Unstable / Debian Testing system without any 
+problem during the transition. If that is true, the "Conflicts:" relationship 
+shouldn't appear. The "Replaces:" relationship [2] should not appear as well 
+because there won't be any file conflcts.
+We'd like to know that with transitions for library soname bump, is 
+"Conflicts:" relationship needed / not needed in all circumstances and what 
+problem might users / developers encounter if it is added / not added.
+Thank you very much.
+--
+Regards,
+Boyuan Yang
+[1] https://wiki.debian.org/Teams/ReleaseTeam/Transitions
+[2] https://www.debian.org/doc/debian-policy/#s-replacessignature.asc

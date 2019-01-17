@@ -1,0 +1,58 @@
+To : Frank Scheiner <frank.scheiner@web.de>, debian-sparc <debian-sparc@lists.debian.org>
+Subject : Re: Fixing the missing serial console after installation issue
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Sat, 30 Sep 2017 20:17:19 +0200
+Message-id : 57d1e036-add0-bf58-6392-2c049381d921@physik.fu-berlin.de
+In-reply-to : <[🔎] 726d91f6-c6bb-0e06-d85d-e85ec7fee030@web.de>
+References : <[🔎] 81d62440-b275-7183-81ec-003408cbe800@physik.fu-berlin.de> <[🔎] 726d91f6-c6bb-0e06-d85d-e85ec7fee030@web.de>
+
+
+On 09/30/2017 07:19 PM, Frank Scheiner wrote:
+> Not sure, but [1] says that it should be sufficient to add all console devices
+> to the kernel command line for systemd to detect and activate them, e.g.
+> `console=ttyS0,9600n8` - which includes port and configuration.
+Yes, I'm aware of that and that's what people usually use to enable the serial
+console post installation. However, it's most likely not what we would want to
+use as adding it to the kernel command line assumes that you know what type
+of bootloader is being used and you would have to add case-matching for the
+various bootloader types.
+Please be aware that I am not talking about just fixing the serial console issue
+on SPARC machines but on all architectures supported by Debian. Hence, I want
+to use a generic and robust solution, not a quick hack.
+> This worked for me on non-SPARC machines (on HP C and J class machines where it
+> is added by palo derived from the firmware setting, POWER5 machines via yaboot
+> configuration, Alpha machines through SRM boot command, etc.) with systemd,
+> but I can't remember if I explicitly configured this on the Ultra 10 or SunFire V245
+> I used for testing your installer images.
+Again, you would need to incorporate knowledge about the bootloader. Adding a command
+line parameter to PALO is performed differently as compared to GRUB, for example.
+> I think headless Sun UltraSPARC systems - and maybe others like HP Itanium systems,
+> too - will activate the serial console automatically without explicit
+> configuration in the kernel command line - at least for kernel messages - but
+> without an explicit serial console configuration in the kernel command line,
+> systemd might not get the message.
+You are talking about the OpenFirmware buffer which is disabled the moment the
+kernel loads the actual console driver and takes over the hardware. This behavior
+is independent of systemd and systemd does not behave any different than SysVInit
+or Upstart which is why the code to enable serial console for those init systems
+is part of the finish-install package in the first place [1].
+> As alternative, [1] also explains how to configure systemd directly via a systemd unit further below (in "Serial Terminals").
+Yes, that's basically what I already mentioned in my original mail. But, as I said
+before, I'm not sure how to pass any serial configuration parameters using this
+method. OTOH, I'm also not sure whether setting the parameters is actually
+necessary.
+I will figure this out tomorrow by reading the documentation or just asking
+systemd upstream to which I have good connections to as I am a contributor
+myself.
+> Or does systemd not enable a serial console for the mentioned users despite
+> using a serial console configuration in the kernel command line?
+What users? As you have explained yourself, systemd recognizes the console=$dev
+setting from the kernel command line and uses that to spawn a getty on this
+particular console.
+Adrian
+> [1] https://anonscm.debian.org/cgit/d-i/finish-install.git/tree/finish-install.d/90console#n79
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

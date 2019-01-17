@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Russ Allbery <rra@debian.org>
+Date : Thu, 09 Mar 2017 14:46:31 -0800
+Message-id : 87innidq60.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20170309220518.eozzda7h46xxlemf@angband.pl> (Adam Borowski's	message of "Thu, 9 Mar 2017 23:05:18 +0100")
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl>	<[🔎] 87o9xbxhd2.fsf@hope.eyrie.org>	<[🔎] 148904591121.2564.7806668501679738050@auryn.jones.dk>	<[🔎] 87h932fhca.fsf@hope.eyrie.org>	<[🔎] 20170309220518.eozzda7h46xxlemf@angband.pl>
+
+
+Adam Borowski <kilobyte@angband.pl> writes:
+> What's wrong in the current state is that it looks only from the point
+> of view of the library: libwrap1 is useless without tcpd, thus it's
+> natural for it to have an elevanted severity.  But that dependency is
+> wrong from a more global point of view.  That's why I'm proposing making
+> the decision a responsibility of programs which link to the library.
+I don't think these issues are as hard to reason about one by one as
+you're saying.  This is a good example: libwrap0 is *not* useless without
+tcpd.  All that tcpd is providing it are the default /etc/hosts.allow and
+/etc/hosts.deny files (and maybe some binaries that are used in unusual --
+these days -- situations like safe_finger).  You can use libwrap0 easily
+without having tcpd installed if you write those files yourself.
+Therefore, I think it would be reasonable to downgrade this Recommends to
+Suggests.  (However, I seem to recall that we talked about this before and
+there was some specific problem Marco was worried about that we haven't
+captured in this discussion.)
+That said, while I get that every little bit counts, installing tcpd on a
+system has remarkably minimal impact.  It's just a few binaries in a tiny
+package that doesn't start any processes and doesn't do anything.  It
+takes all of roughly 92KB on disk.
+The difficulty with the usbmuxd issue is precisely that it's just on the
+borderline.  It only supports one specific (and not particularly common
+for Debian, if common out in the world) type of hardware, but it's kind of
+important on that piece of hardware.  There isn't a communication problem
+here, there isn't a Policy problem here, there's a *hard tradeoff* problem
+here, and talking about this as if it were an issue with missing Policy
+loses the fact that this is a thoughtful choice the maintainers have made
+with an understanding of all of the consequences.
+I get that you disagree with their decision, but their decision isn't
+obviously wrong.  We don't have a better way of supporting unusual
+hardware than this.  It's worth noting that some steps have been taken to
+minimize the impact of the additional dependency (it's small, it's only
+started on demand, etc.), which I at least find entirely reasonable and
+therefore feel fairly comfortable with still having it in the Recommends
+set because otherwise people with Apple hardware have to do fairly obscure
+things to get their hardware working.
+I think everyone involved would be happy to switch to a better solution if
+we had one (some package that detects packages needed for specific
+hardware profiles and installs them, for instance).
+It feels like you're unhappy with a decision that was made thoughtfully,
+not accidentally, and want to use Policy as a way to override that
+decision, which makes me quite uncomfortable.
+And, with my Policy Editor hat on, I will say that this is not the purpose
+of Policy; Policy is to document consensus about how we build the
+distribution.  If you have a technical disagreement with maintainers about
+their package metadata that involves thoughtful and principled
+disagreement between two valid approaches with different tradeoffs (which
+appears to be the case here), then for better or worse that's what the
+Technical Committee is for.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

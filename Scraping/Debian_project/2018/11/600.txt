@@ -1,0 +1,126 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Lisandro Damián Nicanor Pérez Meyer <perezmeyer@gmail.com>
+Date : Wed, 28 Nov 2018 10:11:21 -0300
+Message-id : 1645410.jfKKMyq4xb@tonks
+Reply-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20181128070052.GA26398@virgil.dodds.net>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] 1804155.CmlG43vXzp@tonks> <[🔎] 20181128070052.GA26398@virgil.dodds.net>
+
+
+Hi Steve!
+El miércoles, 28 de noviembre de 2018 04:00:52 -03 Steve Langasek escribió:
+[snip] 
+> > At this point I really feel that, except I am missing something, double
+> > building is just not a good idea :-/
+> 
+> Ok, I don't think you've understood then.  Perhaps a further example from
+> the Ubuntu archive would help.  As of Ubuntu 16.04, here is the *complete*
+> list of packages that had a hard dependency on any of the 5 GL-linked Qt
+> libraries, where that dependency could not instead be satisfied by the GLES
+> build:
+> 
+> $ grep-dctrl -n -sSource:Package -FDepends \
+>         -e
+> 'libqt5(gui|3drenderer|quick|quickparticles|quickwidgets|multimediawidgets)
+> 5[[:space:]]*(\(>= 5\.[0-9.]*\))(?|$),' \
+> /var/lib/apt/lists/archive.ubuntu.com_ubuntu_dists_xenial_*binary-amd64_Pac
+> kages | sort -u maliit-plugins
+> ovito
+> pyqt5
+> qml-box2d
+> qt3d-opensource-src
+> qtbase-opensource-src
+> qtdeclarative-opensource-src
+> qtubuntu-cameraplugin-fake
+> stellarium
+> wallch
+> $
+> 
+> Every single other binary package that depends on libqt5gui5 (etc) in Ubuntu
+> 16.04 has an ORed dependency on libqt5gui5 | libqt5gui5-gles.
+Ah, now I do get your point. That works as long as the difference between the 
+Desktop GL/GLES builds are that the GLES build produces just less symbols and 
+no new ones comparing to Desktop GL.
+*But* there is also usr/include/<m-a>/qt5/QtGui/qtgui-config.h which differs.
+According to codesearch.debian.net the affected non-Qt libraries packages are:
+gst-plugins-good1.0
+qtcreator
+lyx
+qbs
+Of course all of this would need a check to see how they use it.
+> Three of the results in this list are familiar; they were already in the set
+> of dual-stack libraries.
+> 
+> Several are applications (ovito, stellarium, wallch), and if they say they
+> require full GL, that's legitimate, and that just means users would only be
+> able to install them on systems using the full desktop GL.  (That's fine,
+> and certainly better than not being able to build/install them at all.)
+> 
+> maliit-plugins is not an application, but it's a rather specialized
+> component with no reverse-dependencies (i.e. not a library).
+> 
+> qml-box2d is likely to have never been uploaded after the symbols handling
+> was implemented in Ubuntu, therefore never picked up the alternate
+> dependencies (the package isn't in Debian, anyway).
+> 
+> And pyqt5, since it's language bindings for the full Qt API, would also need
+> to be double-built (but had not been in Ubuntu).
+> 
+> The qml packages built from these libraries - qml-module-qtlocation,
+> qml-module-qtmultimedia, qtdeclarative5-qtlocation-plugin - would also need
+> proper handling, but the impact on dependency graphs should be similarly
+> self-limiting; because just as for C programs, the vast majority of QML
+> applications don't care about the distinction between GL and GLES backends
+> and *expect* Qt to abstract this away for them.
+> 
+> So based on this, Ubuntu missed exactly one package in order to fully
+> support both GL and GLES builds of Qt, bringing the total to 6 instead of 5.
+> 
+> There might be more now, but I'd be surprised if the total number of
+> affected source packages in Debian today reached double digits; and in any
+> case the question lends itself to the same sort of analysis as above, so
+> anyone interested in doing this in Debian can reasonably work out the scope.
+The number of source packages directly affected is around 20 (not counting the 
+noes I mentioned before). Some of them are libraries like qwt, that can't 
+simply be used with GLES. Some are applications that can be patched to build 
+with either one or the other. And some are applications that will simply only 
+work with Desktop GL.
+We where in the process of determining those rdeps, but at this point I guess 
+that if someone is interested in this approach should take it over. Of course, 
+pretty please feel free to ask us in the team for pointers/help if needed.
+> And each of those gles source packages is a purely mechanical transformation
+> of the base Qt source package.
+> 
+> So perhaps someone in this thread is willing to put in this effort to
+> maintain 6 source packages, in order to avoid having to make a choice
+> between GL and GLES on arm64.
+I know concur that it *might* be possible, but:
+- Double builds will need to be kept quite in sync. I remember Timo (DD/Ubuntu 
+maintainer who worked on this on Ubuntu) stating that it was not easy. Of 
+course, I don't know the details.
+- Around 20 source packages (hopefully less) will fall in one of this 
+categories:
+  - Only usable with Desktop OpenGL
+  - Will need a double build, sometimes with patches, or fall into the first 
+category.
+  - Packages are not limited to one team.
+- Desktop OpenGL should probably be the default installation. Switching to 
+GLES will probably need the user installing libraries by hand, maybe even 
+reinstalling some libs/apps.
+In my point of view it's too hacky. But then again, this is Debian: if someone 
+wants to do the work and be ready to clean up if it fails then: welcomed.
+-- 
+lo cual parece incompatible.
+lógica, esa tendrá particiones dentro,
+si se transforma la extendida a
+tiene particiones lógicas, luego
+extendida. Una extendida
+estar dentro de una partición
+Una partición lógica necesita
+Diga NO al topposting.
+  Matias Silva Bustos
+Lisandro Damián Nicanor Pérez Meyer
+http://perezmeyer.com.ar/
+http://perezmeyer.blogspot.com/
+signature.asc

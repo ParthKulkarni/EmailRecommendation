@@ -1,0 +1,689 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#868681: installation-reports: UEFI on HP z240 fails; needs hard-coded EFI path
+From : "David R. Hedges" <david@thelittleman.net>
+Date : Mon, 17 Jul 2017 09:37:06 -0500
+Message-id : 150030222675.578.10812615770345754423.reportbug@dhz240.bio-key.local
+Reply-to : "David R. Hedges" <david@thelittleman.net>, 868681@bugs.debian.org
+
+
+Package: installation-reports
+Severity: important
+Dear Maintainer,
+   * What led up to the situation?
+The machine is configured to use UEFI boot; the installer was booted as a UEFI
+target (manually selected). I used the 'regular' install (not graphical or
+advanced).
+   * What exactly did you do (or not do) that was effective (or
+     ineffective)?
+I ran the installer per normal; I manually partitioned my NVMe drive with an
+EFI system partition and / as ext4. After the installer completed, I removed
+the USB installation media and rebooted. The machine did not boot into Debian.
+I could manually enter the HP boot setup menu and "boot from file," and navigate
+to the EFI path for Debian, but I could not add it as a boot option. I tried
+using efibootmgr to set the boot entry; it claimed to have succeeded, but did
+not result in a bootable system. Eventually I found a link[1] instucting me to
+replicate the Debian EFI boot program into EFI/Microsoft/boot/bootmgfw.efi,
+which was successful.
+   * What was the outcome of this action?
+After the normal install, the system would not boot into Debian. After
+applying a workaround for a hard-coded EFI path, the system booted.
+   * What outcome did you expect instead?
+I expected the system to boot successfully into Debian after running the
+installer.
+[1] http://fomori.org/blog/?p=892
+-- Package-specific info:
+Boot method: USB
+Image version: https://cdimage.debian.org/cdimage/daily-builds/daily/20170714-5/amd64/iso-cd/debian-testing-amd64-netinst.iso
+Date: 2017-07-14
+Machine: HP Z240 Workstation
+Partitions:
+Filesystem     Type     1K-blocks   Used Available Use% Mounted on
+udev           devtmpfs   8097220      0   8097220   0% /dev
+tmpfs          tmpfs      1621776   8964   1612812   1% /run
+/dev/nvme0n1p2 ext4       3779640 947576   2620352  27% /
+tmpfs          tmpfs      8108868      0   8108868   0% /dev/shm
+tmpfs          tmpfs         5120      0      5120   0% /run/lock
+tmpfs          tmpfs      8108868      0   8108868   0% /sys/fs/cgroup
+/dev/nvme0n1p1 vfat        191551    242    191310   1% /boot/efi
+/dev/nvme0n1p3 ext4     244876140  61468 244798288   1% /mnt/nvme
+/dev/sda1      ext4     975584040  77852 975489804   1% /mnt/spinny
+tmpfs          tmpfs      1621772      0   1621772   0% /run/user/1000
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [ ]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [E]
+Overall install:        [E]
+Comments/Problems:
+The installer appeared to run fine, but failed to boot into the installed
+system after completing and rebooting. The UEFI firmware of this machine
+apparently only(?) works when it sees the EFI boot program in the Windows
+standard EFI path.
+-- 
+Please make sure that the hardware-summary log file, and any other
+installation logs that you think would be useful are attached to this
+report. Please compress large files using gzip.
+Once you have filled out this report, mail it to submit@bugs.debian.org.
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="9 (stretch) - installer build 20170714-00:03"
+X_INSTALLATION_MEDIUM=cdrom
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux dhz240 4.11.0-1-amd64 #1 SMP Debian 4.11.6-1 (2017-06-19) x86_64 GNU/Linux
+lspci -knn: 00:00.0 Host bridge [0600]: Intel Corporation Skylake Host Bridge/DRAM Registers [8086:191f] (rev 07)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 00:01.0 PCI bridge [0604]: Intel Corporation Skylake PCIe Controller (x16) [8086:1901] (rev 07)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:02.0 VGA compatible controller [0300]: Intel Corporation HD Graphics 530 [8086:1912] (rev 06)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 00:14.0 USB controller [0c03]: Intel Corporation Sunrise Point-H USB 3.0 xHCI Controller [8086:a12f] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 	Kernel driver in use: xhci_hcd
+lspci -knn: 	Kernel modules: xhci_pci
+lspci -knn: 00:14.2 Signal processing controller [1180]: Intel Corporation Sunrise Point-H Thermal subsystem [8086:a131] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 00:16.0 Communication controller [0780]: Intel Corporation Sunrise Point-H CSME HECI #1 [8086:a13a] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 00:16.3 Serial controller [0700]: Intel Corporation Sunrise Point-H KT Redirection [8086:a13d] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 	Kernel driver in use: serial
+lspci -knn: 00:17.0 SATA controller [0106]: Intel Corporation Sunrise Point-H SATA controller [AHCI mode] [8086:a102] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 	Kernel driver in use: ahci
+lspci -knn: 	Kernel modules: ahci
+lspci -knn: 00:1b.0 PCI bridge [0604]: Intel Corporation Sunrise Point-H PCI Root Port #17 [8086:a167] (rev f1)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1f.0 ISA bridge [0601]: Intel Corporation Sunrise Point-H LPC Controller [8086:a149] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 00:1f.2 Memory controller [0580]: Intel Corporation Sunrise Point-H PMC [8086:a121] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 00:1f.4 SMBus [0c05]: Intel Corporation Sunrise Point-H SMBus [8086:a123] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 00:1f.6 Ethernet controller [0200]: Intel Corporation Ethernet Connection (2) I219-LM [8086:15b7] (rev 31)
+lspci -knn: 	Subsystem: Hewlett-Packard Company Device [103c:802f]
+lspci -knn: 	Kernel driver in use: e1000e
+lspci -knn: 	Kernel modules: e1000e
+lspci -knn: 01:00.0 VGA compatible controller [0300]: NVIDIA Corporation Device [10de:1cb3] (rev a1)
+lspci -knn: 	Subsystem: NVIDIA Corporation Device [10de:11be]
+lspci -knn: 01:00.1 Audio device [0403]: NVIDIA Corporation Device [10de:0fb9] (rev a1)
+lspci -knn: 	Subsystem: NVIDIA Corporation Device [10de:11be]
+lspci -knn: 02:00.0 Non-Volatile memory controller [0108]: Samsung Electronics Co Ltd Device [144d:a804]
+lspci -knn: 	Subsystem: Samsung Electronics Co Ltd Device [144d:a801]
+lspci -knn: 	Kernel driver in use: nvme
+lspci -knn: 	Kernel modules: nvme
+usb-list: 
+usb-list: Bus 01 Device 01: xHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.11.0-1-amd64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 01 Device 04: Travel Drive CL [0718:0648]
+usb-list:    Level 01 Parent 01 Port 09  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Memorex
+usb-list:    Interface 00: Class 08(mstor) Subclass 06 Protocol 50 Driver usb-storage
+usb-list: 
+usb-list: Bus 01 Device 02: HP USB Slim Keyboard [03f0:344a]
+usb-list:    Level 01 Parent 01 Port 05  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Interface 00: Class 03(HID  ) Subclass 01 Protocol 01 Driver usbhid
+usb-list:    Interface 01: Class 03(HID  ) Subclass 00 Protocol 00 Driver usbhid
+usb-list: 
+usb-list: Bus 01 Device 03: HP USB Optical Mouse [03f0:134a]
+usb-list:    Level 01 Parent 01 Port 06  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: PixArt
+usb-list:    Interface 00: Class 03(HID  ) Subclass 01 Protocol 02 Driver usbhid
+usb-list: 
+usb-list: Bus 02 Device 01: xHCI Host Controller [1d6b:0003]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 03
+usb-list:    Manufacturer: Linux 4.11.0-1-amd64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+lsmod: Module                  Size  Used by
+lsmod: ufs                    73728  0
+lsmod: qnx4                   16384  0
+lsmod: hfsplus               102400  0
+lsmod: hfs                    57344  0
+lsmod: minix                  36864  0
+lsmod: msdos                  20480  0
+lsmod: fuse                   98304  0
+lsmod: ntfs                   98304  0
+lsmod: battery                20480  0
+lsmod: nls_ascii              16384  1
+lsmod: nls_cp437              20480  1
+lsmod: dm_mod                114688  0
+lsmod: md_mod                135168  0
+lsmod: xfs                  1175552  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   180224  0
+lsmod: btrfs                1077248  0
+lsmod: xor                    24576  1 btrfs
+lsmod: raid6_pq              114688  1 btrfs
+lsmod: vfat                   20480  1
+lsmod: fat                    65536  2 msdos,vfat
+lsmod: ext4                  589824  3
+lsmod: crc16                  16384  1 ext4
+lsmod: jbd2                  106496  1 ext4
+lsmod: crc32c_generic         16384  8
+lsmod: fscrypto               28672  1 ext4
+lsmod: ecb                    16384  0
+lsmod: mbcache                16384  1 ext4
+lsmod: e1000e                241664  0
+lsmod: ptp                    20480  1 e1000e
+lsmod: efivars                20480  0
+lsmod: pps_core               16384  1 ptp
+lsmod: nls_utf8               16384  0
+lsmod: isofs                  40960  0
+lsmod: vga16fb                24576  0
+lsmod: vgastate               20480  1 vga16fb
+lsmod: sr_mod                 24576  0
+lsmod: cdrom                  61440  1 sr_mod
+lsmod: sd_mod                 49152  2
+lsmod: uas                    24576  0
+lsmod: usb_storage            69632  1 uas
+lsmod: hid_generic            16384  0
+lsmod: usbhid                 49152  0
+lsmod: hid                   118784  2 hid_generic,usbhid
+lsmod: ahci                   36864  1
+lsmod: libahci                32768  1 ahci
+lsmod: xhci_pci               16384  0
+lsmod: libata                237568  2 ahci,libahci
+lsmod: xhci_hcd              200704  1 xhci_pci
+lsmod: nvme                   28672  3
+lsmod: nvme_core              40960  5 nvme
+lsmod: scsi_mod              217088  5 sd_mod,usb_storage,libata,uas,sr_mod
+lsmod: usbcore               245760  5 usbhid,usb_storage,xhci_pci,uas,xhci_hcd
+lsmod: usb_common             16384  1 usbcore
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                   1621808        92   1621716   0% /run
+df: devtmpfs               8099040         0   8099040   0% /dev
+df: /dev/nvme0n1p2         3779640    832848   2735080  23% /target
+df: /dev/nvme0n1p1          191551       121    191430   0% /target/boot/efi
+df: /dev/nvme0n1p3       244876140     61468 244798288   0% /target/mnt/nvme
+df: /dev/sda1            975584040     77852 975489804   0% /target/mnt/spinny
+df: /dev/nvme0n1p2         3779640    832848   2735080  23% /dev/.static/dev
+df: devtmpfs               8099040         0   8099040   0% /target/dev
+free:              total         used         free       shared      buffers
+free: Mem:      16218044      1160988     15057056       133508         7364
+free: -/+ buffers:            1153624     15064420
+free: Swap:            0            0            0
+/proc/cmdline: BOOT_IMAGE=/install.amd/vmlinuz vga=788 --- quiet
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 94
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0xba
+/proc/cpuinfo: cpu MHz		: 3792.211
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 0
+/proc/cpuinfo: initial apicid	: 0
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6816.00
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 94
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0xba
+/proc/cpuinfo: cpu MHz		: 3789.514
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 1
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 2
+/proc/cpuinfo: initial apicid	: 2
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6816.93
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 94
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0xba
+/proc/cpuinfo: cpu MHz		: 3799.890
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 2
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 4
+/proc/cpuinfo: initial apicid	: 4
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6816.93
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 94
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0xba
+/proc/cpuinfo: cpu MHz		: 3727.258
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 3
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 6
+/proc/cpuinfo: initial apicid	: 6
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6816.94
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 4
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 94
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0xba
+/proc/cpuinfo: cpu MHz		: 3800.097
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 1
+/proc/cpuinfo: initial apicid	: 1
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6817.26
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 5
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 94
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0xba
+/proc/cpuinfo: cpu MHz		: 3627.856
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 1
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 3
+/proc/cpuinfo: initial apicid	: 3
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6816.96
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 6
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 94
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0xba
+/proc/cpuinfo: cpu MHz		: 3800.097
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 2
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 5
+/proc/cpuinfo: initial apicid	: 5
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6816.95
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 7
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 94
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHz
+/proc/cpuinfo: stepping	: 3
+/proc/cpuinfo: microcode	: 0xba
+/proc/cpuinfo: cpu MHz		: 3791.381
+/proc/cpuinfo: cache size	: 8192 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 8
+/proc/cpuinfo: core id		: 3
+/proc/cpuinfo: cpu cores	: 4
+/proc/cpuinfo: apicid		: 7
+/proc/cpuinfo: initial apicid	: 7
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 22
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb intel_pt tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 xsaves dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+/proc/cpuinfo: bugs		:
+/proc/cpuinfo: bogomips	: 6816.95
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 39 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/ioports: 0000-0cf7 : PCI Bus 0000:00
+/proc/ioports:   0000-001f : dma1
+/proc/ioports:   0020-0021 : pic1
+/proc/ioports:   0040-0043 : timer0
+/proc/ioports:   0050-0053 : timer1
+/proc/ioports:   0060-0060 : keyboard
+/proc/ioports:   0062-0062 : PNP0C09:01
+/proc/ioports:     0062-0062 : EC data
+/proc/ioports:   0064-0064 : keyboard
+/proc/ioports:   0066-0066 : PNP0C09:01
+/proc/ioports:     0066-0066 : EC cmd
+/proc/ioports:   0070-0077 : rtc0
+/proc/ioports:   0080-008f : dma page reg
+/proc/ioports:   00a0-00a1 : pic2
+/proc/ioports:   00c0-00df : dma2
+/proc/ioports:   00f0-00ff : fpu
+/proc/ioports:     00f0-00f0 : PNP0C04:00
+/proc/ioports:   0200-023f : pnp 00:07
+/proc/ioports:   0680-069f : pnp 00:01
+/proc/ioports:   0800-087f : pnp 00:02
+/proc/ioports: 0cf8-0cff : PCI conf1
+/proc/ioports: 0d00-ffff : PCI Bus 0000:00
+/proc/ioports:   164e-164f : pnp 00:01
+/proc/ioports:   1800-18fe : pnp 00:01
+/proc/ioports:     1800-1803 : ACPI PM1a_EVT_BLK
+/proc/ioports:     1804-1805 : ACPI PM1a_CNT_BLK
+/proc/ioports:     1808-180b : ACPI PM_TMR
+/proc/ioports:     1810-1815 : ACPI CPU throttle
+/proc/ioports:     1850-1850 : ACPI PM2_CNT_BLK
+/proc/ioports:     1854-1857 : pnp 00:04
+/proc/ioports:     1880-189f : ACPI GPE0_BLK
+/proc/ioports:   3000-3fff : PCI Bus 0000:01
+/proc/ioports:     3000-307f : 0000:01:00.0
+/proc/ioports:   4000-403f : 0000:00:02.0
+/proc/ioports:   4060-407f : 0000:00:17.0
+/proc/ioports:     4060-407f : ahci
+/proc/ioports:   4080-4087 : 0000:00:16.3
+/proc/ioports:     4080-4087 : serial
+/proc/ioports:   4088-408f : 0000:00:17.0
+/proc/ioports:     4088-408f : ahci
+/proc/ioports:   4090-4093 : 0000:00:17.0
+/proc/ioports:     4090-4093 : ahci
+/proc/ioports:   efa0-efbf : 0000:00:1f.4
+/proc/ioports:   ffff-ffff : pnp 00:01
+/proc/ioports:     ffff-ffff : pnp 00:01
+/proc/ioports:       ffff-ffff : pnp 00:01
+/proc/iomem: 00000000-00000fff : reserved
+/proc/iomem: 00001000-00057fff : System RAM
+/proc/iomem: 00058000-00058fff : reserved
+/proc/iomem: 00059000-0009dfff : System RAM
+/proc/iomem: 0009e000-0009efff : reserved
+/proc/iomem: 0009f000-0009ffff : System RAM
+/proc/iomem: 000a0000-000fffff : reserved
+/proc/iomem:   000a0000-000bffff : PCI Bus 0000:00
+/proc/iomem:   000f0000-000fffff : System ROM
+/proc/iomem: 00100000-930fafff : System RAM
+/proc/iomem: 930fb000-935fafff : reserved
+/proc/iomem: 935fb000-93c7efff : reserved
+/proc/iomem: 93c7f000-93e7efff : ACPI Non-volatile Storage
+/proc/iomem: 93e7f000-93efefff : ACPI Tables
+/proc/iomem: 93eff000-93efffff : System RAM
+/proc/iomem: 93f00000-9e7fffff : reserved
+/proc/iomem: 9e800000-dfffffff : PCI Bus 0000:00
+/proc/iomem:   a0000000-b1ffffff : PCI Bus 0000:01
+/proc/iomem:     a0000000-afffffff : 0000:01:00.0
+/proc/iomem:     b0000000-b1ffffff : 0000:01:00.0
+/proc/iomem:   c0000000-cfffffff : 0000:00:02.0
+/proc/iomem:     c0000000-c075ffff : efifb
+/proc/iomem:   d0000000-d0ffffff : 0000:00:02.0
+/proc/iomem:   d1000000-d20fffff : PCI Bus 0000:01
+/proc/iomem:     d1000000-d1ffffff : 0000:01:00.0
+/proc/iomem:     d2000000-d2003fff : 0000:01:00.1
+/proc/iomem:     d2080000-d20fffff : 0000:01:00.0
+/proc/iomem:   d2100000-d21fffff : PCI Bus 0000:02
+/proc/iomem:     d2100000-d2103fff : 0000:02:00.0
+/proc/iomem:       d2100000-d2103fff : nvme
+/proc/iomem:   d2200000-d221ffff : 0000:00:1f.6
+/proc/iomem:     d2200000-d221ffff : e1000e
+/proc/iomem:   d2220000-d222ffff : 0000:00:14.0
+/proc/iomem:     d2220000-d222ffff : xhci-hcd
+/proc/iomem:   d2230000-d2233fff : 0000:00:1f.2
+/proc/iomem:   d2234000-d2235fff : 0000:00:17.0
+/proc/iomem:     d2234000-d2235fff : ahci
+/proc/iomem:   d2236000-d2236fff : 0000:00:14.2
+/proc/iomem:   d2237000-d2237fff : 0000:00:16.0
+/proc/iomem:   d2238000-d22387ff : 0000:00:17.0
+/proc/iomem:     d2238000-d22387ff : ahci
+/proc/iomem:   d2239000-d22390ff : 0000:00:1f.4
+/proc/iomem:   d223a000-d223a0ff : 0000:00:17.0
+/proc/iomem:     d223a000-d223a0ff : ahci
+/proc/iomem:   d223b000-d223bfff : 0000:00:16.3
+/proc/iomem: e0000000-efffffff : PCI MMCONFIG 0000 [bus 00-ff]
+/proc/iomem:   e00fa000-e00fafff : reserved
+/proc/iomem:   e00fd000-e00fdfff : reserved
+/proc/iomem: fd000000-fe7fffff : PCI Bus 0000:00
+/proc/iomem:   fd000000-fdabffff : pnp 00:00
+/proc/iomem:   fdad0000-fdadffff : pnp 00:00
+/proc/iomem:   fdb00000-fdffffff : pnp 00:00
+/proc/iomem:   fe000000-fe010fff : reserved
+/proc/iomem:   fe03d000-fe3fffff : pnp 00:00
+/proc/iomem: fec00000-fec003ff : IOAPIC 0
+/proc/iomem: fed00000-fed003ff : HPET 0
+/proc/iomem:   fed00000-fed003ff : PNP0103:00
+/proc/iomem: fed10000-fed17fff : pnp 00:08
+/proc/iomem: fed18000-fed18fff : pnp 00:08
+/proc/iomem: fed19000-fed19fff : pnp 00:08
+/proc/iomem: fed20000-fed3ffff : pnp 00:08
+/proc/iomem: fed45000-fed8ffff : pnp 00:08
+/proc/iomem: fed90000-fed90fff : dmar0
+/proc/iomem: fed91000-fed91fff : dmar1
+/proc/iomem: fedb0000-fedbffff : pnp 00:07
+/proc/iomem: fedc0000-feddffff : pnp 00:08
+/proc/iomem: fee00000-feefffff : pnp 00:08
+/proc/iomem:   fee00000-fee00fff : Local APIC
+/proc/iomem: ff000000-ffffffff : INT0800:00
+/proc/iomem:   ff000000-ffffffff : pnp 00:08
+/proc/iomem: 100000000-45f7fffff : System RAM
+/proc/iomem:   162800000-162e5035f : Kernel code
+/proc/iomem:   162e50360-163525fbf : Kernel data
+/proc/iomem:   163695000-16373ffff : Kernel bss
+/proc/iomem: 45f800000-45fffffff : RAM buffer
+/proc/iomem: 1c00000000-1fffffffff : PCI Bus 0000:00
+/proc/interrupts:             CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+/proc/interrupts:    0:         21          0          0          0          0          0          0          0  IR-IO-APIC    2-edge      timer
+/proc/interrupts:    1:          0          0          1          0          1          0          0          0  IR-IO-APIC    1-edge      i8042
+/proc/interrupts:    8:         44          0          0          0          1          0          0          0  IR-IO-APIC    8-edge      rtc0
+/proc/interrupts:    9:          0          0          0          0          0          0          0          0  IR-IO-APIC    9-fasteoi   acpi
+/proc/interrupts:   12:          2          0          1          0          0          0          0          0  IR-IO-APIC   12-edge      i8042
+/proc/interrupts:  120:          0          0          0          0          0          0          0          0  DMAR-MSI    0-edge      dmar0
+/proc/interrupts:  121:          0          0          0          0          0          0          0          0  DMAR-MSI    1-edge      dmar1
+/proc/interrupts:  123:          0          0          0          0          0          0          0          0  IR-PCI-MSI 442368-edge      aerdrv
+/proc/interrupts:  124:       7058          0          0          0          0          0          0          0  IR-PCI-MSI 1048576-edge      nvme0q0, nvme0q1
+/proc/interrupts:  125:       4781        931        709        563       2400       1204        820        433  IR-PCI-MSI 327680-edge      xhci_hcd
+/proc/interrupts:  126:       8301        195        145        144        414        230        273        149  IR-PCI-MSI 376832-edge      ahci[0000:00:17.0]
+/proc/interrupts:  127:          0      17842          0          0          0          0          0          0  IR-PCI-MSI 1048577-edge      nvme0q2
+/proc/interrupts:  128:          0          0       8865          0          0          0          0          0  IR-PCI-MSI 1048578-edge      nvme0q3
+/proc/interrupts:  129:          0          0          0       7954          0          0          0          0  IR-PCI-MSI 1048579-edge      nvme0q4
+/proc/interrupts:  130:          0          0          0          0       8531          0          0          0  IR-PCI-MSI 1048580-edge      nvme0q5
+/proc/interrupts:  131:          0          0          0          0          0       8554          0          0  IR-PCI-MSI 1048581-edge      nvme0q6
+/proc/interrupts:  132:          0          0          0          0          0          0       7925          0  IR-PCI-MSI 1048582-edge      nvme0q7
+/proc/interrupts:  133:          0          0          0          0          0          0          0       8324  IR-PCI-MSI 1048583-edge      nvme0q8
+/proc/interrupts:  134:      16724        822        393        348       4876        529        553        209  IR-PCI-MSI 520192-edge      eno1
+/proc/interrupts:  NMI:          1          1          0          1          1          1          1          1   Non-maskable interrupts
+/proc/interrupts:  LOC:      70240      33093      34136      31761      31018      32426      32802      31488   Local timer interrupts
+/proc/interrupts:  SPU:          0          0          0          0          0          0          0          0   Spurious interrupts
+/proc/interrupts:  PMI:          1          1          0          1          1          1          1          1   Performance monitoring interrupts
+/proc/interrupts:  IWI:          0          0          0          0          0          0          0          0   IRQ work interrupts
+/proc/interrupts:  RTR:          6          0          0          0          0          0          0          0   APIC ICR read retries
+/proc/interrupts:  RES:       2296       1015        764        632        549        356        525        395   Rescheduling interrupts
+/proc/interrupts:  CAL:        611        724        724        652        641        720        694        770   Function call interrupts
+/proc/interrupts:  TLB:         28         24         24         24         17         25         20         20   TLB shootdowns
+/proc/interrupts:  TRM:          0          0          0          0          0          0          0          0   Thermal event interrupts
+/proc/interrupts:  THR:          0          0          0          0          0          0          0          0   Threshold APIC interrupts
+/proc/interrupts:  DFR:          0          0          0          0          0          0          0          0   Deferred Error APIC interrupts
+/proc/interrupts:  MCE:          0          0          0          0          0          0          0          0   Machine check exceptions
+/proc/interrupts:  MCP:         14         14         14         14         14         14         14         14   Machine check polls
+/proc/interrupts:  ERR:          0
+/proc/interrupts:  MIS:          0
+/proc/interrupts:  PIN:          0          0          0          0          0          0          0          0   Posted-interrupt notification event
+/proc/interrupts:  PIW:          0          0          0          0          0          0          0          0   Posted-interrupt wakeup event
+/proc/meminfo: MemTotal:       16218044 kB
+/proc/meminfo: MemFree:        15055940 kB
+/proc/meminfo: MemAvailable:   15663644 kB
+/proc/meminfo: Buffers:            7364 kB
+/proc/meminfo: Cached:           938828 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           282840 kB
+/proc/meminfo: Inactive:         689128 kB
+/proc/meminfo: Active(anon):     106420 kB
+/proc/meminfo: Inactive(anon):    53100 kB
+/proc/meminfo: Active(file):     176420 kB
+/proc/meminfo: Inactive(file):   636028 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:             0 kB
+/proc/meminfo: SwapFree:              0 kB
+/proc/meminfo: Dirty:               876 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         25204 kB
+/proc/meminfo: Mapped:             4628 kB
+/proc/meminfo: Shmem:            133508 kB
+/proc/meminfo: Slab:             123572 kB
+/proc/meminfo: SReclaimable:     102096 kB
+/proc/meminfo: SUnreclaim:        21476 kB
+/proc/meminfo: KernelStack:        2736 kB
+/proc/meminfo: PageTables:          644 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:     8109020 kB
+/proc/meminfo: Committed_AS:     190404 kB
+/proc/meminfo: VmallocTotal:   34359738367 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:         0 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+/proc/meminfo: DirectMap4k:      113648 kB
+/proc/meminfo: DirectMap2M:     4909056 kB
+/proc/meminfo: DirectMap1G:    12582912 kB
+/proc/bus/input/devices: I: Bus=0003 Vendor=03f0 Product=344a Version=0110
+/proc/bus/input/devices: N: Name="HP USB Slim Keyboard"
+/proc/bus/input/devices: P: Phys=usb-0000:00:14.0-6/input0
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:14.0/usb1/1-6/1-6:1.0/0003:03F0:344A.0001/input/input2
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=sysrq kbd leds 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=120013
+/proc/bus/input/devices: B: KEY=1000000000007 ff9f207ac14057ff febeffdfffefffff fffffffffffffffe
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: B: LED=7
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0003 Vendor=03f0 Product=344a Version=0110
+/proc/bus/input/devices: N: Name="HP USB Slim Keyboard"
+/proc/bus/input/devices: P: Phys=usb-0000:00:14.0-6/input1
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:14.0/usb1/1-6/1-6:1.1/0003:03F0:344A.0002/input/input3
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=kbd 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=10001f
+/proc/bus/input/devices: B: KEY=3007f 0 0 483ffff17aff32d bf54444600000000 1 1130c130b17c000 267bfad941dfed 9e168000004400 10000002
+/proc/bus/input/devices: B: REL=40
+/proc/bus/input/devices: B: ABS=100000000
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: 
+/proc/bus/input/devices: I: Bus=0003 Vendor=03f0 Product=134a Version=0111
+/proc/bus/input/devices: N: Name="PixArt HP USB Optical Mouse"
+/proc/bus/input/devices: P: Phys=usb-0000:00:14.0-7/input0
+/proc/bus/input/devices: S: Sysfs=/devices/pci0000:00/0000:00:14.0/usb1/1-7/1-7:1.0/0003:03F0:134A.0003/input/input4
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=mouse0 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=17
+/proc/bus/input/devices: B: KEY=ff0000 0 0 0 0
+/proc/bus/input/devices: B: REL=103
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: 
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.11.0-1-amd64 (SMP w/8 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

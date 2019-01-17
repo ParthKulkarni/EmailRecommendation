@@ -1,0 +1,51 @@
+To : debian-devel@lists.debian.org
+Subject : Re: build* targets as root
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 18 Oct 2017 11:30:29 +0100
+Message-id : 20171018103029.i3ndvi5tegclh3fe@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20171018093641.tzyv5aku4lmdw2dr@gaara.hadrons.org>
+References : <[🔎] 20171018093641.tzyv5aku4lmdw2dr@gaara.hadrons.org>
+
+
+(Changing subject line because I think this is a semi-separate issue)
+On Wed, 18 Oct 2017 at 11:36:41 +0200, Guillem Jover wrote:
+> Apparently this caused mass build failures, all due to packages (or
+> their helpers) being very Debian policy non-compliant! These are all
+> MUST requirements. Stuff like:
+...
+>   - build-targets [...] must be able to be
+>     run with root privs (via binary-target invocation)
+Which Policy requirements combine to imply this?
+If this is really a Policy MUST then I'm not sure how realistic it
+is to combine this with build-time testing, particularly if the root
+privileges are allowed to be a lie and not actually imply any privilege
+(fakeroot). fakeroot has some important limitations: in particular,
+anything that has build-time tests involving a protocol that uses AF_UNIX
+credentials passing (D-Bus, Wayland, PostgreSQL, some uses of X11)
+is going to have a hard time.
+I would be reluctant to introduce new incentives for maintainers to
+disable build-time testing, given how frequent it seems to be for a
+maintainer to turn on build-time tests and discover that their package
+has always built but not actually worked on some architectures. If
+there were enough autopkgtest workers for all architectures (perhaps
+as a requirement for being in testing?) then we could perhaps rely on
+autopkgtest to do that smoke-testing, but at the moment Debian only
+tests amd64, and Ubuntu only tests 5 architectures (I'm not sure whether
+that represents all the supported Ubuntu architectures or not, but it's
+certainly fewer than the Debian release architectures).
+I also don't think it's reasonable to expect test developers to support
+running their tests under fakeroot, and I for one would not like to find
+myself trying to explain to an upstream why we had considered this to
+be a sensible thing to do. dbus fails tests under fakeroot, but with my
+dbus upstream hat on I don't really consider that to be a bug - the tests
+are successfully finding inconsistencies in the emulation of real root.
+Requiring build-time tests to pass when run as real root (by inserting a
+check and skip/early-return into tests that assume they are unprivileged,
+if necessary) sounds a much more reasonable thing to expect to work,
+although again, I could easily imagine reporting that failure to an
+upstream and being told (quite justifiably) that I should never build as
+root and the resulting failure was therefore not a bug.
+So if Policy indirectly requires the build* targets to work under
+fakeroot, I would prefer to see that part of Policy change.
+Regards,
+    smcv

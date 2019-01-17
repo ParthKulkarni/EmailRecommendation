@@ -1,0 +1,75 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#858373: apache2: segfaults upon recieving bad request when using worker/event mpm and cgid errordoc
+From : Brian Kroth <bpkroth@gmail.com>
+Date : Tue, 21 Mar 2017 11:56:40 -0500
+Message-id : 20170321165507.6943.66558.reportbug@mrsnorris.cae.wisc.edu
+Reply-to : Brian Kroth <bpkroth@gmail.com>, 858373@bugs.debian.org
+
+
+Package: apache2.2-common
+Version: 2.2.22-13+deb7u8
+Severity: normal
+Tags: security
+Dear Maintainer,
+We have some websites running on Debian Wheezy, so still using Apache 
+2.2.22, that are configured either in Worker or Event MPM (so are using 
+mod_cgid in what follows), and have a custom "ErrorDocument 400" 
+directive that points at a perl script for providing custom ModSecurity 
+error.
+I haven't dug up an older version of the package from snapshots to 
+confirm this, but I think that since the recently backported 
+HttpProtocolOptions directive to that version (BTW, where was that 
+announced - I had to run strings on the binary to find it), I've been 
+seeing a lot of segfault/coredumps registered in the Apache error logs.
+After some analysis, I've found that I can reproduce the error with a 
+fairly trivial shell command:
+From the coredump, I was able to find that this line (1371) in the 
+cgid_handler() code in the modules/generators/mod_cgid.c source file has 
+a null pointer issue on the r->protocol field:
+No combination of adjustments to the HttpProtocolOptions directive 
+seemed to help from what I could see.
+I also haven't been able to reproduce this issue on a Prefork MPM 
+backend webserver.
+Varying the details of the perl ErrorDocument script's implementation 
+don't appear to help either (eg: it still occurs even with a simple 
+hello world script).
+The error still occurs if I disable ModSecurity, but leave the 
+ErrorDocument for 400 messages.
+Let me know if you need any more details or have any questions.
+Thanks,
+Brian
+-- Package-specific info:
+List of /etc/apache2/mods-enabled/*.load:
+ alias auth_basic authn_file authz_default authz_groupfile
+ authz_host authz_user autoindex cgid deflate dir env expires
+ headers include info mime mod-security negotiation reqtimeout
+ rewrite rpaf setenvif shib2 ssl status unique_id userdir*
+ (A * means that the .conf file for that module is not enabled in
+  /etc/apache2/mods-enabled/)
+-- System Information:
+Debian Release: 7.11
+ APT prefers oldstable
+ APT policy: (500, 'oldstable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 3.16.0-0.bpo.4-amd64 (SMP w/1 CPU core)
+Locale: LANG=en_US.utf8, LC_CTYPE=en_US.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Versions of packages apache2 depends on:
+ii  apache2-mpm-worker  2.2.22-13+deb7u8
+ii  apache2.2-common    2.2.22-13+deb7u8
+apache2 recommends no packages.
+apache2 suggests no packages.
+Versions of packages apache2.2-common depends on:
+ii  apache2-utils  2.2.22-13+deb7u8
+ii  apache2.2-bin  2.2.22-13+deb7u8
+ii  lsb-base       4.1+Debian8+deb7u1
+ii  mime-support   3.52-1+deb7u1
+ii  perl           5.14.2-21+deb7u4
+ii  procps         1:3.3.3-3
+Versions of packages apache2.2-common recommends:
+pn  ssl-cert  <none>
+Versions of packages apache2.2-common suggests:
+pn  apache2-doc                             <none>
+pn  apache2-suexec | apache2-suexec-custom  <none>
+ii  lynx-cur [www-browser]                  2.8.8dev.12-2+deb7u1
+-- no debconf information

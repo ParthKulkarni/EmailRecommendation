@@ -1,0 +1,114 @@
+To : Peter Silva <peter@bsqt.homeip.net>, debian-dpkg@lists.debian.org, 	deity@lists.debian.org, debian-devel@lists.debian.org
+Subject : Re: Proposal: A new approach to differential debs
+From : Peter Silva <peter@bsqt.homeip.net>
+Date : Sun, 13 Aug 2017 13:11:15 -0400
+Message-id : CANpLOiT9ycbi3FykK3-5MNfN_NFOLgiq4X=k4YtwW3Cc0gLxAw@mail.gmail.com
+In-reply-to : <[🔎] 20170813123457.GA4794@debian.org>
+References : <[🔎] 20170812135640.GA6037@debian.org> <[🔎] 20170813093856.2kk7zwy4u4qb2xpf@localhost> <[🔎] CAKTje6E+dd3c5RQbTVH8ZnVS0Dc5ZJ9aeTocE6et+GUSkC_PRw@mail.gmail.com> <[🔎] CANpLOiTfiW0uxxMHuRDpxwCFt=P88=7zD+C4NMyqjG8RqZ8SPw@mail.gmail.com> <[🔎] 20170813123457.GA4794@debian.org>
+
+
+> apt by default automatically deletes packages files after a successful install,
+I don't think it does that.  It seems keep them around after install,
+and even multiple
+versions.  I don't know the algorithm for the cache, but it doesn't do
+what you say.
+On my debian box, I have nothing but a straight install, changed nothing.
+blacklab% cd /var/cache/apt/archives
+blacklab% ls -al | wc -l
+1450
+blacklab% ls -al xsensors*
+-rw-r--r-- 1 root root 17688 Mar  6 21:11 xsensors_0.70-3+b1_amd64.deb
+blacklab% dpkg -l xsensors
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+||/ Name                      Version           Architecture      Description
++++-=========================-=================-=================-=======================================================
+ii  xsensors                  0.70-3+b1         amd64
+hardware health information viewer
+blacklab%
+blacklab% ls -al xserver-xorg-video-nvidia_375*
+-rw-r--r-- 1 root root 3129858 Feb 23 16:13
+xserver-xorg-video-nvidia_375.39-1_amd64.deb
+-rw-r--r-- 1 root root 3138320 May 28 11:28
+xserver-xorg-video-nvidia_375.66-1_amd64.deb
+-rw-r--r-- 1 root root 3101944 Jul 16 17:14
+xserver-xorg-video-nvidia_375.66-2~deb9u1_amd64.deb
+blacklab%
+On Sun, Aug 13, 2017 at 12:43 PM, Julian Andres Klode <jak@debian.org> wrote:
+> On Sun, Aug 13, 2017 at 10:53:16AM -0400, Peter Silva wrote:
+>> You are assuming the savings are substantial.  That's not clear.  When
+>> files are compressed, if you then start doing binary diffs, well it
+>> isn't clear that they will consistently be much smaller than plain new
+>> files.  it also isn't clear what the impact on repo disk usage would
+>> be.
+>
+> The suggestion is for it to be opt-in, so packages can optimize their file
+> layout when opting in - for example, the gzipped changelogs and stuff can be
+> the rsyncable ones (this might need some changes in debhelper to generate
+> diffable files if the opt-in option is set).
+>
+>>
+>> The most straigforward option:
+>> The least intrusive way to do this is to add differential files in
+>> addition to the existing binaries, and any time the differential file,
+>> compared to a new version exceeds some threhold size (for example:
+>> 50%) of the original file, then you end up adding the sum total of the
+>> diff files in addition to the regular files to the repos.  I haven't
+>> done the math, but it's clear to me that it ends up being about double
+>> the disk space with this approach. it's also costly in that all those
+>> files have to be built and managed, which is likely a substantial
+>> ongoing load (cpu/io/people)  I think this is what people are
+>> objecting to.
+>
+> I would throw away patches that are too large, obviously. I think
+> that twice the amount of space seems about reasonable, but then we'll
+> likely restrict that to
+>
+> (a) packages where it's actually useful
+> (b) to updates and their base distributions
+>
+> So we don't keep oldstable->stable diffs, or unstable->unstable
+> diffs around. It's questionable if we want them for unstable at
+> all, it might just be too much there, and we should just use them
+> for stable-(proposed-)updates (and point releases) and stable/updates;
+> and experimental so we don't accidentally break it during the
+> dev cycle.
+>
+>>
+>> A more intrusive and less obvious way to do this is to use zsync (
+>> http://zsync.moria.org.uk/. ) With zsync, you build tables of content
+>> for each file, using the same 4k blocking that rsync does. To handle
+>> compression efficiently, there needs to be an understanding of
+>> blocking, so a customized gzip needs to be used.  With such a format,
+>> you produce the same .deb's as today, with the .zsyncs (already in
+>> use?) and the author already provides some debian Packages files as
+>> examples.  The space penalty here is probably only a few percent.
+>>
+>> the resource penalty is one read through each file to build the
+>> indices, and you can save that by combining the index building with
+>> the compression phase.  To get differential patches, one just fetches
+>> byte-ranges in the existing main files, so no separate diff files
+>> needed.  And since the same mechanisms can (should?) be used for repo
+>> replication, the added cost is likely a net savings in bandwidth
+>> usage, and relatively little complexity.
+>>
+>> The steps would be:
+>>    -- add gzip-ware flavour to package creation logic
+>>    -- add zsync index creation on repos. (potentially combined with first step.)
+>>    -- add zsync client to apt-* friends.
+>>
+>> To me, this makes a lot of sense to do just for repo replication,
+>> completely ignoring the benefits for people on low bandwidth lines,
+>> but it does work for both.
+>
+> It does not work for client use. apt by default automatically deletes
+> packages files after a successful install, and upgrades are fairly infrequent
+> (so an expiration policy would not help much either); so we can't rely on old
+> packages to be available for upgradexs.
+>
+> --
+> Debian Developer - deb.li/jak | jak-linux.org - free software dev
+>                   |  Ubuntu Core Developer |
+> When replying, only quote what is necessary, and write each reply
+> directly below the part(s) it pertains to ('inline').  Thank you.

@@ -1,0 +1,128 @@
+To : Cyril Brulebois <kibi@debian.org>, debian-boot@lists.debian.org, 	debian-cd@lists.debian.org
+Subject : Re: Status and open questions for debian-installer with backports support
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Fri, 03 Aug 2018 00:28:32 +0800
+Message-id : dd0240a0f751f8d48b9aed0a92d327aa046a71c8.camel@decadent.org.uk
+In-reply-to : <[🔎] 20180802085659.dzzpxzq4jxgnrgkh@mraw.org>
+References : <[🔎] 20180802085659.dzzpxzq4jxgnrgkh@mraw.org>
+
+
+On Thu, 2018-08-02 at 10:56 +0200, Cyril Brulebois wrote:
+[...]
+> debian-installer
+> ================
+[...]
+> net-retriever
+> -------------
+[...]
+>   https://salsa.debian.org/installer-team/net-retriever/commit/09535b0613a85e02d511b92b60683b20405b6d42
+This looks rather inefficient.  Maybe not a big deal for the small
+number of udebs though.
+(Time to put a more powerful scripting language in the installer?  Even
+awk would be a step up!)
+[...]
+> base-installer
+> --------------
+[...]
+> We could probably modify library.sh to reuse it, but I'd like to have
+> minimal changes (for reasons explained in the very last section). We
+> could probably just iterate over all installed linux-image-'*' packages,
+> pick the one from the src:linux package, and upgrade it from the
+> backports repository.
+You mean the src:linux-latest package, right?
+This is kind of unfortunate, but should work.  Even when the set of
+flavours for a architecture is changed, src:linux-latest builds
+transitional packages to support upgrades.
+[...]
+> debian-cd
+> =========
+[...]
+> => It might be nice to have some kind of consistency check, at least
+>    to make sure the ABI is the same for the linux kernel produced by
+>    the d-i build, and for the modules available in the backports
+>    suite. [Note: this might be true for weekly builds too, see recent
+>    complaints/bug reports.] Bonus points if the source version is
+>    checked too, for extra caution.
+It is not a nice bonus, but really important that the source version is
+equal.  Using module udebs older than the kernel image will usually
+(but not always) work, but using newer module udebs will often result
+in unresolvable symbols for some modules.
+[...]
+> The finish-install script ran as expected, but I ended up with a 4.16
+> kernel from backports in the installed system, as the linux-latest
+> binaries still point to it rather than to 4.17 (presumably because
+> linux/stretch-backports is still Needs-Build on mipsel at the moment).
+That was just forgotten, I'm afraid.  Bastian has just updated linux-
+latest.
+> It was downloaded from the network mirror.
+> 
+> => It would be nice if we could include the linux-image-* packages from
+>    backports (and their dependencies) directly on the installation image,
+>    so as to be indpendent of what's happening in the stretch-backports
+>    suite on online mirrors.
+I agree, it should be possible to install without network sources
+enabled.
+>                             Users would have reproducible results over
+>    time, instead of a jumpy target. I don't know debian-cd enough to
+>    determine how feasible it would be. I'm also not sure what would happen
+>    if we had “old” linux-image packages on the ISO, and “newer” ones on
+>    mirrors.
+If they *do* enable network sources then they should get the latest
+version.  This is not so different from installing stable and getting a
+security update instead of the version on the installation image.
+> Open questions
+> ==============
+> 
+> Now that I've explained (in length…) how it works, I think it's high
+> time we define what our target is.
+> 
+> Due to the volatility of a backports suite, I would tend to not even try
+> to support netboot.
+Agreed.
+>                     Aiming for a least a netinst image would look good
+> to me. If we can manage that, we can probably also produce a CD1 for
+> those who want to have more packages than just what's on a netinst (I've
+> had at least one such request). I'm not going to debate how many
+> desktops we should have CD1 for, that's really not my call. I'll just
+> mention that size constraints might be tricky since we'll have both the
+> linux-image packages for the base suite and those from the backports
+> suite. The whole DVD/BR thing is probably entirely overkill.
+As I understand it, CD#1 is already fairly useless for non-networked
+(or limited network) installations and DVD#1 is a lot more useful.
+> => Choice to make: netinst and maybe CD1(s)? Something else?
+> 
+> It's probably a good idea to consider building matching unofficial
+> image(s) with firmwares embedded. I'm not an expert regarding debian-cd
+> so help is much welcome. Tweaks might be needed to get firmwares
+> installed and/or upgraded from the backports repository, be it to embed
+> them on the image, or to make them available to the installed system.
+Yes, firmware would need to come from backports.
+Since there is no dependency relation between the kernel and firmware
+package, I don't prune old files until they are no longer referenced by
+the kernel version in any supported suite.  So the CD image build would
+only need to use firmware packages from backports, not two different
+versions.
+[...]
+> Last question: how often do we produce such an image? I don't think it's
+> reasonable to do that every time a new major version of linux is made
+> available in the backports repository. Doing that once around the middle
+> of the release cycle would look good to me. This would kind of mimic the
+> “and a half” thing we had in the past. Once we get the process right, we
+> might think about doing so another time or two, but we already have limited
+> humanpower to deal with stable point releases and alphas for testing
+> (at least oldstable is gone now)…
+Doing this even once per release is a nice improvement, but I think
+it's not enough to solve the problem of unsupported hardware (even on
+x86).  And I think the more often this is done, the easier it will get.
+ Still, I realise that you are likely to end up doing most of the work,
+and only you can decide how much time to spend on it.
+> => Question: what to advertise/communicate on? One-shot only is probably
+>    a good rule of thumb?
+[...]
+I think what you're proposing is to announce this as a one-off, and not
+to immediately make any promises about regular builds.  If so, I agree.
+Ben.
+-- 
+Ben Hutchings
+If you seem to know what you are doing, you'll be given more to do.
+signature.asc

@@ -1,0 +1,115 @@
+To : James Clarke <jrtc27@jrtc27.com>, 841935@bugs.debian.org,	pbuilder@packages.debian.org
+Subject : Bug#841935: pbuilder: incorrect permissions on /dev/ptmx breaks openpty()
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 5 Mar 2017 19:53:11 +0000
+Message-id : 20170305195311.hrhqlwnxp2v437th@perpetual.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 841935@bugs.debian.org
+In-reply-to : <809A6F2A-EE92-49F5-B1AB-824989AD1F0F@jrtc27.com>
+References : <147732220321.8429.9865366262196790513.reportbug__8511.27682622082$1477323771$gmane$org@mbpah.endian.se> <581F93F0.6070101@gmail.com> <809A6F2A-EE92-49F5-B1AB-824989AD1F0F@jrtc27.com>
+
+
+Control: unmerge -1
+Control: severity -1 normal
+Control: reassign -1 pbuilder
+I'm decoupling this bug from debootstrap and making it non-RC because I
+suspect the best long-term solution might be to solve it in pbuilder
+*and* debootstrap, and debootstrap already has a RC bug representing
+the need for a short-term fix.
+On Sun, 06 Nov 2016 at 20:41:38 +0000, James Clarke wrote:
+> newinstance seems to be a world of pain, as then it can’t access the TTY
+> for std{in,out,err}. I tried many months ago and couldn’t get it to work,
+> but would love to be proved wrong.
+I agree with later commenters on this bug that it would be best for
+debootstrap to create /dev/ptmx as a real device node and not a symlink,
+and I have proposed a patch to do that. However, I don't think you can
+avoid newinstance on recent kernels *anyway*: see
+<https://www.kernel.org/doc/Documentation/filesystems/devpts.txt>
+and compare with
+<http://lxr.free-electrons.com/source/Documentation/filesystems/devpts.txt?v=3.16>.
+So if you have trouble with interactive use under particular use cases,
+you're going to have that same trouble with stretch kernels anyway -
+unless you bind-mount the host's /dev/pts instead of mounting your own,
+like schroot does, which comes with its own problems (in my testing it
+didn't work inside an lxc container with the jessie kernel unless also
+bind-mounting the host's (i.e. lxc's) /dev).
+Also, as Marco noted on #817236, if invoking debootstrap in a container that
+restricts device node creation (notably systemd-nspawn), /dev/ptmx
+cannot be created as a real device node, and the only options are to
+make it a symlink or to fail altogether. So it would seem like a good
+long-term plan to make pbuilder tolerate that arrangement? Unfortunately,
+this might involve setting up a pty between the user and the contained
+processes, or using "script /dev/null".
+I attach a possible patch that makes kernels >= 2.6.29 consistent with 4.7+.
+By this point I've mostly lost track of whether it is a good idea or not :-(
+Regards,
+    S
+>From 08fae768f94ab692b4481f0953a0a060cee3fb4d Mon Sep 17 00:00:00 2001
+From: Simon McVittie <smcv@debian.org>
+Date: Mon, 20 Feb 2017 09:58:12 +0000
+Subject: [PATCH] pbuilder-modules: Set up /dev/ptmx, /dev/pts for modern Linux
+Mounting a new instance of /dev/pts is best-practice in all Linux
+versions since v2.6.29, but will not actually work in all configurations
+of those kernels prior to v4.7.
+See the new comments for the gory details.
+Signed-off-by: Simon McVittie <smcv@debian.org>
+---
+ pbuilder-modules | 37 ++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 36 insertions(+), 1 deletion(-)
+diff --git a/pbuilder-modules b/pbuilder-modules
+index 18e14b5..3b74d49 100644
+--- a/pbuilder-modules
++++ b/pbuilder-modules
+@@ -276,6 +276,7 @@ function umountproc () {
+         umount_one "$SELINUX"
+     fi
+     if [ "$DEB_BUILD_ARCH_OS" = "linux" ] && [ "$USEDEVPTS" = "yes" ]; then
++        umount_one "dev/ptmx"
+         umount_one "dev/pts"
+     fi
+     if [ "$DEB_BUILD_ARCH_OS" = "kfreebsd" ] || [ "$USEDEVFS" = "yes" ]; then
+@@ -383,8 +384,42 @@ function mountproc () {
+         TTYGRP=5
+         TTYMODE=620
+         [ -f /etc/default/devpts ] && . /etc/default/devpts
+-        mount -t devpts none "$BUILDPLACE/dev/pts" -onoexec,nosuid,gid=$TTYGRP,mode=$TTYMODE
++        # There are three possibilities here:
++        # - Modern (Linux >= 4.7): /dev/pts is always a new instance,
++        #   and opening /dev/ptmx really opens /dev/pts/ptmx.
++        #   The first mount attempt will succeed.
++        # - Awkward transitional period (Linux < 4.7 with
++        #   CONFIG_DEVPTS_MULTIPLE_INSTANCES=y): /dev/pts can be a new
++        #   instance but is not by default. We want to mount a new
++        #   instance, but if we do that, we must ensure that /dev/ptmx is
++        #   a symbolic link to /dev/pts/ptmx or a bind-mount of
++        #   /dev/pts/ptmx, and that /dev/pts/ptmx has usable permissions
++        #   (which for some reason it does not by default).
++        #   The first mount attempt will succeed.
++        # - Legacy mode (Linux < 2.6.29, or < 4.7 with
++        #   CONFIG_DEVPTS_MULTIPLE_INSTANCES=n): /dev/pts is not
++        #   virtualized at all. The second mount attempt will succeed.
++        #   /dev/pts/ptmx will not exist.
++        local devpts_options="noexec,nosuid,gid=$TTYGRP,mode=$TTYMODE"
++        if ! mount -t devpts none "$BUILDPLACE/dev/pts" -o "$devpts_options,newinstance,ptmxmode=666"; then
++            mount -t devpts none "$BUILDPLACE/dev/pts" -o "$devpts_options"
++        fi
+         mounted[${#mounted[@]}]="$BUILDPLACE/dev/pts"
++        # Depending on how /dev was set up, /dev/ptmx might either be
++        # character device (5,2), or a symbolic link to pts/ptmx.
++        # For the transitional case, we want it to be equivalent to
++        # /dev/pts/ptmx, but we can't do that unconditionally because
++        # in the legacy case, /dev/pts/ptmx won't exist.
++        # If ptmx is a symlink to pts/ptmx, then [ -ef ] will return true,
++        # because they are the same file after following symlinks;
++        # we can skip the bind-mount in this case.
++        if [ -e "$BUILDPLACE/dev/pts/ptmx" ] && \
++                [ -e "$BUILDPLACE/dev/ptmx" ] && \
++                ! [ "$BUILDPLACE/dev/pts/ptmx" -ef "$BUILDPLACE/dev/ptmx" ]; then
++            chmod 666 "$BUILDPLACE/dev/pts/ptmx"
++            mount --bind "$BUILDPLACE/dev/pts/ptmx" "$BUILDPLACE/dev/ptmx"
++            mounted[${#mounted[@]}]="$BUILDPLACE/dev/ptmx"
++        fi
+     fi
+     if [ -n "$SELINUX" ]; then
+         log.i "mounting selinux filesystem"
+-- 
+2.11.0

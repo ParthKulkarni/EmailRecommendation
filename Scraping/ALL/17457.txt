@@ -1,0 +1,52 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Should libpam-elogind Provide libpam-systemd ?
+From : Simon McVittie <smcv@debian.org>
+Date : Sat, 3 Nov 2018 11:11:30 +0000
+Message-id : 20181103111130.GA6804@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 20181102230850.uc3idwp4gy4o2gei@angband.pl>
+References : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk> <[🔎] 20181102190210.GA3346@localhost> <[🔎] 20181102222258.GA3226@espresso.pseudorandom.co.uk> <[🔎] 20181102230850.uc3idwp4gy4o2gei@angband.pl>
+
+
+On Sat, 03 Nov 2018 at 00:08:50 +0100, Adam Borowski wrote:
+> On Fri, Nov 02, 2018 at 10:22:58PM +0000, Simon McVittie wrote:
+> > libpam-elogind is very unlikely to be enough to satisfy
+> > dbus-user-session's dependency, for instance, unless elogind has taken
+> > an excursion into systemd-like service management while I wasn't looking.
+> 
+> And for that reason dbus-user-session has Depends: systemd, which describes
+> this requirement just fine.  It runs systemd's user parts.
+No, a dependency on systemd merely guarantees that /lib/systemd/systemd
+and .../systemd-logind binaries exist. It does not provide the system
+integration that dbus-user-session relies on, which is: whenever uid N has
+at least one login session open, there is an XDG_RUNTIME_DIR for uid N
+(created by systemd-logind), and a `systemd --user` process running as
+uid N (systemd system unit user@N.service, started by pid 1 on request
+from systemd-logind).
+You might be misinterpreting dbus-user-session as being the component
+that runs `systemd --user`? If so, it isn't - it's the other way around,
+`systemd --user` runs a dbus-daemon because dbus-user-session asks it to.
+To get `systemd --user`, you need a working systemd-logind (represented by
+a dependency on libpam-systemd, meaning you have the necessary pam_systemd
+PAM module to tell it about your login sessions), and you also need
+systemd as pid 1 (which is not something we can express in dependency
+relationships, but is approximated by Recommends: systemd-sysv).
+If you don't have `systemd --user` working, then dbus-user-session will
+not have the opportunity to start a dbus-daemon via socket activation,
+which means it doesn't provide its intended "API" either.
+If people who prefer elogind want to add appropriate glue to
+dbus-user-session to arrange for D-Bus clients to be able to connect to
+$XDG_RUNTIME_DIR/bus and find a working bus there even in the absence
+of `systemd --user`, I'm open to suggestions. Implementing this would
+probably require an additional PAM module that starts one dbus-daemon
+per XDG_RUNTIME_DIR, or that starts a helper process that uses the
+socket activation protocol to start the actual dbus-daemon on-demand,
+or something; I'm not going to maintain such a thing myself, but I
+wouldn't mind adding it as an alternative dependency.
+However, note that if you want multiple parallel dbus-daemons per uid,
+in particular one per X11 display, then dbus-user-session is not for you,
+and you should continue to use dbus-x11 or some third party implementation
+of the dbus-session-bus virtual package instead. Packages that use the
+session bus should depend on "default-dbus-session-bus | dbus-session-bus"
+so that you can continue to use dbus-x11 to satisfy their dependency,
+unless they specifically rely on the "one bus per XDG_RUNTIME_DIR" model.
+    smcv

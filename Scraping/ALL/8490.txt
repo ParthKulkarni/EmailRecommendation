@@ -1,0 +1,44 @@
+To : Raphael Hertzog <hertzog@debian.org>
+Subject : Bug#840372: debootstrap: second-stage fails within systemd-nspawn: proc already mounted
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Mon, 23 Apr 2018 22:21:41 +0900
+Message-id : 20180423222141.b4718b66c7a4ce5fe8e3307b@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 840372@bugs.debian.org
+In-reply-to : <[🔎] 20180419080649.GF8532@home.ouaza.com>
+References : <20161011015051.30918.79686.reportbug@pxe> <[🔎] 20180417234733.6533982aff571b1ba0b53158@iijmio-mail.jp> <[🔎] 20180419080649.GF8532@home.ouaza.com> <20161011015051.30918.79686.reportbug@pxe>
+
+
+On Thu, 19 Apr 2018 10:06:49 +0200
+Raphael Hertzog <hertzog@debian.org> wrote:
+> Your patch will try to umount /proc even if it has not been mounted by
+> debootstrap. That's wrong. If you detect that /proc was handled outside of
+> debootstrap, then you should also not umount it.
++               if [ ! -n "$(ls -A /proc)" ]; then
++                       in_target mount -t proc proc /proc
+ is when there's no file under /proc, then try to mount /proc - not try
+ to umount it.
+> And the handling of /sys should be entirely separate from /proc. Even if
+> /proc was already mounted, you want debootstrap to ensure that /sys is
+> mounted too.
+ Okay, it should be that.
+diff --git a/functions b/functions
+index 1e41862..cb2c1d9 100644
+--- a/functions
++++ b/functions
+@@ -1137,10 +1137,12 @@ setup_proc () {
+                # and also fix failure on lxc environment
+                if [ ! -n "$(ls -A /proc)" ]; then
+                        in_target mount -t proc proc /proc
+-                       if [ -d "$TARGET/sys" ] && \
+-                          grep -q '[[:space:]]sysfs' /proc/filesystems 2>/dev/null; then
+-                               umount_on_exit /sys
+-                               umount "$TARGET/sys" 2>/dev/null || true
++               fi
++               if [ -d "$TARGET/sys" ] && \
++                  grep -q '[[:space:]]sysfs' /proc/filesystems 2>/dev/null; then
++                       umount_on_exit /sys
++                       umount "$TARGET/sys" 2>/dev/null || true
++                       if [ ! -n "$(ls -A /sys)" ]; then
+                                in_target mount -t sysfs sysfs /sys
+                        fi
+                fi

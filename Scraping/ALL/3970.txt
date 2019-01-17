@@ -1,0 +1,66 @@
+To : Michael Biebl <biebl@debian.org>
+Subject : Re: Bug#872598: udev-udeb: no input in graphical installer
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 24 Aug 2017 00:59:54 +0200
+Message-id : 20170823225954.GA13435@mraw.org
+In-reply-to : <[🔎] 1d296770-8826-cada-6ba5-5b9b8a5b63ea@debian.org>
+References : <20170819081455.n7wweaoo6rtergug@home.ouaza.com> <[🔎] 20170819025918.694.73708.reportbug@armor.home> <[🔎] 20170819123842.GC17967@mraw.org> <[🔎] ab06c5b6-16de-fd00-8031-24968e4fa00b@debian.org> <[🔎] 20170819025918.694.73708.reportbug@armor.home> <[🔎] 20170823080810.GG17967@mraw.org> <[🔎] 21732acb-597d-8cf2-842b-a4242374db3f@debian.org> <[🔎] 20170823185940.GL17967@mraw.org> <[🔎] 20170823215757.GM17967@mraw.org> <[🔎] 1d296770-8826-cada-6ba5-5b9b8a5b63ea@debian.org>
+
+
+Michael Biebl <biebl@debian.org> (2017-08-24):
+> Am 23.08.2017 um 23:57 schrieb Cyril Brulebois:
+> 
+> > My NMU FTBFSes on mips64el:
+> >   https://buildd.debian.org/status/fetch.php?pkg=systemd&arch=mips64el&ver=234-2.1&stamp=1503523165&raw=0
+> > 
+> > James Cowgill mentioned this gcc bug report:
+> >   https://bugs.debian.org/871514
+> > 
+> > so I think I might duplicate the rules file in src:debian-installer and
+> > work around the missing file by putting it into place manually, which is
+> > somewhat ugly but means we're no longer blocking on the systemd update.
+> 
+> I wouldn't mind if you forced the compiler to be GCC 6 in src:systemd
+> until this bug is fixed.
+The attached patch seems to do the trick, will upload after a full build
+inside sbuild, then open a bug report as you suggested on IRC, so that
+you think about reverting this when the gcc-7 bug is fixed.
+KiBi.
+signature.ascdiff -Nru systemd-234/debian/changelog systemd-234/debian/changelog
+--- systemd-234/debian/changelog	2017-08-23 18:41:34.000000000 +0000
++++ systemd-234/debian/changelog	2017-08-23 22:53:09.000000000 +0000
+@@ -1,3 +1,13 @@
++systemd (234-2.2) unstable; urgency=high
++
++  * Non-maintainer upload.
++  * Switch to gcc-6 on all architectures, working around an FTBFS on mips64el,
++    apparently due to a gcc-7 bug (See: #871514):
++    - Add gcc-6 to Build-Depends in debian/control
++    - Export CC = gcc-6 in debian/rules
++
++ -- Cyril Brulebois <kibi@debian.org>  Wed, 23 Aug 2017 22:53:09 +0000
++
+ systemd (234-2.1) unstable; urgency=high
+ 
+   * Non-maintainer upload.
+diff -Nru systemd-234/debian/control systemd-234/debian/control
+--- systemd-234/debian/control	2017-07-20 13:13:42.000000000 +0000
++++ systemd-234/debian/control	2017-08-23 22:45:38.000000000 +0000
+@@ -53,6 +53,7 @@
+                tzdata <!nocheck>,
+                libcap2-bin <!nocheck>,
+                iproute2 <!nocheck>,
++               gcc-6,
+ 
+ Package: systemd
+ Architecture: linux-any
+diff -Nru systemd-234/debian/rules systemd-234/debian/rules
+--- systemd-234/debian/rules	2017-07-20 13:13:42.000000000 +0000
++++ systemd-234/debian/rules	2017-08-23 22:45:44.000000000 +0000
+@@ -4,6 +4,7 @@
+ #export DEB_BUILD_OPTIONS = nostrip
+ 
+ export LC_ALL = C.UTF-8
++export CC = gcc-6
+ 
+ include /usr/share/dpkg/default.mk

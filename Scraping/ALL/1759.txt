@@ -1,0 +1,811 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#854822: installation-report: U-boot not correctly installed when partitioning with "Guided - use entire disk"
+From : Gunnar Wolf <gwolf@gwolf.org>
+Date : Fri, 10 Feb 2017 11:51:20 -0600
+Message-id : 148674908031.1778.11582525461448935566.reportbug@mosca.iiec.unam.mx
+Reply-to : Gunnar Wolf <gwolf@gwolf.org>, 854822@bugs.debian.org
+
+
+Package: installation-reports
+Version: 2.62
+Severity: important
+Tags: d-i
+-- Package-specific info:
+Boot method: SD card
+Image version: https://d-i.debian.org/daily-images/armhf/daily/hd-media/SD-card-images/firmware.MX6_Cubox-i.img.gz https://d-i.debian.org/daily-images/armhf/daily/hd-media/SD-card-images/partition.img.gz and http://gemmei.acc.umu.se/cdimage/daily-builds/daily/arch-latest/armhf/iso-cd/debian-testing-armhf-netinst.iso downloaded 2017-02-08
+Date: <Date and time of the install>
+Machine: CuBox-i 4 Pro
+Partitions: From the installation log:
+  7: MMC/SD card #2 (mmcblk1) - 15.9 GB SD SL16G,    
+  8: >     #1  primary  254.8 MB  B  f  ext2    /boot  ,    
+  9: >     #2  primary   13.6 GB     f  ext4    /      ,    
+ 10: >     #5  logical    2.1 GB     f  swap    swap   ,    
+ 11: SCSI2 (0,0,0) (sda) - 4.2 GB Generic Flash Disk,    
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [O]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [E]
+Overall install:        [E]
+Comments/Problems:
+I am installing the system on the same media that was used to boot the
+installer from; this is supported according to the installation manual
+sect. 5.1.5 (last paragraph).
+If I ask the partitioner to use the «Guided - use entire disk» option,
+the install process _seems_to_ be successful, but I end up with a
+nonbooting system (U-boot seems to be clobbered, as it does not do
+anything at powerup); selecting «Guided - use the largest continuous
+free space» results in a correctly booting system.
+I am attaching two log files, «cubox-clobbered-uboot.log» and
+«cubox-boots-correctly.log».
+As a very minor issue, even in the second case, after the install
+notifies «Requesting system reboot», it just hangs. I disconnected and
+reconnected power to get the system to boot — But it booted correctly
+after that.
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="9 (stretch) - installer build 20170208-00:09"
+X_INSTALLATION_MEDIUM=hd-media
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux debian 4.9.0-1-armmp #1 SMP Debian 4.9.6-3 (2017-01-28) armv7l GNU/Linux
+usb-list: 
+usb-list: Bus 01 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.9.0-1-armmp ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.9.0-1-armmp ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 02: Mass Storage [058f:6387]
+usb-list:    Level 01 Parent 01 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Generic
+usb-list:    Interface 00: Class 08(mstor) Subclass 06 Protocol 50 Driver usb-storage
+lsmod: Module                  Size  Used by
+lsmod: dm_mod                102858  0
+lsmod: md_mod                120554  0
+lsmod: jfs                   174436  0
+lsmod: btrfs                1143362  0
+lsmod: xor                     4718  1 btrfs
+lsmod: zlib_deflate           20290  1 btrfs
+lsmod: raid6_pq               87373  1 btrfs
+lsmod: fuse                   88991  0
+lsmod: brcmfmac              239877  0
+lsmod: brcmutil                5789  1 brcmfmac
+lsmod: cfg80211              475000  1 brcmfmac
+lsmod: rfkill                 16819  1 cfg80211
+lsmod: nls_utf8                1318  1
+lsmod: loop                   17534  2
+lsmod: isofs                  32049  1
+lsmod: ext4                  549443  2
+lsmod: crc16                   1274  1 ext4
+lsmod: jbd2                   93854  1 ext4
+lsmod: crc32c_generic          1862  3
+lsmod: fscrypto               15747  1 ext4
+lsmod: mbcache                 5508  3 ext4
+lsmod: nls_ascii               3386  1
+lsmod: nls_cp437               4922  1
+lsmod: vfat                   10313  1
+lsmod: fat                    57141  1 vfat
+lsmod: sd_mod                 32731  2
+lsmod: uas                    12934  0
+lsmod: usb_storage            45771  2 uas
+lsmod: imx_ipuv3_crtc         10746  0
+lsmod: ahci_imx                6207  0
+lsmod: libahci_platform        6494  1 ahci_imx
+lsmod: ci_hdrc_imx             6936  0
+lsmod: libahci                23377  2 libahci_platform,ahci_imx
+lsmod: ci_hdrc                35216  1 ci_hdrc_imx
+lsmod: libata                192873  3 libahci_platform,libahci,ahci_imx
+lsmod: ehci_hcd               64996  1 ci_hdrc
+lsmod: extcon_core            13223  1 ci_hdrc
+lsmod: udc_core               26335  1 ci_hdrc
+lsmod: imx_ipu_v3             75709  1 imx_ipuv3_crtc
+lsmod: scsi_mod              187972  4 sd_mod,usb_storage,libata,uas
+lsmod: sdhci_esdhc_imx        12147  0
+lsmod: sdhci_pltfm             3338  1 sdhci_esdhc_imx
+lsmod: usbcore               195888  5 usb_storage,ehci_hcd,brcmfmac,uas,ci_hdrc
+lsmod: sdhci                  39260  2 sdhci_pltfm,sdhci_esdhc_imx
+lsmod: usb_common              3659  3 udc_core,usbcore,ci_hdrc
+lsmod: usbmisc_imx             6594  1 ci_hdrc_imx
+lsmod: phy_mxs_usb             6386  2
+lsmod: anatop_regulator        4712  1
+lsmod: dw_hdmi_imx             3203  0
+lsmod: dw_hdmi                14062  1 dw_hdmi_imx
+lsmod: imxdrm                  5486  1 imx_ipuv3_crtc
+lsmod: drm_kms_helper        117262  3 imx_ipuv3_crtc,dw_hdmi,imxdrm
+lsmod: drm                   276096  5 imx_ipuv3_crtc,dw_hdmi,dw_hdmi_imx,imxdrm,drm_kms_helper
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                    206592        76    206516   0% /run
+df: devtmpfs               1017956         0   1017956   0% /dev
+df: /dev/sda1              4068576    360716   3707860   9% /hd-media
+df: /dev/loop0              360712    360712         0 100% /cdrom
+df: /dev/mmcblk1p3        12976824    470844  11827068   4% /target
+df: /dev/mmcblk1p2          240972     25124    203407  11% /target/boot
+df: /dev/mmcblk1p3        12976824    470844  11827068   4% /dev/.static/dev
+df: devtmpfs               1017956         0   1017956   0% /target/dev
+df: /dev/loop0              360712    360712         0 100% /target/media/cdrom
+free:              total         used         free       shared      buffers
+free: Mem:       2065916       958916      1107000        98612        65964
+free: -/+ buffers:             892952      1172964
+free: Swap:      2016252            0      2016252
+/proc/cmdline:  console=ttymxc0,115200 DEBIAN_FRONTEND=text priority=critical
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: model name	: ARMv7 Processor rev 10 (v7l)
+/proc/cpuinfo: BogoMIPS	: 6.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpd32 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x2
+/proc/cpuinfo: CPU part	: 0xc09
+/proc/cpuinfo: CPU revision	: 10
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: model name	: ARMv7 Processor rev 10 (v7l)
+/proc/cpuinfo: BogoMIPS	: 6.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpd32 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x2
+/proc/cpuinfo: CPU part	: 0xc09
+/proc/cpuinfo: CPU revision	: 10
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: model name	: ARMv7 Processor rev 10 (v7l)
+/proc/cpuinfo: BogoMIPS	: 6.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpd32 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x2
+/proc/cpuinfo: CPU part	: 0xc09
+/proc/cpuinfo: CPU revision	: 10
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: model name	: ARMv7 Processor rev 10 (v7l)
+/proc/cpuinfo: BogoMIPS	: 6.00
+/proc/cpuinfo: Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpd32 
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 7
+/proc/cpuinfo: CPU variant	: 0x2
+/proc/cpuinfo: CPU part	: 0xc09
+/proc/cpuinfo: CPU revision	: 10
+/proc/cpuinfo: 
+/proc/cpuinfo: Hardware	: Freescale i.MX6 Quad/DualLite (Device Tree)
+/proc/cpuinfo: Revision	: 0000
+/proc/cpuinfo: Serial		: 0000000000000000
+/proc/device-tree/model: SolidRun Cubox-i Dual/Quad /proc/iomem: 00110000-00111fff : /soc/dma-apbh@00110000
+/proc/iomem: 00900000-0093ffff : 900000.sram
+/proc/iomem: 02020000-02023fff : /soc/aips-bus@02000000/spba-bus@02000000/serial@02020000
+/proc/iomem: 0209c000-0209ffff : /soc/aips-bus@02000000/gpio@0209c000
+/proc/iomem: 020a0000-020a3fff : /soc/aips-bus@02000000/gpio@020a0000
+/proc/iomem: 020a4000-020a7fff : /soc/aips-bus@02000000/gpio@020a4000
+/proc/iomem: 020a8000-020abfff : /soc/aips-bus@02000000/gpio@020a8000
+/proc/iomem: 020ac000-020affff : /soc/aips-bus@02000000/gpio@020ac000
+/proc/iomem: 020b0000-020b3fff : /soc/aips-bus@02000000/gpio@020b0000
+/proc/iomem: 020b4000-020b7fff : /soc/aips-bus@02000000/gpio@020b4000
+/proc/iomem: 020c9000-020c9fff : /soc/aips-bus@02000000/usbphy@020c9000
+/proc/iomem: 020ca000-020cafff : /soc/aips-bus@02000000/usbphy@020ca000
+/proc/iomem: 020e0000-020e3fff : /soc/aips-bus@02000000/iomuxc@020e0000
+/proc/iomem: 020ec000-020effff : /soc/aips-bus@02000000/sdma@020ec000
+/proc/iomem: 02184000-021841ff : /soc/aips-bus@02100000/usb@02184000
+/proc/iomem:   02184000-021841ff : /soc/aips-bus@02100000/usb@02184000
+/proc/iomem: 02184200-021843ff : /soc/aips-bus@02100000/usb@02184200
+/proc/iomem:   02184200-021843ff : /soc/aips-bus@02100000/usb@02184200
+/proc/iomem: 02184800-021849ff : /soc/aips-bus@02100000/usbmisc@02184800
+/proc/iomem: 02188000-0218bfff : /soc/aips-bus@02100000/ethernet@02188000
+/proc/iomem: 02190000-02193fff : /soc/aips-bus@02100000/usdhc@02190000
+/proc/iomem: 02194000-02197fff : /soc/aips-bus@02100000/usdhc@02194000
+/proc/iomem: 021f0000-021f3fff : /soc/aips-bus@02100000/serial@021f0000
+/proc/iomem: 02200000-02203fff : /soc/sata@02200000
+/proc/iomem: 10000000-8fffffff : System RAM
+/proc/iomem:   10008000-10afffff : Kernel code
+/proc/iomem:   10c00000-10d54103 : Kernel data
+/proc/interrupts:            CPU0       CPU1       CPU2       CPU3       
+/proc/interrupts:  16:      78447     111212      97855      91134     GIC-0  29 Edge      twd
+/proc/interrupts:  17:          0          0          0          0       GPC  55 Level     i.MX Timer Tick
+/proc/interrupts:  25:        830          0          0          0       GPC  26 Level     2020000.serial
+/proc/interrupts:  50:          0          0          0          0       GPC  19 Level     rtc alarm
+/proc/interrupts:  56:          0          0          0          0       GPC   2 Level     sdma
+/proc/interrupts:  57:        147          0          0          0       GPC  43 Level     2184000.usb
+/proc/interrupts:  58:      15942          0          0          0       GPC  40 Level     2184200.usb
+/proc/interrupts:  59:       5564          0          0          0     GIC-0 150 Level     2188000.ethernet
+/proc/interrupts:  60:          0          0          0          0     GIC-0 151 Level     2188000.ethernet
+/proc/interrupts:  61:       1418          0          0          0       GPC  22 Level     mmc0
+/proc/interrupts:  62:    1662766          0          0          0       GPC  23 Level     mmc1
+/proc/interrupts:  66:          0          0          0          0       GPC  29 Level     21f0000.serial
+/proc/interrupts:  69:          0          0          0          0       GPC  39 Level     ahci-imx[2200000.sata]
+/proc/interrupts:  77:          0          0          0          0  gpio-mxc   4 Edge      2194000.usdhc cd
+/proc/interrupts: 145:          0          0          0          0  gpio-mxc   8 Edge      Button 0
+/proc/interrupts: 297:          0          0          0          0       IPU 457 Edge      (null)
+/proc/interrupts: 298:          0          0          0          0       IPU 451 Edge      (null)
+/proc/interrupts: 299:          0          0          0          0       IPU 457 Edge      (null)
+/proc/interrupts: 300:          0          0          0          0       IPU 451 Edge      (null)
+/proc/interrupts: IPI0:          0          0          0          0  CPU wakeup interrupts
+/proc/interrupts: IPI1:          0          0          0          0  Timer broadcast interrupts
+/proc/interrupts: IPI2:      60279     215955     274690     445238  Rescheduling interrupts
+/proc/interrupts: IPI3:        148        120       3945        154  Function call interrupts
+/proc/interrupts: IPI4:          0          0          0          0  CPU stop interrupts
+/proc/interrupts: IPI5:          1          0          0          0  IRQ work interrupts
+/proc/interrupts: IPI6:          0          0          0          0  completion interrupts
+/proc/interrupts: Err:          0
+/proc/meminfo: MemTotal:        2065916 kB
+/proc/meminfo: MemFree:         1107036 kB
+/proc/meminfo: MemAvailable:    1855904 kB
+/proc/meminfo: Buffers:           65964 kB
+/proc/meminfo: Cached:           792644 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           277872 kB
+/proc/meminfo: Inactive:         598812 kB
+/proc/meminfo: Active(anon):      73180 kB
+/proc/meminfo: Inactive(anon):    43504 kB
+/proc/meminfo: Active(file):     204692 kB
+/proc/meminfo: Inactive(file):   555308 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: HighTotal:       1310720 kB
+/proc/meminfo: HighFree:         491592 kB
+/proc/meminfo: LowTotal:         755196 kB
+/proc/meminfo: LowFree:          615444 kB
+/proc/meminfo: SwapTotal:       2016252 kB
+/proc/meminfo: SwapFree:        2016252 kB
+/proc/meminfo: Dirty:               920 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         18196 kB
+/proc/meminfo: Mapped:             2576 kB
+/proc/meminfo: Shmem:             98612 kB
+/proc/meminfo: Slab:              61420 kB
+/proc/meminfo: SReclaimable:      50880 kB
+/proc/meminfo: SUnreclaim:        10540 kB
+/proc/meminfo: KernelStack:        1016 kB
+/proc/meminfo: PageTables:          488 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:     3049208 kB
+/proc/meminfo: Committed_AS:     124712 kB
+/proc/meminfo: VmallocTotal:     245760 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: CmaTotal:          16384 kB
+/proc/meminfo: CmaFree:           15892 kB
+/proc/bus/input/devices: I: Bus=0019 Vendor=0001 Product=0001 Version=0100
+/proc/bus/input/devices: N: Name="gpio-keys"
+/proc/bus/input/devices: P: Phys=gpio-keys/input0
+/proc/bus/input/devices: S: Sysfs=/devices/soc0/gpio-keys/input/input0
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=3
+/proc/bus/input/devices: B: KEY=1 0 0 0 0 0 0 0 0
+/proc/bus/input/devices: 
+-- System Information:
+Debian Release: 9.0
+  APT prefers unstable
+  APT policy: (500, 'unstable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.8.0-2-amd64 (SMP w/8 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+installation-report depends on no packages.
+Versions of packages installation-report recommends:
+ii  pciutils   1:3.5.2-1
+ii  reportbug  7.1.4
+installation-report suggests no packages.
+-- no debconf information
+cubox-boots-correctly.logsetenv console ttymx0 c0,115200 DEBIAN_FRONTEND=text priority=critical
+=> boot
+switch to partitions #0, OK
+mmc0 is current device
+Scanning mmc 0:1...
+Found U-Boot script /boot.scr
+reading /boot.scr
+1575 bytes read in 15 ms (102.5 KiB/s)
+## Executing script at 12000000
+Mainline u-boot / new-style environment detected.
+reading vmlinuz
+3700064 bytes read in 218 ms (16.2 MiB/s)
+reading dtbs/imx6q-cubox-i.dtb
+35234 bytes read in 298 ms (115.2 KiB/s)
+reading initrd.gz
+12893917 bytes read in 733 ms (16.8 MiB/s)
+Booting the Debian installer... 
+## Flattened Device Tree blob at 18000000
+   Booting using the fdt blob at 0x18000000
+   Using Device Tree in place at 18000000, end 1800b9a1
+Starting kernel ...
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 4.9.0-1-armmp (debian-kernel@lists.debian.org) (gcc version 6.3.0 20170124 (Debian 6.3.0-5) ) #1 SMP Debian 4.9.6-3 (2017-01-28)
+[    0.000000] CPU: ARMv7 Processor [412fc09a] revision 10 (ARMv7), cr=10c5387d
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] OF: fdt:Machine model: SolidRun Cubox-i Dual/Quad
+[    0.000000] efi: Getting EFI parameters from FDT:
+[    0.000000] efi: UEFI not found.
+[    0.000000] cma: Reserved 16 MiB at 0x8f000000
+[    0.000000] Memory policy: Data cache writealloc
+[    0.000000] percpu: Embedded 14 pages/cpu @eeda4000 s27724 r8192 d21428 u57344
+[    0.000000] Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 522560
+[    0.000000] Kernel command line:  console=ttymxc0,115200 DEBIAN_FRONTEND=text priority=critical
+[    0.000000] PID hash table entries: 4096 (order: 2, 16384 bytes)
+[    0.000000] Dentry cache hash table entries: 131072 (order: 7, 524288 bytes)
+[    0.000000] Inode-cache hash table entries: 65536 (order: 6, 262144 bytes)
+[    0.000000] Memory: 2035916K/2097152K available (7168K kernel code, 957K rwdata, 2212K rodata, 1024K init, 396K bss, 44852K reserved, 16384K cma-reserved, 1294336K highmem)
+[    0.000000] Virtual kernel memory layout:
+[    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+[    0.000000]     fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+[    0.000000]     vmalloc : 0xf0800000 - 0xff800000   ( 240 MB)
+[    0.000000]     lowmem  : 0xc0000000 - 0xf0000000   ( 768 MB)
+[    0.000000]     pkmap   : 0xbfe00000 - 0xc0000000   (   2 MB)
+[    0.000000]     modules : 0xbf000000 - 0xbfe00000   (  14 MB)
+[    0.000000]       .text : 0xc0008000 - 0xc0800000   (8160 kB)
+[    0.000000]       .init : 0xc0b00000 - 0xc0c00000   (1024 kB)
+[    0.000000]       .data : 0xc0c00000 - 0xc0cef47c   ( 958 kB)
+[    0.000000]        .bss : 0xc0cf1000 - 0xc0d54104   ( 397 kB)
+[    0.000000] Hierarchical RCU implementation.
+[    0.000000] 	Build-time adjustment of leaf fanout to 32.
+[    0.000000] 	RCU restricting CPUs from NR_CPUS=8 to nr_cpu_ids=4.
+[    0.000000] RCU: Adjusting geometry for rcu_fanout_leaf=32, nr_cpu_ids=4
+[    0.000000] NR_IRQS:16 nr_irqs:16 16
+[    0.000000] L2C-310 errata 752271 769419 enabled
+[    0.000000] L2C-310 enabling early BRESP for Cortex-A9
+[    0.000000] L2C-310 full line of zeros enabled for Cortex-A9
+[    0.000000] L2C-310 ID prefetch enabled, offset 16 lines
+[    0.000000] L2C-310 dynamic clock gating enabled, standby mode enabled
+[    0.000000] L2C-310 cache controller enabled, 16 ways, 1024 kB
+[    0.000000] L2C-310: CACHE_ID 0x410000c7, AUX_CTRL 0x76470001
+[    0.000000] Switching to timer-based delay loop, resolution 333ns
+[    0.000009] sched_clock: 32 bits at 3000kHz, resolution 333ns, wraps every 715827882841ns
+[    0.000030] clocksource: mxc_timer1: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 637086815595 ns
+[    0.003240] Console: colour dummy device 80x30
+[    0.003282] Calibrating delay loop (skipped), value calculated using timer frequency.. 6.00 BogoMIPS (lpj=15000)
+[    0.003299] pid_max: default: 32768 minimum: 301
+[    0.003630] Security Framework initialized
+[    0.003644] Yama: disabled by default; enable with sysctl kernel.yama.*
+[    0.003673] AppArmor: AppArmor disabled by boot time parameter
+[    0.003781] Mount-cache hash table entries: 2048 (order: 1, 8192 bytes)
+[    0.003796] Mountpoint-cache hash table entries: 2048 (order: 1, 8192 bytes)
+[    0.004893] CPU: Testing write buffer coherency: ok
+[    0.004927] ftrace: allocating 26622 entries in 79 pages
+[    0.077228] CPU0: thread -1, cpu 0, socket 0, mpidr 80000000
+[    0.077312] Setting up static identity map for 0x10100000 - 0x10100098
+[    0.082395] EFI services will not be available.
+[    0.083769] CPU1: thread -1, cpu 1, socket 0, mpidr 80000001
+[    0.084835] CPU2: thread -1, cpu 2, socket 0, mpidr 80000002
+[    0.085826] CPU3: thread -1, cpu 3, socket 0, mpidr 80000003
+[    0.085924] Brought up 4 CPUs
+[    0.085947] SMP: Total of 4 processors activated (24.00 BogoMIPS).
+[    0.085955] CPU: All CPU(s) started in SVC mode.
+[    0.087021] devtmpfs: initialized
+[    0.097762] VFP support v0.3: implementor 41 architecture 3 part 30 variant 9 rev 4
+[    0.098164] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 9556302231375000 ns
+[    0.099282] pinctrl core: initialized pinctrl subsystem
+[    0.101008] NET: Registered protocol family 16
+[    0.103538] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.105764] CPU identified as i.MX6Q, silicon rev 1.2
+[    0.127381] No ATAGs?
+[    0.127417] hw-breakpoint: found 5 (+1 reserved) breakpoint and 1 watchpoint registers.
+[    0.127428] hw-breakpoint: maximum watchpoint size is 4 bytes.
+[    0.129003] imx6q-pinctrl 20e0000.iomuxc: initialized IMX pinctrl driver
+[    0.129670] Serial: AMBA PL011 UART driver
+[    0.130860] imx-gpc 20dc000.gpc: failed to get pu regulator: -517
+[    0.167880] mxs-dma 110000.dma-apbh: initialized
+[    0.173080] vgaarb: loaded
+[    0.174420] media: Linux media interface: v0.10
+[    0.174477] Linux video capture interface: v2.00
+[    0.174571] pps_core: LinuxPPS API ver. 1 registered
+[    0.174579] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.174606] PTP clock support registered
+[    0.176343] clocksource: Switched to clocksource mxc_timer1
+[    0.229217] VFS: Disk quotas dquot_6.6.0
+[    0.229326] VFS: Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+[    0.244178] NET: Registered protocol family 2
+[    0.245057] TCP established hash table entries: 8192 (order: 3, 32768 bytes)
+[    0.245140] TCP bind hash table entries: 8192 (order: 4, 65536 bytes)
+[    0.245269] TCP: Hash tables configured (established 8192 bind 8192)
+[    0.245370] UDP hash table entries: 512 (order: 2, 16384 bytes)
+[    0.245416] UDP-Lite hash table entries: 512 (order: 2, 16384 bytes)
+[    0.245667] NET: Registered protocol family 1
+[    0.246237] Unpacking initramfs...
+[    1.220647] Freeing initrd memory: 12592K (c3000000 - c3c4c000)
+[    1.221227] hw perfevents: enabled with armv7_cortex_a9 PMU driver, 7 counters available
+[    1.223806] futex hash table entries: 1024 (order: 4, 65536 bytes)
+[    1.223971] audit: initializing netlink subsys (disabled)
+[    1.224067] audit: type=2000 audit(1.175:1): initialized
+[    1.224810] Initialise system trusted keyrings
+[    1.225267] workingset: timestamp_bits=14 max_order=19 bucket_order=5
+[    1.225509] zbud: loaded
+[    1.705562] Key type asymmetric registered
+[    1.705576] Asymmetric key parser 'x509' registered
+[    1.705655] bounce: pool size: 64 pages
+[    1.705747] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 248)
+[    1.705899] io scheduler noop registered
+[    1.705912] io scheduler deadline registered
+[    1.705983] io scheduler cfq registered (default)
+[    1.715785] imx-sdma 20ec000.sdma: firmware: failed to load imx/sdma/sdma-imx6q.bin (-2)
+[    1.715803] imx-sdma 20ec000.sdma: Direct firmware load for imx/sdma/sdma-imx6q.bin failed with error -2
+[    1.721610] Serial: 8250/16550 driver, 4 ports, IRQ sharing disabled
+[    1.723845] Serial: AMBA driver
+[    1.724690] 2020000.serial: ttymxc0 at MMIO 0x2020000 (irq = 25, base_baud = 5000000) is a IMX
+[    2.381620] console [ttymxc0] enabled
+[    2.386317] 21f0000.serial: ttymxc3 at MMIO 0x21f0000 (irq = 66, base_baud = 5000000) is a IMX
+[    2.398587] libphy: Fixed MDIO Bus: probed
+[    2.403504] 2188000.ethernet supply phy not found, using dummy regulator
+[    2.413911] pps pps0: new PPS source ptp0
+[    2.429438] libphy: fec_enet_mii_bus: probed
+[    2.434488] fec 2188000.ethernet eth0: registered PHC device 0
+[    2.441360] mousedev: PS/2 mouse device common for all mice
+[    2.449443] snvs_rtc 20cc000.snvs:snvs-rtc-lp: rtc core: registered 20cc000.snvs:snvs-r as rtc0
+[    2.461898] ledtrig-cpu: registered to indicate activity on CPUs
+[    2.468968] NET: Registered protocol family 10
+[    2.474543] mip6: Mobile IPv6
+[    2.477556] NET: Registered protocol family 17
+[    2.482037] mpls_gso: MPLS GSO support
+[    2.486911] ThumbEE CPU extension supported.
+[    2.491202] Registering SWP/SWPB emulation handler
+[    2.496921] registered taskstats version 1
+[    2.501031] Loading compiled-in X.509 certificates
+[    2.515950] alg: No test for pkcs1pad(rsa,sha256) (pkcs1pad(rsa-generic,sha256))
+[    2.526130] Loaded X.509 cert 'Debian Project: Ben Hutchings: 008a018dca80932630'
+[    2.533747] zswap: loaded using pool lzo/zbud
+[    2.551205] imx-gpc 20dc000.gpc: failed to get pu regulator: -517
+[    2.558737] input: gpio-keys as /devices/soc0/gpio-keys/input/input0
+[    2.565453] imx-gpc 20dc000.gpc: failed to get pu regulator: -517
+[    2.571575] snvs_rtc 20cc000.snvs:snvs-rtc-lp: setting system clock to 1970-01-01 00:00:00 UTC (0)
+[    2.571582] sr_init: No PMIC hook to init smartreflex
+[    2.571767] sr_init: platform driver register failed for SR
+[    2.572278] brcm_reg: disabling
+[    2.572284] usb_h1_vbus: disabling
+[    2.572287] usb_otg_vbus: disabling
+[    2.602824] Freeing unused kernel memory: 1024K (c0b00000 - c0c00000)
+[    2.667544] random: systemd-udevd: uninitialized urandom read (16 bytes read)
+[    2.675470] random: systemd-udevd: uninitialized urandom read (16 bytes read)
+[    2.675728] random: udevadm: uninitialized urandom read (16 bytes read)
+[    2.678120] random: udevadm: uninitialized urandom read (16 bytes read)
+[    2.678243] random: udevadm: uninitialized urandom read (16 bytes read)
+[    2.678727] random: udevadm: uninitialized urandom read (16 bytes read)
+[    2.679167] random: udevadm: uninitialized urandom read (16 bytes read)
+[    2.679742] random: udevadm: uninitialized urandom read (16 bytes read)
+[    2.680615] random: udevadm: uninitialized urandom read (16 bytes read)
+[    2.681092] random: udevadm: uninitialized urandom read (16 bytes read)
+[    2.900903] [drm] Initialized
+[    2.926781] imx-gpc 20dc000.gpc: failed to get pu regulator: -517
+[    2.969057] sdhci: Secure Digital Host Controller Interface driver
+[    2.975325] sdhci: Copyright(c) Pierre Ossman
+[    3.001168] sdhci-pltfm: SDHCI platform and OF driver helper
+[    3.007671] usbcore: registered new interface driver usbfs
+[    3.013406] usbcore: registered new interface driver hub
+[    3.014727] SCSI subsystem initialized
+[    3.018045] sdhci-esdhc-imx 2190000.usdhc: allocated mmc-pwrseq
+[    3.029624] imx-ipuv3 2400000.ipu: IPUv3H probed
+[    3.036549] imx-ipuv3 2800000.ipu: IPUv3H probed
+[    3.040236] usbcore: registered new device driver usb
+[    3.058609] ahci-imx 2200000.sata: fsl,transmit-level-mV value 1104, using 00000044
+[    3.065532] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    3.073028] ahci-imx 2200000.sata: fsl,transmit-boost-mdB value 0, using 00000000
+[    3.080558] ahci-imx 2200000.sata: fsl,transmit-atten-16ths value 9, using 00002000
+[    3.088318] ahci-imx 2200000.sata: fsl,receive-eq-mdB not specified, using 05000000
+[    3.100920] ahci-imx 2200000.sata: SSS flag set, parallel bus scan disabled
+[    3.108049] ahci-imx 2200000.sata: AHCI 0001.0300 32 slots 1 ports 3 Gbps 0x1 impl platform mode
+[    3.116900] ahci-imx 2200000.sata: flags: ncq sntf stag pm led clo only pmp pio slum part ccc apst 
+[    3.129626] scsi host0: ahci-imx
+[    3.134312] ata1: SATA max UDMA/133 mmio [mem 0x02200000-0x02203fff] port 0x100 irq 69
+[    3.154796] [drm] Supports vblank timestamp caching Rev 2 (21.10.2013).
+[    3.161469] [drm] No driver support for vblank timestamp query.
+[    3.167634] imx-drm display-subsystem: bound imx-ipuv3-crtc.2 (ops ipu_crtc_ops [imx_ipuv3_crtc])
+[    3.176677] imx-drm display-subsystem: bound imx-ipuv3-crtc.3 (ops ipu_crtc_ops [imx_ipuv3_crtc])
+[    3.185722] imx-drm display-subsystem: bound imx-ipuv3-crtc.6 (ops ipu_crtc_ops [imx_ipuv3_crtc])
+[    3.194745] imx-drm display-subsystem: bound imx-ipuv3-crtc.7 (ops ipu_crtc_ops [imx_ipuv3_crtc])
+[    3.203852] imx-drm display-subsystem: failed to bind 120000.hdmi (ops dw_hdmi_imx_platform_driver_exit [dw_hdmi_imx]): -517
+[    3.215262] imx-drm display-subsystem: master bind failed: -517
+[    3.311391] mmc0: SDHCI controller on 2190000.usdhc [2190000.usdhc] using ADMA
+[    3.319658] [drm] Supports vblank timestamp caching Rev 2 (21.10.2013).
+[    3.326347] [drm] No driver support for vblank timestamp query.
+[    3.327006] ci_hdrc ci_hdrc.0: EHCI Host Controller
+[    3.327030] ci_hdrc ci_hdrc.0: new USB bus registered, assigned bus number 1
+[    3.341380] ci_hdrc ci_hdrc.0: USB 2.0 started, EHCI 1.00
+[    3.341651] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+[    3.341660] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    3.341666] usb usb1: Product: EHCI Host Controller
+[    3.341673] usb usb1: Manufacturer: Linux 4.9.0-1-armmp ehci_hcd
+[    3.341677] usb usb1: SerialNumber: ci_hdrc.0
+[    3.342580] hub 1-0:1.0: USB hub found
+[    3.342628] hub 1-0:1.0: 1 port detected
+[    3.347679] ci_hdrc ci_hdrc.1: EHCI Host Controller
+[    3.347710] ci_hdrc ci_hdrc.1: new USB bus registered, assigned bus number 2
+[    3.361373] ci_hdrc ci_hdrc.1: USB 2.0 started, EHCI 1.00
+[    3.361611] usb usb2: New USB device found, idVendor=1d6b, idProduct=0002
+[    3.361620] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    3.361627] usb usb2: Product: EHCI Host Controller
+[    3.361634] usb usb2: Manufacturer: Linux 4.9.0-1-armmp ehci_hcd
+[    3.361638] usb usb2: SerialNumber: ci_hdrc.1
+[    3.362422] hub 2-0:1.0: USB hub found
+[    3.362466] hub 2-0:1.0: 1 port detected
+[    3.364202] sdhci-esdhc-imx 2194000.usdhc: could not get ultra high speed state, work on normal mode
+[    3.364242] sdhci-esdhc-imx 2194000.usdhc: Got CD GPIO
+[    3.421607] mmc1: SDHCI controller on 2194000.usdhc [2194000.usdhc] using ADMA
+[    3.462824] imx-drm display-subsystem: bound imx-ipuv3-crtc.2 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.472769] ata1: SATA link down (SStatus 0 SControl 300)
+[    3.474436] imx-drm display-subsystem: bound imx-ipuv3-crtc.3 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.474503] imx-drm display-subsystem: bound imx-ipuv3-crtc.6 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.474551] imx-drm display-subsystem: bound imx-ipuv3-crtc.7 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.477844] imx-drm display-subsystem: failed to bind 120000.hdmi (ops dw_hdmi_imx_platform_driver_exit [dw_hdmi_imx]): -517
+[    3.478017] imx-drm display-subsystem: master bind failed: -517
+[    3.478727] [drm] Supports vblank timestamp caching Rev 2 (21.10.2013).
+[    3.478730] [drm] No driver support for vblank timestamp query.
+[    3.478800] imx-drm display-subsystem: bound imx-ipuv3-crtc.2 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.478840] imx-drm display-subsystem: bound imx-ipuv3-crtc.3 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.478884] imx-drm display-subsystem: bound imx-ipuv3-crtc.6 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.478923] imx-drm display-subsystem: bound imx-ipuv3-crtc.7 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.479099] imx-drm display-subsystem: failed to bind 120000.hdmi (ops dw_hdmi_imx_platform_driver_exit [dw_hdmi_imx]): -517
+[    3.479236] imx-drm display-subsystem: master bind failed: -517
+[    3.501250] mmc0: queuing unknown CIS tuple 0x80 (50 bytes)
+[    3.509831] mmc0: queuing unknown CIS tuple 0x80 (7 bytes)
+[    3.511903] mmc0: queuing unknown CIS tuple 0x80 (4 bytes)
+[    3.541363] mmc0: queuing unknown CIS tuple 0x02 (1 bytes)
+[    3.545525] random: fast init done
+[    3.549317] mmc0: new SDIO card at address 0001
+[    3.621626] ahci-imx 2200000.sata: no device found, disabling link.
+[    3.627919] ahci-imx 2200000.sata: pass .hotplug=1 to enable hotplug
+[    3.634394] mmc1: host does not support reading read-only switch, assuming write-enable
+[    3.651870] mmc1: new high speed SDHC card at address aaaa
+[    3.658753] mmcblk1: mmc1:aaaa SL16G 14.8 GiB 
+[    3.665294]  mmcblk1: p1
+[    3.669965] [drm] Supports vblank timestamp caching Rev 2 (21.10.2013).
+[    3.676686] [drm] No driver support for vblank timestamp query.
+[    3.682876] imx-drm display-subsystem: bound imx-ipuv3-crtc.2 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.692545] imx-drm display-subsystem: bound imx-ipuv3-crtc.3 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.702294] imx-drm display-subsystem: bound imx-ipuv3-crtc.6 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.706411] usb 2-1: new high-speed USB device number 2 using ci_hdrc
+[    3.718470] imx-drm display-subsystem: bound imx-ipuv3-crtc.7 (ops ipu_drm_driver_exit [imx_ipuv3_crtc])
+[    3.728357] imx-drm display-subsystem: failed to bind 120000.hdmi (ops dw_hdmi_imx_platform_driver_exit [dw_hdmi_imx]): -517
+[    3.739939] imx-drm display-subsystem: master bind failed: -517
+Starting system log daemon: syslogd, klogd.
+/var/run/utmp: No such file or directory
+[4l[?1h=[0m(B[1;24r[H[J[H[J[7m                                                                                
+[m[7m                                                                                
+[m
+[H[7m                                                                                
+[m[H[7m[m[32m[40m[                            [37m[31m ([37m-*[31m)[37m                             [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                          [37m[31m ([37m0*start[31m)[37m                          [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                          [37m[31m ([37m0*start[31m)[37m                          [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                          [37m[31m ([37m0*start[31m)[37m                          [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[J[7m[m[32m[40m[                          [37m[31m ([37m0*start[31m)[37m                          [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[3;80H [5;80H [7;80H [9;80H [11;80H [13;80H [15;80H [17;80H [19;80H [21;80H [23;80H [H[7m[m[32m[40m[                          [37m[31m ([37m0*start[31m)[37m                          [32m][[34m Jan 01 [37m 0:00 [32m][23;80H[0m[2;1H[H[7m[m[32m[40m[                          [37m[31m ([37m0*start[31m)[37m                          [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                     [37m0- start  [31m ([37m2*shell[31m)[37m                     [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                     [37m0- start  [31m ([37m2*shell[31m)[37m                     [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                     [37m0- start  [31m ([37m2*shell[31m)[37m                     [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[J[7m[m[32m[40m[                     [37m0- start  [31m ([37m2*shell[31m)[37m                     [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[2;80H [4;80H [6;80H [8;80H [10;80H [12;80H [14;80H [16;80H [18;80H [20;80H [22;80H [24;80H [H[7m[m[32m[40m[                     [37m0- start  [31m ([37m2*shell[31m)[37m                     [32m][[34m Jan 01 [37m 0:00 [32m][24;80H[0m[2;1H[H[7m[m[32m[40m[                     [37m0- start  [31m ([37m2*shell[31m)[37m                     [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                [37m0 start  2- shell  [31m ([37m3*shell[31m)[37m                 [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                [37m0 start  2- shell  [31m ([37m3*shell[31m)[37m                 [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[                [37m0 start  2- shell  [31m ([37m3*shell[31m)[37m                 [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[J[7m[m[32m[40m[                [37m0 start  2- shell  [31m ([37m3*shell[31m)[37m                 [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[3;80H [5;80H [7;80H [9;80H [11;80H [13;80H [15;80H [17;80H [19;80H [21;80H [23;80H [H[7m[m[32m[40m[                [37m0 start  2- shell  [31m ([37m3*shell[31m)[37m                 [32m][[34m Jan 01 [37m 0:00 [32m][23;80H[0m[2;1H[H[7m[m[32m[40m[                [37m0 start  2- shell  [31m ([37m3*shell[31m)[37m                 [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[             [37m0 start  2 shell  3- shell  [31m ([37m4*log[31m)[37m             [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[             [37m0 start  2 shell  3- shell  [31m ([37m4*log[31m)[37m             [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[             [37m0 start  2 shell  3- shell  [31m ([37m4*log[31m)[37m             [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[J[7m[m[32m[40m[             [37m0 start  2 shell  3- shell  [31m ([37m4*log[31m)[37m             [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[2;80H [4;80H [6;80H [8;80H [10;80H [12;80H [14;80H [16;80H [18;80H [20;80H [22;80H [24;80H [H[7m[m[32m[40m[             [37m0 start  2 shell  3- shell  [31m ([37m4*log[31m)[37m             [32m][[34m Jan 01 [37m 0:00 [32m][24;80H[0m[2;1H[H[7m[m[32m[40m[             [37m0 start  2 shell  3- shell  [31m ([37m4*log[31m)[37m             [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[        [37m0 start  [31m ([37m1*shell[31m)[37m  2 shell  3 shell  4- log         [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[        [37m0 start  [31m ([37m1*shell[31m)[37m  2 shell  3 shell  4- log         [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[        [37m0 start  [31m ([37m1*shell[31m)[37m  2 shell  3 shell  4- log         [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[J[7m[m[32m[40m[        [37m0 start  [31m ([37m1*shell[31m)[37m  2 shell  3 shell  4- log         [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[3;80H [5;80H [7;80H [9;80H [11;80H [13;80H [15;80H [17;80H [19;80H [21;80H [23;80H [H[7m[m[32m[40m[        [37m0 start  [31m ([37m1*shell[31m)[37m  2 shell  3 shell  4- log         [32m][[34m Jan 01 [37m 0:00 [32m][23;80H[0m[2;1H[H[7m[m[32m[40m[        [37m0 start  [31m ([37m1*shell[31m)[37m  2 shell  3 shell  4- log         [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[      [37m0 start  [31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log       [32m][[34m Jan 01 [37m 0:00 [32m]
+[0m[H[7m[m[32m[40m[      [37m0 start  [31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log       [32m][[34m Jan 01 [37m 0:00 [32m]
+[0mSelect a language
+-----------------
+Choose the language to be used for the installation process. The selected 
+language will also be the default language for the installed system.
+Language:
+  1: C,    
+  2: English [*],
+Prompt: '?' for help, default=2> [H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:00 [32m][10;34H[0m
+Select your location
+--------------------
+The selected location will be used to set your time zone and also for example 
+to help select the system locale. Normally this should be the country where you
+live.
+This is a shortlist of locations based on the language you selected. Choose 
+"other" if your location is not listed.
+Country, territory or area:
+  1: Antigua and Barbuda,      7: Ireland,         13: South Africa,    
+  2: Australia,                8: Israel,          14: United Kingdom,    
+  3: Botswana,                 9: New Zealand,     15: United States [*],
+[22A[M[22B  4: Canada,                  10: Nigeria,         16: Zambia,    
+[22A[M[22B  5: Hong Kong,               11: Philippines,     17: Zimbabwe,    
+[22A[M[22B  6: India,                   12: Singapore,       18: other,    
+[22A[M[22BPrompt: '?' for help, default=15> 18
+[22A[M[22B[22A[M[22BThe selected location will be used to set your time zone and also for example 
+[22A[M[22Bto help select the system locale. Normally this should be the country where you
+[22A[M[22Blive.
+[22A[M[22B[22A[M[22BSelect the continent or region to which your location belongs.
+[22A[M[22BContinent or region:
+[22A[M[22B  1: Africa,              5: Caribbean,            9: North America [*],
+[22A[M[22B  2: Antarctica,          6: Central America,     10: Oceania,    
+[22A[M[22B  3: Asia,                7: Europe,              11: South America,    
+[22A[M[22B  4: Atlantic Ocean,      8: Indian Ocean,        12: other,    
+[22A[M[22BPrompt: '?' for help, default=9> 
+[22A[M[22B[22A[M[22BThe selected location will be used to set your time zone and also for example 
+[22A[M[22Bto help select the system locale. Normally this should be the country where you
+[22A[M[22Blive.
+[22A[M[22B[22A[M[22BListed are locations for: North America. Use the <Go Back> option to select a 
+[22A[M[22Bdifferent continent or region if your location is not listed.
+[22A[M[22BCountry, territory or area:
+[22A[M[22B  1: Canada,      3: Saint Pierre and Miquelon,    
+[22A[M[22B  2: Mexico,      4: United States [*],            
+[22A[M[22BPrompt: '?' for help, default=4> 2
+[22A[M[22B[22A[M[22BDetecting hardware to find hard drives  ... 95%... 100%
+[22A[M[22BSearching drives for an installer ISO image  ... 25%... 50%... 75%... 100%
+[22A[M[22BLoading additional components  ... 10%... 20%... 30%... 40%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:01 [32m][24;60H[0m... 50%... 60%... 70%[2;24r[24;1H
+[23;80H%... 80%... 90%... 100%
+Detecting network hardware  ... 95%... 100%
+Detecting link on eth0; please wait...  ... 16%... 25%... 33%... 41%... 50%... 6
+[23;80H66%... 75%... 83%... 91%
+Waiting for link-local address...  ... 16%... 25%... 33%... 41%... 50%... 66%...
+[23;80H. 75%... 83%... 91%... 100%
+Configuring the network with DHCP  [H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:02 [32m][24;36H[0m... 12%... 20%... 32%... 40%... 52%... 60%...
+[23;80H. 72%... 80%... 92%... 100%
+Configure the network
+---------------------
+Network autoconfiguration failed
+Your network is probably not using the DHCP protocol. Alternatively, the DHCP 
+server may be slow or some network hardware is not working properly.
+[Press enter to continue] 
+>From here you can choose to retry DHCP network autoconfiguration (which may 
+succeed if your DHCP server takes a long time to respond) or to configure the 
+network manually. Some DHCP servers require a DHCP hostname to be sent by the 
+client, so you can also choose to retry DHCP network autoconfiguration with a 
+hostname that you provide.
+Network configuration method:
+  1: Retry network autoconfiguration,    
+  2: Retry network autoconfiguration with a DHCP hostname,    
+  3: Configure network manually [*],
+  4: ,    
+  5: Do not configure the network at this time,    
+Prompt: '?' for help, default=3> 5
+Set up users and passwords
+--------------------------
+You need to set a password for 'root', the system administrative account. A 
+malicious or unqualified user with root access can have disastrous results, so 
+you should take care to choose a root password that is not easy to guess. It 
+should not be a word found in dictionaries, or a word that could be easily 
+associated with you.
+A good password will contain a mixture of letters, numbers and punctuation and 
+should be changed at regular intervals.
+The root user should not have an empty password. If you leave this empty, the 
+root account will be disabled and the system's initial user account will be 
+given the power to become root using the "sudo" command.
+Note that you will not be able to see the password as you type it.
+Root password:
+Please enter the same root password again to verify that you have typed it 
+correctly.
+Re-enter password to verify:
+A user account will be created for you to use instead of the root account for 
+non-administrative activities.
+Please enter the real name of this user. This information will be used for 
+instance as default origin for emails sent by this user as well as any program 
+which displays or uses the user's real name. Your full name is a reasonable 
+choice.
+Full name for the new user:
+Prompt: '?' for help> User
+Select a username for the new account. Your first name is a reasonable choice. 
+The username should start with a lower-case letter, which can be followed by 
+any combination of numbers and more lower-case letters.
+Username for your account:
+Prompt: '?' for help, default=user> 
+A good password will contain a mixture of letters, numbers and punctuation and 
+should be changed at regular intervals.
+Choose a password for the new user:
+[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:03 [32m]
+[23B[0m
+Please enter the same user password again to verify you have typed it 
+correctly.
+Re-enter password to verify:
+Setting up the clock  
+Detecting disks and all other hardware  ... 95%... 100%
+Loading additional components  ... 16%... 33%... 50%... 66%... 83%... 100%
+Loading additional components  ... 25%... 50%... 75%... 100%
+Starting up the partitioner  ... 13%... 22%... 31%... 40%... 50%... 63%... 72%..
+[23;80H.. 81%... 90%... 100%
+Partition disks
+---------------
+The installer can guide you through partitioning a disk (using different 
+standard schemes) or, if you prefer, you can do it manually. With guided 
+partitioning you will still have a chance later to review and customise the 
+results.
+If you choose guided partitioning for an entire disk, you will next be asked 
+which disk should be used.
+Partitioning method:
+  1: Guided - use the largest continuous free space,    
+  2: Guided - use entire disk,    
+  3: Guided - use entire disk and set up LVM,    
+  4: Guided - use entire disk and set up encrypted LVM,    
+  5: Manual,    
+Prompt: '?' for help> 1 2
+Note that all data on the disk you select will be erased, but not before you 
+have confirmed that you really want to make the changes.
+Select disk to partition:
+  1: MMC/SD card #2 (mmcblk1) - 15.9 GB SD SL16G,    
+  2: SCSI2 (0,0,0) (sda) - 4.2 GB Generic Flash Disk,    
+Prompt: '?' for help> 1
+Guided partitioning  ... 20%... 40%... 60%... 80%
+This is an overview of your currently configured partitions and mount points. 
+Select a partition to modify its settings (file system, mount point, etc.), a 
+free space to create partitions, or a device to initialize its partition table.
+  1: Guided partitioning,    
+  2: Configure software RAID,    
+  3: Configure the Logical Volume Manager,    
+  4: Configure encrypted volumes,    
+  5: Configure iSCSI volumes,    
+  6: ,    
+  7: MMC/SD card #2 (mmcblk1) - 15.9 GB SD SL16G,    
+  8: >     #1  primary  254.8 MB  B  f  ext2    /boot  ,    
+  9: >     #2  primary   13.6 GB     f  ext4    /      ,    
+ 10: >     #5  logical    2.1 GB     f  swap    swap   ,    
+ 11: SCSI2 (0,0,0) (sda) - 4.2 GB Generic Flash Disk,    
+ 12: ,    
+ 13: Undo changes to partitions,    
+ 14: Finish partitioning and write changes to disk [*],
+Prompt: '?' for help, default=14> 
+If you continue, the changes listed below will be written to the disks. 
+Otherwise, you will be able to make further changes manually.
+WARNING: This will destroy all data on any partitions you have removed as well 
+as on the partitions that are going to be formatted.
+The partition tables of the following devices are changed:
+   MMC/SD card #2 (mmcblk1)
+The following partitions are going to be formatted:
+   partition #1 of MMC/SD card #2 (mmcblk1) as ext2
+   partition #2 of MMC/SD card #2 (mmcblk1) as ext4
+   partition #5 of MMC/SD card #2 (mmcblk1) as swap
+Write the changes to disks?
+  1: Yes      2: No [*]
+Prompt: '?' for help, default=2> 1[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:04 [32m][24;35H[0m
+Partitions formatting  ... 33%
+Partitions formatting  
+Partitions formatting  
+Installing the base system  ... 17%... 20%... 30%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:05 [32m][24;50H[0m[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:06 [32m][24;50H[0m... 40%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:07 [32m][24;57H[0m... 50%... 60%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:08 [32m][24;71H[0m... 70%...
+[23;80H. 83%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:09 [32m][24;5H[0m[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:10 [32m][24;5H[0m... 91%... 100%
+Configuring apt  ... 11%... 22%... 33%
+Configure the package manager
+-----------------------------
+No network mirror was selected.
+If you are installing from a netinst CD and choose not to use a mirror, you 
+will end up with only a very minimal base system.
+Continue without a network mirror?
+  1: Yes      2: No [*]
+Prompt: '?' for help, default=2> [H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:11 [32m][24;34H[0m1
+... 44%... 50%... 61%... 72%... 83%... 94%... 100%
+Select and install software  [H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:12 [32m][24;30H[0m... 10%... 20%... 30%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:13 [32m][24;51H[0m... 40%... 50%... 60%... 70%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:14 [32m][24;79H[0m..
+[23;80H.. 80%... 90%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:15 [32m][24;13H[0m... 100%
+Making the system bootable  ... 33%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:16 [32m][24;36H[0m... 66%... 100%
+Finishing the installation  ... 12%... 20%... 33%[H[7m[m[32m[40m[           [37m[31m ([37m1*installer[31m)[37m  2 shell  3 shell  4- log           [32m][[34m Jan 01 [37m 0:17 [32m][24;50H[0m... 41%
+Finish the installation
+-----------------------
+Installation complete
+Installation is complete, so it is time to boot into your new system. Make sure
+to remove the installation media, so that you boot into the new system rather 
+than restarting the installation.
+[Press enter to continue] 
+... 50%... 62%... 70%... 83%... 91%
+The system is going down NOW!
+Sent SIGKILL to all processes
+Requesting system reboot
+[ 1074.893325] reboot: Restarting system
+    

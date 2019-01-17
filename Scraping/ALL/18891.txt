@@ -1,0 +1,197 @@
+To : debian-devel@lists.debian.org
+Subject : Building Debian packages in CI (ick)
+From : Lars Wirzenius <liw@liw.fi>
+Date : Thu, 19 Jul 2018 19:06:55 +0300
+Message-id : 20180719160655.GA7307@exolobe3.liw.fi
+
+
+I've recently made the first release of ick, my CI engine
+(https://ick.liw.fi/), which was built by ick itself. It went OK, but
+the process needs improvement. This mail has some pondering on how
+the process of building Debian packages should happen in the best
+possible taste.
+I'd appreciate feedback on these thoughts. (This email is a big long,
+but I've published the same thing on my blog, if that's easier to
+read:
+https://blog.liw.fi/posts/2018/07/19/building_debian_packages_in_ci_ick/)
+# Context
+I develop a number of (fairly small) programs, as a hobby. Some of
+them I also maintain as packages in Debian. All of them I publish as
+Debian packages in my own APT repository. I want to make the process
+for making a release of any of my programs as easy and automated as
+possible, and that includes building Debian packages and uploading
+them to my personal APT repository, and to Debian itself.
+My personal APT repository contains builds of my programs against
+several Debian releases, because I want people to have the latest
+version of my stuff regardless of what version of Debian they run.
+(This is somewhat similar to what OEMs that provide packages of their
+own software as Debian packages need to do. I think. I'm not an OEM
+and I'm extrapolating wildly here.)
+I currently don't provide packages for anything but Debian. That's
+mostly because Debian is the only Linux distribution I know well, or
+use, or know how to make packages for. I could do Ubuntu builds fairly
+easily, but supporting Fedora, RHEL, Suse, Arch, Gentoo, etc, is not
+something I have the energy for at this time. I would appreciate help
+in doing that, however.
+I currently don't provide Debian packages for anything other than the
+AMD64 (x86-64, "Intel 64-bit") architecture. I've previously provided
+packages for i386 (x86-32), and may in the future want to provide
+packages for other architectures (RISC-V, various Arm variants, and
+possibly more). I want to keep this in mind for this discussion.
+# Overview
+For the context of this email, let's assume I have a project Foo. Its
+source code is stored in `foo.git`. When I make a release, I tag it
+using a signed git tag. From this tag, I want to build several things:
+* A **release tarball**. I will publish and archive this. I don't
+  trust git, and related tools (tar, compression programs, etc) to be
+  able to reproducibly produce the same bit-by-bit compressed tarball
+  in perpetuity. There's too many things that can go wrong. For
+  security reasons it's important to be able to have the exact same
+  tarball in the future as today. The simplest way to achive this is
+  to not try to reproduce, but to archive.
+* A **Debian source package**.
+* A **Debian binary package** built for each target version of Debian,
+  and each target hardware architecture (CPU, ABI, possibly toolchain
+  version). The binary package should be built from the source
+  package, because otherwise we don't know the source package can be
+  built.
+The release tarball should be put in a (public) archive. A digital
+signature using my personal PGP key should also be provided.
+The Debian source and binary packages should be uploaded to one or
+more APT repositories: my personal one, and selected packages also the
+Debian one. For uploading to Debian, the packages will need to be
+signed with my personal PGP key.
+(I am not going to give my CI access to my PGP key. Anything that
+needs to be signed with my own PGP key needs to be a manual step.)
+## Package versioning
+In Debian, packages are uploaded to the "unstable" section of the
+package archive, and then automatically copied into the "testing"
+section, and from there to the "stable" section, unless there are
+problems in a specific version of a package. Thus all binary packages
+are built against unstable, using versions of build dependencies in
+unstable. The process of copying via testing to stable can take years,
+and is a core part of how Debian achieves quality in its releases.
+(This is simplified and skips consideration like security updates and
+other updates directly to stable, which bypass unstable. These details
+are not relevant to this discussion, I think.)
+In my personal APT repository, no such copying takes place. A package
+built for unstable does not get copied into section with packages
+built for a released version of Debian, when Debian makes a release.
+Thus, for my personal APT repository, there may be several builds of
+the any one version of Foo available. 
+* foo 1.2, built for unstable
+* foo 1.2, built for Debian 9
+* foo 1.2, built for Debian 8
+In the future, that list may be expanded by having builds for several
+architectures:
+* foo 1.2, built for unstable, on amd64
+* foo 1.2, built for Debian 9, on amd64
+* foo 1.2, built for Debian 8, on amd64
+* foo 1.2, built for unstable, on riscv
+* foo 1.2, built for Debian 9, on riscv
+* foo 1.2, built for Debian 8, on riscv
+When I or my users upgrade our Debian hosts, say from Debian 8 to
+Debian 9, any packges from my personal APT archive should be updated
+accordingly. When I upgrade a host running Debian 8, with foo 1.2
+built for Debian 8, gets upgraded to Debian 9, foo should be upgraded
+to the version of 1.2 built for Debian 9.
+Because the Debian package manager works on combinations of package
+name and package version, that means that the version built for Debian
+8 should have a different, and lesser, version than the one built for
+Debian 9, even if the source code is identical except for the version
+number. The easiest way to achieve this is probably to build a
+different source package for each target Debian release. That source
+package has no other differences than the debian/changelog entry with
+a new version number, so it doesn't necessarily need to be stored
+persistently.
+(This is effectively what Debians "binary NMU" uploads do: use the
+same source package version, but do a build varying only the version
+number. Debian does this, among other reasons, to force a re-build of
+a package using a new version of a build depenency, for which it is
+unnecessary to do a whole new sourceful upload. For my CI build
+purposes, it may be useful to have a new source package, for cases
+where there are other changes than the source package. This will need
+further thought and research.)
+Thus, I need to produce the following source and binary packages:
+* `foo_1.2-1.dsc` &mdash; source package for unstable
+* `foo_1.2-1.orig.tar.xz` &mdash; upstream tarball
+* `foo_1.2-1.debian.tar.xz` &mdash; Debian packaging and changes
+* `foo_1.2-1_amd64.deb` &mdash; binary package for unstable, amd64
+* `foo_1.2-1_riscv.deb` &mdash; binary package for unstable, riscv
+* `foo_1.2-1~debian8.dsc` &mdash; source package for Debian 8
+* `foo_1.2-1~debian8.debian.tar.xz` &mdash; Debian packaging and changes
+* `foo_1.2-1~debian8_amd64.deb` &mdash; binary package for Debian 8, amd64
+* `foo_1.2-1~debian8_riscv.deb` &mdash; binary package for Debian 8, riscv
+* `foo_1.2-1~debian9.dsc` &mdash; source package for Debian 9
+* `foo_1.2-1~debian9.debian.tar.xz` &mdash; Debian packaging and changes
+* `foo_1.2-1~debian9_amd64.deb` &mdash; binary package for Debian 9, amd64
+* `foo_1.2-1~debian9_riscv.deb` &mdash; binary package for Debian 9, riscv
+The `orig.tar.xz` file is a bit-by-bit copy of the upstream release
+tarball. The `debian.tar.xz` files have the Debian packaging files,
+plus any Debian specific changes. (For simplicity, I'm assuming a
+specific Debian source package format. The actual list of files may
+vary, but the `.dsc` file is crucial, and references the other files
+in the source package. Again, these details don't really matter for
+this discussion.)
+To upload to Debian, I would upload the `foo_1.2-1.dsc` source package
+from the list above, after downloading the files and signing them with
+my PGP key. To upload to my personal APT repository, I would upload
+all of them.
+# Where should Debian packaging be stored in version control?
+There seems to be no strong consensus in Debian about where the
+packaging files (the debian/ subdirectory and its contents) should be
+stored in version control. Several approaches are common. The examples
+below use git as the version control system, as it's clearly the most
+common one now.
+* The "upstream does the packaging" approach: upstream's `foo.git`
+  also contains the Debian packaging. Packages are built using that.
+  This seems to be especially common for programs, where upstream and
+  the Debian package maintainer are the same entity. That's also the
+  OEM model.
+* The "clone upstream and add packaging" approach: the Debian package
+  maintainer clonse the upstream repository, and adds the packaging
+  files in a separate branch. When upstream makes a release, the
+  master branch in the packaging repository is updated to match the
+  upstream's master branch, and the packaging branch is rebased on top
+  of that.
+* The "keep it separate" approach: the Debian packager puts the
+  packaging files in their own repository, and the source tree is
+  constructed from botht the upstream repository and the packaging
+  repository.
+For my own use, I prefer the "upstream does packaging" approach, as
+it's the least amount of friction for me. For ick, I want to support
+any approach.
+There are various tools for maintaining package source in git (e.g.,
+dgit and git-buildpackage), but those seem to not be relevant to this
+mail, so I'm not discussing them in any detail.
+# The build process
+Everything starts from a signed git tag in the `foo.git` plus
+additional tags in any packaging repository. The tags are made by the
+upstream developers and Debian package maintainers. CI will notice the
+new tag, and build a release from that.
+* Create the upstream tarball (`foo-1.2.tar.gz`).
+* Manully download and sign the upstream tarball with PGP.
+* Manully publish the upstream tarball and its signature in a suitable
+  place.
+* Create the Debian source package for unstable (`foo_1.2-1.dsc`),
+  using a copy of the upstream tarball, renamed.
+* Using the Debian source package, build a Debian binary package for
+  unstable for each target architecture (`foo_1.2-1_amd64.deb` etc).
+* For each target Debian release other than unstable, create a new
+  source package by unpacking the source package for unstable, and
+  adding a `debian/changelog` entry with `~debianN` appended to the
+  version number. If there is a need, make any additional Debian
+  release specific changes to the source package.
+* Build each of those source packages for each target architecture, in
+  a build environment with the target Debian release.
+  (`foo_1.2-1~debianN_amd64.deb` etc).
+* Upload all the Debian source and binary packages to an APT
+  repository that allows upload by CI. Have that APT repository sign
+  the resulting Packages file with its own PGP key.
+* Manully download the Debian packages and sign the unstable build to
+  Debian, and upload it to Debian. (Source package only, except in
+  cases where the binary package also needs to be uploaded, such as
+  for new packages.)
+-- 
+I want to build worthwhile things that might last. --joeyh
+signature.asc

@@ -1,0 +1,65 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Christian Seiler <christian@iwakd.de>
+Date : Tue, 25 Apr 2017 20:52:22 +0200
+Message-id : 1f42bbac-a3fb-b016-b9fc-e994ea39663c@iwakd.de
+In-reply-to : <[🔎] 20170425175922.zi5cifef5ub7aohh@grep.be>
+References : <[🔎] 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net> <[🔎] 20170423190041.x6slcy7vpaqw245z@grep.be> <[🔎] 20170424091748.umfoto7lrjiumvqb@bongo.bofh.it> <[🔎] 20170425175922.zi5cifef5ub7aohh@grep.be>
+
+
+On 04/25/2017 07:59 PM, Wouter Verhelst wrote:
+> In my experience as a user of some of those packages, it is intensely
+> annoying that a package upgrade suddenly changes some behaviour in ways
+> that I dislike and it's difficult to figure out what changed, because
+> the configuration is not in /etc.
+But this is a much more general problem. A lot of software in Debian
+ships configuration files in /etc that look like this:
+#
+# Setting ABC
+#
+#ABC = 123
+Where 123 is the default value (in the code of the application), and
+in the version of the configuration file there isn't even a single line
+that isn't a comment or blank.
+Or they install a config file that only contains 3 settings or so, and
+the user would have to manually add all the other 60 settings the
+software supports if they wanted to change them.
+If in any of these cases the default in the code changes, the behavior
+of the software changes. Granted, in the first case you might be able
+to figure that out if the developers of the software thought to also
+update the comments in the config file - but if the software ships
+multiple configuration files and the change was in a file you didn't
+touch, dpkg will upgrade that file anyway.
+Furthermore there are also behavioral changes in software that are not
+encoded in configuration, but rather just in code.
+And finally, sometimes you don't even configure things, because you're
+happy with the defaults, and _then_ a default changes.
+So in practice I don't see that as being that big of a benefit here.
+In my experience, having to merge configuration files on updates
+has cost me a _lot_ of time. At the same time I can't recall a single
+instance in the last couple of years where the default behavior of an
+application I used changed and I really wanted to revert that via
+configuration. [1] I'm sure it has happened occasionally, but nothing
+that stuck to my mind.
+Personally, from a user point of view  I really like the "vendor
+defaults in /usr, user configuration in /etc" scheme. If I look at
+current /etc, 99% of the stuff in there is stuff I've never ever
+configured or even looked at. I rather like the vision of /etc being
+a directory where just my local changes to the system configuration
+are stored. Maybe that's influenced by the way I see conffile
+handling: I consider dpkg's default behavior to be horrible (no copy
+of the original is saved anywhere, so no 3-way merge is
+possible [2]), I never completely grokked ucf as a user (I stumbled
+upon ucf prompts on updates of some packages that used it, and only
+once it actually did manage to do what I wanted automatically, the
+other times I found the way you could manually intervene in the
+merging process there to be highly unintuitive), and I gave up on
+trying to understand ucf from a package maintainer's perspective a
+long time ago.
+Regards,
+Christian
+[1] I do recall behavior changing for the worse without a
+    configuration possibility to revert that though. There's a
+    reason I packaged gtk3-nocsd. ;-)
+[2] Don't get me wrong: I consider RPM's behavior to be worse than
+    dpkg's, but that doesn't mean I have to like either one.

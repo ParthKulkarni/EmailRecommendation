@@ -1,0 +1,42 @@
+To : "debian-devel@lists.debian.org" <debian-devel@lists.debian.org>, debian-polist@lists.debian.org
+Subject : Extension of Built-Using:
+From : Alastair McKinstry <mckinstry@debian.org>
+Date : Wed, 12 Dec 2018 15:12:21 +0000
+Message-id : 41529622-43c7-1ea8-2716-8b22acae17b7@debian.org
+
+
+Hi,
+I've been looking at using the "Built-Using" tag for dh-fortran-mod.
+dh-fortran-mod is a debhelper extension for handling Fortran "mod" files 
+(based on an original idea from Sebastian Villemont).
+These mod files are effectively pre-compiled header files, in C/C++ 
+terms; normally stored in /usr/include, or something like it. I've been 
+adding  a new Fortran compiler ("flang", based on LLVM) which is in the 
+NEW queue which is part of the driver for this. The trouble is that 
+"mod" files are compiler-specific, and even version of 
+compiler-specific. So when we moved from gfortran-7 to gfortran-8, the 
+'mod' files were incompatible and needed to be rebuilt. Similarly, 
+flangs mod files are incompatible.
+(1)Adds a dependency / track on which compiler was used, to enable 
+tracking for transitions.
+(2) Puts the mod files in $fmoddir  where the compiler will get them, 
+allowing co-installation of incompatible files.
+(e.g. $fmoddir = /usr/lib/$multiarch/fortran/$fortran-mod-version, by 
+default).
+(1) Is the issue today. My initial plan was to add eg. 'gfortran-mod-15' 
+to ${misc:Depends}. The trouble is, this adds a compiler dependency to a 
+package that is unnecessary - some packages have a Fortran interface 
+that has marginal numbers of users; most use the C/C++ interfaces. So, 
+plan B was to use Built-Using, as in:
+The difficulty here is that Policy 7.8 requires that Built-Using: is 
+only used for source package tracking. This is then enforced on the 
+upload package checking which rejects such packages (because gfortran-8 
+is not a source package; gcc-8 is the source package, but this mostly 
+misses the point).
+So, can Built-Using: be safely extended to use this case, and the 
+package checking relaxed ?
+best regards
+Alastair
+--
+Alastair McKinstry, <alastair@sceal.ie>, <mckinstry@debian.org>, https://diaspora.sceal.ie/u/amckinstry
+Misentropy: doubting that the Universe is becoming more disordered.

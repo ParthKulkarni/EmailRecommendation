@@ -1,0 +1,60 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Moving away from (unsupportable) FusionForge on Alioth?
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Sun, 14 May 2017 22:50:20 +0100
+Message-id : 1494798620.29474.25.camel@decadent.org.uk
+In-reply-to : <[🔎] 8d8884fb-feba-2238-2dcd-08570c0774c2@riseup.net>
+References : <[🔎] 2427425.7kBbIdvgt6@hosiet-tp>	 <[🔎] 20170514174934.sgji2yc3nzkfzp7y@iris.silentflame.com>	 <[🔎] 1494795966.29474.22.camel@decadent.org.uk>	 <[🔎] 8d8884fb-feba-2238-2dcd-08570c0774c2@riseup.net>
+
+
+On Sun, 2017-05-14 at 23:26 +0200, Zlatan Todoric wrote:
+> 
+> On 05/14/2017 11:06 PM, Ben Hutchings wrote:
+> > 
+> > Here's a tally of live packaging repositories hosted on Alioth, based
+> > on Vcs fields for sources in unstable:
+> > 
+> > $ for type in arch bzr cvs darcs git hg mtn svn; do
+> > >     printf '%s: ' $type
+> > >     grep-dctrl -FVcs-$type -sPackage 'debian.org' /var/lib/apt/lists/httpredir.debian.org_debian_dists_unstable_*_Sources \
+> > >     | wc -l
+> > > done \
+> > > | sort -k2 -nr
+> > 
+> > git: 18907
+> > svn: 2377
+> > bzr: 71
+> > hg: 27
+> > darcs: 22
+> > arch: 7
+> > cvs: 2
+> > mtn: 0
+> > 
+> > It looks like git hosting would cover ~90% and git+svn would cover
+> > >99%.
+> 
+> Or convert svn ones to git and simplify things?
+That's not easy to do in general, as svn doesn't require you to label
+which parts of the directory hierarchy are tags or branches... or to
+separate independent projects.  There are conventions that make it
+easier to guess, but:
+- Not everything follows them
+- Repositories can be reorganised so that branches move between
+directories
+- It's entirely possible to copy to from the wrong directory level when
+tagging, which results in nonsensical history even if you revert the
+change
+Here's what it took for the kernel svn repository:
+https://anonscm.debian.org/cgit/kernel/d-k-conversion.git/tree/kernel.rules
+But svn2git still couldn't handle everything, so we needed a lot of
+post-processing in this script too:
+https://anonscm.debian.org/cgit/kernel/d-k-conversion.git/tree/convert.sh
+I suspect this was one of the messier repositories, but I'm also sure
+it's not the only one that could not be handled automatically.
+Ben.
+-- 
+Ben Hutchings
+Life is what happens to you while you're busy making other plans.
+                                                               - John
+Lennon
+signature.asc

@@ -1,0 +1,69 @@
+To : 875989@bugs.debian.org
+Subject : Bug#875989: console-setup: generated cached_setup_keyboard.sh references /tmp/ file
+From : OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
+Date : Tue, 28 Nov 2017 15:23:20 +0900
+Message-id : 87vahuq5uv.fsf@mail.parknet.co.jp
+Reply-to : OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 875989@bugs.debian.org
+References : <20170917001512.5ufczparcaqvxxsw@fortress.battleship>
+
+
+Hi,
+I got same issue with this bug, and checked the details of bug.
+  # stat /etc/console-setup/cached_ISO-8859-1_del.kmap.gz 
+    File: /etc/console-setup/cached_ISO-8859-1_del.kmap.gz
+    Size: 4793      	Blocks: 16         IO Block: 4096   regular file
+  Device: 801h/2049d	Inode: 18350479    Links: 1
+  Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+  Access: 2017-01-29 19:32:33.001665826 +0900
+  Modify: 2017-11-28 14:10:18.621974890 +0900
+  Change: 2017-11-28 14:10:18.621974890 +0900
+   Birth: -
+  # stat /etc/default/console-setup 
+    File: /etc/default/console-setup
+    Size: 281       	Blocks: 8          IO Block: 4096   regular file
+  Device: 801h/2049d	Inode: 18350186    Links: 1
+  Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+  Access: 2017-11-28 14:10:18.009968364 +0900
+  Modify: 2017-11-28 14:10:18.005968321 +0900
+  Change: 2017-11-28 14:10:18.005968321 +0900
+   Birth: -
+Here is timestamps of some of affected files. Like above, FS is using
+nanoseconds timestamp, and cached is newer than config file
+(/etc/default/console-setup) as expected.
+But the issue in bash,
+  # if [ /etc/default/console-setup -ot /etc/console-setup/cached_ISO-8859-1_del.kmap.gz ]; then echo yes; else echo no; fi
+  no
+On debian, bash is not compiled with nanoseconds support (this seems be
+the bug of bash). So, if same timestamp in seconds resolution, setupcon
+confuses like the following log.
+  + '[' -z '' -a -f /etc/console-setup/cached_ISO-8859-1_del.kmap.gz ']'
+  + '[' /etc/default/keyboard -ot /etc/console-setup/cached_ISO-8859-1_del.kmap.gz -a /etc/default/console-setup -ot /etc/console-setup/cached_ISO-8859-1_del.kmap .gz ']'
+  + '[' '' ']'
+  + tempfile
+  ++ mktemp /tmp/tmpkbd.XXXXXX
+  + TMPFILE=/tmp/tmpkbd.kmP7z9
+  + tempfiles=' /tmp/tmpkbd.kmP7z9'
+So, my suggestion to fix this bug, choose the cached file if same
+timestamp, not only older. With this patch, seems to be working as
+expected in my case (if console-setup and cached_* was updated within
+same second).
+Thanks.
+--- setupcon~	2017-11-28 14:33:16.030927321 +0900
++++ setupcon	2017-11-28 15:05:46.735112236 +0900
+@@ -1121,9 +1121,12 @@ if [ "$do_kbd" = linux ]; then
+     fi
+ fi
+ 
++# If timestamp is same, use cached
+ if \
+-    [ -z "$KMAP" -a -f "$cached" ] \
+-    && [ "$CONFIG" -ot "$cached" -a "$CONFIG2" -ot "$cached" ]
++    [ -z "$KMAP" ] \
++	&& [ -f "$cached" ] \
++	&& [ ! "$cached" -ot "$CONFIG" ] \
++	&& [ ! "$cached" -ot "$CONFIG2" ]
+ then
+     KMAP="$cached"
+ fi
+-- 
+OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>

@@ -1,0 +1,126 @@
+To : Stefan Berzl <stefanberzl@gmail.com>, 879987@bugs.debian.org
+Subject : Bug#879987: Netboot installation report for Banana Pi M3
+From : Karsten Merker <merker@debian.org>
+Date : Sat, 28 Oct 2017 09:17:08 +0200
+Message-id : 20171028071708.qnatvm2lw66ilwvi@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 879987@bugs.debian.org
+In-reply-to : <[🔎] 6e24d7cd-9127-041c-bdaf-bc36b17b3195@gmail.com>
+References : <[🔎] 6e24d7cd-9127-041c-bdaf-bc36b17b3195@gmail.com> <[🔎] 6e24d7cd-9127-041c-bdaf-bc36b17b3195@gmail.com>
+
+
+On Sat, Oct 28, 2017 at 06:03:47AM +0200, Stefan Berzl wrote:
+> Package: installation-reports
+> 
+> Boot method: Put the files on an SD card an manually loaded them in u-boot
+> Image version: http://ftp.nl.debian.org/debian/dists/sid/main/installer-armhf/current/images/netboot/
+>   At the time of dowloading the image, the time column says "20:48 19-09-17".
+> Date: 28-10-17
+> 
+> Machine: Banana Pi M3 (https://linux-sunxi.org/Banana_Pi_M3)
+> Processor: A83T
+> Memory: 2GiB LPDDR3 @ 672 MHz
+> Partitions: Never got past the initramfs, so here's df of that (the busybox
+>   version of df doesn't support -Tl)
+> 
+>   Filesystem           1K-blocks      Used Available Use% Mounted on
+>   none                    207052        48    207004   0% /run
+>   devtmpfs               1024196         0   1024196   0% /dev
+> 
+> Base System Installation Checklist:
+> Initial boot:           [E]
+> 
+> Comments/Problems:
+> My u-boot is the master branch on 33fe271278 from Thu Oct 26 21:24:31 2017
+> +0900 hosted https://github.com/u-boot/u-boot.git
+> 
+> The linux kernel I used is master on 15f859ae5c43 from
+> Thu Oct 26 23:04:14 2017 +0200
+> hosted git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+> 
+> The procedure is simple enough and doesn't differ too much from the tutorial
+> on https://www.debian.org/releases/jessie/armhf/ch05s01.html.en
+> Since u-boot has support for my device, creating the correct u-boot config
+> could be achieved with make Sinovoip_BPI_M3_defconfig
+> Putting the u-boot spl to the correct offset for me device is
+>   dd if=u-boot-sunxi-with-spl.bin of=/dev/${card} bs=1024 seek=8
+> 
+> Then I formatted the SD card to contain one ext4 partition from sector 2048
+> to the end of the card. It's 32 GB Samsung EVO Plus card. On the filesystem
+> I put the vmlinuz and the initrd.gz that I got from the netboot installer I
+> downloaded. Since there's no device tree for my device, I compiled
+> a linux kernel with
+>   make sunxi_defconfig
+> and put the device tree which is located in
+>   arch/arm/boot/dts/sun8i-a83t-bananapi-m3.dtb
+> on the SD card also.
+> 
+> Putting the SD card in my device, I navigated the interface with uart. 
+> Since u-boot supports the Banana Pi M3, certain variables are predefined. 
+> This includes the kernel address (kernel_addr_r), the device tree address
+> (fdt_addr_r) and the ramdisk address (ramdisk_addr_r).  ${filesize} on the
+> other hand is automatically set for the file loaded last, so we have to
+> load the ramdisk last.  The sd card slot on the Banana Pi M3 is "mmc 0".
+> 
+>   => load mmc 0 ${kernel_addr_r} ${path_on_your_fs}/vmlinuz
+>   => load mmc 0 ${fdt_addr_r} ${path_on_your_fs}/sun8i-a83t-bananapi-m3.dtb
+>   => load mmc 0 ${ramdisk_addr_r} ${path_on_your_fs}/initrd.gz
+>   => setenv bootargs console=ttyS0,115200 rootwait panic=10
+>   => bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+> 
+> After this sequence of inputs, I got
+> 
+>   ## Flattened Device Tree blob at 43000000
+>      Booting using the fdt blob at 0x43000000
+>      Loading Ramdisk to 48b66000, end 49fff009 ... OK
+>      Loading Device Tree to 48b60000, end 48b65673 ... OK
+> 
+>   Starting kernel ...
+> 
+> Nothing more happend, waiting several minutes. I suppose CONFIG_DEBUG_LL
+> wasn't on in the vmlinuz I got, otherwise I might have received error messages.
+>
+> Not wanting to give up just then, I tried the zImage of the kernel I had
+> compiled to get the device tree for my device. So only initrd.gz was from
+> the debian site at this point, as vmlinuz and the device tree where
+> self-compiled.
+> 
+> To my surprise, it actually worked and I was greeted with the installer
+> interface. Later the installer asked me for the ethernet driver, which I
+> couldn't find in the list. It's dwmac-sun8i.ko, which is included in the
+> kernel by CONFIG_DWMAC_SUN8I It's short description is
+> 
+>   Support for Allwinner H3 A83T A64 EMAC ethernet controllers
+> 
+> Extracting the initrd.gz afterwards, I found that it really wasn't included.
+> 
+> I didn't pursue the issue further, but maybe with slight changes to the
+> kernel config, the debian installer could be used on this device.
+Hello,
+many thanks for your installation report.  Our current Debian installer
+builds are based on kernel 4.13, but both the device-tree for the
+Banana Pi M3 as well as a number of drivers that are necessary for
+supporting A83T-based systems are only available from kernel 4.14
+onwards.  Among the latter are support for the MMC controller in the
+A83T as well as support for RSB (required for PMIC support), the PMIC
+support itself, and USB support.
+The situation with the H3/A64/A83T EMAC driver is a bit unfortunate. 
+The driver itself was included during the kernel 4.13 development
+cycle, but as some issues with the devicetree bindings for the driver
+have come up, they have been removed again before the final release of
+kernel 4.13 and the discussion about how to handle this properly are
+still ongoing.  The driver author has sent in a new proposal a few days
+ago, but the proposed changes haven't yet been accepted into the
+upstream kernel and it is still unclear whether they will make it into
+kernel 4.14, so for the time being, the driver is still unusable.
+I am unsure regarding the missing console output without
+CONFIG_DEBUG_LL.  In theory the existing UART driver for older
+Allwinner SoCs should work on the A83T as well.  Could you perhaps
+provide the output of "dmesg" on your board when booted with your
+locally-built kernel with CONFIG_DEBUG_LL enabled?  Perhaps we can see
+something relevant in the kernel log.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

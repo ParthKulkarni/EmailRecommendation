@@ -1,0 +1,36 @@
+To : 864525@bugs.debian.org
+Subject : Bug#864525: [PATCH 1/1] functions: copy files if linking is not possible
+From : Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date : Sat, 10 Jun 2017 00:12:40 +0200
+Message-id : 20170609221240.2302-1-xypron.glpk@gmx.de
+Reply-to : Heinrich Schuchardt <xypron.glpk@gmx.de>, 864525@bugs.debian.org
+
+
+The FAT32 does not allow to create symbolic links.
+So we should try to copy if symbolic linking fails.
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ functions | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+diff --git a/functions b/functions
+index 76f57f0..622a89a 100644
+--- a/functions
++++ b/functions
+@@ -635,11 +635,13 @@ handle_dtb() {
+ 		# dtb-$kvers, keep it around as an alternative
+ 		# for now. Useful for platforms which do not
+ 		# set ${fdtfile}
+-		ln -nfs "dtbs/$kvers/$dtb_name" "/boot/dtb-$kvers"
++		ln -nfs "dtbs/$kvers/$dtb_name" "/boot/dtb-$kvers" || \
++		cp -f "/boot/dtbs/$kvers/$dtb_name" "/boot/dtb-$kvers"
+ 
+ 		# This can be used along with the unversioned
+ 		# vmlinuz+initrd.gz e.g. as a fallback option
+-		ln -nfs "dtbs/$kvers/$dtb_name" "/boot/dtb"
++		ln -nfs "dtbs/$kvers/$dtb_name" "/boot/dtb" || \
++		cp -f "/boot/dtbs/$kvers/$dtb_name" "/boot/dtb"
+ 	fi
+ }
+ 
+-- 
+2.11.0

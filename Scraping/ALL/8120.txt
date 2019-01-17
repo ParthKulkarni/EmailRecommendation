@@ -1,0 +1,48 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#911169: console-setup: can vidcontrol and kbdcontrol depends be removed for non-kfreebsd archs?
+From : Holger Wansing <hwansing@mailbox.org>
+Date : Tue, 16 Oct 2018 19:43:24 +0200
+Message-id : 20181016194324.09ec9958fc0c23643e58329c@mailbox.org
+Reply-to : Holger Wansing <hwansing@mailbox.org>, 911169@bugs.debian.org
+In-reply-to : <20180830191243.9a050b84062749543c7028e9@wansing-online.de>
+
+
+Package: console-setup
+Severity: wishlist
+Holger Wansing <linux@wansing-online.de> wrote:
+> Holger Wansing <hwansing@mailbox.org> wrote:
+> > I noticed that the latest upload of console-setup fails to
+> > migrate to testing.
+> > It claims being "uninstallable on amd64", while
+> > https://buildd.debian.org/status/fetch.php?pkg=console-setup&arch=all&ver=1.185&stamp=1534275854&raw=0
+> > says that the build was successful.
+> > 
+> > How can I find out what is wrong here?
+> 
+> Hmm, at the 15. day it migrated to testing now, while I cannot see that 
+> something has changed.
+console-setup needs several attempts everytime, 'til it migrates.
+The point is, that autopkgtest claims about unmet dependencies for all
+archs (packages vidcontrol and kbdcontrol being unavailable).
+However, these packages are only existing for kfreebsd.
+Why does console-setup depend on it on all archs?
+Can the control file be changed for console-setup-freebsd as below?
+  Package: console-setup-freebsd
+  Section: utils
+  Priority: optional
+  Architecture: all
+  Multi-Arch: foreign
+- Depends: vidcontrol, kbdcontrol, keyboard-configuration (= ${source:Version}), ${misc:Depends}, init-system-helpers (>= 1.29~) | initscripts
++ Depends: vidcontrol [kfreebsd-any], kbdcontrol [kfreebsd-any], keyboard-configuration (= ${source:Version}), ${misc:Depends}, init-system-helpers (>= 1.29~) | initscripts
+  Suggests: console-setup
+  Conflicts: console-setup-linux
+  Breaks: console-setup (<< 1.71)
+  Replaces: console-setup (<< 1.71)
+  Description: FreeBSD specific part of console-setup
+   This package includes raw, uuencoded fonts and various screen maps.
+console-setup-freebsd is not needed on archs other than kfreebsd, I suspect?
+Or am I missing something?
+Holger
+-- 
+Holger Wansing <hwansing@mailbox.org>
+PGP-Finterprint: 496A C6E8 1442 4B34 8508  3529 59F1 87CA 156E B076

@@ -1,0 +1,46 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#903657: debootstrap checks for existence of wget on --second-stage, breaking --foreign bootstraps
+From : Alex Bennée <alex.bennee@linaro.org>
+Date : Thu, 12 Jul 2018 16:35:57 +0100
+Message-id : 153140975725.20653.5397245402265984987.reportbug@zen.linaro.local
+Reply-to : Alex Bennée <alex.bennee@linaro.org>, 903657@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.95ubuntu0.1
+Severity: important
+Dear Maintainer,
+QEMU's build system has support for debootstrap using binfmt_misc and
+QEMU's linux-user emulation. Since commit 9a6ebf628 this is broken as
+it checks for the presence of wget which isn't available in the
+second-stage environment.
+If the user is doing a --second-stage it shouldn't matter that wget is
+missing as all the packages have already been downloaded on the host
+system.
+For reference the wrapper script is:
+  https://git.qemu.org/?p=qemu.git;a=blob;f=tests/docker/dockerfiles/debian-bootstrap.pre;h=56e1aa7a21418437b5b0fbaf473a8686338d9014;hb=cee35138b59c6d6b0808c5fa644e3f063832860f
+And you should be able to debootstrap on QEMU's master with a line
+like:
+  make docker-binfmt-image-debian-ubuntu-xenial-arm64 DEB_ARCH=arm64 \
+    DEB_TYPE=xenial DEB_URL=http://ports.ubuntu.com EXECUTABLE=./aarch64-linux-user/qemu-aarch64~
+There is also a bug in QEMU's own script which means it always falls
+back to the SCM version of debootstrap, but that is mine to fix ;-)
+-- System Information:
+Debian Release: buster/sid
+  APT prefers bionic-updates
+  APT policy: (500, 'bionic-updates'), (500, 'bionic-security'), (500, 'bionic')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386, arm64, armhf
+Kernel: Linux 4.15.0-24-generic (SMP w/8 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8) (ignored: LC_ALL set to en_GB.UTF-8), LANGUAGE=en_GB.UTF-8 (charmap=UTF-8) (ignored: LC_ALL set to en_GB.UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled
+Versions of packages debootstrap depends on:
+ii  wget  1.19.4-1ubuntu2.1
+Versions of packages debootstrap recommends:
+ii  gnupg           2.2.4-1ubuntu1.1
+ii  ubuntu-keyring  2018.02.28
+Versions of packages debootstrap suggests:
+pn  ubuntu-archive-keyring  <none>
+-- no debconf information

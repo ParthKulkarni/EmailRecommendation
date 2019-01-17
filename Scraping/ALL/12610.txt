@@ -1,0 +1,57 @@
+To : debian-devel@lists.debian.org
+Subject : Re: MBF: Multi-Arch: same violations
+From : Aurelien Jarno <aurelien@aurel32.net>
+Date : Mon, 28 Aug 2017 19:20:21 +0200
+Message-id : 20170828172021.74zq7dhf7cblvoxo@aurel32.net
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170828071451.nfvwtmysnam4uqjm@alf.mars>
+References : <[🔎] 20170828071451.nfvwtmysnam4uqjm@alf.mars>
+
+
+On 2017-08-28 09:14, Helmut Grohne wrote:
+> Hi,
+> 
+> I analyzed file conflicts in binary packages marked Multi-Arch: same. To
+> do that, I created a branch of https://dedup.debian.net/ specifically
+> for analyzing multiarchy features of packages. The resulting issues are
+> fed into tracker.d.o already, but little happens about them. File
+> conflicts in Multi-Arch: same packages are particularly annoying,
+> because they result in unpack errors and leave the system in a broken
+> state. We typically file bugs of severity serious for unpack errors, but
+> for multiarchy issues we tend to reduce that to important.
+> 
+> I attempted to reproduce all file conflicts using "apt-get install
+> pkg:arch1 pkg:arch2" in a clean sid chroot. I am only reporting those
+> that actually result in unpack errors.
+> 
+> Attached to this mail you can find a file "fail" with four columns:
+>  * a binary package name
+>  * a release architecture
+>  * a different release architecture
+>  * optionally an existing bug number
+> 
+> For each combination "apt-get install $1:$2 $1:$3" fails with an unpack
+> error. The corresponding dd-list is attached as well. Some bugs are
+> already filed (mostly by Jakub Wilk, thanks!), but still included in
+> both lists. Where the fourth column is non-empty, I won't file a new
+> bug.
+> 
+> Here is the bug template:
+> 
+> v v v v v
+> Package: $1
+> Severity: important
+> User: multiarch-devel@lists.alioth.debian.org
+> Usertags: multiarch
+> 
+> $1 is marked Multi-Arch: same, but fails to coinstall with itself on $2
+> and $3. You can find a failing installation log attached. Please
+> consider removing the Multi-Arch: same header or declaring the relevant
+> architecture-qualified Conflicts.
+> ^ ^ ^ ^ ^
+architecture-qualified self-conflicts is not something supported. See
+bug #747261. This makes somehow difficult to fix this kind of bugs.
+Aurelien
+-- 
+Aurelien Jarno                          GPG: 4096R/1DDD8C9B
+aurelien@aurel32.net                 http://www.aurel32.net

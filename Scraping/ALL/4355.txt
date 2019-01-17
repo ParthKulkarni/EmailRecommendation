@@ -1,0 +1,1231 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#860809: installation-reports: ipv6 SLAAC autoconf not working with stretch's network install
+From : Frederic Bonnard <frediz@linux.vnet.ibm.com>
+Date : Thu, 20 Apr 2017 14:03:13 +0200
+Message-id : 20170420140313.GD24749@kin.test.toulouse-stg.fr.ibm.com
+Reply-to : Frederic Bonnard <frediz@linux.vnet.ibm.com>, 860809@bugs.debian.org
+References : 
+
+
+Package: installation-reports
+Severity: normal
+-- Package-specific info:
+Package: installation-reports
+Boot method: "kexec -l vmlinux -i initrd.gz -e" from petitboot shell
+Image version: http://ftp.nl.debian.org/debian/dists/testing/main/installer-ppc64el/current/images/netboot/debian-installer/ppc64el/
+Date: 2017 Apr 20 08:04:33
+Machine: Power9 Witherspoon
+Partitions: <df -Tl will do; the raw partition table is preferred>
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [E]
+Detect CD:              [ ]
+Load installer modules: [ ]
+Clock/timezone setup:   [ ]
+User/password setup:    [ ]
+Detect hard drives:     [ ]
+Partition hard drives:  [ ]
+Install base system:    [ ]
+Install tasks:          [ ]
+Install boot loader:    [ ]
+Overall install:        [ ]
+Comments/Problems:
+**
+From what I understand from the logs and the output of "ip" the machine autoconfigured
+itself in ipv6 with SLAAC (sorry I'm not an expert).
+The point is, after that, the machine is unable to connect to the Debian repositories
+and installation fails, thus this report.
+I don't know what is the problem at this point :
+- either it's the debian installer that didn't configure things properly : should it have
+detected that this ipv6 setup is not complete and propose something else (like manual setup) ;
+didn't it do the ipv6 setup properly? ...
+- or my network admins didn't set ipv6 properly and then the installer may notify me
+of that and let me do another [manual] setup ?
+What do you think ?
+Here are the installer steps :
+                                                                                
+  ┌─────────────────────┤ [!!] Configure the network ├──────────────────────┐   
+  │                                                                         │   
+  │ Your system has multiple network interfaces. Choose the one to use as   │   
+  │ the primary network interface during the installation. If possible,     │   
+  │ the first connected network interface found has been selected.          │   
+  │                                                                         │   
+  │ Primary network interface:                                              │   
+  │                                                                         │   
+  │  enP5p1s0f0: Broadcom Limited NetXtreme BCM5719 Gigabit Ethernet P      │   
+  │  enP5p1s0f1: Broadcom Limited NetXtreme BCM5719 Gigabit Ethernet P      │   
+  │                                                                         │   
+  │     <Go Back>                                                           │   
+  │                                                                         │   
+  └─────────────────────────────────────────────────────────────────────────┘   
+enP5p1s0f1 is selected and I hit Enter
+It tries DHCP which fails and proposes :
+   ┌────────────────────┤ [!!] Configure the network ├─────────────────────┐    
+   │                                                                       │    
+   │ The name servers are used to look up host names on the network.       │    
+   │ Please enter the IP addresses (not host names) of up to 3 name        │    
+   │ servers, separated by spaces. Do not use commas. The first name       │    
+   │ server in the list will be the first to be queried. If you don't want │    
+   │ to use any name server, just leave this field blank.                  │    
+   │                                                                       │    
+   │ Name server addresses:                                                │    
+   │                                                                       │    
+   │ _____________________________________________________________________ │    
+   │                                                                       │    
+   │     <Go Back>                                          <Continue>     │    
+   │                                                                       │    
+   └───────────────────────────────────────────────────────────────────────┘    
+Which I fill and hit Enter, then :
+   ┌─────────────────────┤ [!] Configure the network ├─────────────────────┐    
+   │                                                                       │    
+   │ Please enter the hostname for this system.                            │    
+   │                                                                       │    
+   │ The hostname is a single word that identifies your system to the      │    
+   │ network. If you don't know what your hostname should be, consult your │    
+   │ network administrator. If you are setting up your own home network,   │    
+   │ you can make something up here.                                       │    
+   │                                                                       │    
+   │ Hostname:                                                             │    
+   │                                                                       │    
+   │ _____________________________________________________________________ │    
+   │                                                                       │    
+   │     <Go Back>                                          <Continue>     │    
+   │                                                                       │    
+   └───────────────────────────────────────────────────────────────────────┘    
+Which I fill (the name correspond to what is in the DNS and hit Enter, then :
+   ┌─────────────────────┤ [!] Configure the network ├─────────────────────┐    
+   │                                                                       │    
+   │ The domain name is the part of your Internet address to the right of  │    
+   │ your host name.  It is often something that ends in .com, .net, .edu, │    
+   │ or .org.  If you are setting up a home network, you can make          │    
+   │ something up, but make sure you use the same domain name on all your  │    
+   │ computers.                                                            │    
+   │                                                                       │    
+   │ Domain name:                                                          │    
+   │                                                                       │    
+   │ _____________________________________________________________________ │    
+   │                                                                       │    
+   │     <Go Back>                                          <Continue>     │    
+   │                                                                       │    
+   └───────────────────────────────────────────────────────────────────────┘    
+I provide here the domain name defined for this machine in the DNS, then :
+  ┌──────────────┤ [!] Choose a mirror of the Debian archive ├──────────────┐   
+  │                                                                         │   
+  │ The goal is to find a mirror of the Debian archive that is close to     │   
+  │ you on the network -- be aware that nearby countries, or even your      │   
+  │ own, may not be the best choice.                                        │   
+  │                                                                         │   
+  │ Debian archive mirror country:                                          │   
+  │                                                                         │   
+  │                      Sweden                      -                      │   
+  │                      Switzerland                 ▒                      │   
+  │                      Taiwan                      ▒                      │   
+  │                      Thailand                    ▒                      │   
+  │                      Turkey                      ▒                      │   
+  │                      Ukraine                     ▒                      │   
+  │                      United Kingdom              0                      │   
+  │                      United States               .                      │   
+  │                                                                         │   
+  │     <Go Back>                                                           │   
+  │                                                                         │   
+  └─────────────────────────────────────────────────────────────────────────┘   
+I hit enter, selecting "United States", then :
+  ┌──────────────┤ [!] Choose a mirror of the Debian archive ├──────────────┐   
+  │                                                                         │   
+  │ Please select a Debian archive mirror. You should use a mirror in       │   
+  │ your country or region if you do not know which mirror has the best     │   
+  │ Internet connection to you.                                             │   
+  │                                                                         │   
+  │ Usually, ftp.<your country code>.debian.org is a good choice.           │   
+  │                                                                         │   
+  │ Debian archive mirror:                                                  │   
+  │                                                                         │   
+  │                    ftp.us.debian.org               -                    │   
+  │                    mirrors.kernel.org              0                    │   
+  │                    debian.csail.mit.edu            ▒                    │   
+  │                    debian.osuosl.org               ▒                    │   
+  │                    debian.cc.lehigh.edu            ▒                    │   
+  │                    debian.gtisc.gatech.edu         .                    │   
+  │                                                                         │   
+  │     <Go Back>                                                           │   
+  │                                                                         │   
+  └─────────────────────────────────────────────────────────────────────────┘   
+I select mirrors.kernel.org, then :
+    ┌────────────┤ [!] Choose a mirror of the Debian archive ├────────────┐     
+    │                                                                     │     
+    │ If you need to use a HTTP proxy to access the outside world, enter  │     
+    │ the proxy information here. Otherwise, leave this blank.            │     
+    │                                                                     │     
+    │ The proxy information should be given in the standard form of       │     
+    │ "http://[[user][:pass]@]host[:port]/";.                              │     
+    │                                                                     │     
+    │ HTTP proxy information (blank for none):                            │     
+    │                                                                     │     
+    │ ___________________________________________________________________ │     
+    │                                                                     │     
+    │     <Go Back>                                        <Continue>     │     
+    │                                                                     │     
+    └─────────────────────────────────────────────────────────────────────┘     
+I don't define any proxy, and hit Enter, then :
+   ┌────────────┤ [!!] Choose a mirror of the Debian archive ├─────────────┐    
+   │                                                                       │    
+   │                          Bad archive mirror                           │    
+   │ An error has been detected while trying to use the specified Debian   │    
+   │ archive mirror.                                                       │    
+   │                                                                       │    
+   │ Possible reasons for the error are: incorrect mirror specified;       │    
+   │ mirror is not available (possibly due to an unreliable network        │    
+   │ connection); mirror is broken (for example because an invalid Release │    
+   │ file was found); mirror does not support the correct Debian version.  │    
+   │                                                                       │    
+   │ Additional details may be available in /var/log/syslog or on virtual  │    
+   │ console 4.                                                            │    
+   │                                                                       │    
+   │ Please check the specified mirror or try a different one.             │    
+   │                                                                       │    
+   │     <Go Back>                                          <Continue>     │    
+   │                                                                       │    
+   └───────────────────────────────────────────────────────────────────────┘    
+Then I saved the logs to /tmp and continued with an interactive shell ; I have this :
+~ # ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: enP5p1s0f0: <BROADCAST,MULTICAST> mtu 1500 qdisc mq qlen 1000
+    link/ether 70:e2:84:14:24:ed brd ff:ff:ff:ff:ff:ff
+3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+    link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+    inet6 2002:903:15f:550:72e2:84ff:fe14:24ee/64 scope global dynamic 
+       valid_lft 2591627sec preferred_lft 604427sec
+    inet6 fe80::72e2:84ff:fe14:24ee/64 scope link 
+       valid_lft forever preferred_lft forever
+/etc/resolv.conf shows correct content with "search" field corresponding to the
+domain I provided and "nameserver" is the one I provided also.
+/etc/network/interfaces shows :
+# The primary network interface
+# This is an autoconfigured IPv6 interface
+allow-hotplug enP5p1s0f1
+iface enP5p1s0f1 inet6 auto
+If I manually do :
+$ ip addr add static_ipv4_ip_from_the_dns/24 dev enP5p1s0f1
+$ ip route add default via ip_of_the_gateway
+I get the network working and I can install openssh-client udeb and fetch the logs
+and continue the installation.
+See attached the logs from the installer
+-- 
+Please make sure that the hardware-summary log file, and any other
+installation logs that you think would be useful are attached to this
+report. Please compress large files using gzip.
+Once you have filled out this report, mail it to submit@bugs.debian.org.
+hardware-summarypgpg4iLDcCR8h.pgpApr 20 08:04:33 syslogd started: BusyBox v1.22.1
+Apr 20 08:04:33 kernel: klogd started: BusyBox v1.22.1 (Debian 1:1.22.0-19+b2)
+Apr 20 08:04:33 kernel: [    0.000000] opal: OPAL detected !
+Apr 20 08:04:33 kernel: [    0.000000] Allocated 4718592 bytes for 2048 pacas at c00000000fb80000
+Apr 20 08:04:33 kernel: [    0.000000] Page sizes from device-tree:
+Apr 20 08:04:33 kernel: [    0.000000] Page size sift = 12 AP=0x0
+Apr 20 08:04:33 kernel: [    0.000000] Page size sift = 16 AP=0x5
+Apr 20 08:04:33 kernel: [    0.000000] Page size sift = 21 AP=0x1
+Apr 20 08:04:33 kernel: [    0.000000] Page size sift = 30 AP=0x2
+Apr 20 08:04:33 kernel: [    0.000000] Initializing Radix MMU
+Apr 20 08:04:33 kernel: [    0.000000] Partition table c000203fffff0000
+Apr 20 08:04:33 kernel: [    0.000000] Mapping range 0x0 - 0x4000000000 with 0x40000000
+Apr 20 08:04:33 kernel: [    0.000000] Mapping range 0x200000000000 - 0x204000000000 with 0x40000000
+Apr 20 08:04:33 kernel: [    0.000000] Process table c000203fff000000 and radix root for kernel: c000000000c60000
+Apr 20 08:04:33 kernel: [    0.000000] Linux version 4.9.0-2-powerpc64le (debian-kernel@lists.debian.org) (gcc version 6.3.0 20170321 (Debian 6.3.0-11) ) #1 SMP Debian 4.9.18-1 (2017-03-30)
+Apr 20 08:04:33 kernel: [    0.000000] Found initrd at 0xc0000000023d0000:0xc000000003517746
+Apr 20 08:04:33 kernel: [    0.000000] OPAL: Power8 LPC bus found, chip ID 0
+Apr 20 08:04:33 kernel: [    0.000000] Using PowerNV machine description
+Apr 20 08:04:33 kernel: [    0.000000] bootconsole [udbg0] enabled
+Apr 20 08:04:33 kernel: [    0.000000] CPU maps initialized for 4 threads per core
+Apr 20 08:04:33 kernel: [    0.000000]  (thread shift is 2)
+Apr 20 08:04:33 kernel: [    0.000000] Freed 4587520 bytes for unused pacas
+Apr 20 08:04:33 kernel: [    0.000000] -----------------------------------------------------
+Apr 20 08:04:33 kernel: [    0.000000] ppc64_pft_size    = 0x0
+Apr 20 08:04:33 kernel: [    0.000000] phys_mem_size     = 0x8000000000
+Apr 20 08:04:33 kernel: [    0.000000] dcache_bsize      = 0x80
+Apr 20 08:04:33 kernel: [    0.000000] icache_bsize      = 0x80
+Apr 20 08:04:33 kernel: [    0.000000] cpu_features      = 0x477c7afd18500249
+Apr 20 08:04:33 kernel: [    0.000000]   possible        = 0x7fffffff18500649
+Apr 20 08:04:33 kernel: [    0.000000]   always          = 0x0000000018100040
+Apr 20 08:04:33 kernel: [    0.000000] cpu_user_features = 0xdc0065c2 0xaec00000
+Apr 20 08:04:33 kernel: [    0.000000] mmu_features      = 0x3c004041
+Apr 20 08:04:33 kernel: [    0.000000] firmware_features = 0x0000000110000000
+Apr 20 08:04:33 kernel: [    0.000000] -----------------------------------------------------
+Apr 20 08:04:33 kernel: [    0.000000] cma: Reserved 26224 MiB at 0x0000203996000000
+Apr 20 08:04:33 kernel: [    0.000000] numa: Initmem setup node 0 [mem 0x00000000-0x3fffffffff]
+Apr 20 08:04:33 kernel: [    0.000000] numa:   NODE_DATA [mem 0x3fffff6300-0x3fffffffff]
+Apr 20 08:04:33 kernel: [    0.000000] numa: Initmem setup node 8 [mem 0x200000000000-0x203fffffffff]
+Apr 20 08:04:33 kernel: [    0.000000] numa:   NODE_DATA [mem 0x203ffffa2180-0x203ffffabe7f]
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@600c3c0000000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@600c3c0000000 (primary) ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000600c000000000..0x000600c07ffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x0006000000000000..0x0006001fffffffff -> 0x0006000000000000 (M64 #1..31)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #31 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   256 (255) PE's M32: 0x80000000 [segment=0x800000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x20000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 4088 MSIs (base IRQ 0xfe000)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@600c3c0100000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@600c3c0100000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000600c080000000..0x000600c0fffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x0006002000000000..0x0006003fffffffff -> 0x0006002000000000 (M64 #1..15)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #15 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   128 (127) PE's M32: 0x80000000 [segment=0x1000000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x40000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 2040 MSIs (base IRQ 0xfd800)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@600c3c0200000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@600c3c0200000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000600c100000000..0x000600c17ffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x0006004000000000..0x0006005fffffffff -> 0x0006004000000000 (M64 #1..15)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #15 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   128 (127) PE's M32: 0x80000000 [segment=0x1000000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x40000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 2040 MSIs (base IRQ 0xfd000)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@600c3c0300000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@600c3c0300000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000600c180000000..0x000600c1fffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x0006006000000000..0x0006007fffffffff -> 0x0006006000000000 (M64 #1..31)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #31 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   256 (255) PE's M32: 0x80000000 [segment=0x800000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x20000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 4088 MSIs (base IRQ 0xfc000)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@600c3c0400000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@600c3c0400000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000600c200000000..0x000600c27ffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x0006008000000000..0x0006009fffffffff -> 0x0006008000000000 (M64 #1..15)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #15 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   128 (127) PE's M32: 0x80000000 [segment=0x1000000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x40000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 2040 MSIs (base IRQ 0xfb800)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@600c3c0500000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@600c3c0500000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000600c280000000..0x000600c2fffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000600a000000000..0x000600bfffffffff -> 0x000600a000000000 (M64 #1..15)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #15 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   128 (127) PE's M32: 0x80000000 [segment=0x1000000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x40000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 2040 MSIs (base IRQ 0xfb000)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@620c3c0000000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@620c3c0000000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000620c000000000..0x000620c07ffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x0006200000000000..0x0006201fffffffff -> 0x0006200000000000 (M64 #1..31)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #31 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   256 (255) PE's M32: 0x80000000 [segment=0x800000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x20000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 4088 MSIs (base IRQ 0x1fe000)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@620c3c0300000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@620c3c0300000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000620c180000000..0x000620c1fffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x0006206000000000..0x0006207fffffffff -> 0x0006206000000000 (M64 #1..31)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #31 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   256 (255) PE's M32: 0x80000000 [segment=0x800000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x20000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 4088 MSIs (base IRQ 0x1fd000)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@620c3c0400000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@620c3c0400000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000620c200000000..0x000620c27ffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x0006208000000000..0x0006209fffffffff -> 0x0006208000000000 (M64 #1..15)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #15 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   128 (127) PE's M32: 0x80000000 [segment=0x1000000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x40000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 2040 MSIs (base IRQ 0x1fc800)
+Apr 20 08:04:33 kernel: [    0.000000] Initializing IODA2 PHB (/pciex@620c3c0500000)
+Apr 20 08:04:33 kernel: [    0.000000] PCI host bridge /pciex@620c3c0500000  ranges:
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000620c280000000..0x000620c2fffeffff -> 0x0000000080000000 
+Apr 20 08:04:33 kernel: [    0.000000]  MEM 0x000620a000000000..0x000620bfffffffff -> 0x000620a000000000 (M64 #1..15)
+Apr 20 08:04:33 kernel: [    0.000000]  Using M64 #15 as default window
+Apr 20 08:04:33 kernel: [    0.000000]   128 (127) PE's M32: 0x80000000 [segment=0x1000000]
+Apr 20 08:04:33 kernel: [    0.000000]                  M64: 0x2000000000 [segment=0x40000000]
+Apr 20 08:04:33 kernel: [    0.000000]   Allocated bitmap for 2040 MSIs (base IRQ 0x1fc000)
+Apr 20 08:04:33 kernel: [    0.000000] OPAL nvram setup, 589824 bytes
+Apr 20 08:04:33 kernel: [    0.000000] Top of RAM: 0x204000000000, Total RAM: 0x8000000000
+Apr 20 08:04:33 kernel: [    0.000000] Memory hole size: 33292288MB
+Apr 20 08:04:33 kernel: [    0.000000] Zone ranges:
+Apr 20 08:04:33 kernel: [    0.000000]   DMA      [mem 0x0000000000000000-0x0000203fffffffff]
+Apr 20 08:04:33 kernel: [    0.000000]   DMA32    empty
+Apr 20 08:04:33 kernel: [    0.000000]   Normal   empty
+Apr 20 08:04:33 kernel: [    0.000000] Movable zone start for each node
+Apr 20 08:04:33 kernel: [    0.000000] Early memory node ranges
+Apr 20 08:04:33 kernel: [    0.000000]   node   0: [mem 0x0000000000000000-0x0000003fffffffff]
+Apr 20 08:04:33 kernel: [    0.000000]   node   8: [mem 0x0000200000000000-0x0000203fffffffff]
+Apr 20 08:04:33 kernel: [    0.000000] Initmem setup node 0 [mem 0x0000000000000000-0x0000003fffffffff]
+Apr 20 08:04:33 kernel: [    0.000000] On node 0 totalpages: 4194304
+Apr 20 08:04:33 kernel: [    0.000000]   DMA zone: 4096 pages used for memmap
+Apr 20 08:04:33 kernel: [    0.000000]   DMA zone: 0 pages reserved
+Apr 20 08:04:33 kernel: [    0.000000]   DMA zone: 4194304 pages, LIFO batch:1
+Apr 20 08:04:33 kernel: [    0.000000] Initmem setup node 8 [mem 0x0000200000000000-0x0000203fffffffff]
+Apr 20 08:04:33 kernel: [    0.000000] On node 8 totalpages: 4194304
+Apr 20 08:04:33 kernel: [    0.000000]   DMA zone: 4096 pages used for memmap
+Apr 20 08:04:33 kernel: [    0.000000]   DMA zone: 0 pages reserved
+Apr 20 08:04:33 kernel: [    0.000000]   DMA zone: 4194304 pages, LIFO batch:1
+Apr 20 08:04:33 kernel: [    0.000000] percpu: Embedded 3 pages/cpu @c000003fef930000 s148504 r0 d48104 u196608
+Apr 20 08:04:33 kernel: [    0.000000] pcpu-alloc: s148504 r0 d48104 u196608 alloc=3*65536
+Apr 20 08:04:33 kernel: [    0.000000] pcpu-alloc: [0] 00 [0] 01 [0] 02 [0] 03 [0] 04 [0] 05 [0] 06 [0] 07 
+Apr 20 08:04:33 kernel: [    0.000000] pcpu-alloc: [0] 08 [0] 09 [0] 10 [0] 11 [0] 12 [0] 13 [0] 14 [0] 15 
+Apr 20 08:04:33 kernel: [    0.000000] pcpu-alloc: [0] 16 [0] 17 [0] 18 [0] 19 [0] 20 [0] 21 [0] 22 [0] 23 
+Apr 20 08:04:33 kernel: [    0.000000] pcpu-alloc: [0] 24 [0] 25 [0] 26 [0] 27 [0] 28 [0] 29 [0] 30 [0] 31 
+Apr 20 08:04:33 kernel: [    0.000000] Built 2 zonelists in Node order, mobility grouping on.  Total pages: 8380416
+Apr 20 08:04:33 kernel: [    0.000000] Policy zone: DMA
+Apr 20 08:04:33 kernel: [    0.000000] Kernel command line: 
+Apr 20 08:04:33 kernel: [    0.000000] log_buf_len individual max cpu contribution: 4096 bytes
+Apr 20 08:04:33 kernel: [    0.000000] log_buf_len total cpu_extra contributions: 126976 bytes
+Apr 20 08:04:33 kernel: [    0.000000] log_buf_len min size: 131072 bytes
+Apr 20 08:04:33 kernel: [    0.000000] log_buf_len: 262144 bytes
+Apr 20 08:04:33 kernel: [    0.000000] early log buf free: 121248(92%)
+Apr 20 08:04:33 kernel: [    0.000000] PID hash table entries: 4096 (order: -1, 32768 bytes)
+Apr 20 08:04:33 kernel: [    0.000000] Sorting __ex_table...
+Apr 20 08:04:33 kernel: [    0.000000] Memory: 509303808K/536870912K available (8448K kernel code, 1344K rwdata, 1884K rodata, 960K init, 2224K bss, 713728K reserved, 26853376K cma-reserved)
+Apr 20 08:04:33 kernel: [    0.000000] Hierarchical RCU implementation.
+Apr 20 08:04:33 kernel: [    0.000000] 	Build-time adjustment of leaf fanout to 64.
+Apr 20 08:04:33 kernel: [    0.000000] 	RCU restricting CPUs from NR_CPUS=2048 to nr_cpu_ids=32.
+Apr 20 08:04:33 kernel: [    0.000000] RCU: Adjusting geometry for rcu_fanout_leaf=64, nr_cpu_ids=32
+Apr 20 08:04:33 kernel: [    0.000000] NR_IRQS:512 nr_irqs:512 16
+Apr 20 08:04:33 kernel: [    0.000000] XICS: Using OPAL ICP fallbacks
+Apr 20 08:04:33 kernel: [    0.000000] ICS OPAL backend registered
+Apr 20 08:04:33 kernel: [    0.000000] time_init: decrementer frequency = 512.000000 MHz
+Apr 20 08:04:33 kernel: [    0.000000] time_init: processor frequency   = 2050.000000 MHz
+Apr 20 08:04:33 kernel: [    0.000003] time_init: 56 bit decrementer (max: 7fffffffffffff)
+Apr 20 08:04:33 kernel: [    0.000508] clocksource: timebase: mask: 0xffffffffffffffff max_cycles: 0x761537d007, max_idle_ns: 440795202126 ns
+Apr 20 08:04:33 kernel: [    0.001389] clocksource: timebase mult[1f40000] shift[24] registered
+Apr 20 08:04:33 kernel: [    0.001928] clockevent: decrementer mult[83126e98] shift[32] cpu[0]
+Apr 20 08:04:33 kernel: [    0.003019] Console: colour dummy device 80x25
+Apr 20 08:04:33 kernel: [    0.003403] console [hvc0] enabled
+Apr 20 08:04:33 kernel: [    0.003744] bootconsole [udbg0] disabled
+Apr 20 08:04:33 kernel: [    0.004233] mempolicy: Disabling automatic NUMA balancing. Configure with numa_balancing= or the kernel.numa_balancing sysctl
+Apr 20 08:04:33 kernel: [    0.004390] pid_max: default: 32768 minimum: 301
+Apr 20 08:04:33 kernel: [    0.004880] Security Framework initialized
+Apr 20 08:04:33 kernel: [    0.004925] Yama: disabled by default; enable with sysctl kernel.yama.*
+Apr 20 08:04:33 kernel: [    0.005036] AppArmor: AppArmor disabled by boot time parameter
+Apr 20 08:04:33 kernel: [    0.015859] Dentry cache hash table entries: 67108864 (order: 13, 536870912 bytes)
+Apr 20 08:04:33 kernel: [    0.285452] Inode-cache hash table entries: 33554432 (order: 12, 268435456 bytes)
+Apr 20 08:04:33 kernel: [    0.463064] Mount-cache hash table entries: 1048576 (order: 7, 8388608 bytes)
+Apr 20 08:04:33 kernel: [    0.463349] Mountpoint-cache hash table entries: 1048576 (order: 7, 8388608 bytes)
+Apr 20 08:04:33 kernel: [    0.473720] ftrace: allocating 21858 entries in 9 pages
+Apr 20 08:04:33 kernel: [    0.499176] EEH: PowerNV platform initialized
+Apr 20 08:04:33 kernel: [    0.499231] POWER9 performance monitor hardware support registered
+Apr 20 08:04:33 kernel: [    0.526761] Brought up 32 CPUs
+Apr 20 08:04:33 kernel: [    0.526819] numa: Node 0 CPUs: 0-15
+Apr 20 08:04:33 kernel: [    0.526976] numa: Node 8 CPUs: 16-31
+Apr 20 08:04:33 kernel: [    0.540739] devtmpfs: initialized
+Apr 20 08:04:33 kernel: [    0.773125] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+Apr 20 08:04:33 kernel: [    0.773298] futex hash table entries: 8192 (order: 4, 1048576 bytes)
+Apr 20 08:04:33 kernel: [    0.807520] NET: Registered protocol family 16
+Apr 20 08:04:33 kernel: [    0.807811] IBM eBus Device Driver
+Apr 20 08:04:33 kernel: [    0.823312] cpuidle: using governor ladder
+Apr 20 08:04:33 kernel: [    0.851353] cpuidle: using governor menu
+Apr 20 08:04:33 kernel: [    0.896921] PCI: Probing PCI hardware
+Apr 20 08:04:33 kernel: [    0.897193] PCI host bridge to bus 0000:00
+Apr 20 08:04:33 kernel: [    0.897290] pci_bus 0000:00: root bus resource [mem 0x600c000000000-0x600c07ffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.897464] pci_bus 0000:00: root bus resource [mem 0x6000000000000-0x6001fbfffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.897610] pci_bus 0000:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.897709] pci_bus 0000:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.897770] pci 0000:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.897945] pci 0000:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.898355] pci 0000:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.898453] pci 0000:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.898499] pci_bus 0000:00: busn_res: [bus 00-ff] end is updated to 01
+Apr 20 08:04:33 kernel: [    0.898664] PCI host bridge to bus 0001:00
+Apr 20 08:04:33 kernel: [    0.898759] pci_bus 0001:00: root bus resource [mem 0x600c080000000-0x600c0fffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.898934] pci_bus 0001:00: root bus resource [mem 0x6002000000000-0x6003f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.899079] pci_bus 0001:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.899174] pci_bus 0001:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.899222] pci 0001:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.899356] pci 0001:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.899766] pci 0001:01:00.0: [104c:8241] type 00 class 0x0c0330
+Apr 20 08:04:33 kernel: [    0.899812] pci 0001:01:00.0: reg 0x10: [mem 0x600c080000000-0x600c08000ffff 64bit]
+Apr 20 08:04:33 kernel: [    0.899843] pci 0001:01:00.0: reg 0x18: [mem 0x600c080010000-0x600c080011fff 64bit]
+Apr 20 08:04:33 kernel: [    0.900020] pci 0001:01:00.0: supports D1 D2
+Apr 20 08:04:33 kernel: [    0.900025] pci 0001:01:00.0: PME# supported from D0 D1 D2 D3hot
+Apr 20 08:04:33 kernel: [    0.900303] pci 0001:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.900394] pci 0001:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.900419] pci 0001:00:00.0:   bridge window [mem 0x600c080000000-0x600c0ffefffff]
+Apr 20 08:04:33 kernel: [    0.900512] pci_bus 0001:00: busn_res: [bus 00-ff] end is updated to 01
+Apr 20 08:04:33 kernel: [    0.900667] PCI host bridge to bus 0002:00
+Apr 20 08:04:33 kernel: [    0.900740] pci_bus 0002:00: root bus resource [mem 0x600c100000000-0x600c17ffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.900919] pci_bus 0002:00: root bus resource [mem 0x6004000000000-0x6005f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.901064] pci_bus 0002:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.901160] pci_bus 0002:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.901195] pci 0002:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.901327] pci 0002:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.901730] pci 0002:01:00.0: [1a03:1150] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.901940] pci 0002:01:00.0: supports D1 D2
+Apr 20 08:04:33 kernel: [    0.901944] pci 0002:01:00.0: PME# supported from D0 D1 D2 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.902234] pci 0002:00:00.0: PCI bridge to [bus 01-02]
+Apr 20 08:04:33 kernel: [    0.902352] pci 0002:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.902361] pci 0002:00:00.0:   bridge window [mem 0x600c100000000-0x600c17fefffff]
+Apr 20 08:04:33 kernel: [    0.902639] pci 0002:02:00.0: [1a03:2000] type 00 class 0x030000
+Apr 20 08:04:33 kernel: [    0.902681] pci 0002:02:00.0: reg 0x10: [mem 0x600c100000000-0x600c100ffffff]
+Apr 20 08:04:33 kernel: [    0.902703] pci 0002:02:00.0: reg 0x14: [mem 0x600c101000000-0x600c10101ffff]
+Apr 20 08:04:33 kernel: [    0.902726] pci 0002:02:00.0: reg 0x18: [io  0x0000-0x007f]
+Apr 20 08:04:33 kernel: [    0.902882] pci 0002:02:00.0: supports D1 D2
+Apr 20 08:04:33 kernel: [    0.902886] pci 0002:02:00.0: PME# supported from D0 D1 D2 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.903095] pci 0002:01:00.0: PCI bridge to [bus 02]
+Apr 20 08:04:33 kernel: [    0.903224] pci 0002:01:00.0:   bridge window [mem 0x600c100000000-0x600c17fefffff]
+Apr 20 08:04:33 kernel: [    0.903281] pci_bus 0002:00: busn_res: [bus 00-ff] end is updated to 02
+Apr 20 08:04:33 kernel: [    0.903446] PCI host bridge to bus 0003:00
+Apr 20 08:04:33 kernel: [    0.903548] pci_bus 0003:00: root bus resource [mem 0x600c180000000-0x600c1fffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.903720] pci_bus 0003:00: root bus resource [mem 0x6006000000000-0x6007fbfffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.903866] pci_bus 0003:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.903960] pci_bus 0003:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.903995] pci 0003:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.904127] pci 0003:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.904500] pci 0003:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.904608] pci 0003:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.904639] pci_bus 0003:00: busn_res: [bus 00-ff] end is updated to 01
+Apr 20 08:04:33 kernel: [    0.904790] PCI host bridge to bus 0004:00
+Apr 20 08:04:33 kernel: [    0.904870] pci_bus 0004:00: root bus resource [mem 0x600c200000000-0x600c27ffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.905058] pci_bus 0004:00: root bus resource [mem 0x6008000000000-0x6009f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.905203] pci_bus 0004:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.905296] pci_bus 0004:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.905332] pci 0004:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.905464] pci 0004:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.905865] pci 0004:01:00.0: [10b5:8725] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.905900] pci 0004:01:00.0: reg 0x10: [mem 0x600c201000000-0x600c20103ffff]
+Apr 20 08:04:33 kernel: [    0.906120] pci 0004:01:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.906431] pci 0004:01:00.1: [10b5:87d0] type 00 class 0x088000
+Apr 20 08:04:33 kernel: [    0.906463] pci 0004:01:00.1: reg 0x10: [mem 0x600c201040000-0x600c201041fff]
+Apr 20 08:04:33 kernel: [    0.906882] pci 0004:01:00.2: [10b5:87d0] type 00 class 0x088000
+Apr 20 08:04:33 kernel: [    0.906913] pci 0004:01:00.2: reg 0x10: [mem 0x600c201042000-0x600c201043fff]
+Apr 20 08:04:33 kernel: [    0.907337] pci 0004:01:00.3: [10b5:87d0] type 00 class 0x088000
+Apr 20 08:04:33 kernel: [    0.907369] pci 0004:01:00.3: reg 0x10: [mem 0x600c201044000-0x600c201045fff]
+Apr 20 08:04:33 kernel: [    0.907808] pci 0004:01:00.4: [10b5:87d0] type 00 class 0x088000
+Apr 20 08:04:33 kernel: [    0.907841] pci 0004:01:00.4: reg 0x10: [mem 0x600c201046000-0x600c201047fff]
+Apr 20 08:04:33 kernel: [    0.908308] pci 0004:00:00.0: PCI bridge to [bus 01-12]
+Apr 20 08:04:33 kernel: [    0.908393] pci 0004:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.908421] pci 0004:00:00.0:   bridge window [mem 0x600c200000000-0x600c27fefffff]
+Apr 20 08:04:33 kernel: [    0.908448] pci 0004:00:00.0:   bridge window [mem 0x6008000000000-0x6009f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.908802] pci 0004:02:02.0: [10b5:8725] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.909059] pci 0004:02:02.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.909351] pci 0004:02:0a.0: [10b5:8725] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.909606] pci 0004:02:0a.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.909898] pci 0004:02:0b.0: [10b5:8725] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.910157] pci 0004:02:0b.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.910452] pci 0004:02:0c.0: [10b5:8725] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.910713] pci 0004:02:0c.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.910987] pci 0004:01:00.0: PCI bridge to [bus 02-12]
+Apr 20 08:04:33 kernel: [    0.911105] pci 0004:01:00.0:   bridge window [mem 0x600c200000000-0x600c27fefffff]
+Apr 20 08:04:33 kernel: [    0.911133] pci 0004:01:00.0:   bridge window [mem 0x6008000000000-0x6009f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.911862] pci 0004:03:00.0: [1b4b:9235] type 00 class 0x010601
+Apr 20 08:04:33 kernel: [    0.911899] pci 0004:03:00.0: reg 0x10: [io  0x8000-0x8007]
+Apr 20 08:04:33 kernel: [    0.911921] pci 0004:03:00.0: reg 0x14: [io  0x8040-0x8043]
+Apr 20 08:04:33 kernel: [    0.911942] pci 0004:03:00.0: reg 0x18: [io  0x8100-0x8107]
+Apr 20 08:04:33 kernel: [    0.911963] pci 0004:03:00.0: reg 0x1c: [io  0x8140-0x8143]
+Apr 20 08:04:33 kernel: [    0.911985] pci 0004:03:00.0: reg 0x20: [io  0x800000-0x80001f]
+Apr 20 08:04:33 kernel: [    0.912006] pci 0004:03:00.0: reg 0x24: [mem 0x600c200010000-0x600c2000107ff]
+Apr 20 08:04:33 kernel: [    0.912028] pci 0004:03:00.0: reg 0x30: [mem 0x600c250000000-0x600c25000ffff pref]
+Apr 20 08:04:33 kernel: [    0.912148] pci 0004:03:00.0: PME# supported from D3hot
+Apr 20 08:04:33 kernel: [    0.912415] pci 0004:02:02.0: PCI bridge to [bus 03]
+Apr 20 08:04:33 kernel: [    0.912534] pci 0004:02:02.0:   bridge window [mem 0x600c200000000-0x600c200ffffff]
+Apr 20 08:04:33 kernel: [    0.912549] pci 0004:02:02.0:   bridge window [mem 0x6008000000000-0x600803fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.912728] pci 0004:02:0a.0: PCI bridge to [bus 04-08]
+Apr 20 08:04:33 kernel: [    0.913021] pci 0004:02:0b.0: PCI bridge to [bus 09-0d]
+Apr 20 08:04:33 kernel: [    0.913314] pci 0004:02:0c.0: PCI bridge to [bus 0e-12]
+Apr 20 08:04:33 kernel: [    0.913503] pci_bus 0004:00: busn_res: [bus 00-ff] end is updated to 12
+Apr 20 08:04:33 kernel: [    0.913671] PCI host bridge to bus 0005:00
+Apr 20 08:04:33 kernel: [    0.913787] pci_bus 0005:00: root bus resource [mem 0x600c280000000-0x600c2fffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.913960] pci_bus 0005:00: root bus resource [mem 0x600a000000000-0x600bf7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.914105] pci_bus 0005:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.914210] pci_bus 0005:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.914246] pci 0005:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.914377] pci 0005:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.914783] pci 0005:01:00.0: [14e4:1657] type 00 class 0x020000
+Apr 20 08:04:33 kernel: [    0.914829] pci 0005:01:00.0: reg 0x10: [mem 0x600a000000000-0x600a00000ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.914861] pci 0005:01:00.0: reg 0x18: [mem 0x600a000010000-0x600a00001ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.914891] pci 0005:01:00.0: reg 0x20: [mem 0x600a000020000-0x600a00002ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.915084] pci 0005:01:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.915367] pci 0005:01:00.1: [14e4:1657] type 00 class 0x020000
+Apr 20 08:04:33 kernel: [    0.915414] pci 0005:01:00.1: reg 0x10: [mem 0x600a000030000-0x600a00003ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.915454] pci 0005:01:00.1: reg 0x18: [mem 0x600a000040000-0x600a00004ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.915485] pci 0005:01:00.1: reg 0x20: [mem 0x600a000050000-0x600a00005ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.915677] pci 0005:01:00.1: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.915961] pci 0005:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.916060] pci 0005:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.916093] pci 0005:00:00.0:   bridge window [mem 0x600a000000000-0x600bf7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.916219] pci_bus 0005:00: busn_res: [bus 00-ff] end is updated to 01
+Apr 20 08:04:33 kernel: [    0.916396] PCI host bridge to bus 0030:00
+Apr 20 08:04:33 kernel: [    0.916478] pci_bus 0030:00: root bus resource [mem 0x620c000000000-0x620c07ffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.916666] pci_bus 0030:00: root bus resource [mem 0x6200000000000-0x6201fbfffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.916813] pci_bus 0030:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.916909] pci_bus 0030:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.916948] pci 0030:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.917104] pci 0030:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.917510] pci 0030:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.917625] pci 0030:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.917659] pci_bus 0030:00: busn_res: [bus 00-ff] end is updated to 01
+Apr 20 08:04:33 kernel: [    0.917813] PCI host bridge to bus 0033:00
+Apr 20 08:04:33 kernel: [    0.917891] pci_bus 0033:00: root bus resource [mem 0x620c180000000-0x620c1fffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.918063] pci_bus 0033:00: root bus resource [mem 0x6206000000000-0x6207fbfffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.918207] pci_bus 0033:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.918300] pci_bus 0033:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.918340] pci 0033:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.918493] pci 0033:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.918878] pci 0033:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.918966] pci 0033:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.919043] pci_bus 0033:00: busn_res: [bus 00-ff] end is updated to 01
+Apr 20 08:04:33 kernel: [    0.919195] PCI host bridge to bus 0034:00
+Apr 20 08:04:33 kernel: [    0.919273] pci_bus 0034:00: root bus resource [mem 0x620c200000000-0x620c27ffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.919423] pci_bus 0034:00: root bus resource [mem 0x6208000000000-0x6209f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.919577] pci_bus 0034:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.919671] pci_bus 0034:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.919709] pci 0034:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.919862] pci 0034:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.920246] pci 0034:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.920353] pci 0034:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.920388] pci_bus 0034:00: busn_res: [bus 00-ff] end is updated to 01
+Apr 20 08:04:33 kernel: [    0.920542] PCI host bridge to bus 0035:00
+Apr 20 08:04:33 kernel: [    0.920616] pci_bus 0035:00: root bus resource [mem 0x620c280000000-0x620c2fffeffff] (bus address [0x80000000-0xfffeffff])
+Apr 20 08:04:33 kernel: [    0.920795] pci_bus 0035:00: root bus resource [mem 0x620a000000000-0x620bf7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.920938] pci_bus 0035:00: root bus resource [bus 00-ff]
+Apr 20 08:04:33 kernel: [    0.921042] pci_bus 0035:00: busn_res: [bus 00-ff] end is updated to ff
+Apr 20 08:04:33 kernel: [    0.921081] pci 0035:00:00.0: [1014:04c1] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.921238] pci 0035:00:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.921666] pci 0035:01:00.0: [10b5:8725] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.921706] pci 0035:01:00.0: reg 0x10: [mem 0x620c280000000-0x620c28003ffff]
+Apr 20 08:04:33 kernel: [    0.921962] pci 0035:01:00.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.922292] pci 0035:00:00.0: PCI bridge to [bus 01-0c]
+Apr 20 08:04:33 kernel: [    0.922406] pci 0035:00:00.0:   bridge window [io  0x0000-0x0fff]
+Apr 20 08:04:33 kernel: [    0.922416] pci 0035:00:00.0:   bridge window [mem 0x620c280000000-0x620c2ffefffff]
+Apr 20 08:04:33 kernel: [    0.922709] pci 0035:02:08.0: [10b5:8725] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.923003] pci 0035:02:08.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.923312] pci 0035:02:0d.0: [10b5:8725] type 01 class 0x060400
+Apr 20 08:04:33 kernel: [    0.923616] pci 0035:02:0d.0: PME# supported from D0 D3hot D3cold
+Apr 20 08:04:33 kernel: [    0.923893] pci 0035:01:00.0: PCI bridge to [bus 02-0c]
+Apr 20 08:04:33 kernel: [    0.924512] pci 0035:02:08.0: PCI bridge to [bus 03-07]
+Apr 20 08:04:33 kernel: [    0.924820] pci 0035:02:0d.0: PCI bridge to [bus 08-0c]
+Apr 20 08:04:33 kernel: [    0.924999] pci_bus 0035:00: busn_res: [bus 00-ff] end is updated to 0c
+Apr 20 08:04:33 kernel: [    0.925076] pci 0000:00     : [PE# 254] Secondary bus 0 associated with PE#254
+Apr 20 08:04:33 kernel: [    0.925644] pci 0000:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.925776] pci_bus 0000:00: resource 4 [mem 0x600c000000000-0x600c07ffeffff]
+Apr 20 08:04:33 kernel: [    0.925781] pci_bus 0000:00: resource 5 [mem 0x6000000000000-0x6001fbfffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.925820] pci 0001:00:00.0: BAR 14: assigned [mem 0x600c080000000-0x600c080ffffff]
+Apr 20 08:04:33 kernel: [    0.925970] pci 0001:01:00.0: BAR 0: assigned [mem 0x600c080000000-0x600c08000ffff 64bit]
+Apr 20 08:04:33 kernel: [    0.926122] pci 0001:01:00.0: BAR 2: assigned [mem 0x600c080010000-0x600c080011fff 64bit]
+Apr 20 08:04:33 kernel: [    0.926276] pci 0001:00     : [PE# 126] Secondary bus 0 associated with PE#126
+Apr 20 08:04:33 kernel: [    0.926832] pci 0001:01     : [PE# 125] Secondary bus 1 associated with PE#125
+Apr 20 08:04:33 kernel: [    0.927448] pci 0001:01     : [PE# 125] Setting up 32-bit TCE table at 0..80000000
+Apr 20 08:04:33 kernel: [    0.944269] IOMMU table initialized, virtual merging enabled
+Apr 20 08:04:33 kernel: [    0.944383] pci 0001:01     : [PE# 125] Setting up window#0 0..7fffffff pg=1000
+Apr 20 08:04:33 kernel: [    0.944531] pci 0001:01     : [PE# 125] Enabling 64-bit DMA bypass
+Apr 20 08:04:33 kernel: [    0.944671] iommu: Adding device 0001:01:00.0 to group 0
+Apr 20 08:04:33 kernel: [    0.944765] pci 0001:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.944859] pci 0001:00:00.0:   bridge window [mem 0x600c080000000-0x600c0ffefffff]
+Apr 20 08:04:33 kernel: [    0.945001] pci_bus 0001:00: resource 4 [mem 0x600c080000000-0x600c0fffeffff]
+Apr 20 08:04:33 kernel: [    0.945006] pci_bus 0001:00: resource 5 [mem 0x6002000000000-0x6003f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.945011] pci_bus 0001:01: resource 1 [mem 0x600c080000000-0x600c0ffefffff]
+Apr 20 08:04:33 kernel: [    0.945059] pci 0002:00:00.0: BAR 14: assigned [mem 0x600c100000000-0x600c101ffffff]
+Apr 20 08:04:33 kernel: [    0.945192] pci 0002:01:00.0: BAR 14: assigned [mem 0x600c100000000-0x600c101ffffff]
+Apr 20 08:04:33 kernel: [    0.945333] pci 0002:01:00.0: BAR 13: no space for [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.945440] pci 0002:01:00.0: BAR 13: failed to assign [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.945559] pci 0002:02:00.0: BAR 0: assigned [mem 0x600c100000000-0x600c100ffffff]
+Apr 20 08:04:33 kernel: [    0.945695] pci 0002:02:00.0: BAR 1: assigned [mem 0x600c101000000-0x600c10101ffff]
+Apr 20 08:04:33 kernel: [    0.945827] pci 0002:02:00.0: BAR 2: no space for [io  size 0x0080]
+Apr 20 08:04:33 kernel: [    0.945936] pci 0002:02:00.0: BAR 2: failed to assign [io  size 0x0080]
+Apr 20 08:04:33 kernel: [    0.946047] pci 0002:00     : [PE# 126] Secondary bus 0 associated with PE#126
+Apr 20 08:04:33 kernel: [    0.946587] pci 0002:02     : [PE# 125] Secondary bus 2..2 associated with PE#125
+Apr 20 08:04:33 kernel: [    0.947201] pci 0002:02     : [PE# 125] Setting up 32-bit TCE table at 0..80000000
+Apr 20 08:04:33 kernel: [    0.963997] pci 0002:02     : [PE# 125] Setting up window#0 0..7fffffff pg=1000
+Apr 20 08:04:33 kernel: [    0.964130] pci 0002:02     : [PE# 125] Enabling 64-bit DMA bypass
+Apr 20 08:04:33 kernel: [    0.964247] iommu: Adding device 0002:02:00.0 to group 1
+Apr 20 08:04:33 kernel: [    0.964336] pci 0002:01:00.0: PCI bridge to [bus 02]
+Apr 20 08:04:33 kernel: [    0.964446] pci 0002:01:00.0:   bridge window [mem 0x600c100000000-0x600c17fefffff]
+Apr 20 08:04:33 kernel: [    0.964591] pci 0002:01     : [PE# 124] Secondary bus 1 associated with PE#124
+Apr 20 08:04:33 kernel: [    0.965150] pci 0002:00:00.0: PCI bridge to [bus 01-02]
+Apr 20 08:04:33 kernel: [    0.965251] pci 0002:00:00.0:   bridge window [mem 0x600c100000000-0x600c17fefffff]
+Apr 20 08:04:33 kernel: [    0.965392] pci_bus 0002:00: Some PCI device resources are unassigned, try booting with pci=realloc
+Apr 20 08:04:33 kernel: [    0.965541] pci_bus 0002:00: resource 4 [mem 0x600c100000000-0x600c17ffeffff]
+Apr 20 08:04:33 kernel: [    0.965546] pci_bus 0002:00: resource 5 [mem 0x6004000000000-0x6005f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.965551] pci_bus 0002:01: resource 1 [mem 0x600c100000000-0x600c17fefffff]
+Apr 20 08:04:33 kernel: [    0.965557] pci_bus 0002:02: resource 1 [mem 0x600c100000000-0x600c17fefffff]
+Apr 20 08:04:33 kernel: [    0.965585] pci 0003:00     : [PE# 254] Secondary bus 0 associated with PE#254
+Apr 20 08:04:33 kernel: [    0.966144] pci 0003:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    0.966265] pci_bus 0003:00: resource 4 [mem 0x600c180000000-0x600c1fffeffff]
+Apr 20 08:04:33 kernel: [    0.966270] pci_bus 0003:00: resource 5 [mem 0x6006000000000-0x6007fbfffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.966299] pci 0004:02:02.0: bridge window [mem 0x40000000-0x3fffffff 64bit pref] to [bus 03] add_size 40000000 add_align 40000000
+Apr 20 08:04:33 kernel: [    0.966370] pci 0004:02:02.0: res[15]=[mem 0x40000000-0x3fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.966376] pci 0004:02:02.0: res[15]=[mem 0x40000000-0x3fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.966384] pci 0004:01:00.0: bridge window [mem 0x40000000-0x3fffffff 64bit pref] to [bus 02-12] add_size 40000000 add_align 40000000
+Apr 20 08:04:33 kernel: [    0.966412] pci 0004:01:00.0: res[15]=[mem 0x40000000-0x3fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.966418] pci 0004:01:00.0: res[15]=[mem 0x40000000-0x3fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.966426] pci 0004:00:00.0: bridge window [mem 0x40000000-0x3fffffff 64bit pref] to [bus 01-12] add_size 40000000 add_align 40000000
+Apr 20 08:04:33 kernel: [    0.966439] pci 0004:00:00.0: res[15]=[mem 0x40000000-0x3fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.966444] pci 0004:00:00.0: res[15]=[mem 0x40000000-0x7fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.966452] pci 0004:00:00.0: BAR 15: assigned [mem 0x6008000000000-0x600803fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.966600] pci 0004:00:00.0: BAR 14: assigned [mem 0x600c200000000-0x600c201ffffff]
+Apr 20 08:04:33 kernel: [    0.966745] pci 0004:01:00.0: res[15]=[mem 0x40000000-0x3fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.966751] pci 0004:01:00.0: res[15]=[mem 0x40000000-0x7fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.966758] pci 0004:01:00.0: BAR 15: assigned [mem 0x6008000000000-0x600803fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.966903] pci 0004:01:00.0: BAR 14: assigned [mem 0x600c200000000-0x600c200ffffff]
+Apr 20 08:04:33 kernel: [    0.967030] pci 0004:01:00.0: BAR 0: assigned [mem 0x600c201000000-0x600c20103ffff]
+Apr 20 08:04:33 kernel: [    0.967165] pci 0004:01:00.1: BAR 0: assigned [mem 0x600c201040000-0x600c201041fff]
+Apr 20 08:04:33 kernel: [    0.967299] pci 0004:01:00.2: BAR 0: assigned [mem 0x600c201042000-0x600c201043fff]
+Apr 20 08:04:33 kernel: [    0.967435] pci 0004:01:00.3: BAR 0: assigned [mem 0x600c201044000-0x600c201045fff]
+Apr 20 08:04:33 kernel: [    0.967568] pci 0004:01:00.4: BAR 0: assigned [mem 0x600c201046000-0x600c201047fff]
+Apr 20 08:04:33 kernel: [    0.967710] pci 0004:01:00.0: BAR 13: no space for [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.967819] pci 0004:01:00.0: BAR 13: failed to assign [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.967950] pci 0004:01:00.0: BAR 13: no space for [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.968061] pci 0004:01:00.0: BAR 13: failed to assign [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.968180] pci 0004:02:02.0: res[15]=[mem 0x40000000-0x3fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.968186] pci 0004:02:02.0: res[15]=[mem 0x40000000-0x7fffffff 64bit pref] res_to_dev_res add_size 40000000 min_align 40000000
+Apr 20 08:04:33 kernel: [    0.968192] pci 0004:02:02.0: BAR 15: assigned [mem 0x6008000000000-0x600803fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.968338] pci 0004:02:02.0: BAR 14: assigned [mem 0x600c200000000-0x600c200ffffff]
+Apr 20 08:04:33 kernel: [    0.968468] pci 0004:02:02.0: BAR 13: no space for [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.968580] pci 0004:02:02.0: BAR 13: failed to assign [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.968696] pci 0004:02:02.0: BAR 13: no space for [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.968802] pci 0004:02:02.0: BAR 13: failed to assign [io  size 0x1000]
+Apr 20 08:04:33 kernel: [    0.968922] pci 0004:03:00.0: BAR 6: assigned [mem 0x600c200000000-0x600c20000ffff pref]
+Apr 20 08:04:33 kernel: [    0.969055] pci 0004:03:00.0: BAR 5: assigned [mem 0x600c200010000-0x600c2000107ff]
+Apr 20 08:04:33 kernel: [    0.969186] pci 0004:03:00.0: BAR 4: no space for [io  size 0x0020]
+Apr 20 08:04:33 kernel: [    0.969295] pci 0004:03:00.0: BAR 4: failed to assign [io  size 0x0020]
+Apr 20 08:04:33 kernel: [    0.969406] pci 0004:03:00.0: BAR 0: no space for [io  size 0x0008]
+Apr 20 08:04:33 kernel: [    0.969512] pci 0004:03:00.0: BAR 0: failed to assign [io  size 0x0008]
+Apr 20 08:04:33 kernel: [    0.969634] pci 0004:03:00.0: BAR 2: no space for [io  size 0x0008]
+Apr 20 08:04:33 kernel: [    0.969740] pci 0004:03:00.0: BAR 2: failed to assign [io  size 0x0008]
+Apr 20 08:04:33 kernel: [    0.969852] pci 0004:03:00.0: BAR 1: no space for [io  size 0x0004]
+Apr 20 08:04:33 kernel: [    0.969961] pci 0004:03:00.0: BAR 1: failed to assign [io  size 0x0004]
+Apr 20 08:04:33 kernel: [    0.970071] pci 0004:03:00.0: BAR 3: no space for [io  size 0x0004]
+Apr 20 08:04:33 kernel: [    0.970162] pci 0004:03:00.0: BAR 3: failed to assign [io  size 0x0004]
+Apr 20 08:04:33 kernel: [    0.970281] pci 0004:00     : [PE# 126] Secondary bus 0 associated with PE#126
+Apr 20 08:04:33 kernel: [    0.970837] pci 0004:03     : [PE# 125] Secondary bus 3 associated with PE#125
+Apr 20 08:04:33 kernel: [    0.971418] pci 0004:03     : [PE# 125] Setting up 32-bit TCE table at 0..80000000
+Apr 20 08:04:33 kernel: [    0.988232] pci 0004:03     : [PE# 125] Setting up window#0 0..7fffffff pg=1000
+Apr 20 08:04:33 kernel: [    0.988363] pci 0004:03     : [PE# 125] Enabling 64-bit DMA bypass
+Apr 20 08:04:33 kernel: [    0.988497] iommu: Adding device 0004:03:00.0 to group 2
+Apr 20 08:04:33 kernel: [    0.988589] pci 0004:02:02.0: PCI bridge to [bus 03]
+Apr 20 08:04:33 kernel: [    0.988686] pci 0004:02:02.0:   bridge window [mem 0x600c200000000-0x600c200ffffff]
+Apr 20 08:04:33 kernel: [    0.988817] pci 0004:02:02.0:   bridge window [mem 0x6008000000000-0x600803fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.988969] pci 0004:02:0a.0: PCI bridge to [bus 04-08]
+Apr 20 08:04:33 kernel: [    0.989081] pci 0004:02:0b.0: PCI bridge to [bus 09-0d]
+Apr 20 08:04:33 kernel: [    0.989191] pci 0004:02:0c.0: PCI bridge to [bus 0e-12]
+Apr 20 08:04:33 kernel: [    0.989306] pci 0004:02     : [PE# 124] Secondary bus 2 associated with PE#124
+Apr 20 08:04:33 kernel: [    0.989858] pci 0004:01:00.0: PCI bridge to [bus 02-12]
+Apr 20 08:04:33 kernel: [    0.989957] pci 0004:01:00.0:   bridge window [mem 0x600c200000000-0x600c27fefffff]
+Apr 20 08:04:33 kernel: [    0.990070] pci 0004:01:00.0:   bridge window [mem 0x6008000000000-0x6009f7ff0ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    0.990228] pci 0004:01     : [PE# 123] Secondary bus 1 associated with PE#123
+Apr 20 08:04:33 kernel: [    0.990805] pci 0004:01     : [PE# 123] Setting up 32-bit TCE table at 0..80000000
+Apr 20 08:04:33 kernel: [    1.007599] pci 0004:01     : [PE# 123] Setting up window#0 0..7fffffff pg=1000
+Apr 20 08:04:33 kernel: [    1.007736] pci 0004:01     : [PE# 123] Enabling 64-bit DMA bypass
+Apr 20 08:04:33 kernel: [    1.007873] iommu: Adding device 0004:01:00.0 to group 3
+Apr 20 08:04:33 kernel: [    1.007974] iommu: Adding device 0004:01:00.1 to group 3
+Apr 20 08:04:33 kernel: [    1.008082] iommu: Adding device 0004:01:00.2 to group 3
+Apr 20 08:04:33 kernel: [    1.008185] iommu: Adding device 0004:01:00.3 to group 3
+Apr 20 08:04:33 kernel: [    1.008287] iommu: Adding device 0004:01:00.4 to group 3
+Apr 20 08:04:33 kernel: [    1.008379] pci 0004:00:00.0: PCI bridge to [bus 01-12]
+Apr 20 08:04:33 kernel: [    1.008475] pci 0004:00:00.0:   bridge window [mem 0x600c200000000-0x600c27fefffff]
+Apr 20 08:04:33 kernel: [    1.008608] pci 0004:00:00.0:   bridge window [mem 0x6008000000000-0x6009f7ff0ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.008763] pci_bus 0004:00: Some PCI device resources are unassigned, try booting with pci=realloc
+Apr 20 08:04:33 kernel: [    1.008916] pci_bus 0004:00: resource 4 [mem 0x600c200000000-0x600c27ffeffff]
+Apr 20 08:04:33 kernel: [    1.008921] pci_bus 0004:00: resource 5 [mem 0x6008000000000-0x6009f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.008927] pci_bus 0004:01: resource 1 [mem 0x600c200000000-0x600c27fefffff]
+Apr 20 08:04:33 kernel: [    1.008932] pci_bus 0004:01: resource 2 [mem 0x6008000000000-0x6009f7ff0ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.008938] pci_bus 0004:02: resource 1 [mem 0x600c200000000-0x600c27fefffff]
+Apr 20 08:04:33 kernel: [    1.008943] pci_bus 0004:02: resource 2 [mem 0x6008000000000-0x6009f7ff0ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.008949] pci_bus 0004:03: resource 1 [mem 0x600c200000000-0x600c200ffffff]
+Apr 20 08:04:33 kernel: [    1.008954] pci_bus 0004:03: resource 2 [mem 0x6008000000000-0x600803fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.008995] pci 0005:00:00.0: BAR 15: assigned [mem 0x600a000000000-0x600a03fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.009148] pci 0005:01:00.0: BAR 0: assigned [mem 0x600a000000000-0x600a00000ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.009311] pci 0005:01:00.0: BAR 2: assigned [mem 0x600a000010000-0x600a00001ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.009475] pci 0005:01:00.0: BAR 4: assigned [mem 0x600a000020000-0x600a00002ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.009636] pci 0005:01:00.1: BAR 0: assigned [mem 0x600a000030000-0x600a00003ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.009797] pci 0005:01:00.1: BAR 2: assigned [mem 0x600a000040000-0x600a00004ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.009939] pci 0005:01:00.1: BAR 4: assigned [mem 0x600a000050000-0x600a00005ffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.010102] pci 0005:00     : [PE# 126] Secondary bus 0 associated with PE#126
+Apr 20 08:04:33 kernel: [    1.010224] random: fast init done
+Apr 20 08:04:33 kernel: [    1.010734] pci 0005:01     : [PE# 000] Secondary bus 1 associated with PE#0
+Apr 20 08:04:33 kernel: [    1.011345] pci 0005:01     : [PE# 000] Setting up 32-bit TCE table at 0..80000000
+Apr 20 08:04:33 kernel: [    1.028151] pci 0005:01     : [PE# 000] Setting up window#0 0..7fffffff pg=1000
+Apr 20 08:04:33 kernel: [    1.028288] pci 0005:01     : [PE# 000] Enabling 64-bit DMA bypass
+Apr 20 08:04:33 kernel: [    1.028430] iommu: Adding device 0005:01:00.0 to group 4
+Apr 20 08:04:33 kernel: [    1.028529] iommu: Adding device 0005:01:00.1 to group 4
+Apr 20 08:04:33 kernel: [    1.028621] pci 0005:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    1.028723] pci 0005:00:00.0:   bridge window [mem 0x600a000000000-0x600bf7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.028874] pci_bus 0005:00: resource 4 [mem 0x600c280000000-0x600c2fffeffff]
+Apr 20 08:04:33 kernel: [    1.028879] pci_bus 0005:00: resource 5 [mem 0x600a000000000-0x600bf7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.028885] pci_bus 0005:01: resource 2 [mem 0x600a000000000-0x600bf7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.028918] pci 0030:00     : [PE# 254] Secondary bus 0 associated with PE#254
+Apr 20 08:04:33 kernel: [    1.029478] pci 0030:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    1.029611] pci_bus 0030:00: resource 4 [mem 0x620c000000000-0x620c07ffeffff]
+Apr 20 08:04:33 kernel: [    1.029616] pci_bus 0030:00: resource 5 [mem 0x6200000000000-0x6201fbfffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.029648] pci 0033:00     : [PE# 254] Secondary bus 0 associated with PE#254
+Apr 20 08:04:33 kernel: [    1.030203] pci 0033:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    1.030335] pci_bus 0033:00: resource 4 [mem 0x620c180000000-0x620c1fffeffff]
+Apr 20 08:04:33 kernel: [    1.030341] pci_bus 0033:00: resource 5 [mem 0x6206000000000-0x6207fbfffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.030374] pci 0034:00     : [PE# 126] Secondary bus 0 associated with PE#126
+Apr 20 08:04:33 kernel: [    1.030927] pci 0034:00:00.0: PCI bridge to [bus 01]
+Apr 20 08:04:33 kernel: [    1.031040] pci_bus 0034:00: resource 4 [mem 0x620c200000000-0x620c27ffeffff]
+Apr 20 08:04:33 kernel: [    1.031045] pci_bus 0034:00: resource 5 [mem 0x6208000000000-0x6209f7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.031142] pci 0035:00:00.0: BAR 14: assigned [mem 0x620c280000000-0x620c280ffffff]
+Apr 20 08:04:33 kernel: [    1.031279] pci 0035:01:00.0: BAR 0: assigned [mem 0x620c280000000-0x620c28003ffff]
+Apr 20 08:04:33 kernel: [    1.031414] pci 0035:00     : [PE# 126] Secondary bus 0 associated with PE#126
+Apr 20 08:04:33 kernel: [    1.031979] pci 0035:02:08.0: PCI bridge to [bus 03-07]
+Apr 20 08:04:33 kernel: [    1.032094] pci 0035:02:0d.0: PCI bridge to [bus 08-0c]
+Apr 20 08:04:33 kernel: [    1.032213] pci 0035:02     : [PE# 125] Secondary bus 2 associated with PE#125
+Apr 20 08:04:33 kernel: [    1.032768] pci 0035:01:00.0: PCI bridge to [bus 02-0c]
+Apr 20 08:04:33 kernel: [    1.032905] pci 0035:01     : [PE# 124] Secondary bus 1 associated with PE#124
+Apr 20 08:04:33 kernel: [    1.033460] pci 0035:00:00.0: PCI bridge to [bus 01-0c]
+Apr 20 08:04:33 kernel: [    1.033548] pci 0035:00:00.0:   bridge window [mem 0x620c280000000-0x620c2ffefffff]
+Apr 20 08:04:33 kernel: [    1.033711] pci_bus 0035:00: resource 4 [mem 0x620c280000000-0x620c2fffeffff]
+Apr 20 08:04:33 kernel: [    1.033717] pci_bus 0035:00: resource 5 [mem 0x620a000000000-0x620bf7fffffff 64bit pref]
+Apr 20 08:04:33 kernel: [    1.033722] pci_bus 0035:01: resource 1 [mem 0x620c280000000-0x620c2ffefffff]
+Apr 20 08:04:33 kernel: [    1.035988] EEH: PCI Enhanced I/O Error Handling Enabled
+Apr 20 08:04:33 kernel: [    1.036653] PCI: Probing PCI hardware done
+Apr 20 08:04:33 kernel: [    1.056947] HugeTLB registered 2 MB page size, pre-allocated 0 pages
+Apr 20 08:04:33 kernel: [    1.057026] HugeTLB registered 1 GB page size, pre-allocated 0 pages
+Apr 20 08:04:33 kernel: [    1.060285] vgaarb: device added: PCI:0002:02:00.0,decodes=io+mem,owns=none,locks=none
+Apr 20 08:04:33 kernel: [    1.060387] vgaarb: loaded
+Apr 20 08:04:33 kernel: [    1.060408] vgaarb: bridge control possible 0002:02:00.0
+Apr 20 08:04:33 kernel: [    1.061027] SCSI subsystem initialized
+Apr 20 08:04:33 kernel: [    1.061424] libata version 3.00 loaded.
+Apr 20 08:04:33 kernel: [    1.062725] clocksource: Switched to clocksource timebase
+Apr 20 08:04:33 kernel: [    1.086400] VFS: Disk quotas dquot_6.6.0
+Apr 20 08:04:33 kernel: [    1.086781] VFS: Dquot-cache hash table entries: 8192 (order 0, 65536 bytes)
+Apr 20 08:04:33 kernel: [    1.094521] NET: Registered protocol family 2
+Apr 20 08:04:33 kernel: [    1.095426] TCP established hash table entries: 524288 (order: 6, 4194304 bytes)
+Apr 20 08:04:33 kernel: [    1.097883] TCP bind hash table entries: 65536 (order: 4, 1048576 bytes)
+Apr 20 08:04:33 kernel: [    1.098182] TCP: Hash tables configured (established 524288 bind 65536)
+Apr 20 08:04:33 kernel: [    1.098320] UDP hash table entries: 65536 (order: 5, 2097152 bytes)
+Apr 20 08:04:33 kernel: [    1.099131] UDP-Lite hash table entries: 65536 (order: 5, 2097152 bytes)
+Apr 20 08:04:33 kernel: [    1.100606] NET: Registered protocol family 1
+Apr 20 08:04:33 kernel: [    1.100928] PCI: CLS 0 bytes, default 128
+Apr 20 08:04:33 kernel: [    1.101108] Unpacking initramfs...
+Apr 20 08:04:33 kernel: [    1.636633] Freeing initrd memory: 17664K (c0000000023d0000 - c000000003510000)
+Apr 20 08:04:33 kernel: [    1.637547] Hypercall H_BEST_ENERGY not supported
+Apr 20 08:04:33 kernel: [    1.657526] audit: initializing netlink subsys (disabled)
+Apr 20 08:04:33 kernel: [    1.657623] audit: type=2000 audit(1492675471.640:1): initialized
+Apr 20 08:04:33 kernel: [    1.658233] Initialise system trusted keyrings
+Apr 20 08:04:33 kernel: [    1.659316] workingset: timestamp_bits=38 max_order=23 bucket_order=0
+Apr 20 08:04:33 kernel: [    1.661319] zbud: loaded
+Apr 20 08:04:33 kernel: [    1.736287] Key type asymmetric registered
+Apr 20 08:04:33 kernel: [    1.736333] Asymmetric key parser 'x509' registered
+Apr 20 08:04:33 kernel: [    1.736479] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 252)
+Apr 20 08:04:33 kernel: [    1.736992] io scheduler noop registered
+Apr 20 08:04:33 kernel: [    1.737054] io scheduler deadline registered
+Apr 20 08:04:33 kernel: [    1.737429] io scheduler cfq registered (default)
+Apr 20 08:04:33 kernel: [    1.741208] pci_hotplug: PCI Hot Plug PCI Core version: 0.5
+Apr 20 08:04:33 kernel: [    1.741306] pciehp 0004:02:02.0:pcie204: Slot #2 AttnBtn+ PwrCtrl+ MRL+ AttnInd+ PwrInd+ HotPlug+ Surprise- Interlock- NoCompl- LLActRep+
+Apr 20 08:04:33 kernel: [    1.741910] pciehp 0004:02:02.0:pcie204: service driver pciehp loaded
+Apr 20 08:04:33 kernel: [    1.741929] pciehp: PCI Express Hot Plug Controller Driver version: 0.4
+Apr 20 08:04:33 kernel: [    1.742256] hvc0: raw protocol on /ibm,opal/consoles/serial@0 (boot console)
+Apr 20 08:04:33 kernel: [    1.742390] hvc0: No interrupts property, using OPAL event
+Apr 20 08:04:33 kernel: [    1.743520] Serial: 8250/16550 driver, 4 ports, IRQ sharing disabled
+Apr 20 08:04:33 kernel: [    1.744471] Linux agpgart interface v0.103
+Apr 20 08:04:33 kernel: [    1.745327] mousedev: PS/2 mouse device common for all mice
+Apr 20 08:04:33 kernel: [    1.794886] rtc-opal opal-rtc: rtc core: registered rtc-opal as rtc0
+Apr 20 08:04:33 kernel: [    1.797639] powernv-cpufreq: ibm,pstate-min node not found
+Apr 20 08:04:33 kernel: [    1.797700] powernv-cpufreq: Platform driver disabled. System does not support PState control
+Apr 20 08:04:33 kernel: [    1.799377] powernv_idle_driver registered
+Apr 20 08:04:33 kernel: [    1.800714] ledtrig-cpu: registered to indicate activity on CPUs
+Apr 20 08:04:33 kernel: [    1.801984] NET: Registered protocol family 10
+Apr 20 08:04:33 kernel: [    1.803158] mip6: Mobile IPv6
+Apr 20 08:04:33 kernel: [    1.803215] NET: Registered protocol family 17
+Apr 20 08:04:33 kernel: [    1.803304] mpls_gso: MPLS GSO support
+Apr 20 08:04:33 kernel: [    1.803912] registered taskstats version 1
+Apr 20 08:04:33 kernel: [    1.803971] Loading compiled-in X.509 certificates
+Apr 20 08:04:33 kernel: [    1.814579] alg: No test for pkcs1pad(rsa,sha256) (pkcs1pad(rsa-generic,sha256))
+Apr 20 08:04:33 kernel: [    1.815197] Loaded X.509 cert 'Debian Project: Ben Hutchings: 008a018dca80932630'
+Apr 20 08:04:33 kernel: [    1.815472] zswap: loaded using pool lzo/zbud
+Apr 20 08:04:33 kernel: [    1.862996] rtc-opal opal-rtc: setting system clock to 2017-04-20 08:04:32 UTC (1492675472)
+Apr 20 08:04:33 kernel: [    1.863622] Freeing unused kernel memory: 960K (c000000000a20000 - c000000000b10000)
+Apr 20 08:04:33 kernel: [    1.863754] This architecture does not have kernel memory protection.
+Apr 20 08:04:33 kernel: [    2.325079] pps_core: LinuxPPS API ver. 1 registered
+Apr 20 08:04:33 kernel: [    2.325161] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+Apr 20 08:04:33 kernel: [    2.326980] PTP clock support registered
+Apr 20 08:04:33 kernel: [    2.331752] usbcore: registered new interface driver usbfs
+Apr 20 08:04:33 kernel: [    2.331884] usbcore: registered new interface driver hub
+Apr 20 08:04:33 kernel: [    2.332778] usbcore: registered new device driver usb
+Apr 20 08:04:33 kernel: [    2.336844] tg3.c:v3.137 (May 11, 2014)
+Apr 20 08:04:33 kernel: [    2.352111] xhci_hcd 0001:01:00.0: xHCI Host Controller
+Apr 20 08:04:33 kernel: [    2.352187] xhci_hcd 0001:01:00.0: new USB bus registered, assigned bus number 1
+Apr 20 08:04:33 kernel: [    2.352423] xhci_hcd 0001:01:00.0: Using 64-bit DMA iommu bypass
+Apr 20 08:04:33 kernel: [    2.352613] xhci_hcd 0001:01:00.0: hcc params 0x0270f06d hci version 0x96 quirks 0x00000000
+Apr 20 08:04:33 kernel: [    2.353399] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+Apr 20 08:04:33 kernel: [    2.353483] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+Apr 20 08:04:33 kernel: [    2.353609] usb usb1: Product: xHCI Host Controller
+Apr 20 08:04:33 kernel: [    2.353699] usb usb1: Manufacturer: Linux 4.9.0-2-powerpc64le xhci-hcd
+Apr 20 08:04:33 kernel: [    2.353795] usb usb1: SerialNumber: 0001:01:00.0
+Apr 20 08:04:33 kernel: [    2.354247] hub 1-0:1.0: USB hub found
+Apr 20 08:04:33 kernel: [    2.354345] hub 1-0:1.0: 4 ports detected
+Apr 20 08:04:33 kernel: [    2.354859] xhci_hcd 0001:01:00.0: xHCI Host Controller
+Apr 20 08:04:33 kernel: [    2.354936] xhci_hcd 0001:01:00.0: new USB bus registered, assigned bus number 2
+Apr 20 08:04:33 kernel: [    2.355102] usb usb2: We don't know the algorithms for LPM for this host, disabling LPM.
+Apr 20 08:04:33 kernel: [    2.355286] usb usb2: New USB device found, idVendor=1d6b, idProduct=0003
+Apr 20 08:04:33 kernel: [    2.355395] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+Apr 20 08:04:33 kernel: [    2.355506] usb usb2: Product: xHCI Host Controller
+Apr 20 08:04:33 kernel: [    2.355581] usb usb2: Manufacturer: Linux 4.9.0-2-powerpc64le xhci-hcd
+Apr 20 08:04:33 kernel: [    2.355676] usb usb2: SerialNumber: 0001:01:00.0
+Apr 20 08:04:33 kernel: [    2.356084] hub 2-0:1.0: USB hub found
+Apr 20 08:04:33 kernel: [    2.356168] hub 2-0:1.0: 4 ports detected
+Apr 20 08:04:33 kernel: [    2.358271] tg3 0005:01:00.0: Using 64-bit DMA iommu bypass
+Apr 20 08:04:33 kernel: [    2.359191] tg3 0005:01:00.0 eth0: Tigon3 [partno(BCM95719) rev 5719001] (PCI Express) MAC address 70:e2:84:14:24:ed
+Apr 20 08:04:33 kernel: [    2.359338] tg3 0005:01:00.0 eth0: attached PHY is 5719C (10/100/1000Base-T Ethernet) (WireSpeed[1], EEE[1])
+Apr 20 08:04:33 kernel: [    2.359496] tg3 0005:01:00.0 eth0: RXcsums[1] LinkChgREG[0] MIirq[0] ASF[1] TSOcap[1]
+Apr 20 08:04:33 kernel: [    2.359611] tg3 0005:01:00.0 eth0: dma_rwctrl[00000000] dma_mask[64-bit]
+Apr 20 08:04:33 kernel: [    2.376276] tg3 0005:01:00.1: Using 64-bit DMA iommu bypass
+Apr 20 08:04:33 kernel: [    2.377018] tg3 0005:01:00.1 eth1: Tigon3 [partno(BCM95719) rev 5719001] (PCI Express) MAC address 70:e2:84:14:24:ee
+Apr 20 08:04:33 kernel: [    2.377172] tg3 0005:01:00.1 eth1: attached PHY is 5719C (10/100/1000Base-T Ethernet) (WireSpeed[1], EEE[1])
+Apr 20 08:04:33 kernel: [    2.377325] tg3 0005:01:00.1 eth1: RXcsums[1] LinkChgREG[0] MIirq[0] ASF[1] TSOcap[1]
+Apr 20 08:04:33 kernel: [    2.377422] tg3 0005:01:00.1 eth1: dma_rwctrl[00000000] dma_mask[64-bit]
+Apr 20 08:04:33 kernel: [    2.565316] tg3 0005:01:00.0 enP5p1s0f0: renamed from eth0
+Apr 20 08:04:33 kernel: [    2.643423] tg3 0005:01:00.1 enP5p1s0f1: renamed from eth1
+Apr 20 08:04:35 init: starting pid 376, tty '': '/sbin/reopen-console /sbin/debian-installer'
+Apr 20 08:04:35 init: starting pid 379, tty '/dev/tty4': '/usr/bin/tail -f /var/log/syslog'
+Apr 20 08:04:35 debconf: Setting debconf/language to en
+Apr 20 08:04:35 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:35 main-menu[404]: INFO: Menu item 'localechooser' selected
+Apr 20 08:04:35 debconf: Setting debconf/language to 
+Apr 20 08:04:36 localechooser: info: Language = 'en'
+Apr 20 08:04:36 localechooser: info: line=en;0;US;en_US.UTF-8;;console-setup
+Apr 20 08:04:36 localechooser: info: Set debian-installer/language = 'en'
+Apr 20 08:04:36 localechooser: info: Default country = 'US'
+Apr 20 08:04:36 localechooser: info: Default locale = 'en_US.UTF-8'
+Apr 20 08:04:36 localechooser: info: Set debian-installer/consoledisplay = 'console-setup'
+Apr 20 08:04:37 debconf: Setting debconf/language to en
+Apr 20 08:04:38 localechooser: info: Set debian-installer/country = 'US'
+Apr 20 08:04:38 localechooser: info: Set debian-installer/locale = 'en_US.UTF-8'
+Apr 20 08:04:38 localechooser: info: System locale (debian-installer/locale) = 'en_US.UTF-8'
+Apr 20 08:04:38 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:38 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:38 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:38 main-menu[404]: INFO: Menu item 'brltty-udeb' selected
+Apr 20 08:04:38 main-menu[404]: WARNING **: Unable to set title for brltty-udeb.
+Apr 20 08:04:38 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:38 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:38 main-menu[404]: INFO: Menu item 'console-setup-udeb' selected
+Apr 20 08:04:39 kernel: [    8.382733] random: crng init done
+Apr 20 08:04:39 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:39 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:39 main-menu[404]: INFO: Menu item 'ethdetect' selected
+Apr 20 08:04:40 net/hw-detect.hotplug: Detected hotpluggable network interface enP5p1s0f1
+Apr 20 08:04:40 net/hw-detect.hotplug: Detected hotpluggable network interface enP5p1s0f0
+Apr 20 08:04:40 net/hw-detect.hotplug: Detected hotpluggable network interface lo
+Apr 20 08:04:40 hw-detect: Detected module 'usb-storage' for 'USB storage'
+Apr 20 08:04:40 hw-detect: insmod /lib/modules/4.9.0-2-powerpc64le/kernel/drivers/usb/storage/usb-storage.ko 
+Apr 20 08:04:40 kernel: [    9.824714] usbcore: registered new interface driver usb-storage
+Apr 20 08:04:40 apt-install: Queueing package udev for later installation
+Apr 20 08:04:40 apt-install: Queueing package pciutils for later installation
+Apr 20 08:04:40 apt-install: Queueing package usbutils for later installation
+Apr 20 08:04:41 check-missing-firmware: looking at dmesg for the first time
+Apr 20 08:04:41 check-missing-firmware: saving timestamp for a later use: [    9.824714]
+Apr 20 08:04:41 check-missing-firmware: /dev/.udev/firmware-missing does not exist, skipping
+Apr 20 08:04:41 check-missing-firmware: /run/udev/firmware-missing does not exist, skipping
+Apr 20 08:04:41 check-missing-firmware: no missing firmware in loaded kernel modules
+Apr 20 08:04:42 check-missing-firmware: taking network interface enP5p1s0f0 up/down
+Apr 20 08:04:42 kernel: [   11.504715] IPv6: ADDRCONF(NETDEV_UP): enP5p1s0f0: link is not ready
+Apr 20 08:04:42 check-missing-firmware: taking network interface enP5p1s0f1 up/down
+Apr 20 08:04:42 kernel: [   11.718263] tg3 0005:01:00.1 enP5p1s0f1: Link is up at 100 Mbps, full duplex
+Apr 20 08:04:42 kernel: [   11.718267] tg3 0005:01:00.1 enP5p1s0f1: Flow control is on for TX and on for RX
+Apr 20 08:04:42 kernel: [   11.718270] tg3 0005:01:00.1 enP5p1s0f1: EEE is disabled
+Apr 20 08:04:43 check-missing-firmware: looking at dmesg again, restarting from \[    9.824714\]
+Apr 20 08:04:43 check-missing-firmware: timestamp found, truncating dmesg accordingly
+Apr 20 08:04:43 check-missing-firmware: saving timestamp for a later use: [   11.718270]
+Apr 20 08:04:43 check-missing-firmware: /dev/.udev/firmware-missing does not exist, skipping
+Apr 20 08:04:43 check-missing-firmware: /run/udev/firmware-missing does not exist, skipping
+Apr 20 08:04:43 check-missing-firmware: no missing firmware in loaded kernel modules
+Apr 20 08:04:43 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:43 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:04:43 main-menu[404]: INFO: Menu item 'netcfg' selected
+Apr 20 08:04:43 main-menu[404]: INFO: Falling back to the package description for crypto-modules-4.9.0-2-powerpc64le-di
+Apr 20 08:04:43 main-menu[404]: INFO: Falling back to the package description for crypto-modules-4.9.0-2-powerpc64le-di
+Apr 20 08:04:43 netcfg[1025]: INFO: Starting netcfg v.1.141
+Apr 20 08:04:43 netcfg[1025]: WARNING **: Couldn't read Wpasupplicant pid file, not trying to kill.
+Apr 20 08:04:43 netcfg[1025]: INFO: Activating interface enP5p1s0f0
+Apr 20 08:04:43 netcfg[1025]: INFO: Waiting time set to 3
+Apr 20 08:04:43 kernel: [   13.265914] IPv6: ADDRCONF(NETDEV_UP): enP5p1s0f0: link is not ready
+Apr 20 08:04:44 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:44 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:44 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:44 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:45 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:45 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:45 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:45 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:46 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:46 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:46 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:46 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f0: carrier down
+Apr 20 08:04:46 netcfg[1025]: INFO: Reached timeout for link detection on enP5p1s0f0
+Apr 20 08:04:46 netcfg[1025]: INFO: found no link on interface enP5p1s0f0.
+Apr 20 08:04:46 netcfg[1025]: INFO: enP5p1s0f0 is not a wireless interface. Continuing.
+Apr 20 08:04:46 netcfg[1025]: INFO: Taking down interface enP5p1s0f0
+Apr 20 08:04:47 netcfg[1025]: INFO: Taking down interface enP5p1s0f0
+Apr 20 08:04:47 netcfg[1025]: INFO: Activating interface enP5p1s0f1
+Apr 20 08:04:47 netcfg[1025]: INFO: Waiting time set to 3
+Apr 20 08:04:47 kernel: [   16.472025] tg3 0005:01:00.1 enP5p1s0f1: Link is up at 100 Mbps, full duplex
+Apr 20 08:04:47 kernel: [   16.472029] tg3 0005:01:00.1 enP5p1s0f1: Flow control is on for TX and on for RX
+Apr 20 08:04:47 kernel: [   16.472032] tg3 0005:01:00.1 enP5p1s0f1: EEE is disabled
+Apr 20 08:04:47 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f1: carrier up
+Apr 20 08:04:47 netcfg[1025]: INFO: Found link on enP5p1s0f1
+Apr 20 08:04:47 netcfg[1025]: INFO: found link on interface enP5p1s0f1, making it the default.
+Apr 20 08:04:47 netcfg[1025]: INFO: Could not find valid BOOTIF= entry in /proc/cmdline
+Apr 20 08:04:47 netcfg[1025]: INFO: Taking down interface enP5p1s0f0
+Apr 20 08:04:47 netcfg[1025]: INFO: Taking down interface enP5p1s0f1
+Apr 20 08:06:14 netcfg[1025]: INFO: Taking down interface lo
+Apr 20 08:06:14 netcfg[1025]: INFO: Activating interface enP5p1s0f1
+Apr 20 08:06:14 netcfg[1025]: DEBUG: State is now 0
+Apr 20 08:06:14 netcfg[1025]: DEBUG: Want link on enP5p1s0f1
+Apr 20 08:06:14 netcfg[1025]: INFO: Waiting time set to 3
+Apr 20 08:06:14 kernel: [  104.151508] tg3 0005:01:00.1 enP5p1s0f1: Link is up at 100 Mbps, full duplex
+Apr 20 08:06:14 kernel: [  104.151515] tg3 0005:01:00.1 enP5p1s0f1: Flow control is on for TX and on for RX
+Apr 20 08:06:14 kernel: [  104.151518] tg3 0005:01:00.1 enP5p1s0f1: EEE is disabled
+Apr 20 08:06:15 netcfg[1025]: INFO: ethtool-lite: enP5p1s0f1: carrier up
+Apr 20 08:06:15 netcfg[1025]: INFO: Found link on enP5p1s0f1
+Apr 20 08:06:15 netcfg[1025]: DEBUG: Commencing network autoconfiguration on enP5p1s0f1
+Apr 20 08:06:15 netcfg[1025]: DEBUG: rdnssd started; PID: 1041
+Apr 20 08:06:15 netcfg[1025]: DEBUG: nc_v6_interface_configured(enP5p1s0f1, scope local)
+Apr 20 08:06:15 netcfg[1025]: DEBUG: Running ip addr show enP5p1s0f1 to look for address
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line: 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link tentative 
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:        valid_lft forever preferred_lft forever
+Apr 20 08:06:15 netcfg[1025]: DEBUG: nc_v6_interface_configured(enP5p1s0f1, scope local)
+Apr 20 08:06:15 netcfg[1025]: DEBUG: Running ip addr show enP5p1s0f1 to look for address
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line: 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link tentative 
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:        valid_lft forever preferred_lft forever
+Apr 20 08:06:15 netcfg[1025]: DEBUG: nc_v6_interface_configured(enP5p1s0f1, scope local)
+Apr 20 08:06:15 netcfg[1025]: DEBUG: Running ip addr show enP5p1s0f1 to look for address
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line: 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link tentative 
+Apr 20 08:06:15 netcfg[1025]: DEBUG: ip line:        valid_lft forever preferred_lft forever
+Apr 20 08:06:16 netcfg[1025]: DEBUG: nc_v6_interface_configured(enP5p1s0f1, scope local)
+Apr 20 08:06:16 netcfg[1025]: DEBUG: Running ip addr show enP5p1s0f1 to look for address
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line: 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link tentative 
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:        valid_lft forever preferred_lft forever
+Apr 20 08:06:16 netcfg[1025]: DEBUG: nc_v6_interface_configured(enP5p1s0f1, scope local)
+Apr 20 08:06:16 netcfg[1025]: DEBUG: Running ip addr show enP5p1s0f1 to look for address
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line: 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link tentative 
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:        valid_lft forever preferred_lft forever
+Apr 20 08:06:16 netcfg[1025]: DEBUG: nc_v6_interface_configured(enP5p1s0f1, scope local)
+Apr 20 08:06:16 netcfg[1025]: DEBUG: Running ip addr show enP5p1s0f1 to look for address
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line: 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link tentative 
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:        valid_lft forever preferred_lft forever
+Apr 20 08:06:16 netcfg[1025]: DEBUG: nc_v6_interface_configured(enP5p1s0f1, scope local)
+Apr 20 08:06:16 netcfg[1025]: DEBUG: Running ip addr show enP5p1s0f1 to look for address
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line: 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link 
+Apr 20 08:06:16 netcfg[1025]: DEBUG: Configured address found
+Apr 20 08:06:16 netcfg[1025]: DEBUG: ip line:        valid_lft forever preferred_lft forever
+Apr 20 08:06:16 netcfg[1025]: DEBUG: Running rdisc6 -1 -r 1 -w 500 -n enP5p1s0f1 to get IPv6 config flags
+Apr 20 08:06:17 netcfg[1025]: DEBUG: rdisc6 line: Soliciting ff02::2 (ff02::2) on enP5p1s0f1...
+Apr 20 08:06:17 netcfg[1025]: DEBUG: rdisc6 line: Timed out.
+Apr 20 08:06:17 netcfg[1025]: DEBUG: rdisc6 line: No response.
+Apr 20 08:06:17 netcfg[1025]: DEBUG: rdisc6 parsing finished
+Apr 20 08:06:17 netcfg[1025]: DEBUG: rdisc6 line: Soliciting ff02::2 (ff02::2) on enP5p1s0f1...
+Apr 20 08:06:17 netcfg[1025]: DEBUG: rdisc6 line: Timed out.
+Apr 20 08:06:17 netcfg[1025]: DEBUG: rdisc6 line: No response.
+Apr 20 08:06:17 netcfg[1025]: DEBUG: rdisc6 parsing finished
+Apr 20 08:06:18 netcfg[1025]: DEBUG: rdisc6 line: Soliciting ff02::2 (ff02::2) on enP5p1s0f1...
+Apr 20 08:06:18 netcfg[1025]: DEBUG: rdisc6 line: Timed out.
+Apr 20 08:06:18 netcfg[1025]: DEBUG: rdisc6 line: No response.
+Apr 20 08:06:18 netcfg[1025]: DEBUG: rdisc6 parsing finished
+Apr 20 08:06:18 netcfg[1025]: DEBUG: rdisc6 line: Soliciting ff02::2 (ff02::2) on enP5p1s0f1...
+Apr 20 08:06:18 netcfg[1025]: DEBUG: rdisc6 line: Timed out.
+Apr 20 08:06:18 netcfg[1025]: DEBUG: rdisc6 line: No response.
+Apr 20 08:06:18 netcfg[1025]: DEBUG: rdisc6 parsing finished
+Apr 20 08:06:19 netcfg[1025]: DEBUG: rdisc6 line: Soliciting ff02::2 (ff02::2) on enP5p1s0f1...
+Apr 20 08:06:19 netcfg[1025]: DEBUG: rdisc6 line: Timed out.
+Apr 20 08:06:19 netcfg[1025]: DEBUG: rdisc6 line: No response.
+Apr 20 08:06:19 netcfg[1025]: DEBUG: rdisc6 parsing finished
+Apr 20 08:06:19 netcfg[1025]: DEBUG: rdisc6 line: Soliciting ff02::2 (ff02::2) on enP5p1s0f1...
+Apr 20 08:06:19 netcfg[1025]: DEBUG: rdisc6 line: Timed out.
+Apr 20 08:06:19 netcfg[1025]: DEBUG: rdisc6 line: No response.
+Apr 20 08:06:19 netcfg[1025]: DEBUG: rdisc6 parsing finished
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Soliciting ff02::2 (ff02::2) on enP5p1s0f1...
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: 
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Hop limit                 :           64 (      0x40)
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Stateful address conf.    :           No
+Apr 20 08:06:20 netcfg[1025]: DEBUG: Got stateful address line
+Apr 20 08:06:20 netcfg[1025]: DEBUG: stateful=0
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Stateful other conf.      :           No
+Apr 20 08:06:20 netcfg[1025]: DEBUG: stateless=0
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Mobile home agent         :           No
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Router preference         :       medium
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Neighbor discovery proxy  :           No
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Router lifetime           :         1800 (0x00000708) seconds
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Reachable time            :  unspecified (0x00000000)
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line: Retransmit time           :  unspecified (0x00000000)
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line:  Source link-layer address: 4C:96:14:59:D7:F0
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line:  Prefix                   : 2002:903:15f:550::/64
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line:   On-link                 :          Yes
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line:   Autonomous address conf.:          Yes
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line:   Valid time              :      2592000 (0x00278d00) seconds
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line:   Pref. time              :       604800 (0x00093a80) seconds
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 line:  from fe80::4e96:14ff:fe59:d7f0
+Apr 20 08:06:20 netcfg[1025]: DEBUG: rdisc6 parsing finished
+Apr 20 08:06:20 netcfg[1025]: DEBUG: Reading nameservers from /tmp/rdnssd_resolv
+Apr 20 08:06:20 netcfg[1025]: DEBUG: Stopping rdnssd, PID 1041
+Apr 20 08:06:20 netcfg[1025]: DEBUG: IPv6 found
+Apr 20 08:06:20 netcfg[1025]: DEBUG: IPv6 stateless autoconfig requested
+Apr 20 08:06:20 netcfg[1025]: DEBUG: nc_v6_interface_configured(enP5p1s0f1, scope global)
+Apr 20 08:06:20 netcfg[1025]: DEBUG: Running ip addr show enP5p1s0f1 to look for address
+Apr 20 08:06:20 netcfg[1025]: DEBUG: ip line: 3: enP5p1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq qlen 1000
+Apr 20 08:06:20 netcfg[1025]: DEBUG: ip line:     link/ether 70:e2:84:14:24:ee brd ff:ff:ff:ff:ff:ff
+Apr 20 08:06:20 netcfg[1025]: DEBUG: ip line:     inet6 2002:903:15f:550:72e2:84ff:fe14:24ee/64 scope global dynamic 
+Apr 20 08:06:20 netcfg[1025]: DEBUG: Configured address found
+Apr 20 08:06:20 netcfg[1025]: DEBUG: ip line:        valid_lft 2592000sec preferred_lft 604800sec
+Apr 20 08:06:20 netcfg[1025]: DEBUG: ip line:     inet6 fe80::72e2:84ff:fe14:24ee/64 scope link 
+Apr 20 08:06:20 netcfg[1025]: DEBUG: ip line:        valid_lft forever preferred_lft forever
+Apr 20 08:06:20 netcfg[1025]: DEBUG: Trying IPv4 autoconfig as well
+Apr 20 08:06:20 netcfg[1025]: WARNING **: Started DHCP client; PID is 1073
+Apr 20 08:06:45 netcfg[1025]: DEBUG: Reading nameservers from /etc/resolv.conf
+Apr 20 08:06:45 netcfg[1025]: DEBUG: State is now 1
+Apr 20 08:06:45 netcfg[1025]: DEBUG: State is now 2
+Apr 20 08:07:41 netcfg[1025]: DEBUG: State is now 5
+Apr 20 08:07:41 netcfg[1025]: DEBUG: Using DNS to try and obtain default hostname
+Apr 20 08:07:41 netcfg[1025]: DEBUG: Getting default hostname from rDNS lookup of autoconfigured address 2002:903:15f:550:72e2:84ff:fe14:24ee
+Apr 20 08:07:41 netcfg[1025]: DEBUG: getnameinfo() returned -3 (Temporary failure in name resolution)
+Apr 20 08:07:41 netcfg[1025]: DEBUG: Getting default hostname from rDNS lookup of autoconfigured address fe80::72e2:84ff:fe14:24ee
+Apr 20 08:07:41 netcfg[1025]: DEBUG: getnameinfo() returned -3 (Temporary failure in name resolution)
+Apr 20 08:08:30 netcfg[1025]: DEBUG: State is now 6
+Apr 20 08:09:24 netcfg[1025]: DEBUG: Network config complete
+Apr 20 08:09:24 netcfg[1025]: DEBUG: No interface given; clearing /etc/network/interfaces
+Apr 20 08:09:24 netcfg[1025]: DEBUG: Writing informative header
+Apr 20 08:09:24 netcfg[1025]: DEBUG: Success!
+Apr 20 08:09:24 netcfg[1025]: DEBUG: Writing loopback interface
+Apr 20 08:09:24 netcfg[1025]: DEBUG: Success!
+Apr 20 08:09:24 netcfg[1025]: DEBUG: Writing SLAAC stanza for enP5p1s0f1
+Apr 20 08:09:24 netcfg[1025]: INFO: Detected enP5p1s0f1 as a hotpluggable device
+Apr 20 08:09:24 netcfg[1025]: DEBUG: Success!
+Apr 20 08:09:25 main-menu[404]: (process:1024): udhcpc (v1.22.1) started
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): udhcpc: has been called with an unknown param: leasefail
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): udhcpc: has been called with an unknown param: leasefail
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): udhcpc: has been called with an unknown param: leasefail
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): udhcpc: has been called with an unknown param: leasefail
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Sending discover...
+Apr 20 08:09:25 main-menu[404]: (process:1024): Received SIGTERM
+Apr 20 08:09:25 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:09:25 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:09:25 main-menu[404]: INFO: Menu item 'choose-mirror' selected
+Apr 20 08:09:25 anna-install: Queueing udeb apt-mirror-setup for later installation
+Apr 20 08:10:56 choose-mirror[1114]: DEBUG: command: wget --no-verbose http://mirrors.kernel.org/debian/dists/oldstable/Release -O - | grep -E '^(Suite|Codename|Architectures):'
+Apr 20 08:10:56 choose-mirror[1114]: DEBUG: command: wget --no-verbose http://mirrors.kernel.org/debian/dists/stable/Release -O - | grep -E '^(Suite|Codename|Architectures):'
+Apr 20 08:10:56 choose-mirror[1114]: DEBUG: command: wget --no-verbose http://mirrors.kernel.org/debian/dists/testing/Release -O - | grep -E '^(Suite|Codename|Architectures):'
+Apr 20 08:10:56 choose-mirror[1114]: DEBUG: command: wget --no-verbose http://mirrors.kernel.org/debian/dists/unstable/Release -O - | grep -E '^(Suite|Codename|Architectures):'
+Apr 20 08:10:56 choose-mirror[1114]: INFO: mirror does not have any suite symlinks
+Apr 20 08:10:56 choose-mirror[1114]: DEBUG: command: wget --no-verbose http://mirrors.kernel.org/debian/dists/stretch/Release -O - | grep -E '^(Suite|Codename|Architectures):'
+Apr 20 08:10:56 choose-mirror[1114]: WARNING **: mirror does not support the specified release (stretch)
+Apr 20 08:11:10 main-menu[404]: (process:1107): wget: unable to resolve host address 'mirrors.kernel.org'
+Apr 20 08:11:10 main-menu[404]: (process:1107): wget: unable to resolve host address 'mirrors.kernel.org'
+Apr 20 08:11:10 main-menu[404]: (process:1107): wget: unable to resolve host address 'mirrors.kernel.org'
+Apr 20 08:11:10 main-menu[404]: (process:1107): wget: unable to resolve host address 'mirrors.kernel.org'
+Apr 20 08:11:10 main-menu[404]: (process:1107): wget: unable to resolve host address 'mirrors.kernel.org'
+Apr 20 08:11:10 main-menu[404]: INFO: Menu item 'choose-mirror' succeeded but requested to be left unconfigured.
+Apr 20 08:11:10 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:11:11 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:11:11 main-menu[404]: INFO: Menu item 'choose-mirror' selected
+Apr 20 08:11:11 main-menu[404]: INFO: Menu item 'choose-mirror' succeeded but requested to be left unconfigured.
+Apr 20 08:11:11 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:11:15 main-menu[404]: INFO: Falling back to the package description for brltty-udeb
+Apr 20 08:11:15 main-menu[404]: INFO: Menu item 'save-logs' selected

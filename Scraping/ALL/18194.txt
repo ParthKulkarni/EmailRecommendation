@@ -1,0 +1,64 @@
+To : "Christian T. Steigies" <cts@debian.org>, debian-devel@lists.debian.org
+Subject : Re: Debian part of a version number when epoch is bumped
+From : Adrian Bunk <bunk@debian.org>
+Date : Fri, 30 Mar 2018 14:21:43 +0300
+Message-id : 20180330112143.GY9516@localhost
+In-reply-to : <[🔎] 20180328213958.574tiau3ce45afy2@guido.venus.sol>
+References : <CAAajCMZkzdQg5FS_PABLzyTu2QzJStfhtbseW7YazUyoSKipHQ@mail.gmail.com> <20180205160558.GY9661@mapreri.org> <[🔎] CAAajCMZ5F+K7EPvv5dixN=WePvp046XgGbahsVFp20s=bPQY7Q@mail.gmail.com> <[🔎] 20180328213958.574tiau3ce45afy2@guido.venus.sol>
+
+
+On Wed, Mar 28, 2018 at 11:39:58PM +0200, Christian T. Steigies wrote:
+>...
+> You still have not convinced me that I did anything wrong with the version
+> number and you keep ignoring my request for propper official documentation
+> how to use and not use an epoch.  Maybe you all can read between the lines
+> of the policy or just magically know how this was intended.  But I can not
+> read your mind and I assume the majority of regular DDs can neither.  If it
+> is incorrect to start with the debian revision from scratch after an epoch,
+> please document it where a regular person can easily find it, especially if
+> I am not the first person to fall into this trap.  I do not consider this
+> bug report a suitable place for that (one of my packages has been used
+> before in an Ubuntu packaging manual to show how to report a bug and nobody
+> told me about this nor the "bug" until after years somebody finally reported
+> the bug, is this the plan for moon-buggy and epochs?).
+>...
+There are two problems here.
+The first is the use of an epoch in a situation where it shouldn't be used.
+The actual "trap" is when a maintainer used an epoch in such a situation.
+Once introduced in a package an epoch cannot ever be undone, so all that 
+can be done on that is to make it clearer that it is wrong to use an 
+epoch in such cases.
+The second problem is about filename overlap after incorrect epoch usage.
+It is important to understand that this is only relevant for cases where 
+an epoch was used where it shouldn't have been:
+When an epoch is used as intended for a change in the upstream version 
+numbering scheme (e.g. from 20171224 to 1.0), there is no overlap in
+version numbers.
+Launchpad gave an error on that, and this is better than the silent 
+breakage in Debian of the assumption that no filename is ever used twice 
+in Debian. I would consider it a bug in dak that it doesn't know about 
+all versions and filenames that ever existed in Debian.
+It would be wrong to document in Debian policy that skipping Debian 
+revisions is required in such cases, since the only case where this
+second problem can happen is when a maintainer used an epoch in a
+situation where it shouldn't be used (first problem).[1]
+For the future it should be documented better that using an epoch is 
+wrong in such cases, but for past incorrect epoch usage all that can
+be done is to limit the damage.
+Things that cannot be undone for moon-buggy:
+- the epoch
+- two files moon-buggy_1.0.51-1.dsc exist in Debian,
+  with different contents [2]
+What can be done for moon-buggy is to use a Debian revision that doesn't
+result in filenames that are duplicates with pre-epoch packages.
+> Christian
+cu
+Adrian
+[1] in theory upstream could also create such a situation with frequent
+    changes in the versioning scheme, but that's not a problem in practice
+[2] not in Ubuntu, where this problem was caught
+-- 
+       "Is there not promise of rain?" Ling Tan asked suddenly out
+        of the darkness. There had been need of rain for many days.
+       "Only a promise," Lao Er said.
+                                       Pearl S. Buck - Dragon Seed

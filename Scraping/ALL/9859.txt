@@ -1,0 +1,55 @@
+To : Vincent Danjean <vdanjean.ml@free.fr>, Debian Developers <debian-devel@lists.debian.org>
+Subject : Re: IPv6 problem for one debian mirror
+From : Adrien CLERC <bugs-debian@antipoul.fr>
+Date : Wed, 8 Feb 2017 11:55:32 +0100
+Message-id : 61f8cb27-c0eb-547e-392c-6cb6ca6c2cfe@antipoul.fr
+In-reply-to : <[🔎] 5eda9e1b-ea96-0461-42c6-0062bc9ab952@free.fr>
+References : <[🔎] 5eda9e1b-ea96-0461-42c6-0062bc9ab952@free.fr>
+
+
+Le 08/02/2017 à 01:05, Vincent Danjean a écrit :
+> However, the machine answers to IPv4 connections but not to IPv6
+> $ time wget -4 ftp.fr.debian.org
+> --2017-02-08 00:53:54--  http://ftp.fr.debian.org/
+> Résolution de ftp.fr.debian.org (ftp.fr.debian.org)… 212.27.32.66
+> Connexion à ftp.fr.debian.org (ftp.fr.debian.org)|212.27.32.66|:80… connecté.
+> requête HTTP transmise, en attente de la réponse… 200 OK
+> Taille : 1915 (1,9K) [text/html]
+> [...]
+> real	0m0,108s
+> user	0m0,000s
+> sys	0m0,000s
+> $ time wget -6 ftp.fr.debian.org
+> --2017-02-08 00:53:58--  http://ftp.fr.debian.org/
+> Résolution de ftp.fr.debian.org (ftp.fr.debian.org)… 2a01:e0c:1:1598::2
+> Connexion à ftp.fr.debian.org (ftp.fr.debian.org)|2a01:e0c:1:1598::2|:80… ^C
+>
+> real	1m52,272s
+> user	0m0,000s
+> sys	0m0,000s
+> [I did a C-c in the shell to interrupt]
+>
+> My IPv6 connection is ok for other sites, for example:
+>
+> $ time wget -6 www.debian.org
+> URL transformed to HTTPS due to an HSTS policy
+> --2017-02-08 00:57:00--  https://www.debian.org/
+> Résolution de www.debian.org (www.debian.org)… 2001:610:1908:b000::148:14, 2001:41c8:1000:21::21:4
+> Connexion à www.debian.org (www.debian.org)|2001:610:1908:b000::148:14|:443… connecté.
+> requête HTTP transmise, en attente de la réponse… 200 OK
+> Taille : 14926 (15K) [text/html]
+> [...]
+> real	0m1,079s
+> user	0m0,012s
+> sys	0m0,000s
+Hi,
+I can only but encourages you to try lower MTU. Here is an example:
+ip -6 route change default via fe80::207:cbff:feb1:7dd7 dev eth_adsl mtu
+1480
+You can also try with a lower value, such as 1456 or 1440.
+Yes, the MTU discovery is not working on proxad network, and I don't
+know why. Maybe it's my own firewall, I don't know, and I don't have the
+time to investigate.
+Note however that this might be a peering issue. After all, IPv6 is only
+18 years old, it's a young technology preview ;)
+Adrien

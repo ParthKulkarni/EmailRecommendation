@@ -1,0 +1,50 @@
+To : "Rak, Anton" <anton.rak@eks-intec.de>
+Subject : Re: Preseed, policy-rc.d returns 101
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 19 Jul 2017 08:07:03 +0200
+Message-id : 20170719060703.GA6494@mraw.org
+In-reply-to : <[🔎] 1500382377305.54710@eks-intec.de>
+References : <[🔎] 1500382377305.54710@eks-intec.de>
+
+
+Hi Anton,
+First off: please avoid sending html-only mails, this makes people want
+to kill them with fire instead of replying.
+Rak, Anton <anton.rak@eks-intec.de> (2017-07-18):
+> I'm not sure whether I should ask that question here or not, that is why
+> correct me if not.
+That's fine, even if debian-user or so would get your a wider audience.
+> Main problem: We(i and collegues) created custom debian repo and
+> uploaded a number of packages(control stuff like postinstall was written
+> by me). The idea is to load and install that packages during the
+> installation of OS(Debian 9) via preseed.cfg. If i install that packages
+> on already installed OS - everything is ok, however when they installed
+> with the help of preseed file - services of these programs are not
+> running(not enabled and not active) after reboot into newly instaled OS.
+> I've tried both notation of preseed to install the packages:
+> 
+> 1) d-i preseed/late_command string apt-install profinet-ui
+> 2) d-i pkgsel/include string profinet-ui
+There are a number of components in d-i which can touch policy-rc.d, but
+notably running in-target will get you chroot_setup and chroot_cleanup
+called, which are exposed through chroot-setup.sh. The former function
+is responsible for making sure there's a policy-rc.d script in place,
+the latter for cleaning it up.
+Then, apt-install leverages in-target, so that's quite normal to have
+the behaviour you're describing. I'd probably go for running a compound
+command starting by removing the policy-rc.d file, then only installing
+your packages; all of this wrapped by in-target.
+> I also tried to substitute deb-systemd-invoke with deb-systemd-helper,
+> but that didn't work for me too. Finally the problem was solwed by using
+> systemctl instead of deb-systemd-*. But i'm still interested why
+> it didn't work?
+Please contact the relevant maintainers, maybe through a bug report.
+That's not for debian-boot@.
+> Second question: why could I prefere to use deb-systemd-invoke instead
+> of deb-systemd-helper? Both of them are using systemctl. As I got, the
+> main difference is that deb-systemd-invoke starts servecies respecting
+> policy-rc.d. On the other side deb-systemd-helper has a bit more
+> functionality but without respect to policy-rc.d. 
+Same as above.
+KiBi.
+signature.asc

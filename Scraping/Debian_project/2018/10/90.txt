@@ -1,0 +1,67 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Limiting the power of packages
+From : Simon Richter <sjr@debian.org>
+Date : Thu, 4 Oct 2018 21:10:47 +0200
+Message-id : 20181004191047.GA32219@psi5.com
+In-reply-to : <[🔎] 20181003171917.GB2043@exolobe1.liw.fi>
+References : <[🔎] 20181003171917.GB2043@exolobe1.liw.fi>
+
+
+Hi,
+> A suggestion: we restrict where packages can install files and what
+> maintainer scripts can do. The default should be as safe as we can
+> make it, and packages that need to do things not allowed by the
+> default should declare they that they intend to do that.
+I've held a short inflammatory lightning talk at DebConf9 in Cáceres about
+that, comparing dpkg against Microsoft Installer. :)
+MSI solves this quite nicely: packages are collections of relational
+database tables, each table provides the parameters for an action, and the
+actions themselves are defined by the core installer (with a plugin
+interface for custom actions, which noone uses).
+This means that any package that doesn't use any plugins can be evaluated
+externally by looking at the table data, and Small Business Server includes
+a tool to statically check packages for conflicts.
+We could bring the same to dpkg by moving things out of maintainer scripts
+and into control files. The big items would be
+ - alternatives
+ - diversions
+ - statoverride
+ - service start/stop
+If we had control files for these, a lot of maintainer scripts would simply
+be empty, especially in the base system that would be really helpful for
+"debootstrap --foreign", where the host system could run the actions in the
+newly installed system even if the architecture does not match, and we
+could avoid running services in freshly installed chroots as well.
+Smaller items:
+ - ldconfig could be a control file as well -- if it's present, we need to
+   run ldconfig.
+We already have a solution for that with file-based triggers, but this
+would be also be more transparent for "debootstrap --foreign".
+ - Moving files into new locations would need a table
+    old version; new version; old location; new location
+When upgrading from a version between the old and new versions, the files
+need to be moved (this would catch preinst for move, and postinst for
+aborted-upgrade).
+ - Updates from debconf to files in /etc/default
+This requires some more thought than I can provide at this late hour.
+ - Installation of new APT sources and keys
+Having the information as descriptive data will allow filtering and adding
+constraints during source/key installation, e.g. by keeping keys installed
+through this mechanism associated with the source installed in the same
+package, and having packages from the source inherit constraints from the
+package that provided the source.
+Ideally, maintainer scripts would be a last-resort option if none of the
+existing descriptive mechanisms works.
+Packages using these control files would obviously require a dpkg version
+that supports them, and we'd also need a mechanism for adding new control
+files over time.
+The main difficulty I see is keeping compatibility for upgrades, so stable
+dpkg can still install packages from unstable. My proposal would be that
+packages start using "_alternatives" first (which dpkg knows to ignore if
+it doesn't understand it, it's almost as if someone knew what they were
+doing back then) together with a maintainer script that makes the
+alternatives handling conditional on the return code of a query command
+that checks if dpkg handles the control file internally. Then, a few years
+later, we transition to "alternatives" as a control file, and no maintainer
+script. Most packages would probably use dh_alternatives for that anyway.
+   Simon

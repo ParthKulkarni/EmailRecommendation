@@ -1,0 +1,43 @@
+To : debian-boot@lists.debian.org
+Subject : Official DVD-1-ISO/CDROM preseeding from preseed.cfg stored on USB/HD without remasteringDVD (also load firmware)
+From : Veek M <vek.m1234@gmail.com>
+Date : Wed, 17 Oct 2018 06:14:40 +0530
+Message-id : CADa4HXAOcJd4Ewbn+28uhR14U_GWxE-sucGOPCoOQRGLQ1brcg@mail.gmail.com
+
+
+1. How do I pre-seed the official ISOs without re-mastering them? The
+idea is that I have a USB stick that boots GRUB via
+sdb3/FAT(ISO+/boot+preseed.cfg) and then I feed the preseed via
+menu.cfg-->file=(something-magical)/files/preseed.cfg
+Currently I pass the preseed params via the USB/Grub:
+menuentry 'CDROM Quick Rescue' {
+    insmod iso9660
+    insmod linux
+    insmod pata
+    set prefix=(ata2)
+    set root=(ata2)
+    linux /install.amd/vmlinuz locale=en_IN.UTF-8 keymap=gb
+rescue/enable=true hw-detect/load_firmware=false netcfg/enable=false
+netcfg/hostname=deathstar
+    initrd /install.amd/initrd.gz
+But I cannot load firmware this way! And it's not the easiest to
+alter. Once I load pata, my (hd0,msdos2) disappears - how do I prevent
+this and load firmware/ .cfg files.
+(additionally is this module behavior documented somewhere? how do I
+read up on the various modules and their interaction - ahci, pata,
+setjmp)
+2.
+menuentry 'Debian 9.5 Stretch ISO' {
+    loopback loop $iso
+    linux (loop)/install.amd/vmlinuz iso-scan/filename=$isopath
+shared/ask_device=manual shared/enter_device=$isodevpath no-prompt
+no-eject locale=en_IN.UTF-8 keymap=gb file=/hd-media/files/preseed.cfg
+    initrd $isopath/initrd.gz
+}
+I basically downloaded initrd.gz from some random website because
+google told me that it had iso-scan and could mount hd-media - true to
+form it works but, there's no checksum/hash/signature to verify it. Is
+it possible for me to mount /hd-media and run iso-scan from the
+OFFICIAL debian ISO? Can I achieve the same
+results/mount-loppback+preseed-from-USB-partition using the official
+DVD1ISO?

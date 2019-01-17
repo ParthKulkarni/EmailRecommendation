@@ -1,0 +1,36 @@
+To : 906250@bugs.debian.org, debian-devel@lists.debian.org
+Subject : Re: Bug#906250: ITP: execline -- small and non-interactive scripting language
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 3 Sep 2018 11:04:16 +0200
+Message-id : 20180903090416.rsa6zsx6hfq7p4px@angband.pl
+In-reply-to : <[🔎] 20180903081709.7wfaf32rz33p6brf@jwilk.net>
+References : <20180816055801.GA11241@debian> <[🔎] CAFyCLW-m6dJiqpuJ5astg+5cZbw-s0=CECpgBh8st0P59FGm_A@mail.gmail.com> <[🔎] 20180903081709.7wfaf32rz33p6brf@jwilk.net>
+
+
+On Mon, Sep 03, 2018 at 10:17:09AM +0200, Jakub Wilk wrote:
+> * Shengjing Zhu <zhsj@debian.org>, 2018-09-02, 14:42:
+> > When I try to package execline(a non-interactive shell script)[1], it
+> > installs following binaries in default PATH,
+> > 
+> > cd, if, exec, wait, ....
+> 
+> Three of them (cd, umask, wait) clash with shell's regular built-in
+> utilities. [...] The execline's implementation are of course not compatible
+> with POSIX, and therefore must not be included within PATH.
+And with the Policy, too:
+§10.1.
+# Two different packages must not install programs with different
+# functionality but with the same filenames.  (The case of two programs
+# having the same functionality but different implementations is handled via
+# “alternatives” or the “Conflicts” mechanism.
+Regular "cd" changes the directory for the calling process (thus it even
+can't possibly be a separate process), this "cd" takes two arguments and
+runs a _child_ with the changed directory.
+So having execline in $PATH conflicts not only with POSIX, common sense,
+but even our Policy. :þ
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ What Would Jesus Do, MUD/MMORPG edition:
+⣾⠁⢰⠒⠀⣿⡁ • multiplay with an admin char to benefit your mortal [Mt3:16-17]
+⢿⡄⠘⠷⠚⠋⠀ • abuse item cloning bugs [Mt14:17-20, Mt15:34-37]
+⠈⠳⣄⠀⠀⠀⠀ • use glitches to walk on water [Mt14:25-26]

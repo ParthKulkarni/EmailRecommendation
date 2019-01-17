@@ -1,0 +1,24 @@
+To : Ben Hutchings <ben@decadent.org.uk>
+Subject : Re: Armel: Debian installer freeezes (GuruPlug Server plus)
+From : Kari Tanninen <otmen@elisanet.fi>
+Date : Mon, 05 Mar 2018 10:27:36 +0200
+Message-id : d983163c651b721d8c936276f21cef79@be508.mail.saunalahti.fi
+In-reply-to : <[🔎] 6072affc15b6fc663f5dd4e8693da210@be508.mail.saunalahti.fi>
+References : <[🔎] 7d2b5cd2b76322278749f6358709f811@be508.mail.saunalahti.fi> <[🔎] 20180301120245.una45cavlishaa6m@jirafa.cyrius.com> <[🔎] 832324d77e6d817c2046c5d76e3b0602@be508.mail.saunalahti.fi> <[🔎] 20180301131149.25oatx7jtqpwiovj@jirafa.cyrius.com> <[🔎] 298158712aa54715db184771cffdac93@be508.mail.saunalahti.fi> <[🔎] 1520086417.2617.361.camel@decadent.org.uk> <[🔎] fd7cc0f86df13e9bfe661cffb0c24884@be508.mail.saunalahti.fi> <[🔎] 6072affc15b6fc663f5dd4e8693da210@be508.mail.saunalahti.fi>
+
+
+I think GuruPlug doesn't have SPI-flash -> BootRom is executed before 
+U-boot -> virtual memory is set-up for MMU for U-boot.
+88F6281 SoC is probably using Kirkwood series 12KB BootRom ver. 1.21 or 
+later, but I cannot find prom source code (propietary/NDA stuff?).
+88F6281 prom MMU memory setup is documented and there is some 
+limitations for virtual memory address space (for physical/PCI memory 
+address space mapping tables) after MMU setup and image needs special 
+header -> special uImage format needed (?).
+In my case, I guess when loading fdt separatelly U-boots can set memory 
+paging correctly for  uInitrd. Loading to wrong place (=too high?) it 
+overlaps virtul memory swithing tables. It depends ARM based SoC 
+manufacturers BootRom MMU setups, if separete fdt loading is usable for 
+general linux kernel/bootloder API.
+without resize fdt-blob at U-boot. U-boot is using physical 
+addressing

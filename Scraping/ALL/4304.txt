@@ -1,0 +1,95 @@
+To : Daniel Kahn Gillmor <dkg@debian.org>
+Subject : Bug#795735: partman-crypto: always encrypt swap
+From : Wouter Verhelst <w@uter.be>
+Date : Fri, 20 Oct 2017 08:46:39 +0200
+Message-id : 20171020064639.csxkczjunuxjuc2g@grep.be
+Reply-to : Wouter Verhelst <w@uter.be>, 795735@bugs.debian.org
+In-reply-to : <[🔎] 87d15izxel.fsf@fifthhorseman.net>
+References : <20150816135524.28014.86345.reportbug@exolobe1> <20150816142116.GB31077@grep.be> <[🔎] 87d15izxel.fsf@fifthhorseman.net> <20150816135524.28014.86345.reportbug@exolobe1>
+
+
+On Thu, Oct 19, 2017 at 04:37:54PM -0400, Daniel Kahn Gillmor wrote:
+> It's a shame that encrypted swap by default hasn't happened yet for
+> debian.
+[...]
+> actual hardware performance
+> ---------------------------
+> 
+> I suspect the cost is negligible on most hardware today, particularly
+> when compared to the disk I/O.  If you're swapping, you're likely to be
+> waiting for the disk, not waiting for the CPU.  That said, i agree that
+> users with specialized situations ought to be able to disable this.  But
+> the default should still be on.
+For clarity, when I stated that, I wasn't using it as an argument
+against enabling encryption of the swap partition by default; it's just
+that saying "there is no performance impact when doing something extra"
+is objectively wrong. The performance impact may be negligable; but when
+you need to do more work, you need to actually do it and there will be
+an impact. It will not matter in the common case, but there will be
+exceptions where it will matter, and therefore we need to continue
+supporting that.
+Pet peeves, I suppose.
+> suspend-to-disk
+> ---------------
+> 
+> If the user suspends to disk, then the memory will be written to disk.
+> this is definitely a leak.  However, we currently write the memory to
+> disk *without* suspending to disk, so even if we don't handle
+> suspend-to-disk "safely" it's still a win to encrypt swap, because we
+> protect the people who do *not* suspend to disk.  So that's the simplest
+> solution to the suspend-to-disk problem: just punt on it for now, and
+> leave that case unprotected.
+> 
+> If suspend-to-disk (or rather, resume-from-disk) is the only problem,
+> then we should look for ways to opportunistically take advantage of
+> other non-disk hardware on which we could store any ephemeral keys
+> needed for restoration.
+> 
+> For example, on systems with rewritable nvram, it's conceivable that we
+> could suspend to the encrypted volume, and then stash the ephemeral
+> encryption key in nvram.  Upon resume, read the key from nvram into main
+> memory, clear the nvram, and restore from the encrypted volume.  This
+> isn't perfectly secure (an attacker with both the disk and the nvram can
+> recover your memory from the suspend file) but it is a significant win
+> against an attacker who physically removes the hard disk.
+> 
+> 
+> 
+> So i think we ought to outline the steps that need to be taken to make
+> this happen by default.  Which pieces need to be updated, and how?
+The initramfs code that does the actual resume should be updated to read
+the key from wherever it was written.
+On systems that don't have writable nvram, we could still support both
+encrypted swap and suspend-to-disk provided the system has an
+alternative location to write that session's encryption key to (which
+I'll inaccurately call "the session key" for now -- it's not really a
+session key, but it's close enough).
+If the kernel needs to read the session key, then it can't be on a
+partition that needs to be live. The initramfs would need to mount that
+partition to be able to see whether there is a session key that needs to
+be used to do the resume-from-disk, which would cause a journal replay;
+that would invalidate the suspended image. What we could do, however, is
+if the user has a separate /boot partition, to make the "suspend" script
+write the session key to a well-known file in that partition, and then,
+just before actually doing the suspend, *unmounting* the /boot
+partition. The resume code in the initramfs could then mount the /boot
+partition and figure out if there is a session key; if there is, it
+would read the key, unmount the partition again, and then proceed to
+decrypt the swap partition and resume the system.
+If a user installs a system with encrypted swap but no separate /boot
+partition, the suspend-to-disk code could/should then produce an error
+message to the effect that the user needs to either disable encrypted
+swap, or create a separate /boot partition. If partman is then also
+updated to default to having a separate /boot partition, we would be
+able to support encrypted swap as well as suspend-to-disk virtually
+anywhere.
+On a side node, if the system has a TPM that is not disabled, we should
+also attempt to encrypt the session key (regardless of where it is
+stored) using the TPM. That way, an attacker who gains access of the
+hard disk and the (encrypted) session key but not the system itself
+cannot decrypt the swap partition, since a TPM is supposed to not allow
+keys to be removed from it.
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

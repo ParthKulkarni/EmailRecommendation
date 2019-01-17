@@ -1,0 +1,43 @@
+To : Miikka Salminen <miikka.salminen@gmail.com>
+Subject : Bug#853187: Debian Stretch RC1 installation fails
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 31 Jan 2017 13:28:13 +0100
+Message-id : 20170131122813.GG2786@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 853187@bugs.debian.org
+In-reply-to : <[🔎] CAFAzcC9YT+isxLsYF3RWtzM4ZiCQqaEUzZ+oyEfgLgtrS3wxOQ@mail.gmail.com>
+References : <[🔎] CAFAzcC-0CHEpbL2s-X=9USxJXp5w_s8aeXrfaFTxy-91mY8Y6Q@mail.gmail.com> <[🔎] 20170131042543.GE2786@mraw.org> <[🔎] CAFAzcC9YT+isxLsYF3RWtzM4ZiCQqaEUzZ+oyEfgLgtrS3wxOQ@mail.gmail.com>
+
+
+Hi,
+Miikka Salminen <miikka.salminen@gmail.com> (2017-01-31):
+> indeed, looks like there's something running while the installation is
+> stuck on the part I reported:
+> 
+> ~ # ps | grep 'dmsetup create'
+> 19676 root     22592 S    dmsetup create -r osprober-linux-sda5
+Thanks for confirming.
+For the record, grub's configuration updater is running os-prober to try
+and find other systems on various discs, so that they can be listed in
+grub's menu.
+Workaround 1: (proaction)
+-------------
+If you want, you can test the following workaround: when you're reaching
+the “Install the GRUB boot loader to the master boot record?” prompt,
+switch to a console, and remove this file:
+    rm /target/etc/grub.d/30_os-prober
+This will prevent update-grub from running os-prober, which should avoid
+running into this issue. Of course, other operating systems won't be
+listed, but at least that should prevent the installation process from
+getting entirely stuck. I've tested this successfully in a VM with
+guided (unencrypted) LVM, and standard plus ssh tasks (which is how I
+initially reproduced your issue).
+Workaround 2: (reaction)
+-------------
+Otherwise, once the process is stuck, locate the process identifier
+(PID) on the first column of the ps output:
+    ps | grep 'dmsetup create'
+then kill this dmsetup process. With your output above, that'd be:
+    kill 19676
+(Tested successfully in a VM with the same setup/choices as above.)
+KiBi.
+signature.asc

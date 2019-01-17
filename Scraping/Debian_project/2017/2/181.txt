@@ -1,0 +1,70 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Rebuilding package reverse build-dependencies
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Thu, 9 Feb 2017 14:48:55 +0100
+Message-id : 20170209134855.5gryk4slkmgnz6xr@angband.pl
+In-reply-to : <[🔎] CAPqGMfJpPBXeLaRWD4yi4_csC+LvAo4J_n6Ng8sDKph2aksxLg@mail.gmail.com>
+References : <[🔎] CAPqGMfJpPBXeLaRWD4yi4_csC+LvAo4J_n6Ng8sDKph2aksxLg@mail.gmail.com>
+
+
+On Thu, Feb 09, 2017 at 03:24:48PM +0200, Eugene Zhukov wrote:
+> I have a package (saxonhe) whose newer versions are not backwards
+> compatible and break other packages (build)depending on it e.g.
+> epubcheck. I guess this is a common problem which sometimes happens
+> with some packages.
+> Is there a way to rebuild all ${package} reverse build-dependencies in
+> one go in a more-or-less clean environment (chroot/container/vm)?
+"ratt" is supposed to do this.
+I haven't personally used it yet -- if you prefer dirty hacks instead, my
+way consists of the following scripts:
+.--====[ ~/bin/binaries-for-source ]
+#!/bin/bash
+for x in "$@"
+  do
+    grep-dctrl -r -S "^${x/\./\\.}$" -s Package /var/lib/apt/lists/*_dists_unstable_*_binary-amd64_Packages|cut -d' ' -f 2
+  done
+`----
+.--====[ ~/bin/rdeps-for-source ]
+#!/bin/bash
+parallel build-rdeps -- `~/bin/binaries-for-source "$@"`|
+grep -v '^Reverse Build-depends'|
+grep -v -- '^------------'|
+grep -v '^Found '|
+grep -v '^No reverse build-depends found'|
+grep -v '^$'|
+sort|
+uniq
+`----
+If you have "dose-extra" installed, the above will include complex chains
+like Build-Depends->Depends->Depends, at the cost of taking two ages and
+three forevers.  That's why you want "parallel" (package moreutils) -- those
+two ages and three forevers won't run consecutively for a multi-binary
+package.
+To use this, you run:
+parallel sbuild -- `rdeps-for-source foo`
+(remember to decrease DEB_BUILT_OPTIONS=parallel=X if you have it -- it's a
+lot faster to run X 1-threaded builds as they have a lot of
+non-parallelizable parts)
+Then post-process the results with:
+.--====[ ~/bin/sortst ]
+#!/bin/bash
+set -e
+mkdir -p logs/{successful,skipped,attempted,failed,given-back}
+mv *.build logs/ ||:
+cd logs
+for x in `ls *.build|sort|tac` # do symlinks before actual logs
+  do
+    ST="$(grep -a '^Status: \(successful\|skipped\|attempted\|failed\|given-back\)$' "$x"|cut -d' ' -f2)"
+    if [ -z "$ST" ]
+      then
+        echo "$x has no valid status"
+      else
+        mv "$x" "$ST/"
+    fi
+  done
+`----
+(safe to use when the rebuild is still going)
+Meow!
+-- 
+Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
+  ./configure --host=zx-spectrum --build=pdp11

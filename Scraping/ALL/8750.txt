@@ -1,0 +1,69 @@
+To : Wouter Verhelst <wouter@debian.org>
+Subject : Re: Bug#861263: debian-installer: zfs support
+From : Nicholas D Steeves <nsteeves@gmail.com>
+Date : Sun, 21 Jan 2018 16:06:53 -0500
+Message-id : 20180121210652.bcvpxxideayf3i44@DigitalMercury.dynalias.net
+In-reply-to : <20170510152448.j77k2rd4pozqkv7q@grep.be>
+References : <CAD-Jur+zJAG4f+vQjP5VWDeJn8q9mMpirHL6J1x0P8Xb4AwtNA@mail.gmail.com> <1494011026.2564.57.camel@decadent.org.uk> <CAD-JurLBEhRFC0tMmCCTOiSu318XRnj6TU4w6bWZPj8dNKqCOQ@mail.gmail.com> <1494015143.2564.60.camel@decadent.org.uk> <CAD-JurL+menygdhN40mYS=U2t2A_YQFOMMf_nFWEGM3Dw7Qt8Q@mail.gmail.com> <1494018683.2564.63.camel@decadent.org.uk> <CAD-Jur+5wQbfpXH8wk1WBRxJyzNNP-aiFpZ0t8ETaL+5fUZJFg@mail.gmail.com> <1494077331.4633.12.camel@debian.org> <CAD-JurLiFAeTCbhqxxwNw6D39X6v_TRu42vRugeFhNWEKcg8Ww@mail.gmail.com> <20170510152448.j77k2rd4pozqkv7q@grep.be>
+
+
+On Wed, May 10, 2017 at 05:24:48PM +0200, Wouter Verhelst wrote:
+> On Sat, May 06, 2017 at 03:35:52PM +0100, Sam Kuper wrote:
+> > On 06/05/2017, Ian Campbell <ijc@debian.org> wrote:
+> > > It would in theory be possible to arrange build and install modules
+> > > during installation using the in-progress target installation (where
+> > > the normal toolchain packages could be installed) such that they are
+> > > available during the latter parts of the install procedure -- that is
+> > > clearly of limited use for any modules which are required for the
+> > > filesystems which you want to install to (certainly the root fs and
+> > > perhaps any separate /usr or /var partition(s)).
+> > 
+> > Given that a machine intended to run ZFS is likely to be provisioned
+> > with >2GB of RAM (much more than the Debian Installer would normally
+> > require), might a viable workaround be for the Debian Installer to
+> > take the following steps?
+> > 
+> > - Ensure that some minimum amount of RAM is available, and refuse to
+> > proceed with a root-on-ZFS installation if not;
+> > 
+> > - install the toolchain, ZFS source, and any other packages from
+> > "main" or "contrib" necessary to support these, to a RAM disk;
+> > 
+> > - compile and load ZFS functionality;
+> > 
+Add partitioning here, and add an extra partition used for holding the
+debootstrap system. [1]
+> > - format the target HDD/SSD using ZFS;
+> > 
+> > - copy the toolchain binaries and ZFS source packages, etc, to the
+> > relevant places on the target HDD/SSD (/usr/bin ,
+> > /var/cache/apt/archives/ , etc);
+> >
+> > - resume the installation as usual.
+Before installing the bootloader, check if it's a ZFS installation,
+and if so, then replicate the debootstrapped system from the extra
+partition to the ZFS dataset marked as rootfs, using something that
+supports --numeric-owner. [2]
+Then delete the extra partition, expand the ZFS one to the end of the
+device. eg:
+[1]
+sda1: 256MB /boot
+sda2: 930GB zfs-vdev
+And then the installer substracts 4GB from sda2, creates sda3 for
+debootstrap, and takes care of the removal transparently.  Using this
+method, sda2 only gets expanded to the size that is requested, instead
+of the whole disk--allows underprovisioning.
+> I don't see why not. We already need the ability to run debootstrap;
+> this would just change that to a need to do so twice.
+> 
+> It wouldn't be terribly efficient for a netinstall, since it requires
+> that you download the base system twice; but it could imagine a special
+> "non-free netinstall" image which would contain zfs-dkms and its
+> dependencies on top of the base system, so that you don't need to
+> download things more than once.
+I'm not sure if [2] is the right place in the installation sequence
+for this, but it seems like something like this method could make
+efficient use of bandwidth for a netinstall :-)
+Cheers,
+Nicholas
+signature.asc

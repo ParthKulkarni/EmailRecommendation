@@ -1,0 +1,51 @@
+To : Sebastian Schmidt <yath@yath.de>
+Subject : Bug#857064: debian-installer: Can't list partition types in fdisk
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 9 Mar 2017 19:52:53 +0100
+Message-id : 20170309185253.GB8177@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 857064@bugs.debian.org
+In-reply-to : <[🔎] 20170309182358.ns7i2nebj2lzpqit@marax.lan.yath.de>
+References : <[🔎] 148890602184.13980.520162538437404639.reportbug@moniac.lan.yath.de> <[🔎] 20170309111823.GE3494@mraw.org> <[🔎] 20170309182358.ns7i2nebj2lzpqit@marax.lan.yath.de>
+
+
+Sebastian Schmidt <yath@yath.de> (2017-03-09):
+> It’s in disk-utils/fdisk.c in void list_partition_types():
+> |     } else {
+> |         /*
+> |          * Prints 1 column in format <idx> <name> <typestr>
+> |          */
+> |         size_t i;
+> | 
+> |         pager_open();
+> | 
+> |         for (i = 0; i < ntypes; i++) {
+> |             const struct fdisk_parttype *t = fdisk_label_get_parttype(lb, i);
+> |             printf("%3zu %-30s %s\n", i + 1,
+> |                     fdisk_parttype_get_name(t),
+> |                     fdisk_parttype_get_string(t));
+> |         }
+> | 
+> |         pager_close();
+> |     }
+Oh, right, was looking at busybox instead of util-linux…
+> The setup is done in lib/pager.c in void __setup_pager():
+> | static void __setup_pager(void)
+> | {
+> |     const char *pager = getenv("PAGER");
+> |     struct sigaction sa;
+> | 
+> |     if (!isatty(STDOUT_FILENO))
+> |         return;
+> | 
+> |     if (!pager)
+> |         pager = "less";
+> |     else if (!*pager || !strcmp(pager, "cat"))
+> |         return;
+> | 
+> | [...]
+> 
+> So setting $PAGER to more, cat or nothing in the shell should fix it.
+I suspect it would make sense for rescue-mode to do so, but I'm not
+familiar with its inner working…
+KiBi.
+signature.asc

@@ -1,0 +1,37 @@
+To : Jonathan Carter <jcarter@linux.com>, 866206@bugs.debian.org
+Subject : Re: Bug#866206: cdimage.debian.org: Setting root password in d-i on live image doesn't seem to work
+From : Steve McIntyre <steve@einval.com>
+Date : Fri, 7 Jul 2017 16:06:45 +0100
+Message-id : 20170707150645.nni6d2h6bwzspkld@tack.einval.com
+In-reply-to : <149864569747.579.17225847854433161852.reportbug@adjutant.bluemosh.com>
+References : <149864569747.579.17225847854433161852.reportbug@adjutant.bluemosh.com>
+
+
+On Wed, Jun 28, 2017 at 12:28:17PM +0200, Jonathan Carter wrote:
+>Package: cdimage.debian.org
+>Severity: normal
+>Tags: d-i
+>
+>Dear Maintainer,
+>
+>Using the debian-live-9.0.1-amd64-xfce.iso image, I booted to the install
+>option from the syslinux menu that started up debian-installer.
+>
+>I installed setting a root password, and creating a new normal user.
+>
+>After installation, the root password seems unset (not in /etc/shadow),
+>and my newly created user in the system does not have sudo rights, leaving
+>no normal method for a user to escalate or log in as root.
+I've found the problem now.
+vmdebootstrap explicitly locks the password for root in /etc/shadow
+using "passwd -l". That changes the crypted root passwd from "*" to
+"!*". Later on, user-setup-udeb in the installer only looks for a
+locked root account containing "*". It doesn't recognise the "!*" and
+assumes that's a valid password so doesn't change it.
+I'll get user-setup-udeb fixed, but for now I have a quick-hack fix in
+live-customise.sh to replace '!*' with '*'. All works after that
+point.  \o/
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+"I suspect most samba developers are already technically insane... Of
+ course, since many of them are Australians, you can't tell." -- Linus Torvalds

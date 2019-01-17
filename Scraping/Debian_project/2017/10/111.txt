@@ -1,0 +1,24 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Is strip-nondeterminism causing performance regressions in your packages?
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 4 Oct 2017 14:11:18 +0100
+Message-id : 20171004131118.mgwy4ir56ahq3kym@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 1507117439.1492646.1127472928.093EE013@webmail.messagingengine.com>
+References : <[🔎] 1507117439.1492646.1127472928.093EE013@webmail.messagingengine.com>
+
+
+On Wed, 04 Oct 2017 at 12:43:59 +0100, Chris Lamb wrote:
+> Any which we do not ship compiled files cannot be affected (eg. we do not
+> ship Python's .pyc files; they are generated at installation-time)
+This is not generally the case for distros other than Debian, so is
+worth being aware of for Python. I don't know what the rationale is for
+byte-compiling in maintainer scripts rather than during dpkg-buildpackage
+- perhaps it's because we want to support many Python versions in parallel
+and we can't do Arch:all binNMUs yet?
+libostree normalizes timestamps to (time_t) 0 to maximize identical file
+reuse between OS snapshots and avoid timestamp skew, and Flatpak apps
+and runtimes generally include (only one Python version and) pre-compiled
+.pyc files, resulting in either libostree or Flatpak (I forget which one)
+needing a special-case hack for .pyc files which sets them to
+(time_t) 1 instead.
+    smcv

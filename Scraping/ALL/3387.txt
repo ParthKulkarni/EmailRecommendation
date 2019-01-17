@@ -1,0 +1,146 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#868892: tasksel: Unexpected mass package removal with no way to cancel
+From : Greg Wooledge <wooledg@eeg.ccf.org>
+Date : Wed, 19 Jul 2017 10:18:23 -0400
+Message-id : 150047390303.21841.133733495801909564.reportbug@wooledg.eeg.ccf.org
+Reply-to : Greg Wooledge <wooledg@eeg.ccf.org>, 868892@bugs.debian.org
+
+
+Package: tasksel
+Version: 3.39
+Severity: normal
+I was trying to help someone in #debian who wanted to install the
+Standard set of packages after his netinst had failed to do so due to
+a lack of network connection at the time.  I thought that perhaps he
+could use tasksel to achieve this, so I tried it on my own computer
+first.
+I ran "sudo tasksel", and was given the dialog, without any "Standard"
+task to choose.  So be it.  I reported that to the user.
+But then there was no obvious way for me to escape from tasksel.  There
+is no Cancel button -- just an OK button.  Ctrl-C did not work.
+So I did what seemed obvious at the time -- I unselected all the tasks
+(only one had been selected; I think it was ssh server), and then
+selected OK.
+Instead of just letting me out, it started deleting packages.  It happened
+extremely quickly (on this computer), with no prompt, no warning of
+any kind.  Ctrl-C still did not work.  When tasksel finally exited on
+its own, there was a long string of ^C^C^C^C^C^C^C... on the terminal.
+The only way to figure out what happened, then, is to check the logs.
+$ grep remove /var/log/dpkg.log
+2017-07-07 11:52:38 startup packages remove
+2017-07-07 11:52:48 startup packages remove
+2017-07-07 11:52:48 remove exim4:all 4.89-2+deb9u1 <none>
+2017-07-19 10:05:49 startup packages remove
+2017-07-19 10:05:50 remove python-docutils:all 0.13.1+dfsg-2 <none>
+2017-07-19 10:05:50 remove docutils-common:all 0.13.1+dfsg-2 <none>
+2017-07-19 10:05:50 remove docutils-doc:all 0.13.1+dfsg-2 <none>
+2017-07-19 10:05:50 remove libsoftware-license-perl:all 0.103012-1 <none>
+2017-07-19 10:05:50 remove libdata-section-perl:all 0.200006-1 <none>
+2017-07-19 10:05:50 remove libmro-compat-perl:all 0.12-1 <none>
+2017-07-19 10:05:50 remove libclass-c3-perl:all 0.32-1 <none>
+2017-07-19 10:05:50 remove libalgorithm-c3-perl:all 0.10-1 <none>
+2017-07-19 10:05:50 remove libarchive-extract-perl:all 0.80-1 <none>
+2017-07-19 10:05:50 remove libasprintf0c2:amd64 0.19.3-2 <none>
+2017-07-19 10:05:50 remove libpod-readme-perl:all 1.1.2-1 <none>
+2017-07-19 10:05:50 remove libnamespace-autoclean-perl:all 0.28-1 <none>
+2017-07-19 10:05:51 remove libnamespace-clean-perl:all 0.27-1 <none>
+2017-07-19 10:05:51 remove libb-hooks-endofscope-perl:all 0.21-1 <none>
+2017-07-19 10:05:51 remove libclass-c3-xs-perl:amd64 0.14-1+b1 <none>
+2017-07-19 10:05:51 remove libmoox-handlesvia-perl:all 0.001008-2 <none>
+2017-07-19 10:05:51 remove libmoo-perl:all 2.002005-1 <none>
+2017-07-19 10:05:51 remove libdata-perl-perl:all 0.002009-1 <none>
+2017-07-19 10:05:51 remove librole-tiny-perl:all 2.000005-1 <none>
+2017-07-19 10:05:51 remove libclass-method-modifiers-perl:all 2.12-1 <none>
+2017-07-19 10:05:51 remove libclass-xsaccessor-perl:amd64 1.19-2+b7 <none>
+2017-07-19 10:05:51 remove libcpan-changes-perl:all 0.400002-1 <none>
+2017-07-19 10:05:51 remove libmodule-build-perl:all 0.422000-1 <none>
+2017-07-19 10:05:51 remove libcpan-meta-perl:all 2.150010-1 <none>
+2017-07-19 10:05:51 remove libgetopt-long-descriptive-perl:all 0.100-1 <none>
+2017-07-19 10:05:51 remove libsub-exporter-perl:all 0.986-1 <none>
+2017-07-19 10:05:51 remove libdata-optlist-perl:all 0.110-1 <none>
+2017-07-19 10:05:51 remove libdevel-lexalias-perl:amd64 0.05-1+b4 <none>
+2017-07-19 10:05:52 remove libdevel-caller-perl:amd64 2.06-1+b4 <none>
+2017-07-19 10:05:52 remove libdevel-globaldestruction-perl:all 0.14-1 <none>
+2017-07-19 10:05:52 remove libtype-tiny-perl:all 1.000005-1 <none>
+2017-07-19 10:05:52 remove liblist-moreutils-perl:amd64 0.416-1+b1 <none>
+2017-07-19 10:05:52 remove libexporter-tiny-perl:all 0.042-1 <none>
+2017-07-19 10:05:52 remove libfile-slurp-perl:all 9999.19-6 <none>
+2017-07-19 10:05:52 remove libimport-into-perl:all 1.002005-1 <none>
+2017-07-19 10:05:52 remove libintl-xs-perl:amd64 1.26-2+b1 <none>
+2017-07-19 10:05:52 remove libintl-perl:all 1.26-2 <none>
+2017-07-19 10:05:52 remove libio-stringy-perl:all 2.111-2 <none>
+2017-07-19 10:05:52 remove libisccc90:amd64 1:9.9.5.dfsg-9+deb8u10 <none>
+2017-07-19 10:05:52 remove libisc95:amd64 1:9.9.5.dfsg-9+deb8u10 <none>
+2017-07-19 10:05:52 remove libjasper1:amd64 1.900.1-debian1-2.4+deb8u3 <none>
+2017-07-19 10:05:52 remove libterm-ui-perl:all 0.46-1 <none>
+2017-07-19 10:05:52 remove liblog-message-simple-perl:all 0.10-2 <none>
+2017-07-19 10:05:52 remove liblog-message-perl:all 0.8-1 <none>
+2017-07-19 10:05:53 remove liblwres90:amd64 1:9.9.5.dfsg-9+deb8u10 <none>
+2017-07-19 10:05:53 remove libparams-validate-perl:amd64 1.26-1 <none>
+2017-07-19 10:05:53 remove libpackage-stash-perl:all 0.37-1 <none>
+2017-07-19 10:05:53 remove libmodule-implementation-perl:all 0.09-1 <none>
+2017-07-19 10:05:53 remove libmodule-load-conditional-perl:all 0.68-1 <none>
+2017-07-19 10:05:53 remove libmodule-pluggable-perl:all 5.2-1 <none>
+2017-07-19 10:05:53 remove libmodule-runtime-perl:all 0.014-2 <none>
+2017-07-19 10:05:53 remove libmodule-signature-perl:all 0.81-1 <none>
+2017-07-19 10:05:53 remove libpackage-constants-perl:all 0.06-1 <none>
+2017-07-19 10:05:53 remove libpackage-stash-xs-perl:amd64 0.28-3+b1 <none>
+2017-07-19 10:05:53 remove libpadwalker-perl:amd64 2.2-2+b1 <none>
+2017-07-19 10:05:53 remove libpango1.0-0:amd64 1.40.5-1 <none>
+2017-07-19 10:05:53 remove libpangox-1.0-0:amd64 0.0.2-5+b2 <none>
+2017-07-19 10:05:53 remove libpangoxft-1.0-0:amd64 1.40.5-1 <none>
+2017-07-19 10:05:53 remove libparams-classify-perl:amd64 0.013-6+b1 <none>
+2017-07-19 10:05:53 remove libparams-util-perl:amd64 1.07-3+b1 <none>
+2017-07-19 10:05:54 remove libpath-tiny-perl:all 0.100-1 <none>
+2017-07-19 10:05:54 remove libpod-latex-perl:all 0.61-2 <none>
+2017-07-19 10:05:54 remove libpod-markdown-perl:all 3.005000-1 <none>
+2017-07-19 10:05:54 remove libpth20:amd64 2.0.7-20+b2 <none>
+2017-07-19 10:05:54 remove libregexp-common-perl:all 2016060801-1 <none>
+2017-07-19 10:05:54 remove libstrictures-perl:all 2.000003-1 <none>
+2017-07-19 10:05:54 remove libsub-exporter-progressive-perl:all 0.001013-1 <none>
+2017-07-19 10:05:54 remove libsub-identify-perl:amd64 0.12-2+b1 <none>
+2017-07-19 10:05:54 remove libsub-install-perl:all 0.928-1 <none>
+2017-07-19 10:05:54 remove libtext-soundex-perl:amd64 3.4-1+b4 <none>
+2017-07-19 10:05:54 remove libtext-template-perl:all 1.46-1 <none>
+2017-07-19 10:05:54 remove libtry-tiny-perl:all 0.28-1 <none>
+2017-07-19 10:05:54 remove libtype-tiny-xs-perl:amd64 0.012-1+b2 <none>
+2017-07-19 10:05:54 remove libunicode-utf8-perl:amd64 0.60-1+b3 <none>
+2017-07-19 10:05:54 remove libuuid-perl:amd64 0.27-1 <none>
+2017-07-19 10:05:54 remove libvariable-magic-perl:amd64 0.61-1 <none>
+2017-07-19 10:05:54 remove libwebpmux1:amd64 0.4.1-1.2+b2 <none>
+2017-07-19 10:05:55 remove libwebpdemux1:amd64 0.4.1-1.2+b2 <none>
+2017-07-19 10:05:55 remove libwebp5:amd64 0.4.1-1.2+b2 <none>
+2017-07-19 10:05:55 remove python-pil:amd64 4.0.0-4 <none>
+2017-07-19 10:05:55 remove libwebpdemux2:amd64 0.5.2-1 <none>
+2017-07-19 10:05:55 remove libxapian22:amd64 1.2.19-1+deb8u1 <none>
+2017-07-19 10:05:55 remove python-soappy:all 0.12.22-1 <none>
+2017-07-19 10:05:55 remove python-defusedxml:all 0.4.1-2 <none>
+2017-07-19 10:05:55 remove python-pygments:all 2.2.0+dfsg-1 <none>
+2017-07-19 10:05:55 remove python-roman:all 2.0.0-2 <none>
+2017-07-19 10:05:55 remove python-wstools:all 0.4.3-3 <none>
+2017-07-19 10:05:56 remove sysstat:amd64 11.4.3-2 <none>
+2017-07-19 10:05:56 remove task-ssh-server:all 3.39 <none>
+Tasksel should NOT remove packages without warning.
+Tasksel SHOULD have some way to exit without doing anything.
+-- System Information:
+Debian Release: 9.0
+  APT prefers stable
+  APT policy: (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-3-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages tasksel depends on:
+ii  apt                     1.4.6
+ii  debconf [debconf-2.0]   1.5.61
+ii  liblocale-gettext-perl  1.07-3+b1
+ii  perl-base               5.24.1-3
+ii  tasksel-data            3.39
+tasksel recommends no packages.
+tasksel suggests no packages.
+-- debconf information:
+  tasksel/title:
+  tasksel/tasks:
+  tasksel/desktop:
+  tasksel/first: ssh-server, standard

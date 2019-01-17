@@ -1,0 +1,57 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#902924: debootstrap: doesn't mount /proc when building chroot inside LXD container
+From : Colin Watson <cjwatson@ubuntu.com>
+Date : Tue, 3 Jul 2018 16:13:49 +0100
+Message-id : 20180703151349.3bkf5j2wgrifprx7@riva.ucam.org
+Reply-to : Colin Watson <cjwatson@ubuntu.com>, 902924@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.105
+Severity: important
+User: ubuntu-devel@lists.ubuntu.com
+Usertags: origin-ubuntu cosmic
+All the automatic builds of Ubuntu live filesystems started failing
+today.  I tracked this down to changes in debootstrap 1.0.105.  Here's
+how to reproduce it locally:
+  $ lxc launch images:debian/sid/amd64 debootstrap-test
+  $ lxc exec debootstrap-test -- apt -y install debootstrap
+  $ lxc exec debootstrap-test -- debootstrap cosmic /build-cosmic http://archive.ubuntu.com/ubuntu
+  [...]
+  W: Failure while configuring base packages.  This will be re-attempted up to five times.
+  W: See /build-cosmic/debootstrap/debootstrap.log for details (possibly the package rsyslog is at fault)
+  I: Configuring rsyslog...
+  W: Failure while configuring base packages.  This will be re-attempted up to five times.
+  W: See /build-cosmic/debootstrap/debootstrap.log for details (possibly the package rsyslog is at fault)
+  W: Failure while configuring base packages.  This will be re-attempted up to five times.
+  W: See /build-cosmic/debootstrap/debootstrap.log for details (possibly the package rsyslog is at fault)
+  W: Failure while configuring base packages.  This will be re-attempted up to five times.
+  W: See /build-cosmic/debootstrap/debootstrap.log for details (possibly the package rsyslog is at fault)
+  W: Failure while configuring base packages.  This will be re-attempted up to five times.
+  W: See /build-cosmic/debootstrap/debootstrap.log for details (possibly the package rsyslog is at fault)
+I understand that it may be tempting to write this off as an Ubuntu bug
+(and by the time you try to reproduce this it may well be that rsyslog
+has been changed to work around this), but I don't think it is.
+Bootstrapping Debian sid seems to work OK, but I think that's just luck.
+The problem appears to be that setup_proc detects that it's running
+inside a LXC container (actually LXD in this case, but it's still
+container=lxc) and decides that this means that it doesn't need to mount
+/proc or /sys; I think the original problem was perhaps that it couldn't
+mount them due to lack of permissions.  The original history seems to be
+from #731802, in which the second stage was being run inside LXC and the
+container environment had already mounted /proc, or something like that.
+But the fix for that problem isn't correct in this case.  debootstrap
+happens to be running inside a LXD container, sure, but we aren't using
+separate first and second stages, so the container environment clearly
+can't be responsible for mounting /proc and /sys inside the
+newly-created chroot.
+At minimum, I'd suggest that the special handling for container
+environments should be restricted to the case where debootstrap is
+running with a separate second stage.
+Furthermore, I'd have thought that, even if debootstrap is running with
+a separate second stage inside a LXC/LXD container, it should at least
+still check whether /proc and /sys are mounted and mount them if they
+aren't, rather than assuming that they must be mounted.
+Thanks,
+-- 
+Colin Watson                                       [cjwatson@ubuntu.com]

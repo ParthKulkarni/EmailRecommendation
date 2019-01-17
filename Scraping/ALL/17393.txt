@@ -1,0 +1,67 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Should libpam-elogind Provide libpam-systemd ?
+From : Felipe Sateler <fsateler@debian.org>
+Date : Tue, 6 Nov 2018 13:31:36 +0000 (UTC)
+Message-id : prs53n$buo$1@blaine.gmane.org
+References : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk>	<[🔎] 23520.18040.158396.933449@chiark.greenend.org.uk>	<[🔎] 20181105235809.GA4237@espresso.pseudorandom.co.uk>	<[🔎] 23521.35094.257268.806512@chiark.greenend.org.uk>
+
+
+On Tue, 06 Nov 2018 12:29:10 +0000, Ian Jackson wrote:
+> Simon McVittie writes ("Re: Should libpam-elogind Provide libpam-systemd
+> ?"):
+>> Similarly, I think pulseaudio's Recommends is because pulseaudio is
+>> frequently a systemd user service (one per uid). One of pulseaudio's
+>> control protocols is that it can be sent commands via D-Bus IPC, but
+>> again, that isn't going to work if the D-Bus session bus is
+>> shorter-lived than the pulseaudio daemon.
+> 
+> If you have multiple concurrent login sessions they each need their own
+> pulseaudio setup, because sounds from one session should not appear in
+> another.
+No they don't, because pulseaudio can route different streams to 
+different output sinks. However, I agree that this handling is not 
+optimal right now, and you may end up with sound going somewhere 
+unexpected (but you can change it back!). I think discussion and patches 
+would be more than welcome upstream. However, please note that "ssh-ing 
+into the sound server and changing the volume" is something you can do 
+with the per-user pulseaudio but not with a per-session one (or at least, 
+not without some gymnastics).
+I think there are three interrelated issues to have in mind when 
+discussing this:
+1. Services should be automatically started, be that on first login (for 
+the per-user model), or on each login (for the par-session model). The 
+only solution we have right now is either systemd --user, or have people 
+put stuff in their login shell, because getty won't start dbus or 
+pulseaudio. Pulseaudio has an autostart feature to work around this 
+problem.
+2. Access to shared resources should have reasonable mediation. Access to 
+devices is usually granted per-user. That is, a given user either has or 
+doesn't have access to /dev/snd/foo. There is currently no way to give 
+access to a certain set of processes but not others, if all the processes 
+are owned by the same user. With this plus autostart as noted above, you 
+get multiple pulseaudio instances that fight each other for sound device 
+access.
+3. Supporting multiple instances per user is harder than allowing just 
+one. Dconf was already mentioned in this regard, and it is reasonable to 
+expect dconf to only allow one process per user, the same way you 
+wouldn't expect to be able to run multiple mysqld processes against the 
+same on-disk database. Similarly, any user service that writes anywhere 
+is bound to have these synchronization problems.
+Solving problems 2 and 3 is hard. I think it is quite reasonable for some 
+upstreams to have decided that they will only support the per-user model. 
+In fact, these problems are so hard that there are suggestions that 
+access to sound devices should no longer be granted to users but to a 
+single system-wide daemon (pulseaudio itself is apparently not really 
+viable for this role for other reasons). Problems for blind users when 
+espeakup and pulseaudio fight each other for device access is one reason 
+this might be a good idea.
+With my pulseaudio maintainer hat on, I welcome a bug report, but please 
+be explicit on what you actually think the bug is. If the bug is related 
+to problems 2 or 3, I don't think I can help you much. If you think the 
+bug is just about avoiding broken Recommends, then please see #883756, as 
+it is not quite trivial to solve (I want systemd --user integration by 
+default, and unfortunately this currently means manual action if you want 
+to disable it).
+-- 
+Saludos,
+Felipe Sateler

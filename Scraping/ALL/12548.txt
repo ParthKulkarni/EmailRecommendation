@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Naming of network devices - how to improve it in buster
+From : Guus Sliepen <guus@debian.org>
+Date : Tue, 11 Jul 2017 12:14:59 +0200
+Message-id : 20170711101459.uglna6qjj7jd5zq7@sliepen.org
+Mail-followup-to : Guus Sliepen <guus@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 658546a9-4ecf-18d0-4fb2-1e8d1a9c2dcc@debian.org>
+References : <[🔎] 5962B743.8030702@landfreak.com> <[🔎] 20170710134714.33b4rbp4gqo4xj5r@sliepen.org> <[🔎] 20170710162228.v4teqev5vx3xxgj5@angband.pl> <[🔎] 12214332.2fR4hsN12g@merkaba> <[🔎] 658546a9-4ecf-18d0-4fb2-1e8d1a9c2dcc@debian.org>
+
+
+Ok, it should be clear now that the new way of naming interfaces is not
+ideal, but the older ways weren't either. Let's have a look at what we
+want:
+- A simple name for systems with a single Ethernet and/or Wireless
+  interface (the simple desktop/laptop scenario).
+- A consistent naming scheme for interfaces in a system with multiple Ethernet
+  interfaces (the server scenario).
+- Not having interface names change after reboots.
+It should work well in the following scenarios:
+- Installing on a desktop/laptop.
+- Installing on a server.
+- Installing in a VM.
+- Installing using debootstrap.
+- Cloning a system.
+The pros/cons with the various solutions:
+- State file:
+  - PRO: Once an interface has a name, it keeps that name on the same
+    system.
+  - CON: Does not work well when debootstrapping (it can copy the host
+    config, when the intent is to run the deboostrapped filesystem on a
+    different machine).
+  - CON: Does not work well when cloning a system.
+  The issue in both CONs is that eth0 for example is bound to a MAC
+  address that is not used in the new system, so the new system gets
+  eth1 for its Ethernet interface.
+- Stable udev names:
+  - PRO: Reliable names when installing on identical machines.
+  - PRO: Handles cloning a system well.
+  - CON: Can results in overly complex interface names.
+  - CON: Does not handle changes in bus topology.
+So, what can we do to improve the situation and get the best of both
+worlds? 
+-- 
+Met vriendelijke groet / with kind regards,
+      Guus Sliepen <guus@debian.org>
+signature.asc

@@ -1,0 +1,131 @@
+To : Didier 'OdyX' Raboud <odyx@debian.org>
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 27 Feb 2018 13:48:48 +0000
+Message-id : 23189.25024.401726.386741@chiark.greenend.org.uk
+In-reply-to : <[🔎] 1747528.3EBMEs4rXA@odyx.org>
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com>	<[🔎] 20180216151129.GB18296@home.ouaza.com>	<[🔎] 1747528.3EBMEs4rXA@odyx.org>
+
+
+Didier 'OdyX' Raboud writes ("Re: What can Debian do to provide complex applications to its users?"):
+> Now, as a strawman proposition, here's what I fiddled with in my mind for some 
+> days now:
+> 
+> Imagine
+> * a new .vdeb format variant that:
+> ** enables for multiple versions to be installed in parallel, where files are
+>    unpacked in a version-specific paths
+> ** forbids any kind of maintainer scripts
+> ** is not bound to a specific suite
+> ** is restricted to be arch:all (~ shipping interpreter scripts)
+> ** can be built mostly automatically (from existing npm/composer/pypi
+>    packages)
+> ** (ideally) can be user-installed
+> * a repository of these .vdeb
+> ** whose DFSG-freeness is checked
+> ** which version set is known, and tracked
+> ** that can provide new versions "on-demand"
+I think this is an interesting idea and I look forward to seeing a
+prototype and maybe using it.  It seems like a better plan than using
+something like npm directly.
+I have some specific comments:
+> Imagine
+> * a new .vdeb format variant that:
+I think this is more of a "profile" than a new format.
+> ** enables for multiple versions to be installed in parallel, where files are
+>    unpacked in a version-specific paths
+Instead, establish a formal convention about embedding the (stable
+part of) the version number in the package name.  This is important
+so that it is possible to replace a specific "version" of one of these
+packages with a modified package which is the "same version".
+> ** forbids any kind of maintainer scripts
+> ** is not bound to a specific suite
+> ** is restricted to be arch:all (~ shipping interpreter scripts)
+These can be verified either the archive server as part of package
+acceptance, or by apt as an annotation in the sources.list.
+> ** can be built mostly automatically (from existing npm/composer/pypi
+>    packages)
+This is, effectively, a proposal for new kind of source code handlign.
+More on that below.
+> ** (ideally) can be user-installed
+This one would require some thought.  Do the target ecosystems support
+transplantation of installed directory trees, without modification ?
+Perhaps the experience of other projects doing "prefixed" uses of dpkg
+might be relevant.  Eg
+  https://wiki.termux.com/wiki/FAQ#Is_Termux_a_complete_Linux_Environment.3F
+(But the prefix there is baked into the .deb.)
+How is this going to work for build-dependencies ?  If one says
+"build-depends: npm-vdeb-foo", will the build system know to look in
+$HOME as well as /usr ?
+> * a repository of these .vdeb
+> ** whose DFSG-freeness is checked
+> ** which version set is known, and tracked
+> ** that can provide new versions "on-demand"
+It is important to appreciate what we are *discarding* as too hard.
+The primary difficulty we have with Red Queen's Race [1] ecosystems is
+the lack of stable ABI/APIs, the tight binding of versions, and the
+rapid update cycle.
+The downsides compared to our traditional model are:
+  * No coherent security support.  Programs in these ecosystems are
+    typically full of unnoticed security bugs and changing too rapidly
+    to fix them.  When serious bugs occur they may or may not be
+    fixable, let alone actually fixed.  It will not in general be
+    possible to even discover whether the software is vulnerable.
+    This is a very big downside.  It means that systems running this
+    software should not do other tasks as well; that this software
+    should not be given direct access to personal data (certainly not
+    sensitive personal data); that arrangements need to be made for
+    recovery from the expected compromises.
+    These are all operational matters which we should draw to the
+    attention of users.  And we need to make sure that we aren't
+    making things worse than the upstream (which is why automatic
+    updates are important).
+  * No useful ABI/API stability guarantees for local-user-supplied
+    programs building on top of this.  Ie, if you build on top of this
+    stuff you have to run to keep up just like everyone else.
+  * No stability over the length of a Debian release (ie, users of
+    these packages will have to expect and cope with constant churn)
+  * Support for whole application suites might randomly go away with
+    very little notice.  If they stop being updated upstream, we won't
+    be able to fix it.  For a while users can continue to use the
+    frozen version, probably.  But eventually the bugs in it will
+    become too serious and it will become impossible to build, or
+    impossible to run reliably.
+> How does that sound?
+Your proposal depends on continuous and almost-automatic
+incorporation of upstream code.  Our current source package workflows
+are not suited to this.
+OTOH we do not want to abandon the Debian source package format
+completely because we have lots and lots of tools which understand it
+well.
+I would like to suggest a radical approach to the source code
+management for your system: abandon source *packages* in favour of git
+trees.  Furthermore, abandon the patch queue approach to Debian
+package management.  We will not be able to maintain a big delta to
+any of these packages anyway.
+So instead, we should have a Debian branch of each upstream git tree,
+which we should "git merge".  We will have to have a tool, for each
+ecosystem, that converts the metadata provided in the upstream package
+into the Debian format in debian/.  The "update to new upstream"
+process would be:
+   git fetch upstream
+   git merge upstream/master
+   npm-to-debian-autoconvert-update
+   git commit -s -a -m npm-to-debian-autoconvert-update debian
+Building should be done with "git clone" followed by
+"dpkg-buildpackage -b" (or some suitable wrapper).
+Source packages (.dscs) should not be distributed, only git branches.
+If source packages are needed locally (eg for tools like sbuild and
+lintian) they should be 1.0, native.  (This is legal even if the
+version number contains a `-' and a Debian revision.)
+npm-to-debian-autoconvert-update might need to read a small amount of
+information out of debian/, if there is something there that is not in
+upstream.  But mostly it should overwrite debian/ with information
+from the upstream.
+I look forward to being able to set up a web service by installing a
+VM and adding your new repository to my sources.list.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

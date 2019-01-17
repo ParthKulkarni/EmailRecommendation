@@ -1,0 +1,89 @@
+To : Pali Rohár <pali.rohar@gmail.com>,	848726@bugs.debian.org
+Subject : Bug#848726: shebang preseed / header magic
+From : Geert Stappers <stappers@stappers.nl>
+Date : Mon, 3 Apr 2017 15:40:13 +0200
+Message-id : 20170403134013.GB1384@gpm.stappers.nl
+Reply-to : Geert Stappers <stappers@stappers.nl>, 848726@bugs.debian.org
+In-reply-to : <201701151109.02539@pali>
+References : <20161219210057.GY3943@gpm.stappers.nl> <20161220202657.GZ3943@gpm.stappers.nl> <d1cde0be-08df-1b9a-1f03-f11edead57b6@debian.org> <87inqdbql7.fsf@whist.hands.com> <20161221204654.GG3943@gpm.stappers.nl> <201701151109.02539@pali>
+
+
+Control: tag -1 +patch
+On Sun, Jan 15, 2017 at 11:09:02AM +0100, Pali Rohár wrote:
+] ]  Goal is having a "header" which make it possible
+] ]  to check that actual a preseed file is being downloaded.
+] ]  
+] ]  Step 1:
+] ]  Document all "stretch" preseed files begining with '#_preseed_V1'
+] ]  
+] ]  Step 2:
+] ]  In "stretch+1", a.k.a. "buster", implement code that checks '#_preseed_V1'
+] ]  and informs netbooting user when not found.
+] ]  
+> 
+> Hi! Any progress on this particular problem?
+Find attached a patch  against the installation guide.
+> I fully agree that pressed file should be identifiable by either some
+> magic line or header.
+Yes. The challenge now is to get beyond "we didn't need in the past" ...
+Groeten
+Geert Stappers
+-- 
+Leven en laten leven
+Index: build/build.sh
+===================================================================
+--- build/build.sh	(revision 70653)
++++ build/build.sh	(working copy)
+@@ -59,7 +59,8 @@
+ if [ -f $PRESEED ] && [ -f preseed.pl ] ; then
+     for arch in $architectures; do
+ 	eval arch_destination=$destination
+-	./preseed.pl -r $manual_release $PRESEED >$arch_destination/example-preseed.txt
++	echo '#_preseed_V1' >$arch_destination/example-preseed.txt
++	./preseed.pl -r $manual_release $PRESEED >>$arch_destination/example-preseed.txt
+     done
+ fi
+ 
+Index: en/appendix/preseed.xml
+===================================================================
+--- en/appendix/preseed.xml	(revision 70653)
++++ en/appendix/preseed.xml	(working copy)
+@@ -633,6 +633,18 @@
+ 
+ </para><para>
+ 
++The file should start with <literal>#_preseed_V1</literal>
++<!--
++  The "should" is for the Stretch release,
++  so later releases use the comment
++  as a magic string to identify a preseed file
++
++  see also https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=848726
++-->
++
++
++</para><para>
++
+ There are a few rules to keep in mind when writing a preconfiguration file.
+ 
+ </para>
+@@ -667,6 +679,10 @@
+   Some questions take a code as value instead of the English text that is
+   shown during installation.
+ </para></listitem>
++<listitem><para>
++  Start with <literal>#_preseed_V1</literal>
++  <!-- https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=848726 -->
++</para></listitem>
+ </itemizedlist>
+ 
+ <para>
+@@ -682,7 +698,8 @@
+ database and the installer's cdebconf database to a single file:
+ 
+ <informalexample><screen>
+-$ debconf-get-selections --installer &gt; <replaceable>file</replaceable>
++$ echo "#_preseed_V1" &gt; <replaceable>file</replaceable>
++$ debconf-get-selections --installer &gt;&gt; <replaceable>file</replaceable>
+ $ debconf-get-selections &gt;&gt; <replaceable>file</replaceable>
+ </screen></informalexample>

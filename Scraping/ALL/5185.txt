@@ -1,0 +1,41 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#884743: debian-installer: grub-install fail because "bios_grub" flag gets removed if i use RAID partition on GPT
+From : Jan Němeček <skirit@dump.cz>
+Date : Tue, 19 Dec 2017 01:05:25 +0100
+Message-id : 151364192527.1357.3643379361635184775.reportbug@faster
+Reply-to : Jan Němeček <skirit@dump.cz>, 884743@bugs.debian.org
+
+
+Package: debian-installer
+Version: 20170615+deb9u2
+Severity: normal
+Dear Maintainer,
+I have following configuration:
+Disk /dev/sda: 2.7 TiB, 3000592982016 bytes, 5860533168 sectors
+Disklabel type: gpt
+/dev/sda1        2048      20479      18432    9M BIOS boot
+/dev/sda2       20480 5839863807 5839843328  2.7T Linux RAID
+/dev/sda3  5839863808 5860532223   20668416  9.9G Linux swap
+Disk /dev/sdb: 2.7 TiB, 3000592982016 bytes, 5860533168 sectors
+Disklabel type: gpt
+/dev/sdb1   2048      20479      18432    9M BIOS boot
+/dev/sdb2  20480 5839863807 5839843328  2.7T Linux RAID
+Disk /dev/md0: 2.7 TiB, 2989865566208 bytes, 5839581184 sectors 
+In the part of installation grub-install i got error "This GPT 
+partition label has no BIOS Boot Partition"
+I was fix that by switch to terminal and use this procedure:
+- bind /dev /proc and etc to /target
+- chroot /target
+- install parted
+- set 1 bios_grub on (by parted on both disks)
+- grub-install /dev/sda
+- grub-install /dev/sdb
+-- System Information:
+Debian Release: 9.3
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-4-amd64 (SMP w/4 CPU cores)
+Locale: LANG=cs_CZ.UTF-8, LC_CTYPE=cs_CZ.UTF-8 (charmap=UTF-8), LANGUAGE=cs_CZ.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

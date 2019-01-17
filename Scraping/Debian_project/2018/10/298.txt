@@ -1,0 +1,51 @@
+To : debian-devel@lists.debian.org
+Subject : Re: no{thing} build profiles
+From : Marvin Renich <mrvn@renich.org>
+Date : Sun, 21 Oct 2018 12:13:27 -0400
+Message-id : 20181021161327.2fqaapm4yrp4564s@basil.wdw
+In-reply-to : <[🔎] pqhir3$558$1@blaine.gmane.org>
+References : <[🔎] 20181019102529.tsualdxda2p6mfz7@shell.thinkmo.de> <[🔎] 2038010.ul6hPhmOev@merkaba> <[🔎] CAKTje6Hazu=FfHc9-YT7Ftyz0E9oUbJNf2NayvLiv9OOfS_zJg@mail.gmail.com> <[🔎] 8736t1axpr.fsf@marvin.43-1.org> <[🔎] 87sh10imog.fsf@web.de> <[🔎] 20181020171607.2khryydow7bnqfdc@shell.thinkmo.de> <[🔎] 87lg6s8nxb.fsf_-_@violet.siamics.net> <[🔎] 87va5vg13z.fsf@err.no> <[🔎] 154011468574.1793.17134216390366195697@auryn.jones.dk> <[🔎] pqhir3$558$1@blaine.gmane.org>
+
+
+* Sune Vuorela <nospam@vuorela.dk> [181021 06:05]:
+> On 2018-10-21, Jonas Smedegaard <jonas@jones.dk> wrote:
+> > I disagree that libgpgme11 should depend/recommend/suggest gnupg at all: 
+> > As a library it cannot possibly declare how tight a relationship to 
+> > declare - instead, all _consumers_ of the library must declare whether 
+> > they depend/recommend/suggest gnupg.
+> 
+> libgpgme is completely useless without gnupg. I think it is perfectly
+> fine for these kind of relations, unless we really are in corner-case
+> territory. See for example fam.
+I strongly agree with Jonas.  Upstream links to libgpgme as a .so to
+provide optional behavior.  This requires libgpgme to be installed in
+order to even run neomutt, whether the user wants the feature or not.
+It is perfectly reasonable to want to install neomutt but want to _not_
+install gnupg.
+The proper fix is to convince upstream to dynamically link at runtime
+and disable some features if libgpgme is not available.  However, this
+(IMO wrong) upstream behavior is pervasive, and trying to get all
+upstreams to use runtime linking for optional behavior is a very steep
+uphill battle that we cannot win.
+However, correcting Debian package dependencies is something that Debian
+can do without involving upstream.  The Debian library package should
+Recommend, rather than Depend, the package.
+The -dev package should clearly document what packages need to be
+installed for the linked .so file to be useful, and the packages linking
+to the library should choose Depends or Recommends for the leaf package
+(e.g. gnupg) based on whether the top package (e.g. neomutt) will be
+broken or just have less functionality if the library returns "function
+not available".
+If the library crashes, rather than returning an error, if the
+depended-on package (gnupg in this case) is not installed, that is a
+real (serious, IMO) bug that upstream should fix.  Usually, however, the
+library will do the right thing.  The same applies to the package
+calling the library.
+Having a library that may reasonably be used solely to provide optional
+behavior bring in a significant amount of potentially unwanted software
+is simply bad behavior, as well as being contrary to Policy definition
+of Depends and Recommends.  While the library is usually used with the
+leaf package installed, it is perfectly useful for shared linking for
+optional behavior even when the leaf package is not installed.  This is
+exactly the definition of Recommends.
+...Marvin

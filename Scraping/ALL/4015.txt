@@ -1,0 +1,104 @@
+To : submit@bugs.debian.org
+Subject : Bug#880123: jessie-pu: package syslinux/3:6.03+dfsg-5+deb8u1
+From : Lukas Schwaighofer <lukas@schwaighofer.name>
+Date : Sun, 29 Oct 2017 19:48:43 +0100
+Message-id : 20171029194843.72054ef3@localhost
+Reply-to : Lukas Schwaighofer <lukas@schwaighofer.name>, 880123@bugs.debian.org
+
+
+Package: release.debian.org
+User: release.debian.org@packages.debian.org
+Usertags: pu
+Tags: jessie
+Severity: normal
+X-Debbugs-CC: debian-cd@lists.debian.org, debian-boot@lists.debian.org, kibi@debian.org
+Dear release team,
+I hereby ask for permission to update the syslinux package in jessie as
+well.  The update fixes a bug in the isolinux isohybrid MBR causing boot
+failures with some old BIOS [1].
+The bug is already fixed in unstable/testing and the update for stretch,
+which also includes this fix, has just been approved [2].
+I tested the build in an sbuild jessie chroot and the updated package
+builds the correct isohdpfx.bin file (identical to the one currently in
+unstable/testing).  The debdiff is attached.
+Thank you
+Lukas
+[1] https://bugs.debian.org/879004
+[2] https://bugs.debian.org/879773
+pgpR95OFhjHEb.pgpdiff -Nru syslinux-6.03+dfsg/debian/changelog syslinux-6.03+dfsg/debian/changelog
+--- syslinux-6.03+dfsg/debian/changelog	2015-08-18 17:23:09.000000000 +0200
++++ syslinux-6.03+dfsg/debian/changelog	2017-10-29 19:12:43.000000000 +0100
+@@ -1,3 +1,11 @@
++syslinux (3:6.03+dfsg-5+deb8u2) jessie; urgency=medium
++
++  * Add patch from upstream to fix boot problem for old BIOS firmware from
++    around 2005 by correcting the C/H/S order (thanks Thomas Schmitt,
++    Closes: #879004).
++
++ -- Lukas Schwaighofer <lukas@schwaighofer.name>  Sun, 29 Oct 2017 19:12:43 +0100
++
+ syslinux (3:6.03+dfsg-5+deb8u1) jessie; urgency=low
+ 
+   * Cherry-pick upstream patches that fix booting on some Chromebooks
+diff -Nru syslinux-6.03+dfsg/debian/patches/0017-isohdpfx.S-correct-heads-sectors.patch syslinux-6.03+dfsg/debian/patches/0017-isohdpfx.S-correct-heads-sectors.patch
+--- syslinux-6.03+dfsg/debian/patches/0017-isohdpfx.S-correct-heads-sectors.patch	1970-01-01 01:00:00.000000000 +0100
++++ syslinux-6.03+dfsg/debian/patches/0017-isohdpfx.S-correct-heads-sectors.patch	2017-10-29 19:12:43.000000000 +0100
+@@ -0,0 +1,50 @@
++From: Martin Str|mberg <ams@ludd.ltu.se>
++Date: Sun, 26 Mar 2017 07:32:11 -0400
++Subject: mbr/isohdpfx.S: correct stack for heads/sectors
++
++Heads and sectors were pushed in reverse order per isolinux.asm
++(bb519a95 reversed the order of heads/sectors on the stack).
++
++If anything goes wrong, clear CX in case it contains garbage.
++
++Signed-off-by: Gene Cumm <gene.cumm@gmail.com>
++
++Bug-Debian: https://bugs.debian.org/879004
++Origin: upstream, quashed two commits together:
++ http://git.zytor.com/syslinux/syslinux.git/commit/?id=32c09027423f61c305e2423e52f5f69ecad8e2c0
++ http://git.zytor.com/syslinux/syslinux.git/commit/?id=8739e2ff9ba3f92652c8df846924fd00e1ce2753
++---
++ mbr/isohdpfx.S | 10 ++++++----
++ 1 file changed, 6 insertions(+), 4 deletions(-)
++
++diff --git a/mbr/isohdpfx.S b/mbr/isohdpfx.S
++index 17e1efe..4b107e4 100644
++--- a/mbr/isohdpfx.S
+++++ b/mbr/isohdpfx.S
++@@ -167,20 +167,22 @@ next:
++ 	   read_sector_cbios: movb $0x42, %ah ;  jmp read_common */
++ 	movl	$0xeb42b4+((read_common-read_sector_cbios-4) << 24), \
++ 		(read_sector_cbios)
++-	jmp	1f
+++	jmp	2f
++ 1:
+++	xor	%cx, %cx	/* Clear EBIOS flag. */
+++2:
++ 	popw	%dx
++ 	pushw	%cx		/* EBIOS flag */
++ 
++ 	/* Get (C)HS geometry */
++ 	movb	$0x08, %ah
++ 	int	$0x13
++-	andw	$0x3f, %cx	/* Sector count */
++ 	popw	%bx		/* EBIOS flag */
++-	pushw	%cx		/* -16: Save sectors on the stack */
++ 	movzbw	%dh, %ax	/* dh = max head */
++ 	incw	%ax		/* From 0-based max to count */
++-	pushw	%ax		/* -18: Save heads on the stack */
+++	pushw	%ax		/* -16: Save heads on the stack */
+++	andw	$0x3f, %cx	/* Sector count */
+++	pushw	%cx		/* -18: Save sectors on the stack */
++ 	mulw	%cx		/* Heads*sectors -> sectors per cylinder */
++ 
++ 	pushw	%bx		/* -20: EBIOS flag */
+diff -Nru syslinux-6.03+dfsg/debian/patches/series syslinux-6.03+dfsg/debian/patches/series
+--- syslinux-6.03+dfsg/debian/patches/series	2015-08-18 17:13:25.000000000 +0200
++++ syslinux-6.03+dfsg/debian/patches/series	2017-10-29 19:12:43.000000000 +0100
+@@ -4,3 +4,4 @@
+ 0004-gnu-efi-git.patch
+ 0005-load-linux-correct-type.patch
+ 0006-load-linux-protected-mode.patch
++0017-isohdpfx.S-correct-heads-sectors.patch

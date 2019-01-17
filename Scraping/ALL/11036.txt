@@ -1,0 +1,51 @@
+To : Theodore Ts'o <tytso@mit.edu>
+Subject : Re: e2fsprogs as Essential: yes?: Maybe we should be separating l10n files first?
+From : Guillem Jover <guillem@debian.org>
+Date : Mon, 13 Nov 2017 01:14:01 +0100
+Message-id : 20171113001401.o5637y35zavrw4zh@gaara.hadrons.org
+Mail-followup-to : Theodore Ts'o <tytso@mit.edu>,	Mathieu Parent <math.parent@gmail.com>,	Adam Borowski <kilobyte@angband.pl>, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20171112232716.gxedbefyek6pvhug@thunk.org>
+References : <55b01424-a6eb-11e7-9b6a-00163eeb5320@msgid.mathom.us> <20171002090318.z4at377oa7b5irxk@alf.mars> <2ebd4bae-a75c-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506941437.8204.22.camel@debian.org> <3cb53f2e-a760-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506942621.8204.25.camel@debian.org> <20171002113446.kazrk37bizfva7qe@angband.pl> <[🔎] 20171112191845.33rikhh3pay5fyot@thunk.org> <[🔎] CAFX5sby6VwywF_DCtWCjNgJh-5x-8x0d=qVyddxRkbtXQ-PkyA@mail.gmail.com> <[🔎] 20171112232716.gxedbefyek6pvhug@thunk.org>
+
+
+On Sun, 2017-11-12 at 18:27:16 -0500, Theodore Ts'o wrote:
+> On Sun, Nov 12, 2017 at 09:13:42PM +0100, Mathieu Parent wrote:
+> > There is another way to trim the locales: Use dpkg's "--path-exclude=".
+> > 
+> > This also allows one to keep some locales. This is what we use at work
+> > [1]. The problem is that debootstrap doesn't handle those options, so
+> > we need to hack a bit [2].
+> > 
+> > [1]: https://github.com/nantesmetropole/docker-debian/blob/master/templates/etc/dpkg/dpkg.cfg.d/01_save-space
+> > [2]: https://github.com/nantesmetropole/docker-debian/blob/master/templates/post-debootstrap.sh
+> 
+> You can always manually delete binaries afterwards or by using
+> --path-exclude, but that has always seemed to be a hack to me.  By
+> that argument there's no point making e2fsprogs Essential: no /
+> Priority: important, since you could just remove the files you don't
+> want (mke2fs, e2fsck, etc.) afterwards.  :-)
+I don't think that's comparable at all. Excluding documentation, locales
+and similar stuff is perfectly fine (and even permitted by policy), as
+those are not supposed to be expected even by the same package, and are
+not part of the interface provided by the package towards other packages.
+Doing the same with binaries or any other interface-providing file
+means that dependency system is undermined, more so for an Essential
+package, because as the dependencies are implicit, it means *any*
+package (its content and maintainer scripts) might become broken,
+perhaps in a silent way.
+I think that trying to trim down the pseudo-Essential set is an
+extremely worthwhile goal, because it has visible effects on several
+areas, at least:
+ - Possibly making bootstrapping a port way easier.
+ - Making it possible and easier to use Debian on (very) embedded systems.
+ - Reducing footprint for minbase setups, such as VM images, buildds,
+   chroots, and similar.
+And most importantly, please do not take this personally, this is not
+some concerted effort against e2fsprogs! :) Personally I (and I think
+others too) would like to see many other packages out from the
+pseudo-Essential set, such as, to name a few: bash, perl-base, tar,
+login (any init and login thing really).
+For more info please see https://wiki.debian.org/Proposals/EssentialOnDiet
+and https://wiki.debian.org/BusterPriorityRequalification.
+Thanks,
+Guillem

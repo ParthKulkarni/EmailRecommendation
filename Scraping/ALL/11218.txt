@@ -1,0 +1,43 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto-update for sid? Auto-backport?
+From : Didier 'OdyX' Raboud <odyx@debian.org>
+Date : Wed, 15 Nov 2017 21:00:14 +0100
+Message-id : 2459279.PdLukinYaB@odyx.org
+In-reply-to : <[🔎] f6db377a-b082-fa64-29c7-e29d931aeb8c@gmx.de>
+References : <[🔎] f6db377a-b082-fa64-29c7-e29d931aeb8c@gmx.de>
+
+
+Le mercredi, 15 novembre 2017, 16.43:17 h CET Steffen Möller a écrit :
+> I would really like to see updates performed in some automated fashion.
+Debian updates are in fact different steps:
+* inclusion of upstream changes;
+* packaging updates;
+* .changes signing with a key in the Debian keyring;
+* dput of the .changes and associated files.
+The two first ones can (and often should) be automated, but a human check 
+should happen at either of the two latter ones, most probably the signing one, 
+as that where the uploading DD certifies the upload.
+People in various areas of Debian (as well as outside) have automated one or 
+multiple of these steps, but with uploads outside of Debian suites: automated 
+build from git heads, automated uploads to reprepro repositories, etc. But I'm 
+not aware of unsupervised uploads to Debian.
+(At this point of the discussion, it seems to me that an unsupervised upload 
+to Debian unstable is not a problem _per se_; a broken one would certainly be 
+though.)
+> Maybe into a different section of Debian like sid-auto? The problem with
+> that obviously is the missing scrutiny by the human maintainer, so it
+> cannot go straight into sid. Or can it?
+An interesting infrastructure could provide a suite to which (unsigned ?) 
+source packages could be sent for build. The output would be a build log and a 
+_source.changes. As maintainer you'd be left with checking the build and 
+`debsign -r` the .changes file that could then be auto-dput to Debian.
+Now that we have source only uploads, none of that would need to be on Debian 
+infrastructure; the build would be there merely for guaranteeing that your 
+package actually builds.
+> Maybe with an auto-created bug report against the package so it does not 
+> auto-migrate into testing?
+I would not (ab)use bugs for something that should also be automated. Iff 
+we're going to have automated uploads, then it should be somehow integrated in 
+britney: massaging bugs for that purpose feels wrong.
+Cheers,
+    OdyX

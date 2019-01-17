@@ -1,0 +1,67 @@
+To : Cyril Brulebois <kibi@debian.org>, bind9@packages.debian.org
+Subject : Re: [Pkg-dns-devel] What to do with isc-dhcp-client-udeb?
+From : Ondřej Surý <ondrej@sury.org>
+Date : Tue, 23 Jan 2018 12:25:50 +0100
+Message-id : 1516706750.3738833.1245014672.117C9840@webmail.messagingengine.com
+In-reply-to : <[🔎] 20180122152051.rx5nxiyggzkyrkzq@mraw.org>
+References : <E1edUEt-0006aK-8p@dillon.debian.org> <[🔎] 20180122152051.rx5nxiyggzkyrkzq@mraw.org>
+
+
+Hi KiBi,
+I would also love to get rid of the isc-dhcp-client-udeb, but so far the message from the busybox team was that the dhcp client there doesn't compile there and needs some upstream work to get it working.
+(As a matter of fact, the busybox doesn't compile at all on kfreebsd-* and hurd-i386 right now.)
+As for the BIND libraries and libatomic.
+There has been some effort to replace the custom atomic code with a C-provided counterpart - it also fixes the mips deadlocks.
+But generally, I would prefer to move all BIND libraries into "custom" namespace, so the libraries are not used by anything else, and either:
+a) use the custom copy of the libraries inside isc-dhcp
+b) prepare separate package for the lib<something>-udeb that would follow the BIND 9.11 development (BIND 9.11 is to be supported for next 4 years) and then remove those AND isc-dhcp from Debian.
+The upcoming ISC-DHCP release 4.4.0 is ought to be the _last_ major upgrade, see: https://www.isc.org/blogs/isc-dhcp-the-last-branch/
+And if porting udhcpc to kFreeBSD proves to be much work, then perhaps porting dhclient from OpenBSD might be an option?
+Ondrej
+-- 
+Ondřej Surý <ondrej@sury.org>
+On Mon, Jan 22, 2018, at 16:20, Cyril Brulebois wrote:
+> Hi bind9 people,
+> 
+> I've just gotten this:
+> 
+> > Subject: udeb uninstallability trend: worse (+18/-)
+> udeb uninstallability watcher <debian-boot@lists.debian.org> (2018-01-22):
+> > Newly-broken packages in testing
+> >   isc-dhcp-client-udeb                     armel mips mipsel
+> >   libdns-export169-udeb                    armel mips mipsel
+> >   libirs-export160-udeb                    armel mips mipsel
+> >   libisc-export166-udeb                    armel mips mipsel
+> >   libisccc-export160-udeb                  armel mips mipsel
+> >   libisccfg-export160-udeb                 armel mips mipsel
+> > 
+> > Uninstallability trend: worse (+18/-0)
+> > Uninstallability count: 397
+> 
+> I happened to have missed its unstable counterpart, because those come in
+> batches, depending on the current buildd status of packages. I thought the
+> “Newly-broken” packages for armel, mips, and mipsel were an artifact of
+> late builds.
+> 
+> I don't know anything about this libatomic1; but from a look at the 0013
+> patch, it seems to be a need for a platform rather than for a feature…
+> 
+> Anyway, I'm not sure what to do with isc-dhcp-client-udeb; it's getting
+> broken on a regular fashion, and its purpose was mainly for non-Linux
+> ports AFAICR.
+> 
+> I'm not sure how BSD is doing these days; maybe hurd is the only user
+> left?
+> 
+> 
+> Cheers,
+> -- 
+> Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+> D-I release manager -- Release team member -- Freelance Consultant
+> _______________________________________________
+> pkg-dns-devel mailing list
+> pkg-dns-devel@lists.alioth.debian.org
+> https://lists.alioth.debian.org/mailman/listinfo/pkg-dns-devel
+> Email had 1 attachment:
+> + signature.asc
+>   1k (application/pgp-signature)

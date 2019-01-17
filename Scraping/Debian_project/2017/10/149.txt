@@ -1,0 +1,42 @@
+To : debian-devel@lists.debian.org
+Subject : Re: allowed uses of non-baseline CPU extensions
+From : Sven Joachim <svenjoac@gmx.de>
+Date : Thu, 05 Oct 2017 20:10:02 +0200
+Message-id : 87bmllbh51.fsf@turtle.gmx.de
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20171005080924.crxo25dehp6lrxzb@perpetual.pseudorandom.co.uk>	(Simon McVittie's message of "Thu, 5 Oct 2017 09:09:24 +0100")
+References : <[🔎] 20171005015256.ff7gay2sniro7yhr@angband.pl>	<[🔎] CAKTje6GW3jYvYV-7hRtukLyfjhz7Cc4qhjkexD9A7Xw84t6voA@mail.gmail.com>	<[🔎] 20171005080924.crxo25dehp6lrxzb@perpetual.pseudorandom.co.uk>
+
+
+On 2017-10-05 09:09 +0100, Simon McVittie wrote:
+> On Thu, 05 Oct 2017 at 11:01:42 +0800, Paul Wise wrote:
+>> Anything that generates different code depending on the instructions
+>> supported by the build CPU is going to break reproducible builds. So
+>> whatever mechanism is used, it needs to be deterministic. [...]
+>> I'd like to see CMAKE_SYSTEM_PROCESSOR
+>> and similar be deprecated upstream because of that.
+>
+> As far as I know, CMAKE_SYSTEM_PROCESSOR is the closest equivalent of the
+> CPU part of the GNU host architecture tuple in CMake, so is the only way
+> to distinguish between CPU families (i386 vs. ARM, as opposed to armv5
+> vs. armv7). I think it's valid to distinguish between CPU *families*,
+> and it's something that build systems often want.
+>
+> Perhaps dh_auto_configure should specify a normalized
+> CMAKE_SYSTEM_PROCESSOR by default: -DCMAKE_SYSTEM_PROCESSOR=i686 on
+> Debian i386, and so on?
+It already does, AFAICS.
+> Unfortunately, dpkg's cputable doesn't seem to
+> have a column for "what is a normal uname -m on this architecture?",
+The closest thing to that is DEB_HOST_GNU_CPU which debhelper uses in
+both the cmake and autoconf buildsystems.
+> which I think is the form that CMake would want to see. It's also common
+> to identify architecture by uname -m in ad-hoc project-specific build
+> systems like the one in ioquake3. It seems that newer CPU families
+> mostly keep their GNU CPU and Linux uname -m identical, so maybe only
+> the historically weird ones (i386, arm*, p(ower)pc, mips(64)el) would
+> need special cases?
+Using uname -m seems to be wrong, since there are many 32-bit
+architectures where the kernel can be 64-bit.
+Cheers,
+       Sven

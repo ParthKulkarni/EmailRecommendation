@@ -1,0 +1,47 @@
+To : debian-devel@lists.debian.org
+Subject : Re: MBF proposal: python modules that fail to import
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Mon, 16 Apr 2018 23:00:02 +0200
+Message-id : 20180416210002.GA11431@alf.mars
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] CAOO6c=wmc2WGRYVPvWj+C=X9u=9tdKx17VySLmcajLzvHj4jCw@mail.gmail.com>
+References : <[🔎] 20180415185633.GA2011@alf.mars> <[🔎] 20180415190853.GE11650@mapreri.org> <[🔎] 20180415192730.GA6868@alf.mars> <[🔎] 20180415193240.GG11650@mapreri.org> <[🔎] CAOO6c=wmc2WGRYVPvWj+C=X9u=9tdKx17VySLmcajLzvHj4jCw@mail.gmail.com>
+
+
+On Mon, Apr 16, 2018 at 12:00:24PM +0200, Ondrej Novy wrote:
+> I tried to do my best :)
+> 
+> https://sources.debian.org/src/autodep8/0.11.1/support/python/generate/
+> 
+> Feel free to add more "magic" for module name detection.
+There is an easy improvement and a difficult one I can propose.
+The easy one is adding -examples to the list of ignored package
+suffixes.
+The difficult one is deriving the module name from the list of files. My
+initial mail contains a genlist.py that shows my technique for computing
+the module name. Essentially it looks for all *.py files, trims .py,
+then trims /__init__ and then looks for a common prefix of all .py
+files. If there is a single prefix, then we found the module name.
+This finds things such as:
+ * python-azure-storage -> azure.storage (likely the binary package
+   should be renamed to python-azure.storage)
+ * python-ball -> BALL
+ * python-bd2k -> bd2k.util
+ * python-bpfcc -> bcc
+ * python-distutils-extra -> DistUtilsExtra
+ * python-djangorestframework-gis -> rest_framework_gis
+ * python-dogpile.cache -> dogpile
+ * python-fftw -> fftw3
+ * python-pastewebkit -> paste.webkit (again rename to
+   python-paste.webkit?)
+ * python-pyscss -> scss
+ * python-pysnmp4 -> pysnmp
+ * python-tcpwrap -> pytcpwrap
+I'm not sure how I'd add this to the generate script, but there clearly
+is room for improvement over s/-/_/. There also is room for improving
+our package naming.
+Would it help to get a list of binary packages that could be covered by
+the current autodep8 if they were named correctly (according to the
+Python Policy)? Actually renaming them might make ftp masters a bit
+grumpy though.
+Helmut

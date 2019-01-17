@@ -1,0 +1,62 @@
+To : debian-devel@lists.debian.org
+Subject : Re: game engines, game data, dependencies
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 7 Jun 2017 11:30:42 +0100
+Message-id : 20170607103042.7infz7einmpfmuah@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20170607083617.xirzoqjbiwvdcne6@grep.be>
+References : <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk> <[🔎] 20170606000242.333F97C6433@relay.mailchannels.net> <[🔎] 871sqyueya.fsf@hope.eyrie.org> <[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl> <[🔎] 20170607083617.xirzoqjbiwvdcne6@grep.be>
+
+
+On Wed, 07 Jun 2017 at 10:36:17 +0200, Wouter Verhelst wrote:
+> On Tue, Jun 06, 2017 at 03:55:48PM +0200, Adam Borowski wrote:
+> > freedoom | game-data-packager: prboom-plus
+> > * DEBATABLE: freedoom is too ugly to live, shareware Doom has assets missing
+> >   for running pretty much anything Doom-related (and AFAIK its license
+> >   forbids add-ons).
+> 
+> freedoom is quite fun, actually, IMHO. I think this should be a Depends
+> rather than a Recommends, but perhaps there's a way to use a doom engine
+> without wads? Dunno.
+prboom-plus is not useful without Doom-compatible wad files, but
+maybe you are going to use it to play Doom (shareware or commercial),
+Freedoom (Free) or Chex Quest (gratis) wad files obtained other than
+via Debian, so a Depends would be too strong IMO.
+This is analogous to how we don't give ScummVM a Depends on any particular
+SCUMM game, and we don't give the darkplaces Quake engine a Depends on
+either Quake data, OpenQuartz, Nexuiz, Xonotic or any of the various other
+games it can play (many of them not in Debian).
+I'm a big fan of distinguishing between the engine and the user-facing
+"game" when packaging game engines that can potentially play more than
+one game (as in set of game content with its own gameplay/level design -
+for instance Quake III Arena, OpenArena and World of Padman are distinct
+games that that happen to share an engine and the vast majority of their
+game mechanics). The quake series in contrib exemplify this; there's a
+mini-policy at
+<https://anonscm.debian.org/cgit/pkg-games/game-data-packager.git/tree/debian/q1/policy.txt>.
+The Debian Doom mini-policy takes a different approach, and considers
+the engine, not the game content, to be the important user-facing thing.
+Wolfenstein 3D in Debian contrib is packaged the same way. I personally
+think that this is misguided, and the user-facing things should be
+Doom, Doom II, Freedoom etc. Otherwise we have the ridiculous situation
+that the Doom game content, Freedoom and Chex Quest are treated as
+essentially equivalent (data to be consumed by a Doom engine), which they
+are clearly not; and similarly Wolfenstein 3D game content is clearly
+not equivalent to its sequel Spear of Destiny, or to Super 3D Noah's Ark.
+In each case a player halfway through completing one of those would be
+confused and disappointed to get the other after a reinstall :-)
+> >   On the other hand, this is an excuse for Doom engines
+> >   in main.
+The consensus reached between the ftp team and game packagers seems to
+be that a game engine packaged like a content-free engine (quakespasm,
+ioquake3) can go in main if Free data *exists*, even if that Free data
+is not itself present in Debian. yquake2 is still contrib, because we do
+not know of any Free data compatible with Quake II engines.
+However, a game engine packaged *like a game* (e.g. menu entries
+labelled with the name of the game) clearly needs to depend
+on appropriate data. For games that are non-distributable (paid-for) like
+Return to Castle Wolfenstein and Jedi Academy, I discussed it with the
+ftp team and we agreed that "Depends: rtcw-data | game-data-packager" is
+appropriate for contrib - conceptually, the game depends on either the
+proprietary data (unsatisfiable within Debian+contrib+non-free), or a
+way to get it installed to the right place (satisfiable within contrib).
+    S

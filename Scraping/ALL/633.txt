@@ -1,0 +1,71 @@
+To : Stefan Fritsch <sf@sfritsch.de>
+Subject : Bug#881725: apache2: reload fails inside (libvirt) lxc container
+From : Moritz Muehlenhoff <jmm@inutil.org>
+Date : Wed, 25 Apr 2018 15:07:05 +0200
+Message-id : 20180425130705.GA9459@inutil.org
+Reply-to : Moritz Muehlenhoff <jmm@inutil.org>, 881725@bugs.debian.org
+In-reply-to : <[🔎] 20180424171732.GA807@inutil.org>
+References : <151067076078.12331.11188779696635278469.reportbug@mango.ad.beechwoods.com> <[🔎] 69274941.HueKbXd66u@k> <[🔎] 7142938.bkcsXgoSx9@k> <[🔎] 20180424171732.GA807@inutil.org> <151067076078.12331.11188779696635278469.reportbug@mango.ad.beechwoods.com>
+
+
+reassign 881725 tmpreaper
+retitle 881725 tmpreaper breaks systemd services using PrivateTmp=true
+severity 881725 important
+tags 881725 patch
+thanks
+On Tue, Apr 24, 2018 at 07:17:32PM +0200, Moritz Muehlenhoff wrote:
+> On Mon, Apr 23, 2018 at 09:48:03PM +0200, Stefan Fritsch wrote:
+> > On Monday, 16 April 2018 21:51:36 CEST Stefan Fritsch wrote:
+> > > So tmpreaper should exclude systemd-private-* files by default. Moritz, do
+> > > you also have some cron job cleaning up stale files in /tmp ?
+> > 
+> > tmpreaper needs to exclude dirs inside the  systemd-private-* dir, too (there 
+> > is a tmp dir inside). There does not seem to be a recursive mode and
+> > 
+> > TMPREAPER_PROTECT_EXTRA='/tmp/systemd-private*'
+> > 
+> > did not help. Probably something like
+> > 
+> > TMPREAPER_PROTECT_EXTRA='/tmp/systemd-private*/*'
+> > 
+> > should work better.
+> 
+> I've run some initial tests and that seems to fix it, but I'll do some more
+> tests tomorrow.
+Yeah, confirmed that this fixes it. I'm reassigning the bug to tmpreaper.
+Summary:
+tmpreaper disrupts systemd services using PrivateTmp=true since those are using
+a private filesystem namespace which tmpreaper is unaware of. This was noticed
+with Apache (which uses PrivateTmp=true in stretch), but should equally apply
+to other services.
+Supporting these to full extent would either require to add support to tmpreaper to 
+support reaping those (or maybe rather add an option to systemd to support similar 
+functionality), but I think a good interim solution is to skip those private tmps
+in tmpreaper for now.
+Steps to reproduce:
+- Install apache2
+- A "systemctl reload apache2" should work fine
+- Add a dummy file to /tmp
+- Set TMPREAPER_TIME=1m in /etc/tmpreaper.conf so that the next tmpreaper run removes
+  the dummy file
+- Wait a minute and run /etc/cron.daily/tmpreaper
+- Dummy file should be gone now
+- systemctl reload apache2" should work fine should now fail with the error
+  "Failed at step NAMESPACE spawning /usr/sbin/apachectl"
+Fix:
+Since systemd is Debian's default init system and given that PrivateTmp is an increasingly
+used option, I'd suggest that it's at least added to the existing directories using
+--protect in /etc/cron.daily/tmpreaper.
+Maybe also add it to TMPREAPER_PROTECT_EXTRA by default, but I think adding it to
+the default cron is the more important change:
+--- /etc/cron.daily/tmpreaper.orig      2018-04-25 12:52:52.353639990 +0000
++++ /etc/cron.daily/tmpreaper   2018-04-25 12:53:30.385144805 +0000
+@@ -105,5 +105,6 @@
+   --protect '/tmp/lost+found' \
+   --protect '/tmp/journal.dat' \
+   --protect '/tmp/quota.{user,group}' \
++  --protect '/tmp/systemd-private*/*' \
+   `for i in $TMPREAPER_PROTECT_EXTRA; do echo --protect "$i"; done` \
+   $TMPREAPER_DIRS
+Cheers,
+       Moritz

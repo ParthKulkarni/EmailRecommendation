@@ -1,0 +1,66 @@
+To : Phil Wyett <philwyett@kathenas.org>
+Subject : Re: suil - current packaging query
+From : Guillem Jover <guillem@debian.org>
+Date : Sun, 10 Sep 2017 14:56:10 +0200
+Message-id : 20170910125610.735qwaq624bjfnmz@gaara.hadrons.org
+Mail-followup-to : Phil Wyett <philwyett@kathenas.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 1505023928.9472.20.camel@kathenas.org>
+References : <[🔎] 1505023928.9472.20.camel@kathenas.org>
+
+
+Hi!
+On Sun, 2017-09-10 at 07:12:08 +0100, Phil Wyett wrote:
+> I found audacity now uses suil.
+> http://git.drobilla.net/cgit.cgi/suil.git/tree/PACKAGING
+> 
+> The bottom section of the doc:
+> 
+> *** IMPORTANT GUIDELINES FOR PACKAGING SUIL ***
+> 
+> The purpose of Suil is to abstract plugin UI toolkits away from host code.  To
+> achieve this, Suil performs its magic by dynamically loading modules for each
+> toolkit.  The main Suil library does NOT depend on any toolkit libraries, and
+> thus neither should your package.  Please package the individual modules
+> (e.g. libsuil_gtk2_in_qt4.so) as separate packages, which themselves depend on
+> the involved toolkits.  These packages should also be versioned as described
+> above to support parallel installation.
+> 
+> Please do not make the main Suil package depend on any toolkit package, this
+> defeats the purpose of Suil and will severely irritate those who for whatever
+> reason do not want a particular toolkit dependency.  The main Suil package may
+> have a weak dependency (e.g. "recommends") on the individual wrapper modules,
+> and it's fine if these are installed by default, but it must be possible to
+> install Suil without installing them if the user explicitly wishes to do so.
+> 
+> // End
+> Is it just me or should this package be broken down into a core and subset
+> module packages?
+IMO yes. Although it seems this might require some tooling support and
+a small transition.
+> Any thoughts and how suil should be better packaged welcome.
+AFAIUI, the Suil library provides an interface so that an LV2 host can
+load on-demand at run-time the UI required by the LV2 plugin w/o needing
+the host to directly link to those UI libraries itself.
+So I think the ideal situation would be:
+  * Keep a libsuil-N-M shared library package with just the shared lib.
+  * Move the suil UI plugins into their own packages grouped by UI,
+    something like (assuming that we just drop the Qt4 right away):
+    - libsuil-(mod|plugin)-gtk2-(in-)qt5 (w/ libsuil_gtk2_in_qt5.so)
+    - libsuil-(mod|plugin)-x11-(in-)gtk2 (w/ libsuil_x11_in_gtk2.so)
+    - libsuil-(mod|plugin)-x11-(in-)qt5 (w/ libsuil_x11_in_qt5.so)
+  * Add a new packaging helper (dh_suil-plugin?) that would analyze the
+    plugin .ttl files to check for the UI used and emit a dependency on
+    the LV2 plugin package against the required libsuil-(mod|plugin)-UI
+    packages.
+The transition would imply:
+  * Split the suil packages, and make libsuil-N-M depend on all UI
+    plugins to not break any LV2 plugin.
+  * Write the dh-suil-plugin tooling.
+  * Modify all LV2 plugins to depend on the required Suil UI plugins.
+  * Then drop the UI plugin dependencies from libsuil-N-M, either after
+    one entire release cycle, or after adding appropriate Breaks against
+    all LV2 plugins using UI plugins.
+> Bug report?
+Probably yes. :)
+Thanks,
+Guillem

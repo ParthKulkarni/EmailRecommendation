@@ -1,0 +1,48 @@
+To : Scott Leggett <scott@sl.id.au>, 853927@bugs.debian.org
+Subject : Bug#853927: debian-installer: Hang in os-prober in "dmsetup create -r osprober-linux-sda1"
+From : Cyril Brulebois <kibi@debian.org>
+Date : Fri, 3 Feb 2017 13:42:16 +0100
+Message-id : 20170203124216.GA24574@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 853927@bugs.debian.org
+In-reply-to : <[🔎] 20170203111010.c4ia6ai7b7cwat5j@mail.sl.id.au>
+References : <[🔎] 148598352830.29157.16885692808004372139.reportbug@paver.krastavac> <[🔎] 20170202120414.GB9976@einval.com> <[🔎] 20170202160010.GF14512@mraw.org> <[🔎] 20170203111010.c4ia6ai7b7cwat5j@mail.sl.id.au>
+
+
+Hi,
+Scott Leggett <scott@sl.id.au> (2017-02-03):
+> > Scott, can you please paste the output of the “blkid” command?
+> > 
+> 
+> Sure:
+> 
+>   $ sudo blkid | column -t
+>   /dev/mapper/sdb3_crypt:  UUID="4uBen6-VyP1-OsWI-fQdD-nGkr-KdFC-q1msXC"  TYPE="LVM2_member"
+>   /dev/mapper/ssd-root:    UUID="efe6d251-3751-4f6e-a172-f0488cd50b3e"    TYPE="ext4"
+>   /dev/sda1:               UUID="bb939d6e-baa9-4168-8d50-f6d558d4cc32"    TYPE="crypto_LUKS"  PARTUUID="107fd5bf-9de8-486f-8e35-d6f94dc983f0"
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>   /dev/sdb1:               UUID="EA53-3A1A"                               TYPE="vfat"         PARTUUID="f74e919b-1f8b-4967-bdec-2f1f2d38a3bc"
+>   /dev/sdb2:               UUID="56d4748a-4bbd-492e-93cd-33f28cb933e6"    TYPE="ext2"         PARTUUID="d25c1a0d-a232-413c-bc74-7637df9ae248"
+>   /dev/sdb3:               UUID="a7c42763-f233-4630-8964-5739130aa3b5"    TYPE="crypto_LUKS"  PARTUUID="2935b6e9-3d32-4ad5-98c9-bebc148e766b"
+>   /dev/mapper/ssd-swap:    UUID="150cc804-1750-4309-a692-01e0de71f854"    TYPE="swap"
+>   /dev/mapper/ssd-tmp:     UUID="85ae96c9-655e-42b1-84d4-5b279b30a8c5"    TYPE="ext4"
+>   /dev/mapper/ssd-var:     UUID="24e7f13d-dd06-4ba4-a178-b1ddc84814e8"    TYPE="ext4"
+>   /dev/mapper/sda1_crypt:  UUID="YpCfV6-NLu6-80Bs-7Y2c-BY5O-OtDZ-H0BqJD"  TYPE="LVM2_member"
+>   /dev/mapper/spin-home:   UUID="503569d6-25f0-449d-88ca-e2a2e1945333"    TYPE="ext4"
+This is rather strange. Are you sure it was hanging on the *sda1* partition?
+The LVM fix was about adding this codepath:
+| elif [ "$types" = LVM2_member ]; then
+|         debug "$1 is an LVM member; skipping"
+|         exit 0
+right after this one:
+| elif [ "$types" = crypto_LUKS ]; then
+|         debug "$1 is a LUKS partition; skipping"
+|         exit 0
+and we seem to have a crypto_LUKS partition as sda1, so I'm not sure why
+the dmsetup create thing was even attempted. Adding Colin & Ivo to cc,
+maybe they'll have an answer.
+Direct crypto_LUKS looks like something we should be supporting, even if
+that's not something one can achieve with a guided setup; so I'd
+consider this less urgent than the LVM fix we needed to release Stretch
+RC 2, yet nice to fix.
+KiBi.
+signature.asc

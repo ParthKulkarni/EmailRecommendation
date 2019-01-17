@@ -1,0 +1,54 @@
+To : 903657-submitter@bugs.debian.org,	henrich@iijmio-mail.jp
+Subject : [PATCH] scripts/gusty: move /proc symlink logic to stage_one
+From : Alex Bennée <alex.bennee@linaro.org>
+Date : Fri, 13 Jul 2018 11:20:07 +0100
+Message-id : 20180713102007.24942-1-alex.bennee@linaro.org
+
+
+This affects all post gutsy Ubuntu releases and now more closely
+mirrors the behaviour in debian-common. The recent changes to
+container detection broke QEMU's debootstrap for Ubuntu guests as
+setup_proc_symlink would attempt to delete the real containerised
+/proc in a stage 2 context causing the bootstrap to fail.
+I've added in_target /bin/true to more closely align, it's simply a
+check to ensure stage two can execute commands. There is probably
+scope for more re-factoring as the remaining differences are mostly
+dealing with code names, mirror locations and some minor and possibly
+out of date init differences.
+Signed-off-by: Alex Bennée <alex.bennee@linaro.org>
+---
+ scripts/gutsy | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+diff --git a/scripts/gutsy b/scripts/gutsy
+index c3e44fc..b460e90 100644
+--- a/scripts/gutsy
++++ b/scripts/gutsy
+@@ -91,9 +91,15 @@ first_stage_install () {
+ 	fi
+ 
+ 	setup_devices
++
++        if doing_variant fakechroot || [ "$CONTAINER" = "docker" ]; then
++		setup_proc_symlink
++	fi
+ }
+ 
+ second_stage_install () {
++	in_target /bin/true
++
+ 	setup_dynamic_devices
+ 
+ 	x_feign_install () {
+@@ -122,9 +128,7 @@ Status: install ok installed" >> "$TARGET/var/lib/dpkg/status"
+ 		baseprog="$(($baseprog + ${1:-1}))"
+ 	}
+ 
+-	if doing_variant fakechroot || [ "$CONTAINER" = "docker" ]; then
+-		setup_proc_symlink
+-	else
++	if ! doing_variant fakechroot; then
+ 		setup_proc
+ 		in_target /sbin/ldconfig
+ 	fi
+-- 
+2.17.1

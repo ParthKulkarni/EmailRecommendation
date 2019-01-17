@@ -1,0 +1,123 @@
+To : Cyril Brulebois <kibi@debian.org>, 866328@bugs.debian.org
+Subject : Bug#866328: user-setup: allow to preseed the user shell
+From : Luca Boccassi <luca.boccassi@gmail.com>
+Date : Wed, 28 Jun 2017 22:39:56 +0100
+Message-id : 1498685996.5956.9.camel@gmail.com
+Reply-to : Luca Boccassi <luca.boccassi@gmail.com>, 866328@bugs.debian.org
+In-reply-to : <[🔎] 20170628212044.GC19464@mraw.org>
+References : <[🔎] 1498682786.5956.4.camel@gmail.com>	 <[🔎] 20170628212044.GC19464@mraw.org>
+
+
+On Wed, 2017-06-28 at 23:20 +0200, Cyril Brulebois wrote:
+> Hi Luca,
+> 
+> Luca Boccassi <luca.boccassi@gmail.com> (2017-06-28):
+> > It would be useful to allow preseeding the user shell.
+> > 
+> > The use case we have at work is building live Debian images and
+> > shipping them to users, where we need to have something other than
+> > bash as the live user shell.
+> > 
+> > This could be achieved with hacky posthook scripts that sed
+> > /etc/passwd, but it just feels wrong :-)
+> > 
+> > Attached is a very small and simple patch to add a passwd/user-
+> > shell
+> > configurable option, modeled after passwd/user-uid.
+> 
+> I'm still undecided as to whether this patch is needed/useful in d-i,
+> but anyway:
+Hi,
+At work we build a downstream of Debian, Vyatta, and it would be quite
+useful for us. There might be more crazy folks like us out there who
+might like it too :-)
+> >  # Allow preseeding the groups to which the first created user is
+> > added
+> >  Template: passwd/user-default-groups
+> >  Type: string
+> > diff --git a/user-setup-apply b/user-setup-apply
+> > index f24ece2..9dfcf55 100755
+> > --- a/user-setup-apply
+> > +++ b/user-setup-apply
+> > @@ -109,6 +109,16 @@ if [ "$RET" = true ] && ! is_system_user; then
+> >  		UIDOPT=
+> >  	fi
+> >  
+> > +	if db_get passwd/user-shell && [ "$RET" ]; then
+> > +		if [ -x $ROOT/usr/sbin/adduser ]; then
+> > +			SHELLOPT="--shell $RET"
+> > +		else
+> > +			SHELLOPT="-s $RET"
+> > +		fi
+> > +	else
+> > +		SHELLOPT=
+> > +	fi
+> > +
+> 
+> This distinction doesn't seem needed? I see this in useradd's manpage
+> from jessie to sid:
+>        -s, --shell SHELL
+Yes I noticed the same, but that was true for --uid as well, so I
+followed the same convention.
+New version inlined without that if-else. Thanks for the feedback!
+Kind regards,
+Luca Boccassi
+From 84e6049f8e41f15da2e3b91f1184e89e8cd429b7 Mon Sep 17 00:00:00 2001
+From: Luca Boccassi <luca.boccassi@gmail.com>
+Date: Wed, 28 Jun 2017 19:21:10 +0100
+Subject: [PATCH] Add passwd/user-shell to allow preseeding the shell
+In some cases it is useful to be able to configure the user shell via
+the installer. Add a new optional db_get passwd/user-shell and pass
+it to adduser/useradd --shell/-s if it is set.
+---
+ debian/user-setup-udeb.templates |  5 +++++
+ user-setup-apply                 | 10 ++++++++--
+ 2 files changed, 13 insertions(+), 2 deletions(-)
+diff --git a/debian/user-setup-udeb.templates b/debian/user-setup-udeb.templates
+index 45e16b4..64731de 100644
+--- a/debian/user-setup-udeb.templates
++++ b/debian/user-setup-udeb.templates
+@@ -16,6 +16,11 @@ Template: passwd/user-uid
+ Type: string
+ Description: for internal use only
+ 
++# Allow preseeding the shell configured for the first created user
++Template: passwd/user-shell
++Type: string
++Description: for internal use only
++
+ # Allow preseeding the groups to which the first created user is added
+ Template: passwd/user-default-groups
+ Type: string
+diff --git a/user-setup-apply b/user-setup-apply
+index f24ece2..9a6a913 100755
+--- a/user-setup-apply
++++ b/user-setup-apply
+@@ -109,6 +109,12 @@ if [ "$RET" = true ] && ! is_system_user; then
+ 		UIDOPT=
+ 	fi
+ 
++	if db_get passwd/user-shell && [ "$RET" ]; then
++		SHELLOPT="--shell $RET"
++	else
++		SHELLOPT=
++	fi
++
+ 	# Add the user to the database, using adduser in noninteractive
+ 	# mode.
+ 	db_get passwd/username
+@@ -121,9 +127,9 @@ if [ "$RET" = true ] && ! is_system_user; then
+ 	fi
+ 
+ 	if [ -x $ROOT/usr/sbin/adduser ]; then
+-		$log $chroot $ROOT adduser --disabled-password --gecos "$RET" $UIDOPT "$USER" >/dev/null || true
++		$log $chroot $ROOT adduser --disabled-password --gecos "$RET" $UIDOPT $SHELLOPT "$USER" >/dev/null || true
+ 	else
+-		$log $chroot $ROOT useradd -c "$RET" -m "$USER" $UIDOPT >/dev/null || true
++		$log $chroot $ROOT useradd -c "$RET" -m "$USER" $UIDOPT $SHELLOPT >/dev/null || true
+ 	fi
+ 
+ 	# Clear the user password from the database.
+-- 
+2.11.0
+signature.asc

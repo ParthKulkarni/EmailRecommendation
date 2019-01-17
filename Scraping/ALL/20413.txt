@@ -1,0 +1,65 @@
+To : debian developers <debian-devel@lists.debian.org>
+Subject : Re: Removing Python 2 support in OpenStack [was: Please do not drop Python 2 modules]
+From : Thomas Goirand <zigo@debian.org>
+Date : Wed, 25 Apr 2018 11:11:13 +0200
+Message-id : e55eb1d3-53ee-f517-3cef-348514372179@debian.org
+In-reply-to : <[🔎] CAOO6c=wz7KF=Wiz173v4fxGpy0HxT3dZ2km5QAM5FYo2m3O3dg@mail.gmail.com>
+References : <[🔎] 20180421175755.GC3347@localhost> <[🔎] CAAajCMb9kN9bBq4tHFTa8bsB8xXMZHUzi55vvD2rvwvvCWCk_w@mail.gmail.com> <[🔎] 26936641-C953-483C-BE82-8DDA5E13E53E@kitterman.com> <[🔎] 80057192-1d39-ae0d-405d-b550e5586f64@debian.org> <[🔎] 8341ff80-2842-749f-6e21-32e6d1c8b834@thykier.net> <[🔎] bf63b746-e612-afd8-2e7d-4bc6adaceb3e@debian.org> <[🔎] 20180424151138.lqsocwtbw57slkrc@yuggoth.org> <[🔎] eb31b4b3-f45a-c419-daad-1b47422c3984@debian.org> <[🔎] CAOO6c=wz7KF=Wiz173v4fxGpy0HxT3dZ2km5QAM5FYo2m3O3dg@mail.gmail.com>
+
+
+On 04/25/2018 09:39 AM, Ondrej Novy wrote:
+> Hi,
+> 
+> 2018-04-25 9:06 GMT+02:00 Thomas Goirand <zigo@debian.org
+> <mailto:zigo@debian.org>>:
+> 
+>     I would like to start dropping Python 2 as early as possible though. The
+>     only question that remains is: how many people still have Python 2 only
+>     code using clients.
+> 
+> 
+> /me
+> 
+> And because:
+> 
+>  1. OS clients are already packaged for Py2 now
+>  2. upstreams official supports Py2 now (and probably will support in OS
+>     release targeted for Buster)
+>  3. Python 2 will be in Buster
+> 
+> I didn't see any real benefits dropping them before Buster release.
+> Let's drop them just after Buster release.
+I would have preferred if we had this discussion in our own list,
+however since you've started it here, let's do it. I'm adding the
+OpenStack list just for the archive.
+I'd love to get the removal of Python 2 prepared for the next OpenStack
+release, Rocky, due for next August, and which will be the OpenStack
+release for Buster. I see a lot of real benefits. Here's a few of them
+which are popping now, but I don't think it's exhaustive:
+- faster build time (no need to test with Python 2, so less chances of
+build failure).
+- no chance to have any Python 2 packages installed, so we're sure we're
+on a full Python 3 stack (in my current setup, unfortunately some Python
+2 packages are still pulled). This may go on for another 3 years if we
+don't remove Python 2 now, with the added issue that it will pull
+*older* version of clients if selecting Python 2 and if we still have
+them in Buster (ie: case of OpenStack backports on top of Stable).
+- packaging and decrufting will take a long time, so we'd better start
+early. Especially if we want to do it the proper way, without breaking
+any reverse (build-)dependency that are outside of OpenStack.
+- at some point, even upstream will move to Python 3, and Python 2 will
+be the legacy old thing. Do we really want to be the only distribution
+that will hit these Python 2 bugs? In such case, we'll be alone writing
+these Python 2 bugfix patches. :/
+- Other distros (RHEL and Ubuntu) will move to Python 3 only in the next
+OpenStack development cycle, meaning we'll be alone with Python 2
+support at some point.
+The other thing is, it's ready! I was able to do functional testing on
+top of the Python 3 release of OpenStack Debian packages. So why should
+we hold any longer?
+The only benefit we get with keeping Python 2 support is for thirdparty
+software that is still using Python 2. We don't have this in Debian at
+the moment. What's the status in your company? Do you still need Python
+2 for your internal use? What's the ETA for switching to Python 3?
+Cheers,
+Thomas Goirand (zigo)

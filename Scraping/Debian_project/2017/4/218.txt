@@ -1,0 +1,24 @@
+To : debian-devel@lists.debian.org
+Subject : policy for shipping sysctl.d snippets in packages?
+From : Evgeni Golov <evgeni@debian.org>
+Date : Sun, 23 Apr 2017 12:16:58 +0200
+Message-id : 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net
+
+
+Ohai,
+LXC recently got a bug (#860974) that is best fixed by bumping a certain
+sysctl limit above the default.
+However I could not find any documented policy how to do this (if at all).
+Both, procps and systemd support (/usr)?/lib/sysctl.d/*.conf, however only
+one package (systemd-coredump) uses it, all others drop files in
+/etc/sysctl.d.
+Some packages also trigger "sysctl -q -p <file>" in their postinst, but
+most do not.
+My gut feeling is that droping the file to /usr/lib and allowing the admin
+to override it later via /etc. And then load it in postinst.
+But this does not account for the fact that this specific tunable may be
+already overriden in another sysctl.d file and the package would reset
+it to a lower value?
+What do others think about that?
+Cheers
+Evgeni

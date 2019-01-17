@@ -1,0 +1,43 @@
+To : Ben Hutchings <ben@decadent.org.uk>, 820818@bugs.debian.org
+Subject : Re: Bug#820818: partman is not able to resize nvme0n1p3 in d-i
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 24 Jun 2017 18:27:32 +0200
+Message-id : 20170624162732.GA18332@mraw.org
+In-reply-to : <20170205215643.GZ3442@decadent.org.uk>
+References : <22285.14701.236967.803624@chiark.greenend.org.uk> <20170204035345.GK23551@mraw.org> <20170204041200.GA8024@mraw.org> <20170205215643.GZ3442@decadent.org.uk>
+
+
+[ Dropping #820818, which is archived. ]
+Hi Ben,
+Ben Hutchings <ben@decadent.org.uk> (2017-02-05):
+> Please don't do this.  The rule for Linux partition device names is
+> very simple and there is no need to match specific prefixes:
+> 
+> https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/block/partition-generic.c?h=v4.9#n35
+> 
+> Please instead use the following patch:
+> 
+> --- a/lib/resize.sh
+> +++ b/lib/resize.sh
+> @@ -18,15 +18,12 @@ get_real_device () {
+>  		num=$(sed 's/^[^0-9]*\([0-9]*\)[^0-9].*/\1/' $backupdev/$oldid/view)
+>  		bdev=$(cat $backupdev/device)
+>  		case $bdev in
+> -		    */disc)
+> -			bdev=${bdev%/disc}/part$num
+> +		    /dev/*[0-9])
+> +			bdev=${bdev}p$num
+>  			;;
+> -		    /dev/[hsv]d[a-z]|/dev/xvd[a-z])
+> +		    /dev/*)
+>  			bdev=$bdev$num
+>  			;;
+> -		    /dev/cciss/c[0-9]d[0-9]|/dev/cciss/c[0-9]d[0-9][0-9]|/dev/ida/c[0-9]d[0-9]|/dev/ida/c[0-9]d[0-9][0-9]|/dev/mmcblk[0-9])
+> -			bdev=${bdev}p$num
+> -			;;
+>  		    *)
+>  			log "get_real_device: strange device name $bdev"
+>  			return
+Should I apply this patch as-is, or should anything be updated there?
+KiBi.
+signature.asc

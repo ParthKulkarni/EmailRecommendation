@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org, debian-science@lists.debian.org
+Subject : RFC: Naming convention for ILP64 variant of BLAS/LAPACK
+From : Mo Zhou <lumin@debian.org>
+Date : Sun, 21 Oct 2018 09:51:15 +0000
+Message-id : 20181021095114.GA24382@Asuna
+
+
+Hi folks,
+This is an informal RFC
+about naming convention of SONAME and package name.
+As discussed in [1][2][3], Debian will need a set of ILP64[4] interface
+to BLAS/LAPACK in the future. However, adding this set of interface will
+bring changes and NEW binary packages to all packages that fill these
+high popcon virtual packages, so I sent this RFC to both -devel and
+-devel.
+  1. libblas.so     (dev)
+  2. libblas.so.3   (lib)
+  3. liblapack.so   (dev)
+  4. liblapack.so.3 (lib)
+The proposal is a naming convention for the ILP64 variant packages, and
+those libblas.so.3 and liblapack.so.3 provider packages can follow this
+convention in the future.
+Proposal:
+  * The "-ilp64" postfix should be appended to the SONAME of all the new
+    shared objects that provide ILP64 interface. For example:
+      libblas.so.3 (LP64) -> libblas-ilp64.so.3 (ILP64)
+    As a result, the same postfix should be added to the binary package
+    name. For example:
+      libblas3 (LP64) -> libblas-ilp64-3 (ILP64)
+  * No change will be made to all the present BLAS/LAPACK libraires that
+    provide LP64 interface.
+  * No change will be made to either API or ABI of BLAS/LAPACK.
+  * This proposal only applies to 64-bit-capable architectures.
+Advantage:
+  * If in doubt, any developer or user can learn about the keyword
+    "ilp64" from search engines.
+    (Some upstream code denotes ILP64 interface with macro names such
+     INTERFACE64, BLAS64, ... and they are bad keywords to search enging)
+Next:
+  1. Packages that provide libblas.so{,.3}/liblapack.so{,.3}:
+     They will need changes to add corresponding binary packages.
+  2. Packages that depend on <ditto>:
+     No change needed. No transition needed. Package maintainers can
+     optionally choose to link against the ILP64 variant.
+  3. Julia may be possibly the first package that moves to use ILP64
+     ininterface where avaialble.
+Any comment will be appritiated. In the future I'll make changes as said
+in this RFC if no one is object to it.
+Best,
+lumin
+[1] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=878121
+[2] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=905826
+[3] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=910924
+[4] https://en.wikipedia.org/wiki/64-bit_computing#64-bit_data_models

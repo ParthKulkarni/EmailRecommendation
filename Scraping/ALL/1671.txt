@@ -1,0 +1,42 @@
+To : Emmanuel Kasper <emmanuel@libera.cc>, 853855@bugs.debian.org
+Subject : Bug#853855: di-utils: Kernel boot options containing a dot are not propagated to the installed system
+From : Ian Campbell <ijc@debian.org>
+Date : Thu, 02 Feb 2017 18:33:23 +0000
+Message-id : 1486060403.7612.38.camel@debian.org
+Reply-to : Ian Campbell <ijc@debian.org>, 853855@bugs.debian.org
+In-reply-to : <[🔎] 20170201143047.26819.63823.reportbug@ada.libera.cc>
+References : <[🔎] 20170201143047.26819.63823.reportbug@ada.libera.cc>
+
+
+On Wed, 2017-02-01 at 15:30 +0100, Emmanuel Kasper wrote:
+> Package: di-utils
+> Version: 1.117
+> Severity: minor
+> Tags: d-i
+> 
+> A kernel boot param like net.ifnames=0 will be skipped when the
+> installer parses the boot option for setting the bootloader.
+> 
+> Found in di-utils: 
+> 
+>                 # Skip module-specific variables
+>                 varnodot="${var##*.*}"
+>                 if [ "$varnodot" = "" ]; then
+>                         continue
+>                 fi
+> 
+> So basically any option containing a dot is not propagated to the
+> installed system.  This was introduced by
+> 7cf15980d714da8b958a73c93459ee09fdbb9415 ("Skip new module-specific
+> parameters in user-params.")
+> 
+> I found no documented or obvious reason for this behaviour.
+Sounds like the assumption was that any "foo.bar=baz" arguments were
+always to be used as the "bar=baz" option when loading the "foo" module
+(i.e. "modprobe foo bar=baz"), which I think the installer supports
+(for convenience) but perhaps not the installed system (where they
+should instead be in /etc/modules or /etc/modprobe.conf or similar)
+does not?
+Of course this logic falls apart in the presence of "foo" (such as
+"net") which are not modules but instead are subsystems.
+Ian.

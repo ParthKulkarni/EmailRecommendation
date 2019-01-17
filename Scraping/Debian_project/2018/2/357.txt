@@ -1,0 +1,63 @@
+To : Michael Meskes <meskes@debian.org>
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Gunnar Wolf <gwolf@debian.org>
+Date : Fri, 16 Feb 2018 18:32:09 -0600
+Message-id : 20180217003208.mdegvm7mu5peyypl@gwolf.org
+In-reply-to : <[🔎] 1518815226.1970.24.camel@debian.org>
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com> <[🔎] 20180216151129.GB18296@home.ouaza.com> <[🔎] 1518796684.2867.116.camel@debian.org> <[🔎] e7bb0d56-1333-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 20180216171204.GB4131@feivel> <[🔎] 87vaew939z.fsf@iris.silentflame.com> <[🔎] 20180216192119.GA3755@fama> <[🔎] 20180216194127.GB3202@feivel> <[🔎] 20180216200408.GA5770@fama> <[🔎] 1518815226.1970.24.camel@debian.org>
+
+
+Michael Meskes dijo [Fri, Feb 16, 2018 at 10:07:06PM +0100]:
+> > Is was a relevant part of the problem mentioned in Raphaels bug
+> > report: Minified JS libraries without source code. this was one
+> > of the starting points of this discussion. (#890598)
+> 
+> Right, although merely technical since there is source code, albeit not
+> very legible or maintainable.
+Minification is quite comparable to compilation. I will give you some
+examples from my frustration with Drupal8 in this answer. This can no
+longer be seen as source code:
+    https://anonscm.debian.org/cgit/collab-maint/drupal8.git/tree/core/assets/vendor/classList/classList.min.js
+And it's far from the ugliest example I can quote. Of course, I needed
+to ship sources for all of them - Take a look at:
+    https://anonscm.debian.org/cgit/collab-maint/drupal8.git/tree/debian/missing-sources/README
+And, of course, think about the huge diff that is to be created for
+all of the files in debian/missing-sources.
+> > The bug report mentions two orthogonal problems:
+> >  - libraries without source code or no license information
+> 
+> I might have missed the missing license problem, but I'm pretty noone
+> wants to see unlicensed software in Debian, which also would be
+> illegal.
+Take this as an example of what is needed for a moderately complex PHP
+webapp with lots of JS in it:
+    https://anonscm.debian.org/cgit/collab-maint/drupal8.git/tree/debian/copyright
+Of course, it was all hand-generated and validated.
+> >  - libraries which are needed in specific versions
+> 
+> This one really worries me. I wonder how many similar cases we already
+> have, where somebody took some code and changed it slightly before
+> including it.
+And that's where I dropped the ball. Upstream says they will keep
+dependencies refreshed - that means that every project version bump,
+they will pull in the newest stable versions for all of the projects I
+covered in the above links. Of course, I had come up with a clunky bit
+in my debian/rules to track any changes:
+override_dh_install:
+	# Ensure the list of third-party included libraries remains
+	# consistent with what we already checked
+	SHATMP=`mktemp --tmpdir SHA_CK.XXXXX` && \
+	    sha256sum core/core.libraries.yml > $$SHATMP && \
+	    diff -q debian/missing-sources/tracking.sha256 $$SHATMP && \
+	    rm $$SHATMP
+But... That would inescapably be run at every minor bump. And it's
+just too much of a PITA to build.
+> > I add a third one:
+> >  - libraries that are not packaged, because there are too many
+> 
+> The problem is probably less the amount but more the manual work to
+> find the canonical sources. Packing a go "library" for instance does
+> not take a lot of time, because it can be done mostly automated.
+But packaging the precise version that is required in each little bump
+is just impossible.
+signature.asc

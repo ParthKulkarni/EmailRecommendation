@@ -1,0 +1,109 @@
+To : Antoine Beaupré <anarcat@orangeseeds.org>
+Subject : Re: testing and review requested for Wheezy update of apache2
+From : Ola Lundqvist <ola@inguza.com>
+Date : Wed, 18 Jan 2017 22:07:41 +0100
+Message-id : CABY6=0nT6QMqfvJ+Q9u+FsyswjXCD-_YpA4wZ2O9ibfjtbD-MA@mail.gmail.com
+In-reply-to : <[🔎] 87fukh7hcq.fsf@curie.anarc.at>
+References : <20161223225643.GA24261@inguza.net> <2530466.Ei2EqynSFq@k> <[🔎] 87fukh7hcq.fsf@curie.anarc.at>
+
+
+Hi
+I think we should be fairly safe with both options. That is both
+releasing your fixed version and ship 2.2.32 directly. Apache have a
+rather good reputation on backwards compatiblity.
+Unfortunately I could not test myself as my servers were running i386
+and the debs were for amd64.
+Best regards,
+// Ola
+On 17 January 2017 at 17:59, Antoine Beaupré <anarcat@orangeseeds.org> wrote:
+> On 2016-12-28 15:44:25, Stefan Fritsch wrote:
+>> Hi Ola,
+>>
+>> On Friday, 23 December 2016 23:56:45 CET Ola Lundqvist wrote:
+>>> the Debian LTS team would like to fix the security issues which are
+>>> currently open in the Wheezy version of apache2:
+>>> https://security-tracker.debian.org/tracker/CVE-2016-8743
+>>>
+>>> Would you like to take care of this yourself?
+>>
+>> The fix for that is very invasive and may well break some things. I would wait
+>> with a backport until the fix has seen more exposure, both upstream and in
+>> stretch (the fix will migrate from sid in a few days).
+>>
+>> Also, there is some work upstream to get the changes backported to 2.2 in a
+>> separate 2.2.x-merge-http-strict branch [1]. But it has not landed in the
+>> 2.2.x branch, yet.
+>>
+>> I will share with you any insights I get from backporting the changes to
+>> jessie. But it is somewhat unlikely that I will have time to do the backport
+>> to wheezy myself.
+>
+> Hi!
+>
+> Thanks for the response. We'll be happy to take on the update for
+> wheezy, and hopefully our work will be useful for Jessie as well...
+>
+> I started looking at the 2.2.x backport, which has now landed in the
+> [2.2.32 release][1]. I unfortunately don't think we can use the release
+> directly, because it is 10 minor releases away from the version
+> currently in Wheezy (2.2.22), but I'd be glad to be proven wrong... It
+> may be better to just follow upstream here as well, since their 2.2
+> branch is designed for LTS support. But they do fix way more stuff than
+> just security issues in there...
+>
+> [1]: http://www.apache.org/dist/httpd/Announcement2.2.html
+>
+> The patch is far from trivial and it's a bit all over the place. I've
+> gathered it into a single patch from two upstream commits ([r1777405][]
+> and [r1777999][]), taken from the [2.2.32 tag][].
+>
+> [r1777405]: http://svn.apache.org/viewvc?view=revision&revision=1777405
+> [r1777999]: http://svn.apache.org/viewvc?view=revision&revision=1777999
+> [2.2.32 tag]: http://svn.apache.org/viewvc/httpd/httpd/tags/2.2.32/?view=log
+>
+> I hammered at the code until the patch actually builds and I tested it
+> summarily in a wheezy VM, but i'm not sure where or what to test in
+> there... There's a webserver and "it works!" but that's about it for
+> now. I still need to review the new patch and compare it with upstream
+> to see if I really followed the spirit of the patch - so far I just made
+> sure the chunks apply cleanly...
+>
+> Attached is a debdiff of the resulting package, which has been uploaded
+> to the [usual location][].
+>
+> [usual location]: https://people.debian.org/~anarcat/debian/wheezy-lts/
+>
+> I would need people to start testing the package at this point, not
+> necessarily in production considering how big the change is, but your
+> comfort level will vary with the severity and complexity of services. :)
+>
+> Pointers on how to reproduce actual security issues would be welcome,
+> along with code reviews.
+>
+> I am especially concerned by the proxy changes in the 2.2.x branch we
+> don't have in our code base: since the vulnerability implies mostly
+> proxy chains, this could mean we can't fix the issue properly without a
+> full backport of all those changes..
+>
+> In fact, I wouldn't feel completely confident in this upload unless we
+> ship 2.2.32. Apache's codebase really reflects its name ("a patchy
+> server") so it's quite hard to figure out what exactly is going on in
+> there. They are also quite liberal in the changes they do - the patch
+> basically rewrites request handling completely!
+>
+> Thanks for any feedback,
+>
+> A.
+>
+> --
+> Il est sage de nous réconcilier avec notre adolescence ; haїr, mépriser,
+> nier ou simplement oublier l’adolescent que nous fûmes est en soi une
+> attitude adolescente.
+>                         - Daniel Pennac, Comme un roman
+-- 
+ --- Inguza Technology AB --- MSc in Information Technology ----
+/  ola@inguza.com                    Folkebogatan 26            \
+|  opal@debian.org                   654 68 KARLSTAD            |
+|  http://inguza.com/                Mobile: +46 (0)70-332 1551 |
+\  gpg/f.p.: 7090 A92B 18FE 7994 0C36 4FE4 18A1 B1CF 0FE5 3DD9  /
+ ---------------------------------------------------------------

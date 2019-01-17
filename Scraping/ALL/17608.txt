@@ -1,0 +1,66 @@
+To : Dirk Eddelbuettel <edd@debian.org>, Debian Developers <debian-devel@lists.debian.org>
+Subject : Re: Our build system may be broken: /bin vs /usr/bin
+From : Michael Biebl <biebl@debian.org>
+Date : Mon, 19 Nov 2018 18:44:37 +0100
+Message-id : 6ef35fde-9b63-16de-3ac7-6103407e97d8@debian.org
+In-reply-to : <[🔎] 23538.52963.365294.710701@rob.eddelbuettel.com>
+References : <[🔎] 23538.52963.365294.710701@rob.eddelbuettel.com>
+
+
+Am 19.11.18 um 15:55 schrieb Dirk Eddelbuettel:
+> 
+> 
+> tl;dr:  We may be messing up /bin and /usr/bin on some platforms
+> 
+> 
+> Sorry for the alarming headline but #913982 was filed, indepedently
+> corrobated and simultaneously discovered by upstream.
+> 
+> GNU R has long been relying on sed, tar, bzip2, ... and many more base
+> tools. No issues there. Generally looked for in /bin and found there.
+> 
+> Starting with binary rebuild r-base_3.5.1-1+b2 however, /usr/bin/* path crept
+> in while the binaries where still in the wrong place.  It looked like a
+> one-off so I uploaded 3.5.1-2 which built fine for me on amd64 ...but
+> apparently is already borked again on i386.
+> 
+> I am at bit of loss here. Any ideas?
+Most packages which are affected by this issue I've seen so far search
+for the binaries in $PATH and encode the full path of the first find.
+Since PATH is typically set to something like
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games
+the first find will be /usr/bin/sed on a merged-/usr system.
+I suspect if you had a locally installed sed in /usr/local/bin, your
+package would encode that as full path, i.e. would be misbuilt.
+In the end it's a bug in your package which should be fixed there.
+As Marco said, the obvious and simplest approach is to nail down the
+paths during build to a path that is known to work everywhere, i.e. in
+your case /bin/sed.
+A more elaborate fix would be, to not use any hard-coded paths.
+Such issues are tracked at [1]
+See [2] as an example for such a fix using canonical paths during configure.
+Afaik, Simon has asked the schroot maintainer to default to
+non-merged-/usr for the time being and this change should have been
+merged by now #913228.
+That said we also now use reproducibe-builds.org to more systematically
+find such issues, see #901473. Thanks a lot for that to all involved!
+Short summary: Don't panic, the buildds will for the time being default
+to non-merged-/usr but please do fix issues as #913982 properly by
+either not hard-coding path at all or by pinning them to paths that are
+known to work everywhere.
+On the package tracker page, e.g. [3] in your case, you'll find a link
+labelled "reproducibility". If your package fails to build reproducibly
+and you find something like
+	SED=/​usr/​bin/​sed
+in the diff, you'll know that your package is affected.
+Regards,
+Michael
+[1]
+https://udd.debian.org/cgi-bin/bts-usertags.cgi?tag=usrmerge&user=md%40linux.it
+[2]
+https://salsa.debian.org/utopia-team/firewalld/commit/ac6a6263de14d0fba752c743ef1d69c6dd3dcdc4
+[3] https://tracker.debian.org/pkg/r-base
+-- 
+Why is it that all of the instruments seeking intelligent life in the
+universe are pointed away from Earth?
+signature.asc

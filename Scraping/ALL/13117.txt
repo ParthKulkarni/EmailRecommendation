@@ -1,0 +1,53 @@
+To : Kurt Roeckx <kurt@roeckx.be>
+Subject : Re: openssl/libssl1 in Debian now blocks offlineimap?
+From : Wouter Verhelst <wouter@debian.org>
+Date : Fri, 18 Aug 2017 17:16:02 +0200
+Message-id : 20170818151602.i45xls2exkishcjr@grep.be
+In-reply-to : <[🔎] 20170815150449.tjfsf5g2pp4odv5q@roeckx.be>
+References : <20170814190938.td4vhyq5rqmmxlrw@shelf.conquest> <20170814200540.qunn4exfhwgnubio@roeckx.be> <20170815102826.GA2738@vidovic.ultras.lan> <[🔎] 20170815134905.uzhmjjsdifo6zky5@burischnitzel.preining.info> <[🔎] 20170815150449.tjfsf5g2pp4odv5q@roeckx.be>
+
+
+On Tue, Aug 15, 2017 at 05:04:50PM +0200, Kurt Roeckx wrote:
+> My problem is that if we don't do something, TLS 1.0 will be used
+> for an other 10 year, and that's just not acceptable.
+My problem is that the cause you're fighting, while laudable, should not
+be fought in Debian.
+Debian is a general-purpose operating system, not a security-focused
+one. If we were, people would be right to expect that there might
+sometimes be problems with the software they're using in support of the
+"security" goal. Since we're not, people would rightly be upset if the
+complex environments they're trying to support are suddenly broken in
+the name of "security".
+> So I would like to do something so that hopefully by the time Buster
+> releases you can disable TLS 1.0 by default, and that almost no users
+> would need to enable it again.
+> 
+> Having TLS 1.0 (and 1.1) enabled by default itself is not a
+> problem, it's actually using it that's a problem. There are
+> clearly still too many that don't support TLS 1.2, but it's
+> getting better.
+So ship a version of OpenSSL that ships with TLS1.0 and TLS1.1 (aka
+TLS1.old) disabled, but *allow people to re-enable it* if things break
+(without requiring them to compile their own version). By shipping a
+version of OpenSSL that has TLS1.old not even compiled in, you're not
+doing that.
+I have seen suggestions that the goal of this would be to re-enable
+TLS1.old before buster releases. If that is true, I fail to see the
+point; I think it makes *much* more sense to ship buster with TLS1.old
+disabled by default, but to allow for re-enabling it on a
+per-application basis. Having a policy configuration that can be
+modified by the system administrator through a mechanism inside libssl
+that cannot be disabled and that can be configured on a per-application
+basis would seem to be a much more interesting way to do this.
+ 
+> Disabling the protocols is the only way I know how to identify
+> all the problems. And I would like to encourage everybody to
+> contact the other side if things break and get them to upgrade.
+That latter part is certainly a good idea; and while "get the other side
+to upgrade" is often a reasonable course of action, just as often it is
+not, and then you need to have a way out. By not even compiling in the
+code to support TLS1.old, you're depriving people of that "way out".
+-- 
+Could you people please use IRC like normal people?!?
+  -- Amaya Rodrigo Sastre, trying to quiet down the buzz in the DebConf 2008
+     Hacklab

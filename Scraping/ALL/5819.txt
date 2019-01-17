@@ -1,0 +1,54 @@
+To : Antonio Terceiro <terceiro@debian.org>, 871835@bugs.debian.org
+Subject : Bug#871835: systemd-setup-machine-id leaving mount behind? (was "Bug#871835: Call for help: review patches for debootstrap")
+From : Michael Biebl <biebl@debian.org>
+Date : Wed, 13 Jun 2018 01:23:05 +0200
+Message-id : 0a414c01-cb9c-43d0-8680-e4cc14165947@debian.org
+Reply-to : Michael Biebl <biebl@debian.org>, 871835@bugs.debian.org
+In-reply-to : <[🔎] f88ad673-81d4-5343-a040-95db8623e7fa@michaelbiebl.de>
+References : <20180406110151.632e00a77a08bbe17783d1d0@iijmio-mail.jp> <22926.34636.587046.22180@kueppers.informatik.uni-Koeln.de> <44c734c9-5124-b99a-e2a3-2054d1062357@nodens.org> <20180417104243.235c9187a8e0f789fc4ba9ab@iijmio-mail.jp> <20180421233047.GA16960@debian.org> <20180422130942.GA2715@debian.org> <[🔎] f88ad673-81d4-5343-a040-95db8623e7fa@michaelbiebl.de> <22926.34636.587046.22180@kueppers.informatik.uni-Koeln.de>
+
+
+Hi Antonio
+sorry for the late reply...
+Am 13.06.2018 um 01:20 schrieb Michael Biebl:
+> Am 22.04.2018 um 15:09 schrieb Antonio Terceiro:
+> 
+>> # findmnt | grep machine-id
+>> ├─/root/patched2/etc/machine-id                        /dev/mapper/lemur--vg-root[/root/patched2/run/machine-id] ext4            ro,relatime,errors=remount-ro,data=ordered
+>>
+>> This explains the crash in mkosi and points the problem to something
+>> that happens during the debootstrap run.
+>>
+>> I compared the output of debootstrap from unstable with the patched
+>> debootstrap, and they are idential, i.e. packages are installed in the
+>> same order, but for some reason, when running with the faster
+>> debootstrap, the above mount is left over.
+>>
+>> Looking around, I suspect that this could be left behind by
+>> systemd-machine-id-setup, however, I couldn't understand yet why this
+>> would happen.
+>>
+>> systemd team: could you provide any insight? for reference, I am
+>> attaching the current diff between debootstrap master branch, and a
+>> local branch where I have Thomas Lange's patched applied.
+> 
+> I just stumbled over this today myself when using vmdebootstrap where I
+> ran into the same issue as in [1]
+> 
+> As I couldn't reproduce the failure with cdebootstrap or debootstrap
+> from stretch, I ran a git bisect against debootstrap.
+> 
+> The first faulty commit is
+> https://salsa.debian.org/installer-team/debootstrap/commit/7e533a672ce413fc591b59e83f7c665c1a2e174e
+> 
+> And sure enough, reverting that commit fixed the dangling machine-id
+> mount for me.
+> 
+> Henrich, do you want a bug report against debootstrap for that?
+Fwiw, I didn't use systemd-nspawn or lxc.
+All I did was run
+# debootstrap sid /tmp/test-sid
+-- 
+Why is it that all of the instruments seeking intelligent life in the
+universe are pointed away from Earth?
+signature.asc

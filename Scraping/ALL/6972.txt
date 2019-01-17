@@ -1,0 +1,61 @@
+To : Cyril Brulebois <kibi@debian.org>, 898738@bugs.debian.org
+Subject : Bug#898738: debootstrap fails when specifying components
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Wed, 16 May 2018 09:03:04 +0900
+Message-id : 20180516090304.b4aa7607b9ff8b4455b0e417@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 898738@bugs.debian.org
+In-reply-to : <[🔎] 20180515194438.j2xviquxcdq6zutw@mraw.org>
+References : <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com> <[🔎] 20180515191916.tr23kuvfo23d5pc6@mraw.org> <[🔎] CADk7b0P+b22GnDV20-dQVVLp8W19mrpdWsXNiGnXG3qJ6KndUA@mail.gmail.com> <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com> <[🔎] 20180515194438.j2xviquxcdq6zutw@mraw.org> <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com>
+
+
+Hi,
+ Sorry, and thank you for digging it.
+On Tue, 15 May 2018 21:44:38 +0200
+Cyril Brulebois <kibi@debian.org> wrote:
+> I think I've found the issue. At least partly reverting the commit
+> makes retrieving/validating indices work again, possibly because
+> un-local-izing names was a bad idea? (I took all hunks from the commit
+> that touched the download_release_indices function. Not everything is
+> needed I guess.)
+> 
+> See attached patch, against the offending commit. It doesn't apply to
+> master as-is because of the by-hash addition.
+ Simply initialize "ext" prevents this failure, could you check attached
+ patch, please?
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp
+>From 768183053bcd02f050fcd2d50c08024ff48a786f Mon Sep 17 00:00:00 2001
+From: Hideki Yamane <henrich@debian.org>
+Date: Wed, 16 May 2018 08:55:23 +0900
+Subject: [PATCH] Fix download failure when specifying multiple components
+ (Closes: #898738)
+> # debootstrap --components=main,contrib,non-free unstable unstable http://deb.debian.org/debian
+(snip)
+> I: Retrieving Packages
+> I: Validating Packages
+> W: Retrying failed download of
+> http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages
+> I: Retrieving Packages
+> I: Validating Packages
+> W: Retrying failed download of
+> http://deb.debian.org/debian/dists/unstable/contrib/binary-amd64/Packages
+(snip)
+Fix above by initializing "ext" for each component
+---
+ functions | 1 +
+ 1 file changed, 1 insertion(+)
+diff --git a/functions b/functions
+index fa7c060..74d25b3 100644
+--- a/functions
++++ b/functions
+@@ -681,6 +681,7 @@ download_release_indices () {
+ 		bz2i="$(get_release_checksum "$reldest" "$subpath.bz2")"
+ 		gzi="$(get_release_checksum "$reldest" "$subpath.gz")"
+ 		normi="$(get_release_checksum "$reldest" "$subpath")"
++		ext=""
+ 		if [ "$acquirebyhash" != "" ]; then
+ 			ext="$ext byhash"
+ 		fi
+-- 
+2.17.0

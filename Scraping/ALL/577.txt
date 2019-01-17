@@ -1,0 +1,47 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#904684: ssl-cert: HostName length check is too small
+From : David Magda <david.magda@oicr.on.ca>
+Date : Thu, 26 Jul 2018 11:47:41 -0400
+Message-id : 153262006166.3266.514299091425878092.reportbug@ohs-ns1.oicr.on.ca
+Reply-to : David Magda <david.magda@oicr.on.ca>, 904684@bugs.debian.org
+
+
+Package: ssl-cert
+Version: 1.0.39
+Severity: normal
+In the make_snakeoil() funtion, the code gets the FQDN of the system
+via a call to 'hostname -f'. Then it checks if this the FQDN is longer
+than 64 characters, and if it is, uses the short hostname.
+However, a FQDN can be up to 255 octets per RFC 1035, Section 2.3.4:
+	2.3.4. Size limits
+	Various objects and parameters in the DNS have size limits.  They are
+	listed below.  Some could be easily changed, others are more
+	fundamental.
+	labels          63 octets or less
+	names           255 octets or less
+	TTL             positive values of a signed 32 bit number.
+    https://tools.ietf.org/html/rfc1035
+    https://stackoverflow.com/questions/32290167/
+The 64 octet limit is for each sub-component:
+	part1.partb.foo.example.com
+So the each of "part1", "foo", etc, must less than 64, and the entire
+FQDN string must be less than 255.
+But that is not what the script is checking: it is seeing if the 
+entire FQDN string is less than 64--which is about four times too short.
+-- System Information:
+Debian Release: 9.5
+  APT prefers stable
+  APT policy: (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-7-amd64 (SMP w/2 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages ssl-cert depends on:
+ii  adduser                3.115
+ii  debconf [debconf-2.0]  1.5.61
+ii  openssl                1.1.0f-3+deb9u2
+ssl-cert recommends no packages.
+Versions of packages ssl-cert suggests:
+pn  openssl-blacklist  <none>
+-- debconf information excluded

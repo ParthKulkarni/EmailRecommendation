@@ -1,0 +1,36 @@
+To : Bernhard Schmidt <berni@birkenwald.de>,	Paul Schlüter <nemo.paoso@web.de>,	Cyril Brulebois <kibi@debian.org>, 854801@bugs.debian.org,	740998@bugs.debian.org
+Subject : Bug#854801: No network after netinst Stretch RC2
+From : Pierre Ynard <linkfanel@yahoo.fr>
+Date : Tue, 14 Feb 2017 00:43:30 +0100
+Message-id : 20170213234330.GA12890@via.ecp.fr
+Reply-to : Pierre Ynard <linkfanel@yahoo.fr>, 854801@bugs.debian.org
+In-reply-to : <[🔎] 70c5ab55-c975-4cde-6cbb-66d43d6db67f@birkenwald.de>
+
+
+> in finish-install /e/n/i will never be properly populated for a wireless
+> installation without network-manager, although I think ifupdown would be
+> capable to do this (not tested, but have a look at
+> https://anonscm.debian.org/cgit/d-i/netcfg.git/tree/write_interface.c).
+> I guess the justification is that people using wireless usually would
+> want a GUI to roam between networks, and a interface stanza would
+> prevent even a (later installed) network-manager from touching the
+> interface.
+That makes sense. Maybe it could still output commented-out
+configuration into /e/n/i, to make it easier in case people do end up
+editing the file to set up their network, for whatever reason.
+> a) go for Cyril's suggestion and just install rdnssd in finish-install
+> if network-manager is not getting installed there (but honestly I have
+> no idea of the netcfg code base)
+> b) drop the Conflicts and make the rdnssd merge-hook a no-op if
+> network-manager is installed/running.
+I think trying to manage this conflict between two basic packages is
+asking for trouble. rdnssd doesn't depend on /usr, I think in some
+cases it can still be beneficial for bootstrap when network-manager
+might not be available. There is already a distro-specific patch for
+/etc/rdnssd/merge-hook to add a resolvconf by-pass, another one could
+be added checking if network-manager is installed/available/running/in
+charge of /etc/resolv.conf. I've never used network-manager personally
+so I wouldn't quite know what's best to check exactly.
+-- 
+Pierre Ynard
+"Une âme dans un corps, c'est comme un dessin sur une feuille de papier."

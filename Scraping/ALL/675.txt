@@ -1,0 +1,38 @@
+To : Matthew Gabeler-Lee <cheetah@fastcat.org>
+Subject : Bug#881725: apache2: reload fails inside (libvirt) lxc container
+From : Moritz Mühlenhoff <jmm@inutil.org>
+Date : Mon, 16 Apr 2018 20:48:17 +0200
+Message-id : 20180416184816.GA31102@pisco.westfalen.local
+Reply-to : Moritz Mühlenhoff <jmm@inutil.org>, 881725@bugs.debian.org
+In-reply-to : <[🔎] alpine.DEB.2.20.1804161433180.21167@cheetah.fastcat.org>
+References : <151067076078.12331.11188779696635278469.reportbug@mango.ad.beechwoods.com> <151067076078.12331.11188779696635278469.reportbug@mango.ad.beechwoods.com> <20180309122526.GA17375@inutil.org> <[🔎] alpine.DEB.2.20.1804141118520.7892@manul.sfritsch.de> <[🔎] alpine.DEB.2.20.1804161433180.21167@cheetah.fastcat.org> <151067076078.12331.11188779696635278469.reportbug@mango.ad.beechwoods.com>
+
+
+On Mon, Apr 16, 2018 at 02:34:00PM -0400, Matthew Gabeler-Lee wrote:
+> On Sat, 14 Apr 2018, Stefan Fritsch wrote:
+> 
+> > This seems to be a systemd bug. Changing PrivateTmp from true to false in
+> > apache2.service fixes the issue. But even with PrivateTmp it works for
+> > some time. It would be interesting what is the trigger to make it fail
+> > later on.
+> 
+> Hmm ... I was having a problem on some systems where tmpreaper, in its
+> default configuration, will eventually delete all the directories systemd
+> creates to support PrivateTmp, which might explain this...
+Just for the record, we've also tracked it down to the use of PrivateTmp
+(but I hadn't followed up on this bug since we haven't analysed this to full
+extent). The workaround deployed is here:
+https://github.com/wikimedia/puppet/commit/388d0141ef3b78471eb81b59e1ccb196adf49872
+It's specific to our configuration for Mediawiki application servers, but
+those are fairly complex to begin with (e.g. there's various Mediawiki extensions
+which shell out to external binaries (e.g. to convert musical typesheets edited in
+Wikimedia projects)).
+I wouldn't call this a bug in systemd, it's probably something local in the setup
+of the various components using /tmp (and we don't have this problem on
+our non-mediawiki stretch Apache setups). Using PrivateTmp in apache.service
+by default seems totally sensible to me.
+As such, I'd recommend to simply close this bug. Anyone searching for that
+error message via a search engine will hopefully find it as a useful
+reference.
+Cheers,
+        Moritz

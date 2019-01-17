@@ -1,0 +1,106 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Naming of network devices
+From : Marvin Renich <mrvn@renich.org>
+Date : Tue, 11 Jul 2017 10:43:38 -0400
+Message-id : 20170711144338.3vs5iraws6ezczc3@basil.wdw
+In-reply-to : <[🔎] m3eftoghvp.fsf@luffy.cx>
+References : <[🔎] 20170709234920.GA15631@DigitalMercury.dynalias.net> <[🔎] 59636880.9020609@landfreak.com> <[🔎] 20170710115708.GC13590@rene-engelhard.de> <[🔎] 20170710134714.33b4rbp4gqo4xj5r@sliepen.org> <[🔎] 20170710162228.v4teqev5vx3xxgj5@angband.pl> <[🔎] 20170710171158.ceif6hcseguo5amn@bongo.bofh.it> <[🔎] 20170710183653.seynvdj4fjn5ysoj@basil.wdw> <[🔎] m3o9ssglzy.fsf@luffy.cx> <[🔎] 20170710195328.gox67unssibfoqpf@basil.wdw> <[🔎] m3eftoghvp.fsf@luffy.cx>
+
+
+* Vincent Bernat <bernat@debian.org> [170710 16:25]:
+>  ❦ 10 juillet 2017 15:53 -0400, Marvin Renich <mrvn@renich.org> :
+> 
+> >> > With the new scheme, if I want to rename the interface to something more
+> >> > meaningful, ..., and type all of
+> >> > that information by hand, hoping I type everything correctly.
+> >> 
+> >> Have a look at systemd.link(5) which enables you to do that without
+> >> debugging udev.
+> >
+> > Okay, I had a look...
+> 
+> Not really.
+> 
+> In /etc/systemd/network/whatever.link, put:
+> 
+> #v+
+> [Match]
+> MACAddress=00:11:22:33:44:55
+> 
+> [Link]
+> Name=em0
+> #v-
+> 
+> Note the manual page has a similar example. I don't see exactly how this
+> is more complex than the udev rules we had:
+> 
+> #v+
+> SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*",
+> ATTR{address}=="00:11:22:33:44:55", ATTR{type}=="1", KERNEL=="eth*",
+> NAME="em0"
+> #v-
+How does that help with ensuring that I type the MAC address correctly,
+which was my point above?  With the state file, udev puts the correct
+information in the file for me; I only have to change the interface
+name.
+Your answer did not address my concern.
+> > BTW, there seems to be a typo in the man page:  it refers to a
+> > /run/systemd/network directory; should that be /run/systemd/netif/links?
+> > I'll leave you to file a bug if appropriate.
+> 
+> No, it seems correct. All systemd-related stuff look at /lib/systemd/X
+> (shipped with a package), /run/systemd/X (added by a third-party
+> program) and /etc/systemd/X (added by the user).
+Okay, the system I looked at (which was installed about six weeks prior
+to stretch release) does not have a directory named
+/run/systemd/network, but it does have an empty directory named
+/run/systemd/netif/links.  Is this directory for something different,
+or did the directory name change between my install and the release?
+> > I don't get this at all.  The previous behavior was neither unreliable
+> > nor unpredictable (unless you are talking about much older systems
+> > before persistent-net.rules).
+> 
+> It was unreliable. Google for "eth0_rename", you'll get ton of examples
+> of people with hosts that don't boot reliably because of the inherent
+> race conditions. Udev people didn't invent all this just to get people
+> pissed. They have fixed a real problem.
+Okay, but in a previous message in this thread you said that using a
+prefix other than the one automatically assigned by the kernel would be
+a trivial fix for this bug.  This is a bug in the implementation, not in
+the design.
+> > You have completely sidestepped the question, which is about the
+> > relative importance of the two goals, simple names _all the time_ vs
+> > avoiding a state file.  The previous behavior sacrifices the second,
+> > much less important goal in favor of the first.  The new behavior
+> > sacrifices the first in favor of the second.  Until you address this
+> > issue, all your explanations look like attempts to ameliorate bad
+> > behavior.
+> 
+> Predictable names are more important to me. Simple name should also work
+> for most people (using the eno*) scheme. Maybe it's not available as
+> widely as it should be.
+You are again answering the wrong question by conflating predictable
+names with the new scheme.  If the bug in the state file mechanism were
+fixed, it would give names that are just as predictable as the new
+scheme, but they would always be a short prefix followed by a single
+decimal number.  I have not said in this thread that the prefix must be
+"eth", just that it must be simple.  I would be happy with names like
+en1, en2, wl1, and wl2.  I don't care if the numbering starts at 0 or 1.
+If we can _always_ have simple names and at the same time ensure that on
+reboot, the same interface always gets the same name, that is much,
+much, much more important than avoiding a state file.  The new scheme is
+guaranteed to give awkward-to-use names in at least one common
+situation.  The old way has one known bug in which the rename fails.
+There is a known fix for that bug.  With the bug fixed, the old way also
+gives predictable names, but the names are always simple, rather than
+occasionally being simple, sometimes being not so simple but not so
+complex, and sometimes being very awkward.
+The presence or absence of a state file makes very little difference.
+If it can be avoided without sacrificing simple names, that's great.
+But if avoiding a state file means that sometimes the names must be more
+complex, it is not worth the cost.
+Again, your answer does not address my concern about a common case where
+the new scheme gives awkward names.  This concern is clearly shared by
+others, as seen in this thread and past threads.  This concern has never
+been adequately addressed in any thread of which I am aware.
+...Marvin

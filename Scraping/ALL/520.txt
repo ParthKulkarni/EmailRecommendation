@@ -1,0 +1,124 @@
+To : submit@bugs.debian.org
+Subject : Bug#914606: apache2 setup-instance (apache-multi) logrotation
+From : Horst Platz <hp@localhorst.org>
+Date : Sun, 25 Nov 2018 16:59:20 +0100
+Message-id : 550f872c-e9cd-0a4d-7fd5-aec1271173c0@localhorst.org
+Reply-to : hp@localhorst.org, 914606@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.25-3+deb9u6
+Severity: normal
+Dear Maintainer,
+there is a problem with the setup-instance script for apache-multi
+installation. The logrotation for the copyied instance is not working.
+It looks like it is in debian stretch and buster/sid, in a kind of the
+same way. In my fokus it's comming up with an installation from Ubuntu 18.04
+What i did (stretch; buster/sid; ubuntu 18.04)
+:~# apt-get install apache2
+[...]
+:~# sh /usr/share/doc/apache2/examples/setup-instance multi-xxx
+Setting up /etc/apache2-multi-xxx ...
+systemd is in use, no init script installed
+use the 'apache2@multi-xxx.service' service to control your new instance
+sample commands:
+systemctl start apache2@multi-xxx.service
+systemctl enable apache2@multi-xxx.service
+Setting up symlinks: a2enmod-multi-xxx a2dismod-multi-xxx
+a2ensite-multi-xxx a2dissite-multi-xxx a2enconf-multi-xxx
+a2disconf-multi-xxx apache2ctl-multi-xxx
+HINT "no init script installed"
+:~# ls -la /etc/init.d/apache*
+-rwxr-xr-x 1 root root 8181 Nov  3 12:34 /etc/init.d/apache2
+-rwxr-xr-x 1 root root 2489 Nov  3 12:34 /etc/init.d/apache-htcacheclean
+-> No init.d for the new multi-xxx apache
+With in Debian 9.6 stretch
+:~# cat /etc/logrotate.d/apache2-multi-xxx
+/var/log/apache2-multi-xxx/*.log {
+        daily
+        missingok
+        rotate 14
+        compress
+        delaycompress
+        notifempty
+        create 640 root adm
+        sharedscripts
+        postrotate
+                if /etc/init.d/apache2-multi-xxx status > /dev/null ; then \
+                    /etc/init.d/apache2-multi-xxx reload > /dev/null; \
+                fi;
+        endscript
+        prerotate
+                if [ -d /etc/logrotate.d/httpd-prerotate ]; then \
+                        run-parts /etc/logrotate.d/httpd-prerotate; \
+                fi; \
+        endscript
+}
+:~# /etc/init.d/apache2-multi-xxx status
+-su: /etc/init.d/apache2-multi-xxx: Datei oder Verzeichnis nicht gefunden
+:~# /etc/init.d/apache2-multi-xxx reload
+-su: /etc/init.d/apache2-multi-xxx: Datei oder Verzeichnis nicht gefunden
+With in Debian buster/sid
+:~$ cat /etc/logrotate.d/apache2-multi-xxx
+/var/log/apache2-multi-xxx/*.log {
+        daily
+        missingok
+        rotate 14
+        compress
+        delaycompress
+        notifempty
+        create 640 root adm
+        sharedscripts
+        postrotate
+                if invoke-rc.d apache2-multi-xxx status > /dev/null
+2>&1; then \
+                    invoke-rc.d apache2-multi-xxx reload > /dev/null 2>&1; \
+                fi;
+        endscript
+        prerotate
+                if [ -d /etc/logrotate.d/httpd-prerotate ]; then \
+                        run-parts /etc/logrotate.d/httpd-prerotate; \
+                fi; \
+        endscript
+}
+:~# invoke-rc.d apache2-multi-xxx status
+Unit apache2-multi-xxx.service could not be found.
+invoke-rc.d: initscript apache2-multi-xxx, action "status" failed.
+:~# invoke-rc.d apache2-multi-xxx reload
+/usr/sbin/invoke-rc.d: 527: /usr/sbin/invoke-rc.d:
+/etc/init.d/apache2-multi-xxx: not found
+invoke-rc.d: initscript apache2-multi-xxx, action "reload" failed.
+In both cases the logrotation will fail because the reload is not
+working. Also in the both cases the logrotate.d script for the multi-xxx
+apache is a copy from the original logrotate.d apache2 script.
+:~$ cat /usr/share/doc/apache2/examples/setup-instance
+[...]
+echo Setting up /etc/logrotate.d/apache2-$SUFFIX and
+/var/log/apache2-$SUFFIX ...
+cp -a /etc/logrotate.d/apache2 /etc/logrotate.d/apache2-$SUFFIX
+perl -p -i -e s,apache2,apache2-$SUFFIX,g /etc/logrotate.d/apache2-$SUFFIX
+[...]
+As shown above the original apache has a init.d script installed and the
+logrotation is working.
+In that Ubuntu 18.04 installation i changed the
+/etc/logrotate.d/apache2-multi-xxx in that way that i changed the reload
+to systemd
+from
+[...]
+                if invoke-rc.d apache2-multi-xxx status > /dev/null
+2>&1; then \
+                    invoke-rc.d apache2-multi-xxx reload > /dev/null 2>&1; \
+[...]
+in to
+[...]
+                if systemctl status apache2@multi-xxx.service >
+/dev/null 2>&1; then \
+                    systemctl reload apache2@multi-xxx.service >
+/dev/null 2>&1; \
+[...]
+Looks like some day's after the logrotation is now workings as expected
+for the multi-instance.
+And in that case i think the upstream package for ubuntu 18.04 is
+comming from Debian buster/sid.
+Kind regards
+ Horst

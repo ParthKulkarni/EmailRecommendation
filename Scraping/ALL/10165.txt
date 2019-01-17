@@ -1,0 +1,51 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Help requested: Packages which FTBFS randomly
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Tue, 21 Feb 2017 06:55:28 +0100
+Message-id : 20170221055528.3mxjhmf7irn4lxhh@angband.pl
+In-reply-to : <[🔎] CAKTje6GByQCTz_KViVjcnsmG4aOp+NoWHPFsOqPD9WSrQR20hw@mail.gmail.com>
+References : <[🔎] alpine.DEB.2.20.1702151742180.26301@cantor.unex.es> <[🔎] 22694.8966.847975.681800@chiark.greenend.org.uk> <[🔎] 1487522746@msgid.manchmal.in-ulm.de> <[🔎] 20170219215956.rzp64i3qqaeluwa5@cantor.unex.es> <[🔎] m3bmtx233t.fsf@luffy.cx> <[🔎] 3d2f3831-8744-3889-f317-4834edb41bf3@thykier.net> <[🔎] 1487628061@msgid.manchmal.in-ulm.de> <[🔎] CAKTje6GByQCTz_KViVjcnsmG4aOp+NoWHPFsOqPD9WSrQR20hw@mail.gmail.com>
+
+
+On Tue, Feb 21, 2017 at 11:50:15AM +0800, Paul Wise wrote:
+> On Tue, Feb 21, 2017 at 6:36 AM, Christoph Biedl wrote:
+> 
+> > This is a charming idea altough I have doubt it will work out: As
+> > usual the information has to be kept up-to-date, so unless it is
+> > collected and verified every now and then automatically, it will
+> > become unsuable pretty soon.
+> 
+> FYI the buildds are automatically collecting disk usage information,
+> see the last line of each build log.
+> 
+> Of course, that information isn't parsed and stored anywhere yet.
+So here's my data, from multiple rebuilds since Sep 2014:
+https://angband.pl/tmp/builds.sql.xz
+(Postgres, but it should be easy to edit the schema for any SQL dialect)
+It's all from one machine, running the same kernel line (3.8 vendor for
+Odroid-U2), on the same filesystem (btrfs noatime,compress=lzo,ssd), sameish
+sbuild settings (eatmydata; regularly upgraded with unstable though).
+The data is not ideal -- I run multiple sbuild instances which with only 2GB
+memory notoriously ends in swappeathons, thus a package's build time is
+affected by what was running concurrently.
+Obviously you want only records with status='successful'; I haven't removed
+failures in case someone is interested -- for example, there's a bunch of
+FTBFSes I haven't yet investigated/filed.
+Note that the disk space data is misleading -- sbuild notes only the final
+size of the build dir after finished build, peak size may differ.  For
+example, ceph ENOSPCes with 51GB free despite sbuild saying only 21GB.
+> I guess collecting memory usage would be much harder, especially if
+> multiple packages are built in parallel.
+Packages being built in parallel are not a problem -- neither overlayfs nor
+btrfs support sharing pages yet even if they use the same on-disk blocks.
+Getting peak usage for a set of processes is a very tricky task, though:
+if a process uses 50MB then forks, each copy taking 20MB more, the usage
+is 90MB not 140MB.  Processes come and go, executable/library pages are
+shared, and so on.
+The only tool that _looks_ like it gets it right seems to be cgmemtime, not
+packaged in Debian yet and requiring some setup.
+Having peak memory data from builds would be awesome.
+Meow!
+-- 
+Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
+  ./configure --host=zx-spectrum --build=pdp11

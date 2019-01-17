@@ -1,0 +1,88 @@
+To : Lukas Schwaighofer <lukas@schwaighofer.name>
+Subject : Re: syslinux: updating in stretch?
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 18 Oct 2017 01:44:25 +0200
+Message-id : 20171017234425.shmklqcwhglqv3eh@mraw.org
+In-reply-to : <20171017203746.5194186b@localhost>
+References : <20171017203746.5194186b@localhost>
+
+
+Hi Lukas,
+And thanks for your mail. I'm adding debian-boot@ for their information.
+Lukas Schwaighofer <lukas@schwaighofer.name> (2017-10-17):
+> as it turns out, syslinux in stretch is in a quite sorry state.  To
+> summarize:
+> 
+> 1. Booting from ext4 partitions created with Debian stretch does not
+>    work, because ext4's 64bit feature is enabled by default (since
+>    Debian stretch) and not supported by syslinux [1].
+> 2. Booting from btrfs does not work [2].
+> 3. A bug in the isolinux isohybrid MBR causing boot failures with some
+>    old BIOS [3].
+> 4. Booting from xfs does not work (which was already the case in
+>    jessie, so not a regression in stretch) [4].
+> 
+> You will notice that this does not really leave any modern Unix
+> filesystem for syslinux/extlinux to boot from… from the above problems,
+> 1-3 are a regression compared to Debian jessie.
+> 
+> [1] https://bugs.debian.org/833057
+> [2] https://bugs.debian.org/865462
+> [3] I didn't think to open a separate bug against syslinux, which would
+>     have been the right thing to do… the bug against debian-cd, which
+>     is affected by this problem, holds relevant information:
+>     https://bugs.debian.org/857597
+It might be a good idea to have a bug report against syslinux as well,
+which can be used for version tracking purposes, which is most
+appreciated by people handling stable-proposed-updates requests (we
+usually consider this mandatory, even if we sometimes let a few
+exceptions go through).
+> [4] https://bugs.debian.org/803938
+> 
+> 
+> Problems 1 and 2 have an upstream fix each [5, 6] which is pretty small
+> in size.  I'm able to locally reproduce each of the two problems and
+> also confirm that the respective patches fix the problems.
+On top of the stretch package? It's always reassuring for stable release
+managers to have people actually test packages for stable.
+> Problem 3 also has a small and self-contained upstream fix.  And
+> although I have no way to test this myself, the built isohdpfx.bin file
+> (with the fix applied) is identical to a known-good and tested version.
+That seems reassuring enough as far as I'm concerned.
+> Problem 4 is fixed upstream as well (which I have not tested yet), but
+> the number of changes for that is pretty high.  Since this is both a
+> large patch and a not a regression from jessie, I don't intend to fix
+> this in Debian stretch.
+That seems like an appropriate course of action indeed.
+> [5] http://git.zytor.com/syslinux/syslinux.git/commit/?id=af7e95c32cea40c1e443ae301e64b27f068b4915
+> [6] http://git.zytor.com/syslinux/syslinux.git/commit/?id=548386049cd41e887079cdb904d3954365eb28f3
+> 
+> 
+> The current version in unstable contains the patches for 2 and 3
+> already and I've just requested sponsorship for another update which
+> also fixes 1.  Provided we do not find any regressions related to the
+> fixes for problems 1-3, I would like to push those patches [7, 8, 9]
+> to the version in Debian stretch in the next point release.
+> 
+> I know the next point release is still ~6 weeks off, but bootloader
+> changes are obviously critical.  So I wanted to raise this issue well
+> before the deadline to get an idea how (or if) I should proceed:
+> 
+> * Is this a reasonable request, or are these changes too dangerous
+>   for a point release anyways?
+Your proposed changes fit the stable-proposed-updates criteria exactly,
+with fixes in unstable, backports/cherry-picks to stretch already tested
+and confirmed good, and reasonably-sized diffs. Really nice!
+> * What kind of testing is required / expected so these changes can be
+>   considered?
+I think debian-cd@ is most qualified on this topic, I'm not sure d-i
+uses syslinux for many things except for booting from an ISO anyway.
+Consequently, what follows is just generic advice:
+If you get a green light from debian-cd@, I think you only need to:
+ - open a bug report for bug #3 (see my first paragraph);
+ - open a pu request with a source debdiff against the package in
+   stretch with an appropriate version number (probably
+   3:6.03+dfsg-14.1+deb9u1); including as many details as in this
+   mail would probably do the trick.
+KiBi.
+signature.asc

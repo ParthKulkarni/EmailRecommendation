@@ -1,0 +1,34 @@
+To : submit@bugs.debian.org
+Subject : Bug#893954: debootstrap ignores https mirror setting, just use default http mirror (i.e. http://deb.debian.org)
+From : Hideki Yamane <henrich@gmail.com>
+Date : Sat, 24 Mar 2018 20:17:51 +0900
+Message-id : CAPpVEmVKAm5QubHCd2i0RAXcni7ecd0OTJOmi3+Av_n6Z9s8gw@mail.gmail.com
+Reply-to : Hideki Yamane <henrich@gmail.com>, 893954@bugs.debian.org
+
+
+Package: debootstrap
+Severity: minor
+Tags: patch
+>$ sudo debootstrap --components="main,contrib,non-free" sid ./sid-test https://cdn-aws.deb.debian.org/debian
+(snip)
+>$ cat ./sid-test/etc/apt/sources.list
+>deb http://deb.debian.org/debian sid main contrib non-free
+ Then applied below patch,
+--- ./debootstrap.orig  2018-03-24 16:54:32.318064960 +0900
++++ /usr/sbin/debootstrap       2018-03-24 16:54:55.197961158 +0900
+@@ -663,7 +663,7 @@
+        if [ -e "$TARGET/etc/apt/sources.list" ]; then
+                rm -f "$TARGET/etc/apt/sources.list"
+        fi
+-       if [ "${MIRRORS#http://}"; != "$MIRRORS" ]; then
++       if [ "${MIRRORS#http*://}" != "$MIRRORS" ]; then
+                setup_apt_sources "${MIRRORS%% *}"
+                mv_invalid_to "${MIRRORS%% *}"
+        else
+>$ sudo debootstrap --components="main,contrib,non-free" sid ./sid-test https://cdn-aws.deb.debian.org/debian
+(snip)
+>$ cat ./sid-test/etc/apt/sources.list
+>deb https://cdn-aws.deb.debian.org/debian sid main contrib non-free
+ It works as expected.
+-- 
+Hideki Yamane

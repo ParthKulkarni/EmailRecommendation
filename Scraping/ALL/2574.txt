@@ -1,0 +1,64 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#881932: libdebian-installer FTBFS with gcc-8: multiple definitions of
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Thu, 16 Nov 2017 19:11:46 +0100
+Message-id : 20171116181146.jyguop4yk6j6tqao@alf.mars
+Reply-to : Helmut Grohne <helmut@subdivi.de>, 881932@bugs.debian.org
+
+
+Source: libdebian-installer
+Version: 0.111
+Tags: patch
+User: helmutg@debian.org
+Usertags: rebootstrap
+libdebian-installer fails to build from source when built with gcc-8. It
+seems gcc-8 has become more strict in terms of multiple defined
+constants. As it happens, libdebian-installer defines constants of type
+di_parser_fieldinfo both in headers and C files. As the headers get
+included into multiple translation units, the constants are duplicated.
+I believe that the solution is to mark them extern in the headers. Since
+they are still defined (with values) in the C files that'll not make
+them go missing. Please consider applying the attached patch.
+Once gcc-8 becomes the default, this bug will become serious.
+I would like to thank James Clarke for helping me gain an understanding
+of the issue at hand. Consider the patch joint work.
+Helmut
+diff --minimal -Nru libdebian-installer-0.111/debian/changelog libdebian-installer-0.111+nmu1/debian/changelog
+--- libdebian-installer-0.111/debian/changelog	2017-06-25 18:42:05.000000000 +0200
++++ libdebian-installer-0.111+nmu1/debian/changelog	2017-11-16 17:48:06.000000000 +0100
+@@ -1,3 +1,11 @@
++libdebian-installer (0.111+nmu1) UNRELEASED; urgency=medium
++
++  * Non-maintainer upload.
++  * Fix FTBFS with gcc-8: Mark di_parser_fieldinfo constants extern.
++    (Closes: #-1)
++
++ -- Helmut Grohne <helmut@subdivi.de>  Thu, 16 Nov 2017 17:48:06 +0100
++
+ libdebian-installer (0.111) unstable; urgency=medium
+ 
+   [ Aurelien Jarno ]
+diff --minimal -Nru libdebian-installer-0.111/include/debian-installer/package_internal.h libdebian-installer-0.111+nmu1/include/debian-installer/package_internal.h
+--- libdebian-installer-0.111/include/debian-installer/package_internal.h	2017-06-24 19:14:56.000000000 +0200
++++ libdebian-installer-0.111+nmu1/include/debian-installer/package_internal.h	2017-11-16 17:48:04.000000000 +0100
+@@ -33,7 +33,7 @@
+  * @internal
+  * parser info
+  */
+-const di_parser_fieldinfo
++extern const di_parser_fieldinfo
+   internal_di_package_parser_field_status,
+   internal_di_package_parser_field_essential,
+   internal_di_package_parser_field_priority,
+diff --minimal -Nru libdebian-installer-0.111/include/debian-installer/packages_internal.h libdebian-installer-0.111+nmu1/include/debian-installer/packages_internal.h
+--- libdebian-installer-0.111/include/debian-installer/packages_internal.h	2012-10-20 13:07:58.000000000 +0200
++++ libdebian-installer-0.111+nmu1/include/debian-installer/packages_internal.h	2017-11-16 17:48:06.000000000 +0100
+@@ -84,7 +84,7 @@
+ di_parser_write_entry_next
+   internal_di_packages_parser_write_entry_next;
+ 
+-const di_parser_fieldinfo
++extern const di_parser_fieldinfo
+   internal_di_packages_parser_field_package;
+ 
+ /** @} */

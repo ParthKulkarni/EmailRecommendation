@@ -1,0 +1,73 @@
+To : Harald Dunkel <harri@afaics.de>, 859403@bugs.debian.org
+Subject : Bug#859403: XKBOPTIONS="terminate:ctrl_alt_bksp" is lost on dpkg-reconfigure
+From : Geert Stappers <stappers@stappers.nl>
+Date : Mon, 3 Apr 2017 11:50:32 +0200
+Message-id : 20170403095032.GW1384@gpm.stappers.nl
+Reply-to : Geert Stappers <stappers@stappers.nl>, 859403@bugs.debian.org
+In-reply-to : <[🔎] a3287ce2-88aa-6528-3cd4-54ba293fbb75@afaics.de>
+References : <[🔎] a3287ce2-88aa-6528-3cd4-54ba293fbb75@afaics.de>
+
+
+On Mon, Apr 03, 2017 at 11:24:26AM +0200, Harald Dunkel wrote:
+> Package: keyboard-configuration
+> Version: 1.163
+> 
+> If I append
+> 
+> 	XKBOPTIONS="caps:none"
+> 
+> to /etc/default/keyboard, and run "dpkg-reconfigure keyboard-configuration"
+> later, then there is a dialog
+> 
+> 	The current keyboard options in the configuration file /etc/default/keyboard
+> 	are defined as XKBOPTIONS="caps:none".
+> 
+> 	If you choose to keep these options, no questions about the keyboard
+> 	options will be asked.
+> 
+> 	Keep current keyboard options in the configuration file? (yes/no)
+> 
+> If I chose [yes], then the
+> 
+> 	XKBOPTIONS="terminate:ctrl_alt_bksp"
+> 
+> is lost. Instead the caps:none is included twice. Here is the diff between
+> before and after running dpkg-reconfigure:
+> 
+> 
+> 	# diff -u5 /etc/default/keyboard{.bak,}
+> 	--- /etc/default/keyboard.bak	2017-04-03 11:11:35.248445833 +0200
+> 	+++ /etc/default/keyboard	2017-04-03 11:12:37.253205700 +0200
+> 	@@ -3,10 +3,10 @@
+> 	 # Consult the keyboard(5) manual page.
+> 	
+> 	 XKBMODEL="pc101"
+> 	 XKBLAYOUT="us"
+> 	 XKBVARIANT=""
+> 	-XKBOPTIONS="terminate:ctrl_alt_bksp"
+> 	+XKBOPTIONS="caps:none"
+> 	
+> 	 BACKSPACE="guess"
+> 	
+> 	 XKBOPTIONS="caps:none"
+> 
+> 
+> Regards
+> Harri
+As Far As I Can See  is the "append" where the trouble starts.
+What happened is that /etc/default/keyboard got twice XKBOPTIONS
+I think it is fair that dpkg-reconfigure only updates one XKBOPTIONS
+Correct workflow would be that the manual "append" 
+would change "terminate:ctrl_alt_bksp"
+in "terminate:ctrl_alt_bksp:caps:none".
+So that /etc/default/keyboard contains 1 line with XKBOPTIONS being
+XKBOPTIONS="terminate:ctrl_alt_bksp:caps:none"
+before dpkg-reconfigure is called.
+I don't know if it is valid option,
+thing I'm trying to tell is that original "append" is wrong in my eyes.
+Hope this helps.
+Groeten
+Geert Stappers
+-- 
+Leven en laten leven
+signature.asc

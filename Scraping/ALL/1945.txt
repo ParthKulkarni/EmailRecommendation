@@ -1,0 +1,68 @@
+To : submit@bugs.debian.org
+Subject : Bug#876388:
+From : Anatolii Borodin <anatoly.borodin@gmail.com>
+Date : Thu, 21 Sep 2017 17:41:20 +0200
+Message-id : CACNzp2n-CxO8_dtMKBoAchmnWfoGb7UsauEUc-e+Lc-Fn3T3bg@mail.gmail.com
+Reply-to : Anatolii Borodin <anatoly.borodin@gmail.com>, 876388@bugs.debian.org
+
+
+Package: discover
+Version: 2.1.2-7.1
+Tags: patch
+Running `discover` produces a crash:
+Program received signal SIGSEGV, Segmentation fault.
+__strlen_sse2 () at ../sysdeps/x86_64/multiarch/../strlen.S:120
+120 ../sysdeps/x86_64/multiarch/../strlen.S: No such file or directory.
+(gdb) bt
+#0 __strlen_sse2 () at ../sysdeps/x86_64/multiarch/../strlen.S:120
+#1 0x00007ffff787abfe in __GI___strdup (s=0x555500000000 <error:
+Cannot access memory at address 0x555500000000>) at strdup.c:41
+#2 0x00007ffff7bcf829 in discover_get_devices () from /usr/lib/libdiscover.so.2
+#3 0x0000555555555a73 in ?? ()
+#4 0x000055555555678e in ?? ()
+#5 0x00007ffff78081c1 in __libc_start_main (main=0x555555555ea3,
+argc=1, argv=0x7fffffffe358, init=<optimized out>, fini=<optimized
+out>, rtld_fini=<optimized out>,
+    stack_end=0x7fffffffe348) at ../csu/libc-start.c:308
+#6 0x000055555555559a in ?? ()
+Here is the fix of the problem:
+Use the right type for `len`, avoid segmentation fault
+`getline()` requires its second parameter to be `size_t *`. On the amd64
+platform the size of `unsigned int` is 4 and the size of `size_t` is 8
+bytes. Using a wrong pointer type can lead to a stack variables
+corruption (overwriting with zeros) and a segmentation fault later.
+See also similar `len` declarations in `_discover_get_pci_raw_sys()` in
+the docs and `_discover_get_ata_raw()` / `discover_get_pci_raw_proc()` /
+`discover_get_usb_raw()` in the source code.
+-- 
+Mit freundlichen Grüßen,
+Anatolii Borodin
+From 4b7f09a2862fdf8a7811083d88057048f237ef7a Mon Sep 17 00:00:00 2001
+From: Anatoly Borodin <anatoly.borodin@gmail.com>
+Date: Thu, 21 Sep 2017 14:50:52 +0000
+Subject: [PATCH] Use the right type for `len`, avoid segmentation fault
+`getline()` requires its second parameter to be `size_t *`. On the amd64
+platform the size of `unsigned int` is 4 and the size of `size_t` is 8
+bytes. Using a wrong pointer type can lead to a stack variables
+corruption (overwriting with zeros) and a segmentation fault later.
+See also similar `len` declarations in `_discover_get_pci_raw_sys()` in
+the docs and `_discover_get_ata_raw()` / `discover_get_pci_raw_proc()` /
+`discover_get_usb_raw()` in the source code.
+---
+ sysdeps/linux/pci.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git sysdeps/linux/pci.c sysdeps/linux/pci.c
+index 1101f523de1b..42a20d323728 100644
+--- sysdeps/linux/pci.c
++++ sysdeps/linux/pci.c
+@@ -160,7 +160,7 @@ _discover_get_pci_raw_sys(void)
+     FILE *f;
+     DIR *pciDir;
+     struct dirent *pci_device_entry;
+-    unsigned int len;
++    size_t len = 0;
+     char *device_dir, *line, *class, *vendor, *model, *p;
+     char **device_dir_list = NULL;
+     size_t device_dir_list_len, device_dir_index, device_dir_index2;
+-- 
+2.14.1

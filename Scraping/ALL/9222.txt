@@ -1,0 +1,57 @@
+To : Hideki Yamane <henrich@debian.org>, 914897@bugs.debian.org
+Subject : Re: Bug#914897: #914897: debootstrap, buster: Please disabled merged /usr by default
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 2 Dec 2018 15:15:21 +0000
+Message-id : 20181202151521.GA29541@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 20181202212140.6247094e5c03fdc3b5f53259@debian.org>
+References : <23550.34077.517903.295935@chiark.greenend.org.uk> <1860287.DsSdkWUisK@odyx.org> <23550.34077.517903.295935@chiark.greenend.org.uk> <[🔎] 20181202212140.6247094e5c03fdc3b5f53259@debian.org>
+
+
+On Sun, 02 Dec 2018 at 21:21:40 +0900, Hideki Yamane wrote:
+>   - What is the problem? (broken build for which packages? Just R?)
+The problem we're aware of is:
+Some packages auto-detect the absolute path to an executable (for example
+bash or perl) and hard-code it into their output (for example the #! line
+of the bash scripts in quilt). When built on a system with merged /usr,
+they can detect and hard-code a path that exists on merged /usr systems
+but does not exist on systems with unmerged /usr, such as #!/usr/bin/bash
+or #!/bin/perl.  This results in the package working fine on merged-/usr
+systems but not on unmerged-/usr systems.
+The quilt bug https://bugs.debian.org/913226 is the one that prompted
+me to look at this (it caused build failures in a Debian derivative
+that I work on, which is in the process of rebasing from stretch to
+buster), and is a fairly typical example. The problem case usually
+involves an executable that is canonically in /bin, like bash or sed,
+being detected in /usr/bin. I've also seen one occurrence of the reverse,
+where an executable that is canonically in /usr/bin is found in /bin on
+a merged /usr system, although I can't remember which package that was
+(it would have to have been re-ordering PATH to look in /bin first).
+The same packages would be similarly broken if they were built with
+/usr/local/bin in the PATH, on a system where the executable they are
+looking for is present in /usr/local/bin. For example, versions of quilt
+where #913226 is unfixed could exhibit a similar problem if built on a
+system with a /usr/local/bin/bash.
+The same things can happen with /usr/sbin and /sbin.
+>   - How many packages are affected?
+In <https://lists.debian.org/debian-ctte/2018/12/msg00000.html>,
+Ansgar points to 60 packages found to have this failure mode in a rebuild
+covering around 80% of the archive, and estimates that there should be
+about 80 packages in total affected by this class of bug.
+>   - Why it was caused? (just symlink to /bin or /sbin isn't enough
+>     to deal with it?)
+See the quilt bug I linked above, which is a typical example.
+On merged /usr systems there is no problem with the "broken" packages,
+because the compatibility symlinks /bin -> /usr/bin and /sbin -> /usr/sbin
+ensure that paths like /bin/sh and /usr/bin/sh both work equally well.
+The problem only occurs when they are *built* on a system *with* merged
+/usr, then *used* on a system *without* merged /usr.
+>   - Does it cause any failure on users' machine?
+Yes, for example see the quilt bug. The failure mode is:
+* A developer, D, has a system with merged /usr
+* A user, U, has a system without merged /usr
+* D builds a package that has this type of bug
+  (without using a non-merged-/usr chroot, for example --variant=buildd from
+  debootstrap >= 1.0.111)
+* The package works for D
+* The package doesn't work for U
+    smcv

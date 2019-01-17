@@ -1,0 +1,87 @@
+To : Debian ARM <debian-arm@lists.debian.org>
+Subject : Re: Anyone using stretch/buster/sid on ARMv4t ?
+From : Héctor Orón Martínez <hector.oron@gmail.com>
+Date : Tue, 7 Nov 2017 13:43:50 +0100
+Message-id : CAODfWeHF1JFqtNt8_tRPctFoFcDBR2q7LCZYrpN+A-v-8HrdXA@mail.gmail.com
+In-reply-to : <[🔎] 20171105213257.spvdgtkdemklytq6@localhost>
+References : <[🔎] 20171105213257.spvdgtkdemklytq6@localhost>
+
+
+>>>[+debian-embedded, feel free to adjust CC'd mailing lists on reply]
+Hello,
+  Thanks for bringing up this discussion! And apologies for adding
+more complexity to the initial question.
+  Find few comments inlined below,
+2017-11-05 22:32 GMT+01:00 Adrian Bunk <bunk@debian.org>:
+> for the armel port in buster the question of raising the baseline came up.
+That has been a recurring question over the time, the reason to
+maintain ARMv4t instruction set was OpenMoko mobile phone, which lot
+of people was using back in the days.
+I am unsure that is still relevant. However there are industrial
+products based on old ARM CPU, but they are probably good to bump to
+ARMv5tel.
+> Roger Shimizu is doing a great job on ARMv5 hardware and I've seen bug
+> reports from users on ARMv5 hardware in stretch, so it is clear that
+> ARMv5 should stay supported (and of course also ARMv6 and ARMv7).
+There are important issues to keep the port going forward, and it has
+been flagged as deprecated in last couple DebConf's ARM BoF meetings:
+  https://gobby.debian.org/export/debconf17/bof/ARM%20ports
+  https://gobby.debian.org/export/debconf16/bof/arm-ports
+  https://gobby.debian.org/export/debconf15/bof/state-of-the-arm
+Also build daemons are aging, those were initially donated by Marvell
+(some development boards) which then they replaced with other
+development boards. We have been unable to find suitable hardware to
+build armel port and current ARMv8 server class instruction set lacks
+few instructions and we have been advised to not build armel ports in
+such hardware.
+  Current build daemons got into production in 2010 --
+https://blog.einval.com/2010/09/27
+We have no current replacement for that hardware, which it's already 7
+years old and still needs to keep up running for Stretch life cycle
+(and maybe LTS).
+There might be other issues, as upstream support in few other projects, etc...
+(For build daemon issue discussion, please feel free to fork the
+thread and discuss at debian-arm mailing list.)
+Having outlined few part of current issues, we had a proposal in dc16:
+ >>>  * Partial armel architecture?
+            No clear plan for how to create and maintain a partial
+architecture, let alone releasing.
+            Drop desktop tasks and dependencies.
+            Keep web server and mail server - trivial in comparison.
+            Lack of video use cases.
+            Headless partial arch for armel?
+            Build daemons would be a problem, so let armhf buildds do
+the builds. Can't do that on ARMv8 (which can do armhf).
+            Kernel helper to emulate barriers but hardware support can
+be lacking on ARMv8 hardware.
+>>> * Update from v4t to v5tel and go headless?
+          No kernel support for exclusive v4t.
+          Openmoko would be ruled out of this partial arch.
+          Kirkwood and Orion can be maintained.
+          openssl and other updates would be useful within stretch.
+          Propose to keep in stretch and go to v5tel partial arch after stretch.
+          Not clear how much work it is.
+          Packages would have to specify armel or it will not build.
+In other words, as I see it, there are few tasks we could work on
+(with added problem of lack of resources):
+A) Select a package set to provide headless support, not only for
+armel, but also for powerpc and other non-existent Debian
+architectures.
+B) Setup cross build daemon and cross build such set of packages,
+provide build logs and fixes to package maintainers.
+C) Follow up on bootstrapping work and make sure we are able to sanely
+bootstrap architectures from cross built packages or bootstrap it from
+sources.
+D) Talk to release team and other involved teams and design a way to
+support (cross built) partial architectures in official Debian.
+Note that the above can be huge amount of work and it might need
+skilled people as well as funding to become a reality.
+In a way that's my personal vision to keep aged architectures around
+supported in Debian and dropping our hardware dependency, and getting
+also nice features that other parties might find interesting such
+cross building support and bootstrapping.
+(For technical discussion on cross building, please fork the thread
+and CC debian-embedded.)
+Regards,
+-- 
+ Héctor Orón  -.. . -... .. .- -.   -.. . ...- . .-.. --- .--. . .-.

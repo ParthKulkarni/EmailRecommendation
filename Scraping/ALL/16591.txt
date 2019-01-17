@@ -1,0 +1,50 @@
+To : debian-devel@lists.debian.org
+Subject : Re: New package netgen-lvs with binary /usr/bin/netgen - already taken
+From : Ruben Undheim <lists@beebeetle.com>
+Date : Wed, 12 Sep 2018 18:19:23 +0200
+Message-id : 20180912161918.pwd4up3dbsqpcspc@macbookair
+In-reply-to : <[🔎] 20180908201544.s6q4gmmye4yofh26@macbookair>
+References : <[🔎] 40034b7c-52c6-8729-0bda-7dbbee1b3d2c@debian.org> <[🔎] 20180908201544.s6q4gmmye4yofh26@macbookair>
+
+
+Hi,
+After now having seen many arguments (this thread became longer than
+anticipated) for both changing the policy and for keeping it the way it is, I
+am now quite convinced that the policy should be the way it is!
+> > stupid idea:
+> > 
+> > do these scripts (and other consumers of the netgen binaries) actually
+> > use the fully qualified "/usr/bin/netgen" or just an unqualified "netgen"?
+> > 
+> > if the latter, you might just put the unchanged names into something
+> > like /usr/share/netgen/bin/ and tell users to add to that to their PATH
+> > when running their scripts.
+> > that provides a simple compat layer for out-of-distro scripts.
+> > rdeps in Debian should be patched to use debianized script-names.
+For netgen-lvs, I will just put the binary using the upstream name in
+  /usr/lib/netgen-lvs/bin
+There will be a symlink in /usr/bin/netgen-lvs pointing to
+/usr/lib/netgen-lvs/bin/netgen
+Actually just putting a note in README.Debian saying something like this...
+  If you would like to use netgen-lvs with the upstream name "netgen",
+  set the PATH environment variable to  PATH=/usr/lib/netgen-lvs/bin:$PATH
+  To permanently enable the upstream binary name "netgen" for a user, you can
+  for example add the following to the shell startup source file (~/.bashrc,
+  ~/.zshrc ..):
+    export PATH=/usr/lib/netgen-lvs/bin:$PATH
+  ...
+should solve the problem.
+This way, we do not globally mess up the namespace for the system. It will
+only apply for specific users (root is not affected if not explicitly touched,
+and hence not system scripts).
+It makes it easy to see exceptions (echo $PATH), and we do not have to waste
+time making "ugly" compatibility packages.
+At the same time, the user will be encouraged to use the Debian name for the
+executable if possible.
+I guess the "long description" for the package can also refer to README.Debian
+for how to handle the "issue", to make the user aware of it even before
+installing it.
+This may even be good enough for more complicated cases such as nodejs (was)?
+Thanks IOhannes for the suggestion..
+Best regards,
+Ruben

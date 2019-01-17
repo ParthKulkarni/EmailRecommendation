@@ -1,0 +1,59 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#886238: Please introduce official nosystemd build profile
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Thu, 4 Jan 2018 04:36:16 +0100
+Message-id : 20180104033616.3bt7732el4n7sviu@angband.pl
+In-reply-to : <[🔎] 87h8s2j07z.fsf@hope.eyrie.org>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 87h8s2j07z.fsf@hope.eyrie.org>
+
+
+On Wed, Jan 03, 2018 at 09:55:44AM -0800, Russ Allbery wrote:
+> Hleb Valoshka <375gnu@gmail.com> writes:
+> 
+> > Please introduce official nosystemd build profile so downstream
+> > distributions can send patches to package maintainers with systemd-less
+> > build instead of keep them in home.
+> 
+> If this is about avoiding linking with libsystemd, I think this is
+> unbelievably silly and a completely waste of maintainer time and emotional
+> energy.
+Yeah -- and, unlike most people in this thread, I do maintain a repository
+which does that:
+deb	https://angband.pl/debian nosystemd-buster main
+deb-src	https://angband.pl/debian nosystemd-buster main
+(instructions and key at https://angband.pl/deb/archive.html)
+The only reason to avoid libsystemd0 is a cheap way to make sure systemd
+paths are not used; some packages (I forgot which) have regressions when
+compiled with systemd support as they detect its presence at compile time
+rather than runtime.
+> I'm one of the people who has been advocating for continuing to support
+> systems without systemd running.  I think that's both meaningful and
+> important.  Avoiding linking with a shared library that does nothing when
+> systemd is not running is neither meaningful nor important.  Please do not
+> squander other people's good will on trivia like this.
+While libsystemd0 is indeed harmless, there are cases where such a build
+profile would be worthwhile:
+* utopia stack (policykit and friends) which have a hard dependency on
+  systemd
+* dependencies on libpam-systemd (including "mere" Recommends, which make
+  apt force an init switch or abort an upgrade without a workaround obvious
+  to an user who doesn't know what to look for)
+On the other hand, rebuilding with a build profile is useful only for
+derivatives.  What about looking for a solution that would help users of
+unmodified Debian instead?
+-shim is moribund (and never worked right even when it was maintained),
+thus installing it on systems with modular inits is damage.  I believe this
+is the problem that should be solved first -- because all non-trivial cases
+mentioned above use logind or an equivalent, and to implement a profile you
+need to know what alternate dependency to use.
+The name I hear the most is elogind, but other options also get mentioned.
+It'd be good if someone more knowledgeable could say more; I think multiple
+Debian derivatives are experimenting here.
+Once such a solution is chosen, implemented and tested, only then it'll be
+time to fix dependencies -- inside Debian rather than some derivative.
+Meow!
+-- 
+// If you believe in so-called "intellectual property", please immediately
+// cease using counterfeit alphabets.  Instead, contact the nearest temple
+// of Amon, whose priests will provide you with scribal services for all
+// your writing needs, for Reasonable And Non-Discriminatory prices.

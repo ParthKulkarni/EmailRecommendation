@@ -1,0 +1,62 @@
+To : debian-devel@lists.debian.org
+Subject : Re: concerns about Salsa
+From : Russ Allbery <rra@debian.org>
+Date : Tue, 05 Jun 2018 10:24:20 -0700
+Message-id : 87a7s9jge3.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20180605125532.elbvlqhqgyt33cor@riva.ucam.org> (Colin Watson's	message of "Tue, 5 Jun 2018 13:55:33 +0100")
+References : <[🔎] 3155612.nf7Q4P6B6c@deblab>	<[🔎] 23317.10360.626230.429328@chiark.greenend.org.uk>	<[🔎] 20180605123716.hme6yer4uhtpizey@crans.org>	<[🔎] 20180605125532.elbvlqhqgyt33cor@riva.ucam.org>
+
+
+Colin Watson <cjwatson@debian.org> writes:
+> My experience has been that if I'm working on a complex service then I
+> want as little friction as possible for the fast-moving stuff that I'm
+> working on directly and so often end up deploying that straight from git
+> or whatever, but that I prefer to use packages for everything else below
+> that layer.
+My personal experience is that there is an interesting cycle of scale
+here.
+If you have a pretty small environment where you're not doing significant
+local development, tracking the Git version of something, or trying to be
+on the cutting edge, using packages for everything is best, since it
+minimizes your risk and most of your attention is going to be on
+configuration and content.  (In other words, the software is just a tool
+for something else you're doing.)
+If you then start doing substantial amounts of local development, or are
+aggressively tracking some upstream package, then it starts making sense
+to run that one thing out of Git, since that is the thing you want to
+spend time on and do really well, and possibly uniquely well.  It makes
+sense to use Debian packages for all the other things that form the
+scaffolding on which it's built, since those things you want to be stable
+and you don't want to have to think about them.  But the thing that you're
+actively working on you want to be as low-friction as possible.  (At this
+point, the software *is* your product.)
+However, once you get beyond the scale of a few machines, this starts to
+break down again because you need a deployment process with stage, canary,
+and production, some rollback process, synchronization across lots of
+nodes, and so forth.  At this point, you end up having to reintroduce
+packaging of everything to get those properties.  However, it's more
+common to use containers instead of OS packages once you reach this set of
+problems, largely because it's often desirable to allow different
+applications to use different underlying library stacks and not have to
+upgrade everything in lockstep with dependencies.  Once you hit this
+scale, you often have a lot of stuff, and the tighter of coupling you have
+between all your stuff, the more you get a combinatorial explosion of
+problems during upgrades.  So mechanisms like containers that can loosen
+the coupling between your services are immensely valuable.
+I think people's varying reactions on this thread may have a lot to do
+with where they are in this hierarchy of scale, and what problems they
+therefore anticipate.  But the Debian Project infrastructure itself seems
+to me to be firmly in that middle tier where it makes sense to run the
+core thing out of Git and the supporting scaffolding from packages.  We
+have a lot of things that we're working on directly and intensely as the
+core mission of that part of the project, but generally they're deployed
+on one or two machines and don't need management at scale, canarying, and
+rollback properties.
+More broadly, one useful way to think about the mission of a Linux
+distribution is to make all the things our users *don't* care about
+effortless and simple, so that they can invest all of their energy and
+attention into the one or two things they *do* care about.  Trying to get
+them to package those few things that they care about deeply is more
+dubious and often doesn't add much value for them.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

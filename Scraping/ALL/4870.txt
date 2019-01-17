@@ -1,0 +1,78 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#851715: partman-base: "Partition disks" list should show LVM volume groups
+From : Samuel Thibault <sthibault@debian.org>
+Date : Tue, 17 Jan 2017 23:08:10 +0100
+Message-id : 20170117220810.GA24217@var.home
+Reply-to : Samuel Thibault <sthibault@debian.org>, 851715@bugs.debian.org
+
+
+Package: partman-base
+Version: 189
+Severity: normal
+Hello,
+The typical scenario is this: a new computer with pre-installed windows
+which we do want to keep as such (and thus guided partitioning using the
+whole disk is a no-go), and install Debian in an LVM or encrypted LVM.
+The way I would do it is: first go to the manual menu, set up an LVM
+volume group, or setup up an encrypted volume and set up an LVM volume
+group, and then select guided partitioning to let d-i partition the
+available volume.  This is how it works with RAID, for instance.  But
+while in the RAID case, the md volume shows up in the list of disks, in
+the LVM case the volume group does not show up.
+More precisely, for instance:
+create example disk with existing partition:
+- dd < /dev/zero > disk bs=1M count=1 seek=10000
+- /sbin/fdisk disk
+  n
+  p
+  2048
+  +1G
+  t
+  c
+then boot the installer and at partitioning step:
+- Manual
+- Configure the Logical Volume Manager
+- Create volume group with the free space on the disk
+  (do *not* create logical volumes since the idea is that it's guided
+  partitioning which does it).
+- Finish
+- Guided partitioning
+- Guided - use entire disk
+- the presented list only shows SCSI1, while it should also list the LVM
+  volume group
+The LVM+crypt scenario is a matter of inserting this between "Manual"
+and "Configure the Logical Volume Manager":
+- Configure encrypted volumes
+- Create encrypted volumes
+- Use the free space on the disk
+- Finish
+and using the encrypted volume.
+For an instance of the RAID case where things do work as expected, with
+two physical disks:
+- Manual
+- Create empty partition tables on both disks
+- Configure software RAID
+- Create MD device
+- RAID1
+- 2 active devices
+- 0 space device
+- select both disks
+- Finish
+- Guided partitioning
+- Guided - use entire disk
+- There we can select RAID1
+Samuel
+-- System Information:
+Debian Release: stretch/sid
+  APT prefers testing
+  APT policy: (990, 'testing'), (500, 'unstable-debug'), (500, 'testing-debug'), (500, 'buildd-unstable'), (500, 'unstable'), (500, 'stable'), (500, 'oldstable'), (1, 'experimental-debug'), (1, 'buildd-experimental'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0 (SMP w/4 CPU cores)
+Locale: LANG=fr_FR.UTF-8, LC_CTYPE=fr_FR.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+-- 
+Samuel
+Accroche-toi au terminal, j'enlève le shell...
+ -+- nojhan -+-

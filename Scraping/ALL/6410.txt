@@ -1,0 +1,47 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#908355: flash-kernel FTCBFS: fails running tests despite DEB_BUILD_OPTIONS=nocheck
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Sat, 8 Sep 2018 23:25:14 +0200
+Message-id : 20180908212513.GA17555@alf.mars
+Reply-to : Helmut Grohne <helmut@subdivi.de>, 908355@bugs.debian.org
+
+
+Source: flash-kernel
+Version: 3.95
+Tags: patch
+User: helmutg@debian.org
+Usertags: rebootstrap
+flash-kernel fails to cross build from source, because it runs tests
+despite DEB_BUILD_OPTIONS containing nocheck and it fails doing so. The
+attached patch makes the cross build successful by making it honour the
+nocheck option. Please consider applying it.
+Helmut
+diff --minimal -Nru flash-kernel-3.95/debian/changelog flash-kernel-3.95+nmu1/debian/changelog
+--- flash-kernel-3.95/debian/changelog	2018-08-19 22:42:38.000000000 +0200
++++ flash-kernel-3.95+nmu1/debian/changelog	2018-09-08 23:16:50.000000000 +0200
+@@ -1,3 +1,10 @@
++flash-kernel (3.95+nmu1) UNRELEASED; urgency=medium
++
++  * Non-maintainer upload.
++  * Support DEB_BUILD_OPTIONS=nocheck. (Closes: #-1)
++
++ -- Helmut Grohne <helmut@subdivi.de>  Sat, 08 Sep 2018 23:16:50 +0200
++
+ flash-kernel (3.95) unstable; urgency=medium
+ 
+   [ Heinrich Schuchardt ]
+diff --minimal -Nru flash-kernel-3.95/debian/rules flash-kernel-3.95+nmu1/debian/rules
+--- flash-kernel-3.95/debian/rules	2018-06-26 15:35:59.000000000 +0200
++++ flash-kernel-3.95+nmu1/debian/rules	2018-09-08 23:16:48.000000000 +0200
+@@ -32,9 +32,11 @@
+ 	dh_auto_clean
+ 
+ override_dh_auto_test:
++ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+ 	FK_CHECKOUT=. ./test_db
+ 	FK_CHECKOUT=. ./test_flash-kernel
+ 	FK_CHECKOUT=. ./test_functions
++endif
+ 
+ %:
+ 	dh $@

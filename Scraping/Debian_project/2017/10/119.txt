@@ -1,0 +1,196 @@
+To : intrigeri <intrigeri@debian.org>
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : Neal Gompa <ngompa@fedoraproject.org>
+Date : Thu, 26 Oct 2017 16:02:07 -0400
+Message-id : CAEg-Je9AJY6wzAidRP4mV=QP40ZHgMFGsYApTX__oVcDR3a8Jw@mail.gmail.com
+In-reply-to : <[🔎] 85a80dhk99.fsf@boum.org>
+References : <[🔎] CAEg-Je8-S7d036wMDun6n0ziqR7eo016ef2f=W06-N+kupbgWg@mail.gmail.com> <[🔎] 85a80dhk99.fsf@boum.org>
+
+
+On Thu, Oct 26, 2017 at 1:49 PM, intrigeri <intrigeri@debian.org> wrote:
+> Hi Neal & others,
+>
+> Neal Gompa:
+>> I was recently pointed to the thread going on debian-devel about
+>> enabling AppArmor LSM in Debian, and as I read through your proposal,
+>> I felt it should be warranted to point out a few things in regards to
+>> the SELinux comparison:
+>
+> Thanks a lot for your carefully worded and extremely well sourced
+> email! I've already learned quite a few interesting things.
+>
+>> intrigeri wrote:
+>>> Why AppArmor and not SELinux?
+>>> -----------------------------
+>>>
+>>> SELinux is another LSM that tackles similar problems.
+>
+> [...]
+>
+>>> * Enabled by default in RHEL so in theory a great number of sysadmins
+>>>   are at ease with it (see below why reality may not match this).
+>
+>> It's also important to note that it is also enabled by default in
+>> Fedora, which is the upstream for RHEL.
+>
+> Sure. I didn't mention it because I don't see this as very relevant in
+> the context of this discussion: it's a fact that many sysadmins active
+> in Debian have to use RHEL/CentOS at work, but I doubt many Debian
+> people are this much exposed to Fedora, so I don't think it's a good
+> source of pre-existing SELinux expertise in Debian.
+>
+>> I do know of users of SELinux in Debian and Ubuntu, though they often
+>> fork from refpolicy or fedora-selinux the bits they want to use and
+>> install it on top of the current refpolicy offered in Debian.
+>
+> Interesting. It's good to know there are such options to use SELinux
+> on Debian :) It also says something that I'm inclined to interpret as
+> "the SELinux policy in Debian is not ready for prime-time". I'd be
+> glad to be wrong though!
+>
+I'm not sure that's actually the case. I can't really speak for it, as
+I generally don't use Debian (I primarily use Fedora, openSUSE,
+Mageia, and CentOS). One thing I have observed is that there are no
+guidelines or policy documentation from Debian on how to install
+policy modules. That's a very annoying gap for anyone who wants to
+leverage the modular nature of SELinux policies.
+Many, many, many common services and applications ship SELinux policy
+modules, and they are not packaged in Debian because no one is sure
+how to do it.
+I've more or less fallen back to telling people to use the Makefile to
+build and install the module and hope that Debian does The Right
+Thing(TM). But of course, I don't know if this is true.
+>>> * Writing, maintaining, auditing and debugging SELinux policy
+>>>   requires grasping a complex conceptual model; I am told this is not
+>>>   as easy as doing the same with AppArmor.
+>
+>> This is not really true. While it is true that the conceptual model is
+>> more complex, the tooling for doing all the regular work with SELinux
+>> is great. In many cases, the tools can analyze what's happened and
+>> suggest a course of action about how to fix it. If it looks like a
+>> bug, they suggest filing one with the vendor (in my case, when weird
+>> things happen with the SELinux policy in Fedora, bugs get filed on
+>> selinux-policy with the information from setroubleshoot so that things
+>> can get fixed).
+>
+> This sounds great UX; it makes me wish to try it out and draw
+> inspiration from it to improve AppArmor's UX too. Thanks for sharing.
+>
+>> As for the complexity of making policies and policy modules, I've
+>> written a few policy modules, and they're not that bad. You can make
+>> some pretty simple policies if you don't want to expose any
+>> administrative tunables. That said, even with the tunables, it's not
+>> that bad.
+>
+>> For example, the container-selinux policy module is pretty easy to
+>> understand: https://github.com/projectatomic/container-selinux
+>
+>> The refpolicy documentation is pretty comprehensive too:
+>> http://oss.tresys.com/docs/refpolicy/api/
+>
+> I had a quick look and I agree: it's not that bad. Still feels much
+> scarier than AppArmor policy to me, but I'm clearly not the right
+> person to judge these days :)
+>
+>>> * As far as I could understand when chatting with sysadmins of Red
+>>>   Hat systems, this has resulted in a culture where many users got
+>>>   used to disable SELinux entirely on their systems, instead of
+>>>   trying to fix the buggy policy.
+>
+>> Back in the RHEL 5 days, this is definitely true. And if many of of
+>> the Red Hat sysadmins you've talked to primarily maintain RHEL 5
+>> systems (which is not unlikely), then it makes sense. Back in the RHEL
+>> 5 days (circa 2007), the tooling was very primitive, and for the most
+>> part, the troubleshooting tools didn't exist.
+>
+>> Today in Fedora and RHEL 7, the tooling is very advanced, and in
+>> almost every case where I've hit AVC denials in SELinux,
+>> setroubleshoot has given me very useful information including
+>> suggested course of actions to actually fix it locally.
+>
+> OK, this does explain things. It's sad that this culture has been
+> created in the first place — changing users' habits is hard: the
+> sysadmins I'm talking about kept "disable SELinux" in their
+> post-installation checklist and have no clue that RHEL 7 solved all
+> these problems. I suspect they'll need many more years to realize they
+> could change their habits. I'll tell them about it!
+>
+> Now, my point is not very relevant in the context of the Debian
+> discussion: hopefully not many Debian users are affected by this
+> "always disable SELinux" culture.
+>
+>>>   I've seen the opposite happen with
+>>>   AppArmor, which is good: for example, pretty often bug reporters to
+>>>   the Debian BTS document themselves how they could workaround the
+>>>   problem locally *without* turning AppArmor off. Looking at open
+>>>   bugs in the BTS against src:refpolicy, this seems to happen very
+>>>   rarely for SELinux, so I wonder if it would be realistic to ship
+>>>   Debian with SELinux enforced by default and have our community
+>>>   support it.
+>
+> I think this was not contested.
+>
+I can't really say anything about this because the Debian BTS UX is so
+awful that I can't ever figure out how to figure out anything in it.
+That's a completely different topic, though. :P
+>>> * https://wiki.debian.org/SELinux/Issues says "Graphical/Desktop
+>>>   installs of Debian are not heavily tested with selinux, so you
+>>>   might run into quite some issues".
+>
+>> This is true for both AppArmor and SELinux. With the exception of the
+>> Snap case, neither MAC has been optimized for handling desktop issues
+>> that much.
+>
+> Right, they were not optimized for such use cases. But something very
+> close to Graphical/Desktop installs of Debian *are* heavily tested
+> with AppArmor thanks to Debian derivatives (Ubuntu, Tails) that enable
+> AppArmor. So I can't really agree with "This is true for both AppArmor
+> and SELinux".
+>
+>>> * I'm not aware of any Debian derivative shipping with SELinux
+>>>   enabled by default. If that's correct, then it means that we would
+>>>   have to deal with quite some policy compatibility issues ourselves.
+>
+>> To be fair, refpolicy was RC'd from Debian in 8, due to failing to
+>> build and no one fixed it quickly enough. It was reintroduced in
+>> Debian 9, though. I have not personally tested the SELinux support in
+>> Debian 9, but I've heard from a few friends that it does work.
+>
+> Good to know :)
+>
+>>> To me, the complexity of SELinux is a deal breaker: it seems that we
+>>> would need to get lots more expertise and energy to enforce SELinux by
+>>> default than doing the same with AppArmor.
+>
+>> The unfortunate thing is that more comprehensive security models do
+>> lead to more complexity.
+>
+> ACK. If we had a strong team of people dedicated to supporting SELinux
+> in Debian, e.g. as part of their paid job, it may be an option; my
+> understanding is that it's basically how distros that ship with
+> SELinux can handle it. But we have no such thing in Debian, and
+> AppArmor seems more suited to the more distributed model Debian is
+> based on: many developers will need to learn _a little bit_ about
+> AppArmor, and with the existing expertise we have in the project that
+> can provide advice & help when needed, we should be good without
+> having to hire ninjas (and FWIW Ubuntu handles it similarly).
+>
+I don't think it is quite so bad. Several other distribution families
+have Hardened variants that leverage the work in Fedora. For example,
+Gentoo and Arch Hardened leverage our work in Fedora and they work
+with us in developing and improving stuff for everyone. Generally
+speaking, I don't think anyone in the Fedora SELinux project is
+opposed to Debian folks coming in and contributing to improve things
+for Debian. It's certainly already happening with Arch and Gentoo
+folks working with us in Fedora from time to time.
+The SUSE SELinux policy is derived from ours in Fedora, for example.
+Just because we're on different sides of the divide doesn't mean we
+can't come together and do great things. :)
+>> But I definitely don't want people to think that SELinux is some crazy
+>> mountainous path full of terrible unknowns.
+>
+> Thanks a lot for clarifying!
+>
+It's my pleasure!
+-- 
+Neal Gompa (FAS: ngompa)

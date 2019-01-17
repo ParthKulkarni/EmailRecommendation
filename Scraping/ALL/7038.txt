@@ -1,0 +1,64 @@
+To : Philipp Kern <pkern@debian.org>
+Subject : Re: debootstrap: [idea] force review before commit to master
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 21 May 2018 00:29:55 +0100
+Message-id : 20180520232955.GA13708@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 5a2e086c-d30f-dd91-76e6-e5504e5cfacc@debian.org>
+References : <[🔎] 20180516165547.f7681d67fc442f8e40c15b60@iijmio-mail.jp> <[🔎] f60d3c4a6e21c2e8f96cce9da65b9885@debian.org> <[🔎] 20180517083615.GI18516@home.ouaza.com> <[🔎] ca0f1ba3-ef5f-5d6e-126c-81f64f5de7d8@debian.org> <[🔎] 20180520091900.bd4452af5a430e3aef9084b0@iijmio-mail.jp> <[🔎] 5a2e086c-d30f-dd91-76e6-e5504e5cfacc@debian.org>
+
+
+On Sun, 20 May 2018 at 22:23:27 +0200, Philipp Kern wrote:
+> And as expected, autopkgtest actually fails because no-one tested it in
+> recent releases (presumably). Which is why one wants automation, right?
+I added the test because I was trying to make sure a specific regression
+didn't come back, after several iterations of trying to meet various
+people's criteria for how debootstrap and container managers should
+interact. I'd be very happy to see more coverage there.
+I would recommend running autopkgtest with the qemu virtualization
+backend before committing significant changes to this particular package:
+unfortunately, other backends like lxc leave the test running with
+restrictions that make it unable to get full coverage. I tried to make
+it skip the relevant parts, on the basis that something is better than
+nothing (and in particular ci.debian.net only runs tests under lxc,
+not under a full qemu VM) but what's left isn't really enough to be a
+great smoke-test.
+This is far from the only package with that problem: bubblewrap and
+flatpak, which also use namespace/container-related syscalls, don't seem
+to work in an ordinary lxc container either. Nested containers are just
+not something we can expect to work gracefully right now.
+> It's also possible that it just fails because the environment on the
+> runner is weird and doesn't allow unshare and the specific things
+> debootstrap's script tries to test... Which would be unfortunate. (It
+> fails with a different error on my machine.)
+If parts of it can't be run on particular runners, then that's a shame,
+but it would be better than nothing for it to detect that and skip them.
+The use of unshare -m seems to have been to make sure that the chroot's
+bind mounts for /dev etc. would vanish automatically, which is really
+just a convenience rather than something functionally required; so if
+the container manager used on Salsa for Gitlab CI (which seems to be
+Docker) doesn't allow unsharing the mount namespace, it would be OK to
+do something like this (untested):
+    # during setup
+    my @maybe_unshare_mount_ns;
+    if (verbose_run(['unshare', '-m', 'true'])) {
+        diag('can unshare mount namespace');
+        @maybe_unshare_mount_ns = ('unshare', '-m');
+    }
+    else {
+        diag('cannot unshare mount namespace, are we in a container?');
+    }
+    ...
+    # later on, where unshare -m is currently used
+    my $response = capture([@maybe_unshare_mount_ns,
+        "$srcdir/debian/tests/fake/schroot-1.6.10-3", @{$extra_argv},
+        ...
+However, it seems plausible that Docker wouldn't allow the fake schroot
+or the fake pbuilder to run either - I don't think Docker containers are
+allowed to exercise CAP_SYS_ADMIN, which is needed when playing with
+mount points. It might be necessary to skip that part. Unfortunately
+systemd-detect-virt --container doesn't seem to detect Docker as anything
+more specific than "container-other", so the test script might have to
+resort to looking for mentions of docker in /proc/self/mountinfo,
+or pessimistically assume that "container-other" has all possible
+container limitations.
+    smcv

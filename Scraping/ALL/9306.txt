@@ -1,0 +1,155 @@
+To : Anton Zinoviev <anton@lml.bas.bg>
+Subject : Re: Bug#833116: fgetty: Incorrect keystroke interpretation
+From : Ricardo Peliquero <zhana@lasampa.com.ar>
+Date : Wed, 19 Dec 2018 10:42:08 -0300
+Message-id : 20181219104208.2d4b0403defa6c1517c09cb3@lasampa.com.ar
+In-reply-to : <[🔎] 20181205192909.jawb6lwgdf5k3lf6@debian>
+References : <20160803050528.hoz5mc4pn2twezyg@lasampa.com.ar>	<E1bUrvD-0004Yi-8L@eggs.gnu.org>	<20160803225413.vgxxvxlmrhuyt6bx@lasampa.com.ar>	<E1bV6om-0007bR-RI@eggs.gnu.org>	<20160810025757.k6emt3kiaa6h7elp@lasampa.com.ar>	<E1bXPpo-0005wU-SC@eggs.gnu.org>	<20160810174016.r75zlxlqthuumubp@lasampa.com.ar>	<E1gQiiG-0001ry-B2@eggs.gnu.org>	<20181203104821.b866945cf97431ca9be4c465@lasampa.com.ar>	<[🔎] E1gUSyu-0005wg-C8@eggs.gnu.org>	<[🔎] 20181205192909.jawb6lwgdf5k3lf6@debian>
+
+
+Dear all,
+I have tested Anton's suggestions with the following results.
+Please, see below for more information.
+Steps made:
+; su - -c 'adduser testbash'
+...
+; cat /etc/passwd | grep testbash
+testbash:x:1002:1002:Test Bash,,,:/home/testbash:/bin/bash
+; cat /etc/inittab | grep /sbin/getty | grep -v '^#'
+1:2345:respawn:/sbin/getty --noclear 38400 tty1
+2:23:respawn:/sbin/getty --login-program /lib/fgetty/login1 38400 tty2
+Following steps, see below.
+Thank you!
+Ricardo Peliquero
+Anton Zinoviev <anton@lml.bas.bg>
+Wed, 5 Dec 2018 21:29:10 +0200:
+> On Wed, Dec 05, 2018 at 08:56:16AM +0000, Dmitry Bogatov wrote:
+> Suppose that we have a working bash shell with UTF-8 console where ñ 
+> displays properly.  Then try this:
+> 
+> LANG=C bash # run a subshell in a non-UTF8 locale
+> 
+> If you press ñ, you will see (arg: 1).  The programs (including a 
+> subshell) also work incorrectly because the locale is not UTF8.
+> 
+Reproduced with expected result (within both login and login1 ttys).
+> Now execute this:
+> 
+> LANG=..... (some UTF-8 locale)
+> 
+> Now, if you press ñ, you will see (arg: 1) like before.  The programs 
+> (including a subshell), however, will work correctly.
+> 
+Within login1:
+typing ñ echoes (arg: 1)
+$ LANG=es_AR.UTF-8 bash
+typing ñ echoes ñ
+> Now execute this:
+> 
+> export LANG
+> 
+> Now also ñ works correctly.
+typing ñ echoes ñ
+$ exit
+typing ñ echoes (arg: 1)
+> If you are sure that the problem does not come from the locale,
+> another thing to check is to compare the output of
+> 
+> bind -v
+> bind -p
+> 
+> in bash where ñ works properly and in bash where ñ leads to (arg: 1).
+; diff bind_-v_testbash_login.txt bind_-v_testbash_login1.txt
+8c8
+< set convert-meta off
+---
+> set convert-meta on
+; diff bind_-p_login.txt bind_-p_login1.txt > \
+diff_bind-p_login_login1.txt # (attached)
+> Also make sure there are no files ~/.inutrc and the variable INPUTRC
+> is unset.
+; env # within both ttys
+; diff env_login.txt env_login1.txt # (both attached)
+2,3c2,4
+< LANG=es_AR.UTF-8
+< HUSHLOGIN=FALSE
+---
+> drop_caps=
+> INIT_VERSION=sysvinit-
+> CONSOLE=/dev/console
+5a7
+> PREVLEVEL=N
+7c9,12
+< MAIL=/var/mail/testbash
+---
+> UID=1002
+> init=/sbin/init
+> BOOT_IMAGE=Linux
+> edd=off
+10,11c15,17
+< SHLVL=1
+< LANGUAGE=es_AR:es
+---
+> rootmnt=/root
+> RUNLEVEL=2
+> SHLVL=2
+13a20
+> AUTOBOOT=YES
+; set # within both ttys
+; diff set_login.txt set_login1.txt
+0a1
+> AUTOBOOT=YES
+10a12
+> BOOT_IMAGE=Linux
+11a14
+> CONSOLE=/dev/console
+22d24
+< HUSHLOGIN=FALSE
+24,25c26
+< LANG=es_AR.UTF-8
+< LANGUAGE=es_AR:es
+---
+> INIT_VERSION=sysvinit-
+30d30
+< MAIL=/var/mail/testbash
+37c37,38
+< PPID=2702
+---
+> PPID=1
+> PREVLEVEL=N
+41a43
+> RUNLEVEL=2
+44c46
+< SHLVL=1
+---
+> SHLVL=2
+48c50,54
+< _=set
+---
+> _=env
+> drop_caps=
+> edd=off
+> init=/sbin/init
+> rootmnt=/root
+LS_COLORS=rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;3
+ 5:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:
+drop_caps=
+INIT_VERSION=sysvinit-
+CONSOLE=/dev/console
+USER=testbash
+PWD=/home/testbash
+PREVLEVEL=N
+HOME=/home/testbash
+UID=1002
+init=/sbin/init
+BOOT_IMAGE=Linux
+edd=off
+SHELL=/bin/bash
+TERM=linux
+rootmnt=/root
+RUNLEVEL=2
+SHLVL=2
+LOGNAME=testbash
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+AUTOBOOT=YES
+_=/usr/bin/env

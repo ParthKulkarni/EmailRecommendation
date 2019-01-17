@@ -1,0 +1,109 @@
+To : Josh Triplett <josh@joshtriplett.org>
+Subject : Re: Uncoordinated upload of the rustified librsvg
+From : John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date : Wed, 7 Nov 2018 11:53:06 +0100
+Message-id : d849ec2d-bb3c-3d01-7c80-c9c104e891c2@physik.fu-berlin.de
+
+
+Hello!
+> librsvg has rewritten substantial fractions of its code upstream in
+> Rust. It won't be the last such library or package to do so.
+Well, I wouldn't bet on that. I know that a lot of people have the
+feeling that rewriting everything in Rust will solve all problems
+in software we have nowadays but that's not the case. Rewriting large
+projects is associated with a high cost and not many companies are
+willing to pay for that. Also, there have already been several
+vulnerabilities in Rust and Cargo as well, so the safety is not
+really an argument. C++ is also getting safer as a language.
+Furthermore, Rust is anything but stable. If you check the version in
+experimental, it already has regressed again on multiple architectures:
+> https://buildd.debian.org/status/package.php?p=rustc&suite=experimental
+You'll have fun fixing those regressions again. I will probably stay away
+for a while focusing on other projects after this experience.
+> librsvg sat in experimental for months, precisely *because* the maintainer knew that
+> such a change could potentially be disruptive, and wanted to properly
+> integrate it into Debian. But the new upstream version fundamentally
+> depends on Rust.
+I'm well aware why it sat in experimental. That's not what I criticized.
+> Running old versions of a library is not a viable long-term strategy.
+> Attempting to find alternatives written in C is not a viable long-term
+> strategy either; that's running in the wrong direction. Ultimately, the
+> new version will need uploading to Debian, and an architecture that
+> wants to run a full desktop, or for that matter a server or embedded
+> environment, will need to have LLVM support and Rust support.
+I know that. That's why I also criticized the upstream developer,
+of librsvg, who happens to be a colleague of mine at SUSE, who was responsible
+for that change. Will be interesting to see what will happen in the future
+when the rustified version of librsvg will try move into the enterprise
+distributions. Having just checked, it's not part of SLE-15. You already
+get an idea of the headache for LTS distributions with the changes necessary
+for Firefox 60 in Debian Stretch. SLE-16 could be fun.
+> I think it's reasonable for the *first* such library being uploaded to
+> wait a little while to coordinate, which it did.
+It didn't even wait for Rust to stabilize on the architectures it was
+recently bootstrapped for. There was no guarantee the Rust compiler will
+work on arm32 or mips32 in the foreseeable future. The rules file already
+has to make use of workarounds to get the Rust compiler to build natively
+on these architectures at all:
+> https://salsa.debian.org/rust-team/rust/blob/debian/sid/debian/rules#L158
+Given the fact that Rust upstream is always introducing a significant number
+of changes with each release, there is quite a chance of regressions of
+the compiler on these architectures.
+> I don't, however, think it's reasonable to wait indefinitely.
+No one was saying that. But I think it's more reasonable to wait for
+the Rust compiler to stabilize before making half of your distribution
+dependent on it. There is still no Rust-stable branch in sight which is
+most certainly a requirement for Rust to be part of enterprise distributions.
+I know the QA processes associated for SLES to update packages in a release
+version and I could imagine that it's not anything less involved for
+RHEL or other enterprise distributions. It seems that Rust upstream has
+not had any of the enterprise and long-term support distributions in
+mind yet. They seem to assume that distributions can just always use the
+latest upstream versions.
+> If even more coordination had taken place than what already did,
+> what would have been the expected outcome?
+A Rust compiler that doesn't regress every six weeks, maybe?
+> I think the correct answer *was* "it works on the release
+> architectures",
+Again, that was a snapshot of the situation. I'm expecting to see
+more regressions again in the future.
+> precisely because if non-release architectures need to
+> keep an outdated version while working on porting efforts, they'll
+> automatically do so, and that shouldn't impede those architectures too
+> much as long as other packages don't start depending specifically on
+> functionality from the new librsvg. (And if packages do start having
+> such dependencies, they'll get held back too.)
+Debian Ports doesn't support the cruft mechanism that DAK supports. We're
+lucky that the librsvg-common package is of arch any, otherwise librsvg
+would already been uninstallable in Debian Ports. So, this is just
+pure luck. Please don't make such statements when you're not aware of
+the differences between Debian's release and ports architectures.
+> Approaching the problem from a different angle: what help is needed
+> getting a viable LLVM and Rust development environment for more
+> architectures?
+There are open reviews for LLVM, for example:
+> https://reviews.llvm.org/D50784
+> https://reviews.llvm.org/D50856
+> https://reviews.llvm.org/D50858
+And a bug in Rust:
+> https://github.com/rust-lang/rust/issues/49773
+> Speaking with an upstream Rust hat on in addition to a
+> Debian hat: what could Rust do to make life easier for porters?
+Please provide an actual stable version of the Rust compiler that
+is supported in the long term and can be shipped by enterprise
+distributions.
+> And what could Debian's *considerable* expertise in porting do to make that more
+> sustainable upstream? (As an example, it might help if upstream Rust
+> folks had access to machines for more architectures, though that's a
+> side issue for having an LLVM port in the first place.)
+Debian Ports has worked closely with QEMU upstream to help make significant
+improvements to that emulator. So, in most cases, Rust developers can just
+use QEMU for the first porting efforts. But there are also porterboxes available
+from gcc to which we from Debian Ports also have provided hardware, for example:
+> https://gcc.gnu.org/wiki/CompileFarm
+Adrian
+-- 
+ .''`.  John Paul Adrian Glaubitz
+: :' :  Debian Developer - glaubitz@debian.org
+`. `'   Freie Universitaet Berlin - glaubitz@physik.fu-berlin.de
+  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913

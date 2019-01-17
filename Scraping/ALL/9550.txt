@@ -1,0 +1,54 @@
+To : Paul Wise <pabs@debian.org>, debian-devel@lists.debian.org
+Subject : Re: Subject: UMASK 002 or 022?
+From : Philip Hands <phil@hands.com>
+Date : Wed, 28 Jun 2017 10:35:29 +0200
+Message-id : 87podojyr2.fsf@whist.hands.com
+In-reply-to : <[🔎] CAKTje6EB5Nw4dEN8j7gJRJG1uKgFgTP6SFe6b4-532ARnC3bAg@mail.gmail.com>
+References : <[🔎] 1861c59558861ef871b4baa493053b61@openmailbox.org> <[🔎] CAKTje6EB5Nw4dEN8j7gJRJG1uKgFgTP6SFe6b4-532ARnC3bAg@mail.gmail.com>
+
+
+Paul Wise <pabs@debian.org> writes:
+> On Wed, Jun 28, 2017 at 1:11 AM,  gwmfms6 wrote:
+>
+>> I'd like to know why giving the world (Other) read access is even under
+>> consideration. If user wants a file to have Other readability this should be
+>> on the user to set it, but it should not be the default.
+>
+> I expect for most Debian deployments this isn't that relevant, since
+> most are either servers with no real users or single-user systems with
+> no guest account.
+>
+>> What is the justification that every user be able to read everyone else's
+>> documents?
+>
+> This decision was made in the mists of time and has never been questioned.
+>
+>> This discussion should be on whether to set a default UMASK of 077 or 027.
+>
+> I think the appropriate default umask is 077 due to the possibility of
+> some sites not naming the primary group of each user after the user.
+077 is poor choice of default given that we decided to have users in
+their own dedicated group precisely to allow more generous group
+permissions, and if someone decides to deviate from that policy they
+need to take care of the consequences of their actions.
+In case anyone is wondering why we have users in their own group is it
+to allow one to create shared group directories, with the group s-bit
+set, so that anyone in that group can create files in that directory.
+If one has a 077 umask, that results in files in s-bit directories being
+created that only the creator can read, which is almost certainly not
+what you wanted.
+To fix that, one sets a umask of something like 027 or 022 or 002
+depending on your needs, but on traditional *nix systems all users would
+generally be in a users or staff group, so you just gave
+overly-permissive access to your home directory by doing that -- hence
+the dedicated per-user groups.
+> That said, 027 would probably be a reasonable default too since most
+> sites do not do that.
+I think 027 is much easier to justify, is seems likely that anyone that
+prefers 022 over 027 is more likely to know why.
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

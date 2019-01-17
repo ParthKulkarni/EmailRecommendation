@@ -1,0 +1,103 @@
+To : Cyril Brulebois <kibi@debian.org>, Mekeor Melire <mekeor.melire@gmail.com>
+Subject : Re: Debian-Installer gets stuck at selecting mirror (choose-mirror)
+From : Helge Deller <deller@gmx.de>
+Date : Thu, 4 May 2017 22:52:00 +0200
+Message-id : 10743dac-0739-5d12-4c65-dbf636110f76@gmx.de
+In-reply-to : <d9695bcc-97ce-4497-22a6-7026edb93b02@gmx.de>
+References : <87a87ravw7.fsf@gmail.com> <20170413011858.GC16486@mraw.org> <d9695bcc-97ce-4497-22a6-7026edb93b02@gmx.de>
+
+
+On 13.04.2017 08:47, Helge Deller wrote:
+> On 13.04.2017 03:18, Cyril Brulebois wrote:
+>> (Adding tbm to the loop explicitly since he's the QNAP master.)
+>>> [...]
+>>> After flashing and rebooting, the installer gets stuck at the step where
+>>> I have to select the mirror. When I press <return> to select a mirror,
+>>> for a very short time, like some milliseconds, the next step appears,
+>>> but then it goes back to the same step of selecting the mirror. As a
+>>> consequence I'm currently not able to install Debian on that device.
+> 
+> FWIW, I'm seeing exactly the same problem on the hppa architecture.
+> 
+>>> I guess this is the interesting part:
+>>>
+>>>     main-menu[1395]: DEBUG: resolver (libgcc1): package doesn't exist (ignored)
+>>>     main-menu[1395]: INFO: Menu item 'choose-mirror' selected
+>>>     anna-install: Queueing udeb apt-mirror-setup for later installation
+>>>     main-menu[1395]: INFO: Menu item 'choose-mirror' succeeded but requested to be left unconfigured.
+>>>     main-menu[1395]: DEBUG: resolver (libgcc1): package doesn't exist (ignored)
+>>>     main-menu[1395]: INFO: Menu item 'choose-mirror' selected
+>>>     main-menu[1395]: INFO: Menu item 'choose-mirror' succeeded but requested to be left unconfigured.
+>>>     main-menu[1395]: DEBUG: resolver (libgcc1): package doesn't exist (ignored)
+>>>     main-menu[1395]: INFO: Menu item 'choose-mirror' selected
+>>>     main-menu[1395]: INFO: Menu item 'choose-mirror' succeeded but requested to be left unconfigured.
+>>>     main-menu[1395]: DEBUG: resolver (libgcc1): package doesn't exist (ignored)
+>>>     main-menu[1395]: INFO: Menu item 'di-utils-shell' selected
+>>
+>> I think that's the first time I'm seeing this “succeeded but requested
+>> to be left unconfigured” status, not sure what's causing this.
+I did some more analysis on hppa.
+During build of choose-mirror, the file "mirrors_http.h" is created based on
+the input of the Mirrors.masterlist file.
+On hppa this mirrors_http.h file has no entries, because hppa is a "ports" architecture,
+and the perl "mirrorlist" script only parses mirror entries for the target architecture if they
+are listed in the "Archive-architecture:" lines (of Mirrors.masterlist).
+For hppa the mirrorlist script needs to parse the "Ports-architecture:" lines instead.
+The attached patch is a hack which I'll try now on hppa.
+My assumption is, that choose-mirror will find no possible mirror entries at runtime
+and thus exists with a "succeeded but requested to be left unconfigured” status". 
+ 
+Does by any chance the generated "mirrors_http.h" file on armel has no entries as well?
+Maybe it's a similar issue (although armel isn't a ports architecture) ?
+Helge
+diff -up ./mirrorlist.org ./mirrorlist
+--- ./mirrorlist.org	2017-05-04 21:43:33.209899381 +0200
++++ ./mirrorlist	2017-05-04 22:09:33.290691147 +0200
+@@ -108,12 +108,17 @@ foreach my $id (0..$#data) {
+ 	$data[$id]->{rating}=$rating;
+ }
+ 
++# my $archive_type = "archive-$type";
++# my $repo_archlist = "archive-architecture";
++my $repo_archlist = "ports-architecture";  # fÃ¼r Ports
++my $archive_type = "ports-$type";
++
+ # Filter out mirrors that don't carry the target architecture.
+ my @newdata;
+ foreach my $id (0..$#data) {
+-	if (exists $data[$id]->{'archive-architecture'} &&
+-	    $data[$id]->{'archive-architecture'} ne "any") {
+-		my @arches = split ' ', $data[$id]->{'archive-architecture'};
++	if (exists $data[$id]->{$repo_archlist} &&
++	    $data[$id]->{$repo_archlist} ne "any") {
++		my @arches = split ' ', $data[$id]->{$repo_archlist};
+ 		if (grep /^!/, @arches) {
+ 			my %notarches = map { substr($_, 1) => 1 } grep /^!/, @arches;
+ 			next if exists $notarches{$hostarch};
+@@ -130,7 +135,7 @@ if ($type =~ /(.*)list/) {
+ 	my $type=$1;
+  	open (LIST, ">debian/${type}list-countries") or die "debian/${type}list-countries: $!";
+ 	foreach my $id (0..$#data) {
+-		next unless exists $data[$id]->{"archive-$type"} and
++		next unless exists $data[$id]->{"$archive_type"} and
+ 		                    exists $data[$id]->{country};
+ 		my $cc = $data[$id]->{country};
+ 		die "Error: country code '$cc' does not occur in iso-3166 table"
+@@ -158,13 +163,13 @@ else {
+ 		else {
+ 			$cc=$q.$data[$id]->{country}.$q;
+ 		}
+-		next unless exists $data[$id]->{"archive-$type"} and defined $cc;
+-		if (! exists $data[$id]->{'archive-architecture'}) {
+-			print STDERR "warning: missing archive-architecture for mirror ".$data[$id]->{site}."; assuming it contains all architectures.\n";
++		next unless exists $data[$id]->{"$archive_type"} and defined $cc;
++		if (! exists $data[$id]->{$repo_archlist}) {
++			print STDERR "warning: missing $repo_archlist for mirror ".$data[$id]->{site}."; assuming it contains all architectures.\n";
+ 		}
+ 		print OUT "\t{",
+ 			  join(", ", $q.$data[$id]->{site}.$q, $cc,
+-				$q.$data[$id]->{"archive-$type"}.$q),
++				$q.$data[$id]->{"$archive_type"}.$q),
+ 			  "},\n";
+ 	}
+ 	print OUT "\t{NULL, NULL, NULL}\n";

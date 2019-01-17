@@ -1,0 +1,30 @@
+To : 
+Subject : [PATCH] pkgdetails: Strip the arch-qualifier (Closes: #836525)
+From : Philipp Hahn <hahn@univention.de>
+Date : Tue, 19 Dec 2017 08:40:11 +0100
+Message-id : 0e8de740ad77087c8acdbb9c093614c89fd11be1.1513614130.git.hahn@univention.de
+
+
+On 2017-02-03 00:24:04 Sven Joachim applied b78e381e to
+debootstrap/functions, to strip any ":arch"-qualifier from the package
+name while running debootstrap.
+The same must be done for the C-version in base-installer, which is
+called by the Debian-Installer. Otherwise "python3" does not get pulled
+in when you add "lsb-release" to --include=
+---
+ pkgdetails.c | 1 +
+ 1 file changed, 1 insertion(+)
+diff --git a/pkgdetails.c b/pkgdetails.c
+index d588c80a..b240b36e 100644
+--- a/pkgdetails.c
++++ b/pkgdetails.c
+@@ -54,6 +54,7 @@ static void outputdeps(char *deps) {
+         if (!*pch) break;
+ 
+         while (*pch && *pch != '(' && *pch != '|' && *pch != ','
++               && *pch != ':'
+                && !isspace(*pch))
+         {
+             fputc(*pch++, stdout);
+-- 
+2.11.0

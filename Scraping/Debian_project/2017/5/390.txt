@@ -1,0 +1,53 @@
+To : Debian Development <debian-devel@lists.debian.org>
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Nicholas D Steeves <nsteeves@gmail.com>
+Date : Wed, 31 May 2017 14:38:51 -0400
+Message-id : CAD=QJKhZ=-w1VM1ndbd81rrQ+V2jktGFjJOE8b=FKE2dDkUB3Q@mail.gmail.com
+In-reply-to : <[🔎] 87tw424kxc.fsf@deep-thought.43-1.org>
+References : <[🔎] 87tw424kxc.fsf@deep-thought.43-1.org>
+
+
+On 30 May 2017 at 07:57, Ansgar Burchardt <ansgar@debian.org> wrote:
+> Hi,
+>
+> my impression is that too many packages use Recommends that should
+> really be Suggests.  As a random example: installing dracut as a
+> initramfs provider will pull in exim4... (dracut-core Recommends: mdadm
+> which Recommends: default-mta | mail-transport-agent).  This seems
+> really not ideal.
+>
+> As a result many people seem to disable installing recommended packages
+> by default.  I believe we should be much more agressive in downgrading
+> dependencies to Suggests.
+>
+> For example, very few packages should Depend/Recommend a MTA: if you
+> just send notifications (like mdadm), you would need a properly
+> configured MTA anyway or they just end up in a file nobody will ever
+> look at (I don't see local mail to root as very useful).
+>
+> I suggest that only very few packages should Recommend a MTA: packages
+> that mainly deal with mail on servers in some way or another (for
+> user-facing applications, speaking SMTP to a remote SMTP server is
+> common enough that these shouldn't Recommend a MTA usually either).
+Maybe exim should easily provide or default to authenticated smarthost
+(satellite) configuration and /etc/aliases should be configured to
+forward system mail somewhere else (eg: the sysadmin's work email, in
+case of SMART or md errors)?
+Alternatively, if a real MTA is too heavy, why not install msmtp-mta
+by default?  It (including msmtp) is only ~336K, and it's easy to set
+up for authenticated SMTP.  Exim4-daemon-light is ~1292KB.  Maybe
+these aren't easy enough to configure?  Does the following need to be
+revisited?: https://wiki.debian.org/Debate/DefaultMTA
+Are there people who wouldn't appreciate an email from smartd or md
+warning them a hard drive is about to fail or that there is something
+wrong with their array?  For desktops, it's way too easy to miss a
+notification popup, assuming a notification system is installed...and
+not all desktops have integrated smart monitoring, and not all users
+install gsmartcontrol.  All users should receive notification of
+hardware failure, no?  As I see it the issue is if an admin receives
+uncountable apt-listchanges emails for something like when a great
+many containers are upgraded, and it should be possible to skip
+configuration (and disable) any provider of mail-transport-agent for
+VMs and containers.
+Cheers,
+Nicholas

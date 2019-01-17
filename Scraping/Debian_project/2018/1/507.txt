@@ -1,0 +1,77 @@
+To : debian-devel@lists.debian.org
+Subject : Reducing the attack surface caused by Berkeley DB...
+From : Lionel Debroux <lionel_debroux@yahoo.fr>
+Date : Thu, 25 Jan 2018 23:59:06 +0100
+Message-id : 20bd977f-1d31-cc17-358d-98d150098fbe@yahoo.fr
+
+
+Hi,
+Several days ago, jmm from the security team suggested that I start a
+discussion on debian-devel about Berkeley DB, which has known security
+issues, because doing so may enable finding a consensus on how to move
+away from it in Debian (which is hard). So here's a post :)
+Please keep me CC'ed, I'm not subscribed to debian-devel.
+Oracle Berkeley DB [1] "is a family of embedded key-value database
+libraries providing scalable high-performance data management services
+to applications. The Berkeley DB products use simple function-call APIs
+for data access and management.".
+In practice, Berkeley DB is a core component of most *nix distros.
+Debian popcon indicates that libdb5.3 is installed on ~80% of the
+computers which report to popcon.
+Two generations of Berkeley DB are relevant here:
+* BDB < 6.0 are under the original Sleepycat license; they're
+unmaintained, and unfixed security issues have been known for years
+(e.g. [2]: the library can corrupt a DB in such a way that salvaging it
+yields an infinite loop; disk corruption can also cause infinite loops);
+* the 6.x series contains fixes for 44 security issues with CVE numbers
+since 2015 [3][4][5] (most are complete DoS); however, the license was
+switched to AGPLv3, so it's unsuitable for broadly replacing the 5.x
+series (clearly, most projects are not going to switch to a compatible
+license) or backporting security fixes to the 5.x series.
+We can see that we've got a problem here. Absent an unlikely change of
+heart from Oracle, reducing the attack surface (which is arguably a
+worthwhile goal in general) caused by libdb 5.x would seem to require
+reducing, and eventually eliminating, usage of that library...
+While there might be a bit of low-hanging fruit, e.g. packages which
+* enable BDB support despite hardly anybody using it (so it might go
+away without too many complaints ?);
+* depend on BDB but are unmaintained upstream and hardly used downstream
+(so they might be removed from the archive without annoying users ?);
+* will switch to an AGPLv3-compatible license and be able to depend on
+(and require packaging of) libdb 6.x without undesirable side effects on
+the ecosystem
+the vast majority of the ~170 reverse dependencies of libdb5.3 listed by
+`apt-cache rdepends libdb5.3` on sid will require (much) more work to
+get rid of that dependency, with impact on backwards compatibility...
+Among those packages are:
+libperl* libpython2.7* libpython3.* php5-cli
+libsvn* libaprutil*
+reprepro apt-utils librpm*
+postfix exim4-base opensmtpd sendmail-bin claws-mail*
+libpam-modules 389-ds-base slapd
+memcachedb squid sks
+Headaches for both upstreams (e.g. making libdb usage more optional,
+finding and adding support for replacements, making upgrade code) and
+distros (e.g. adjusting packaging and maybe policy, coping with
+upgrades) will ensue... even without attempting backports to older
+upstream releases or older distros.
+The fact that many FLOSS developers and packagers do it on their spare
+time won't help.
+---
+Do you think we should start the journey of getting rid of libdb5.3 at a
+wide scale ? And if so, how to optimize resource usage in general ? :)
+---
+TIA and regards,
+Lionel Debroux.
+[1]
+http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/overview/index.html
+[2] https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=652036
+[3] https://www.oracle.com/technetwork/topics/security/cpujul2015-
+2367936.html : 22 x CVSSv2 6.9, 3 x CVSSv2 3.3
+[4]
+https://www.oracle.com/technetwork/topics/security/cpuapr2016v3-2985753.html
+: 5 x CVSSv3 7.8
+[5]
+https://www.oracle.com/technetwork/topics/security/cpuapr2017-3236618.html
+: 14 x CVSSv3 7.0
+signature.asc

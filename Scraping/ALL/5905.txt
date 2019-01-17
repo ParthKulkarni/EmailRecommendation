@@ -1,0 +1,88 @@
+To : Holger Wansing <linux@wansing-online.de>, Cyril Brulebois <kibi@debian.org>
+Subject : Re: d-i repo at dillon
+From : Ian Campbell <ijc@hellion.org.uk>
+Date : Sat, 16 Jun 2018 10:17:35 +0100
+Message-id : 1529140655.16827.16.camel@hellion.org.uk
+In-reply-to : <[🔎] 20180616083642.c209568c471a66d7d320351a@wansing-online.de>
+References : <[🔎] 20180603153658.142ceab3e1cd888576e4433a@wansing-online.de>	 <[🔎] 20180603165747.fa3186463d5ca2d93e6799bb@wansing-online.de>	 <[🔎] 20180604013348.mb6wpa466rzaap5j@mraw.org>	 <[🔎] 20180612205157.9fa0a290b787b319f7c80ae1@wansing-online.de>	 <[🔎] 20180612190707.tps7c52vg4gpstma@mraw.org>	 <[🔎] 20180614203406.1b9b98a6fce5e6500318d897@wansing-online.de>	 <[🔎] 20180614205405.cb32bc220e4c2d6bbb08333b@wansing-online.de>	 <[🔎] 20180614203235.nehu75e4bxbfbsrr@mraw.org>	 <[🔎] 20180615220051.f9c1fe6f00575ca709650a8f@wansing-online.de>	 <[🔎] 20180615202541.f4bhyq3edlznteld@mraw.org>	 <[🔎] 20180616083642.c209568c471a66d7d320351a@wansing-online.de>
+
+
+On Sat, 2018-06-16 at 08:36 +0200, Holger Wansing wrote:
+> > The original/final lines are a bit strange, though, instead of having:
+> > 
+> >   if $($git foo bar); then … fi
+> > 
+> > I suppose it should only be:
+> > 
+> >   if $git foo bar; then … fi
+> 
+> However, with this simplified variant it fails. So I left it as is for now.
+It seems there is an interesting (and new to me, or at least I'd never
+fully appreciated the behaviour) corner case of the `if $(foo); then`
+syntax, which is that if `foo` exits producing no output then its exit
+code is apparently used for the condition. If `foo` does produce output
+then the shell will attempt to execute that and use the resulting exit
+code.
+These just run true or false and take the output:
+   $ dash -c 'if true ; then echo YES ; else echo NO ; fi'
+   YES
+   $ dash -c 'if false ; then echo YES ; else echo NO ; fi'
+   NO
+These run true or false, see the output is "" and so use the exit code:
+   $ dash -c 'if $(true) ; then echo YES ; else echo NO ; fi'
+   YES
+   $ dash -c 'if $(false) ; then echo YES ; else echo NO ; fi'
+   NO
+These run `echo` (which always succeeds) then runs the resulting "true"
+or "false" and uses the exit code:
+   $ dash -c 'if $(echo true) ; then echo YES ; else echo NO ; fi'
+   YES
+   $ dash -c 'if $(echo false) ; then echo YES ; else echo NO ; fi'
+   NO
+This runs `echo` (which always succeeds) then tries to run the
+resulting "foo" and fails because that isn't a command:
+   $ dash -c 'if $(echo bar) ; then echo YES ; else echo NO ; fi'
+   dash: 1: bar: not found
+   NO
+`git status` outputs nothing when the tree is clean, and I think the
+`$($git status -s -uno $DI_COPY/packages/po)` case uses that to succeed
+on a clean tree, however if the tree was dirty you'd get the "not
+found" stuff for something relating to the output.
+   $ git status -s -uno build/Makefile
+   $ echo $?
+   0
+   $ dash -c 'if $(git status -s -uno build/Makefile ) ; then echo CLEAN ; else echo DIRTY ; fi'
+   CLEAN
+   $ echo "FOO" >> build/Makefile
+   $ git status -s -uno build/Makefile
+   M build/Makefile
+   $ echo $?
+   0
+   $ dash -c 'if $(git status -s -uno build/Makefile ) ; then echo CLEAN ; else echo DIRTY ; fi'
+   dash: 1: M: not found
+   DIRTY
+Notice that the original svn version had a `| grep -q ^C` which was
+checking if any line started with a "C" (for Changed I suppose),
+produced no output (`-q`) but exited with an error code reflecting the
+presence of any lines. You could do something similar but you'd need to
+check for more than M (modified) since git status has a variety of
+error codes, including (A)dded, (D)eleted, (R)enamed etc.
+`git status` doesn't seem to have an option which makes the error code
+reflect the dirtiness. In the past I've used:
+   # Update cache, otherwise files which have an updated
+   # timestamp but no actual changes are marked as changes
+   # because `git diff-index` only uses the `lstat` result and
+   # not the actual file contents. Running `git update-index
+   # --refresh` updates the cache.
+   git update-index -q --refresh
+   if git diff-index --quiet HEAD -- path/to/something ; then clean ;
+   else dirty ; fi
+(--quiet enable --exit-code which makes the exit status meaningful).
+For perhaps less git magic you could also just write it as:
+   if [ -z "$(git status -s -uno path/to/something)" ] ; then clean ; else dirty ; fi
+or inversely:
+   if [ -n "$(git status -s -uno path/to/something)" ] ; then dirty ; else clean ; fi
+These explicitly check whether the output of the status command was
+empty (the -z check, meaning clean) or non-empty (the -n check, meaning
+dirty).
+Ian.

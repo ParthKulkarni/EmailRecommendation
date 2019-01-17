@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#886238: Please introduce official nosystemd build profile
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 7 Jan 2018 19:37:25 +0000
+Message-id : 20180107193725.GA14306@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] ba145924-688b-6e67-fed5-0a90882bea5a@debian.org>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CACujMDNW4uEQNeDYnbKedHpjeEPMUroPKp+4B3g=wGMmqr-EUA@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180103132503.GA410@bongo.bofh.it> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180103144659.hx3kcjo7v76btc7x@santiago.connexer.com> <[🔎] 20180103190124.6eww4bqcf4rpotfs@virgil.dodds.net> <[🔎] ba145924-688b-6e67-fed5-0a90882bea5a@debian.org>
+
+
+On Sun, 07 Jan 2018 at 18:55:28 +0100, Thomas Goirand wrote:
+> IMO, [a nosystemd profile] is a relevant bug because of non-Linux
+> ports. If it existed, it would probably make sense for those buildd
+> to always select the nosystemd profile when building, which would make
+> life easier.
+We can already build packages differently for the non-Linux ports; that
+was true long before build-profiles were implemented. The work required
+for a package maintainer to not build systemd code paths on the non-Linux
+ports is no greater than the work required for a package maintainer to
+not build systemd code paths under a particular build profile. I really
+don't see how that helps the non-Linux ports.
+(Arguably a header-only stub version of libsystemd containing static
+inline functions that always return "no systemd here"[0] is simpler
+still, though, and at some point I should try out that approach when
+building src:dbus for the non-Linux ports and see how it compares. I'd
+also recommend that approach to developers of derivatives that don't have
+systemd; that would avoid the need to patch a significant proportion of
+libsystemd users.)
+However, disabling "systemd stuff" (whatever that means specifically)
+seems a poor fit for how build profiles are designed to be used. The
+only interpretations I can think of for a nosystemd profile would
+make functional changes to the contents of the package on [linux-any]
+architectures (namely, removing systemd integration that would normally
+be present). This would have to either:
+- violate the usual design principle[1] that activating a
+  (non-package-specific) build profile produces a functionally equivalent
+  package, requiring bootstrapping infrastructure to special-case that
+  profile[2]
+or
+- require intrusive changes (a new foo-nosystemd package alongside foo)
+  to every package where that build profile was used[2]
+Neither is particularly appealing.
+    smcv
+[0] https://anonscm.debian.org/cgit/users/md/libsystemd-dummy.git
+[1] https://wiki.debian.org/BuildProfileSpec#Profile_built_binary_packages,
+    [🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk">https://lists.debian.org/msgid-search/[🔎] 20180103133055.GB5875@perpetual.pseudorandom.co.uk

@@ -1,0 +1,53 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian part of a version number when epoch is bumped
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 14 Feb 2018 12:54:05 -0800
+Message-id : 87k1vfthqq.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 6d2296dc-11c5-11e8-9b6a-00163eeb5320@msgid.mathom.us> (Michael	Stone's message of "Wed, 14 Feb 2018 15:33:45 -0500")
+References : <[🔎] 20180212022314.GB24590@gaara.hadrons.org>	<[🔎] 20180214115315.GB8308@grep.be> <[🔎] 87eflnybir.fsf@luffy.cx>	<[🔎] 20180214135407.on325smdsbofe4qm@khazad-dum.debian.net>	<[🔎] 1518617345.25962.6.camel@liw.fi> <[🔎] m3a7wbo3vy.fsf@luffy.cx>	<[🔎] 1518635464.22059.1.camel@liw.fi> <[🔎] m3vaezl4lq.fsf@luffy.cx>	<[🔎] 8aea61ec-11c3-11e8-9b6a-00163eeb5320@msgid.mathom.us>	<[🔎] m3r2pnl3q3.fsf@luffy.cx>	<[🔎] 6d2296dc-11c5-11e8-9b6a-00163eeb5320@msgid.mathom.us>
+
+
+Michael Stone <mstone@debian.org> writes:
+> That doesn't matter. The fundamental problem was that it's impossible to
+> predict that a future package would have an older version of the
+> software with a newer name. Whether that's done with an epoch that
+> (horrors!) won't go away or because someone creates a crazy version
+> string that obfuscates what's being done (yay?), the unpredictable
+> breakage is the same. The solution isn't to get rid of epochs, the
+> solution is to not create packages which contain older versions of
+> software with newer names.
+Not that this is probably easily fixable at this point, but mulling on
+this a bit, I think it's because we actually have two version orderings
+that we're compressing into one ordering.
+We want to do two things here:
+* Give a package a larger version number so that the archive knows that it
+  replaces the previous version of the package and so that clients know
+  that this package should be installed in preference to the previous
+  version.
+* Express versioned dependencies in other packages, allowing you to say
+  that you need at least version 1.8 of a package and 1.6 will not
+  suffice.
+These seem like the same thing, but they subtly aren't.  There are times
+when we want to tell the archive to replace version 1.8 with 1.6, and tell
+all apt clients to install 1.6 in preference to 1.8, but do not want that
+package to satisfy a version dependency of >= 1.8.
+Since there are two goals, a more correct implementation would be to split
+these into two versions.  The simplest would be to have an integer
+"version epoch" field in the package metadata separate from the version
+number.  So instead of:
+Version: 1.8-1
+Version: 1:1.6-1
+you'd have:
+Version: 1.8-1
+Version: 1.6-1
+Epoch: 1
+We then could implement the separate semantics: only the version field
+would be used for interpackage dependencies, so 1.6-1 with epoch 1 would
+not satisfy >= 1.8 dependencies, but DAK and apt clients would know that
+any package with epoch 1 supersedes packages with no epoch for archive and
+default installation purposes.
+Of course, getting to that from where we are now may be substantially more
+trouble than it's worth, and it would necessarily be a very slow rollout
+process (and there are still issues with unique filenames).
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

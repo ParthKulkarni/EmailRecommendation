@@ -1,0 +1,55 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Summary of the Arm ports BoF at DC17
+From : Colin Watson <cjwatson@debian.org>
+Date : Sun, 17 Sep 2017 21:30:33 +0100
+Message-id : 20170917203032.iuxwxav2iwinqxpr@riva.ucam.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 87k20xaygn.fsf@aikidev.net>
+References : <[🔎] 20170914024001.kitowt4moob5hyso@tack.einval.com> <[🔎] 1505499098.2825.46.camel@decadent.org.uk> <[🔎] 87k20xaygn.fsf@aikidev.net>
+
+
+On Sun, Sep 17, 2017 at 12:59:04PM -0700, Vagrant Cascadian wrote:
+> On 2017-09-15, Ben Hutchings wrote:
+> > On Thu, 2017-09-14 at 03:40 +0100, Steve McIntyre wrote:
+> > [...]
+> >> There is optional kernel support to trap the exceptions here
+> >> and emulate the instructions, but it's really not recommended for
+> >> serious use (e.g. on a build machine!).
+> > [...]
+> >
+> > Why is it not recommended?  Terrible performance, or known bugs?
+> 
+> On arm64 kernels building armhf packages for the reproducible builds
+> builders,
+Steve was mostly talking about armel, I thought?
+> I'm seeing hundreds or even thousands of kernel log warnings
+> per second when building anything that makes use of
+> CP15_BARRIER_EMULATION (e.g. anything using ghc):
+> 
+>   [85740.553537] cp15barrier_handler: 115316 callbacks suppressed
+>   [85740.559358] "ghc-pkg" (29572) uses deprecated CP15 Barrier instruction at 0xf5beaa7c
+>   [85740.567344] "ghc-pkg" (29572) uses deprecated CP15 Barrier instruction at 0xf5beaa9c
+> 
+> 
+> That *might* be sufficient to actually impact performance; it certainly
+> makes it hard to read other kernel log messages on those machines...
+We've been building armhf packages in arm64 VMs for some time in Ubuntu
+and it generally seems to work fine; I haven't looked *very* closely but
+I haven't noticed any particularly significant performance difference
+between armhf and arm64 builds in that environment, including builds
+that use GHC.  (I would have to go to some effort to look at kernel
+logs, so I haven't.)
+We're using HP ProLiant m400 cartridges running as OpenStack compute
+nodes, and I gather that hardware supports a few more ARMv7 instructions
+than some ARMv8 hardware does.  We also run with a small kernel tweak
+[1] to set "uname -m" output to "armv7l" when running under linux32(1),
+which makes some dodgy configure scripts behave themselves a bit better.
+But apart from that, it's been a pretty good experience on armhf and
+definitely much faster than what we had before.
+[1] https://git.launchpad.net/~ubuntu-kernel/ubuntu/+source/linux/+git/xenial/commit/kernel/sys.c?id=fff84367fa2a19f20c2b9094b47bc3db51fed183
+I can't really speak for how it would be on armel, but I rather suspect
+that decent ARMv8 hardware would be sufficiently much faster than
+ARMv7-or-earlier kit to more than cancel out performance losses from
+instruction emulation.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

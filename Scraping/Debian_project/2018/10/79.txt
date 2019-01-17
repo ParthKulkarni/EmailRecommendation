@@ -1,0 +1,92 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Limiting the power of packages
+From : Guillem Jover <guillem@debian.org>
+Date : Thu, 4 Oct 2018 07:13:26 +0200
+Message-id : 20181004051326.GB316@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] CAKTje6HGgPkSxJsV=ksVgo+5696o-L2pJb4SDuW+RJofO-qSjQ@mail.gmail.com>
+References : <[🔎] 20181003171917.GB2043@exolobe1.liw.fi> <[🔎] CAKTje6HGgPkSxJsV=ksVgo+5696o-L2pJb4SDuW+RJofO-qSjQ@mail.gmail.com>
+
+
+Hi!
+On Thu, 2018-10-04 at 08:38:09 +0800, Paul Wise wrote:
+> On Thu, Oct 4, 2018 at 1:19 AM Lars Wirzenius wrote:
+> > The problem: when a .deb package is installed, upgraded, or removed,
+> > the maintainer scripts are run as root and can thus do anything.
+Paul prompted a similar discussion the other day on #debian-apt after
+posting a link to
+<https://news.softpedia.com/news/skype-for-debian-could-allow-attackers-to-completely-takeover-machines-523013.shtml>
+(which BTW seems like a complete bogus report to me, but oh well).
+> anarcat wrote this related wiki page that covers this general topic:
+> 
+> https://wiki.debian.org/UntrustedDebs
+> 
+> The maintainer scripts are just the first problem that comes up when
+> installing untrusted packages.
+> 
+> There are myriad ways a package could install files that allow it to
+> get root. setuid binaries, cron jobs, systemd units, apt keyring
+> information, sudoers files and so on. The amount of stuff that can
+> lead to root completely depends on the packages one already has
+> installed. Then there are myriad other things that don't allow root
+> that untrusted applications should not get hold of (like your private
+> diary, some keys or passwords etc).
+IMO the whole premise is flawed. If you do not trust the .deb, then you
+should not be even installing it using dpkg, less running it unconfined,
+as its paradigm is based on fully trusting the .debs, on using shared
+resources, and on system integration. Let me expand:
+ * To "safely" install an untrusted .deb we'd need (at least) to disarm
+   the following (current or future) features:
+   - any dependency (Provides, Replaces, (Pre-)Depends, Conflicts, Breaks).
+     + can be used to pull in new attack vectors, for their interfaces,
+       vulnerabilities, or to interpose functionality for some of their
+       optional features, f.ex.
+   - any maintainer script.
+   - any trigger activation.
+   - any future declarative diversions, alternatives or user creation.
+   - any char/block device.
+   - any symlink.
+   - any suid bit.
+   - any future xattrs, acls.
+   - installation on anything that is part of the standard paths,
+     including **/usr**, /var, /etc, /bin, /sbin, /lib, etc.
+     + installing under /usr, means you can interpose programs, or
+       takeover names for optional functionality used by other
+       privileged programs, or install things that might end up being
+       used by a privileged user.
+     + the only viable candidate might be /opt, and existing programs
+       might be even trying to read from there, so it might not even
+       be safe.
+ * To "safely" (perhaps, but I'd rather not) run these untrusted
+   programs, you'd better contain this as much as possible, different
+   real users, namespaces, virtualization, whatever, but definitely
+   not running these directly from the PATH unconfined.
+   (But then, I'm personally not very impressed with the security state
+   of Linux (or any Unix) due to layers upon layers of complexity and
+   patchwork to plug the holes. IMO any systems that is not founded
+   upon a capabillity-based security paradigm is doomed.
+   <https://en.wikipedia.org/wiki/Capability-based_security>.)
+ * Would need to define some way to denote these .debs as untrusted,
+   but that should be done only by a trusted component, which (apt)?
+   What happens if a user gets hold of such .deb and installs it
+   manually with dpkg, not triggering the "untrusted mode"? Or we
+   start signing the .deb container itself, and use debsig-verify to
+   distinguish them.
+ * Would need to define some kind of new metadata, that gets strongly
+   validated, so that these stripped packages can get back some kind
+   of integration in the system.
+ * The only parts that have been "audited" and are considered attack
+   vectors in dpkg are dpkg-deb and dpkg-source, as they can be used
+   to analyze untrusted data. Everything else assumes fully trusted
+   data.
+So, while most of the above list could be implemented, what you get
+left after stripping/disarming all the features, and adding back the
+integration, etc., does not resemble a standard .deb, except for the
+container format. :)
+> To fully solve the problem you need a whitelist based approach that
+> ends up something completely different like Flatpak.
+Exactly, if you do not consider the original premise flawed, you might
+as well use one of the tools that has been designed precisely for that
+purpose?
+Thanks,
+Guillem

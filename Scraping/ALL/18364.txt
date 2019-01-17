@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Rant about Debian reproducibility environment
+From : Steffen Nurpmeso <steffen@sdaoden.eu>
+Date : Thu, 01 Mar 2018 18:17:20 +0100
+Message-id : 20180301171720.-UWOz%steffen@sdaoden.eu
+Mail-followup-to : debian-devel@lists.debian.org, Steffen Nurpmeso <steffen@sdaoden.eu>
+
+
+Hello!
+Let me please first introduce myself, my name is Steffen and i am
+the maintainer/developer of the "SysV mail/BSD Mail/POSIX mailx"
+application S-nail, which is quite happy to have found a Debian
+maintainer with Paride Legovini just recently.
+I try to make it short, but i want to say i am thankful for the
+spark that reproducible-build.org was for me.  Even though i think
+it is a pity that $SOURCE_DATE_EPOCH is the sole indicator for
+reproducible environments, since now that programs can adapt..,
+but, well ...  So that allowed for some generically known and
+accepted reproducible environment, and that is what i have
+implemented for S-nail, with a test framework that is built upon
+that.
+For i think years the Debian reproducibility of this MUA has
+therefore been a given fact for x86_64, but not for i386 and the
+ARM machines.  At the beginning i looked, but found that the cause
+was on the Debian side and did not look any further no more.
+But last week Paride committed "fixes"[1] after having been
+prodded by some third party, and indeed, now S-nail is
+reproducible on all Debian test boxes.  The fix was to set the
+built-in identification for the OS build environment to all
+"Debian", i.e.,
+  OS=debian OSENV=debian OSFULLSPEC=debian
+And at this point please let me quote something i have written to
+Paride.  (Paride, i hope you do not mind that i quote myself!)
+  And when i look at, e.g., [2], i see
+    -behave:s_freeze-6: ok
+    -behave:s_freeze-7: ok
+    +behave:s_freeze-{6,7}: shell sets $TERM, skipped
+  and this seems to be caused by
+    +I: Adding a custom variable just for the fun of it...
+    +I: Changing /bin/sh to bash
+...
+  And, of course, if there is a different kernel version, or
+  a different uname(1) output as such, then how could a dumb end
+  producer[consumer, the author] like S-nail deal with that?  We
+  hardwire those attributes into the binary, like many other
+  programs do, e.g., "mutt(1) -v" output.
+...
+  Honestly, i do not think that having "Debian" as the sole
+  identifier in output of for example "s-nail -Xversion -Xx" just
+  to satisfy a broken reproducibility test can be useful.
+And to end with a quote, too:
+  I mean, maybe it still is for Debian, and one could always ask
+  for uname(1) output in a bug report, but .. let me wonder,
+  please.
+(I am not subscribed, in case you start communication.)
+Ciao!
+  [1] https://salsa.debian.org/debian/s-nail/commit/c855c08b733e314b6f1823149bbff783f8017060
+  [2] https://tests.reproducible-builds.org/debian/logdiffs/unstable/i386/s-nail_14.9.6-2.diff.gz
+--steffen
+|
+|Der Kragenbaer,                The moon bear,
+|der holt sich munter           he cheerfully and one by one
+|einen nach dem anderen runter  wa.ks himself off
+|(By Robert Gernhardt)

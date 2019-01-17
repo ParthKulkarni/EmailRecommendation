@@ -1,0 +1,138 @@
+To : ARM <debian-arm@lists.debian.org>
+Subject : Bug#848075: cubox i4x4 hard drive seen in D-I but not in installed system.
+From : Vagrant Cascadian <vagrant@aikidev.net>
+Date : Thu, 20 Apr 2017 19:29:58 -0700
+Message-id : 87k26e1oih.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@aikidev.net>, 848075@bugs.debian.org
+In-reply-to : <58507098.2060808@p10link.net>
+References : <5850532D.30006@p10link.net> <58506B50.3000706@p10link.net> <58507098.2060808@p10link.net>
+
+
+On 2016-12-13, peter green wrote:
+> On 13/12/16 21:42, peter green wrote:
+>> I would guess at this point either a race condition or a power glitch 
+>> (maybe powering the HDD off one of the USB ports wasn't such a good 
+>> idea).
+>>
+> OK, I found that adding  ahci-imx.hotplug=1 to the kernel command line 
+> made it work.
+>
+> Checking the schematic I notice that the USB ports seem to have power 
+> control, I wonder if they are power-cycled at some point during the boot 
+> process.
+Had a similar issue on a Cubox-I4pro, and your ahci-imx.hotplug=1
+workaround also worked for me.
+Maybe it's not loading the USB drivers in the initramfs... or maybe it's
+just a race condition.
+A different (more cumbersome) workaround is making sure all the drivers
+are available in the initramfs. I use this from time to time when adding
+support to debian for new arm systems. Why it worked in this case seems
+surprising... but... well...
+/etc/initramfs-tools/hooks/all-drivers:
+  
+  #!/bin/sh
+  # must be marked executable, e.g. chmod +x 
+  
+  PREREQS=""
+  
+  prereqs() { echo "$PREREQS"; }
+  
+  case "$1" in
+      prereqs)
+      prereqs
+      exit 0
+      ;;
+  esac
+  
+  . /usr/share/initramfs-tools/hook-functions
+  
+  copy_modules_dir kernel/drivers
+  
+lsmod from initramfs shell where it failed to mount the rootfs on sata:
+  Module                  Size  Used by    Tainted: G  
+  ci_hdrc_imx             6936  0 
+  ci_hdrc                35216  1 ci_hdrc_imx
+  extcon_core            13223  1 ci_hdrc
+  ahci_imx                6207  0 
+  ehci_hcd               64996  1 ci_hdrc
+  libahci_platform        6494  1 ahci_imx
+  libahci                23377  2 ahci_imx,libahci_platform
+  udc_core               26444  1 ci_hdrc
+  libata                192873  3 ahci_imx,libahci_platform,libahci
+  usbcore               195888  2 ci_hdrc,ehci_hcd
+  sdhci_esdhc_imx        12147  0 
+  sdhci_pltfm             3338  1 sdhci_esdhc_imx
+  scsi_mod              187963  1 libata
+  sdhci                  39324  2 sdhci_esdhc_imx,sdhci_pltfm
+  usb_common              3659  3 ci_hdrc,udc_core,usbcore
+  i2c_imx                15436  0 
+  usbmisc_imx             6594  1 ci_hdrc_imx
+  anatop_regulator        4712  1 
+  phy_mxs_usb             6386  2 
+  at803x                  4176  0 
+lsmod on a successfully booted system:
+  Module                  Size  Used by
+  snd_soc_imx_spdif       1954  0
+  sg                     23603  0
+  snd_soc_fsl_spdif      16193  2
+  imx_pcm_dma             1244  1 snd_soc_fsl_spdif
+  snd_soc_core          144850  3 snd_soc_fsl_spdif,imx_pcm_dma,snd_soc_imx_spdif
+  snd_pcm_dmaengine       3583  1 snd_soc_core
+  snd_pcm                83374  2 snd_pcm_dmaengine,snd_soc_core
+  snd_timer              20317  1 snd_pcm
+  snd                    55403  3 snd_timer,snd_soc_core,snd_pcm
+  soundcore               5571  1 snd
+  ip_tables              12425  0
+  x_tables               14826  1 ip_tables
+  autofs4                32792  2
+  ext4                  551118  2
+  crc16                   1274  1 ext4
+  jbd2                   94046  1 ext4
+  crc32c_generic          1862  2
+  fscrypto               15747  1 ext4
+  ecb                     2191  0
+  mbcache                 5508  3 ext4
+  dm_mod                103345  7
+  sd_mod                 32731  3
+  brcmfmac              240005  0
+  brcmutil                5789  1 brcmfmac
+  cfg80211              475128  1 brcmfmac
+  rfkill                 16819  2 cfg80211
+  imx_ipuv3_crtc         10746  0
+  ahci_imx                6207  2
+  libahci_platform        6494  1 ahci_imx
+  libahci                23377  2 libahci_platform,ahci_imx
+  libata                192873  3 libahci_platform,libahci,ahci_imx
+  ci_hdrc_imx             6936  0
+  imx_ipu_v3             75709  1 imx_ipuv3_crtc
+  ci_hdrc                35216  1 ci_hdrc_imx
+  scsi_mod              187963  3 sd_mod,libata,sg
+  extcon_core            13223  1 ci_hdrc
+  ehci_hcd               64996  1 ci_hdrc
+  udc_core               26444  1 ci_hdrc
+  i2c_imx                15436  0
+  sdhci_esdhc_imx        12147  0
+  sdhci_pltfm             3338  1 sdhci_esdhc_imx
+  usbcore               195888  3 ehci_hcd,brcmfmac,ci_hdrc
+  sdhci                  39324  2 sdhci_pltfm,sdhci_esdhc_imx
+  usbmisc_imx             6594  1 ci_hdrc_imx
+  usb_common              3659  3 udc_core,usbcore,ci_hdrc
+  ir_lirc_codec           5112  0
+  anatop_regulator        4712  1
+  phy_mxs_usb             6386  2
+  imx2_wdt                4189  0
+  dw_hdmi_imx             3203  0
+  dw_hdmi                14062  1 dw_hdmi_imx
+  imxdrm                  5486  1 imx_ipuv3_crtc
+  drm_kms_helper        117326  4 imx_ipuv3_crtc,dw_hdmi,imxdrm
+  lirc_dev                8715  1 ir_lirc_codec
+  etnaviv                66053  0
+  pwm_imx                 3678  1
+  drm                   276288  7 imx_ipuv3_crtc,etnaviv,dw_hdmi,dw_hdmi_imx,imxdrm,drm_kms_helper
+  evdev                  12740  0
+  leds_pwm                3220  0
+  gpio_ir_recv            3212  0
+  at803x                  4176  0
+live well,
+  vagrant
+signature.asc

@@ -1,0 +1,49 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#887784: env-preseed: env2debconf doesn't handle single quotes
+From : Jack Bates <wdz7eo@nottheoilrig.com>
+Date : Fri, 19 Jan 2018 14:07:33 -0700
+Message-id : 151639605396.32418.11878233383256921889.reportbug@debian
+Reply-to : Jack Bates <wdz7eo@nottheoilrig.com>, 887784@bugs.debian.org
+
+
+Package: env-preseed
+Tags: patch
+I booted the Debian-Installer with the following boot parameter:
+preseed/early_command="sed -i 'script' filename"
+and got the following error:
+> preseed: running preseed command preseed/early_command: sed -i '"'"'script'"'"' filename
+> log-output: sed: unsupported command "
+The following is a fix:
+diff --git a/env2debconf b/env2debconf
+index 3032235..4026128 100755
+--- a/env2debconf
++++ b/env2debconf
+@@ -31,13 +31,11 @@ for line in $(set); do
+ 			fi
+ 			var="${var#*:}"
+ 			
+-			# remove single quotes from around value
+-			val="${val#\'}"
+-			val="${val%\'}"
+-			# remove double quotes (user can type those for values
+-			# with spaces)
+-			val="${val#\"}"
+-			val="${val%\"}"
++			# Remove quotes. This shell doesn't support
++			# indirect expansion like Bash ${!var}, so
++			# resort to sed. Values may contain single
++			# quotes, like 'foo'"'"'bar'.
++			val="$(echo "$val" | sed "s/\"\([^\"]*\)\"\|'\([^']*\)'/\1\2/g")"
+ 			
+ 			IFS=$OLDIFS
+ 			if ! db_set "$var" "$val"; then
+Explanation: env2debconf gets its list of environment variables from
+$(set). The shell doesn't support indirect expansion like Bash ${!var},
+so env2debconf gets the values from $(set)'s output, too. $(set) wraps
+values in quotes, which env2debconf handles already, but it also escapes
+quotes within values like so: foo'bar -> 'foo'"'"'bar'
+Currently only the outer quotes are handled, causing syntax errors in
+case of inner quotes: 'foo'"'"'bar' -> foo'"'"'bar :-(
+This patch is a more general solution:
+echo "'foo'\"'\"'bar'" | sed "s/\"\([^\"]*\)\"\|'\([^']*\)'/\1\2/g" ->
+foo'bar :-)

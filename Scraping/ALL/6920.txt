@@ -1,0 +1,42 @@
+To : Luca Falavigna <dktrkranz@debian.org>, 898738@bugs.debian.org
+Subject : Bug#898738: debootstrap fails when specifying components
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Wed, 16 May 2018 20:39:34 +0900
+Message-id : 20180516203934.190d7074b39b4bd859955eed@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 898738@bugs.debian.org
+In-reply-to : <[🔎] CADk7b0P=eGje8V60r-1Ku3Je2CpwvWePAw1qOccfodRXvqdHvw@mail.gmail.com>
+References : <[🔎] 20180515191916.tr23kuvfo23d5pc6@mraw.org> <[🔎] CADk7b0P+b22GnDV20-dQVVLp8W19mrpdWsXNiGnXG3qJ6KndUA@mail.gmail.com> <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com> <[🔎] 20180515194438.j2xviquxcdq6zutw@mraw.org> <[🔎] 20180516090304.b4aa7607b9ff8b4455b0e417@iijmio-mail.jp> <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com> <[🔎] CADk7b0P=eGje8V60r-1Ku3Je2CpwvWePAw1qOccfodRXvqdHvw@mail.gmail.com> <[🔎] CADk7b0MLnfv0a=jW6QEfBxneW22XMFT7=H0BfLUbLJzRK3+DnA@mail.gmail.com>
+
+
+On Wed, 16 May 2018 13:34:44 +0200
+Luca Falavigna <dktrkranz@debian.org> wrote:
+> >  Simply initialize "ext" prevents this failure, could you check attached
+> >  patch, please?
+> 
+> I applied to 1.0.98 package in unstable, and it fixes the problem for me.
+ Good :)  Then, let's add test for it as attached.
+>From fe8dc595667af73c50324e975c7f1186a45e51e1 Mon Sep 17 00:00:00 2001
+From: Hideki Yamane <henrich@debian.org>
+Date: Wed, 16 May 2018 09:19:29 +0900
+Subject: [PATCH 2/2] Set multiple components for test
+---
+ debian/tests/debian-testing | 2 ++
+ 1 file changed, 2 insertions(+)
+diff --git a/debian/tests/debian-testing b/debian/tests/debian-testing
+index 65ee196..1209498 100755
+--- a/debian/tests/debian-testing
++++ b/debian/tests/debian-testing
+@@ -234,9 +234,11 @@ else {
+ my $distro_info = DebianDistroInfo->new;
+ my $testing = $distro_info->testing;
+ 
++# Should specify multiple components for checking (see Bug#898738)
+ if (!verbose_run(['debootstrap',
+             '--include=debootstrap,debian-archive-keyring,gnupg,hello',
+             '--variant=minbase',
++            '--components=main,contrib,non-free',
+             $testing, 'chroot.d', $mirror], '>&2')) {
+     BAIL_OUT("debootstrap failed: $?");
+ }
+-- 
+2.17.0

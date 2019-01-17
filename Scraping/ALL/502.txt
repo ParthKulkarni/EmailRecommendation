@@ -1,0 +1,153 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#914297: apache2: getrandom call blocks on first startup, systemd kills with timeout
+From : Mike Gerow <gerow@mgerow.com>
+Date : Wed, 21 Nov 2018 17:57:25 +0000
+Message-id : 154282304539.12589.819122470921469572.reportbug@li835-87.members.linode.com
+Reply-to : Mike Gerow <gerow@mgerow.com>, 914297@bugs.debian.org
+
+
+Package: apache2
+Version: 2.4.37-1
+Severity: important
+Recently apache2 has been failing to come up on initial startup, ultimately
+hitting systemd's timeout and getting killed. After startup, though, I was able
+to manually start apache2 with "systemctl start apache2". Poking strace in
+there I noticed it seemed to be blocking on a call to getrandom:
+697   getpid()                          = 697
+697   openat(AT_FDCWD, "/dev/urandom", O_RDONLY) = 10
+697   fstat(10, {st_mode=S_IFCHR|0666, st_rdev=makedev(1, 9), ...}) = 0
+697   openat(AT_FDCWD, "/dev/random", O_RDONLY) = 11
+697   fstat(11, {st_mode=S_IFCHR|0666, st_rdev=makedev(1, 8), ...}) = 0
+697   openat(AT_FDCWD, "/dev/srandom", O_RDONLY) = -1 ENOENT (No such file or directory)
+697   futex(0x7f52ad56c928, FUTEX_WAKE_PRIVATE, 2147483647) = 0
+697   getrandom( <unfinished ...>
+587   <... wait4 resumed> 0x7ffe3ecf748c, 0, NULL) = ? ERESTARTSYS (To be restarted if SA_RESTART is set)
+697   <... getrandom resumed> 0x5577627046e0, 32, 0) = ? ERESTARTSYS (To be restarted if SA_RESTART is set)
+587   --- SIGTERM {si_signo=SIGTERM, si_code=SI_USER, si_pid=1, si_uid=0} ---
+697   --- SIGTERM {si_signo=SIGTERM, si_code=SI_USER, si_pid=1, si_uid=0} ---
+587   +++ killed by SIGTERM +++
+697   +++ killed by SIGTERM +++
+Which I'd suspect has something to do with apache or some library it depends on
+moving to getrandom, which (I believe) blocks of the entropy pool isn't good
+enough yet. It looks like openssh is affected by something similar:
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=912087
+The difference with openssh, though, is that it eventually does come up as its
+systemd config allows it to be retried. apache2, on the other hand, does not
+allow this. Which means on systems that have poor entropy sources (like virtual
+machines) the machine will start, but apache2 will never come up until it's
+manually started.
+I'm not certain where the actual bug is here, maybe this is something systemd
+should be able to block on, but in either case I wouldn't be surprised if this
+starts affecting users of apache in virtual environments specifically.
+-- Package-specific info:
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.18.0-2-amd64 (SMP w/2 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled
+Versions of packages apache2 depends on:
+ii  apache2-bin    2.4.37-1
+ii  apache2-data   2.4.37-1
+ii  apache2-utils  2.4.37-1
+ii  dpkg           1.19.2
+ii  lsb-base       9.20170808
+ii  mime-support   3.61
+ii  perl           5.28.0-3
+ii  procps         2:3.3.15-2
+Versions of packages apache2 recommends:
+ii  ssl-cert  1.0.39
+Versions of packages apache2 suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  w3m [www-browser]                                0.5.3-36+b1
+Versions of packages apache2-bin depends on:
+ii  libapr1                  1.6.3-3
+ii  libaprutil1              1.6.1-3+b1
+ii  libaprutil1-dbd-sqlite3  1.6.1-3+b1
+ii  libaprutil1-ldap         1.6.1-3+b1
+ii  libbrotli1               1.0.7-1
+ii  libc6                    2.27-8
+ii  libcurl4                 7.61.0-1
+ii  libjansson4              2.11-1
+ii  libldap-2.4-2            2.4.46+dfsg-5+b1
+ii  liblua5.2-0              5.2.4-1.1+b2
+ii  libnghttp2-14            1.34.0-1
+ii  libpcre3                 2:8.39-11
+ii  libssl1.1                1.1.1-2
+ii  libxml2                  2.9.4+dfsg1-7+b2
+ii  perl                     5.28.0-3
+ii  zlib1g                   1:1.2.11.dfsg-1
+Versions of packages apache2-bin suggests:
+pn  apache2-doc                                      <none>
+pn  apache2-suexec-pristine | apache2-suexec-custom  <none>
+ii  w3m [www-browser]                                0.5.3-36+b1
+Versions of packages apache2 is related to:
+ii  apache2      2.4.37-1
+ii  apache2-bin  2.4.37-1
+-- Configuration Files:
+/etc/apache2/apache2.conf changed:
+DefaultRuntimeDir ${APACHE_RUN_DIR}
+PidFile ${APACHE_PID_FILE}
+Timeout 300
+KeepAlive On
+MaxKeepAliveRequests 100
+KeepAliveTimeout 5
+User ${APACHE_RUN_USER}
+Group ${APACHE_RUN_GROUP}
+HostnameLookups Off
+ErrorLog ${APACHE_LOG_DIR}/error.log
+LogLevel debug
+IncludeOptional mods-enabled/*.load
+IncludeOptional mods-enabled/*.conf
+Include ports.conf
+<Directory />
+	Options FollowSymLinks
+	AllowOverride None
+	Require all denied
+</Directory>
+<Directory /usr/share>
+	AllowOverride None
+	Require all granted
+</Directory>
+<Directory /var/www/>
+	Options Indexes FollowSymLinks
+	AllowOverride None
+	Require all granted
+</Directory>
+AccessFileName .htaccess
+<FilesMatch "^\.ht">
+	Require all denied
+</FilesMatch>
+LogFormat "%v:%p %h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" vhost_combined
+LogFormat "%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" combined
+LogFormat "%h %l %u %t \"%r\" %>s %O" common
+LogFormat "%{Referer}i -> %U" referer
+LogFormat "%{User-agent}i" agent
+IncludeOptional conf-enabled/*.conf
+IncludeOptional sites-enabled/*.conf
+/etc/apache2/sites-available/000-default.conf changed:
+<VirtualHost *:80>
+	# The ServerName directive sets the request scheme, hostname and port that
+	# the server uses to identify itself. This is used when creating
+	# redirection URLs. In the context of virtual hosts, the ServerName
+	# specifies what hostname must appear in the request's Host: header to
+	# match this virtual host. For the default virtual host (this file) this
+	# value is not decisive as it is used as a last resort host regardless.
+	# However, you must set it for any further virtual host explicitly.
+	#ServerName www.example.com
+        Redirect 404 /
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	CustomLog ${APACHE_LOG_DIR}/access.log combined
+	# For most configuration files from conf-available/, which are
+	# enabled or disabled at a global level, it is possible to
+	# include a line for only one particular virtual host. For example the
+	# following line enables the CGI configuration for this host only
+	# after it has been globally disabled with "a2disconf".
+	#Include conf-available/serve-cgi-bin.conf
+</VirtualHost>
+-- no debconf information

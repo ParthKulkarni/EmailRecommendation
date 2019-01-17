@@ -1,0 +1,48 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Marvin Renich <mrvn@renich.org>
+Date : Thu, 9 Mar 2017 17:52:05 -0500
+Message-id : 20170309225205.trfsko4cxx26stht@basil.wdw
+In-reply-to : <[🔎] 87d1dqfh41.fsf@hope.eyrie.org>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org> <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk> <[🔎] 87d1dqfh41.fsf@hope.eyrie.org>
+
+
+* Russ Allbery <rra@debian.org> [170309 13:19]:
+> I think this would be a great way of introducing spurious bugs in our
+> distribution from people who don't happen to read the README file and miss
+> dependencies they actually need...
+I think you are missing Ian's meaning.  Currently foo Depends libbar,
+and libbar Depends bar-daemon.  If libbar were dynamically loaded, the
+maintainer of foo would have used either a Recommends or Suggests for
+libbar, but must instead use Depends because it is statically loaded.
+If libbar-dev documents that it requires bar-daemon (and under what
+circumstances, if appropriate), but libbar does not declare the Depends,
+then it becomes the Debian maintainer of foo who decides to add an
+appropriate Depends, Recommends, or Suggests for bar-daemon, in addition
+to the Depends (that should be, but can't be, a Recommends or Suggests)
+on libbar.  This is not pushed to the user at all, except in the normal
+way that a user currently chooses to install Recommends or Suggests in
+other circumstances.
+Every Debian maintainer whose package links libbar would then be
+required to read the documentation of libbar-dev, and act on that to add
+a dependency that libbar would have used.  I would certainly expect a
+Debian maintainer to read said documentation (irregardless of Ian's
+proposal).  This has nothing to do with an end user reading a README
+file to get the dependencies right (at least not any differently than
+the current situation for other non-lib Recommends or Suggests).
+I have not decided which side of the fence I am on, but I am certainly
+empathetic to Ian's, Adam's, and others' desire to improve the
+situation, as I have been bitten by this myself on more than one
+occasion.  This is a situation where the maintainer of foo has no choice
+but to use Depends, even if the library "can perhaps enhance [foo's]
+usefulness, but installing [foo] without [libbar] is perfectly
+reasonable."  You end up with a daemon that you don't want because
+libbar Depends bar-daemon is appropriate, even if you, the end user, are
+never going to use foo in a way that uses the libbar functionality.
+If more upstreams were careful to use dynamic loading in these
+situations, it would be less of a problem.  In a perfect world, the
+solution would be for foo's maintainer to convince upstream to switch to
+dynamic loading.  I'm not convinced that Ian's proposal is the right
+approach, but I definitely agree that it is an attempt to solve a real
+problem, and I believe it has more merit than you give it.
+...Marvin

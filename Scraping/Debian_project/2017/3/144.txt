@@ -1,0 +1,47 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Depends/Recommends from libraries
+From : Russ Allbery <rra@debian.org>
+Date : Thu, 09 Mar 2017 10:19:10 -0800
+Message-id : 87d1dqfh41.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk> (Ian Jackson's	message of "Thu, 9 Mar 2017 17:29:09 +0000")
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl>	<[🔎] 87o9xbxhd2.fsf@hope.eyrie.org>	<[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk>
+
+
+Ian Jackson <ijackson@chiark.greenend.org.uk> writes:
+> I think the right way to solve this problem is to declare that:
+>  * When a library package is installed, the Depends and Recommends
+>    of the library should be appropriate on the assumption that:
+>      - the library package is only installed because it is the dormant
+>        runtime-link-dependency of an executable or other library;
+>      - none of the functions in the library are going to be
+>        called.
+>    Normally this will mean that the library will reference only other
+>    library packages, on which it has runtime-link dependencies.
+>  * If a library needs or wants additional software installed,
+>    if and when functions in that library are called, this
+>    should be documented in the /usr/share/doc/BAR/README.Debian.gz for
+>    the corresponding -dev library package.  (If churn is
+>    likely, a library-specific virtual package name may need
+>    to be documented, and provided as appropriate.)
+>  * Programs which call functions in libraries (directly or indirectly)
+>    should arrange to Depend on, Recommend, or Suggest, the appropriate
+>    infrastructure, as documented by the -dev package(s).
+I think this would be a great way of introducing spurious bugs in our
+distribution from people who don't happen to read the README file and miss
+dependencies they actually need because they're used to Debian properly
+picking up shared library dependencies and to the dependencies of any
+given package being fully self-contained.  Both of which, I should add,
+are major *features* of our distribution that many of us have worked very
+hard to achieve.  I'm opposed.
+Now, if this were taken a further step so that dpkg-shlibdeps would
+provide some mechanism to *automatically* add those downstream
+dependencies to packages that depend on the library unless the
+dependencies were explicitly suppressed, I wouldn't be as strongly
+opposed.  It still feels like needless complexity to me, but at least we
+would default to the known-working dependencies but provide an easy way
+for a library consumer to relax those dependencies as needed.  But that
+would require writing some additional infrastructure and relabeling all of
+those libraries to have a new dependency field, and I strongly suspect
+it's more effort than it's worth.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

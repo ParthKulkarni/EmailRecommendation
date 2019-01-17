@@ -1,0 +1,80 @@
+To : submit@bugs.debian.org, mqudsi@neosmart.net
+Subject : Bug#886173: general: ls quotes results with special characters in its output
+From : mqudsi@neosmart.net
+Date : Tue, 2 Jan 2018 20:38:00 +0000
+Message-id : 01010160b898588f-4fb75c55-2cc1-4ad6-ab94-a7e18e45dcdc-000000@us-west-2.amazonses.com
+Reply-to : mqudsi@neosmart.net, 886173@bugs.debian.org
+
+
+Package: general
+Severity: normal
+Dear Maintainer,
+On a clean installation of debian buster, I ran into an issue where the
+output of `ls` in various modes led me to confusedly attempt to figure
+out where my scripting had gone wrong.
+In particular, `ls` output (both in regular and `-l` modes) wraps in
+single quotes the names of files that contain special characters (or, at
+least, a parenthesis), meaning its output is not an accurate reflection
+of the actual contents of the directory.
+Observe:
+```
+mqudsi@buster ~> touch test\(
+mqudsi@buster ~> ls -l
+mqudsi@buster ld ~> ls -l
+-rw-r--r-- 1 mqudsi mqudsi         0 Jan  2 14:22 'test('
+```
+In my case, I had downloaded a file via `wget` that contained a
+parenthesis in its filename. After running `ls`, I presumed that there
+was a bug in my shell that passed in the parentheses to `wget`, as I
+presumed that `ls` was showing me what was actually there.
+Additionally, the output cannot be copied-and-pasted as it is. What is
+the point of injecting quotes if they don't actually escape/quote their
+content? To illustrate with an example:
+```
+mqudsi@buster ~> touch \$\(test\)
+mqudsi@buster ~> ls -l
+-rw-r--r-- 1 mqudsi mqudsi    0 Jan  2 14:27 '$(test)'
+```
+That's not shell-safe, but the quotes might lead you to think it were.
+Moreover, the quoting behavior is... weird. I'm not sure what is meant
+to be quoted below -- actually, after seeing the output of ls, I'm no
+longer sure of anything and have no clue what actually exists on my
+filesystem and what doesn't:
+```
+mqudsi@buster ~> touch \'\test\(\'
+mqudsi@buster ~> ls -l
+-rw-r--r-- 1 mqudsi mqudsi    0 Jan  2 14:22 ''\''test('\'''
+```
+I think we can all agree that's a bit confusing?
+(I'm not clear on whether this is simply a bug or by design, so I'm
+hedging my bets and pointing out why it's not a good idea just in case
+this behavior was intentional.)
+There's no good way to account for all inputs or to account for the
+idiosyncrasies of the quoting behavior of all the different shells. It's
+not `ls`'s job to insulate the user from making quotes mistakes when
+referencing files, if only because in attempting to do so it makes
+things a lot worse:
+```
+mqudsi@buster ~> ls -l
+-rw-r--r-- 1 mqudsi mqudsi    0 Jan  2 14:27 '$(test)'
+mqudsi@buster ~> rm '$(test)' #copy-and-pasted unsafely w/ side-effects
+# operation fails, with potentially dangerous side effects
+mqudsi@buster ~> rm \'\$(test\)\' #presuming ls output is not quoted
+# operation fails because file does not exist
+mqudsi@buster ~> rm test\(
+# all it took to doing it right
+```
+Hopefully this behavior can be changed to simply listing the contents of
+the specified directory as-is.
+Thank you,
+Mahmoud Al-Qudsi
+NeoSmart Technologies
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.13.0-1-amd64 (SMP w/1 CPU core)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

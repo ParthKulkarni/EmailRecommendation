@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Re: no{thing} build profiles
+From : Marvin Renich <mrvn@renich.org>
+Date : Tue, 23 Oct 2018 08:59:37 -0400
+Message-id : 20181023125937.kmzz7e4gssgozpxo@basil.wdw
+In-reply-to : <[🔎] CAKNHny8gf3N_GkFk910c5kuwNUF15e601JjRhcrF7PW4k6wqLg@mail.gmail.com>
+References : <[🔎] 87sh10imog.fsf@web.de> <[🔎] 20181020171607.2khryydow7bnqfdc@shell.thinkmo.de> <[🔎] 87lg6s8nxb.fsf_-_@violet.siamics.net> <[🔎] 87va5vg13z.fsf@err.no> <[🔎] 154011468574.1793.17134216390366195697@auryn.jones.dk> <[🔎] pqhir3$558$1@blaine.gmane.org> <[🔎] 20181021161327.2fqaapm4yrp4564s@basil.wdw> <[🔎] CAKNHny-uiVrPH=-emDJcGJk9sNPpmVXOS_k3j8h8CHcJ9C+Zng@mail.gmail.com> <[🔎] 20181022153221.kb2iamlkbozg5cch@basil.wdw> <[🔎] CAKNHny8gf3N_GkFk910c5kuwNUF15e601JjRhcrF7PW4k6wqLg@mail.gmail.com>
+
+
+[I'm subscribed; please do not CC me.]
+* Matthias Klumpp <matthias@tenstral.net> [181022 14:18]:
+> Because having a real dependency eliminates another source of bugs.
+> The library will throw weird (for unexperienced end-users) errors and
+> they have to hunt down a solution for why something isn't working as
+> they expect.
+Why would a library give a weird error to a user?  It is the
+application's responsibility to check the return code from the library
+and provide an appropriate message to the user (e.g. "Unable to
+initialize gpg library."), which should be sufficient for the end user
+to track down the problem, even if the message is a bit cryptic to them
+at first.  The point here is that it is still a bug in the software if
+error messages are insufficient to correct the issue.  So if someone
+reports "my application broke and I can't figure out what to do",
+retitle the bug to "Error message given to user when libgpgme returns
+failure is too cryptic."  It is still a bug, just a different one than
+the user reported.
+> The "Recommends" relation should work here in theory, in practice
+> though people manage to remove stuff that was recommended by accident,
+I think this is the key point.  Your experiences are obviously different
+from mine, because I do not see accidental removal of recommended
+packages very often.  However, I am willing to accept that it does
+happen, and its likelihood probably depends on the organization (which
+might be a personal one-user computer or a cluster of corporate servers)
+and its admins.
+> or even configure APT to never install recommends, and then end up
+> with things not working (granted, in the latter case it's their own
+> fault).
+Right.
+However, in both cases, abusing the dependency system to force the
+installation of a package that the admin should be able to choose not to
+install in specific situations is the wrong answer.
+In a well-run organization, the admins either will install recommends as
+the default, or they will be rather selective about choosing appropriate
+dependencies to install or not install.  Further, their users will come
+to them, not Debian, with problems.
+Debian can't do anything about poorly-run larger organizations, and
+should not abuse dependencies to try to fix them. :-P
+That mostly leaves the single-user computer with a less experienced
+user-admin.  I suspect that this is the source of the large majority of
+this class of bug reports.  If you think about why they would configure
+APT to not install recommends, it is likely because they have heard that
+Debian has a reputation for inflating dependencies, and they don't
+really need all the Recommended packages.  I think in some cases this
+reputation either is or was justified.
+So, what is the solution?  Keep inflating dependencies until everything
+is Depends?  This is exactly the wrong solution.
+There are at least two better responses to these "false" bug reports.
+The first is to retitle and forward upstream as in my reply above.  The
+second is to enhance reportbug to list recommended packages that are not
+installed and encourage the user to try to reproduce the problem with
+all recommended packages installed.  Also, reportbug can check the APT
+configuration and nudge the user if appropriate as well as including it
+in the bug report for the maintainer's information.
+The problem with inflating Suggests to Recommends is that then people
+routinely avoid installing Recommends.  However, inflating Recommends to
+Depends is _much_ worse, because you have removed the admin's ability to
+make informed choices.
+Ignoring the policy definition of Recommends to avoid getting bug
+reports from inexperienced users (or more experience users who are about
+to have a palm-to-forehead moment) is simply and unequivocally wrong.
+...Marvin

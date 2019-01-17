@@ -1,0 +1,42 @@
+To : Cyril Brulebois <kibi@debian.org>, 846982@bugs.debian.org
+Subject : Re: Bug#846982: override: downgrade priority of all libraries to optional
+From : Luca Falavigna <dktrkranz@debian.org>
+Date : Sat, 20 Jan 2018 16:20:51 +0100
+Message-id : CADk7b0PCYqNKAtnKABbEqjo3pXUawgTK-htNYRx3yj0tAOsHiQ@mail.gmail.com
+In-reply-to : <[🔎] 20180120131412.kequcemzbthg2iwq@mraw.org>
+References : <148088113447.26403.6953954669331376603.reportbug@pluto.milchstrasse.xx> <[🔎] CADk7b0NefSinBW477ivi_BYLwvYiBsRtRC+UU25_Wfacz+LtEw@mail.gmail.com> <[🔎] 20180120131412.kequcemzbthg2iwq@mraw.org>
+
+
+Hi Cyril,
+2018-01-20 14:14 GMT+01:00 Cyril Brulebois <kibi@debian.org>:
+> Just as a reminder, priority is archive-wise so we won't have that in
+> unstable then in testing, right?
+Normally overrides are changed for unstable, but are propagated to
+testing during dinstall. If we have a look at a recent override change
+(see #886053), we can notice exactly that:
+projectb=> select o.package, s.suite_name as suite, p.priority
+projectb-> from override o
+projectb-> join suite s on s.id = o.suite
+projectb-> join priority p on p.id = o.priority
+projectb-> where o.package = 'libudev1'
+projectb-> and o.type = (
+projectb(>   select id
+projectb(>   from override_type
+projectb(>   where type = 'deb');
+ package  |       suite       | priority
+----------+-------------------+-----------
+ libudev1 | wheezy-backports  | important
+ libudev1 | oldstable         | important
+ libudev1 | stable            | important
+ libudev1 | jessie-backports  | important
+ libudev1 | stretch-backports | important
+ libudev1 | testing           | optional
+ libudev1 | unstable          | optional
+(7 rows)
+projectb=>
+> That being said, that looks reasonable enough; a bit curious as to which
+> things might break, but let's do that, and we'll see…
+Alright! Thanks both to you and Steve for the fast replies!
+-- 
+Cheers,
+Luca

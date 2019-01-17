@@ -1,0 +1,62 @@
+To : submit@bugs.debian.org
+Subject : Bug#879151: debian-ports support when setting up sources.list
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Thu, 19 Oct 2017 22:13:54 +0200
+Message-id : 20171019201354.GC3214@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 879151@bugs.debian.org
+
+
+Package: apt-mirror-setup
+Version: 0.129
+Severity: wishlist
+Tags: patch
+X-Debbugs-CC: "Helge Deller" <deller@gmx.de>, "John Paul Adrian Glaubitz" <glaubitz@physik.fu-berlin.de>, "James Clarke" <jrtc27@debian.org>
+Dear Maintainer,
+apt-mirror-setup currently doesn't create an entry for the
+'unreleased' distribution in the file /etc/apt/sources.list
+on non released architectures. The patch below enables this.
+(A file 'port_architecture' should be created previously
+by another package, e.g. choose-mirror-bin. See #879130)
+Regards,
+JH Chatenet
+--- a/generators/50mirror
++++ b/generators/50mirror
+@@ -162,6 +162,14 @@
+ 	exit 1
+ fi
+ 
++if [ -e /usr/lib/choose-mirror/port_architecture ]; then
++	# There are no non-free nor contrib repositories
++	# for non released architectures
++	db_set apt-setup/non-free false
++	db_fset apt-setup/non-free seen true
++	db_set apt-setup/contrib false
++fi
++
+ STATE=1
+ while true; do
+ 	case "$STATE" in
+@@ -239,6 +247,11 @@
+ 
+ 	echo "deb $protocol://$hostname$directory $codename $dists" > $file
+ 	
++	if [ -e /usr/lib/choose-mirror/port_architecture ];then
++		# Port architectures use both suites 'unstable' and 'unreleased'
++		echo "deb $protocol://$hostname$directory unreleased $dists" >> $file
++	fi
++
+ 	if apt-setup-verify --from $PROGRESS_FROM --to $PROGRESS_TO $file; then
+ 		done=1
+ 	else
+@@ -261,4 +274,10 @@
+ 	deb_src="# deb-src"
+ fi
+ 
+-echo "$deb_src $protocol://$hostname$directory $codename $dists" >> $file
++if [ -e /usr/lib/choose-mirror/port_architecture ];then
++	# Hardcode the default regular debian mirror
++	# There is no source repository on debian-ports mirrors
++	echo "$deb_src $protocol://deb.debian.org/debian $codename $dists" >> $file
++else
++	echo "$deb_src $protocol://$hostname$directory $codename $dists" >> $file
++fi

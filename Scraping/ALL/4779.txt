@@ -1,0 +1,55 @@
+To : Philipp Kern <pkern@debian.org>, 840248@bugs.debian.org
+Subject : Bug#840248: debian-installer: Add btrfs subvolume setting for snapshot
+From : Nicholas D Steeves <nsteeves@gmail.com>
+Date : Tue, 17 Jan 2017 15:57:32 -0700
+Message-id : 20170117225732.GA10242@solydxk
+Reply-to : Nicholas D Steeves <nsteeves@gmail.com>, 840248@bugs.debian.org
+In-reply-to : <[🔎] f6fa98ee-6ae7-df4a-b5e2-124b1a645709@debian.org>
+References : <20161010092214.94643177c3c6899d5bcd8da3@debian.or.jp> <20161011214027.GA5515@DigitalMercury.dynalias.net> <47f41573-a641-6feb-0869-fc8f53cb63e3@debian.org> <20161219044941.GA23836@DigitalMercury.dynalias.net> <[🔎] f6fa98ee-6ae7-df4a-b5e2-124b1a645709@debian.org>
+
+
+Hi Philipp,
+Thank you for the clarification, and sorry for my tardy reply.
+On Wed, Jan 04, 2017 at 12:04:09AM +0100, Philipp Kern wrote:
+> On 12/19/2016 05:49 AM, Nicholas D Steeves wrote:
+> > Which rescue mode, and where?  Please tell me so I can fix it!  From
+> > what I've read, setting a default subvolid != 5 was explored by other
+> > distributions, and abandoned.
+> 
+> rescue-mode is in [0]. That presents you with a menu where you can
+> select local root filesystems. That should somehow DTRT instead of
+> mounting the top-level btrfs filesystem with the root filesystem being
+> below. I suppose it'd be also ok to mount it as-is, as long as the shell
+> is spawned in the right place. (Although that might be surprising.)
+> 
+> The mode is triggered by passing "rescue/enable=true" on the kernel
+> command-line. d-i ships with boot menu items that do this.
+> 
+> Kind regards
+> Philipp Kern
+> 
+> [0] https://anonscm.debian.org/cgit/d-i/rescue.git/tree/
+> 
+Oh, there!  I had already checked that out in
+debian-installer/packages/rescue.  :-) From what I gather, DTRT looks
+something like one of the following:
+1. Use existing choose partition menu
+  * select partition menu
+  * test if selected partition is a btrfs volume
+    -  if there are no subvolumes, use present behaviour
+  * if subvolumes exist
+    - install btrfs-progs udeb
+    - use btrfs subvol list to read subvols
+    - present a menu
+How is this currently handled for LVM?  There is very little code in
+"rescue" itself, and I haven't yet managed to figure out how
+everything fits together.
+2. Alternatively, duplicate the existing LVM code, then modify it for
+   btrfs.
+If you could point me to whatever 'rescue' ties into for LVM support I
+would be very grateful!  From what I've gathered so far, "rescue"
+dependency on the btrfs application is provided by the btrfs-progs udeb and
+not through initramfs
+Cheers,
+Nicholas
+signature.asc

@@ -1,0 +1,93 @@
+To : Bastian Blank <waldi@debian.org>
+Subject : Re: [Pkg-julia-devel] julia_1.0.0-1_amd64.changes REJECTED
+From : Mo Zhou <lumin@debian.org>
+Date : Mon, 17 Dec 2018 12:38:25 +0000
+Message-id : 20181217123824.GA17993@Asuna
+In-reply-to : <20181130145553.GA11805@Asuna>
+References : <20180815094855.GA10179@Asuna> <20180816195510.wf2bzmhq3bwol2fc@shell.thinkmo.de> <20180823074909.GB2641@Asuna> <20180925144043.GA9441@Asuna> <23467.28117.229615.852023@chiark.greenend.org.uk> <23505.39387.547604.882199@chiark.greenend.org.uk> <0b5007f1-3d37-7097-08f1-e7e6586b558d@debian.org> <20181121141142.orfovb7uabee6zyo@shell.thinkmo.de> <e432dbd7-b327-7a4b-4254-c4e2b8f07b9c@debian.org> <20181130145553.GA11805@Asuna>
+
+
+Hi,
+Another fortnight has passed. Any update?
+I've just uploaded Julia 1.0.3 to the NEW queue. This time the ordinary
+shared object libjulia.so.1 is also stripped. Julia's sysimage sys.so
+should be regarded as a special case and will never be stripped.
+On Fri, Nov 30, 2018 at 02:55:55PM +0000, Mo Zhou wrote:
+> Hi Bastian,
+> 
+> I've uploaded julia_1.0.2-1 to unstable (NEW) yesterday. There are
+> already six uploads being piled up in NEW. These uploads already have
+> been tested by Ubuntu devel extensively, and are suitable for the
+> Buster release.
+> 
+> I totally understand that for traditional C/C++ shared object, stripping
+> debugging information makes sence for our archive, and I'm really
+> stripping my every other C/C++ shared objects in other packages. However
+> I must emphasize that, the unstripped ELF shared object sys.so shipped
+> by libjulia* is *NOT* a usual shared object which people are familiar
+> with. This shared object is called julia's "sysimage" which is compiled
+> from julia's base (core functionality) and standard library (written in
+> pure julia) to speed up julia interpreter initialization by reducing the
+> JIT overhead.  Julia is an interpreting language with heavy JIT
+> compilation... while we can even compile pure julia scripts into ELF
+> format... just like sys.so and [1]. To illustrate what sys.so is, here
+> is a random fragment of its symbol table[2]:
+> 
+>   3137: 000000000753d918     8 OBJECT  LOCAL  DEFAULT   23 +LinearAlgebra.Transpose8496
+>   3138: 0000000007544308     8 OBJECT  LOCAL  DEFAULT   23 +LinearAlgebra.UniformScaling14136
+>   3139: 0000000007536798     8 OBJECT  LOCAL  DEFAULT   23 +Logging.ConsoleLogger3352
+>   3140: 000000000754b690     8 OBJECT  LOCAL  DEFAULT   23 +Main.Base.##12#1321680
+>   3141: 0000000007540fe0     8 OBJECT  LOCAL  DEFAULT   23 +Main.Base.##223#22411153
+>   3142: 000000000753ef58     8 OBJECT  LOCAL  DEFAULT   23 +Main.Base.##223#2249585
+>   3143: 00000000075496a0     8 OBJECT  LOCAL  DEFAULT   23 +Main.Base.##227#22819234
+> 
+> Are they ordinary symbols that you are familiar with? They are more
+> likely sort of llvm cache in the native machine code format.
+> 
+> The consequence of stripping sys.so has already been stated by Graham.
+> It feels like Julia interpreter cannot trace (via backtrace/stacktrace)
+> into *script* after we did something tricky to the cache generated from
+> the original *script*. Such phenomenon, to my understanding, is
+> ridiculous to an interpreting language.
+> 
+> As a julia user and the de-facto julia package maintainer for more than
+> 10 recent uploads, I think making Debian's Julia interpreter behave
+> differently from upstream binary release at this point is not a good
+> idea, and the different behaviour is likely to confuse users in the
+> future.
+> 
+> Please consider giving Julia 1.X a chance to enter Buster, thanks.
+> 
+> [1] https://github.com/JuliaLang/PackageCompiler.jl
+> [2] readelf -sW sys.so
+> 
+> On Fri, Nov 23, 2018 at 04:42:53PM +0200, Graham Inggs wrote:
+> > Hi Bastian
+> > 
+> > On 2018/11/21 16:11, Bastian Blank wrote:
+> > > I have not seen a real explanation why it needs to be this and exactly
+> > > this way.  This setup was explained as either
+> > > - a workaround for a bug,
+> > > - a way to get stacktraces from users or
+> > > - a way to make autopkgtest run.
+> > 
+> > Stripping sys.so breaks one of Julia's language features, which is the
+> > ability to  trace into its standard library.  An example [1] is found in the
+> > documentation.
+> > 
+> > One of Julia's tests checks this, and hence autopkgtests fail if debug
+> > symbols are missing from sys.so, which is compiled from .jl scripts, not
+> > C/CXX source.
+> > 
+> > We could strip sys.so and create a manual debug symbols package, but in
+> > order to make the Debian package have the same features as upstream,  we
+> > would make the Julia package depend on it.
+> > 
+> > We would prefer to ship sys.so unstripped, but if you insist on having an
+> > extra binary package in the archive in order to silence Lintian, we will do
+> > it.
+> > 
+> > Regards
+> > Graham
+> > 
+> > [1] https://docs.julialang.org/en/v1.0.0/manual/stacktraces/

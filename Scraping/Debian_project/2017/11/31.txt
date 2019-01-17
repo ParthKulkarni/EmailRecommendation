@@ -1,0 +1,49 @@
+To : Adam Borowski <kilobyte@angband.pl>, debian-devel@lists.debian.org
+Subject : Re: RFC: Support for selective usage of (fake)root during package build (R³)
+From : Niels Thykier <niels@thykier.net>
+Date : Sun, 05 Nov 2017 08:03:00 +0000
+Message-id : b1a5a83a-807d-33f2-be13-745a2e1ed8c9@thykier.net
+In-reply-to : <[🔎] 20171104232541.ld5c6avimi5qvexc@angband.pl>
+References : <572f273d-06b6-14c1-b56d-3f0f45e7d5fa@thykier.net> <[🔎] b4a0f34e-bc21-60ae-99f5-caba6db20923@thykier.net> <[🔎] 20171104232541.ld5c6avimi5qvexc@angband.pl>
+
+
+Hi Adam,
+Thanks for the feedback. :)
+Adam Borowski:
+> [...]
+> 
+> Have you perhaps gathered some data about how many packages would build
+> reproducibly wrt the old state after a blind mechanical change to R³?
+> I'd guess it's the vast majority (especially if you change MakeMaker).
+> 
+I have not, but my gut feeling does indeed agree that it will the vast
+majority that "just works(tm)" or FTBFS.  That said, checksums +
+diffoscope should assist with anything in between.
+(Reminder: static ownerships are still not covered at the moment, so
+packages needing those must be in the FTBFS bucket with R³=no).
+> 
+> I do have a concern: this adds a yet another field every new package needs
+> to manually set.  And even if in 10 years from now, the Policy will require
+> R³ to be set (even to "yes" ("binary-targets")), it'd be a manual effort for
+> every single package.
+> 
+> Thus, what about making R³ default to "no" in a new dh compat level?
+> 
+I do understand your concern. However:
+ * This proposal is primarily an interface between the package and
+   buildpackage/the builders tool.  The debhelper part is just gluing
+   this together so it becomes easy to adopt in the average case.
+ * The compat level is an interface between the package and debhelper.
+   IOW, it would be ill-suited to support R³ as it is not an interface
+   to one of the most important members of the specification.
+ * Even if we could use a debhelper compat level to introduce R³, it
+   would have neutered the adoption rate.  We got plenty of packages,
+   where maintainers want to have their package backportable to stable,
+   oldstable and even oldoldstable (not to mention various Ubuntu LTS
+   releases).
+ * For those concerned about mirror metadata (was not mentioned in
+   Adam's mail), the R³ field is not inserted in the .dsc with dpkg
+   1.19.0.  Accordingly, this has no affect on the size of the
+   Sources files.
+Thanks,
+~Niels

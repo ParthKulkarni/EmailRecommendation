@@ -1,0 +1,42 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#904808: libcap-ng0: libcap-ng's use of pthread_atfork causes segfaults
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Sat, 28 Jul 2018 10:08:18 +0200
+Message-id : 153276529880.18533.11076884416093083563.reportbug@k.lan
+Reply-to : Stefan Fritsch <sf@sfritsch.de>, 904808@bugs.debian.org
+
+
+Package: libcap-ng0
+Version: 0.7.9-1
+Severity: grave
+Justification: renders package unusable
+Hi,
+apache httpd loads and unloads modules during a reload of the server
+configuration. This causes the pthread_atfork entry that is installed by
+libcap-ng0 to point to code that is no longer in the process, causing a
+segfault at the next fork.
+See
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=902657
+There is already an upstream bug report about this:
+https://github.com/stevegrubb/libcap-ng/issues/5
+Since there is no interface to undo a pthread_atfork() call, there is no
+way a shared library can call pthread_atfork() in a safe way. libcap-ng0
+should not do it.
+Cheers,
+Stefan
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable-debug
+  APT policy: (500, 'unstable-debug'), (500, 'unstable'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Foreign Architectures: armhf, i386
+Kernel: Linux 4.17.0-1-amd64 (SMP w/8 CPU cores)
+Locale: LANG=de_DE.UTF-8, LC_CTYPE=de_DE.UTF-8 (charmap=UTF-8), LANGUAGE= (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled
+Versions of packages libcap-ng0 depends on:
+ii  libc6  2.27-5
+libcap-ng0 recommends no packages.
+libcap-ng0 suggests no packages.
+-- no debconf information

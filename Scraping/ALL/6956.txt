@@ -1,0 +1,65 @@
+To : Philipp Kern <pkern@debian.org>, 896071@bugs.debian.org
+Subject : Bug#896071: debootstrap fails to retrive Release file over https
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sat, 19 May 2018 14:14:03 +0900
+Message-id : 20180519141403.5e24cfa8d29ad504593e5942@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 896071@bugs.debian.org
+In-reply-to : <[🔎] e78735ca-f3da-94ba-3059-e5f50133b635@debian.org>
+References : <152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <20180421203259.de45ed6e95bef4e354d00be4@iijmio-mail.jp> <CAMPXz=p9ZzCh235PpJKDR7_UJ+Pjih=RwCEK229O06HyvnPm0w@mail.gmail.com> <152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <20180423222814.b6ab8c6e718c308b932595f7@iijmio-mail.jp> <152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <20180424132923.GA7883@home.ouaza.com> <152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org> <[🔎] e78735ca-f3da-94ba-3059-e5f50133b635@debian.org> <152412459050.29742.3522107224686193325.reportbug@newdev.siduction.org>
+
+
+On Mon, 14 May 2018 00:48:53 +0200
+Philipp Kern <pkern@debian.org> wrote:
+> any new about incorporating Raphael's suggestion? There's still a grave
+> bug opened against debootstrap right now (on a version that is in testing).
+ Sorry for late reply, revert previous fix and modified functions as
+ Raphael suggested, and it works on my box. Please check it.
+diff --git a/functions b/functions
+index dc55faf..350f463 100644
+--- a/functions
++++ b/functions
+@@ -79,6 +79,18 @@ progress_next () {
+ wgetprogress () {
+ 	[ ! "$VERBOSE" ] && NVSWITCH="-nv"
+ 	local ret=0
++
++	set -- -O "$dest" "$from" "$@"
++	if [ -n "$PRIVATEKEY" ]; then
++		set -- "$PRIVATEKEY" "$@"
++	fi
++	if [ -n "$CERTIFICATE" ]; then
++		set -- "$CERTIFICATE" "$@"
++	fi
++	if [ -n "$CHECKCERTIF" ]; then
++		set -- "$CHECKCERTIF" "$@"
++	fi
++
+ 	if [ "$USE_DEBIANINSTALLER_INTERACTION" ] && [ "$PROGRESS_NEXT" ]; then
+ 		wget "$@" 2>&1 >/dev/null | "$PKGDETAILS" "WGET%" "$PROGRESS_NOW" "$PROGRESS_NEXT" "$PROGRESS_END" >&3
+ 		ret=$?
+@@ -401,20 +413,14 @@ just_get () {
+ 	# args: from dest
+ 	local from="$1"
+ 	local dest="$2"
++
+ 	mkdir -p "${dest%/*}"
++
+ 	if [ "${from#null:}" != "$from" ]; then
+ 		error 1 NOTPREDL "%s was not pre-downloaded" "${from#null:}"
+-	elif [ "${from#http://}"; != "$from" ] || [ "${from#ftp://}"; != "$from" ]; then
+-		# http/ftp mirror
+-		if wgetprogress -O "$dest" "$from"; then
+-			return 0
+-		else
+-			rm -f "$dest"
+-			return 1
+-		fi
+-	elif [ "${from#https://}"; != "$from" ] ; then
+-		# http/ftp mirror
+-		if wgetprogress "$CHECKCERTIF" "$CERTIFICATE" "$PRIVATEKEY" -O "$dest" "$from"; then
++	elif [ "${from#http://}"; != "$from" ] || [ "${from#ftp://}"; != "$from" ] || [ "${from#https://}"; != "$from" ]; then
++		# HTTP(S) mirror (FTP mirror is deprecated but not removed)
++		if wgetprogress ; then
+ 			return 0
+ 		else
+ 			rm -f "$dest"

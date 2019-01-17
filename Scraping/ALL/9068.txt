@@ -1,0 +1,636 @@
+To : submit@bugs.debian.org
+Subject : Bug#887139: d-i daily 2018-01-14 amd64 damages UEFI setup on Fujitsu Lifebook AH532
+From : Karsten Merker <merker@debian.org>
+Date : Sun, 14 Jan 2018 13:38:11 +0100
+Message-id : 20180114123810.wev5idkji2ueiq5f@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 887139@bugs.debian.org
+
+
+Package: installation-reports
+Version: 2.66
+Severity: critical
+-- Package-specific info:
+Boot method: Netinstall CD image from USB stick
+Image version: https://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/amd64/jigdo-cd/debian-testing-amd64-netinst.jigdo
+               dated 2018-01-14 04:22
+Date: 2018-01-14
+Machine: Fujitsu Lifebook AH532, first version (with BIOS version 1.09)
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [O]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [O]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [O]
+Problems:
+Short summary:
+The installation process completed successfully, but the UEFI
+firmware is broken afterwards; it is impossible to get into the
+UEFI setup, boot from any external device anymore or get the
+system to use the CSM to boot from a classical MBR.
+Detailed description:
+This was an installation in EFI mode (for the first time on this
+device).  The system was previously running an older BIOS-mode
+installation without problems, but got a new, bigger harddisk and
+therefore required a new installation which was done in EFI mode
+(which is nowadays the default mode the installer starts in). 
+The installation itself worked without problems and the resulting
+Debian system works fine, but it isn't possible anymore to get
+into the BIOS/UEFI setup of the machine nor boot from any other
+device.  When powering on the system, the message "<F12>: Boot
+Menu, <F2>: BIOS Setup" appears (as always), pressing F2 results
+in a short "Please wait..." (als always), but then one doesn't
+get into the UEFI/BIOS setup but instead the system directly
+boots GRUB.  Pressing F12 for the boot menu results in a screen
+with a menu with the following structure:
+- Boot Menu
+  debian
+- Application Menu
+  Diagnostic Screen
+"Diagnostic Screen" just shows the Firmware splash screen:
+"Phoenix SecureCore Tiano(TM)
+ Copyright 1985-2011 Phoenix Technologies Ltd.
+ All Rights Reserved
+ Fixed Disk: <harddisk model>
+ ATAPI CDROM: <DVD drive model>
+ Press any key to exit"
+and the "debian" boot menu entry obviously starts GRUB.
+There is no way to make the system boot from any external device
+anymore, so it is impossible to boot a rescue system or reinstall
+the device from scratch.  Fallback to BIOS-mode booting also
+doesn't work any more.  Plugging back the the old harddisk with a
+BIOS-mode install results in a non-booting system.  The UEFI/BIOS
+always tries to boot the "debian" EFI entry which for obvious
+reasons doesn't work with a BIOS-mode setup on the disk.
+There is also a Window 7 UEFI-mode installation on the (new)
+disk, which can be started from GRUB, but it doesn't show up any
+more in the firmware-provided boot-menu (which it did before
+installing Debian).
+Running "efibootmgr -v" from the installed systems results in "No
+BootOrder is set; firmware will attempt recovery", which is what
+doesn't seem to work.  It somewhat looks like the UEFI/BIOS
+setup, the Firmware-level boot menu and the CSM for BIOS-mode
+booting are EFI applications that cannot be started anymore
+because some NVRAM entry is broken.
+BIOS Information from dmidecode:
+	Vendor: FUJITSU // Phoenix Technologies Ltd.
+	Version: Version 1.09
+	Release Date: 05/22/2012
+	Address: 0xE0000
+	Runtime Size: 128 kB
+	ROM Size: 4096 kB
+	Characteristics:
+		PCI is supported
+		PC Card (PCMCIA) is supported
+		PNP is supported
+		BIOS is upgradeable
+		BIOS shadowing is allowed
+		Boot from CD is supported
+		Selectable boot is supported
+		EDD is supported
+		3.5"/720 kB floppy services are supported (int 13h)
+		Print screen service is supported (int 5h)
+		8042 keyboard services are supported (int 9h)
+		Serial services are supported (int 14h)
+		Printer services are supported (int 17h)
+		CGA/mono video services are supported (int 10h)
+		ACPI is supported
+		USB legacy is supported
+		BIOS boot specification is supported
+		Function key-initiated network boot is supported
+		Targeted content distribution is supported
+		UEFI is supported
+	BIOS Revision: 1.9
+This is the newest BIOS version that is available for this
+device; newer versions (2.xx) are only available for a newer
+board revision and are not compatible with this board revision.
+How can one bring the NVRAM back into a sane state that allows
+getting into the setup and booting from external devices?
+Regards,
+Karsten
+Technical information about the system:
+---------------------------------------
+Harddisk layout:
+Disk /dev/sda: 1,8 TiB, 2000398934016 bytes, 3907029168 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 4096 bytes
+I/O size (minimum/optimal): 4096 bytes / 4096 bytes
+Disklabel type: gpt
+Device          Start        End    Sectors   Size Type
+/dev/sda1        2048     206847     204800   100M EFI System
+/dev/sda2      206848     468991     262144   128M Microsoft reserved
+/dev/sda3      468992  409599999  409131008 195,1G Microsoft basic data
+/dev/sda4   409600000 3534600191 3125000192   1,5T Linux filesystem
+/dev/sda5  3534600192 3535577087     976896   477M Linux filesystem
+/dev/sda6  3535577088 3907028991  371451904 177,1G Linux filesystem
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="10 (buster) - installer build 20180114-00:06"
+X_INSTALLATION_MEDIUM=cdrom
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux aletheia 4.14.0-3-amd64 #1 SMP Debian 4.14.12-2 (2018-01-06) x86_64 GNU/Linux
+lspci -knn: 00:00.0 Host bridge [0600]: Intel Corporation 3rd Gen Core processor DRAM Controller [8086:0154] (rev 09)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16bf]
+lspci -knn: 00:02.0 VGA compatible controller [0300]: Intel Corporation 3rd Gen Core processor Graphics Controller [8086:0166] (rev 09)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16c2]
+lspci -knn: 00:14.0 USB controller [0c03]: Intel Corporation 7 Series/C210 Series Chipset Family USB xHCI Host Controller [8086:1e31] (rev 04)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16ee]
+lspci -knn: 	Kernel driver in use: xhci_hcd
+lspci -knn: 	Kernel modules: xhci_pci
+lspci -knn: 00:16.0 Communication controller [0780]: Intel Corporation 7 Series/C216 Chipset Family MEI Controller #1 [8086:1e3a] (rev 04)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16ea]
+lspci -knn: 00:1a.0 USB controller [0c03]: Intel Corporation 7 Series/C216 Chipset Family USB Enhanced Host Controller #2 [8086:1e2d] (rev 04)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16e8]
+lspci -knn: 	Kernel driver in use: ehci-pci
+lspci -knn: 	Kernel modules: ehci_pci
+lspci -knn: 00:1b.0 Audio device [0403]: Intel Corporation 7 Series/C216 Chipset Family High Definition Audio Controller [8086:1e20] (rev 04)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:1757]
+lspci -knn: 00:1c.0 PCI bridge [0604]: Intel Corporation 7 Series/C216 Chipset Family PCI Express Root Port 1 [8086:1e10] (rev c4)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1c.2 PCI bridge [0604]: Intel Corporation 7 Series/C210 Series Chipset Family PCI Express Root Port 3 [8086:1e14] (rev c4)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1c.4 PCI bridge [0604]: Intel Corporation 7 Series/C210 Series Chipset Family PCI Express Root Port 5 [8086:1e18] (rev c4)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1c.5 PCI bridge [0604]: Intel Corporation 7 Series/C210 Series Chipset Family PCI Express Root Port 6 [8086:1e1a] (rev c4)
+lspci -knn: 	Kernel driver in use: pcieport
+lspci -knn: 00:1d.0 USB controller [0c03]: Intel Corporation 7 Series/C216 Chipset Family USB Enhanced Host Controller #1 [8086:1e26] (rev 04)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16e8]
+lspci -knn: 	Kernel driver in use: ehci-pci
+lspci -knn: 	Kernel modules: ehci_pci
+lspci -knn: 00:1f.0 ISA bridge [0601]: Intel Corporation HM76 Express Chipset LPC Controller [8086:1e59] (rev 04)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16e0]
+lspci -knn: 00:1f.2 SATA controller [0106]: Intel Corporation 7 Series Chipset Family 6-port SATA Controller [AHCI mode] [8086:1e03] (rev 04)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16e2]
+lspci -knn: 	Kernel driver in use: ahci
+lspci -knn: 	Kernel modules: ahci
+lspci -knn: 00:1f.3 SMBus [0c05]: Intel Corporation 7 Series/C216 Chipset Family SMBus Controller [8086:1e22] (rev 04)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:16e6]
+lspci -knn: 02:00.0 Ethernet controller [0200]: Realtek Semiconductor Co., Ltd. RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller [10ec:8168] (rev 07)
+lspci -knn: 	Subsystem: Fujitsu Limited. Device [10cf:175a]
+lspci -knn: 	Kernel driver in use: r8169
+lspci -knn: 	Kernel modules: r8169
+lspci -knn: 08:00.0 Network controller [0280]: Intel Corporation Centrino Wireless-N 2230 [8086:0887] (rev c4)
+lspci -knn: 	Subsystem: Intel Corporation Device [8086:4062]
+lspci -knn: 	Kernel modules: iwlwifi
+usb-list: 
+usb-list: Bus 01 Device 01: xHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.14.0-3-amd64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 01: xHCI Host Controller [1d6b:0003]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 03
+usb-list:    Manufacturer: Linux 4.14.0-3-amd64 xhci-hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 02: Ultra [0781:5581]
+usb-list:    Level 01 Parent 01 Port 00  Class 00(>ifc ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: SanDisk
+usb-list:    Interface 00: Class 08(mstor) Subclass 06 Protocol 50 Driver usb-storage
+usb-list: 
+usb-list: Bus 03 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.14.0-3-amd64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 02: EHCI Host Controller [8087:0024]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 03: EHCI Host Controller [8087:07da]
+usb-list:    Level 02 Parent 02 Port 00  Class e0(wlcon) Subclass 01 Protocol 01
+usb-list:    Interface 00: Class e0(wlcon) Subclass 01 Protocol 01 Driver <none>
+usb-list:    Interface 01: Class e0(wlcon) Subclass 01 Protocol 01 Driver <none>
+usb-list: 
+usb-list: Bus 03 Device 04: FJ Camera [04f2:b302]
+usb-list:    Level 02 Parent 02 Port 03  Class ef(misc ) Subclass 02 Protocol 01
+usb-list:    Manufacturer: Chicony Electronics Co., Ltd.
+usb-list:    Interface 00: Class 0e(video) Subclass 01 Protocol 00 Driver <none>
+usb-list:    Interface 01: Class 0e(video) Subclass 02 Protocol 00 Driver <none>
+usb-list: 
+usb-list: Bus 04 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.14.0-3-amd64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 04 Device 02: EHCI Host Controller [8087:0024]
+usb-list:    Level 01 Parent 01 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+lsmod: Module                  Size  Used by
+lsmod: fuse                  118784  0
+lsmod: ntfs                  106496  0
+lsmod: xts                    16384  1
+lsmod: dm_crypt               40960  1
+lsmod: dm_mod                143360  9 dm_crypt
+lsmod: md_mod                159744  0
+lsmod: xfs                  1437696  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   208896  0
+lsmod: btrfs                1335296  0
+lsmod: xor                    24576  1 btrfs
+lsmod: zstd_decompress        94208  1 btrfs
+lsmod: zstd_compress         188416  1 btrfs
+lsmod: xxhash                 16384  2 zstd_compress,zstd_decompress
+lsmod: raid6_pq              122880  1 btrfs
+lsmod: ext4                  720896  3
+lsmod: crc16                  16384  1 ext4
+lsmod: mbcache                16384  1 ext4
+lsmod: jbd2                  118784  1 ext4
+lsmod: crc32c_generic         16384  8
+lsmod: fscrypto               32768  1 ext4
+lsmod: ecb                    16384  2
+lsmod: r8169                  90112  0
+lsmod: mii                    16384  1 r8169
+lsmod: iwlwifi               212992  0
+lsmod: cfg80211              716800  1 iwlwifi
+lsmod: rfkill                 28672  1 cfg80211
+lsmod: nls_ascii              16384  1
+lsmod: nls_cp437              20480  1
+lsmod: vfat                   20480  1
+lsmod: fat                    77824  1 vfat
+lsmod: efivars                20480  0
+lsmod: nls_utf8               16384  0
+lsmod: isofs                  49152  0
+lsmod: vga16fb                24576  0
+lsmod: vgastate               20480  1 vga16fb
+lsmod: ums_realtek            20480  0
+lsmod: sr_mod                 28672  0
+lsmod: cdrom                  69632  1 sr_mod
+lsmod: sd_mod                 53248  5
+lsmod: uas                    28672  0
+lsmod: usb_storage            73728  2 uas,ums_realtek
+lsmod: ahci                   40960  4
+lsmod: libahci                40960  1 ahci
+lsmod: libata                274432  2 ahci,libahci
+lsmod: xhci_pci               16384  0
+lsmod: ehci_pci               16384  0
+lsmod: xhci_hcd              241664  1 xhci_pci
+lsmod: ehci_hcd               94208  1 ehci_pci
+lsmod: scsi_mod              249856  5 sd_mod,usb_storage,libata,uas,sr_mod
+lsmod: usbcore               286720  7 usb_storage,ehci_hcd,xhci_pci,uas,ums_realtek,xhci_hcd,ehci_pci
+lsmod: usb_common             16384  1 usbcore
+lsmod: fan                    16384  0
+lsmod: thermal                20480  0
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                   1628840       100   1628740   0% /run
+df: devtmpfs               8133500         0   8133500   0% /dev
+df: /dev/mapper/aletheia_rootvg-aletheia_rootvol
+df:                      1520582704   3460952 1439810572   0% /target
+df: /dev/sda5               464790     43506    392766  10% /target/boot
+df: /dev/sda1                98304     18364     79940  19% /target/boot/efi
+df: /dev/sda6            181762584     61468 172398436   0% /target/storage
+df: /dev/mapper/aletheia_rootvg-aletheia_rootvol
+df:                      1520582704   3460952 1439810572   0% /dev/.static/dev
+df: devtmpfs               8133500         0   8133500   0% /target/dev
+free:              total       used       free     shared    buffers     cached
+free: Mem:      16288368    4352172   11936196     156992     339920    3547432
+free: -/+ buffers/cache:     464820   15823548
+free: Swap:     16601084          0   16601084
+/proc/cmdline: BOOT_IMAGE=/install.amd/vmlinuz priority=low vga=788 ---
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 58
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i5-3210M CPU @ 2.50GHz
+/proc/cpuinfo: stepping	: 9
+/proc/cpuinfo: microcode	: 0x12
+/proc/cpuinfo: cpu MHz		: 2494.425
+/proc/cpuinfo: cache size	: 3072 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 4
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 2
+/proc/cpuinfo: apicid		: 0
+/proc/cpuinfo: initial apicid	: 0
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm cpuid_fault epb pti tpr_shadow vnmi flexpriority ept vpid fsgsbase smep erms xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		: cpu_insecure
+/proc/cpuinfo: bogomips	: 4988.85
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 36 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 58
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i5-3210M CPU @ 2.50GHz
+/proc/cpuinfo: stepping	: 9
+/proc/cpuinfo: microcode	: 0x12
+/proc/cpuinfo: cpu MHz		: 2494.425
+/proc/cpuinfo: cache size	: 3072 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 4
+/proc/cpuinfo: core id		: 0
+/proc/cpuinfo: cpu cores	: 2
+/proc/cpuinfo: apicid		: 1
+/proc/cpuinfo: initial apicid	: 1
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm cpuid_fault epb pti tpr_shadow vnmi flexpriority ept vpid fsgsbase smep erms xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		: cpu_insecure
+/proc/cpuinfo: bogomips	: 4988.85
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 36 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 58
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i5-3210M CPU @ 2.50GHz
+/proc/cpuinfo: stepping	: 9
+/proc/cpuinfo: microcode	: 0x12
+/proc/cpuinfo: cpu MHz		: 2494.425
+/proc/cpuinfo: cache size	: 3072 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 4
+/proc/cpuinfo: core id		: 1
+/proc/cpuinfo: cpu cores	: 2
+/proc/cpuinfo: apicid		: 2
+/proc/cpuinfo: initial apicid	: 2
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm cpuid_fault epb pti tpr_shadow vnmi flexpriority ept vpid fsgsbase smep erms xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		: cpu_insecure
+/proc/cpuinfo: bogomips	: 4988.85
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 36 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: vendor_id	: GenuineIntel
+/proc/cpuinfo: cpu family	: 6
+/proc/cpuinfo: model		: 58
+/proc/cpuinfo: model name	: Intel(R) Core(TM) i5-3210M CPU @ 2.50GHz
+/proc/cpuinfo: stepping	: 9
+/proc/cpuinfo: microcode	: 0x12
+/proc/cpuinfo: cpu MHz		: 2494.425
+/proc/cpuinfo: cache size	: 3072 KB
+/proc/cpuinfo: physical id	: 0
+/proc/cpuinfo: siblings	: 4
+/proc/cpuinfo: core id		: 1
+/proc/cpuinfo: cpu cores	: 2
+/proc/cpuinfo: apicid		: 3
+/proc/cpuinfo: initial apicid	: 3
+/proc/cpuinfo: fpu		: yes
+/proc/cpuinfo: fpu_exception	: yes
+/proc/cpuinfo: cpuid level	: 13
+/proc/cpuinfo: wp		: yes
+/proc/cpuinfo: flags		: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm cpuid_fault epb pti tpr_shadow vnmi flexpriority ept vpid fsgsbase smep erms xsaveopt dtherm ida arat pln pts
+/proc/cpuinfo: bugs		: cpu_insecure
+/proc/cpuinfo: bogomips	: 4988.85
+/proc/cpuinfo: clflush size	: 64
+/proc/cpuinfo: cache_alignment	: 64
+/proc/cpuinfo: address sizes	: 36 bits physical, 48 bits virtual
+/proc/cpuinfo: power management:
+/proc/cpuinfo: 
+/proc/ioports: 0000-0cf7 : PCI Bus 0000:00
+/proc/ioports:   0000-001f : dma1
+/proc/ioports:   0020-0021 : pic1
+/proc/ioports:   0040-0043 : timer0
+/proc/ioports:   0050-0053 : timer1
+/proc/ioports:   0060-0060 : keyboard
+/proc/ioports:   0062-0062 : PNP0C09:00
+/proc/ioports:     0062-0062 : EC data
+/proc/ioports:   0064-0064 : keyboard
+/proc/ioports:   0066-0066 : PNP0C09:00
+/proc/ioports:     0066-0066 : EC cmd
+/proc/ioports:   0070-0077 : rtc0
+/proc/ioports:   0080-008f : dma page reg
+/proc/ioports:   00a0-00a1 : pic2
+/proc/ioports:   00c0-00df : dma2
+/proc/ioports:   00f0-00ff : fpu
+/proc/ioports:     00f0-00f0 : PNP0C04:00
+/proc/ioports:   0400-0453 : pnp 00:00
+/proc/ioports:     0400-0403 : ACPI PM1a_EVT_BLK
+/proc/ioports:     0404-0405 : ACPI PM1a_CNT_BLK
+/proc/ioports:     0408-040b : ACPI PM_TMR
+/proc/ioports:     0410-0415 : ACPI CPU throttle
+/proc/ioports:     0420-042f : ACPI GPE0_BLK
+/proc/ioports:     0450-0450 : ACPI PM2_CNT_BLK
+/proc/ioports:   0454-0457 : pnp 00:02
+/proc/ioports:   0458-047f : pnp 00:00
+/proc/ioports:   0500-057f : pnp 00:00
+/proc/ioports:   0680-069f : pnp 00:00
+/proc/ioports:   0900-0903 : pnp 00:05
+/proc/ioports:   0904-0907 : pnp 00:05
+/proc/ioports: 0cf8-0cff : PCI conf1
+/proc/ioports: 0d00-ffff : PCI Bus 0000:00
+/proc/ioports:   1000-100f : pnp 00:00
+/proc/ioports:   164e-164f : pnp 00:00
+/proc/ioports:   2000-2fff : PCI Bus 0000:03
+/proc/ioports:   3000-3fff : PCI Bus 0000:02
+/proc/ioports:     3000-30ff : 0000:02:00.0
+/proc/ioports:       3000-30ff : r8169
+/proc/ioports:   4000-403f : 0000:00:02.0
+/proc/ioports:   4060-407f : 0000:00:1f.2
+/proc/ioports:     4060-407f : ahci
+/proc/ioports:   4080-4087 : 0000:00:1f.2
+/proc/ioports:     4080-4087 : ahci
+/proc/ioports:   4088-408f : 0000:00:1f.2
+/proc/ioports:     4088-408f : ahci
+/proc/ioports:   4090-4093 : 0000:00:1f.2
+/proc/ioports:     4090-4093 : ahci
+/proc/ioports:   4094-4097 : 0000:00:1f.2
+/proc/ioports:     4094-4097 : ahci
+/proc/ioports:   efa0-efbf : 0000:00:1f.3
+/proc/ioports:   ffff-ffff : pnp 00:00
+/proc/ioports:     ffff-ffff : pnp 00:00
+/proc/iomem: 00000000-00000fff : Reserved
+/proc/iomem: 00001000-0008ffff : System RAM
+/proc/iomem: 00090000-000bffff : Reserved
+/proc/iomem:   000a0000-000bffff : PCI Bus 0000:00
+/proc/iomem: 000c0000-000cedff : Video ROM
+/proc/iomem: 000f0000-000fffff : System ROM
+/proc/iomem: 00100000-1fffffff : System RAM
+/proc/iomem: 20000000-201fffff : Reserved
+/proc/iomem: 20200000-40003fff : System RAM
+/proc/iomem: 40004000-40004fff : Reserved
+/proc/iomem: 40005000-c7ecafff : System RAM
+/proc/iomem: c7ecb000-c80ccfff : Reserved
+/proc/iomem: c80cd000-d84c4fff : System RAM
+/proc/iomem: d84c5000-d86c4fff : Unknown E820 type
+/proc/iomem: d86c5000-daeeefff : Reserved
+/proc/iomem: daeef000-daf9efff : ACPI Non-volatile Storage
+/proc/iomem: daf9f000-daffefff : ACPI Tables
+/proc/iomem: dafff000-daffffff : System RAM
+/proc/iomem: db000000-df9fffff : Reserved
+/proc/iomem: dfa00000-feafffff : PCI Bus 0000:00
+/proc/iomem:   e0000000-efffffff : 0000:00:02.0
+/proc/iomem:     e0000000-e02fffff : efifb
+/proc/iomem:   f0000000-f03fffff : 0000:00:02.0
+/proc/iomem:   f0400000-f04fffff : PCI Bus 0000:02
+/proc/iomem:     f0400000-f0403fff : 0000:02:00.0
+/proc/iomem:       f0400000-f0403fff : r8169
+/proc/iomem:     f0404000-f0404fff : 0000:02:00.0
+/proc/iomem:       f0404000-f0404fff : r8169
+/proc/iomem:   f0500000-f0cfffff : PCI Bus 0000:03
+/proc/iomem:   f0d00000-f0dfffff : PCI Bus 0000:08
+/proc/iomem:     f0d00000-f0d01fff : 0000:08:00.0
+/proc/iomem:   f0e00000-f15fffff : PCI Bus 0000:03
+/proc/iomem:   f1600000-f160ffff : 0000:00:14.0
+/proc/iomem:     f1600000-f160ffff : xhci-hcd
+/proc/iomem:   f1610000-f1613fff : 0000:00:1b.0
+/proc/iomem:   f1614000-f16140ff : 0000:00:1f.3
+/proc/iomem:   f1615000-f161500f : 0000:00:16.0
+/proc/iomem:   f1618000-f16187ff : 0000:00:1f.2
+/proc/iomem:     f1618000-f16187ff : ahci
+/proc/iomem:   f1619000-f16193ff : 0000:00:1d.0
+/proc/iomem:     f1619000-f16193ff : ehci_hcd
+/proc/iomem:   f161a000-f161a3ff : 0000:00:1a.0
+/proc/iomem:     f161a000-f161a3ff : ehci_hcd
+/proc/iomem:   f8000000-fbffffff : PCI MMCONFIG 0000 [bus 00-3f]
+/proc/iomem:     f80f8000-f80f8fff : Reserved
+/proc/iomem: fec00000-fec003ff : IOAPIC 0
+/proc/iomem: fed00000-fed003ff : HPET 0
+/proc/iomem:   fed00000-fed003ff : PNP0103:00
+/proc/iomem: fed10000-fed17fff : pnp 00:06
+/proc/iomem: fed18000-fed18fff : pnp 00:06
+/proc/iomem: fed19000-fed19fff : pnp 00:06
+/proc/iomem: fed1c000-fed1ffff : Reserved
+/proc/iomem:   fed1c000-fed1ffff : pnp 00:06
+/proc/iomem: fed20000-fed3ffff : pnp 00:06
+/proc/iomem: fed45000-fed8ffff : pnp 00:06
+/proc/iomem: fed90000-fed93fff : pnp 00:06
+/proc/iomem: fee00000-feefffff : pnp 00:06
+/proc/iomem:   fee00000-fee00fff : Local APIC
+/proc/iomem: ff000000-ffffffff : INT0800:00
+/proc/iomem:   ff000000-ffffffff : pnp 00:06
+/proc/iomem:     fffff000-ffffffff : pnp 00:06
+/proc/iomem: 100000000-41f5fffff : System RAM
+/proc/iomem:   129000000-129a02fff : Kernel code
+/proc/iomem:   129a03000-12a11eaff : Kernel data
+/proc/iomem:   12a55e000-12a603fff : Kernel bss
+/proc/iomem: 41f600000-41f7fffff : Reserved
+/proc/iomem: 41f800000-41fffffff : RAM buffer
+/proc/interrupts:            CPU0       CPU1       CPU2       CPU3       
+/proc/interrupts:   0:         17          0          0          0   IO-APIC   2-edge      timer
+/proc/interrupts:   1:         44       4038         74         37   IO-APIC   1-edge      i8042
+/proc/interrupts:   8:          2         46          0          2   IO-APIC   8-edge      rtc0
+/proc/interrupts:   9:         14          7          0          6   IO-APIC   9-fasteoi   acpi
+/proc/interrupts:  12:          3         17          0          1   IO-APIC  12-edge      i8042
+/proc/interrupts:  16:         27         77          0          2   IO-APIC  16-fasteoi   ehci_hcd:usb3
+/proc/interrupts:  23:         35        117         12          3   IO-APIC  23-fasteoi   ehci_hcd:usb4
+/proc/interrupts:  24:       7031       7634       4372       1511   PCI-MSI 327680-edge      xhci_hcd
+/proc/interrupts:  25:      47721     283238      46148      30580   PCI-MSI 512000-edge      ahci[0000:00:1f.2]
+/proc/interrupts:  26:      49351      21416       3606       2257   PCI-MSI 1048576-edge      enp2s0
+/proc/interrupts: NMI:         22         17         20         17   Non-maskable interrupts
+/proc/interrupts: LOC:     219936     206677     265097     165004   Local timer interrupts
+/proc/interrupts: SPU:          0          0          0          0   Spurious interrupts
+/proc/interrupts: PMI:         22         17         20         17   Performance monitoring interrupts
+/proc/interrupts: IWI:          0          0          0          0   IRQ work interrupts
+/proc/interrupts: RTR:          1          0          0          0   APIC ICR read retries
+/proc/interrupts: RES:      18980      16813      15289      10006   Rescheduling interrupts
+/proc/interrupts: CAL:        748        673        735        658   Function call interrupts
+/proc/interrupts: TLB:         26         32         24         23   TLB shootdowns
+/proc/interrupts: TRM:          0          0          0          0   Thermal event interrupts
+/proc/interrupts: THR:          0          0          0          0   Threshold APIC interrupts
+/proc/interrupts: DFR:          0          0          0          0   Deferred Error APIC interrupts
+/proc/interrupts: MCE:          0          0          0          0   Machine check exceptions
+/proc/interrupts: MCP:         31         31         31         31   Machine check polls
+/proc/interrupts: HYP:          0          0          0          0   Hypervisor callback interrupts
+/proc/interrupts: ERR:          0
+/proc/interrupts: MIS:          0
+/proc/interrupts: PIN:          0          0          0          0   Posted-interrupt notification event
+/proc/interrupts: NPI:          0          0          0          0   Nested posted-interrupt event
+/proc/interrupts: PIW:          0          0          0          0   Posted-interrupt wakeup event
+/proc/meminfo: MemTotal:       16288368 kB
+/proc/meminfo: MemFree:        11936444 kB
+/proc/meminfo: MemAvailable:   15674124 kB
+/proc/meminfo: Buffers:          339920 kB
+/proc/meminfo: Cached:          3547444 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           832288 kB
+/proc/meminfo: Inactive:        3085924 kB
+/proc/meminfo: Active(anon):     131916 kB
+/proc/meminfo: Inactive(anon):    55916 kB
+/proc/meminfo: Active(file):     700372 kB
+/proc/meminfo: Inactive(file):  3030008 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:      16601084 kB
+/proc/meminfo: SwapFree:       16601084 kB
+/proc/meminfo: Dirty:              2980 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         30900 kB
+/proc/meminfo: Mapped:             4732 kB
+/proc/meminfo: Shmem:            156992 kB
+/proc/meminfo: Slab:             373544 kB
+/proc/meminfo: SReclaimable:     343392 kB
+/proc/meminfo: SUnreclaim:        30152 kB
+/proc/meminfo: KernelStack:        2160 kB
+/proc/meminfo: PageTables:          720 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:    24745268 kB
+/proc/meminfo: Committed_AS:     205184 kB
+/proc/meminfo: VmallocTotal:   34359738367 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:     26624 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+/proc/meminfo: DirectMap4k:      115468 kB
+/proc/meminfo: DirectMap2M:    16521216 kB
+/proc/bus/input/devices: I: Bus=0011 Vendor=0001 Product=0001 Version=ab83
+/proc/bus/input/devices: N: Name="AT Translated Set 2 keyboard"
+/proc/bus/input/devices: P: Phys=isa0060/serio0/input0
+/proc/bus/input/devices: S: Sysfs=/devices/platform/i8042/serio0/input/input0
+/proc/bus/input/devices: U: Uniq=
+/proc/bus/input/devices: H: Handlers=sysrq kbd leds 
+/proc/bus/input/devices: B: PROP=0
+/proc/bus/input/devices: B: EV=120013
+/proc/bus/input/devices: B: KEY=402000000 3803078f800d001 feffffdfffefffff fffffffffffffffe
+/proc/bus/input/devices: B: MSC=10
+/proc/bus/input/devices: B: LED=7
+/proc/bus/input/devices: 
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.14.0-2-amd64 (SMP w/4 CPU cores)
+Locale: LANG=de_DE.UTF-8, LC_CTYPE=de_DE.UTF-8 (charmap=UTF-8), LANGUAGE=de_DE.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+installation-report depends on no packages.
+Versions of packages installation-report recommends:
+ii  pciutils   1:3.5.2-1
+ii  reportbug  7.1.8
+installation-report suggests no packages.
+-- no debconf information
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

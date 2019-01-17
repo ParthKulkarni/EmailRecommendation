@@ -1,0 +1,117 @@
+To : submit@bugs.debian.org
+Subject : Bug#855242: Stretch RC 2 - LVM not booting
+From : zak-123@plugenjoy.de
+Date : Wed, 15 Feb 2017 21:53:40 +0100
+Message-id : 4efb0bff-d081-2b38-cb5a-23d9d354b85b@plugenjoy.de
+Reply-to : zak-123@plugenjoy.de, 855242@bugs.debian.org
+
+
+Package: installation-reports
+Boot method: network
+Image version: *Debian Installer Stretch RC 2 release
+<https://www.debian.org/devel/debian-installer/News/2017/20170202>*
+Date: 2017-02-15
+Machine: XEN hvm
+Processor: i5-4460
+Memory: 512 MB
+Partitions: see preseed.cfg
+Output of lspci -knn (or lspci -nn): n/a
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [ ]
+Detect network card:    [O]
+Configure network:      [O]
+Detect CD:              [-]
+Load installer modules: [O]
+Detect hard drives:     [O]
+Partition hard drives:  [O]
+Install base system:    [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Install tasks:          [O]
+Install boot loader:    [E]
+Overall install:        [E]
+Comments/Problems:
+System is installing perfectly. But after the installation, when rebooting file systems on the LVM are not found.
+I assume that the required module for lvm is not inside the initrd/ramfs created during the installation.
+--- preseed.cfg ---
+d-i time/zone string Europe/Berlin
+d-i mirror/country string Germany
+d-i mirror/http/hostname string ftp.de.debian.org
+d-i mirror/http/directory string /debian/
+d-i mirror/http/proxy string
+# Root-Account
+d-i passwd/make-user boolean false
+d-i passwd/root-password password root
+d-i passwd/root-password-again password password
+# Partitioning
+#my#d-i partman-auto/disk string /dev/xvda  # /dev/xvda vs. /dev/sda
+d-i partman-auto/method string lvm
+d-i partman-auto/purge_lvm_from_device boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-lvm/device_remove_lvm_span boolean true
+d-i partman-md/device_remove_md boolean true
+d-i partman-auto/expert_recipe string                         \
+      physical-volumes ::                                     \
+              100 100 -1 xfs                                  \
+                      $primary{ } $bootable{ }                \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ xfs }     \
+                      mountpoint{ /boot }                     \
+              .                                               \
+              100 1000000000 1000000000 xfs                   \
+                      $defaultignore{ }                       \
+                      $primary{ }                             \
+                      method{ lvm }                           \
+                      vg_name{ vg00 }                         \
+              .                                               \
+      logical-volumes ::                                      \
+              512 512 -1 xfs \
+              $lvmok{_} in_vg{ vg00 } lv_name{ lvroot } \
+              method{ format } format{ } \
+              use_filesystem{ } filesystem{ xfs } \
+              mountpoint{ / } . \
+              1024 1024 -1 xfs \
+              $lvmok{_} in_vg{ vg00 } lv_name{ lvusr } \
+              method{ format } format{ } \
+              use_filesystem{ } filesystem{ xfs } \
+              mountpoint{ /usr } . \
+              512 512 -1 xfs \
+              $lvmok{_} in_vg{ vg00 } lv_name{ lvusrlib } \
+              method{ format } format{ } \
+              use_filesystem{ } filesystem{ xfs } \
+              mountpoint{ /usr/lib } . \
+              512 512 -1 xfs \
+              $lvmok{_} in_vg{ vg00 } lv_name{ lvvar } \
+              method{ format } format{ } \
+              use_filesystem{ } filesystem{ xfs } \
+              mountpoint{ /var } . \
+              512 512 -1 xfs \
+              $lvmok{_} in_vg{ vg00 } lv_name{ lvtmp } \
+              method{ format } format{ } \
+              use_filesystem{ } filesystem{ xfs } \
+              mountpoint{ /tmp } . \
+              512 512 -1 linux-swap \
+              $lvmok{_} in_vg{ vg00 } lv_name{ lvswap } \
+              method{ swap } format{ } . \
+              1 1 100000 xfs \
+              $lvmok{_} in_vg{ vg00 } lv_name{ lvspare } \
+              method{ format } format{ } \
+              use_filesystem{ } filesystem{ xfs } \
+              mountpoint{ /spare } . 
+# This makes partman automatically partition without confirmation, provided
+# that you told it what to do using one of the methods above.
+d-i partman-lvm/confirm_nooverwrite boolean true
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select Finish
+d-i partman/confirm_nooverwrite boolean true
+d-i partman/confirm boolean true
+tasksel tasksel/first multiselect
+d-i pkgsel/include string ssh tcpdump iptraf whois sysstat iotop lsof vim less zip unzip mc sudo screen telnet ntpdate dnsutils iperf
+d-i base-installer/install-recommends boolean false
+d-i popularity-contest/participate boolean false
+d-i grub-installer/only_debian boolean true
+#my#d-i grub-installer/bootdev  string /dev/xvda  # /dev/xvda vs. /dev/sda
+d-i grub-installer/bootdev  string default
+d-i finish-install/reboot_in_progress note

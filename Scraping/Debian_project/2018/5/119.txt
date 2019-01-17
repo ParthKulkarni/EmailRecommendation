@@ -1,0 +1,60 @@
+To : Debian Development <debian-devel@lists.debian.org>
+Subject : Re: autopkgtest results influencing migration from unstable to testing
+From : Paul Gevers <elbrus@debian.org>
+Date : Sat, 12 May 2018 20:34:02 +0200
+Message-id : 7ce3d419-3ede-d21e-89ce-50cd4953da41@debian.org
+In-reply-to : <[🔎] 20180512160757.GA22248@virgil.dodds.net>
+References : <4cb42bdc-ea03-57ca-1623-435d562f05ff@debian.org> <[🔎] 7df7b52c-4c40-44bd-2a5e-20a1bf5eaeb4@ubuntu.com> <[🔎] cef114e8-5fe9-0a1b-5126-d8dcf9224242@debian.org> <[🔎] 20180503092156.bxka2psyqhjv3phn@riva.ucam.org> <[🔎] CAOkSjBhCkDmtGdSDrYFuLSqGu4REyXCYWzLz3CR42+Z8ipAAxg@mail.gmail.com> <[🔎] 20180512160757.GA22248@virgil.dodds.net>
+
+
+Hi Steve,
+On 12-05-18 18:07, Steve Langasek wrote:
+> I think the status quo is that we have a lot of autopkgtests that are
+> useless as a CI gate.
+I wonder. I estimate about 15% of tests in Debian have never passed.
+Obviously they are useless for anything except maybe the careful
+maintainer that reads all of them and uses them even when they fail (the
+minority I assume). The rest is usable for gating.
+> In Ubuntu, we have 245 overrides in place to ignore "regressions" in tests
+> that once passed but no longer do.  Many of these are tests that are simply
+> flaky and only pass sometimes.  Some are tests that once succeeded but now
+> fail because something else changed in the overall distribution, and wasn't
+> / couldn't be caught by autopkgtest to prevent the regression.  Some are
+> tests that are treated as "regressions" now because previously they couldn't
+> be run on a particular architecture, but Ubuntu's infrastructure has
+> improved to where they now can be (and are seen to fail).
+In Debian we define regression differently than in Ubuntu. Ubuntu
+compares the current result to all the results that were ever obtained.
+In Debian we compare to the current status of testing (barring some
+implementation details). All the flaky tests remain an issue (and we are
+filing bugs¹ for those and ignoring the results² until they are fixed).
+245 sounds like an awful lot. Do you know how many of these are flaky?
+(This triggers me, I'll check what you have as I love to reuse the
+Ubuntu triaging effort and use them in Debian if they apply to Debian).
+> And there has been no release of Ubuntu in which more than 93% of tests
+> passed, on any architecture. (http://autopkgtest.ubuntu.com/statistics)
+Debian is doing worse. Current status for unstable (on amd64 only) is
+about 80-85%³. testing isn't complete yet, and on top of that the raw
+statistics are confusing, because it contains the result of the tests
+that prevent migration (for 10 days).
+> I have also been submitting a lot of bug reports about autopkgtests that the
+> maintainers have allowed to regress in new versions of the Debian package.
+> 
+>   https://bugs.debian.org/cgi-bin/pkgreport.cgi?users=ubuntu-devel@lists.ubuntu.com;tag=autopkgtest
+That list (with open bugs) is shorter than I feared as the list that I
+started a couple of months ago is already longer⁴. But I expect that to
+be merely the effect of you not filing all issues (I don't blame you,
+it's a lot of work). I expect Debian maintainers will start to put more
+emphasis on passing results, as they now matter *in* Debian.
+> It's fine if the raw number of tests goes down, if the overall quality of
+> the tests - and therefore the quality of the release - goes up (and the time
+> wasted hunting buggy tests goes down).
+Fully ack on this though.
+Paul
+¹
+https://bugs.debian.org/cgi-bin/pkgreport.cgi?users=debian-ci@lists.debian.org;tag=flaky
+² https://release.debian.org/britney/hints/elbrus
+³ https://ci.debian.net/status/
+⁴
+https://bugs.debian.org/cgi-bin/pkgreport.cgi?users=debian-ci@lists.debian.org;tag=regression;tag=breaks;tag=needs-update
+signature.asc

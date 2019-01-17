@@ -1,0 +1,82 @@
+To : pkg-kde-talk@alioth-lists.debian.net, debian-arm@lists.debian.org
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Andy Simpkins <rattusrattus@debian.org>
+Date : Sat, 24 Nov 2018 10:26:34 +0000
+Message-id : bf570128-29fe-3a56-f396-ee0e172d7880@debian.org
+In-reply-to : <[🔎] 1978113.NGEtsr0Vo0@tonks>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] CALT56yNFWS9RdpheG4WnVtfLnOKJk_ukA-3ka-YXsJnp+M=nMQ@mail.gmail.com> <[🔎] 20181123095813.soyytbs4nxrolheu@tack.einval.com> <[🔎] 1978113.NGEtsr0Vo0@tonks>
+
+
+On 24/11/2018 02:05, Lisandro Damián Nicanor Pérez Meyer wrote:
+The time taken for an automated process to run (or fail) should not be a 
+justification not to do something.
+We need to be able to build the entire archive, not just Qt, and this is 
+an automated process.
+As an aside: The current arm64 buildd's are plenty fast enough to build 
+the entire archive in a few days (IIRC sledge has done this several 
+times recently), I also believe that the buildds (and porter boxes?) are 
+being (have been?) replaced with newer and faster boxes (also easier for 
+DSA to maintain).
+I believe that they are also able to build / will build native armhf 
+(and armel).  It is my understanding bug reports & fixes are in progress
+Not relevant - a single mistake in any package is called a bug. As a 
+distribution we have many of these; we strive not to introduce new ones 
+and fix those that we can...
+Absolutely - everything in the subsystem would need to be duplicated 
+up-to the point of common API
+No. The libraries do not need to have any knowledge about the other 
+subsystem / collection of sub modules. i.e. 'desktop' does not need to 
+be aware of 'mobile' and vis versa.
+I am putting words in your mouth here - please accept my apologies I am 
+trying to describe how I have perceived your comments, this is clearly 
+not the words you have used but that is how I am parsing them.  I have 
+tried several times to re-word tjis better, it still feels 
+confrontational but after several re-writes this is the best 'summery' I 
+have been able to generate.
+<paraphrase> "I have a Raspberry Pi (or similar mobile class system that 
+has migrated / is migrating away from armel to arm64) and this has 
+forced a move from 'mobile' OpenGLES to 'Desktop' OpenGL.  The result of 
+which is that because that platform (and those like it) do not have 
+hardware acceleration for OpenGL but DO for OpenGLES you think we should 
+change the whole architecture for your use case." </paraphrase>
+It is my opinion that having one architecture use OpenGL and another 
+OpenGLES was the wrong decision.  Sure for armel (and later armhf) this 
+was 'acceptable' - few arm cores before V8 supported PCI / PCIe 
+interfaces, so the number of armel boards that were running as a desktop 
+environment with 'off the shelf' graphic cards was low (if any).  Those 
+arm based boards that did have GPUs on board were (and are) targeted at 
+the mobile market where OpenGLES is the preferred route.  Fast forward a 
+few years (a decade?) and the world has moved on.  arm V8 (arm84) has 
+arrived and the SoCs now shipping are quite capable of desktop through 
+to HPC performance levels, as well as the mobile market segment.  The 
+decision to just support OpenGLES is perhaps com
+Rather than select OpenGL EOR OpenGLES for an architecture we should 
+take the time to allow OpenGL EOR OpenGLES per installation.
+* You already have 'Desktop' OpenGL working on ARM64 (and AMD64 etc 
+etc).  You are proposing to drop that and go to 'Mobile' OpenGLES 
+(working on armel / armhf).
+* I say introduce OpenGLES alongside, this doesn't appear to be the 
+imposable task that you are making it out to be:
+  * Unpack the tarball from upstream 'Mobile' run a global replace 
+against the filenames appending 'gles' - strictly not required but it 
+forces a separate name space (avoids potential confusion) <== exact 
+mechanism is up for brighter minds than mine to define
+  * For the new 'OpenGLES' package tree make dependencies for 'mobile' 
+system require the new '*gles' packages and exclude the existing 
+'desktop' packages
+  * Change the dependencies for 'desktop' system to add a prohibit of 
+the new '*gles' 'mobile'  packages
+  * Once done all of the above can then be largely automated making 
+tracking upstream of OpenGLES changes fit with whatever mechanism was 
+determined above.
+* Finally we could then add a wrapper package that could 'probe' the 
+system to be installed and identify which (if any) OpenGL/OpenGLES is 
+accelerated, display the results and ASK THE user which framework they 
+want to install.
+I am not trying to convince you NOT to switch.  I would like to see 
+OpenGLES available on arm64.
+Finally - My familiarity with Qt / code skills mean I am unable to do 
+the work I am proposing but I can and will spend time testing / building 
+automated test suites. This is not something that *you* should do  on 
+your own, there are enough people that can help make this happen...
+/Andy

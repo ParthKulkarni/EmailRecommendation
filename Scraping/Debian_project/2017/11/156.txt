@@ -1,0 +1,43 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Auto-update for sid? Auto-backport?
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 16 Nov 2017 19:06:39 +0000
+Message-id : 20171116190639.mquie4xss4gkwjyj@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 20171116170200.trspifmuckci3yix@layer-acht.org>
+References : <[🔎] f6db377a-b082-fa64-29c7-e29d931aeb8c@gmx.de> <[🔎] 87a7zn31cf.fsf@iris.silentflame.com> <[🔎] A2A20EC3B8560D408356CAC2FC148E53BB4876B9@SUN-DAG3.synchrotron-soleil.fr> <[🔎] 87h8tvxvik.fsf@hope.eyrie.org> <[🔎] 20171116154118.igjf6zelqryxkkwn@an3as.eu> <[🔎] 20171116162217.jdbkidzs7slrgzm5@grep.be> <[🔎] 23053.48370.141972.753720@chiark.greenend.org.uk> <[🔎] 20171116165340.a3xqsbq3p5upbjrq@grep.be> <[🔎] 20171116170200.trspifmuckci3yix@layer-acht.org>
+
+
+On Thu, 16 Nov 2017 at 17:02:00 +0000, Holger Levsen wrote:
+> On Thu, Nov 16, 2017 at 05:53:40PM +0100, Wouter Verhelst wrote:
+> > Yes; and semver.org is a formalized system for version numbering stuff.
+> > If upstream has committed to it (and does not make mistakes), then the c
+> > versions in the above example MUST (in the RFC definition of that word)
+> > only contain bugfixes, and no interface changes.
+>  
+> oh shiny! thanks for pointing out semver.org!
+Semantic versioning is not a panacea: it assumes that a developer can
+know in advance whether changes are a compatibility break or not. In
+simple cases where a bug fix or a new feature never causes any unintended
+regressions, that's easy; but if there were no regressions, then we'd
+all run unstable on servers.
+Because we live in the messy real world where unintended regressions
+happen, developers frequently want to branch versions and apply
+policies to the changes they contain, with different subsets of bugfixes
+(for example security fixes only, or fixes that have been judged to be
+low-regression-risk only), or different subsets of new APIs, on different
+branches. Unfortunately, because semver versions are a deterministic
+product of the previous release and the changes since that release,
+they can break the ability to branch. If I release Foo 1.2.3, it gets
+shipped in Debian 10, and I subsequently release Foo 1.2.4 with a mixture
+of high- and low-risk bug fixes, then semver offers no way to go back
+and release a version aimed at a Debian 10 point release with just the
+low-risk fixes included (except by releasing Foo 1.2.3.1, which is not
+a valid version according to semver).
+In simple cases, semantic versioning is fine; it's certainly better than
+having no conceptual model at all. In the more complicated cases that
+are probably of more practical interest, it's an oversimplification.
+A semver-like scheme in which higher-risk bugfixes and internal changes
+are treated as though they were new API, even if they aren't (i.e. bumping
+the minor instead of micro version) is a common way out of this, and is
+fine as long as you don't want to offer "long term supported" branches.
+    smcv

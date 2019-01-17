@@ -1,0 +1,71 @@
+To : Julien Lecomte <julien@lecomte.at>, 872725@bugs.debian.org
+Subject : Bug#872725: installation-reports: When installing with a encrypted swap, device was saved as /dev/sda2 in /etc/crypttab, but on first boot devices had been switched (sda became sdb, and vice versa).
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 20 Aug 2017 17:36:24 +0200
+Message-id : 20170820151804.GE17967@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 872725@bugs.debian.org
+In-reply-to : <[🔎] 150324018824.10567.13733290822185888483.reportbug@pumilio.lecomte.at>
+References : <[🔎] 150324018824.10567.13733290822185888483.reportbug@pumilio.lecomte.at> <[🔎] 150324018824.10567.13733290822185888483.reportbug@pumilio.lecomte.at>
+
+
+Hi Julien,
+Julien Lecomte <julien@lecomte.at> (2017-08-20):
+> Boot method: CD on USB flashdrive
+> Image version: latest debian 9 available on site (as of 2017-08-19)
+> Date: 2017-08-20
+> 
+> Machine: built
+> Partitions: cf. below
+> 
+> Initial boot:           [O]
+> Detect network card:    [O]
+> Configure network:      [O]
+> Detect CD:              [O]
+> Load installer modules: [O]
+> Clock/timezone setup:   [O]
+> User/password setup:    [O]
+> Detect hard drives:     [O]
+> Partition hard drives:  [O]
+> Install base system:    [O]
+> Install tasks:          [O]
+> Install boot loader:    [O]
+> Overall install:        [O]
+> 
+> Comments/Problems:
+> 
+> When I installed Debian, I chose the following for my personalized partition:
+> 
+> /dev/sda
+>   /dev/sda1 => /boot, ext4
+>   /dev/sda2 => encrypted, swap
+>   /dev/sda3 => encrypted, /
+> 
+> I left my /dev/sdb as unused, it only has /dev/sdb1
+> 
+> The following got saved in crypttab:
+> sda2_crypt /dev/sda2 /dev/urandom cipher=aes-xts-plain64,size=256,swap
+> sda3_crypt UUID=34d65b53-5df5-48da-8ca6-884b38a9cd7d none luks
+> 
+> And the fstab was saved as :
+> UUID=f2050f17-78c5-431f-bfdc-80af4f2d0dc9 /boot ext4 discard,sync 0 2
+> /dev/mapper/sda3_crypt / ext4 discard,errors=remount-ro 0       1
+> /dev/mapper/sda2_crypt none swap sw 0 0
+> 
+> 
+> Nevertheless, on reboot, I noticed that swap was not mounted. The issue is that
+> on first reboot, /dev/sda and /dev/sdb got switched.
+> 
+> All the partitions referenced by UUID got mounted correctly.
+> 
+> I'm probably lucky that /dev/sda2 from install didn't point to
+> anything anymore since it could have trashed a partition of mine.
+> 
+> Shouldn't /etc/crypttab be created by using the UUID or partid of the
+> swap?
+I've only toyed with guided encrypted LVM setups, and there swap is on an
+LV, so I haven't seen this yet.
+Storing /dev/sda2 there looks buggy indeed, esp. since the root partition
+is pointed to by UUID instead…
+I'm not familiar with the relevant code yet though.
+KiBi.
+signature.asc

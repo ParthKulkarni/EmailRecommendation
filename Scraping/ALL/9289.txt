@@ -1,0 +1,32 @@
+To : Ricardo Peliquero <zhana@lasampa.com.ar>
+Subject : Re: Bug#833116: fgetty: Incorrect keystroke interpretation
+From : Dmitry Bogatov <KAction@debian.org>
+Date : Thu, 20 Dec 2018 18:02:47 +0000
+Message-id : E1ga2en-0002Xe-Ma@eggs.gnu.org
+In-reply-to : <[🔎] 20181219104208.2d4b0403defa6c1517c09cb3@lasampa.com.ar>
+References : <20160803050528.hoz5mc4pn2twezyg@lasampa.com.ar> <E1bUrvD-0004Yi-8L@eggs.gnu.org> <20160803225413.vgxxvxlmrhuyt6bx@lasampa.com.ar> <E1bV6om-0007bR-RI@eggs.gnu.org> <20160810025757.k6emt3kiaa6h7elp@lasampa.com.ar> <E1bXPpo-0005wU-SC@eggs.gnu.org> <20160810174016.r75zlxlqthuumubp@lasampa.com.ar> <E1gQiiG-0001ry-B2@eggs.gnu.org> <20181203104821.b866945cf97431ca9be4c465@lasampa.com.ar> <[🔎] E1gUSyu-0005wg-C8@eggs.gnu.org> <[🔎] 20181205192909.jawb6lwgdf5k3lf6@debian> <[🔎] 20181219104208.2d4b0403defa6c1517c09cb3@lasampa.com.ar>
+
+
+[2018-12-19 10:42] Ricardo Peliquero <zhana@lasampa.com.ar>
+> Anton Zinoviev <anton@lml.bas.bg>
+> Wed, 5 Dec 2018 21:29:10 +0200:
+> 
+> > On Wed, Dec 05, 2018 at 08:56:16AM +0000, Dmitry Bogatov wrote:
+> 
+> > Suppose that we have a working bash shell with UTF-8 console where ñ 
+> > displays properly.  Then try this:
+> > 
+> > LANG=C bash # run a subshell in a non-UTF8 locale
+> > 
+> > If you press ñ, you will see (arg: 1).  The programs (including a 
+> > subshell) also work incorrectly because the locale is not UTF8.
+> > 
+> 
+> Reproduced with expected result (within both login and login1 ttys).
+I got idea. No code in fgetty calls setlocale(3), while all tools from
+src:shadow use setlocale(LC_ALL, ""). Maybe it could help?
+Anton, could you please clarify, how locale is set up by this function
+call if process inhereted no locale-related variables.
+Maybe it would be better to call setlocale(LANG, "C.UTF-8") in login
+process, that execs shell?
+> [...]

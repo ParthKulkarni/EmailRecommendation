@@ -1,0 +1,58 @@
+To : Christopher Obbard <obbardc@gmail.com>
+Subject : Bug#901717: debootstrap: Version 1.0.102 breaks use of file mirrors
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Sun, 24 Jun 2018 12:03:26 +0900
+Message-id : 20180624120326.d1413bcaf3b1836726cb131c@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 901717@bugs.debian.org
+In-reply-to : <CAP03Xer3SyXhU=2N3SFfHGRQMxWRfZPxycpZ3nRwX4z87d3=fA@mail.gmail.com>
+References : <[🔎] CAP03XervdYe66x_0bZO2Jyge0GK-SZziNv2XeasaOGwo+HsrTQ@mail.gmail.com> <20180621152415.68d7d7afc079a2aadb1846b2@iijmio-mail.jp> <CAP03Xer3SyXhU=2N3SFfHGRQMxWRfZPxycpZ3nRwX4z87d3=fA@mail.gmail.com> <[🔎] CAP03XervdYe66x_0bZO2Jyge0GK-SZziNv2XeasaOGwo+HsrTQ@mail.gmail.com>
+
+
+Hi,
+On Sat, 23 Jun 2018 11:14:58 +0100
+Christopher Obbard <obbardc@gmail.com> wrote:
+> $ cat test/debootstrap/debootstrap.log
+> ...
+> /debootstrap/debootstrap: 1428: /debootstrap/debootstrap: cannot open
+> //var/lib/apt/lists/http:__deb.debian.org_debian_dists_buster_main_binary-armhf_Packages:
+> No such file
+ Oh, that is not expected, installation was failed...
+ Here's a proposed patch.
+diff --git a/debootstrap b/debootstrap
+index 023a54f..c61636f 100755
+--- a/debootstrap
++++ b/debootstrap
+@@ -422,6 +422,7 @@ fi
+ if [ "$SECOND_STAGE_ONLY" = "true" ]; then
+ 	SUITE=$(cat "$DEBOOTSTRAP_DIR/suite")
+ 	ARCH=$(cat "$DEBOOTSTRAP_DIR/arch")
++	USER_MIRROR=$(cat "$DEBOOTSTRAP_DIR/mirror")
+ 	if [ -e "$DEBOOTSTRAP_DIR/variant" ]; then
+ 		VARIANT=$(cat "$DEBOOTSTRAP_DIR/variant")
+ 		SUPPORTED_VARIANTS="$VARIANT"
+@@ -725,6 +726,7 @@ if am_doing_phase first_stage; then
+ 		cp "$DEBOOTSTRAP_DIR"/scripts/*-common	"$TARGET/debootstrap/"
+ 		echo "$ARCH"			>"$TARGET/debootstrap/arch"
+ 		echo "$SUITE"			>"$TARGET/debootstrap/suite"
++		echo "$USER_MIRROR"		>"$TARGET/debootstrap/mirror"
+ 		[ "" = "$VARIANT" ] ||
+ 		echo "$VARIANT"			>"$TARGET/debootstrap/variant"
+ 		echo "$required"		>"$TARGET/debootstrap/required"
+> >> we should write the file mirror URI to sources.list
+> >
+> >  And that assumption needs to be discussed.
+> >
+> >  If we would create chroot with debootstrap specified with file:///
+> >  mirror and bring it to another environment, sources.list should
+> >  point local file mirror or not?
+> 
+> You are right, thinking about it mirror URI should not added to sources.list.
+> I do like the original method debootstrap 1.0.101 uses of caching the
+> list of packages when using a file mirror under debootstrap.invalid.
+> All of the packages are cached in the first-stage anyway.
+> 
+> After the install is complete, we should clear /etc/apt/sources.list
+> of debootstrap.invalid.
+> The user should update /etc/apt/sources.list himself anyway.
+ I prefer to use http(s)://deb.debian.org/debian as default mirror
+ setting for it, since it's okay for most users and works.

@@ -1,0 +1,161 @@
+To : debian-devel-announce@lists.debian.org
+Subject : Debian Installer Buster Alpha 3 release
+From : Cyril Brulebois <kibi@debian.org>
+Date : Tue, 19 Jun 2018 17:15:51 +0200
+Message-id : 20180619151551.glcwosdlrlj5pzts@mraw.org
+Reply-to : debian-boot@lists.debian.org
+
+
+The Debian Installer team[1] is pleased to announce the third alpha
+release of the installer for Debian 10 "Buster".
+Improvements in this release
+============================
+ * apt-setup:
+    - If installing from a single-desktop single CD image, comment it out
+      from sources.list after installation like we do with the netinst
+      images, along with an explanation in comment as well.
+ * cryptsetup:
+    - Upgrade to upstream version 2.0.0.
+ * debian-installer:
+    - Bump Linux kernel ABI from 4.13.0-1 to 4.16.0-2.
+    - Replace c_rehash with openssl rehash (#895074). That should only
+      affect builds with SSL_CERTS enabled; regular HTTPS support
+      comes from ca-certificates anyway.
+    - Ensure stricter separation from host's apt configuration by
+      setting APT_CONFIG during the build process.
+    - Tweak Acquire::Languages, Apt::Architecture, Apt::Architectures
+      and disable both apt.conf.d and preferences.d snippets.
+    - Drop libnewt0.52 from Build-Depends, the library now provides
+      an udeb.
+    - Run fc-cache when /etc/fonts or /usr/share/fonts exist (for gtk
+      targets), to avoid having to generate UUIDs at runtime, which
+      can be hard because of missing entropy (#898468).
+ * debian-installer-utils:
+    - Fix "list-devices partition" to also report LVM logical volumes
+      (#868848).
+ * debootstrap:
+    - Add support for bookworm.
+    - Add Acquire-By-Hash support.
+    - Too many other improvements to list them all here.
+ * espeakup:
+    - Fix path to voice definitions, which fixes language auto-switch
+      in the installer.
+    - Configure debconf frontend to readline on the installed system
+      for better accessibility.
+    - Improve console/X11 VT switches.
+ * flash-kernel:
+    - Fix issues in handle_dtb (#870430).
+    - Add option to allow "any" in Kernel-Flavors (#883547).
+    - Warn when ubootenv.d snippet will be ignored (#884376).
+    - Adjust sunxi boot script to prefer prefix variable if defined.
+    - Add support for relative paths for DTB-Id (#860304).
+    - Add compatibility symlink to dtb in vendor sub-directory.
+    - Add support for root device specified by PARTLABEL.
+    - Provide hook to start EFI application (#873390).
+    - Fix when no Kernel-Flavors are defined (#887803).
+    - Add support for Boot-Kernel-Path-Version,
+      Boot-Initrd-Path-Version, and Boot-DTB-Path-Version
+ * iso-scan:
+    - Detect LVM logical volumes so that they can be used to find the
+      ISO image being looked for (#868859).
+    - Copy the ISO image into RAM before mounting it when debconf
+      question iso-scan/copy_iso_to_ram is true. This makes it
+      possible to use the disk that provided the ISO image for
+      (automatic) partitioning (#868900).
+ * localechooser:
+    - Use iso_3166-1.mo filename instead of the compatibility symlink
+      (#889963).
+    - languagelist: Enable Georgian and Lao in bterm.
+    - Enable all languages when using speakup_soft, which supports any
+      UTF-8 language.
+    - Enable all languages when using speakup_dummy too, which can
+      also support any UTF-8 language.
+ * mdadm:
+    - Use the same udev rules in the installer and in the installed
+      system.
+ * partman-lvm:
+    - Make device_remove_lvm() detect errors, so as to stop early if
+      anything goes wrong.
+ * ppp:
+    - Use /bin/ip instead of /sbin/ifconfig in the interfaces
+      configuration for the installed system (#889295).
+    - Consider interface names using udev predictable interface
+      naming (#873391).
+ * rescue:
+    - Make sure to not provide duplicate entries in the list of
+      possible devices for the root partition.
+ * util-linux:
+    - Ship fallocate in util-linux-udeb (#882001).
+ * wide-dhcpv6:
+    - Build against static flex library to avoid a runtime dependency
+      on libfl2 (#893988).
+Hardware support changes
+========================
+ * debian-installer:
+    - armhf: Add support for Cubietruck_plus.
+    - armhf: Enable grub-efi mini.iso (netboot).
+    - arm64: Generate u-boot media for pine64_plus.
+    - Add support for the NanoPiNeo.
+ * flash-kernel:
+    - Add support for installing 32bit kernels on the Raspberry Pi 3
+      (#886225).
+    - Make ubootenv.d work on Wandboard (#884375).
+    - Make ubootenv.d work on CuBox-i.
+    - Add support for SolidRun Clearfog Boards (#839595).
+    - Add support for SolidRun CuBox (dove) (#876773).
+    - Fix typos in imx-base boot script.
+ * linux:
+    - armel: Adjust lzo-modules and mtd-modules contents and
+      some reverse-dependencies.
+    - Add dependency from nic-modules to zlib-modules.
+    - armhf: Add i2c-exynos5 to i2c-modules (#895976).
+    - Move arc4 and ecb from nic-wireless-modules to crypto-modules
+      (#895362).
+    - Add algif_skcipher to crypto-modules (#896968).
+    - Rename lzo-modules to compress-modules
+    - Add zstd_decompress to compress-modules and make
+      squashfs-modules depend on it.
+    - amd64: Add vmd to scsi-modules, required for NVMe on some
+      systems (#891482).
+    - Update patterns for PHY modules included in usb-modules
+      (#893154).
+    - Enable NVME_MULTIPATH, NVME_FC, NVME_TARGET_FC, move nvme module
+      into scsi-modules installer udeb.
+    - arm64: add multifunction devices.
+    - arm64: add mvebu comphy for armada 8K.
+    - armel: Remove fbcon from fb-modules package.
+ * parted:
+    - Improve detection of Apple systems (#890587).
+    - Prevent crash resizing FAT with very deep directories (#840709).
+    - Fix recognition of FAT file system after resizing (#840710).
+    - Add support for NVMe devices (#886960).
+    - Update DASD handling (#887016).
+Localization status
+===================
+ * 75 languages are supported in this release.
+ * Full translation for 9 of them.
+Known bugs in this release
+==========================
+ * The installer will be using the Stretch theme until the artwork
+   selection for Buster has happened.
+ * The translation-status file wasn't updated for this release, so the
+   language selection step might misrepresent the actual translation
+   status for some languages.
+See the errata[2] for details and a full list of known issues.
+Feedback for this release
+=========================
+We need your help to find bugs and further improve the installer,
+so please try it. Installer CDs, other media and everything else you
+will need are available at our web site[3].
+Thanks
+======
+The Debian Installer team thanks everybody who has contributed to this
+release.
+ 1. https://wiki.debian.org/DebianInstaller/Team
+ 2. https://www.debian.org/devel/debian-installer/errata
+ 3. https://www.debian.org/devel/debian-installer
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant
+signature.asc

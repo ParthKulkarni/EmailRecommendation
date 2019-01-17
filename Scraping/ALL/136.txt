@@ -1,0 +1,42 @@
+To : Antoine Beaupre <anarcat@orangeseeds.org>
+Subject : Re: help needed to complete regression fix for apache2 Bug#858373
+From : Stefan Fritsch <sf@debian.org>
+Date : Fri, 21 Jul 2017 09:24:00 +0200
+Message-id : 3009983.iA4e6ce5NB@k
+In-reply-to : <[🔎] 20170719194520.uahfl74guvh4ixka@curie.anarc.at>
+References : <20170411023810.GC13258@sin.redhat.com> <[🔎] 20170719181601.x24orqjghe7gzvn5@curie.anarc.at> <[🔎] 20170719194520.uahfl74guvh4ixka@curie.anarc.at>
+
+
+Hi Antoine,
+On Wednesday, 19 July 2017 15:45:20 CEST Antoine Beaupre wrote:
+> As I mentioned in the #858373 bug report, I started looking at fixing
+> the regression introduced by the 2.2.22-13+deb7u8 upload, part of
+> DLA-841-1. The problem occurs when a CGI(d) ErrorDocument is configured
+> to handle 400 error messages that can be triggered with a simple "GET /
+> HTTP/1.0\n\n". Such a request segfaults Apache in Wheezy right now.
+> Unfortunately, re-introducing the protocol initialization code isn't
+> sufficient: it does fix the segfaults, but the ErrorDocument handling is
+> not quite working yet. Instead of seeing the output of the
+> ErrorDocument, after 10 seconds, I get the raw 400 message, doubled with
+> a 500 error document warning:
+> Note that I have also tried to see if sending "\r\n" instead of just
+> "\n" in my "hello world" example would work around the issue: it
+> doesn't, unfortunately.
+> 
+> I am at a loss as where to go from here, to be honest. The patch
+> (attached) at least fixes the segfault, which resolves the primary issue
+> at hand here (DoS by crashing processes!) but it would be nice to
+> actually fix the ErrorDocument as well..
+This sounds familiar. Maybe it's simply broken in 2.2.22. Can you compare with 
+2.2.22-13+deb7u7 if that bug has been there already?
+In 2.2.30, there is this fix, which is obviously missing from 2.2.22:
+  *) core, modules: Avoid error response/document handling by the core if some
+     handler or input filter already did it while reading the request (causing
+     a double response body).  [Yann Ylavic]
+I could not find a changelog entry about the 10s delay, but it's possible that 
+that has been fixed as well. If the issue is not a regression, you should 
+simply release the patch that you have. The fix for the error document seems 
+rather invasive:
+https://svn.apache.org/r1683808
+Cheers,
+Stefan

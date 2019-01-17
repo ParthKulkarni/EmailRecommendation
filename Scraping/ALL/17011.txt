@@ -1,0 +1,59 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Tue, 27 Nov 2018 12:51:47 -0800
+Message-id : 20181127205139.GA6201@localhost
+In-reply-to : <[🔎] 23549.16194.204341.181900@chiark.greenend.org.uk>
+
+
+Ian Jackson wrote:
+> Unfortunately that means that while a properly planned and executed
+> transition to mandatory merged-/usr might well have offered overall
+> technical benefits for the Debian ecosystem, this is not now socially
+> possible and pressing on is not worth the social costs of being seen
+> to bulldoze opposition.
+Prematurely declaring victory for an approach you prefer is a more
+subtle tactic, but still an unproductive, escalating, and
+heat-generating one. There is no such consensus at this time.
+Perhaps the correct transition plan is a years-long transition that will
+leave Debian unable to avail itself of any of the advantages until done.
+Perhaps it isn't. Perhaps there are ways to accomplish that transition
+more quickly. Perhaps there are ways we can provide the benefits in the
+short term while accomplishing the transition in the long term. But
+regardless, please refrain from declaring one of those positions
+authoritatively (rather than as your opinion and position) unless that
+becomes the consensus.
+Nobody here is looking to *bulldoze* opposition. Rather, people are
+mostly seeking to *understand* and *address* opposition. There's a big
+difference between "this is going to break things" and "here's something
+this is going to break, the current solution doesn't address that".  The
+latter is a useful contribution; the former without any signs of the
+latter is simply FUD. And it's not unreasonable to identify it as such.
+For the record, I'm *not* in this mail suggesting a position on whether
+the correct solution is to make usrmerge essential. I do think we should
+move to moving merged /usr mandatory. Long-term, I *do* think we should
+work on making all packages build to install no files to /bin and /lib
+and similar, including lintian warnings for installing in / and
+eventually autorejects for that. However, I also think it's unreasonable
+for that transition to take years; if we can't reasonably accomplish it
+in a few months, then 1) we need better mechanisms for distro-wide
+changes, and 2) we should consider a solution like usrmerge in the
+interim, until we get to the point that no package in the archive
+installs to the directories directly in / and we have rejects in place
+to prevent any new packages from doing so.
+Here's a thought: we already mount /usr at boot time, could we have a
+mechanism at boot time that uses some combination of a tmpfs, symlinks,
+and mounts to create a /bin that includes individual symlinks to
+corresponding binaries in /usr/bin if and *only* if /bin isn't already a
+symlink to /usr/bin? That way, /bin on disk doesn't actually contain any
+such symlinks, and we don't need an irreversible process like usrmerge.
+Keep that up until the transition completes and the last package
+transitions, then ship the symlinks in a new base-files and drop the
+transitional startup script. Ditto for /sbin and /lib.
+We could also have a dh-style script that automatically moves files and
+creates a /usr/usrtransition.d/packagename.conf file read by that
+boot-time mechanism. Then we know the transition will be handled
+correctly, and we won't have packages getting the details wrong and
+ending up with RC bugs.
+Sound reasonable? I'd be happy to work on that.
+- Josh Triplett

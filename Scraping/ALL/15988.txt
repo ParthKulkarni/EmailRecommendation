@@ -1,0 +1,93 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Russ Allbery <rra@debian.org>
+Date : Sat, 17 Feb 2018 09:34:45 -0800
+Message-id : 87sh9za5ai.fsf@hope.eyrie.org
+In-reply-to : <[🔎] CAKTje6EpCJ+KBoh9nGW-7nzcs8EeFoAJXUxfb6tC0AJMVKoDiw@mail.gmail.com>	(Paul Wise's message of "Sat, 17 Feb 2018 15:41:11 +0800")
+References : <[🔎] 151879250395.15777.11687709733947019960.reportbug@x260-buxy.home.ouaza.com>	<[🔎] 20180216151129.GB18296@home.ouaza.com>	<[🔎] 1518796684.2867.116.camel@debian.org>	<[🔎] e7bb0d56-1333-11e8-9b6a-00163eeb5320@msgid.mathom.us>	<[🔎] 20180216171204.GB4131@feivel> <[🔎] 87vaew939z.fsf@iris.silentflame.com>	<[🔎] 20180216193816.GA3202@feivel> <[🔎] 87eflk8u7q.fsf@iris.silentflame.com>	<[🔎] CAKTje6EpCJ+KBoh9nGW-7nzcs8EeFoAJXUxfb6tC0AJMVKoDiw@mail.gmail.com>
+
+
+Paul Wise <pabs@debian.org> writes:
+> I think the discussion we are having here is orthogonal to
+> containers/flatpaks.
+> If Debian were to have a repository of containers/flatpaks, then it
+> should meet Debian standards. We cannot just say "here are some
+> containers, completely unsupported and might not up to our standards".
+> To achieve that, I think it would be best to automatically convert it
+> from Debian binary packages. Also, since we are already doing packaging
+> work, it makes sense to base any container efforts on that, just like
+> our cloud efforts have been.
+I agree with this.
+Putting aside completely missing licenses or completely missing source
+code (these are sometimes more fixable problems, since those are
+considered suspect practices even in the upstream communities), the root
+problem here is vendored dependencies.  Most modern languages, not just
+Java and Node, are switching to vendored dependencies with some mechanism
+for freezing the dependencies for a project.  See Rust, Go, and
+increasingly, Python and Ruby, and I would expect to see the same for any
+new, popular programming language.
+For better or worse, there's a general consensus upstream of us in a lot
+of language communities that API backward compatibility and continuous
+upgrades are simply too hard, and breaking changes (ideally with semver)
+plus freezing and vendoring dependencies are the best solution.  We can
+certainly disagree with this, but this approach has a ton of momentum
+behind it, and we're swimming upstream right now.  We convince some folks,
+but not many, and the Node ecosystem in particular is so firmly committed
+to this approach that it's hard to imagine them backing away from it.
+So, where does that leave us?
+The reason why Debian in general doesn't like to support vendored source
+is because of the security implications: when there's a security
+vulnerability in one of the vendored libraries, updating the relevant
+packages becomes a nightmare.  It's a logistical challenge even if the
+vendored source can be safely upgraded, but of course it usually can't
+since that's the whole point of vendoring the source.  So we would be
+faced with backporting security fixes to every vendored version of the
+package, and we don't have the resources to do this.
+Note that this is not a *Debian* problem, this is an *ecosystem* problem.
+No one *else* has the resources to do this either, and generally what
+happens out there in the world is that this is just not done.  Those
+applications blithely continue running with vulnerable versions of their
+dependencies, and aren't updated.
+I think it's important to note here that we're not wrong.  Our approach is
+substantially more secure because we can patch software.  Vendoring
+everything is substantially less secure since you're relying on the
+application developer to re-vendor fixed versions, and they may not even
+know there was a vulnerability.  (High-quality vulnerability feeds for a
+lot of these ecosystems are very hard to come by.)  It's not that someone
+else is succeeding where we're failing; it's that lots of other people
+have decided to just blow off security in the name of convenience and hope
+they don't get bitten by this.
+Using flatpak therefore doesn't really change the equation.  It *does*
+provide some jailing by default, which can protect some against a certain
+type of vulnerabilities (and which we could provide in other ways as well;
+flatpak just makes it easier).  But it does nothing against the more
+common problems of, say, XSS vulnerabilities in some Javascript library
+used for the web front end of the application.
+It's hard to avoid the feeling that we have two choices with these sorts
+of applications:
+1. Lower our security standards and provide whatever the application
+   developer provides, relying on them to re-vendor for security updates.
+   This would probably mean not releasing these packages with stable
+   releases or immediately adding them to the unsupported security list,
+   unless we're going to significantly relax the normal security
+   guarantees we provide.
+2. Maintain our security standards, reject packages with large amounts of
+   vendored software, and therefore, in practice, ask our users to
+   separately install such software via whatever means the application
+   developer provides.  Users who choose to do this won't be any more
+   secure (they'll probably be somewhat less secure since those updates
+   won't be hooked into their normal system update process), but at least
+   they have to make a conscious choice to opt in to that behavior, and a
+   Debian installation with pure Debian packages is relatively secure by
+   default.
+So far, we've defaulted in option 2, which means we're not packaging a lot
+of very useful software.  But I don't think this is due to some obvious
+error on our part.  The only practical alternative appears to be 1, and 1
+is really not very appealing.  It does make things more convenient for our
+users, but at a substantial cost to our security guarantees.
+I suppose a possible third option would be a new archive that explicitly
+has no security support, sort of similar conceptually to how we handle
+non-free or contrib.  That would be a sort of compromise, but I'm not sure
+it would make anyone happy.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

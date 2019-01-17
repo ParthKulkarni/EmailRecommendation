@@ -1,0 +1,108 @@
+To : "debian-boot@lists.debian.org" <debian-boot@lists.debian.org>
+Subject : flash-kernel and dtbs
+From : Rainer Dorsch <ml@bokomoko.de>
+Date : Sun, 26 Nov 2017 15:43:08 +0100
+Message-id : 4150222.Ex2muNh25l@blackbox
+
+
+Hi,
+I try to setup the correct dtb for a HummingBoard DualLite using flash-kernel, 
+but the kernel seems to load always the Cubox-i dtb:
+root@mohot:~# cat /etc/flash-kernel/machine 
+SolidRun HummingBoard DL/Solo
+root@mohot:~# fdtdump /boot/dtb-4.13.0-0.bpo.1-armmp |grep model
+    model = "SolidRun HummingBoard Solo/DualLite";
+        model = "On-board Codec";
+        model = "On-board SPDIF";
+root@mohot:~# uname -a
+Linux mohot 4.13.0-0.bpo.1-armmp #1 SMP Debian 4.13.4-2~bpo9+1 (2017-10-17) 
+armv7l GNU/Linux
+root@mohot:~#  ls -l /boot/dtb-4.13.0-0.bpo.1-armmp 
+lrwxrwxrwx 1 root root 49 Nov 26 15:16 /boot/dtb-4.13.0-0.bpo.1-armmp -> dtbs/
+4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb
+root@mohot:~# flash-kernel 
+Using DTB: imx6dl-hummingboard.dtb
+Installing /usr/lib/linux-image-4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb 
+into /boot/dtbs/4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb
+Taking backup of imx6dl-hummingboard.dtb.
+Installing new imx6dl-hummingboard.dtb.
+flash-kernel: installing version 4.13.0-0.bpo.1-armmp
+Generating boot script u-boot image... done.
+Taking backup of boot.scr.
+Installing new boot.scr.
+root@mohot:~# reboot
+[...]
+Looks all good for me so far, but another dtb is loaded:
+rd@mohot:~$ grep fdt /var/log/kern.log
+Nov 19 16:45:14 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 19 18:41:38 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 13:19:13 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 13:59:35 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 15:17:02 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 15:32:15 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+rd@mohot:~$ 
+Also
+root@mohot:~# dpkg-reconfigure linux-image-4.13.0-0.bpo.1-armmp 
+/etc/kernel/postinst.d/initramfs-tools:
+update-initramfs: Generating /boot/initrd.img-4.13.0-0.bpo.1-armmp
+Using DTB: imx6dl-hummingboard.dtb
+Installing /usr/lib/linux-image-4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb 
+into /boot/dtbs/4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb
+Taking backup of imx6dl-hummingboard.dtb.
+Installing new imx6dl-hummingboard.dtb.
+Installing /usr/lib/linux-image-4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb 
+into /boot/dtbs/4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb
+Taking backup of imx6dl-hummingboard.dtb.
+Installing new imx6dl-hummingboard.dtb.
+flash-kernel: deferring update (trigger activated)
+/etc/kernel/postinst.d/zz-flash-kernel:
+Using DTB: imx6dl-hummingboard.dtb
+Installing /usr/lib/linux-image-4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb 
+into /boot/dtbs/4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb
+Taking backup of imx6dl-hummingboard.dtb.
+Installing new imx6dl-hummingboard.dtb.
+Installing /usr/lib/linux-image-4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb 
+into /boot/dtbs/4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb
+Taking backup of imx6dl-hummingboard.dtb.
+Installing new imx6dl-hummingboard.dtb.
+flash-kernel: deferring update (trigger activated)
+Processing triggers for flash-kernel (3.79) ...
+Using DTB: imx6dl-hummingboard.dtb
+Installing /usr/lib/linux-image-4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb 
+into /boot/dtbs/4.13.0-0.bpo.1-armmp/imx6dl-hummingboard.dtb
+Taking backup of imx6dl-hummingboard.dtb.
+Installing new imx6dl-hummingboard.dtb.
+flash-kernel: installing version 4.13.0-0.bpo.1-armmp
+Generating boot script u-boot image... done.
+Taking backup of boot.scr.
+Installing new boot.scr.
+root@mohot:~# 
+does not help, I still get the old dtb
+rd@mohot:~$ grep fdt /var/log/kern.log
+Nov 19 16:45:14 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 19 18:41:38 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 13:19:13 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 13:59:35 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 15:17:02 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 15:32:15 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+Nov 26 15:40:09 mohot kernel: [    0.000000] OF: fdt: Machine model: SolidRun 
+Cubox-i Dual/Quad
+rd@mohot:~$ 
+Can anybody tell, what I am doing wrong? Is that a flash-kernel bug?
+Thanks
+Rainer
+-- 
+Rainer Dorsch
+http://bokomoko.de/

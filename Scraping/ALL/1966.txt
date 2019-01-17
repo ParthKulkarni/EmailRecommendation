@@ -1,0 +1,43 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#875989: console-setup: generated cached_setup_keyboard.sh references /tmp/ file
+From : GSR <gsr.bugs@infernal-iceberg.com>
+Date : Sun, 17 Sep 2017 22:28:32 +0200
+Message-id : 20170917202832.mm3pbv3cayq6vbfa@fortress.battleship
+Reply-to : GSR <gsr.bugs@infernal-iceberg.com>, 875989@bugs.debian.org
+In-reply-to : <[🔎] 20170917053232.2u5m3yaezpd7ed7l@mraw.org>
+References : <[🔎] 20170917001512.5ufczparcaqvxxsw@fortress.battleship> <[🔎] 20170917053232.2u5m3yaezpd7ed7l@mraw.org> <[🔎] 20170917001512.5ufczparcaqvxxsw@fortress.battleship>
+
+
+Hi,
+kibi@debian.org (2017-09-17 at 0732.32 +0200):
+> GSR <gsr.bugs@infernal-iceberg.com> (2017-09-17):
+> > Package: console-setup
+> > Version: 1.167
+> > Severity: normal
+> > 
+> > Updated from 166 to 167 and when verifying changes in /etc/ noticed
+> > there was only one change, in console-setup/cached_setup_keyboard.sh:
+> > 
+> > ---8<---
+> > -loadkeys '/etc/console-setup/cached_UTF-8_del.kmap.gz' > '/dev/null' 
+> > +loadkeys '/tmp/tmpkbd.31u83e' > '/dev/null'
+> > --->8---
+> > 
+> > File in /tmp/, named tmpkbd and with (random) extension that looks
+> > like one from mktemp? And before it was a file in /etc/ with
+> > understable name? Suspicious.
+[...]
+> It seems there were no functional changes between both versions, only
+> translation updates plus an extra CHANGES file (which looks like the
+> last changelog entry). BTW, Christian, a git push seems to be missing.
+The diff above is what etckeeper commited when upgrading
+console-setup, console-setup-linux and keyboard-configuration, all
+from 1.166 to 1.167. And there have been previous commits, so it
+wasn't something pending from way past, it took place in the upgrade.
+Also, as predicted, "cannot open file /tmp/tmpkbd.31u83e" appeared on
+boot, yet mapping looked OK. Anyway, I invoked the other loadkeys by
+hand to be sure.
+After reading the man page, I decided to run "setupcon --save-only" by
+hand... and now the file is back to sane value. Uh!? A bit flipped
+during upgrade and naming choice got mangled?
+GSR

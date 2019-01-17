@@ -1,0 +1,90 @@
+To : Dimitri John Ledkov <xnox@debian.org>, debian-boot@lists.debian.org
+Subject : Re: Let's talk about conflicts and omissions in the udeb distribution
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 12 Oct 2017 20:49:18 +0200
+Message-id : 20171012184918.a3jrgqic5ycvaumf@mraw.org
+In-reply-to : <[🔎] aa4d6291dcaa15eba5aeb46cd31c081a@debian.org>
+References : <[🔎] CANBHLUiOxf0WkLvqv-YbMH9zOtLcnpx_96KHk9o5XWovm9YGDg@mail.gmail.com> <[🔎] aa4d6291dcaa15eba5aeb46cd31c081a@debian.org>
+
+
+Hi,
+Philipp Kern <pkern@debian.org> (2017-10-12):
+> On 2017-10-12 18:35, Dimitri John Ledkov wrote:
+> > Unpacking libkmod2-udeb (24-1) ...
+> > dpkg: warning: overriding problem because --force enabled:
+> > dpkg: warning: trying to overwrite '/sbin/depmod', which is also in
+> > package busybox-udeb 1:1.27.2-1
+> > dpkg: warning: overriding problem because --force enabled:
+> > dpkg: warning: trying to overwrite '/sbin/insmod', which is also in
+> > package busybox-udeb 1:1.27.2-1
+> > dpkg: warning: overriding problem because --force enabled:
+> > dpkg: warning: trying to overwrite '/sbin/lsmod', which is also in
+> > package busybox-udeb 1:1.27.2-1
+> > dpkg: warning: overriding problem because --force enabled:
+> > dpkg: warning: trying to overwrite '/sbin/modinfo', which is also in
+> > package busybox-udeb 1:1.27.2-1
+> > dpkg: warning: overriding problem because --force enabled:
+> > dpkg: warning: trying to overwrite '/sbin/modprobe', which is also in
+> > package busybox-udeb 1:1.27.2-1
+> > dpkg: warning: overriding problem because --force enabled:
+> > dpkg: warning: trying to overwrite '/sbin/rmmod', which is also in
+> > package busybox-udeb 1:1.27.2-1
+> > 
+> > Do we need both implementations of modprobe tools? Should one of them
+> > (kmod, busybox) stop building/shipping them? Or should those tools be
+> > shipped in busybox-kmod-udeb and kmod-udeb?
+> 
+> why is this on -devel and not -boot and why is this not in a bug?
+Couldn't agree more.
+> https://bugs.debian.org/871045 is somewhat related.
+The kmod situation has been known for quite a while (see mklibs changes
+over the year). The bug above was opened by Aurélien so that we don't
+forget about possibly switching to using more busybox applets instead of
+fixing kmod. Feel free to file a bug report in the meanwhile though.
+This has been prompted by the recent interest of two kind developers who
+stepped up to maintain busybox.
+> > Ditto:
+> > Unpacking wget-udeb (1.19.1-4) ...
+> > dpkg: warning: overriding problem because --force enabled:
+> > dpkg: warning: trying to overwrite '/usr/bin/wget', which is also in
+> > package busybox-udeb 1:1.27.2-1
+AFAICT recent busybox's wget does HTTPS so we could think about dropping
+wget-udeb. Defaulting to busybox's wget right now means archs without
+wget's udeb (ISTR armel) still have wget (which wouldn't be the case
+anymore if we were to drop the wget applet from busybox).
+> > Also note that libkmod2-udeb does not actually ship libkmod.so.2... on
+> > that note this:
+> > 
+> > INFO: Using /lib64/ld-linux-x86-64.so.2 as dynamic linker
+> > INFO: library reduction pass 1
+> > WARNING: Library libkmod.so.2 found in the default path
+> > /lib/x86_64-linux-gnu/
+> > WARNING: Library libslang.so.2 found in the default path
+> > /lib/x86_64-linux-gnu/
+> > WARNING: Library libnewt.so.0.52 found in the default path
+> > /usr/lib/x86_64-linux-gnu/
+> > WARNING: Library libgcc_s.so.1 found in the default path
+> > /lib/x86_64-linux-gnu/
+> > INFO: library reduction pass 2
+> > INFO: stripping and copying dynamic linker to
+> > ..//lib64/ld-linux-x86-64.so.2
+See first paragraph.
+> > I've changed mklibs-copy to print a warning whenever libraries are
+> > pulled from the host instead of the udeb.
+> > 
+> > Shouldn't the all of the above be shipped in udebs? As in do we expect
+> > .udebs to be selfcontained? I was a bit perplexed that libkmod2-udeb
+> > does not ship shared library and thus system one is used which is
+> > built differently.
+> > (all of udeb is build without hardening, but deb library is built with
+> > hardening)
+There's what you would expect, and current state of affairs. It's been
+worked on over the years (again, Aurélien has been working on this
+topic), but I think we'll still release a few versions that aren't
+prefect yet.
+> Maybe you should file bugs and/or discuss this on -boot.
+Of course, debian-boot@ is where d-i stuff happens; don't expect people
+to be subscribed to debian-devel@ (which can be dropped from further
+replies).
+KiBi.
+signature.asc

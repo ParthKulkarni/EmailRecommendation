@@ -1,0 +1,36 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#879814: apt: debian-installer FTBFS: missing syscalls for seccomp [mips,mipsel,ppc64el]
+From : Cyril Brulebois <kibi@debian.org>
+Date : Thu, 26 Oct 2017 11:53:30 +0200
+Message-id : 150901161056.1756.2649172222581436913.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 879814@bugs.debian.org
+
+
+Package: apt
+Version: 1.6~alpha2
+Severity: serious
+Tags: d-i
+Justification: FTBFS
+[ X-D-Cc: debian-boot@, debian-mips@, debian-powerpc@ ]
+Hi,
+Following the bump from alpha1 to alpha2, the situation improved quite a
+bit for the d-i daily builds (see #879662 for context). I've triggered a
+manual build for all archs, and if my copying/pasting is correct, the
+results are as follows:
+    armel:    alpha2, OK
+    armhf:    alpha1, KO ← the apt alpha2 build came in late, wasn't available yet.
+    arm64:    alpha2, OK
+    amd64:    alpha2, OK
+    i386:     alpha2, OK
+    mips:     alpha2, **** Seccomp prevented execution of syscall 0000004117 on architecture mips ****
+    mipsel:   alpha2, **** Seccomp prevented execution of syscall 0000004117 on architecture mipsel ****
+    mips64el: alpha2, OK
+    powerpc:  alpha2, OK
+    ppc64el:  alpha2, **** Seccomp prevented execution of syscall 0000000117 on architecture ppc64el ****
+    s390x:    alpha2, OK
+Porters: Julian mentioned it would be best if one could look at allowing
+extra syscalls through a config file[1], so as to detect other syscalls
+that might be needed as well (as it stands, the first offender triggers
+a failure, so we don't get a full list).
+ 1. https://bugs.debian.org/879662#39
+KiBi.

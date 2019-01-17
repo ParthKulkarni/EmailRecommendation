@@ -1,0 +1,46 @@
+To : 840372@bugs.debian.org
+Subject : Bug#840372: debootstrap: second-stage fails within systemd-nspawn: proc already mounted
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Tue, 17 Apr 2018 23:47:33 +0900
+Message-id : 20180417234733.6533982aff571b1ba0b53158@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 840372@bugs.debian.org
+In-reply-to : <20161011015051.30918.79686.reportbug@pxe>
+References : <20161011015051.30918.79686.reportbug@pxe>
+
+
+control: tags -1 +confirm
+control: tags -1 +patch
+On Tue, 11 Oct 2016 03:50:51 +0200 linus.luessing@c0d3.blue wrote:
+> $ sudo systemd-nspawn --bind /usr/bin/qemu-x86_64-static -D "./.amd64/" /bin/bash -c "mkdir /tmp/proc; mount --move /proc /tmp/proc; /debootstrap/debootstrap --second-stage"
+> ~~~~
+> 
+> So it looks like systemd-nspawn already took care of mounting /proc and
+> debootstrap fails when trying to do the same? Maybe debootstrap could
+> just skip mounting /proc if this mount is already present?
+ Here's a proposed patch.
+diff --git a/functions b/functions
+index 005b007..10938fe 100644
+--- a/functions
++++ b/functions
+@@ -1133,12 +1133,15 @@ setup_proc () {
+                umount_on_exit /proc
+                umount_on_exit /proc/bus/usb
+                umount "$TARGET/proc" 2>/dev/null || true
+-               in_target mount -t proc proc /proc
+-               if [ -d "$TARGET/sys" ] && \
+-                  grep -q '[[:space:]]sysfs' /proc/filesystems 2>/dev/null; then
+-                       umount_on_exit /sys
+-                       umount "$TARGET/sys" 2>/dev/null || true
+-                       in_target mount -t sysfs sysfs /sys
++               # if systemd-nspawn is used at second-stage, it already treats /proc and so on
++               if [ ! -n "$(ls -A /proc)" ]; then
++                       in_target mount -t proc proc /proc
++                       if [ -d "$TARGET/sys" ] && \
++                          grep -q '[[:space:]]sysfs' /proc/filesystems 2>/dev/null; then
++                               umount_on_exit /sys
++                               umount "$TARGET/sys" 2>/dev/null || true
++                               in_target mount -t sysfs sysfs /sys
++                       fi
+                fi
+                on_exit clear_mtab
+                ;;

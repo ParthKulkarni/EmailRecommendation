@@ -1,0 +1,71 @@
+To : debian-devel@lists.debian.org
+Subject : Re: systemd, ntp, kernel and hwclock
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Mon, 27 Feb 2017 20:26:06 +0000
+Message-id : 1488227166.2821.1.camel@decadent.org.uk
+In-reply-to : <[🔎] 8737ezl9we.fsf@hope.eyrie.org>
+References : <[🔎] afac576b-b2f3-ab27-124f-e58e1ac14561@pocock.pro>	 <[🔎] 8737ezl9we.fsf@hope.eyrie.org>
+
+
+On Mon, 2017-02-27 at 11:18 -0800, Russ Allbery wrote:
+> > Daniel Pocock <daniel@pocock.pro> writes:
+> 
+> > I've observed a system that had a wildly incorrect hardware clock (when
+> > it was first unboxed), I ran ntpdate to sync the kernel clock but after
+> > a shutdown and startup again it had a wacky time again.
+> > I came across the discussion about how the hardware clock is no longer
+> > set at shutdown[1]
+> > The system has ntpd running
+> > Looking at the output of
+> >    adjtimex --print | grep status
+> > the bit corresponding to 64 / STA_UNSYNC is 0
+> > There is a time and date page on the wiki[2] and in the manual[3],
+> > neither of them appears to have up to date information about the way it
+> > works with systemd or how to troubleshoot issues like this.
+> 
+> My understanding from reading a bit about this just now is that the short
+> version is "install ntpd if you want this to happen."
+> 
+> My impression is that ntpdate has been obsolete for years and upstream has
+> been slowly trying to kill it.  ntpd is the upstream-supported daemon, and
+> it periodically asks the kernel to set the hardware clock.
+The kernel actually does the periodic setting automatically, so long as
+the NTP server reports that it's synchronised (by clearing STA_UNSYNC
+in timex::status).
+(The kernel will only set one RTC device, which is specified in the
+build config.  On systems that have multiple RTCs and only one of them
+works (e.g. the one in the SoC doesn't have battery power but the one
+in the PMIC does) this may not work properly.  It may be fixable by
+disabling the broken RTC in the device tree.)
+> (And it
+> supports various command-line options to make it act like ntpdate if you
+> really want.)
+>
+> The much simpler systemd-timesyncd doesn't set the hardware clock for
+> reasons that one may or may not agree with (I honestly haven't researched
+> it in any depth),
+It looks like it does iff the RTC is set to UTC:
+        /*
+         * An unset STA_UNSYNC will enable the kernel's 11-minute mode,
+         * which syncs the system time periodically to the RTC.
+         *
+         * In case the RTC runs in local time, never touch the RTC,
+         * we have no way to properly handle daylight saving changes and
+         * mobile devices moving between time zones.
+         */
+        if (m->rtc_local_time)
+                tmx.status |= STA_UNSYNC;
+> but you can just run ntpd instead if you care.
+But ntpd is also known to have a large amount of code written without
+as much regard for security as one would hope.  It seems like an
+unnecessary risk for most systems.
+Ben.
+> Alternately, if you really want to use a clock setting mechanism that
+> doesn't ask the kernel to sync the hardware clock but you still want to
+> set the hardware clock, you can add your own shutdown init script / unit
+> to run hwclock --systohc (or even a cron job if you want).
+> 
+-- 
+Ben Hutchings
+This sentence contradicts itself - no actually it doesn't.
+signature.asc

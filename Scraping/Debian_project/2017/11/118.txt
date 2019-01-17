@@ -1,0 +1,96 @@
+To : Adam Borowski <kilobyte@angband.pl>
+Subject : Re: e2fsprogs as Essential: yes?:  Maybe we should be separating l10n files first?
+From : Theodore Ts'o <tytso@mit.edu>
+Date : Sun, 12 Nov 2017 14:18:45 -0500
+Message-id : 20171112191845.33rikhh3pay5fyot@thunk.org
+In-reply-to : <20171002113446.kazrk37bizfva7qe@angband.pl>
+References : <20110326184708.GB18787@virgil.dodds.net> <20170930224538.2pfhbxbnd7c245du@alf.mars> <20170930232954.neej33sceofnodmj@angband.pl> <55b01424-a6eb-11e7-9b6a-00163eeb5320@msgid.mathom.us> <20171002090318.z4at377oa7b5irxk@alf.mars> <2ebd4bae-a75c-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506941437.8204.22.camel@debian.org> <3cb53f2e-a760-11e7-9b6a-00163eeb5320@msgid.mathom.us> <1506942621.8204.25.camel@debian.org> <20171002113446.kazrk37bizfva7qe@angband.pl>
+
+
+On Mon, Oct 02, 2017 at 01:34:47PM +0200, Adam Borowski wrote:
+> But, we're discussing changes to e2fsprogs behind its maintainer's back.  I
+> believe he reads debian-devel, but, being nowhere like a frequent poster,
+> apparently doesn't watch new threads immediately as they appear (and this
+> one started as a response to a 2011 post).
+> 
+> Ted: could you please chime in?  In case you unsubscribed d-devel, it starts
+> at https://lists.debian.org/debian-devel/2017/09/msg00449.html
+Apologies for not responding sooner.  Between a crazy travel schedule
+(kernel summit in Prague, teaching a tutorial at LISA 2017 in San
+Francisco, and recovering from a killer case of Flu), I just hadn't
+really gotten to this earlier.
+1)  If people really want to make e2fsprogs non-essential, I'm not
+going to object seriously.  It's the downgrade of e2fsprogs from
+Priority: required to Priority: important which where things get
+super-exciting.
+2) I'm at this point I'm not really enthuiastic to move lsattr out of
+e2fsprogs.  We are still adding new features to ext4, some of which
+will require new flags, and chattr/lsattr et.al. *were* originally
+designed to be only for ext 2/3/4.  Other file systems have decided to
+use the same ioctl, which is fine, but I've always considered
+chattr/lsattr to be an ext 2/3/4 utility first, and more generic file
+system utility second.  Moving lsattr out of e2fsprogs to some other
+package (e.g., util-linux) will make my kernel development much more
+inconvenient.
+3) Lsattr/chattr et.al depend on the e2fsprogs shared libraries, so
+moving them into a separate binary package isn't going to save as much
+space as you would like.  So it's not at all clear the complexity is
+worth it.
+4) If the real goal is reduce the size of minbase, there is a much
+more effective thing we can do first, or at least, in parallel.  And
+that is to move the l10n files to a separate foo-l10n package.  The
+last time I did this analysis was with Debian Jessie, but I don't
+think the numbers have changed that much.  Of the 201 MB i386 minbase
+chroot, 33MB, or over 16% can be found in /usr/local/locale.  The
+breakdown (using Debian Jessie numbers) are:
+Package         Savings Cummulative
+                (kB)    Savings (kB)  Percentage
+coreutils       8052     8052         	 24.91
+dpkg            4620    12672         	 39.20
+bash            3744    16416         	 50.78
+gnupg           3424    19840         	 61.37
+e2fsprogs       1776    21616         	 66.86
+tar             1680    23296         	 72.06
+shadow          1632    24928         	 77.11
+apt             1528    26456         	 81.84
+libapt-pkg4.12  1052    27508         	 85.09
+Linux-PAM       796     28304         	 87.55
+findutils       756     29060         	 89.89
+grep            636     29696         	 91.86
+diffutils       620     30316         	 93.78
+debconf         596     30912         	 95.62
+adduser         444     31356         	 96.99
+sed             428     31784         	 98.32
+libgpg-error    388     32172         	 99.52
+systemd         84      32256         	 99.78
+acl             72      32328         	100.00
+In Debian Stretch, I've already done this separation for e2fsprogs, so
+the installed size of e2fsprogs is only 1309kB.  And so I've already
+made harvested way more than half of the savings of getting rid of
+e2fsprogs from the minbase set by the simple expedient of moving the
+/usr/share/locale files to e2fsprogs-l10n.
+Simply splitting coreutils into coreutils and coreutils-l10n would
+reduce minbase by a factor of *six* over getting rid of e2fsprogs from
+minbase.
+Does this mean trying to get to Essential: no for e2fsprogs is a bad
+thing?  No, but if your goal is reduce the size of minbase for Debian,
+I just want to point out that there is **much** lower hanging fruit
+that folks might want to consider harvesting first.
+Cheers,
+							- Ted
+P.S.  In case it isn't obvious, the reason why it's interesting to
+shrink the size of minbase is that it makes Debian much lighter-weight
+for Docker --- you don't need e2fsck or mke2fs in most docker
+containers based on Docker; neither do you need the translations into
+Turkish, German, Spanish, Chinese, etc., for e2fsprogs, coreutils,
+dpkg, etc., for most Docker containers.
+When I asked the question *why* is it worth it to spend the effort to
+reduce the size of Essential: yes, I was told it was it was a
+prerequisite of reducing the set of packages where Priority is
+"required", and *that* was because it allowed for a reduction of the
+minbase set, which in turn is intersting for reducing the size of
+Docker images.  If there are other reasons why people want to make
+e2fsprogs no longer essential: yes, it's good to have those out on the
+table, since it may be that there are other things we can do first, or
+in parallel, that might be *far* more effective towards the real end
+goal that people have.

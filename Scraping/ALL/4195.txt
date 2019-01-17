@@ -1,0 +1,104 @@
+To : submit@bugs.debian.org
+Subject : Bug#879145: net-retriever doesn't pull udebs from the 'unreleased' distribution
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Thu, 19 Oct 2017 22:04:29 +0200
+Message-id : 20171019200429.GA3214@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 879145@bugs.debian.org
+
+
+Package: net-retriever
+Version: 1.44
+Severity: wishlist
+Tags: patch
+X-Debbugs-CC: "Helge Deller" <deller@gmx.de>, "John Paul Adrian Glaubitz" <glaubitz@physik.fu-berlin.de>, "James Clarke" <jrtc27@debian.org>
+Dear Maintainer,
+net-retriever pulls udeb packages from one sole suite
+(the one registered in mirror/udeb/suite).
+Non released architectures from www.debian-ports.org may store
+some udebs in the suite 'unreleased' too. These are currently
+neglected by net-retriever.
+The patch below enables the use of both suites by net-retriever
+on non released architectures. (A file 'port_architecture'
+should be created previously by another package, e.g. 
+choose-mirror-bin. See #879130)
+Regards,
+JH Chatenet
+--- a/net-retriever
++++ b/net-retriever
+@@ -84,31 +84,9 @@
+ 	exit 1
+ }
+ 
+-cmd="$1"
+-shift
+-
+-case "$cmd" in
+-    retrieve)
+-	fetch "$@"
+-	exit $?
+-	;;
+-
+-    packages)
+-	rm -f "$1"
+-	touch "$1"
+-
+-	# Setting codename to a suite is not very nice, but can do no harm
+-	if ! db_get mirror/udeb/suite || [ -z "$RET" ]; then
+-		if [ -f /etc/udebs-source ]; then
+-			RET=$(cat /etc/udebs-source)
+-		else
+-			db_get mirror/codename
+-		fi
+-	fi
+-	codename="$RET"
+-
++get_packages () {
+ 	Release="/tmp/net-retriever-$$-Release"
+-	fetch "dists/$codename/Release" "$Release" || exit $?
++	fetch "dists/$codename/Release" "$Release" || return $?
+ 	# If gpgv and a keyring are installed, authentication is
+ 	# mandatory by default.
+ 	if type gpgv >/dev/null && [ -f "$keyring" ]; then
+@@ -157,6 +135,43 @@
+ 			break
+ 		done
+ 	done
++
++	return $ret;
++}
++
++cmd="$1"
++shift
++
++case "$cmd" in
++    retrieve)
++	fetch "$@"
++	exit $?
++	;;
++
++    packages)
++	rm -f "$1"
++	touch "$1"
++
++	# Setting codename to a suite is not very nice, but can do no harm
++	if ! db_get mirror/udeb/suite || [ -z "$RET" ]; then
++		if [ -f /etc/udebs-source ]; then
++			RET=$(cat /etc/udebs-source)
++		else
++			db_get mirror/codename
++		fi
++	fi
++	codename="$RET"
++
++	get_packages "$1" || exit $ret
++
++	if [ -e /usr/lib/choose-mirror/port_architecture ]; then
++		# Port architectures use both suites 'unstable' and 'unreleased'
++		# We append the 'Packages' file from 'unreleased' to the one from 'unstable'
++		# We don't require the availability of 'unreleased'
++		codename="unreleased"
++		get_packages "$1"
++	fi
++
+ 	exit $ret
+ 	;;

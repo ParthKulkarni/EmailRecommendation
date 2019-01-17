@@ -1,0 +1,36 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 31 Oct 2017 18:31:46 +0000
+Message-id : 20171031183146.yyvj4e6wqtlxpfrk@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 5d6d0cfa-d739-759c-a536-8be883920cb0@iwakd.de>
+References : <857eyij4fb.fsf@boum.org> <[🔎] fbb325ce-c21a-84f8-bece-d3e1696b66c7@debian.org> <[🔎] ff7330ca-d813-5497-84fb-dff0e709bd32@t-online.de> <[🔎] 23473de1-4b90-80eb-9e1f-2485aa9db1a8@philkern.de> <[🔎] 5d6d0cfa-d739-759c-a536-8be883920cb0@iwakd.de>
+
+
+On Tue, 31 Oct 2017 at 18:56:59 +0100, Christian Seiler wrote:
+> I don't know what the best short-term compromise is here, but in the
+> long term the only real solution is to somehow abstract this away from
+> applications to ensure that the application started in these cases is
+> actually what the user wanted. (I'm thinking towards something like
+> the 'portals' concept in Flatpak.)
+A couple of the key things that the Flatpak developers hope will make it
+work better than previous approaches to a similar problem-space are:
+* Accepting that expecting an unmodified app designed to be used in a
+  non-sandboxed context to be sandbox-friendly does not lead to a
+  usefully-strict sandbox, because of factors like those you mentioned;
+* Being able to change the libraries that apps use so that some aspects
+  of the app can transparently become more sandbox-friendly
+Accordingly, various APIs in GLib/GTK+ have been modified to detect when
+they are operating in a sandbox and call out to portals instead of doing
+the work themselves. These APIs are already sufficiently high-level that
+the application doesn't need to see a difference. Of course, this only
+works for applications that use a higher-level library API rather than
+implementing it themselves, so that probably rules out the Mozilla
+stack...
+GLib's helper executables like `gio open` (as used by recent versions
+of xdg-open when running on GNOME) use those same APIs, so they will
+also do the right thing in a Flatpak sandbox.
+I don't have an overview of what's happening in this direction outside
+GNOME, but I hope that other "platform" libraries like Qt have done
+similarly or will do so in future.
+    smcv

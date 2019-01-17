@@ -1,0 +1,38 @@
+To : Cyril Brulebois <kibi@debian.org>, 898468@bugs.debian.org
+Subject : Bug#898468: debian-installer: black screen/long delay in graphical installer after switching from linux 4.15 to 4.16
+From : Ben Hutchings <ben@decadent.org.uk>
+Date : Sun, 13 May 2018 00:21:05 +0100
+Message-id : e3847385474aa3f7243ab1bf0a43eeb5c48d1628.camel@decadent.org.uk
+Reply-to : Ben Hutchings <ben@decadent.org.uk>, 898468@bugs.debian.org
+In-reply-to : <[🔎] 152609616539.5532.12788664828751075148.reportbug@armor.home>
+References : <[🔎] 152609616539.5532.12788664828751075148.reportbug@armor.home> <[🔎] 152609616539.5532.12788664828751075148.reportbug@armor.home>
+
+
+On Sat, 2018-05-12 at 05:36 +0200, Cyril Brulebois wrote:
+> Package: debian-installer
+> Severity: serious
+> Justification: graphical installer regression
+> 
+> Hi,
+> 
+> Ever since we switched from linux 4.15 to 4.16, the graphical installer
+> gets a black screen. Comparing Xorg logs, everything is exactly the same
+> except for the kernel version and timestamps. syslog has extra lines
+> about random stuff:
+[...]
+This sounds similar to the regression seen in stable affecting gnome-
+session.  libICE has a function for generating the MIT-MAGIC-COOKIE-1
+cookie, which now uses libbsd's arc4random_buf() which now uses
+getrandom().  getrandom() is documented to block (by default) when not
+much entropy is available, but until recently it could return too early
+after boot.
+I don't know whether the cookie is generated this way when d-i starts
+the X server.
+I opened bug #898088 against libbsd because arc4random_buf() is
+documented to return "very quickly".
+Ben.
+-- 
+Ben Hutchings
+The most exhausting thing in life is being insincere.
+                                                 - Anne Morrow Lindberg
+signature.asc

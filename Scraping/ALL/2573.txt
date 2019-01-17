@@ -1,0 +1,73 @@
+To : Karsten Merker <merker@debian.org>, 881969@bugs.debian.org, Joey Hess <id@joeyh.name>
+Subject : Bug#881969: making bootable SD cards
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Fri, 17 Nov 2017 11:51:39 -0800
+Message-id : 87a7zk3cqc.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 881969@bugs.debian.org
+In-reply-to : <[🔎] 20171117190042.ofefqqh5xl7rlob3@excalibur.cnev.de>
+References : <[🔎] 20171116235442.h4xrhqax7blbf57t@kitenet.net> <[🔎] 20171116235442.h4xrhqax7blbf57t@kitenet.net> <[🔎] 20171117190042.ofefqqh5xl7rlob3@excalibur.cnev.de> <[🔎] 20171116235442.h4xrhqax7blbf57t@kitenet.net>
+
+
+On 2017-11-17, Karsten Merker wrote:
+> On Thu, Nov 16, 2017 at 07:54:42PM -0400, Joey Hess wrote:
+>> A utility in flash-kernel would be much nicer than needing to puzzle out dd
+>> commands from README.Debian files and hope you got it right. I'm currently
+>> having to embed those dd commands inside propellor; they're also embedded
+>> inside debian-installer (build/boot/arm/u-boot-image-config).
+I've definitely thought about providing such a utility in u-boot-tools
+that at least handles a limited set of boards, and replace part of the
+image generation code in debian-installer. This could also be used to
+create independently bootable images.
+> Among the points of this discussion were:
+>
+> - On some devices u-boot isn't stored on an SD card but on an
+>   onboard SPI flash chip with a rather limited number of write
+>   cycles (in the area of ~1000) and no defects management. 
+>   Unconditionally writing u-boot on every invocation of
+>   flash-kernel (which includes everything that modifies the
+>   initrd) would have the potential to kill these devices in
+>   comparatively short time.
+We could leave those devices as unsupported...
+> - Knowing the device type one is running on isn't necessarily
+>   enough.  Several supported devices are available in different
+>   hardware configuration variants that influence where the u-boot
+>   image can get written to (SD card, onboard eMMC, onboard raw
+>   NAND, SPI flash, and combinations thereof). Once Linux is
+>   running, there is no way to determine where the u-boot that
+>   brought the system up was loaded from.  Flash-kernel pulls the
+>   system type from a /proc entry, but that doesn't provide the
+>   information whether the current device e.g. has the SPI flash
+>   for u-boot populated or not, and if yes, whether it has
+>   actually been used for booting the system, so flash-kernel
+>   cannot decide without user-interaction where to write the
+>   u-boot image.
+Maybe not in an automated fashion, but specifying something like:
+ u-boot-install --board=Cubietruck --device=/dev/mmcblk0
+Or even with limited autodetection:
+ u-boot-install --board=auto --device=foo.img
+ u-boot-install --board=auto --device=/dev/mmcblk2
+This could at least simplify the process of looking up the exact offsets
+and so on, and fail if it can't safely determine what to do. And --force
+might be an option as well.
+This could also be called by debian-installer, instead of maintaining
+it's own list of offsets...
+What's been hard is figuring out if this should be in u-boot-tools or
+part of flash-kernel.
+Obviously, flash-kernel has the database of boards based on
+/proc/device-tree/model, but u-boot is where the information such as
+supported boot media and device offsets generally comes from, as it
+sometimes changes changes between different versions of u-boot, and I
+hate updating things in multiple places.
+After having thought about it more while of writing this email, I think
+it should be in u-boot-tools, and *optionally* use the flash-kernel
+database to autodetect the appropriate device. Autodetection might
+require another field or two in the flash-kernel database...
+Doing this would also make me want to split the flash-kernel database
+out into a separate package from the boot script/kernel+initrd copying
+parts of flash-kernel; there is now the u-boot-menu package which can be
+used to generate an extlinux style menu instead of flash-kernel's boot
+scripts, and with u-boot EFI emulation, grub-efi can be used as well in
+some cases.
+live well,
+  vagrant
+signature.asc

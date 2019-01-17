@@ -1,0 +1,80 @@
+To : debian-devel@lists.debian.org
+Subject : Re: please, let's *completely* drop md5sums for buster (was Re: no-strong-digests-in-dsc MBF)
+From : Guillem Jover <guillem@debian.org>
+Date : Mon, 23 Jan 2017 04:37:08 +0100
+Message-id : 20170123033708.5opakyyurfrcl7s4@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 7b735396-8d2a-ae89-6c6c-c28c3260c7fa@philkern.de>
+References : <[🔎] 20170117215316.lqbnnqw7a6zrovcp@localhost> <[🔎] o5m8h1$ott$1@blaine.gmane.org> <[🔎] 20170119132751.GC3595@layer-acht.org> <[🔎] 67785303-0536-fa91-f1b1-9dbc35a02961@philkern.de> <[🔎] 20170121173441.GA24478@layer-acht.org> <[🔎] 20170121231703.GA15896@layer-acht.org> <[🔎] b51cbde5-635e-703f-8399-b09321d7fd7e@philkern.de> <[🔎] 1133513f-7bb5-8906-f15f-e8e09cff233f@bzed.de> <[🔎] 7b735396-8d2a-ae89-6c6c-c28c3260c7fa@philkern.de>
+
+
+On Sun, 2017-01-22 at 13:54:26 +0100, Philipp Kern wrote:
+> On 22.01.2017 12:34, Bernd Zeimetz wrote:
+> > afaik people are criticizing that there are still (only) md5sum files in
+> > /var/lib/dpkg/info. As dpkg --verify uses them, it might indeed make
+> > sense to replace them.
+> > (yes, dpkg is not an IDS, but better than nothing...).
+> 
+> Originally the thread was about hashes in .dscs, but okay.
+Even that part of the thread seems rather confused.
+There are digests in the .dsc and .changes files, which get propagated
+(perhaps in a filtered way) into Sources and Packages indices, also
+(In)Releases files, there are also digests in any of their OpenPGP
+signatures. And then there are digests in the .deb control member or
+they get generated at install time if missing. And dpkg uses digests
+as part of the "public interface" when dealing with conffiles.
+When this has come up in the past, I've also always mentioned that
+having more digests even if some are considered weak now, does not
+make it weaker, it makes it stronger.
+The current apt approach seems the best one to me. To consider valid
+weak digests necessary but not sufficient. So all digests present need
+to verify as valid, but having only weak digests is not enough to
+consider the file verifyable.
+Removing weak digests from things that do support multiple digests,
+just because they are weak, seems to be cargo-culted security. And
+ending up with just a single strong digest due to this would be bad.
+Removing them because we've got too many, for space concerns is
+another thing entirely though.
+And if we want to make sure nothing relies on those, then we should
+either hunt stuff down via codesearch, or just upload a package with
+the set of weak checksums removed, or perform similar tests.
+So from the above list of files, the priority IMO should be .dsc with
+only weak digests, and any file with weak digests in their OpenPGP
+signature.
+> What exactly
+> does that help given that the md5sums can just be modified locally?
+Yeah, it makes no sense whatsoever to consider the dpkg md5sums files
+some kind of security measure.
+> Right now we don't keep the file size in dpkg's database. We keep
+> md5sums in an easily modifyable place. We don't easily allow people to
+> download just the md5sums information that you'd need to independently
+> verify the files on the system.
+> 
+> We could of course start by providing another hash type, but given the
+> purpose for why we have md5sums for installed files in the first place
+> (detecting file corruption and modification of files vs. what has been
+> installed by the package manager) a different hash type is not going to
+> matter.
+Exactly. Also one of my concerns has been that adding stronger
+digests might confuse people even more into thinking that this is some
+kind of security measure.
+> Sure, we could assume for a moment that the attacker could not tamper
+> with the md5sums because the admin implemented an elaborate
+> SELinux-based scheme that denies modification of the md5sum files on
+> disk except when dpkg is invoked. In this case having also the size or a
+> combination of hashes would make me more comfortable.
+TBH, I'm not sure who in their right mind would trust a running system
+to do forensics within itself, if there's suspicion of a security
+breach, no matter what security measures it has in place. At this point
+in time, you might not even be able to trust the firmware anymore…
+> Anyway, that said, is there a bug on this on the dpkg side already?
+There are probably some bugs about this, but in any case some of it is
+and has been in the plans for some time. It is slowly coming to be.
+There's a dpkg-gendigests branch with such new command, but that might
+just get replaced with the file manifest generator, which should include
+all file metadata, in addition to one or more file digests. There is
+also interest and some patches for file signatures which is probably a
+way better approach to security than any fantasy based on just the file
+digests. So no need for more bug reports, really.
+Thanks,
+Guillem

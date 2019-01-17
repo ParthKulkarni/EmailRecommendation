@@ -1,0 +1,236 @@
+To : 853981@bugs.debian.org
+Subject : Bug#853981: apache2-bin: mod_http2 together with mod_ruid2 breaks the server
+From : Julian Gilbey <jdg@debian.org>
+Date : Wed, 8 Feb 2017 21:19:39 +0000
+Message-id : 20170208211939.qj42wwfdjuenceaa@d-and-j.net
+Reply-to : Julian Gilbey <jdg@debian.org>, 853981@bugs.debian.org
+In-reply-to : <[🔎] 2350301.XVGvGLOI5N@k>
+References : <[🔎] 148606179876.4607.16846246049430397081.reportbug@erdos.d-and-j.net> <[🔎] 2350301.XVGvGLOI5N@k>
+
+
+On Sun, Feb 05, 2017 at 01:59:56PM +0100, Stefan Fritsch wrote:
+> On Thursday, 2 February 2017 18:56:38 CET Julian Gilbey wrote:
+> > [Thu Feb 02 18:14:44.630796 2017] [core:notice] [pid 3650] AH00052: child
+> > pid 3696 exit signal Aborted (6)
+> 
+> Please follow the instructions in /usr/share/doc/apache2/README.backtrace and 
+> add a backtrace to this report. Thanks.
+Hi Stefan,
+I've done as best as I can for this.  Interestingly, when I started 
+again with an absolutely clean installation of apache2, with the only
+changes from the default installation being:
+* adding the CoreDumpDirectory directive to apache2.conf
+* enabling the ruid2 module (but not the http2 module)
+I still obtained the same failing behaviour (but not a crash)
+This is the /var/log/apache2/error.log message:
+[Wed Feb 08 21:15:03.829771 2017] [core:notice] [pid 6416:tid 140261767853248] AH00052: child pid 9982 exit signal Aborted (6)
+Running gdb on process 6416 gave essentially nothing; see the attached
+gdb2.out.  (I pressed c after the page had failed to load, then did
+ctrl-c to exit.  Nothing displayed in the gdb trace.)
+More interesting was the effect of attaching to the child process: see
+the gdb.out attached.
+I also did an strace on the child process; that is in strace.out.
+What is very interesting is that I have had mod_ruid2 on another
+machine (also running testing) and it hasn't had any problems.
+It certainly looks as though the bug is in that module.
+Best wishes,
+   Julian
+Script started on Wed 08 Feb 2017 21:09:16 GMT
+root@redfield:/etc/apache2# ps aux | grep apache
+root      6416  0.0  0.0  79756  4540 ?        Ss   20:51   0:00 /usr/sbin/apache2 -k start
+www-data  7752  0.0  0.0 368916  4108 ?        Sl   20:58   0:00 /usr/sbin/apache2 -k start
+root      9132  0.0  0.0  13088   924 pts/4    S+   21:09   0:00 grep apache
+root@redfield:/etc/apache2# st[K[Kgdb -p 7752
+GNU gdb (Debian 7.12-6) 7.12.0.20161007-git
+Copyright (C) 2016 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+<http://www.gnu.org/software/gdb/documentation/>.
+For help, type "help".
+Type "apropos word" to search for commands related to "word".
+Attaching to process 7752
+[New LWP 7754]
+[New LWP 7755]
+[New LWP 7756]
+[New LWP 7757]
+[New LWP 7758]
+[New LWP 7759]
+[New LWP 7760]
+[New LWP 7761]
+[New LWP 7762]
+[New LWP 7763]
+[New LWP 7764]
+[New LWP 7765]
+[New LWP 7766]
+[New LWP 7767]
+[New LWP 7768]
+[New LWP 7769]
+[New LWP 7770]
+[New LWP 7771]
+[New LWP 7772]
+[New LWP 7773]
+[New LWP 7774]
+[New LWP 7775]
+[New LWP 7776]
+[New LWP 7777]
+[New LWP 7778]
+[New LWP 7779]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+0x00007f913c2c820d in read () at ../sysdeps/unix/syscall-template.S:84
+84	../sysdeps/unix/syscall-template.S: No such file or directory.
+(gdb) c
+Continuing.
+Thread 3 "apache2" received signal SIGABRT, Aborted.
+[Switching to Thread 0x7f9136fd7700 (LWP 7755)]
+__GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:58
+58	../sysdeps/unix/sysv/linux/raise.c: No such file or directory.
+(gdb) c
+Continuing.
+Thread 3 "apache2" received signal SIGABRT, Aborted.
+__GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:58
+58	in ../sysdeps/unix/sysv/linux/raise.c
+(gdb) c
+Continuing.
+Couldn't get registers: No such process.
+Couldn't get registers: No such process.
+Couldn't get registers: No such process.
+(gdb) [Thread 0x7f91267ec700 (LWP 7779) exited]
+[Thread 0x7f9126fed700 (LWP 7778) exited]
+[Thread 0x7f91277ee700 (LWP 7777) exited]
+[Thread 0x7f9127fef700 (LWP 7776) exited]
+[Thread 0x7f91287f0700 (LWP 7775) exited]
+[Thread 0x7f9128ff1700 (LWP 7774) exited]
+[Thread 0x7f91297f2700 (LWP 7773) exited]
+[Thread 0x7f9129ff3700 (LWP 7772) exited]
+[Thread 0x7f912a7f4700 (LWP 7771) exited]
+[Thread 0x7f912aff5700 (LWP 7770) exited]
+[Thread 0x7f912b7f6700 (LWP 7769) exited]
+[Thread 0x7f912bff7700 (LWP 7768) exited]
+[Thread 0x7f912c7f8700 (LWP 7767) exited]
+[Thread 0x7f912cff9700 (LWP 7766) exited]
+[Thread 0x7f912d7fa700 (LWP 7765) exited]
+[Thread 0x7f912dffb700 (LWP 7764) exited]
+[Thread 0x7f912e7fc700 (LWP 7763) exited]
+[Thread 0x7f912effd700 (LWP 7762) exited]
+[Thread 0x7f912f7fe700 (LWP 7761) exited]
+[Thread 0x7f912ffff700 (LWP 7760) exited]
+[Thread 0x7f9134fd3700 (LWP 7759) exited]
+[Thread 0x7f91357d4700 (LWP 7758) exited]
+[Thread 0x7f9135fd5700 (LWP 7757) exited]
+[Thread 0x7f91367d6700 (LWP 7756) exited]
+[Thread 0x7f9136fd7700 (LWP 7755) exited]
+[Thread 0x7f91377d8700 (LWP 7754) exited]
+Program terminated with signal SIGABRT, Aborted.
+The program no longer exists.
+The program is not being run.
+(gdb) quit
+root@redfield:/etc/apache2# la[Ks /a[Kca[K[Kvac[Kr/cache/apache2/core/
+root@redfield:/etc/apache2# less apache2.conf 
+[?1049h[?1h=
+# This is the main Apache server configuration file.  It contains the
+# configuration directives that give the server its instructions.
+# See http://httpd.apache.org/docs/2.4/ for detailed information about
+# the directives and /usr/share/doc/apache2/README.Debian about Debian specific
+# hints.
+#
+#
+# Summary of how the Apache 2 configuration works in Debian:
+# The Apache 2 web server configuration in Debian is quite different to
+# upstream's suggested way to configure the web server. This is because Debian's
+# default Apache2 installation attempts to make adding and removing modules,
+# virtual hosts, and extra configuration directives as flexible as possible, in
+# order to make automating the changes and administering the server as easy as
+# possible.
+# It is split into several files forming the configuration hierarchy outlined
+# below, all located in the /etc/apache2/ directory:
+#
+#       /etc/apache2/
+#       |-- apache2.conf
+#       |       `--  ports.conf
+#       |-- mods-enabled
+#       |       |-- *.load
+[7mapache2.conf[27m[K
+[K...skipping...
+# Note that the use of %{X-Forwarded-For}i instead of %h is not recommended.
+# Use mod_remoteip instead.
+#
+LogFormat "%v:%p %h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" v host_combined
+LogFormat "%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\"" combine d
+LogFormat "%h %l %u %t \"%r\" %>s %O" common
+LogFormat "%{Referer}i -> %U" referer
+LogFormat "%{User-agent}i" agent
+# Include of directories ignores editors' and dpkg's backup files,
+# see README.Debian for details.
+# Include generic snippets of statements
+IncludeOptional conf-enabled/*.conf
+# Include the virtual host configurations:
+IncludeOptional sites-enabled/*.conf
+CoreDumpDirectory /var/cache/apache2/core
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+[7m(END)[27m[K
+[K[?1l>[?1049lroot@redfield:/etc/apache2# le[Ks[Kess /var/log/apache2/error.log 
+[?1049h[?1h=
+[Wed Feb 08 20:23:29.458734 2017] [mpm_event:notice] [pid 1789:tid 1404286388154 24] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:23:29.458809 2017] [core:notice] [pid 1789:tid 140428638815424] A H00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:40:05.022166 2017] [mpm_event:notice] [pid 1789:tid 1404286388154 24] AH00491: caught SIGTERM, shutting down
+[Wed Feb 08 20:40:05.076869 2017] [:notice] [pid 15035:tid 140391717979328] mod_ ruid2/0.9.8 enabled
+[Wed Feb 08 20:40:05.077395 2017] [mpm_event:notice] [pid 15035:tid 140391717979 328] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:40:05.077408 2017] [core:notice] [pid 15035:tid 140391717979328]  AH00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:40:26.098925 2017] [core:notice] [pid 15035:tid 140391717979328]  AH00052: child pid 15037 exit signal Aborted (6)
+[Wed Feb 08 20:40:29.102362 2017] [core:notice] [pid 15035:tid 140391717979328]  AH00052: child pid 15036 exit signal Aborted (6)
+[Wed Feb 08 20:41:02.739219 2017] [mpm_event:notice] [pid 15035:tid 140391717979 328] AH00491: caught SIGTERM, shutting down
+[Wed Feb 08 20:41:02.777250 2017] [mpm_event:notice] [pid 25581:tid 140312470267 072] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:41:02.777320 2017] [core:notice] [pid 25581:tid 140312470267072]  AH00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:41:13.426116 2017] [mpm_event:notice] [pid 25581:tid 140312470267 [7m/var/log/apache2/error.log[27m[K
+[K...skipping...
+12] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:51:18.503835 2017] [core:notice] [pid 6319:tid 140581834245312] A H00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:51:47.798564 2017] [mpm_event:notice] [pid 6319:tid 1405818342453 12] AH00491: caught SIGTERM, shutting down
+[Wed Feb 08 20:51:47.841074 2017] [:notice] [pid 6416:tid 140261767853248] mod_r uid2/0.9.8 enabled
+[Wed Feb 08 20:51:47.841579 2017] [mpm_event:notice] [pid 6416:tid 1402617678532 48] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:51:47.841594 2017] [core:notice] [pid 6416:tid 140261767853248] A H00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:52:01.856948 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 6417 exit signal Aborted (6)
+[Wed Feb 08 20:55:37.103498 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 6418 exit signal Aborted (6)
+[Wed Feb 08 20:55:37.103583 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 7197 exit signal Aborted (6)
+[Wed Feb 08 20:58:48.294810 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 7231 exit signal Aborted (6)
+[Wed Feb 08 21:09:52.003074 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 7752 exit signal Aborted (6)
+[Wed Feb 08 21:09:52.003110 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 9213 exit signal Aborted (6)
+[7m(END)[27m[K
+[K...skipping...
+12] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:51:18.503835 2017] [core:notice] [pid 6319:tid 140581834245312] A H00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:51:47.798564 2017] [mpm_event:notice] [pid 6319:tid 1405818342453 12] AH00491: caught SIGTERM, shutting down
+[Wed Feb 08 20:51:47.841074 2017] [:notice] [pid 6416:tid 140261767853248] mod_r uid2/0.9.8 enabled
+[Wed Feb 08 20:51:47.841579 2017] [mpm_event:notice] [pid 6416:tid 1402617678532 48] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:51:47.841594 2017] [core:notice] [pid 6416:tid 140261767853248] A H00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:52:01.856948 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 6417 exit signal Aborted (6)
+[Wed Feb 08 20:55:37.103498 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 6418 exit signal Aborted (6)
+[Wed Feb 08 20:55:37.103583 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 7197 exit signal Aborted (6)
+[Wed Feb 08 20:58:48.294810 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 7231 exit signal Aborted (6)
+[Wed Feb 08 21:09:52.003074 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 7752 exit signal Aborted (6)
+[Wed Feb 08 21:09:52.003110 2017] [core:notice] [pid 6416:tid 140261767853248] A H00052: child pid 9213 exit signal Aborted (6)
+[7m(END)[27m[K
+[K[?1l>[?1049lroot@redfield:/etc/apache2# less /var/log/apache2/error.log 
+[?1049h[?1h=
+[Wed Feb 08 20:23:29.458734 2017] [mpm_event:notice] [pid 1789:tid 1404286388154 24] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:23:29.458809 2017] [core:notice] [pid 1789:tid 140428638815424] A H00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:40:05.022166 2017] [mpm_event:notice] [pid 1789:tid 1404286388154 24] AH00491: caught SIGTERM, shutting down
+[Wed Feb 08 20:40:05.076869 2017] [:notice] [pid 15035:tid 140391717979328] mod_ ruid2/0.9.8 enabled
+[Wed Feb 08 20:40:05.077395 2017] [mpm_event:notice] [pid 15035:tid 140391717979 328] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:40:05.077408 2017] [core:notice] [pid 15035:tid 140391717979328]  AH00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:40:26.098925 2017] [core:notice] [pid 15035:tid 140391717979328]  AH00052: child pid 15037 exit signal Aborted (6)
+[Wed Feb 08 20:40:29.102362 2017] [core:notice] [pid 15035:tid 140391717979328]  AH00052: child pid 15036 exit signal Aborted (6)
+[Wed Feb 08 20:41:02.739219 2017] [mpm_event:notice] [pid 15035:tid 140391717979 328] AH00491: caught SIGTERM, shutting down
+[Wed Feb 08 20:41:02.777250 2017] [mpm_event:notice] [pid 25581:tid 140312470267 072] AH00489: Apache/2.4.25 (Debian) configured -- resuming normal operations
+[Wed Feb 08 20:41:02.777320 2017] [core:notice] [pid 25581:tid 140312470267072]  AH00094: Command line: '/usr/sbin/apache2'
+[Wed Feb 08 20:41:13.426116 2017] [mpm_event:notice] [pid 25581:tid 140312470267 [7m/var/log/apache2/error.log[27m[K
+[K...skipping...
+48] AH00489: Apache/2.4.25 (Debian) configured --

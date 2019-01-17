@@ -1,0 +1,63 @@
+To : Paul Gevers <elbrus@debian.org>, Debian devel <debian-devel@lists.debian.org>
+Subject : Re: Dealing with ci.d.n for package regressions
+From : Chris Lamb <lamby@debian.org>
+Date : Thu, 03 May 2018 19:13:04 +0100
+Message-id : 1525371184.2547707.1359869592.58FAC093@webmail.messagingengine.com
+In-reply-to : <[🔎] e83b1d1c-477b-2ee4-3bc2-86a30748fd7d@debian.org>
+References : <[🔎] e83b1d1c-477b-2ee4-3bc2-86a30748fd7d@debian.org>
+
+
+Hi Paul,
+> And finally, thanks to all the people that helped and contributed to
+> make this possible, 5 years after the initial announcement⁷.
+First, thank you for pushing this!
+Secondly, I was just wondering if you are collecting statistics
+over what percentage of packages have autopkgtests, or, perhaps
+more usefully which special/important packages have such tests?
+I can hack together quick things like:
+  import psycopg2
+  import fileinput
+  
+  NUM = 100
+  
+  missing = set()
+  for x in fileinput.input():
+      xs = x.strip().split(' ', 6)
+      if xs[-1] == 'testsuite-autopkgtest-missing':
+          missing.add(xs[1])
+  
+  conn = psycopg2.connect(
+      user='udd-mirror',
+      dbname='udd',
+      password='udd-mirror',
+      host='udd-mirror.debian.net',
+  )
+  
+  cur = conn.cursor()
+  cur.execute('SELECT source FROM popcon_src '
+      'ORDER BY insts DESC LIMIT {}'.format(NUM))
+      
+  print(' '.join(sorted({x[0] for x in cur} & missing)))
+This returns:
+  $ wget -Olintian.gz https://lintian.debian.org/resources/4b0282b7cc918d444724c9a7f1985bf486a39ab5c0a2793f7cddc7113a475cad.gz
+  $ gunzip lintian.gz
+  $ python3 script.py lintian
+  acl attr base-files base-passwd bash bsdmainutils busybox bzip2
+  coreutils cpio cron cyrus-sasl2 debconf debian-archive-keyring
+  debianutils dmidecode dpkg e2fsprogs expat file findutils
+  freetype gcc-6 gcc-7 gcc-8 gdbm gettext groff gzip hostname
+  initramfs-tools iputils klibc libedit libidn libselinux libsepol
+  libtext-charwidth-perl libtext-iconv-perl libtext-wrapi18n-perl
+  libusb libx11 libxau libxdmcp libxext logrotate lsb lvm2 mawk
+  mime-support ncurses netbase newt openldap openssl pam pciutils
+  pcre3 perl popt popularity-contest procps python-defaults
+  readline sed shadow slang2 sqlite3 sysvinit tar tcp-wrappers
+  tzdata ucf wget zlib
+ie. 75 out of "top" 100 packages according to popcon are missing
+autopkgtests.
+Regards,
+-- 
+      ,''`.
+     : :'  :     Chris Lamb
+     `. `'`      lamby@debian.org / chris-lamb.co.uk
+       `-

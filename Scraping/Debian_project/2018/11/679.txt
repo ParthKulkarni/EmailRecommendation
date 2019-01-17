@@ -1,0 +1,29 @@
+To : Scott Talbert <swt@techie.net>
+Subject : Re: wxWidgets GTK+ 3 build available
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 25 Nov 2018 15:26:36 +0000
+Message-id : 20181125152636.GA9257@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] alpine.DEB.2.21.1811241941300.10110@bear.techie.net>
+References : <[🔎] alpine.DEB.2.21.1811241941300.10110@bear.techie.net>
+
+
+On Sat, 24 Nov 2018 at 20:31:03 -0500, Scott Talbert wrote:
+> 2) If your package uses wxGLCanvas, it won't work under Wayland.  This is
+> due to wxGLCanvas (currently) requiring X11 to function.  This can be worked
+> around by forcing the GDK backend to X11.  Here's one example of how this
+> has been done: [1]
+If there's already a wrapper shell script or something,
+setting GDK_BACKEND=x11 is OK; but I think the
+preferred way to force the use of X11 even in a Wayland
+environment is to make the C/C++/Python/etc. code call
+gdk_set_allowed_backends("x11"), available since GTK+ 3.10 (for example
+https://github.com/vim/vim/commit/f80663f17b2f2499b45eb4467088704c8298c385
+does this).
+In particular please note that setenv() and g_setenv() are not safe
+to call from multi-threaded code[1] so any calls to [g_]setenv() must
+usually happen as early as possible in main(), before calling into
+libraries that might create another thread.
+    smcv
+[1] unless all non-main threads guarantee not to call getenv(), but
+    GLib/GTK+ applications typically can't make that guarantee, because
+    GIO uses threads, and any thread might call g_getenv() or gettext()

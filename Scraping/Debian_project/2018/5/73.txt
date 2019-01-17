@@ -1,0 +1,86 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>, Paul Gevers <elbrus@debian.org>
+Subject : Re: Dealing with ci.d.n for package regressions
+From : Niels Thykier <niels@thykier.net>
+Date : Thu, 03 May 2018 16:55:00 +0000
+Message-id : 08d353a6-9f23-89c9-ea19-a8419e2e566d@thykier.net
+In-reply-to : <[🔎] 23274.64703.262783.215659@chiark.greenend.org.uk>
+References : <[🔎] e83b1d1c-477b-2ee4-3bc2-86a30748fd7d@debian.org> <[🔎] 23274.64703.262783.215659@chiark.greenend.org.uk>
+
+
+Ian Jackson:
+> Paul Gevers writes ("Dealing with ci.d.n for package regressions"):
+>> As I just announced on d-d-a¹, we have enabled autopkgtest usage for
+>> unstable-to-testing migration.
+> 
+> This is great.
+> 
+> I have some suggestions/observations, looking particularly at
+>   https://release.debian.org/britney/update_excuses.html
+> 
+Thanks for having a look at this.  I will answer the two first items as
+they are fairly "generic britney" questions.
+Side note: We have some documentation at
+https://release.debian.org/doc/britney/, which we are happy to receive
+patches for.
+The source code is: https://salsa.debian.org/release-team/britney2
+(See the doc directory)
+> 1. Often the heading says
+> 
+>   Migration status: BLOCKED: Rejected/introduces a regression (please
+>   see below)
+> 
+> I think that here "regression" does not mean an autopkgtest
+> regression, but rather a new bug regression ?  That couldwording coudl
+> perhaps be clarified.
+> 
+This is a line summary of the over-all migration status, i.e. the
+"worst" status across all policy decisions and rules applied to the package.
+The particular case means that *a* policy has concluded that there was a
+regression that will require manual fixing.  This could be any of:
+ * RC bugs
+ * Piuparts
+ * autopkgtests (once it is in enforcing)
+ * ...
+These messages come from:
+https://salsa.debian.org/release-team/britney2/blob/master/britney2/excuse.py#L22
+Suggestions for improvements are welcome.
+Also, please note that the YAML variant of the excuses have a status per
+policy besides the over-all status.  (Details: Not every check has its
+own policy, so the over-all status can in some cases be distinct from
+the status of individual policies.)
+Example from https://release.debian.org/britney/excuses.yaml:
+> - excuses:
+>   [...]
+>   migration-policy-verdict: REJECTED_PERMANENTLY
+>   [...]
+>   policy_info:
+>     age:
+>       age-requirement: 5
+>       current-age: 8
+>       verdict: PASS
+>     autopkgtest:
+>       verdict: PASS
+>     build-depends:
+>       verdict: PASS
+>     piuparts:
+>       [...]
+>       verdict: REJECTED_PERMANENTLY
+>     rc-bugs:
+>       [...]
+>       verdict: PASS
+>   [...]
+>   source: gcc-8-cross
+In this case, gcc-8-cross obtains the REJECT_PERMANENTLY status via the
+piuparts policy (rather than the rc-bugs policy).  Said status is the
+one triggering the message "BLOCKED: Rejected/introduces a regression
+..." (which you mentioned above).
+> 2. "Not considered" has always been a bit opaque for me.  It often
+> appears when many things have obviously been considered.  What things
+> are not considered ?
+> 
+I think it might make sense to sunset this phrase now that we have more
+detailed status messages (the ones above).  Basically, you get "Valid
+Candidate" when the over all verdict is "OK" (PASS/PASS_* in the .yaml
+file) and "Not considered" otherwise.
+Thanks,
+~Niels

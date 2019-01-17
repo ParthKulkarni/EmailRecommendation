@@ -1,0 +1,304 @@
+To : Cyril Brulebois <kibi@debian.org>, 885878@bugs.debian.org
+Subject : Bug#885878: Bug #885878: net-retriever : backports support
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Sat, 30 Dec 2017 22:30:07 +0100
+Message-id : 20171230213007.GA3945@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 885878@bugs.debian.org
+References : <20171019200429.GA3214@debirf-dominicain>
+
+
+Hi again,
+I tested (once) in qemu emulation on amd64 two netboot images
+built with stretch-backports and the two patches [1] and [2] below (and 
+#885866 which shouldn't be necessary). The installation
+finished successfully (however, it doesn't install automatically
+the kernel from stretch-backports under /target).
+It is to illustrate the two use cases 1 (backported kernel only) and 2 
+(everything from backports - this case requires di-sort-packages).
+[1] is mostly taken from commits c420f259627f5639c00cad35ebb260ee58983ce9,
+106138a028d487ea7fb8cbdb713cc7df60c237c0 and faf64b03a5509e0997fa5637c3cef0a8b8c51423
+(https://mraw.org/git/?p=debian-installer.git;a=shortlog;h=refs/heads/wheezy-backports-v3)
+To build a netboot image with udeb packages from stretch-backports
+and a 4.13.0 kernel :
+$ cd debian-installer-20170615+deb9u2/build
+$ make build_netboot USE_UDEBS_FROM=stretch USE_BACKPORTS_FROM=stretch-backports LINUX_KERNEL_ABI=4.13.0-0.bpo.1
+To build a netboot image with a 4.13.0 kernel and no other packages from stretch-backports :
+$ cd debian-installer-20170615+deb9u2/build
+$ make build_netboot USE_UDEBS_FROM=stretch USE_BACKPORTS_FROM=stretch-backports \
+ LINUX_KERNEL_ABI=4.13.0-0.bpo.1 BACKPORT_KERNEL_ONLY=1
+I hope it will help.
+Regards,
+JH Chatenet
+[1] : debian-installer
+diff -Naur a/build/config/common b/build/config/common
+--- a/build/config/common
++++ b/build/config/common
+@@ -60,6 +60,9 @@
+ # Archive components from which to fetch debian-installer modules.
+ UDEB_COMPONENTS ?= main/debian-installer
+ 
++# Whether to enable <suite>-proposed-updates:
++USE_PROPOSED_UPDATES ?= 0
++
+ # The date the installer is built.
+ BUILD_DATE ?= $(shell date -u '+%Y%m%d-%H:%M')
+ # The date the installer source was last changed;  we prefer that the
+diff -Naur a/build/Makefile b/build/Makefile
+--- a/build/Makefile
++++ b/build/Makefile
+@@ -121,6 +121,15 @@
+   ROOTCMD ?= fakeroot
+ endif
+ 
++# netboot with backported udebs : include di-sort-packages
++ifneq ($(USE_BACKPORTS_FROM),)
++ifeq ($(MEDIUM),netboot)
++ifeq ($(BACKPORT_KERNEL_ONLY),)
++  TYPE := $(TYPE)/backports
++endif
++endif
++endif
++
+ # Useful command sequences
+ define submake
+   $(ROOTCMD) $(MAKE) --no-print-directory -j1
+@@ -256,6 +265,7 @@
+ 	rm -rf $(APTDIR) $(APTDIR).udeb $(APTDIR).deb $(BASE_DEST) $(BASE_TMP) $(SOURCEDIR) $(DEBUGUDEBDIR)
+ 	rm -f sources.list sources.list.udeb $(LOCALUDEBDIR)/Packages.gz $(LOCALUDEBDIR)/Packages
+ 	rm -rf $(UDEBDIR) $(STAMPS)
++	if [ -f preferences.udeb.local.generated ]; then rm -f preferences.udeb.local.generated preferences.udeb.local; fi
+ 
+ # For manual invocation, we provide a generic clean rule.
+ .PHONY: clean_%
+@@ -486,6 +496,12 @@
+ 	mkdir -p $(TREE)/etc/
+ 	echo $(DEBIAN_RELEASE) >$(TREE)/etc/default-release
+ 	echo $(USE_UDEBS_FROM) >$(TREE)/etc/udebs-source
++	if [ -n "$(USE_BACKPORTS_FROM)" ]; then \
++		echo $(USE_BACKPORTS_FROM) >$(TREE)/etc/udebs-backports-source; \
++	fi
++	if [ -n "$(BACKPORT_KERNEL_ONLY)" ]; then \
++		touch $(TREE)/etc/backport-kernel-only; \
++	fi
+ endif
+ 
+ 	# Create a dev tree.
+@@ -643,11 +659,14 @@
+ 	echo "deb [trusted=yes] copy:$(shell pwd)/ $(LOCALUDEBDIR)/"; \
+ 	if [ "$(MIRROR)x" != "x" ]; then \
+ 		echo "deb $(MIRROR) $(USE_UDEBS_FROM) $(UDEB_COMPONENTS)"; \
++		if [ -n "$(USE_BACKPORTS_FROM)" ] && [ "$(USE_BACKPORTS_FROM)" != "$(USE_UDEBS_FROM)" ]; then \
++			echo "deb $(MIRROR) $(USE_BACKPORTS_FROM) $(UDEB_COMPONENTS)"; \
++		fi; \
+ 		if [ "$(USE_UNRELEASED)" = 1 ]; then \
+ 			echo "deb $(MIRROR) unreleased $(UDEB_COMPONENTS)"; \
+ 		fi \
+ 	else \
+-		gen-sources.list.udeb "$(SYSTEM_SOURCES_LIST)" $(USE_UDEBS_FROM) $(UDEB_COMPONENTS) $(USE_PROPOSED_UPDATES); \
++		gen-sources.list.udeb "$(SYSTEM_SOURCES_LIST)" $(USE_UDEBS_FROM) $(UDEB_COMPONENTS) $(USE_PROPOSED_UPDATES) $(USE_BACKPORTS_FROM); \
+ 		if [ "$(USE_UNRELEASED)" = 1 ]; then \
+ 			gen-sources.list.udeb "$(SYSTEM_SOURCES_LIST)" unreleased $(UDEB_COMPONENTS); \
+ 		fi \
+@@ -663,6 +682,18 @@
+ 		echo "ERROR: no valid source for $(USE_UDEBS_FROM)-proposed-updates"; \
+ 		exit 1; \
+ 	fi
++	@if [ ! -z "$(USE_BACKPORTS_FROM)" ] && ! grep -q "$(USE_BACKPORTS_FROM)" $@; then \
++		echo "ERROR: no valid source for backports ($(USE_BACKPORTS_FROM))"; \
++		exit 1; \
++	fi
++	@if [ ! -z "$(USE_BACKPORTS_FROM)" ] && [ -z "$(BACKPORT_KERNEL_ONLY)" ] && \
++		  [ ! -f preferences.udeb.local ]; then \
++		echo "Using backported udebs"; \
++		echo 'Package: *' > preferences.udeb.local; \
++		echo "Pin: release n=$(USE_BACKPORTS_FROM)" >> preferences.udeb.local; \
++		echo 'Pin-Priority: 990' >> preferences.udeb.local; \
++		touch preferences.udeb.local.generated; \
++	fi
+ 
+ # Font generation.
+ #
+diff -Naur a/build/pkg-lists/netboot/backports/common b/build/pkg-lists/netboot/backports/common
+--- a/build/pkg-lists/netboot/backports/common
++++ b/build/pkg-lists/netboot/backports/common
+@@ -0,0 +1 @@
++di-sort-packages
+diff -Naur a/build/README b/build/README
+--- a/build/README
++++ b/build/README
+@@ -363,6 +363,18 @@
+      make USE_PROPOSED_UPDATES=1 all_build
+   If no valid source for proposed updates is found, the build will fail.
+ 
++USE_BACKPORTS_FROM
++  Set to <suite>-backports if it shall be used as a complementary suite when
++  building an image. The resulting image should be able to install some
++  components from backports (e.g. a newer kernel). Defaults to an empty string
++  meaning no backports support.
++  Included in /etc/udebs-backports-source in most initrds.
++
++BACKPORT_KERNEL_ONLY
++  Set to 1 to suppress the inclusion of udeb packages from backports 
++  except kernel modules. LINUX_KERNEL_ABI and USE_BACKPORTS_FROM should be
++  set the relevant values. This may be overriden in preferences.udeb.local.
++
+ OMIT_RELEASE_INFO
+   Can be used to suppress the inclusion of the files /etc/default-release and
+   /etc/udebs-source in some targets (like boot floppies).
+diff -Naur a/build/util/gen-sources.list.udeb b/build/util/gen-sources.list.udeb
+--- a/build/util/gen-sources.list.udeb
++++ b/build/util/gen-sources.list.udeb
+@@ -8,7 +8,8 @@
+ SOURCES_LIST=$1
+ SUITE=$2
+ UDEB_COMPONENTS=$3
+-USE_PROPOSED_UPDATES=$4 # optional
++USE_PROPOSED_UPDATES=$4 
++USE_BACKPORTS_FROM=$5 # optional
+ 
+ # Set to 1 or 2 to see increasing debug info about mirror tests
+ # Use 0 for quiet (normal) operation
+@@ -84,6 +85,12 @@
+ 			echo "$mirror $SUITE-proposed-updates $UDEB_COMPONENTS"
+ 			echo "INFO: using '$tmirror' for $SUITE-proposed-updates" >&2
+ 		fi
++		if [ ! -z "$USE_BACKPORTS_FROM" ] &&
++		   test_url $tmirror/dists/$USE_BACKPORTS_FROM/Release; then
++			echo "$mirror $USE_BACKPORTS_FROM $UDEB_COMPONENTS"
++			echo "INFO: using '$tmirror' for backports ($USE_BACKPORTS_FROM)" >&2
++		fi
++
+ 	else
+ 		echo "$mirror $SUITE $UDEB_COMPONENTS"
+ 		if [ "$USE_PROPOSED_UPDATES" = 1 ]; then
+diff -Naur a/debian/rules b/debian/rules
+--- a/debian/rules
++++ b/debian/rules
+@@ -25,6 +25,10 @@
+ USE_UDEBS_FROM=unstable
+ endif
+ 
++ifneq (,$(filter %-backports,$(SUITE)))
++	USE_BACKPORTS_FROM=$(SUITE)
++endif
++
+ ARCHIVEDIR=debian/tmp/installer-$(ARCH)
+ DESTDIR=$(ARCHIVEDIR)/$(DATE)
+ IMAGEDIR=$(DESTDIR)/images
+@@ -45,6 +49,7 @@
+ 	$(MAKE) -C build all_build stats release \
+ 		USE_UDEBS_FROM=$(USE_UDEBS_FROM) BUILD_DATE=$(DATE) \
+ 		USE_PROPOSED_UPDATES=$(USE_PROPOSED_UPDATES) \
++		USE_BACKPORTS_FROM=$(USE_BACKPORTS_FROM) \
+ 		USE_UNRELEASED=$(USE_UNRELEASED) \
+ 		TRANSSTATUS=$(TRANSSTATUS) BOOTMENU_BEEP=$(BOOTMENU_BEEP)
+ 
+[2] : net-retriever
+diff -Naur a/net-retriever b/net-retriever
+--- a/net-retriever
++++ b/net-retriever
+@@ -84,31 +84,9 @@
+ 	exit 1
+ }
+ 
+-cmd="$1"
+-shift
+-
+-case "$cmd" in
+-    retrieve)
+-	fetch "$@"
+-	exit $?
+-	;;
+-
+-    packages)
+-	rm -f "$1"
+-	touch "$1"
+-
+-	# Setting codename to a suite is not very nice, but can do no harm
+-	if ! db_get mirror/udeb/suite || [ -z "$RET" ]; then
+-		if [ -f /etc/udebs-source ]; then
+-			RET=$(cat /etc/udebs-source)
+-		else
+-			db_get mirror/codename
+-		fi
+-	fi
+-	codename="$RET"
+-
++get_packages () {
+ 	Release="/tmp/net-retriever-$$-Release"
+-	fetch "dists/$codename/Release" "$Release" || exit $?
++	fetch "dists/$codename/Release" "$Release" || return $?
+ 	# If gpgv and a keyring are installed, authentication is
+ 	# mandatory by default.
+ 	if type gpgv >/dev/null && [ -f "$keyring" ]; then
+@@ -157,6 +135,71 @@
+ 			break
+ 		done
+ 	done
++
++	return $ret;
++}
++
++cmd="$1"
++shift
++
++case "$cmd" in
++    retrieve)
++	fetch "$@"
++	exit $?
++	;;
++
++    packages)
++	rm -f "$1"
++	touch "$1"
++
++	# Setting codename to a suite is not very nice, but can do no harm
++	if ! db_get mirror/udeb/suite || [ -z "$RET" ]; then
++		if [ -f /etc/udebs-source ]; then
++			RET=$(cat /etc/udebs-source)
++		else
++			db_get mirror/codename
++		fi
++	fi
++	codename="$RET"
++
++	get_packages "$1" || exit $ret
++
++	if [ -e /etc/udebs-backports-source ]; then
++		if [ -e /etc/backport-kernel-only ] || \
++		[ -e /usr/lib/di-sort-packages/di_sort_pkgs ]; then
++		# We append the 'Packages' file from 'backports'
++		# We require the availability of 'backports'
++			codename=$(cat /etc/udebs-backports-source)
++			get_packages "$1" || exit $ret
++		
++			if [ -e /etc/backport-kernel-only ]; then
++			# We suppress backported packages but kernel modules
++				sed -i -n -e '
++# unconditionally append to the hold space
++H
++# stanza end : test for a suitable package
++/^$/ {
++g
++# command H added a '\n' at the begining
++s/^\n//
++# is this a non backported package ?
++/^Package: .*\nVersion: [-.+:~A-Za-z0-9]*bpo/!p
++# is this a backported kernel module ?
++/^Package: .*\nVersion: [-.+:~A-Za-z0-9]*bpo.*\nKernel-Version:/p
++# prepare for next stanza
++s/^.*$//
++h
++}' "$1"
++			else
++			# We keep the newest version of each package
++				/usr/lib/di-sort-packages/di_sort_pkgs "$1" prune_versions > "${1}.temp"
++				mv -f "${1}.temp" "$1"
++			fi
++		else
++			log "No package from backports included: di-sort-packages not available"
++		fi
++	fi
++
+ 	exit $ret
+ 	;;

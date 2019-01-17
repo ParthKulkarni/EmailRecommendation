@@ -1,0 +1,118 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Has Copyright summarizing outlived its usefulness?
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Thu, 7 Dec 2017 07:37:49 +0100
+Message-id : 20171207063749.lubukq6pbr53ymis@angband.pl
+In-reply-to : <3153927.WHzoAGL0a1@riemann>
+References : <E1eJbkQ-000BA1-QA@fasolo.debian.org> <3153927.WHzoAGL0a1@riemann>
+
+
+On Wed, Nov 29, 2017 at 11:46:00PM -0600, Steve Robbins wrote:
+> On Tuesday, November 28, 2017 9:00:10 AM CST Chris Lamb wrote:
+> > Sorry for the rejection but "Copyright: See individual source files"
+> > unfortunatley does not meet the high standards we strive for within Debian.
+> 
+> That is odd.  It has been accepted for over 16 years.   What has changed?   
+> 
+> It is useful to me that the debian/copyright file contain the distribution 
+> license.  For a one-author package, it could even be convenient to describe 
+> the author and copyright.
+> 
+> But for a massive multi-author, multi-year work like Boost, there seems very 
+> little value in summarizing copyrights.  Boost has nearly 55000 files in the 
+> source distribution.  What could one possibly achieve by summarizing this?  
+> How would anyone even read and make sense of it?
+Lemme paste a recent case where I've done the relevant analysis:
+==========================================================================
+Subject: Re: btrfs-compsize_0~65-gd026966-1_armhf.changes REJECTED
+On Thu, Nov 16, 2017 at 07:00:10PM +0000, Thorsten Alteholz wrote:
+> Hi Adam,
+>
+> "some fine kernel folks" is a bit unspecific in  your debian/copyright.
+I wonder how to put it then.  The line in the file, "Copyright (C) 2007
+Oracle.  All rights reserved." (from btrfs-progs) is obviously false: all
+Oracle did was that at the time it employed some of people who copied and
+adapted this code from the kernel.
+The provenience of radix-tree.{c,h} is obvious: it's lib/radix-tree.c and
+include/linux/radix-tree.h from the kernel tree, although it has diverged
+since: it lacks most of changes since 2007 but has a few fixes on its own.
+At that time the file listed the following:
+* Copyright (C) 2001 Momchil Velikov
+* Portions Copyright (C) 2001 Christoph Hellwig
+* Copyright (C) 2005 SGI, Christoph Lameter <clameter@sgi.com>
+which is probably accurate wrt the first two being the principal authors,
+but otherwise has no meaningful data on fixes.
+Since radix-tree.* was imported into btrfs-progs, it has only a few changes:
+mechanical ones by Jan Engelhardt <jengelh@computergmbh.de>, Zach Brown
+<zab@redhat.com> and a three-line meaningful fix by Adam Buchbinder
+<abuchbinder@google.com>.  Thus, it's safe to say the copyright claim by
+Oracle is bogus.
+Not so easy with kerncompat.h: it's a collection of random typedefs and
+short functions from the kernel that has seen new stuff imported whenever
+it was needed.  Btrfs-progs sees a lot of code copying to and from the
+kernel, thus use of common types has an obvious reason.  The copyright on
+these snippets belongs to a multitude of kernel folks.  As for copying to
+btrfs-progs, git says this file was edited by:
+      1 Andi Drebes <lists-receive@programmierforen.de>
+      1 Ben Peddell <klightspeed@killerwolves.net>
+      1 Brendan Heading <brendanheading@gmail.com>
+      2 Chris Mason <chris.mason@fusionio.com>
+     15 Chris Mason <chris.mason@oracle.com>
+      1 Cristian Rodríguez <crrodriguez@opensuse.org>
+     13 David Sterba <dsterba@suse.com>
+      1 David Sterba <dsterba@suse.cz>
+      1 Eric Sandeen <sandeen@redhat.com>
+      2 Goldwyn Rodrigues <rgoldwyn@suse.com>
+      1 Gustavo Zacarias <gustavo@zacarias.com.ar>
+      3 Josef Bacik <jbacik@fb.com>
+      1 Karel Zak <kzak@redhat.com>
+      1 Mark Fasheh <mfasheh@suse.de>
+      2 Merlijn Wajer <merlijn@wizzup.org>
+      1 Michal Marek <mmarek@suse.cz>
+      1 Mitch Harder <mitch.harder@sabayonlinux.org>
+      1 Omar Sandoval <osandov@fb.com>
+      1 Ondrej Kozina <okozina@redhat.com>
+      5 Qu Wenruo <quwenruo@cn.fujitsu.com>
+      1 Shen Feng <shen@cn.fujitsu.com>
+      1 Wade Cline <clinew@linux.vnet.ibm.com>
+      1 Wang Shilong <wangshilong1991@gmail.com>
+      2 Yan <yanzheng@21cn.com>
+      3 Zach Brown <zab@redhat.com>
+Most of those use company e-mail addresses, and the only person at Oracle
+was Chris Mason early on (but, as usual for an initial author, the biggest
+part of the compilation work was done on Oracle's dime).
+As for compsize -- I'm its principal author, but Timofey Titovets has
+replaced my quick-and-dirty C++ STL code with proper structures from
+btrfs-progs, as the plan at the time was to eventually move compsize there,
+and obviously a C project doesn't want to be polluted by C++.  Thus, he
+imported kernel pieces into these three files.
+Thus: in the good Free Software code borrowing ways, there's no reasonable
+doubt wrt these files being pure kosher GPL, but any attempts to list
+individual authors are utterly doomed.
+I wonder how to describe these two files then.
+==========================================================================
+> Has copyright summarizing outlived its usefulness for large sources?  Why 
+> shouldn't we have some way to say "Copyright by the Boost authors"?
+As this case is common to the point of ubiquity, I'd say that listing
+authors on cooperative work is not just a pointless waste of time, but is
+outright harmful, as it mispreresents authorship data.
+Typically, people listed in a header are: 1. whoever started the file, 2.
+those ordered to do so by an especially litigious employer.  The bulk of
+authors are not listed there at all -- you'd usually need to look at a file
+such as AUTHORS (if present), or git history.
+There are even worse ideas: every single case I've reviewed a copyright file
+mechanically generated with cme, it produced garbage even an inattentive
+human wouldn't make.  Just two examples:
+https://bugs.debian.org/824896
+(Bogusly claims GPL3 in a GPL2-only project, etc.)
+https://anonscm.debian.org/cgit/pkg-fonts/ttfautohint.git/commit/?id=8a0a29b8ef50fb4e7316826a916167fd66acdd5f
+(Claims a lot of files are "FTL or GPL-2+" even though they're obviously
+not, repeats a long comment a lotta times even when inappropriate.)
+Thus, I'd suggest not only not requiring per-file listings for
+cooperative projects, but even actively banning them.
+Meow!
+-- 
+⢀⣴⠾⠻⢶⣦⠀ 14:13 < icenowy[m]> are they hot enough? ;-)
+⣾⠁⢰⠒⠀⣿⡁ 14:17 < icenowy[m]> I think now in Europe it should be winter? Let
+⢿⡄⠘⠷⠚⠋⠀                     the BPi warm you ;-)
+⠈⠳⣄⠀⠀⠀⠀ 14:17 <@KotCzarny> yeah, i have a pc to warm me ;)

@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian part of a version number when epoch is bumped
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 14 Feb 2018 23:56:28 +0000
+Message-id : 20180214235628.GA1624@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 6d2296dc-11c5-11e8-9b6a-00163eeb5320@msgid.mathom.us>
+References : <[🔎] 20180214115315.GB8308@grep.be> <[🔎] 87eflnybir.fsf@luffy.cx> <[🔎] 20180214135407.on325smdsbofe4qm@khazad-dum.debian.net> <[🔎] 1518617345.25962.6.camel@liw.fi> <[🔎] m3a7wbo3vy.fsf@luffy.cx> <[🔎] 1518635464.22059.1.camel@liw.fi> <[🔎] m3vaezl4lq.fsf@luffy.cx> <[🔎] 8aea61ec-11c3-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] m3r2pnl3q3.fsf@luffy.cx> <[🔎] 6d2296dc-11c5-11e8-9b6a-00163eeb5320@msgid.mathom.us>
+
+
+On Wed, 14 Feb 2018 at 15:33:45 -0500, Michael Stone wrote:
+> The fundamental problem was that it's impossible to
+> predict that a future package would have an older version of the software
+> with a newer name. Whether that's done with an epoch that (horrors!) won't
+> go away or because someone creates a crazy version string that obfuscates
+> what's being done (yay?), the unpredictable breakage is the same.
+When using an epoch, all future versions have to use the (same or higher)
+epoch, all future version references (Depends/Breaks/etc.) have to use
+it, and whenever someone forgets to include it in a version reference
+there is, as you said, unpredictable breakage.
+When using a mangled version number (2+really1) the same unpredictable
+breakage exists, but only for a finite time. glib2.0 had the popular
+"oops, that was meant to have gone to experimental" mistake during
+wheezy development, and has a +really version number in wheezy; but this
+weirdness could be discarded next time a new upstream version was ready
+to go into testing, and glib2.0 in jessie is back to being a normal
+version number. dbus had the same thing during buster development, but
+got a new upstream version (greater than the one I uploaded to the wrong
+suite) not long after, so that mistake never even appeared in a release.
+That seems a lot less bad than epochs.
+(Of course, it would be better still if maintainers never made mistakes,
+but we have considerable anecdotal evidence that this is an unrealistic
+assumption.)
+If this class of mistake is going to lead to unpredictable breakage
+either way, I'd much prefer it to be temporary rather than permanent.
+> The solution isn't to get rid of epochs, the solution is to not create
+> packages which contain older versions of software with newer names.
+As much as I'd love to have it somehow be impossible to upload to
+unstable when you meant experimental, I'm not sure how to get there
+from here. Maintainers do make mistakes, and the closest I can think of
+to having automation to catch this mistake would be to autoreject the
+Lintian tag experimental-to-unstable-without-comment, but you can see from
+<https://lintian.debian.org/tags/experimental-to-unstable-without-comment.html>,
+how many false positives that tag has.
+Acknowledging that mistakes happen, and making sure they can be reverted,
+seems a useful design principle (analogous to the GUI design principle of
+offering an undo operation instead of an "are you sure?" prompt). We can
+revert every other brown-paper-bag bug with a re-upload with a higher
+revision number (or artificially-slightly-higher upstream version
+number in the rarer case where the orig.tar.* is bad); but because
+version numbers in a suite aren't allowed to go backwards, uploading
+an upstream branch into a suite for which it is not yet ready can't be
+reverted without escalating more-significant parts of the version number,
+either via an epoch or the +really hack.
+    smcv

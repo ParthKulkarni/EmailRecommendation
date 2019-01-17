@@ -1,0 +1,147 @@
+To : 860304@bugs.debian.org
+Subject : Bug#860304: [PATCH 1/1] flash-kernel: support relative pathes for DTB-Id
+From : Heinrich Schuchardt <xypron.glpk@gmx.de>
+Date : Fri, 14 Apr 2017 15:16:59 +0200
+Message-id : 20170414131659.11509-1-xypron.glpk@gmx.de
+Reply-to : Heinrich Schuchardt <xypron.glpk@gmx.de>, 860304@bugs.debian.org
+
+
+Closes: #860304
+In U-Boot some boards expect the dtb file to be installed in a vendor
+specific subdirectory.
+With this patch relative paths specified in the DTB-Id are used for
+this purpose.
+The data base entry for the Hardkernel Odroid C2 is adjusted.
+Signed-off-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+---
+ README    | 17 ++++++++++-------
+ db/all.db |  2 +-
+ functions | 35 +++++++++++++----------------------
+ 3 files changed, 24 insertions(+), 30 deletions(-)
+diff --git a/README b/README
+index 555adaf..0f3b88f 100644
+--- a/README
++++ b/README
+@@ -115,13 +115,16 @@ The supported fields are:
+   This option is ignored if a DTB is to be appended, via either DTB-Append or
+   DTB-Append-From.
+ 
+-* DTB-Id: (optional) specifies the name of the DTB file for this device
+-  relative to the kernel package DTB dir or /etc/flash-kernel/dtbs.
+-  It's not necessary to specify the directory if the DTB is in a vendor
+-  subdirectory as flash-kernel will search for the filename in
+-  subdirectories.  If the value begins with a `!' then the field is a script
+-  which should be run.  The script must produce the DTB filename (just the
+-  filename, without a vendor subdirectory) on stdout (and nothing else).
++* DTB-Id: (optional) specifies the name of the DTB file for this device.
++  If DTB-Id specifies an absolute path the directory specifies the path from
++  where the DTB is copied.
++  If DTB-Id specifies a relative path the directory specifies the subdirectory
++  of the kernel version directory where the DTB will be installed.
++  The filename is used to search for the filename in subdirectories of
++  /usr/lib/linux-image-* or /etc/flash-kernel/dtbs.
++  If the value begins with a `!' then the field is a script which should be
++  run. The script must produce the DTB filename (possibly including a
++  directory) on stdout.
+ 
+ * DTB-Append: (optional) when yes the DTB specified by DTB-Id will be appended
+   to the kernel image.
+diff --git a/db/all.db b/db/all.db
+index a696950..a40a312 100644
+--- a/db/all.db
++++ b/db/all.db
+@@ -443,7 +443,7 @@ Required-Packages: u-boot-tools
+ 
+ Machine: Hardkernel ODROID-C2
+ Kernel-Flavors: arm64
+-DTB-Id: meson-gxbb-odroidc2.dtb
++DTB-Id: amlogic/meson-gxbb-odroidc2.dtb
+ Boot-Script-Path: /boot/boot.scr
+ U-Boot-Script-Name: bootscr.uboot-generic
+ Required-Packages: u-boot-tools
+diff --git a/functions b/functions
+index 76f57f0..d6f4b2d 100644
+--- a/functions
++++ b/functions
+@@ -244,21 +244,15 @@ get_dtb_name() {
+ 			error "dtb-probe $dtb_script failed"
+ 		fi
+ 		;;
+-	/*)
+-		dtb_name="$field"
+-		;;
+ 	*)
+-		# DTBs on arm64 are stored in subdirs for each vendor; strip
+-		# the dir away (in case someone specified it, although it's
+-		# not needed).
+-		# The DTB will be stored in /boot/dtbs/$kvers/ without
+-		# additional subdirs.
+-		dtb_name=$(basename "$field")
++		dtb_name="$field"
+ 		;;
+ 	esac
+ 	if [ -n "$dtb_name" ] ; then
+ 		echo "Using DTB: $dtb_name" >&2
+ 	fi
++	dtb_dir  = $(dirname "$dtb_name")
++	dtb_name = $(dirname "$dtb_name")
+ }
+ 
+ machine_uses_flash() {
+@@ -570,9 +564,9 @@ android_flash() {
+ 
+ find_dtb_file() {
+ 	local dtb
+-	case "$dtb_name" in
++	case "$dtb_dir" in
+ 	/*)
+-		dtb="$dtb_name"
++		dtb="$dtb_dir/$dtb_name"
+ 		if [ ! -f "$dtb" ]; then
+ 			error "Couldn't find $dtb"
+ 		fi
+@@ -596,10 +590,8 @@ handle_dtb() {
+ 	fi
+ 
+ 	local dtb
+-	local dtb_name
+ 	if [ "x$FK_KERNEL_HOOK_SCRIPT" = "xpostrm.d" ] ; then
+-		dtb_name=$(basename $dtb_name)
+-		rm -f "/boot/dtbs/$kvers/$dtb_name"
++		rm -f "/boot/dtbs/$kvers/$dtb_dir/$dtb_name"
+ 
+ 		# This was the old name we installed under. We
+ 		# currently include it as an alternative symlink.
+@@ -623,23 +615,22 @@ handle_dtb() {
+ 		fi
+ 	else
+ 		dtb=$(find_dtb_file)
+-		dtb_name=$(basename $dtb_name)
+-		echo "Installing $dtb into /boot/dtbs/$kvers/$dtb_name" >&2
+-		mkdir -p /boot/dtbs/$kvers/
+-		cp "$dtb" "/boot/dtbs/$kvers/$dtb_name.new"
++		echo "Installing $dtb into /boot/dtbs/$kvers/$dtb_dir/$dtb_name" >&2
++		mkdir -p "/boot/dtbs/$kvers/$dtb_dir"
++		cp "$dtb" "/boot/dtbs/$kvers/$dtb_dir/$dtb_name.new"
+ 		backup_and_install \
+-			"/boot/dtbs/$kvers/$dtb_name.new" \
+-			"/boot/dtbs/$kvers/$dtb_name"
++			"/boot/dtbs/$kvers/$dtb_dir/$dtb_name.new" \
++			"/boot/dtbs/$kvers/$dtb_dir/$dtb_name"
+ 
+ 		# Historically we installed the dtb as
+ 		# dtb-$kvers, keep it around as an alternative
+ 		# for now. Useful for platforms which do not
+ 		# set ${fdtfile}
+-		ln -nfs "dtbs/$kvers/$dtb_name" "/boot/dtb-$kvers"
++		ln -nfs "dtbs/$kvers/$dtb_dir/$dtb_name" "/boot/dtb-$kvers"
+ 
+ 		# This can be used along with the unversioned
+ 		# vmlinuz+initrd.gz e.g. as a fallback option
+-		ln -nfs "dtbs/$kvers/$dtb_name" "/boot/dtb"
++		ln -nfs "dtbs/$kvers/$dtb_dir/$dtb_name" "/boot/dtb"
+ 	fi
+ }
+ 
+-- 
+2.11.0

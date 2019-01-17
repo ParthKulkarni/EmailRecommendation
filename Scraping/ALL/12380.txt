@@ -1,0 +1,70 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Naming of network devices - how to improve it in buster
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 11 Jul 2017 15:18:26 +0100
+Message-id : 20170711141826.hmxivkmm7fenkvhz@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 87bmorb3je.fsf@miraculix.mork.no>
+References : <[🔎] 5962B743.8030702@landfreak.com> <[🔎] 20170710134714.33b4rbp4gqo4xj5r@sliepen.org> <[🔎] 20170710162228.v4teqev5vx3xxgj5@angband.pl> <[🔎] 12214332.2fR4hsN12g@merkaba> <[🔎] 658546a9-4ecf-18d0-4fb2-1e8d1a9c2dcc@debian.org> <[🔎] 20170711101459.uglna6qjj7jd5zq7@sliepen.org> <[🔎] 87bmorb3je.fsf@miraculix.mork.no>
+
+
+On Tue, 11 Jul 2017 at 13:45:25 +0200, Bjørn Mork wrote:
+> I got to ask: Why?  We do not have stable names for e.g. disks.  Why do
+> we need it for network devices?
+We do have stable names for disks: look in /dev/disk/by-* and you'll see
+a bewildering variety of ways to refer to the same disk or partition.
+The thing that is different for network devices is that network
+devices are not files (device nodes), so udev cannot create a symlink
+/dev/network/by-mac/01:23:45:67:89:ab -> /dev/network/eth0 or whatever.
+Network devices are (as far as I know) the only class of device managed by
+udev that is not backed by a device node, which means udev cannot provide
+multiple equivalent names for the same device, and is forced to choose
+exactly one of those names, and rename the device if the chosen name
+is not the kernel-generated one. That is why naming network devices is,
+and has always been, more controversial than naming disks: they are the
+one device class in Linux that violates the Unix design rule-of-thumb
+"everything is a file".
+If network devices were files, udev wouldn't have a configurable
+NamePolicy to rename them: it would just provide symlinks for all the
+possible naming policies, and let the sysadmin use any, all or none of
+those names when configuring tools like ifupdown. Unfortunately, that
+isn't possible.
+Relatedly, network device name lengths are limited to the length of some
+arbitrarily-sized struct field in the kernel ABI, which is why some of
+the names udev can generate are so cryptic - they have to pack enough
+information to uniquely identify a device into a very small space. Again,
+compare with disks, where the names can be as long as you like.
+As long as the kernel represents network devices as some unique network
+thing that is not a device node in the filesystem, how to name them is
+always going to be an ugly compromise, and someone is always going to be
+upset by the default.
+Happily, there is enough configuration that those with Strong Opinions
+can name their network devices in any way of their choice, with one
+notable exception: names from the kernel's various namespaces (eth0,
+wlan1, wwan2) can only be reliable if no renaming at all is taking
+place (which is one of the options available in configuration).
+> For static network configurations on systems with multiple interfaces,
+> the correct and only logical place for the device association is with
+> the rest of the network configuration. If you use NetworkManager, then
+> it is up to NetworkManager to match it with a specific network device -
+> if required.  The rest of the system does not need to care.
+This seems a good plan. NetworkManager and systemd-networkd (what I
+personally use on laptops/desktops and servers, respectively) both have
+approximately this approach.
+> The remaining problem is to make ifupdown do device matching on other
+> (and hopefully more stable) attributes than the device name.
+... or alternatively, not use ifupdown, which was designed for a
+rather different era of networking, in situations where it's unsuitable?
+ifupdown served us well for many years as a competitor to Red Hat
+sysconfig and SUSE YAST, but those other distributions have moved
+on and perhaps so should we. Maybe it's time to admit that using a
+Debian-specific network configuration format/infrastructure by default[1]
+has become more bug than feature?
+    S
+[1] For desktop systems, ifupdown is already only arguably the default:
+    if debian-installer is installing NetworkManager, it configures
+    ifupdown to only bring up lo so that NetworkManager can do the rest;
+    but our default init system (systemd) would bring up lo anyway,
+    so ifupdown is redundant. Subsequently replacing pid 1 with sysvinit
+    is of course supported, but anyone who is contemplating doing so
+    had better know what they are doing, to an extent where defaults are
+    not entirely relevant.

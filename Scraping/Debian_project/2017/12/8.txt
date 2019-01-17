@@ -1,0 +1,41 @@
+To : debian-devel@lists.debian.org
+Subject : Re: seccomp jailing for applications
+From : Russ Allbery <rra@debian.org>
+Date : Thu, 30 Nov 2017 19:37:38 -0800
+Message-id : 87bmjjktj1.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20171201012944.pdml3xtkqivj4zaf@riva.ucam.org> (Colin Watson's	message of "Fri, 1 Dec 2017 01:29:44 +0000")
+References : <20171123140109.GA28885@lst.de>	<20171123144310.gac6zwqysfzdsh3i@exolobe3>	<20171128185445.GA5602@lst.de> <20171128230308.GB769@bongo.bofh.it>	<18deb24e-d4b3-11e7-9b6a-00163eeb5320@msgid.mathom.us>	<87609tg1d1.fsf@hope.eyrie.org> <20171129072514.GA31212@chew>	<f959b121-7b92-5f18-f91e-d8c9a2581a9a@gmail.com>	<87efogcztt.fsf_-_@hope.eyrie.org>	<[🔎] 20171201003506.4nd7q2sjvamylu3n@riva.ucam.org>	<[🔎] 20171201012944.pdml3xtkqivj4zaf@riva.ucam.org>
+
+
+Colin Watson <cjwatson@debian.org> writes:
+> On Fri, Dec 01, 2017 at 12:35:06AM +0000, Colin Watson wrote:
+>> (Hmm, though maybe a reasonable stopgap would be to copy the relevant
+>> syscall lists from systemd's code.  That would leave me updating things
+>> manually from time to time, which isn't great, but it would probably
+>> still be better than maintaining my own list!  I think I'll do this.)
+> That was indeed a worthwhile exercise.  I'm now down to five sets taken
+> verbatim from systemd, which are long but I can just update them
+> wholesale from time to time; three sets from systemd from which I've
+> extracted subsets, e.g. a read-only subset of file system operations;
+> and nine additional syscalls, some of which I still need to review and
+> possibly either restrict by arguments or drop.  Those are much more
+> tolerable numbers than a monolithic block of over a hundred syscalls.
+> The exercise caused me to notice several syscalls I'd missed, and some
+> that I'd included inappropriately.  It's still a lot of lines of code,
+> but should be much easier to maintain, and would probably also make it
+> easier to switch to a syscall-set-confining library if such a thing
+> exists in the future.
+I have seriously considered writing an automated tool to do exactly that.
+systemd has the right idea for UI for how to do reasonable seccomp
+filters, but there's absolutely no reason why that maintained syscall list
+needs to be systemd-internal code.  Thankfully, it should be pretty easy
+to extract on an automated basis and publish in some sort of derived
+library until such time as there's some lower-level library that does
+this.  (Disclaimer: I've never asked systemd folks to publish it
+separately, and am not familiar with any previous conversations about
+this.)
+Thank you so much for building seccomp jailing into man-db directly!  I
+think this is an excellent step for anyone writing code for Linux systems
+to consider doing these days.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

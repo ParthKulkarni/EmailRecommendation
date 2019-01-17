@@ -1,0 +1,63 @@
+To : Cyril Brulebois <kibi@debian.org>, debian-boot@lists.debian.org
+Subject : Re: Busybox 1.27 breaks kernel cmdline preseeding
+From : Chris Boot <bootc@debian.org>
+Date : Sun, 26 Nov 2017 10:00:02 +0000
+Message-id : 35636a70-5629-894a-4443-01643d5d8b9d@debian.org
+In-reply-to : <[🔎] 20171125162420.73hge3kcf5srguuq@mraw.org>
+References : <[🔎] CACfMzvqcj_Hfwoe0YizaV4NzsA153R0r24MDFNriocSDiw+Jfw@mail.gmail.com> <[🔎] 20171124114027.x4bx4nfgrpaau6gp@mraw.org> <[🔎] 20171124143309.bkjumhm75j3bjcru@home.ouaza.com> <[🔎] 20171124144311.6ggfztgea5rmr3gt@mraw.org> <[🔎] 20171125162420.73hge3kcf5srguuq@mraw.org>
+
+
+On 25/11/17 16:24, Cyril Brulebois wrote:
+> Hi,
+> 
+> Cyril Brulebois <kibi@debian.org> (2017-11-24):
+>> Raphael Hertzog <hertzog@debian.org> (2017-11-24):
+>>> It looks like it has been partially reverted upstream:
+>>> https://bugs.busybox.net/show_bug.cgi?id=10231
+>>> https://git.busybox.net/busybox/commit/?id=9c143ce52da11ec3d21a3491c3749841d3dc10f0
+>>>
+>>> However this doesn't work for us either because the changes to "showvars"
+>>> also affect the output of "set" which we are using to retrieve the
+>>> environment variables in env2debconf.
+>>
+>> I think “set” is somewhat broken by this commit. Excerpt of its output:
+>> | initrd='initrd.gz'
+>> | rescue
+>> | vga='788'
+>>
+>> This seems very wrong.
+Hi KiBi,
+Yes, that's clearly very broken indeed, but I can understand how this
+might come about. You can, for example, export an environment variable
+without a value.
+Even in bash, you can "export foobar", and export will display it as
+"declare -x foobar". Not exactly the same, and definitely broken in
+busybox, but I can follow the logic.
+> The upstream commit leading to the behavioural change is this one:
+> | commit b6838b520afa8346751577cd7ccbe0b906cd3a52 (HEAD)
+> | Author: Denys Vlasenko <vda.linux@googlemail.com>
+> | Date:   Fri Sep 30 11:33:47 2016 +0200
+> | 
+> |     ash: [VAR] Sanitise environment variable names on entry
+> 
+> (full patch attached)
+> 
+> Busybox maintainers: are you OK with a revert until we figure out what
+> to do? (Meaning we can possibly release Buster Alpha 2 without thinking
+> + rewriting things…)
+I think I'd prefer not to just revert this given this is a security
+thing. It reminds me quite a bit of shellshock, and that's not a path I
+want to tread.
+I'd like to spend a little time investigating this to correct the
+behaviour without opening ourselves to security vulnerabilities. It's
+not wrong that an environment variable probably shouldn't include a '/'
+character: try to set one in bash!
+$ declare -x foo/bar=foo
+bash: declare: `foo/bar=foo': not a valid identifier
+Please give me a few days, I'll see what I can come up with.
+Cheers,
+Chris
+-- 
+Chris Boot
+bootc@debian.org
+signature.asc

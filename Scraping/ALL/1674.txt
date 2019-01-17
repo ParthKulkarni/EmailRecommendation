@@ -1,0 +1,34 @@
+To : 854924@bugs.debian.org
+Subject : Bug#854924: untested patch
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Sun, 12 Feb 2017 02:12:10 +0100
+Message-id : 20170212011210.ae3jlidbkofxq27y@angband.pl
+Reply-to : Adam Borowski <kilobyte@angband.pl>, 854924@bugs.debian.org
+
+
+Here's the obvious but untested patch.
+-- 
+Autotools hint: to do a zx-spectrum build on a pdp11 host, type:
+  ./configure --host=zx-spectrum --build=pdp11
+--- clock-setup-0.131/finish-install.d/10clock-setup~	2016-01-21 05:00:53.000000000 +0100
++++ clock-setup-0.131/finish-install.d/10clock-setup	2017-02-12 02:08:57.930763126 +0100
+@@ -96,13 +96,17 @@
+ 
+ db_get clock-setup/utc
+ if [ "$RET" = true ]; then
+-	sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $utcfile
++	if [ -e $utcfile ]; then
++		sed -i -e 's:^UTC="no":UTC="yes":' -e 's:^UTC=no:UTC=yes:' $utcfile
++	fi
+ 	if [ -e /target/etc/adjtime ]; then
+ 		sed -i -e 's:^LOCAL$:UTC:' /target/etc/adjtime
+ 	fi
+ 	OPT="--utc"
+ else
+-	sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $utcfile
++	if [ -e $utcfile ]; then
++		sed -i -e 's:^UTC="yes":UTC="no":' -e 's:^UTC=yes:UTC=no:' $utcfile
++	fi
+ 	if [ -e /target/etc/adjtime ]; then
+ 		sed -i -e 's:^UTC$:LOCAL:' /target/etc/adjtime
+ 	fi

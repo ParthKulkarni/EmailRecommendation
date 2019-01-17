@@ -1,0 +1,167 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#877467: Odroid-XU4: success despite several challenges
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Sun, 01 Oct 2017 19:26:29 -0700
+Message-id : 87a81agu96.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 877467@bugs.debian.org
+
+
+Package: installation-reports
+Severity: normal
+Thanks for maintaining debian-installer!
+This install was a bit rough, requring two workarounds to get USB
+working (a custom device-tree, and appending a cpio archive with all
+kernel modules to the initrd.gz), as well as some troublesome issues
+with LVM due to existing LVM partitions on an inaccessible/broken
+SSD. Fixing up LVM required manually removing all the logical volumes,
+groups and physical volumes, and even then had to reboot for partman
+to recognize it. The serial console wasn't set at first boot either.
+Despite all that, did eventually manage to install... more detail
+below.
+live well,
+  vagrant
+-- Package-specific info:
+Boot method: network
+Image version: debian-installer-netboot-9-armhf 20170615+deb9u1
+Date: 2017-10-01
+Machine: Odroid-XU4
+Partitions: 
+$ df -Tl
+Filesystem              Type     1K-blocks    Used Available Use% Mounted on
+udev                    devtmpfs    990636       0    990636   0% /dev
+tmpfs                   tmpfs       201684    5384    196300   3% /run
+/dev/mapper/odxu4a-root ext4       5699700 1137916   4252536  22% /
+tmpfs                   tmpfs      1008416       0   1008416   0% /dev/shm
+tmpfs                   tmpfs         5120       0      5120   0% /run/lock
+tmpfs                   tmpfs      1008416       0   1008416   0% /sys/fs/cgroup
+/dev/mmcblk0p4          ext4        464790   26412    409860   7% /boot
+/dev/mapper/odxu4a-srv  ext4      62215940   53272  58972500   1% /srv
+tmpfs                   tmpfs       201680       0    201680   0% /run/user/1000
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [E]
+Detect network card:    [E]
+Configure network:      [O]
+Detect CD:              [ ]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [E]
+Partition hard drives:  [E]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [O]
+Overall install:        [ ]
+Comments/Problems:
+The ethernet interface on this board is implemented using USB3... and
+the rootfs and other major filesystems are on a USB-SATA adapter.
+Initial boot required working around an upstream bug in linux that
+breaks USB 3 (workaround requires building a custom .dtb):
+  https://bugs.debian.org/843448
+Hope to get this fixed in a point release, the fix is moving upstream.
+Unfortunately, USB 3.0 still didn't work even with the modified .dtb,
+even though the same devicetree and kernel works fine on an installed
+system.
+I appended all the modules for the kernel to the initrd, and it worked
+fine! So linux 4.9.x must have some modules missing from the various
+.udebs that are otherwise present in the kernel package.
+lsmod from within debian-installer (when it didn't work):
+# lsmod
+Module                  Size  Used by
+dwc3_exynos             3827  0
+ohci_exynos             4178  0
+dw_mmc_exynos           5942  0
+ohci_hcd               37898  1 ohci_exynos
+ehci_exynos             4269  0
+dw_mmc_pltfm            2485  1 dw_mmc_exynos
+ehci_hcd               64996  1 ehci_exynos
+dw_mmc                 25740  2 dw_mmc_pltfm,dw_mmc_exynos
+usbcore               196310  4
+ehci_exynos,ehci_hcd,ohci_hcd,ohci_exynos
+phy_exynos_usb2         9238  2
+phy_exynos5_usbdrd      7053  0
+usb_common              3659  1 usbcore
+The running/working system:
+$ lsmod
+Module                  Size  Used by
+cpufreq_conservative     3851  0
+cpufreq_userspace       3034  0
+cpufreq_ondemand        6534  2
+cpufreq_powersave       1198  0
+cdc_ether               7020  0
+usbnet                 24858  1 cdc_ether
+r8152                  39630  0
+mii                     4166  2 usbnet,r8152
+sg                     22323  0
+exynosdrm              81403  0
+analogix_dp            25251  1 exynosdrm
+drm_kms_helper        117554  2 exynosdrm,analogix_dp
+drm                   275008  4 exynosdrm,analogix_dp,drm_kms_helper
+pwm_samsung             6722  2
+s3c2410_wdt             7161  1
+pwm_fan                 4806  0
+cpufreq_dt              4136  0
+leds_pwm                3220  0
+nf_conntrack_ipv6       9612  5
+nf_defrag_ipv6         16209  1 nf_conntrack_ipv6
+ip6table_filter         1634  1
+ip6_tables             12298  1 ip6table_filter
+xt_tcpudp               2973  6
+nf_conntrack_ipv4       9225  5
+nf_defrag_ipv4          1364  1 nf_conntrack_ipv4
+xt_conntrack            3039  10
+nf_conntrack           85449  3 nf_conntrack_ipv6,nf_conntrack_ipv4,xt_conntrack
+iptable_filter          1673  1
+ip_tables              12041  1 iptable_filter
+x_tables               14762  6 ip_tables,iptable_filter,xt_tcpudp,ip6table_filter,xt_conntrack,ip6_tables
+autofs4                32600  2
+ext4                  550734  3
+crc16                   1274  1 ext4
+jbd2                   94046  1 ext4
+crc32c_generic          1862  6
+fscrypto               15434  1 ext4
+ecb                     2191  0
+mbcache                 5508  4 ext4
+dm_mod                103153  9
+sd_mod                 32795  2
+uas                    12934  0
+usb_storage            45835  2 uas
+scsi_mod              187707  4 sd_mod,usb_storage,uas,sg
+xhci_plat_hcd           6365  0
+xhci_hcd              153906  1 xhci_plat_hcd
+dwc3                   82180  0
+udc_core               26444  1 dwc3
+phy_generic             4686  0
+s2mps11                40753  18
+clk_s2mps11             2770  0
+dwc3_exynos             3827  0
+phy_exynos_mipi_video     3647  0
+phy_exynos_dp_video     2206  0
+i2c_exynos5             7429  0
+ohci_exynos             4242  0
+ohci_hcd               37898  1 ohci_exynos
+ehci_exynos             4333  0
+ehci_hcd               64996  1 ehci_exynos
+dw_mmc_exynos           5942  0
+dw_mmc_pltfm            2485  1 dw_mmc_exynos
+usbcore               195286  11 ehci_exynos,usbnet,usb_storage,ehci_hcd,cdc_ether,xhci_plat_hcd,uas,ohci_hcd,ohci_exynos,r8152,xhci_hcd
+dw_mmc                 25740  2 dw_mmc_pltfm,dw_mmc_exynos
+phy_exynos_usb2         9238  2
+usb_common              3659  3 udc_core,usbcore,dwc3
+phy_exynos5_usbdrd      7053  4
+Also had to manually set the serial console, as u-boot doesn't have a
+correct console value set:
+  https://bugs.debian.org/877074
+Unfortunately, due to a poorly timed power outage, the install logs
+didn't end up getting written to disk, even though the install
+proceeded fine.
+-- System Information:
+Debian Release: 9.1
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: armhf (armv7l)
+Kernel: Linux 4.9.0-3-armmp-lpae (SMP w/8 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+signature.asc

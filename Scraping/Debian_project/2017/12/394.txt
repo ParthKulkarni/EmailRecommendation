@@ -1,0 +1,44 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Exclicitly or "implicitly" mark architectures a packages does not build
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 20 Dec 2017 15:54:20 +0000
+Message-id : 20171220155420.GA10907@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 23098.23768.538193.365122@chiark.greenend.org.uk>
+References : <[🔎] 20171220110519.wkbkg2zvinlkbtij@an3as.eu> <[🔎] 20171220121313.GA5961@perpetual.pseudorandom.co.uk> <[🔎] 23098.23768.538193.365122@chiark.greenend.org.uk>
+
+
+On Wed, 20 Dec 2017 at 12:51:36 +0000, Ian Jackson wrote:
+> Simon McVittie writes ("Re: Exclicitly or "implicitly" mark architectures a packages does not build"):
+> > - valgrind (dbus)
+> Is this something to do with a test-suite ?  Maybe those tests should
+> be autopkgtests instead.
+No, it would be Build-Depends: valgrind-dev if that package
+existed. (Arguably it should: it would be a tiny binary package containing
+only a few headers, but it could be Architecture: all, and then packages
+like dbus could Build-Depend on it unconditionally.)
+> I see in dbus_1.12.2-1.dsc
+> 
+> Build-Depends: ...
+>   valgrind [amd64 arm64 armhf i386 mips64 mips64el mips mipsel powerpc
+>             ppc64 ppc64el s390x]
+> 	   <!pkg.dbus.minimal>, ...
+> 
+> which is rather WTF.  Is this trying to do Build-Recommends ?
+Sort of. It's enabling a non-essential feature on (hopefully) exactly
+those architectures where it can work, to make programs that use libdbus
+slightly more debuggable on those architectures.
+Users of other architectures would be upset if dbus and all its
+reverse-dependencies weren't buildable on that architecture (there are a
+lot of rdeps), but at the same time it seems foolish to reject a helpful
+debuggability feature available on most architectures just because there
+exist architectures that can't do it.
+libdbus contains a memory-pool allocator to recycle small,
+repeatedly-allocated structs (quite possibly premature optimization, it
+was added long before my involvement), which makes valgrind think memory
+is still reachable even when, conceptually, it has been freed. To help
+developers debug programs that are linked to libdbus, there's a debug
+build that can be pulled in via LD_LIBRARY_PATH or LD_PRELOAD, which
+among other things includes special instrumentation (using <valgrind.h>)
+to tell valgrind to treat memory that is returned to the pool as though
+it had been freed.
+    smcv

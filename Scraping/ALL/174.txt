@@ -1,0 +1,50 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#872036: AH00060: seg fault or similar nasty error detected in the parent process
+From : lkcl <lkcl@lkcl.net>
+Date : Sun, 13 Aug 2017 17:35:38 +0100
+Message-id : 150264213812.15375.9122558661806739111.reportbug@localhost
+Reply-to : lkcl <lkcl@lkcl.net>, 872036@bugs.debian.org
+
+
+Package: apache2-mpm-event
+Version: 2.4.10-10+deb8u10
+Severity: important
+Tags: upstream
+i have a slightly off-the-beaten-track setup on a live-running i386 (not amd64)
+server which has (had) apache-mpm-event activated using the standard
+debian configuration for that module.
+there was (is) absolutely NO threading modules enabled or in use with
+the exception of google's mod_pagespeed, where the developers inform
+me that they do regular testing of mod_pagespeed in both the mpm-event
+and mpm-worker configuration
+the modules utilised for the main web serving are mod-fcgid (WSGI) and
+standard CGI-bin for running PGP (not the normal way to do it but it
+works very well with mpm_worker and mpm_event).  the FCGI application
+is a python2.7 WSGI web service NOT USING ANY FRAMEWORK.  it uses
+absolutely standard python 2.7 modules that come *with* python, such
+as the cgi module and other standard HTML-parsing and processing modules,
+where absolutely no use of threading is made whatsover.  mysql access
+is performed with python-mysqldb, and, again, does not use any threading
+of any kind.
+unfortunately it is not... convenient... to do experimentation on the
+live server.  this is more of an "informational" report that "Something
+Bad Happened" - apache2 segfaulted and left the customer completely
+without service... twice.... and switching off apache2-mpm-event
+and going back to apache2-mpm-prefork "solved" the problem.
+it's also worth noting that absolutely no problems whatsoever have been
+noted with prefork.  stable as a rock, both before mod_pagespeed was
+deployed and after.
+-- System Information:
+Debian Release: 8.1
+  APT prefers testing
+  APT policy: (500, 'testing'), (500, 'stable'), (500, 'oldstable')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.11.0-1-amd64 (SMP w/8 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Versions of packages apache2-mpm-event depends on:
+ii  apache2  2.4.10-10+deb8u10
+apache2-mpm-event recommends no packages.
+apache2-mpm-event suggests no packages.
+-- no debconf information

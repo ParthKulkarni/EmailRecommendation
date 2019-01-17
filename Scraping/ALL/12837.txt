@@ -1,0 +1,167 @@
+To : debian-devel@lists.debian.org
+Subject : MBF: Multi-Arch: same violations
+From : Helmut Grohne <helmut@subdivi.de>
+Date : Mon, 28 Aug 2017 09:14:52 +0200
+Message-id : 20170828071451.nfvwtmysnam4uqjm@alf.mars
+Mail-followup-to : debian-devel@lists.debian.org
+
+
+Hi,
+I analyzed file conflicts in binary packages marked Multi-Arch: same. To
+do that, I created a branch of https://dedup.debian.net/ specifically
+for analyzing multiarchy features of packages. The resulting issues are
+fed into tracker.d.o already, but little happens about them. File
+conflicts in Multi-Arch: same packages are particularly annoying,
+because they result in unpack errors and leave the system in a broken
+state. We typically file bugs of severity serious for unpack errors, but
+for multiarchy issues we tend to reduce that to important.
+I attempted to reproduce all file conflicts using "apt-get install
+pkg:arch1 pkg:arch2" in a clean sid chroot. I am only reporting those
+that actually result in unpack errors.
+Attached to this mail you can find a file "fail" with four columns:
+ * a binary package name
+ * a release architecture
+ * a different release architecture
+ * optionally an existing bug number
+For each combination "apt-get install $1:$2 $1:$3" fails with an unpack
+error. The corresponding dd-list is attached as well. Some bugs are
+already filed (mostly by Jakub Wilk, thanks!), but still included in
+both lists. Where the fourth column is non-empty, I won't file a new
+bug.
+Here is the bug template:
+v v v v v
+Package: $1
+Severity: important
+User: multiarch-devel@lists.alioth.debian.org
+Usertags: multiarch
+$1 is marked Multi-Arch: same, but fails to coinstall with itself on $2
+and $3. You can find a failing installation log attached. Please
+consider removing the Multi-Arch: same header or declaring the relevant
+architecture-qualified Conflicts.
+^ ^ ^ ^ ^
+These issues will become serious once multiarch is documented in policy.
+I intend to create the bug reports in a week. Any objections?
+Helmut
+Adam Conrad <adconrad@0c3.net>
+   glibc (U)
+Alastair McKinstry <mckinstry@debian.org>
+   adios
+   udunits
+Alec Leamas <leamas.alec@gmail.com>
+   lirc (U)
+Alessandro Ghedini <ghedo@debian.org>
+   curl
+Apollon Oikonomopoulos <apoikos@debian.org>
+   mongo-cxx-driver-legacy (U)
+Aron Xu <aron@debian.org>
+   opencc (U)
+Asias He <asias@debian.org>
+   opencc (U)
+Aurelien Jarno <aurel32@debian.org>
+   glibc (U)
+Barak A. Pearlmutter <bap@debian.org>
+   colpack (U)
+Bernhard Miklautz <bernhard.miklautz@shacknet.at>
+   freerdp2 (U)
+Chris Butler <chrisb@debian.org>
+   libcgicc
+Christoph Egger <christoph@debian.org>
+   ffcall
+Clint Adams <clint@debian.org>
+   glibc (U)
+Debian Astro Team <debian-astro-maintainers@lists.alioth.debian.org>
+   starlink-ast
+Debian Astronomy Maintainers <debian-astro-maintainers@lists.alioth.debian.org>
+   cpl
+Debian Libvirt Maintainers <pkg-libvirt-maintainers@lists.alioth.debian.org>
+   hivex
+Debian MongoDB Maintainers <pkg-mongodb-maintainers@lists.alioth.debian.org>
+   mongo-cxx-driver-legacy
+Debian QA Group <packages@qa.debian.org>
+   readline5
+Debian Remote Maintainers <pkg-remote-team@lists.alioth.debian.org>
+   freerdp2
+Debian Science Maintainers <debian-science-maintainers@lists.alioth.debian.org>
+   apophenia
+   colpack
+Dennis van Dok <dennisvd@nikhef.nl>
+   lcmaps
+Faidon Liambotis <paravoid@debian.org>
+   libmaxminddb
+Giulio Paci <giuliopaci@gmail.com>
+   mongo-cxx-driver-legacy (U)
+GNU Libc Maintainers <debian-glibc@lists.debian.org>
+   glibc
+Hilko Bengen <bengen@debian.org>
+   hivex (U)
+Ian Jackson <ijackson@chiark.greenend.org.uk>
+   curl (U)
+IME Packaging Team <pkg-ime-devel@lists.alioth.debian.org>
+   opencc
+James Troup <binutils@elmo.tasta.io>
+   binutils (U)
+Jerome Benoit <calculus@rezozer.net>
+   apophenia (U)
+Jon Bernard <jbernard@debian.org>
+   ust
+Jonas Smedegaard <dr@jones.dk>
+   pugixml (U)
+JÃ¶rg Frings-FÃ¼rst <debian@jff-webhosting.net>
+   sane-backends
+LaMont Jones <lamont@debian.org>
+   bind9
+Laszlo Boszormenyi (GCS) <gcs@debian.org>
+   mongo-cxx-driver-legacy (U)
+LI Daobing <lidaobing@debian.org>
+   opencc (U)
+lirc Maintainer Team <pkg-lirc-maint@lists.alioth.debian.org>
+   lirc
+LLVM Packaging Team <pkg-llvm-team@lists.alioth.debian.org>
+   llvm-toolchain-3.8
+   llvm-toolchain-3.9
+   llvm-toolchain-4.0
+   llvm-toolchain-5.0
+   llvm-toolchain-snapshot
+Marco Nenciarini <mnencia@debian.org>
+   ossp-uuid
+Matthias Klose <doko@debian.org>
+   binutils
+Michael Gilbert <mgilbert@debian.org>
+   bind9 (U)
+Michael Jeanson <mjeanson@ubuntu.com>
+   ust (U)
+Michael Stapelberg <stapelberg@debian.org>
+   libtomcrypt
+Michael Tautschnig <mt@debian.org>
+   z3
+Mike Gabriel <sunweaver@debian.org>
+   freerdp2 (U)
+Mischa Salle <msalle@nikhef.nl>
+   lcmaps (U)
+Nobuhiro Iwamatsu <iwamatsu@debian.org>
+   gtkhotkey
+Ole Streicher <olebole@debian.org>
+   cpl (U)
+   starlink-ast (U)
+Osamu Aoki <osamu@debian.org>
+   opencc (U)
+Ricardo Mones <mones@debian.org>
+   claws-mail
+Robie Basak <robie.basak@canonical.com>
+   bind9 (U)
+Samuel Thibault <sthibault@debian.org>
+   glibc (U)
+Stefan Lippers-Hollmann <s.l-h@gmx.de>
+   lirc (U)
+Sylvestre Ledru <sylvestre@debian.org>
+   llvm-toolchain-3.8 (U)
+   llvm-toolchain-3.9 (U)
+   llvm-toolchain-4.0 (U)
+   llvm-toolchain-5.0 (U)
+   llvm-toolchain-snapshot (U)
+Vasudev Kamath <vasudev@copyninja.info>
+   pugixml
+Wookey <wookey@debian.org>
+   libsquish
+YunQiang Su <wzssyqa@gmail.com>
+   opencc (U)

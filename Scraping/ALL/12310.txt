@@ -1,0 +1,105 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian built from non-Debian sources
+From : Jonas Smedegaard <jonas@jones.dk>
+Date : Mon, 17 Jul 2017 19:05:28 +0200
+Message-id : 150031112884.6357.2414601223469448219@auryn.jones.dk
+In-reply-to : <[🔎] E1dWtSb-0004eM-BM@mail.einval.com>
+References : <[🔎] 150022471012.6357.9386072546587078002@auryn.jones.dk> <[🔎] 20170716172806.tbezsre2zfhyzudl@belkar.wrar.name> <[🔎] 20170716172806.tbezsre2zfhyzudl@belkar.wrar.name> <[🔎] E1dWpvx-00073m-KR@mail.einval.com> <[🔎] E1dWpvx-00073m-KR@mail.einval.com> <[🔎] E1dWtSb-0004eM-BM@mail.einval.com>
+
+
+Quoting Steve McIntyre (2017-07-17 02:00:25)
+> Jonas wrote:
+> >Quoting Steve McIntyre (2017-07-16 22:14:29)
+> >> Jonas wrote:
+> >> >Quoting Andrey Rahmatullin (2017-07-16 19:28:06)
+> >> >> On Sun, Jul 16, 2017 at 07:05:10PM +0200, Jonas Smedegaard 
+> >> >> wrote:
+> >> >> > Is our install images excepmt from our Policy that all 
+> >> >> > dependencies must be in Debian, or am I mistaken that we have 
+> >> >> > such Policy?
+> >> >> Do we?  The Debian Policy covers only debs.
+> >> >> Also, dak isn't in the archive either.
+> >> >
+> >> >I thought Policy covered what we distribute - which excludes dak 
+> >> >but includes libisofs code embedded in installer images.
+> >> 
+> >> Can you identify any code at all from libisofs which is embedded in 
+> >> the images? I'm honestly not aware of any.
+> >
+> >I believe the embedded MBR is part of the libisofs project.
+> 
+> No, the MBR is generated from the isolinux/syslinux packages. xorriso 
+> (libisofs) just updates some pointers in there to point at the El 
+> Torito bootable images, to add a fake partition table, etc.
+Ok, so I stand corrected in that libisofs do not provide code (like e.g. 
+a library).  Thanks for clarifying.
+I still believe that libisofs are closer tied to our product than to our 
+surrounding services: We (or derivatives) may upgrade/replace/skip 
+Apache or dak or Alioth and still deliver an identical product, but 
+upgrading libisofs may directly cause an image to fail or succeed.  
+Isn't that exactly the reason you have chosen to not rely on Debian 
+packages but stayed in close contact with upstream and custom compiled 
+versions for use in the release process?
+I mean, if it were packages, then a new version of the libisofs package 
+would likely result in a binNMU of the image packages.  An updated 
+version of Debian _services_ like apache or Alioth or dak would unlikely 
+lead to binNMUs of any packages.
+> >My concern is the ability to replicate and derive the least possible 
+> >from Debian resources like the install images.
+> 
+> ACK, understood.
+> 
+> >Concretely The Debian derivative PureOS is having trouble booting their 
+> >homemade live image on some hardware, but boots fine on both Debian 
+> >netinst image and Debian live image.  Looking at the properly working 
+> >images I noticed that the live image for stable was produced using 
+> >newer-than-stable libisofs,
+> 
+> Sorry, wrong. It was built using the standard xorriso and libisofs
+> versions in stretch. From the stretch-based VM used to build it:
+Whoops - you are right.  My eyes are apparently too used to see equal 
+versions in tracker.d.o as meaning unstable+testing, not the rare 
+unstable+testing+stable that we have now.  Sorry!
+> If the PureOS folks are having problems, they could ask on the 
+> debian-cd list?
+Sure there is always the option to simply ask.
+I mentioned the concrete problem as an *example* of a more general 
+concern: Whether or not it is even *possible* for anyone outside Debian 
+to replicate the Debian product.  We have Debian Policy governing (i.e. 
+_documenting_ for outsiders) how we create packages, but apparently we 
+have nothing governing the final procedures of how we create our images.
+> >and that the stable netinst image was produced using a
+> >never-in-Debian release of libisofs.
+> 
+> Right, I'll give you that one. But there's *seriously* nothing special 
+> there any more than what you'd find in any backport to jessie.
+I am talking about _avoiding_ uncertainty: Irrelevant to compare with 
+other ways of introducing variability to a Debian system!
+> But a *lot* of the infrastructure we use to run Debian is not exactly 
+> what's been packaged, as already mentioned. Look at dak. debian-cd, 
+> live-wrapper et al *are* packaged, but we're not *necessarily* using 
+> the exact code that's in the stable archive at any point. We're 
+> typically using code from git on the build machines, to allow for more 
+> flexibility in terms of changes to build scripts as problems arise. We 
+> release things to the archive periodically as a convenience to users, 
+> but serious use often necessitates using git too. This isn't going to 
+> change any time soon.
+Sure it would be ideal to keep track of *everything* we do, including 
+how we run services.  But as mentioned above I distinguish between 
+services and things directly affecting our product.  Would you agree 
+that at first limiting the task to covering only the tools directly 
+affecting our product (e.g. debian-cd, liver-wrapper, libisofs) is more 
+realistic than tracking also e.g. dak and Alioth?
+For starters, I believe they all exist as packages in Debian, it is 
+"only" a matter of releasing into Debian the specific version used in 
+production.
+...but since they seemingly are excempt from Debian Policy exactly 
+because the code used is not packaged code, we cannot track this issue 
+in the same way we track issues with packages.  We can "ask on the 
+list"...
+ - Jonas
+-- 
+ * Jonas Smedegaard - idealist & Internet-arkitekt
+ * Tlf.: +45 40843136  Website: http://dr.jones.dk/
+ [x] quote me freely  [ ] ask before reusing  [ ] keep private
+signature.asc

@@ -1,0 +1,37 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#877212: [Pkg-javascript-devel] Bug#877212: node-d3-color: B-D npm not available in testing
+From : Didier 'OdyX' Raboud <odyx@debian.org>
+Date : Thu, 05 Oct 2017 21:03:54 +0200
+Message-id : 3053547.BzJkr2Vors@odyx.org
+In-reply-to : <[🔎] 22998.9628.883411.733973@chiark.greenend.org.uk>
+References : <62347b6e-ad62-e8f1-ed1b-a9e53fef62e1@onenetbeyond.org> <[🔎] 20171004125835.zxy22zkgjv6k5mbp@perpetual.pseudorandom.co.uk> <[🔎] 22998.9628.883411.733973@chiark.greenend.org.uk>
+
+
+Le jeudi, 5 octobre 2017, 13.29:16 h CEST Ian Jackson a écrit :
+> I have also heard of packages which do "apt-get source" in their rules
+> files.
+debian-installer-netboot-images does a similar thing, but it's more of a shell 
+re-implementation of a trust chain check:
+http://sources.debian.net/src/debian-installer-netboot-images/
+20170615%2Bdeb9u1/get-images.sh/
+(Patches welcome, of course)
+The reason for that (and #807168 documents this) is that:
+* d-i-n-i binary packages are arch:all packages with arch-specific content; 
+because we want to ship any arch's netboot images on all architectures; and 
+forcing the use of multiarch for that is overkill.
+* building these arch:all packages in an arch:any build (such as d-i's) is not 
+supported and would be a heavy arm-twisting of our buildd infrastructure.
+tl;dr; It's certainly no good, but it's the best we have.
+> I think that both of these activities are reasonable things to do.
+> They don't violate the self-containedness of Debian.  If they are
+> technically forbidden by policy then policy should be changed.
+Well. #807312 tracks a way to eventually do the above in a policy-compliant 
+way: build arch:any packages containing netboot images and build d-i-n-i using 
+multiarch Build-Depends.
+As for changing Policy; what matters is that we ultimately build things from 
+known and DFSG-free _sources_, in a reproducible way. dpkg, apt and sbuilds 
+are just (_FANTASTIC_) means to that end. So we either need better tooling 
+than the above hideous shell, or massage everything into existing tooling. I 
+prefer the "there's a RC bug to fix" situation over a "weaker policy", for now.
+Cheers,
+    OdyX

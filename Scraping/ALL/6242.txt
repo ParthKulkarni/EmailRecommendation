@@ -1,0 +1,70 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#890470: stretch-pu: package systemd/232-25+deb9u1
+From : Michael Biebl <biebl@debian.org>
+Date : Thu, 15 Feb 2018 01:19:48 +0100
+Message-id : 151865398883.11024.17952864425265713538.reportbug@pluto.milchstrasse.xx
+Reply-to : Michael Biebl <biebl@debian.org>, 890470@bugs.debian.org
+
+
+Package: release.debian.org
+Severity: normal
+Tags: stretch
+User: release.debian.org@packages.debian.org
+Usertags: pu
+Hi,
+I'd like to make a stable upload for systemd fixing a couple of issues.
+An annotated changelog follows.
+Full debdiff is attached.
+systemd (232-25+deb9u2) stretch; urgency=medium
+  * networkd: Handle MTU field in IPv6 RA (Closes: #878162)
+https://salsa.debian.org/systemd-team/systemd/commit/9f134218fa5ed60a4d7b0a2282d86ab56f52a3e9
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=878162
+It's a cherry-pick of an upstream commit which is already in
+unstable/testing.
+This change was requested by Julien Cristau who already confirmed that it
+fixes the issue for stretch.
+  * shared: Add a linker script so that all functions are tagged @SD_SHARED
+    instead of @Base.
+    This helps prevent symbol collisions with other programs and libraries.
+    In particular, because PAM modules are loaded into the process that is
+    creating the session, and systemd creates PAM sessions, the potential
+    for collisions is high. (Closes: #873708)
+https://salsa.debian.org/systemd-team/systemd/commit/bd33312f7fcf660f568bf2bac288b5ceec6981ab
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=873708
+It's a backport of an upstream commit which is already in
+unstable/testing.
+I'd consider this the most important fix, as we have seen segfaults in
+systemd when e.g. libpam-heimdal was used.
+  * resolved: Fix loop on packets with pseudo dns types.
+    CVE-2017-15908 (Closes: #880026)
+https://salsa.debian.org/systemd-team/systemd/commit/5a469751160af8334ca4748ee00ee9b7e1a3efe3
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=880026
+It's a cherry-pick of an upstream commit which is already in
+unstable/testing.
+The security team suggested to fix this via a stable upload, as the
+issue was not considered severe enough for a security upload (resolved
+is not enabled by default in Debian)
+  * machinectl: Don't output "No machines." with --no-legend option
+    (Closes: #880158)
+https://salsa.debian.org/systemd-team/systemd/commit/9c22320c9d012bb515fb91752795fa4a6649dc5f
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=880158
+It's a cherry-pick of an upstream commit which is already in
+unstable/testing.
+The fix is trivial and has very low regression potential, so I decided
+to include this patch as well. I'm fine with dropping it though, if you
+have concerns.
+The changes don't affect the installer. That said I've CCed debian-boot
+for their ack.
+Please let me know if I can proceed with the upload.
+Regards,
+Michael
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable
+  APT policy: (500, 'unstable'), (200, 'experimental')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.15.0-rc8-amd64 (SMP w/4 CPU cores)
+Locale: LANG=de_DE.utf8, LC_CTYPE=de_DE.utf8 (charmap=UTF-8), LANGUAGE=de_DE.utf8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

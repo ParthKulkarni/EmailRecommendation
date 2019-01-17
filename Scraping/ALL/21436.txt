@@ -1,0 +1,33 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#886238: Please introduce official nosystemd build profile
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 7 Jan 2018 11:54:49 +0000
+Message-id : 20180107115449.GA7245@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 87zi5qbmb0.fsf@43-1.org>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 87h8s2j07z.fsf@hope.eyrie.org> <[🔎] 20180104033616.3bt7732el4n7sviu@angband.pl> <[🔎] 87po6q9s9i.fsf@hope.eyrie.org> <[🔎] 5A504E01.5030203@debian.org> <[🔎] 20180106134232.GB10711@perpetual.pseudorandom.co.uk> <[🔎] a6fbe31d-c04f-b43a-8e09-d76b2b8272d0@debian.org> <[🔎] 20180106181714.GA14323@bongo.bofh.it> <[🔎] 20180106223509.6pmj5gs7rqfe3wlu@angband.pl> <[🔎] 87zi5qbmb0.fsf@43-1.org>
+
+
+On Sun, 07 Jan 2018 at 00:27:15 +0100, Ansgar Burchardt wrote:
+> sysvinit probably only stays in testing because systemd
+> depends on sysv-rc for compatability with LSB init scripts...
+I think it did during the default init system transition, but it doesn't
+any more.
+sysvinit-utils is still Essential: yes, because it contains binaries that
+were historically part of the Essential set; *that* keeps src:sysvinit
+in testing. There are plans to make sysvinit-utils non-Essential by
+moving pidof to a new Essential package built from src:procps (lots
+of packages blindly assume that pidof exists, so adding dependencies
+doesn't seem feasible) and adding dependencies for the few uses of the
+other sysvinit-utils binaries, which have been OK'd in principle by the
+maintainer of src:sysvinit, but haven't happened yet.
+Other binary packages from src:sysvinit also have a disproportionately
+high popcon score because they used to be Essential, and are not
+always auto-removed when no longer used, which keeps them in the key
+packages list.
+sysv-rc and initscripts are both present on about 72% of installations
+that report to popcon, even though systemd-sysv is present on about 78%
+of those installations and sysvinit-core is present on less than 2%.
+I don't know what's going on in the other 20% - surely they can't all
+be wheezy or older? Perhaps some of them are chroots or containers with
+no init system at all?
+    smcv

@@ -1,0 +1,62 @@
+To : Christian PERRIER <bubulle@debian.org>
+Subject : Re: console-setup upload?
+From : Anton Zinoviev <anton@lml.bas.bg>
+Date : Wed, 8 Feb 2017 22:49:23 +0300
+Message-id : 20170208194922.GA3200@debian.lan
+In-reply-to : <[🔎] 20170208055305.dsmzfrm4ryep6xiw@mykerinos.kheops.frmug.org>
+References : <[🔎] 20170208055305.dsmzfrm4ryep6xiw@mykerinos.kheops.frmug.org>
+
+
+On Wed, Feb 08, 2017 at 06:53:05AM +0100, Christian PERRIER wrote:
+> 
+> Ideally in this pre-release time, I shouldn't be uploading as is. May
+> I suggest that the relevant commit is moved to a "post-release" branch
+> or are there advices that this change should be in the released
+> package.
+> 
+> Seeking for advice, then.....
+Personally, I would love to receive some advice about this too...
+Postponing would be ok if only #817232 wasn't with grave severity...
+> -if [ -x "/etc/init.d/keyboard-setup" ]; then
+> -    update-rc.d keyboard-setup remove >/dev/null
+> -fi
+> -if [ -x "/etc/init.d/console-setup" ]; then
+> -    update-rc.d console-setup remove >/dev/null
+> -fi
+> -dpkg-maintscript-helper rm_conffile /etc/init.d/keyboard-setup 1.138~ -- "$@"
+> -dpkg-maintscript-helper rm_conffile /etc/init.d/console-setup 1.138~ -- "$@"
+> +for file in keyboard-setup console-setup; do
+> +    dpkg-maintscript-helper rm_conffile /etc/init.d/$file 1.138~ -- "$@"
+> +    if [ -x /etc/init.d/$file ]; then
+> +        update-rc.d $file remove >/dev/null
+> +    fi
+> +done
+I took this code unchanged from a comment in BTS.  In order to make it 
+easier to track the changes, I've just modified it (in an equivalent 
+way).  The new diff is the following:
+diff --git a/debian/keyboard-configuration.preinst b/debian/keyboard-configuration.preinst
+index 9bf83a7..66571f4 100644
+--- a/debian/keyboard-configuration.preinst
++++ b/debian/keyboard-configuration.preinst
+@@ -2,13 +2,13 @@
+ 
+ set -e
+ 
++dpkg-maintscript-helper rm_conffile /etc/init.d/keyboard-setup 1.138~ -- "$@"
++dpkg-maintscript-helper rm_conffile /etc/init.d/console-setup 1.138~ -- "$@"
+ if [ -x "/etc/init.d/keyboard-setup" ]; then
+     update-rc.d keyboard-setup remove >/dev/null
+ fi
+ if [ -x "/etc/init.d/console-setup" ]; then
+     update-rc.d console-setup remove >/dev/null
+ fi
+-dpkg-maintscript-helper rm_conffile /etc/init.d/keyboard-setup 1.138~ -- "$@"
+-dpkg-maintscript-helper rm_conffile /etc/init.d/console-setup 1.138~ -- "$@"
+ 
+ #DEBHELPER#
+In this way the change becomes obvious --- only the order of execution 
+of the commands is changed. Rationale: according to update-rc.d(8) "The 
+script must have been deleted already.  If the script is still present 
+then update-rc.d aborts with an error message."  This, indeed, means 
+that update-rc.d has to be run before dpkg-maintscript-helper rm_conffile.
+Anton Zinoviev

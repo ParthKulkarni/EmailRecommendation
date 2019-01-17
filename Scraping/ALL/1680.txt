@@ -1,0 +1,71 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>, 820818@bugs.debian.org
+Subject : Bug#820818: partman is not able to resize nvme0n1p3 in d-i
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 4 Feb 2017 04:53:45 +0100
+Message-id : 20170204035345.GK23551@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 820818@bugs.debian.org
+In-reply-to : <22285.14701.236967.803624@chiark.greenend.org.uk>
+References : <22285.14701.236967.803624@chiark.greenend.org.uk>
+
+
+Hi,
+Ian Jackson <ijackson@chiark.greenend.org.uk> (2016-04-12):
+> Package: partman-partitioning
+> 
+> (I'm afraid I don't know the right package name nor the version
+> number.  I searched with a general web search for `reporting bugs
+> debian-installer' and `reporting bugs partman', and looked on
+> https://wiki.debian.org/DebianInstaller, and didn't find any
+> guidance.)
+Looking at the results of grep in all d-i's partman-* repositories, that
+seems spot on. As for the version, you'd have found it in /var/log/syslog,
+saved under /var/log/installer in the installed system.
+> I asked the partitioner in the Stretch Alpha 5 amd64 debian-installer
+> (firmware-stretch-DI-alpha5-amd64-netinst.iso) to resize an ext4
+> partition on an NVME device.
+> 
+> I did this from:
+> 
+>   You are editing partition #3 of /dev/nvme0n1.  This partition
+>   is [blah blah] ext4 [blah].
+> 
+> It failed, saying "Because of an unknown reason it is impossible to
+> resize" etc.  The log on VC4 says:
+> 
+>   Apr 12 18:00:03 partman: Error running 'tune2fs -l /dev/nvme0n1'
+> 
+> Obviously that is not the right device name.
+Wild guess, this might need an update?
+| get_real_device () {
+|         local backupdev num
+|         # A weird way to get the real device path. The partition numbers
+|         # in parted_server may be changed and the partition table is still
+|         # not commited to the disk.
+|         backupdev=/var/lib/partman/backup/${dev#/var/lib/partman/devices/}
+|         if [ -f $backupdev/$oldid/view ] && [ -f $backupdev/device ]; then
+|                 num=$(sed 's/^[^0-9]*\([0-9]*\)[^0-9].*/\1/' $backupdev/$oldid/view)
+|                 bdev=$(cat $backupdev/device)
+|                 case $bdev in
+|                     */disc)
+|                         bdev=${bdev%/disc}/part$num
+|                         ;;
+|                     /dev/[hsv]d[a-z]|/dev/xvd[a-z])
+|                         bdev=$bdev$num
+|                         ;;
+|                     /dev/cciss/c[0-9]d[0-9]|/dev/cciss/c[0-9]d[0-9][0-9]|/dev/ida/c[0-9]d[0-9]|/dev/ida/c[0-9]d[0-9][0-9]|/dev/mmcblk[0-9])
+|                         bdev=${bdev}p$num
+|                         ;;
+|                     *)
+|                         log "get_real_device: strange device name $bdev"
+|                         return
+|                         ;;
+|                 esac
+|                 if [ ! -b $bdev ]; then
+|                         bdev=
+|                 fi
+|         fi
+| }
+It would be helpful if you could dig up the logs to confirm you had the
+"get_real_device: strange device name $bdev" line.
+KiBi.
+signature.asc

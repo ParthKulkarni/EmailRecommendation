@@ -1,0 +1,91 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Should libpam-elogind Provide libpam-systemd ?
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 5 Nov 2018 23:58:09 +0000
+Message-id : 20181105235809.GA4237@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 23520.18040.158396.933449@chiark.greenend.org.uk>
+References : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk> <[🔎] 23520.18040.158396.933449@chiark.greenend.org.uk>
+
+
+On Mon, 05 Nov 2018 at 13:32:40 +0000, Ian Jackson wrote:
+> When a package does not want, specifically, this sharing, the
+> dependency should be on
+>    default-dbus-session-bus | dbus-session-bus
+This is right for packages that don't particularly care whether the
+session bus is per-uid or per-login-session and want to follow the
+default chosen globally for Debian, including most D-Bus session clients
+and services.
+> or maybe the older form which I found in some packages in sid:
+>    dbus-user-session | dbus-x11
+> (xdg-desktop-portal-gtk).
+I don't remember why I set up xdg-desktop-portal-gtk like this, tbh.
+It's probably a bug. I think I probably added that dependency when
+dbus-user-session wasn't yet the default/preferred form of session bus,
+because xdg-desktop-portal-gtk benefitted significantly in some way
+from using it.
+Depends: dbus-user-session | dbus-session-bus would perhaps make sense
+for packages that strongly prefer the session-bus-per-uid model but can
+work either way, as a way to make it explicit that they would prefer
+dbus-user-session even if that wasn't Debian's default.
+Depends: dbus-user-session (with no alternative) makes sense for
+packages that can only work in one-session-bus-per-uid world. Those are
+systemd-specific for the forseeable future.
+Recommends: dbus-user-session makes sense for packages that have
+significantly degraded functionality without one-session-bus-per-uid,
+but can be made to work by unusual or non-default configuration.
+> The value of this feature is IMO questionable.
+There are various reasonable things that you might assume can be done
+with D-Bus, but that turn out not to work, or can work but only badly,
+when the session bus is not shared in this way. There are also things
+that can work with one bus per login session, but can't work or can't
+work well with one bus per uid (most of them involve multiple parallel
+graphical login sessions). Can we agree to disagree on which of those
+two classes is the more important one?
+I don't want this to turn into "us vs. them", and I'm trying not to get
+drawn into a debate about the merits of these approaches because I can
+already see how much time and motivation that will burn if it happens,
+most likely leaving each of us angry with the other and without any
+actually changed opinions. I've gone to some lengths to make sure that
+the conceptual model implied by dbus-user-session is not mandatory in
+Debian (which is why we have it as a separate package at all); it would
+have made D-Bus maintenance much simpler if I'd said that from now on,
+one D-Bus session per uid per machine was the only supported situation,
+as it is in (for example) Fedora and Arch Linux.
+> pinentry-gnome3 and pulseaudio seem wrong to me.  PINs should not be
+> shared between login sessions and sound control should be per-session,
+> not per-uid.
+First of all, these are Recommends, not Depends. If you are confident that
+your use of these packages (if you even use these packages) can work
+without a per-(uid,machine)-scoped D-Bus session bus, you're welcome to
+not satisfy the Recommends. Not having `systemd --user` on the class of
+systems that these packages target is an unusual configuration, so I
+think it's reasonable for Recommends to assume it.
+If we had a way to spell "Recommends: dbus-user-session if init is
+systemd" or "Depends: dbus-user-session if init is systemd" then these
+packages could use it, but as far as I'm aware we don't, so they can't.
+The pinentry-gnome3 Recommends is because gpg-agent is shared between
+login sessions, so anything that is invoked by gpg-agent had better
+have all its dependencies similarly shared. pinentry-gnome3 is one of
+several possible implementations of a PIN/passphrase/secret prompt; it
+is implemented using D-Bus IPC (it communicates with GNOME Shell, to ask
+GNOME Shell to prompt for PINs/passphrases/secrets using a system-modal
+dialog). This works very poorly if the D-Bus session is shorter-lived
+than the gpg-agent, because the gpg-agent receives its environment
+variables on startup (including the DBUS_SESSION_BUS_ADDRESS that will
+be inherited by its shorter-lived pinentry subprocesses) and does not
+have a way to replace them. (#801247)
+Similarly, I think pulseaudio's Recommends is because pulseaudio is
+frequently a systemd user service (one per uid). One of pulseaudio's
+control protocols is that it can be sent commands via D-Bus IPC, but
+again, that isn't going to work if the D-Bus session bus is shorter-lived
+than the pulseaudio daemon.
+> I'm not sure about rygel but it doesn't seem likely to me that this
+> dependency on dbus-user-session is necessary.  Perhaps there is
+> another way to implement this on non-systemd systems.
+It's another Recommends. Rygel is a long-running per-user D-Bus service
+that requires a D-Bus session bus with a scope at least as long as rygel
+itself; on systemd systems, making it a `systemd --user` service is
+desirable; but that user-service can't start without dbus-user-session.
+This would be "Depends: dbus-user-session if init is systemd" if we had
+a way to spell that in dependencies.
+    smcv

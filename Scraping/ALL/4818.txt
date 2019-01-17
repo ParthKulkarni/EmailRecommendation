@@ -1,0 +1,110 @@
+To : debian-boot@lists.debian.org
+Subject : Thoughts on os-prober 2.0
+From : Colin Watson <cjwatson@debian.org>
+Date : Sat, 21 Jan 2017 02:01:42 +0000
+Message-id : 20170121020142.GA30584@riva.ucam.org
+Mail-followup-to : debian-boot@lists.debian.org
+
+
+OK.  We need to talk about os-prober.
+I just did a pass over a reasonable percentage of the os-prober bug
+list, mainly to stem the bleeding (RC bugs) and to deal with those
+incoming patches that were simple enough that I thought they could
+reasonably be applied without causing too much trouble for the stretch
+freeze.
+Having come back to this package after some time away, it's clear to me
+that something major needs to be done.  os-prober is the very exemplar
+of a problem that should be solved by a simple, extensible core, a
+domain-specific language to handle the ruleset, and a substantial test
+suite so that it's easy to make changes with some level of confidence.
+Instead it's a shonky pile of untested and mostly untestable scripts.
+That was OK for a first pass, and it got us this far, but it really
+can't continue.  I almost never suggest rewriting software
+(https://www.joelonsoftware.com/2000/04/06/things-you-should-never-do-part-i/),
+but in this case the evidence suggests that what we have is not a mature
+and carefully-bug-fixed piece of software, it's a heap that's collapsing
+under its own weight.
+My assessment is that a rewrite needs to solve the following problems:
+ * Be no worse than what we have now.  Tough without a test suite that
+   specifies the existing behaviour, but it's a small enough codebase
+   that we can go over it manually to make sure we haven't left anything
+   out.
+ * New code must be testable.  The biggest problem I had when going
+   through the existing patch queue was that many of the patches looked
+   probably reasonable enough, but they were large or invasive enough
+   that I just couldn't say with any certainty that they weren't going
+   to make some other case break.  For instance, if parsing some boot
+   loader configuration file goes wrong, it should be possible to take
+   the files attached to somebody's bug report and drop them into the
+   test suite to make sure they stay working in future.  We could even
+   mine this out of old bug reports.
+ * Be declarative where possible.  With a bit of design thought, most of
+   the logic that emits probed data could be expressed in a simple
+   declarative format.
+ * Be fast.  os-prober is annoyingly slow even on modern hardware.
+   There are various patches around to improve it (e.g. the one to fork
+   a single logger process rather than forking it all over the place),
+   but they generally run into the testability problem as well as making
+   the code even more baroque; we just need to not be doing this job in
+   shell.  If Rust were a bit more portable to all the architectures we
+   care about then I'd suggest that, but as it is I think we can manage
+   to make it work in C.
+I've gone through the existing code to gather requirements.  We
+obviously need a core to handle the general probing lifecycle: it would
+deal with mounting partitions where necessary (grub-mount, dmsetup,
+etc.).  It should be possible to make this more clearly correct than
+what we have today: shell struggles a bit with the cleanup requirements.
+Above that, we'd have a parsing layer (which I'm thinking of as a bit
+like Lintian's collector scripts) which deal with the various custom
+file formats involved.  On the one hand I sort of hate doing parsing in
+C, but on the other hand shell isn't exactly great at it either and we
+have some parsing bugs right now that are very hard to fix.  Maybe
+parsers should be allowed to be separate processes so that we can pick
+whatever makes most sense.  The parsers we need for parity with the
+current implementation are, in no particular order:
+ * slurp entire file
+ * slurp prefix of partition (e.g. first 512 bytes)
+ * lsb-release
+ * os-release
+ * udevadm info (partition table type and partition type)
+ * boot.ini
+ * grub.cfg
+ * yaboot.conf
+ * silo.conf
+ * menu.lst
+ * lilo.conf
+There's also a to-do comment for parsing
+/System/Library/CoreServices/SystemVersion.plist, which would require
+being able to parse XML.
+Finally, we'd have the prober logic, which takes information from
+parsers and file system content and emits probed OS information
+according to a series of tests.  This is the bit that can most obviously
+be declarative.  I think we need roughly the following set of features:
+ * architecture restrictions
+ * partition table type, partition type, and file system type
+   restrictions
+ * the usual file existence tests and combinations, including
+   case-insensitive, inside and outside the target partition
+ * pattern-matching on file content, including binary files
+ * chroot-aware symlink dereferencing
+ * an equivalent of count_next_label
+ * some way to assemble text (long descriptions, etc.)
+I think this part could be represented as YAML without too much trouble.
+We'd have a list of probes giving the parsers they need, some
+conditions, and templates for their output, perhaps with some kind of
+include arrangement for subtests.  The engine would iterate over the
+tests, running parsers on demand, and use the first probe whose
+conditions are satisfied.  This would be easy to test: since this would
+be separate from device manipulations, we could feed it a directory tree
+and/or some simulated parser output and let it go from there.
+The existing documented command-line interface would be preserved
+exactly as it is.  The only integration issue for d-i would be that we'd
+need a libyaml udeb, which shouldn't be a big deal (os-prober is only
+used quite late, when it's used in the installer environment at all).
+Does anyone object to this outline plan, or have other considerations I
+haven't taken into account?  I propose to prototype this in Python (in
+my copious free time of course ...) and then translate it to C once the
+general shape of things is working.
+Thanks,
+-- 
+Colin Watson                                       [cjwatson@debian.org]

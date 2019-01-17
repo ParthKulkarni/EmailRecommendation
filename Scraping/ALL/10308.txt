@@ -1,0 +1,34 @@
+To : debian-devel@lists.debian.org
+Subject : Re: lircd daemon as regular user => device access problems
+From : Simon McVittie <smcv@debian.org>
+Date : Sun, 12 Feb 2017 12:47:48 +0000
+Message-id : 20170212124748.lzdifwayuwyu6oqs@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 2177e260-021b-a2a6-571c-86e15ec817ae@gmail.com>
+References : <[🔎] bba0c0c5-04da-e9e5-a8e5-3262517620b5@gmail.com> <[🔎] 16A3243B-312A-43E0-8E09-929AB5E19ECA@gmail.com> <[🔎] 6e33b40a-88ab-48c7-27c8-2002774ec990@gmail.com> <[🔎] 99DF514C-01CC-45D6-8D2F-66BA681E327A@gmail.com> <[🔎] 2177e260-021b-a2a6-571c-86e15ec817ae@gmail.com>
+
+
+On Sun, 12 Feb 2017 at 11:33:22 +0100, Alec Leamas wrote:
+> On 12/02/17 11:16, Bastien Roucaries wrote:
+> > Last time braille stuff break (brick) a FPGA device with a jtag adaptator (serial to jtag). So i really dislike package that bind to all char device.
+> >
+> > Btw if you do this you need a break on braille stuff...
+> 
+> Now, we are not talking about all character devices, it's about USB-based
+> character devices. Does this address your concerns?
+> 
+> If not, blacklisting probably is the easiest path - I'm happy to blacklist
+> any USB ids if you just provide them. Or, if that's better, relevant udev
+> info to make a matching rule.
+This is sounding a lot like ModemManager, which has recurring problems
+with the inability to distinguish between modems and non-modem
+serial-attached devices (especially since both will often use a commodity
+USB/serial converter with generic device IDs, like a FTDI or PL2303 device)
+without probing them by sending AT commands that could be interpreted in
+unintended ways by non-modems (like Braille devices, embedded devices'
+serial consoles, and Bastien's JTAG adapter).
+/lib/udev/??-mm-*.rules are probably of interest. ModemManager
+implements a whitelist (devices that are definitely modems), a blacklist
+(devices that are definitely not modems), and a greylist (devices that
+might be modems, but will only be probed by ModemManager if the user
+explicitly requests it via some GUI or CLI frontend).
+    S

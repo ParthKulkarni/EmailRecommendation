@@ -1,0 +1,56 @@
+To : Yves-Alexis Perez <corsac@debian.org>
+Subject : Re: Bad interaction between pbuilder/debhelper/dpkg-buildinfo/dpkg-genchanges and dak on security-master
+From : James Clarke <jrtc27@debian.org>
+Date : Sun, 9 Jul 2017 15:41:11 +0100
+Message-id : 638BA8CD-6EE3-4CF8-96B6-F08C22524247@debian.org
+In-reply-to : <[🔎] 1499609960.7771.14.camel@debian.org>
+References : <m2n.s.1dS0ni-153949@chiark.greenend.org.uk> <[🔎] 22874.19978.163146.67401@chiark.greenend.org.uk> <[🔎] 2a804fb40b6ad1e488da8ced58bb4659@mail.kern.pm> <[🔎] 20170703170645.rdeiizuxb4whls2n@mapreri.org> <[🔎] 1499107772.18870.79.camel@debian.org> <[🔎] 1499609960.7771.14.camel@debian.org>
+
+
+On 9 Jul 2017, at 15:19, Yves-Alexis Perez <corsac@debian.org> wrote:
+> On Mon, 2017-07-03 at 20:49 +0200, Yves-Alexis Perez wrote:
+>> On Mon, 2017-07-03 at 19:06 +0200, Mattia Rizzolo wrote:
+>>> On Mon, Jul 03, 2017 at 07:00:20PM +0200, Philipp Kern wrote:
+>>>> [ Correcting ftp-master's email address, but keeping the large list of
+>>>> recipients for some reason. ]
+>>> 
+>>> really…  that's just a ftp-master issue IMHO, definitely not due to
+>>> debhelper much less by pbuilder…
+>> 
+>> I fine with that answer. My point was just that, should ftpmasters say that it
+>> was unsupported to have an _<arch>.buildinfo file inside a _source.changes,
+>> then something was wrong in the build toolchain.
+> 
+> I hope that ftpmasters will reply here, but just in case:
+> 
+> [08:06:05] (ansgar): Corsac: I fixed it by changing the filename and resigning
+> the buildd's changes.  But please don't upload _amd64.buildinfo unless you include amd64 binaries.
+> 
+> I didn't manually generate this _sources.changes and I didn't ask to include
+> _amd64.buildinfo. So something does need fixing in the build chain, whether
+> it's pbuilder, debhelper or dpkg-dev or a combination thereof.
+Having the _amd64.buildinfo included in a _source.changes created by
+dpkg-genchanges -S in a tree which has done a source+binary build is an
+intended feature. You've done the build, so by uploading the _amd64.buildinfo
+you are announcing that you were able to produce those build results in the
+specified environment, and in theory it allows anyone to compare the buildd's
+results to what you claim to have been able to build, without you ever having
+to upload the binaries (yes, throwing away binary uploads would allow you to do
+this, but *you would still want to upload and keep the _amd64.buildinfo
+otherwise you have nothing to compare against and you might as well have just
+done a source-only upload*). Now, the issue here is not its presence, but its
+name; however, I'd argue this is the correct name for it; it *is* a buildinfo
+file for an amd64 build. Uploading a source-only changes file called
+_amd64.changes has been done many times in the past (and used to be what you
+would get with pbuilder pre-stretch) and never posed an issue, I guess because
+the .changes files were thrown away(?), though I seem to recall in some cases
+there were issues? Anyway, I don't especially care whether the _amd64.buildinfo
+gets renamed (copied) by dpkg-genchanges -S, or whether dak is fixed to allow
+multiple buildinfo files for the same arch (maybe renaming the file itself);
+perhaps in either case it could include part of one of its hashes in its name,
+so you can still find it solely from the data in changes file? The file names
+used to have something like that; what happened to it? I guess debsign gets in
+the way of that, as it signs the file inline rather than with a detached
+signature, changing the hash and thus the name the file should have...
+Regards,
+James

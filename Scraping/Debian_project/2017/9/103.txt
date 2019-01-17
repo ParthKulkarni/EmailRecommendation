@@ -1,0 +1,89 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Help, I broke sso.debian.org for chrome - Found reason
+From : Enrico Zini <enrico@enricozini.org>
+Date : Wed, 6 Sep 2017 13:36:55 +0200
+Message-id : 20170906113655.loeu4356gzwe7kwq@enricozini.org
+In-reply-to : <[🔎] 20170905093701.xncmprl2x4so6hu4@enricozini.org>
+References : <[🔎] 20170905093701.xncmprl2x4so6hu4@enricozini.org>
+
+
+On Tue, Sep 05, 2017 at 11:37:01AM +0200, Enrico Zini wrote:
+> I refactored the certificate generation code for sso.debian.org, and the
+> certificates it generates now still work in Firefox but not in Chrome.
+I found the reason: python-cryptography writes the certificate issuer
+as UTF8 String while the CA certificate has it as Printable String.
+Because of that, the subject names don't match bit-by-bit.
+For openssl, encoding does not matter for comparison, while for libnss3
+it does.
+I do not know if this is:
+ - a bug in openssl, which should be stricter in matching
+ - a bug in libnss3, which should deal with encodings
+ - a bug in python3-cryptography, which should do a bit-for-bit copy
+   when copying attributes over:
+   https://anonscm.debian.org/cgit/debian-sso/debian-sso.git/tree/ca/ca.py#n429
+Please help me report the bugs, while I try to implement a workaround on
+sso.debian.org.
+I'm attaching a test case that reproduces the issue. Unpack the tarball
+and run ./test to reproduce. This is the output of a run:
+  $ ./test 
+  + trap cleanup EXIT
+  + cleanup
+  + rm -fr newcerts
+  + rm -f index.txt index.txt.attr serial '*.old'
+  + certtool -p --outfile=testkey.pem
+  + certtool --load-privkey=testkey.pem -s --outfile=testcrt.pem --template=testcrt.conf
+  + mkdir -p newcerts
+  + touch index.txt
+  + touch index.txt.attr
+  + openssl genrsa -out client.key 2048
+  + openssl req -new -sha256 -key client.key -batch
+  + openssl ca -batch -config testca.conf -in client.csr -create_serial -days 7 -keyfile testkey.pem -cert testcrt.pem -out client.crt
+  + openssl verify -CAfile testcrt.pem client.crt
+  client.crt: OK
+  + certtool --load-ca-certificate testcrt.pem --verify --infile client.crt
+  Loaded 1 certificates, 1 CAs and 0 CRLs
+  
+  	Subject: O=Internet Widgits Pty Ltd
+  	Issuer: O=Test client certificate,CN=Test CA 2017-09-06
+  	Checked against: O=Test client certificate,CN=Test CA 2017-09-06
+  	Output: Verified. The certificate is trusted. 
+  
+  Chain verification output: Verified. The certificate is trusted. 
+  
+  + ./utf8ize --crt testcrt.pem --key testkey.pem testcrtutf8.pem
+  + openssl x509 -noout -nameopt multiline,show_type -subject -issuer -in testcrt.pem
+  subject=
+      commonName                = PRINTABLESTRING:Test CA 2017-09-06
+      organizationName          = PRINTABLESTRING:Test client certificate
+  issuer=
+      commonName                = PRINTABLESTRING:Test CA 2017-09-06
+      organizationName          = PRINTABLESTRING:Test client certificate
+  + openssl x509 -noout -nameopt multiline,show_type -subject -issuer -in testcrtutf8.pem
+  subject=
+      commonName                = UTF8STRING:Test CA 2017-09-06
+      organizationName          = UTF8STRING:Test client certificate
+  issuer=
+      commonName                = UTF8STRING:Test CA 2017-09-06
+      organizationName          = UTF8STRING:Test client certificate
+  + openssl verify -CAfile testcrtutf8.pem client.crt
+  client.crt: OK
+  + certtool --load-ca-certificate testcrtutf8.pem --verify --infile client.crt
+  Loaded 1 certificates, 1 CAs and 0 CRLs
+  
+  	Subject: O=Internet Widgits Pty Ltd
+  	Issuer: O=Test client certificate,CN=Test CA 2017-09-06
+  	Output: Not verified. The certificate is NOT trusted. The certificate issuer is unknown. 
+  
+  	Subject: O=Internet Widgits Pty Ltd
+  	Issuer: O=Test client certificate,CN=Test CA 2017-09-06
+  	Output: Not verified. The certificate is NOT trusted. The certificate issuer is unknown. 
+  
+  Chain verification output: Not verified. The certificate is NOT trusted. The certificate issuer is unknown. 
+  
+  + cleanup
+  + rm -fr newcerts
+  + rm -f index.txt index.txt.attr serial index.txt.attr.old index.txt.old
+Enrico
+-- 
+GPG key: 4096R/634F4BD1E7AD5568 2009-05-08 Enrico Zini <enrico@enricozini.org>
+testcase.tar.xzsignature.asc

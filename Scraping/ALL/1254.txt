@@ -1,0 +1,56 @@
+To : kay <kay.diam@gmail.com>, 817023@bugs.debian.org
+Subject : Bug#817023: os-prober doesn't detect EFI partition on MBR
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 24 Jun 2017 19:31:27 +0200
+Message-id : 20170624173127.GA19466@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 817023@bugs.debian.org
+In-reply-to : <CANaOheaxEBXErWpkMCsEZ_fF-PfDVoqEWduhnVx7N7osNnk1zw@mail.gmail.com>
+References : <CANaOheaxEBXErWpkMCsEZ_fF-PfDVoqEWduhnVx7N7osNnk1zw@mail.gmail.com>
+
+
+Hi,
+kay <kay.diam@gmail.com> (2016-03-07):
+> Package: os-prober
+> Version: 1.71
+> 
+> Also reproducible in os-prober 1.65
+> 
+> https://anonscm.debian.org/cgit/d-i/os-prober.git/tree/os-probes/mounted/x86/05efi#n42..n45
+> 
+> Disk has regular MBR table. It has Windows 7 and Ubuntu installed on
+> different partitions. Os-prober doesn't detect EFI partition on MBR
+> table because "udevadm info" returns "dos" partition scheme instead of
+> expected "msdos".
+> 
+>   $ udevadm info /dev/sda1 | grep dos
+>   E: ID_PART_ENTRY_SCHEME=dos
+>   E: ID_PART_TABLE_TYPE=dos
+> 
+>   $ fdisk -lu /dev/sda | grep -B1 -A1 ef
+>      Device Boot Start End Blocks Id System
+>   /dev/sda1 * 2048 616447 307200 ef EFI (FAT-12/16/32)
+>   /dev/sda2 616448 128134439 63758996 7 HPFS/NTFS/exFAT
+> 
+> Fixing conditions below resolves the issue:
+> 
+> - \( "$ID_PART_ENTRY_SCHEME" != gpt -a "$ID_PART_ENTRY_SCHEME" != msdos \) -o \
+> + \( "$ID_PART_ENTRY_SCHEME" != gpt -a "$ID_PART_ENTRY_SCHEME" != dos \) -o \
+>   \( "$ID_PART_ENTRY_SCHEME" = gpt -a "$ID_PART_ENTRY_TYPE" !=
+> c12a7328-f81f-11d2-ba4b-00a0c93ec93b \) -o \
+> - \( "$ID_PART_ENTRY_SCHEME" = msdos -a "$ID_PART_ENTRY_TYPE" != 0xef \) ]; then
+> + \( "$ID_PART_ENTRY_SCHEME" = dos -a "$ID_PART_ENTRY_TYPE" != 0xef \) ]; then
+> 
+> Probably this bug relates to udevinfo replacement
+> (https://lists.debian.org/debian-user/2010/07/msg01134.html).
+> 
+> P.S. Cross-posting report in ubuntu launchpad
+> https://bugs.launchpad.net/ubuntu/+source/os-prober/+bug/1553678
+So I've tracked this to udev in systemd.git calling blkid functions to
+get the partition type, and to libblkid/src/partitions/dos.c in
+util-linux.git; it doesn't seem to have been called msdos previously,
+so I think the proposed change looks good.
+This needs to be backported to jessie and stretch AFAICT.
+Cc-ing Steve since this involves EFI though, to have another pair of
+eyes go over this.
+KiBi.
+signature.asc

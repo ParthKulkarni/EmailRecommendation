@@ -1,0 +1,46 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>
+Subject : Re: Bug#914897: #914897: debootstrap, buster: Please disabled merged /usr by default
+From : Ansgar Burchardt <ansgar@debian.org>
+Date : Wed, 05 Dec 2018 08:17:56 +0100
+Message-id : 87lg54e923.fsf@marvin.43-1.org
+In-reply-to : <[🔎] 20181205132536.6ec7661752af98a0b2608f32@iijmio-mail.jp> (Hideki	Yamane's message of "Wed, 5 Dec 2018 13:25:36 +0900")
+References : <23550.34077.517903.295935@chiark.greenend.org.uk>	<1860287.DsSdkWUisK@odyx.org>	<23550.34077.517903.295935@chiark.greenend.org.uk>	<[🔎] 20181202212140.6247094e5c03fdc3b5f53259@debian.org>	<[🔎] 20181202151521.GA29541@espresso.pseudorandom.co.uk>	<23550.34077.517903.295935@chiark.greenend.org.uk>	<[🔎] 20181205132536.6ec7661752af98a0b2608f32@iijmio-mail.jp>
+
+
+Hi,
+Hideki Yamane writes:
+> On Sun, 2 Dec 2018 15:15:21 +0000
+> Simon McVittie <smcv@debian.org> wrote:
+>> >   - What is the problem? (broken build for which packages? Just R?)
+>> 
+>> The problem we're aware of is:
+>> 
+>> Some packages auto-detect the absolute path to an executable (for example
+>> bash or perl) and hard-code it into their output (for example the #! line
+>> of the bash scripts in quilt).
+>
+>  Can we check and track this behavior in our packages?
+The Reproducible Builds project was so kind to help and now runs one
+build in a non-merged-/usr and a second build in a merged-/usr
+environment.  Packages that hardcode the path to utilities, but would
+pick up the wrong one in a merged-/usr environment will result in a
+difference between the two builds and can thus be found.
+See [1] for an overview of issues found this way; as the entire archive
+was already rebuilt in this setup, there shouldn't be many more issues
+of this type that we don't know about[2].
+Not all of these differences even cause issues as in a few packages the
+utility with the hardcoded path is not even used at all.
+Bug reports were already submitted for over half the packages, often
+including a simple patch (usually something like adding BASH=/bin/bash
+to dh_auto_configure).
+So we look to be on a good track to address the remaining issues.
+I don't think that the debootstrap default has to be reverted
+temporarily again to deal with this: there are only very few packages
+causing problems and these should have a patch soon.
+In addition one has to actually built one of the very few packages in a
+merged-/usr environment and then install them in a non-merged-/usr
+environment to actually trigger the problem and debootstrap already
+defaults to non-merged-usr for buildd chroots for now.
+Ansgar
+  [1] https://tests.reproducible-builds.org/debian/issues/unstable/paths_vary_due_to_usrmerge_issue.html
+  [2] https://bugs.debian.org/914897#81

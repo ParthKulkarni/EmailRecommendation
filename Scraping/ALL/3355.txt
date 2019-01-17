@@ -1,0 +1,36 @@
+To : Colin Watson <cjwatson@debian.org>, debian-boot@lists.debian.org
+Subject : Re: [PATCH] Cope with more unset/disabled root password options
+From : Philip Hands <phil@hands.com>
+Date : Sun, 09 Jul 2017 22:29:22 +0200
+Message-id : 871spp4an1.fsf@whist.hands.com
+In-reply-to : <[🔎] 20170709135214.x2buamwws7wy4e6r@riva.ucam.org>
+References : <[🔎] 20170707152010.22247-1-steve@einval.com> <[🔎] 20170709135214.x2buamwws7wy4e6r@riva.ucam.org>
+
+
+Colin Watson <cjwatson@debian.org> writes:
+> On Fri, Jul 07, 2017 at 04:20:10PM +0100, Steve McIntyre wrote:
+>> Recognise and cope with a different *disabled* root password ("!*") in
+>> /etc/shadow as well as the normal unset one ("*"). Closes: #866206,
+>> fixing a major bug in the live installer.
+>
+> Looks good to me, though at this point it might be worth refactoring
+> that conditional a bit to assign the grep output to a local variable to
+> avoid the repeated subprocess invocations.
+I susupect that this does the same thing as all the greps:
+   sed -n '/^root:\(\*\|!\|\):/q1' $ROOT/etc/shadow
+so that should look like:
+	if [ -e $ROOT/etc/shadow ] && \
+           sed -n '/^root:\(\*\|!\|\):/q1' $ROOT/etc/shadow; then
+		return 0
+	fi
+Which works by throwing an error (the q1 bit) if the pattern matches,
+where the pattern should match the three cases we don't want (*, ! and
+empty).
+... but I've not yet checked that it really works in d-i's busybox -
+should have time for that in the morning.
+Cheers, Phil.
+-- 
+|)|  Philip Hands  [+44 (0)20 8530 9560]  HANDS.COM Ltd.
+|-|  http://www.hands.com/    http://ftp.uk.debian.org/
+|(|  Hugo-Klemm-Strasse 34,   21075 Hamburg,    GERMANY
+signature.asc

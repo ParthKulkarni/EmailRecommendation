@@ -1,0 +1,2998 @@
+To : submit@bugs.debian.org
+Subject : Bug#855432: unblock: openssl/1.1.0e-1
+From : Kurt Roeckx <kurt@roeckx.be>
+Date : Sat, 18 Feb 2017 01:01:13 +0100
+Message-id : 20170218000113.f47eykmx4yk62wdl@roeckx.be
+Reply-to : Kurt Roeckx <kurt@roeckx.be>, 855432@bugs.debian.org
+
+
+Package: release.debian.org
+User: release.debian.org@packages.debian.org
+Usertags: unblock
+Severity: normal
+Hi,
+There was a new upstream release fixing a high severity security
+issue.
+The changelog entry is:
+openssl (1.1.0e-1) unstable; urgency=high
+  * New upstream version
+    - Fixes CVE-2017-3733
+    - Remove patches that are applied upstream.
+ -- Kurt Roeckx <kurt@roeckx.be>  Thu, 16 Feb 2017 18:57:58 +0100
+I've attached the full debdiff between the version in testing and
+unstable.
+Kurt
+diff -Nru openssl-1.1.0d/apps/openssl.c openssl-1.1.0e/apps/openssl.c
+--- openssl-1.1.0d/apps/openssl.c	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/apps/openssl.c	2017-02-16 12:58:20.000000000 +0100
+@@ -58,7 +58,6 @@
+ static void list_disabled(void);
+ char *default_config_file = NULL;
+ 
+-static CONF *config = NULL;
+ BIO *bio_in = NULL;
+ BIO *bio_out = NULL;
+ BIO *bio_err = NULL;
+@@ -248,8 +247,6 @@
+  end:
+     OPENSSL_free(copied_argv);
+     OPENSSL_free(default_config_file);
+-    NCONF_free(config);
+-    config = NULL;
+     lh_FUNCTION_free(prog);
+     OPENSSL_free(arg.argv);
+ 
+diff -Nru openssl-1.1.0d/apps/req.c openssl-1.1.0e/apps/req.c
+--- openssl-1.1.0d/apps/req.c	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/apps/req.c	2017-02-16 12:58:20.000000000 +0100
+@@ -121,7 +121,7 @@
+     {"multivalue-rdn", OPT_MULTIVALUE_RDN, '-',
+      "Enable support for multivalued RDNs"},
+     {"days", OPT_DAYS, 'p', "Number of days cert is valid for"},
+-    {"set_serial", OPT_SET_SERIAL, 'p', "Serial number to use"},
++    {"set_serial", OPT_SET_SERIAL, 's', "Serial number to use"},
+     {"extensions", OPT_EXTENSIONS, 's',
+      "Cert extension section (override value in config file)"},
+     {"reqexts", OPT_REQEXTS, 's',
+diff -Nru openssl-1.1.0d/apps/s_cb.c openssl-1.1.0e/apps/s_cb.c
+--- openssl-1.1.0d/apps/s_cb.c	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/apps/s_cb.c	2017-02-16 12:58:20.000000000 +0100
+@@ -922,6 +922,7 @@
+             BIO_printf(bio_err, "%s: Error adding xcert\n", opt_getprog());
+             goto err;
+         }
++        *pexc = exc;
+         exc->certfile = opt_arg();
+         break;
+     case OPT_X_KEY:
+diff -Nru openssl-1.1.0d/apps/ts.c openssl-1.1.0e/apps/ts.c
+--- openssl-1.1.0d/apps/ts.c	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/apps/ts.c	2017-02-16 12:58:20.000000000 +0100
+@@ -890,9 +890,15 @@
+             goto err;
+         f = TS_VFY_VERSION | TS_VFY_SIGNER;
+         if (data != NULL) {
++            BIO *out = NULL;
++
+             f |= TS_VFY_DATA;
+-            if (TS_VERIFY_CTX_set_data(ctx, BIO_new_file(data, "rb")) == NULL)
++            if ((out = BIO_new_file(data, "rb")) == NULL)
+                 goto err;
++            if (TS_VERIFY_CTX_set_data(ctx, out) == NULL) {
++                BIO_free_all(out);
++                goto err;
++            }
+         } else if (digest != NULL) {
+             long imprint_len;
+             unsigned char *hexstr = OPENSSL_hexstr2buf(digest, &imprint_len);
+diff -Nru openssl-1.1.0d/CHANGES openssl-1.1.0e/CHANGES
+--- openssl-1.1.0d/CHANGES	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/CHANGES	2017-02-16 12:58:20.000000000 +0100
+@@ -2,6 +2,19 @@
+  OpenSSL CHANGES
+  _______________
+ 
++ Changes between 1.1.0d and 1.1.0e [16 Feb 2017]
++
++  *) Encrypt-Then-Mac renegotiation crash
++
++     During a renegotiation handshake if the Encrypt-Then-Mac extension is
++     negotiated where it was not in the original handshake (or vice-versa) then
++     this can cause OpenSSL to crash (dependant on ciphersuite). Both clients
++     and servers are affected.
++
++     This issue was reported to OpenSSL by Joe Orton (Red Hat).
++     (CVE-2017-3733)
++     [Matt Caswell]
++
+  Changes between 1.1.0c and 1.1.0d [26 Jan 2017]
+ 
+   *) Truncated packet could crash via OOB read
+diff -Nru openssl-1.1.0d/Configurations/unix-Makefile.tmpl openssl-1.1.0e/Configurations/unix-Makefile.tmpl
+--- openssl-1.1.0d/Configurations/unix-Makefile.tmpl	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/Configurations/unix-Makefile.tmpl	2017-02-16 12:58:20.000000000 +0100
+@@ -285,6 +285,7 @@
+ 	-$(RM) `find . -name '*{- $objext -}' -a \! -path "./.git/*"`
+ 	$(RM) core
+ 	$(RM) tags TAGS
++	$(RM) test/.rnd
+ 	$(RM) openssl.pc libcrypto.pc libssl.pc
+ 	-$(RM) `find . -type l -a \! -path "./.git/*"`
+ 	$(RM) $(TARFILE)
+diff -Nru openssl-1.1.0d/crypto/aes/asm/aesv8-armx.pl openssl-1.1.0e/crypto/aes/asm/aesv8-armx.pl
+--- openssl-1.1.0d/crypto/aes/asm/aesv8-armx.pl	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/crypto/aes/asm/aesv8-armx.pl	2017-02-16 12:58:20.000000000 +0100
+@@ -59,9 +59,12 @@
+ .text
+ ___
+ $code.=".arch	armv8-a+crypto\n"			if ($flavour =~ /64/);
+-$code.=".arch	armv7-a\n.fpu	neon\n.code	32\n"	if ($flavour !~ /64/);
+-		#^^^^^^ this is done to simplify adoption by not depending
+-		#	on latest binutils.
++$code.=<<___						if ($flavour !~ /64/);
++.arch	armv7-a	// don't confuse not-so-latest binutils with argv8 :-)
++.fpu	neon
++.code	32
++#undef	__thumb2__
++___
+ 
+ # Assembler mnemonics are an eclectic mix of 32- and 64-bit syntax,
+ # NEON is mostly 32-bit mnemonics, integer - mostly 64. Goal is to
+diff -Nru openssl-1.1.0d/crypto/armcap.c openssl-1.1.0e/crypto/armcap.c
+--- openssl-1.1.0d/crypto/armcap.c	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/crypto/armcap.c	2017-02-16 12:58:20.000000000 +0100
+@@ -111,6 +111,24 @@
+         return;
+     }
+ 
++# if defined(__APPLE__) && !defined(__aarch64__)
++    /*
++     * Capability probing by catching SIGILL appears to be problematic
++     * on iOS. But since Apple universe is "monocultural", it's actually
++     * possible to simply set pre-defined processor capability mask.
++     */
++    if (1) {
++        OPENSSL_armcap_P = ARMV7_NEON;
++        return;
++    }
++    /*
++     * One could do same even for __aarch64__ iOS builds. It's not done
++     * exclusively for reasons of keeping code unified across platforms.
++     * Unified code works because it never triggers SIGILL on Apple
++     * devices...
++     */
++# endif
++
+     sigfillset(&all_masked);
+     sigdelset(&all_masked, SIGILL);
+     sigdelset(&all_masked, SIGTRAP);
+diff -Nru openssl-1.1.0d/crypto/armv4cpuid.pl openssl-1.1.0e/crypto/armv4cpuid.pl
+--- openssl-1.1.0d/crypto/armv4cpuid.pl	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/crypto/armv4cpuid.pl	2017-02-16 12:58:20.000000000 +0100
+@@ -27,6 +27,7 @@
+ .thumb
+ #else
+ .code	32
++#undef	__thumb2__
+ #endif
+ 
+ .align	5
+diff -Nru openssl-1.1.0d/crypto/asn1/a_digest.c openssl-1.1.0e/crypto/asn1/a_digest.c
+--- openssl-1.1.0d/crypto/asn1/a_digest.c	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/crypto/asn1/a_digest.c	2017-02-16 12:58:20.000000000 +0100
+@@ -37,8 +37,10 @@
+     p = str;
+     i2d(data, &p);
+ 
+-    if (!EVP_Digest(str, i, md, len, type, NULL))
++    if (!EVP_Digest(str, i, md, len, type, NULL)) {
++        OPENSSL_free(str);
+         return 0;
++    }
+     OPENSSL_free(str);
+     return (1);
+ }
+@@ -55,8 +57,10 @@
+     if (!str)
+         return (0);
+ 
+-    if (!EVP_Digest(str, i, md, len, type, NULL))
++    if (!EVP_Digest(str, i, md, len, type, NULL)) {
++        OPENSSL_free(str);
+         return 0;
++    }
+     OPENSSL_free(str);
+     return (1);
+ }
+diff -Nru openssl-1.1.0d/crypto/asn1/tasn_new.c openssl-1.1.0e/crypto/asn1/tasn_new.c
+--- openssl-1.1.0d/crypto/asn1/tasn_new.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/asn1/tasn_new.c	2017-02-16 12:58:20.000000000 +0100
+@@ -100,7 +100,7 @@
+         }
+         asn1_set_choice_selector(pval, -1, it);
+         if (asn1_cb && !asn1_cb(ASN1_OP_NEW_POST, pval, it, NULL))
+-            goto auxerr;
++            goto auxerr2;
+         break;
+ 
+     case ASN1_ITYPE_NDEF_SEQUENCE:
+@@ -125,15 +125,15 @@
+         }
+         /* 0 : init. lock */
+         if (asn1_do_lock(pval, 0, it) < 0)
+-            goto memerr;
++            goto memerr2;
+         asn1_enc_init(pval, it);
+         for (i = 0, tt = it->templates; i < it->tcount; tt++, i++) {
+             pseqval = asn1_get_field_ptr(pval, tt);
+             if (!asn1_template_new(pseqval, tt))
+-                goto memerr;
++                goto memerr2;
+         }
+         if (asn1_cb && !asn1_cb(ASN1_OP_NEW_POST, pval, it, NULL))
+-            goto auxerr;
++            goto auxerr2;
+         break;
+     }
+ #ifndef OPENSSL_NO_CRYPTO_MDEBUG
+@@ -141,6 +141,8 @@
+ #endif
+     return 1;
+ 
++ memerr2:
++    ASN1_item_ex_free(pval, it);
+  memerr:
+     ASN1err(ASN1_F_ASN1_ITEM_EMBED_NEW, ERR_R_MALLOC_FAILURE);
+ #ifndef OPENSSL_NO_CRYPTO_MDEBUG
+@@ -148,9 +150,10 @@
+ #endif
+     return 0;
+ 
++ auxerr2:
++    ASN1_item_ex_free(pval, it);
+  auxerr:
+     ASN1err(ASN1_F_ASN1_ITEM_EMBED_NEW, ASN1_R_AUX_ERROR);
+-    ASN1_item_ex_free(pval, it);
+ #ifndef OPENSSL_NO_CRYPTO_MDEBUG
+     OPENSSL_mem_debug_pop();
+ #endif
+diff -Nru openssl-1.1.0d/crypto/async/async_wait.c openssl-1.1.0e/crypto/async/async_wait.c
+--- openssl-1.1.0d/crypto/async/async_wait.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/async/async_wait.c	2017-02-16 12:58:20.000000000 +0100
+@@ -138,16 +138,33 @@
+ 
+ int ASYNC_WAIT_CTX_clear_fd(ASYNC_WAIT_CTX *ctx, const void *key)
+ {
+-    struct fd_lookup_st *curr;
++    struct fd_lookup_st *curr, *prev;
+ 
+     curr = ctx->fds;
++    prev = NULL;
+     while (curr != NULL) {
+-        if (curr->del) {
++        if (curr->del == 1) {
+             /* This one has been marked deleted already so do nothing */
+             curr = curr->next;
+             continue;
+         }
+         if (curr->key == key) {
++            /* If fd has just been added, remove it from the list */
++            if (curr->add == 1) {
++                if (ctx->fds == curr) {
++                    ctx->fds = curr->next;
++                } else {
++                    prev->next = curr->next;
++                }
++
++                /* It is responsibility of the caller to cleanup before calling
++                 * ASYNC_WAIT_CTX_clear_fd
++                 */
++                OPENSSL_free(curr);
++                ctx->numadd--;
++                return 1;
++            }
++
+             /*
+              * Mark it as deleted. We don't call cleanup if explicitly asked
+              * to clear an fd. We assume the caller is going to do that (if
+@@ -157,6 +174,7 @@
+             ctx->numdel++;
+             return 1;
+         }
++        prev = curr;
+         curr = curr->next;
+     }
+     return 0;
+diff -Nru openssl-1.1.0d/crypto/bn/bn_div.c openssl-1.1.0e/crypto/bn/bn_div.c
+--- openssl-1.1.0d/crypto/bn/bn_div.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/bn/bn_div.c	2017-02-16 12:58:20.000000000 +0100
+@@ -254,9 +254,9 @@
+     wnump = &(snum->d[num_n - 1]);
+ 
+     /* Setup to 'res' */
+-    res->neg = (num->neg ^ divisor->neg);
+     if (!bn_wexpand(res, (loop + 1)))
+         goto err;
++    res->neg = (num->neg ^ divisor->neg);
+     res->top = loop - no_branch;
+     resp = &(res->d[loop - 1]);
+ 
+diff -Nru openssl-1.1.0d/crypto/bn/bn_lcl.h openssl-1.1.0e/crypto/bn/bn_lcl.h
+--- openssl-1.1.0d/crypto/bn/bn_lcl.h	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/bn/bn_lcl.h	2017-02-16 12:58:21.000000000 +0100
+@@ -146,13 +146,10 @@
+ 
+ # ifdef BN_DEBUG
+ 
+-/* We only need assert() when debugging */
+-#  include <assert.h>
+-
+ #  ifdef BN_DEBUG_RAND
+ /* To avoid "make update" cvs wars due to BN_DEBUG, use some tricks */
+-#   ifndef RAND_pseudo_bytes
+-int RAND_pseudo_bytes(unsigned char *buf, int num);
++#   ifndef RAND_bytes
++int RAND_bytes(unsigned char *buf, int num);
+ #    define BN_DEBUG_TRIX
+ #   endif
+ #   define bn_pollute(a) \
+@@ -171,7 +168,7 @@
+             } \
+         } while(0)
+ #   ifdef BN_DEBUG_TRIX
+-#    undef RAND_pseudo_bytes
++#    undef RAND_bytes
+ #   endif
+ #  else
+ #   define bn_pollute(a)
+@@ -180,8 +177,8 @@
+         do { \
+                 const BIGNUM *_bnum2 = (a); \
+                 if (_bnum2 != NULL) { \
+-                        assert((_bnum2->top == 0) || \
+-                                (_bnum2->d[_bnum2->top - 1] != 0)); \
++                        OPENSSL_assert(((_bnum2->top == 0) && !_bnum2->neg) || \
++                                (_bnum2->top && (_bnum2->d[_bnum2->top - 1] != 0))); \
+                         bn_pollute(_bnum2); \
+                 } \
+         } while(0)
+@@ -192,7 +189,8 @@
+ #  define bn_wcheck_size(bn, words) \
+         do { \
+                 const BIGNUM *_bnum2 = (bn); \
+-                assert((words) <= (_bnum2)->dmax && (words) >= (_bnum2)->top); \
++                OPENSSL_assert((words) <= (_bnum2)->dmax && \
++                        (words) >= (_bnum2)->top); \
+                 /* avoid unused variable warning with NDEBUG */ \
+                 (void)(_bnum2); \
+         } while(0)
+diff -Nru openssl-1.1.0d/crypto/bn/bn_mul.c openssl-1.1.0e/crypto/bn/bn_mul.c
+--- openssl-1.1.0d/crypto/bn/bn_mul.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/bn/bn_mul.c	2017-02-16 12:58:21.000000000 +0100
+@@ -857,7 +857,6 @@
+             goto err;
+     } else
+         rr = r;
+-    rr->neg = a->neg ^ b->neg;
+ 
+ #if defined(BN_MUL_COMBA) || defined(BN_RECURSION)
+     i = al - bl;
+@@ -969,6 +968,7 @@
+ #if defined(BN_MUL_COMBA) || defined(BN_RECURSION)
+  end:
+ #endif
++    rr->neg = a->neg ^ b->neg;
+     bn_correct_top(rr);
+     if (r != rr && BN_copy(r, rr) == NULL)
+         goto err;
+diff -Nru openssl-1.1.0d/crypto/bn/bn_shift.c openssl-1.1.0e/crypto/bn/bn_shift.c
+--- openssl-1.1.0d/crypto/bn/bn_shift.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/bn/bn_shift.c	2017-02-16 12:58:21.000000000 +0100
+@@ -74,6 +74,8 @@
+         c = (t & 1) ? BN_TBIT : 0;
+     }
+     r->top = j;
++    if (!r->top)
++        r->neg = 0; /* don't allow negative zero */
+     bn_check_top(r);
+     return (1);
+ }
+@@ -92,10 +94,10 @@
+         return 0;
+     }
+ 
+-    r->neg = a->neg;
+     nw = n / BN_BITS2;
+     if (bn_wexpand(r, a->top + nw + 1) == NULL)
+         return (0);
++    r->neg = a->neg;
+     lb = n % BN_BITS2;
+     rb = BN_BITS2 - lb;
+     f = a->d;
+@@ -140,9 +142,9 @@
+     }
+     i = (BN_num_bits(a) - n + (BN_BITS2 - 1)) / BN_BITS2;
+     if (r != a) {
+-        r->neg = a->neg;
+         if (bn_wexpand(r, i) == NULL)
+             return (0);
++        r->neg = a->neg;
+     } else {
+         if (n == 0)
+             return 1;           /* or the copying loop will go berserk */
+@@ -166,6 +168,8 @@
+         if ((l = (l >> rb) & BN_MASK2))
+             *(t) = l;
+     }
++    if (!r->top)
++        r->neg = 0; /* don't allow negative zero */
+     bn_check_top(r);
+     return (1);
+ }
+diff -Nru openssl-1.1.0d/crypto/bn/bn_word.c openssl-1.1.0e/crypto/bn/bn_word.c
+--- openssl-1.1.0d/crypto/bn/bn_word.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/bn/bn_word.c	2017-02-16 12:58:21.000000000 +0100
+@@ -89,6 +89,8 @@
+     if ((a->top > 0) && (a->d[a->top - 1] == 0))
+         a->top--;
+     ret >>= j;
++    if (!a->top)
++        a->neg = 0; /* don't allow negative zero */
+     bn_check_top(a);
+     return (ret);
+ }
+diff -Nru openssl-1.1.0d/crypto/ct/ct_oct.c openssl-1.1.0e/crypto/ct/ct_oct.c
+--- openssl-1.1.0d/crypto/ct/ct_oct.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/ct/ct_oct.c	2017-02-16 12:58:21.000000000 +0100
+@@ -153,7 +153,7 @@
+ int i2o_SCT_signature(const SCT *sct, unsigned char **out)
+ {
+     size_t len;
+-    unsigned char *p = NULL;
++    unsigned char *p = NULL, *pstart = NULL;
+ 
+     if (!SCT_signature_is_complete(sct)) {
+         CTerr(CT_F_I2O_SCT_SIGNATURE, CT_R_SCT_INVALID_SIGNATURE);
+@@ -177,7 +177,7 @@
+             p = *out;
+             *out += len;
+         } else {
+-            p = OPENSSL_malloc(len);
++            pstart = p = OPENSSL_malloc(len);
+             if (p == NULL) {
+                 CTerr(CT_F_I2O_SCT_SIGNATURE, ERR_R_MALLOC_FAILURE);
+                 goto err;
+@@ -193,14 +193,14 @@
+ 
+     return len;
+ err:
+-    OPENSSL_free(p);
++    OPENSSL_free(pstart);
+     return -1;
+ }
+ 
+ int i2o_SCT(const SCT *sct, unsigned char **out)
+ {
+     size_t len;
+-    unsigned char *p = NULL;
++    unsigned char *p = NULL, *pstart = NULL;
+ 
+     if (!SCT_is_complete(sct)) {
+         CTerr(CT_F_I2O_SCT, CT_R_SCT_NOT_SET);
+@@ -224,7 +224,7 @@
+         p = *out;
+         *out += len;
+     } else {
+-        p = OPENSSL_malloc(len);
++        pstart = p = OPENSSL_malloc(len);
+         if (p == NULL) {
+             CTerr(CT_F_I2O_SCT, ERR_R_MALLOC_FAILURE);
+             goto err;
+@@ -250,7 +250,7 @@
+ 
+     return len;
+ err:
+-    OPENSSL_free(p);
++    OPENSSL_free(pstart);
+     return -1;
+ }
+ 
+diff -Nru openssl-1.1.0d/crypto/des/set_key.c openssl-1.1.0e/crypto/des/set_key.c
+--- openssl-1.1.0d/crypto/des/set_key.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/des/set_key.c	2017-02-16 12:58:21.000000000 +0100
+@@ -71,7 +71,7 @@
+ }
+ 
+ /*-
+- * Weak and semi week keys as take from
++ * Weak and semi weak keys as taken from
+  * %A D.W. Davies
+  * %A W.L. Price
+  * %T Security for Computer Networks
+diff -Nru openssl-1.1.0d/crypto/ec/ec_ameth.c openssl-1.1.0e/crypto/ec/ec_ameth.c
+--- openssl-1.1.0d/crypto/ec/ec_ameth.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/ec/ec_ameth.c	2017-02-16 12:58:21.000000000 +0100
+@@ -254,8 +254,10 @@
+     }
+ 
+     if (!PKCS8_pkey_set0(p8, OBJ_nid2obj(NID_X9_62_id_ecPublicKey), 0,
+-                         ptype, pval, ep, eplen))
++                         ptype, pval, ep, eplen)) {
++        OPENSSL_free(ep);
+         return 0;
++    }
+ 
+     return 1;
+ }
+diff -Nru openssl-1.1.0d/crypto/evp/e_aes.c openssl-1.1.0e/crypto/evp/e_aes.c
+--- openssl-1.1.0d/crypto/evp/e_aes.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/evp/e_aes.c	2017-02-16 12:58:21.000000000 +0100
+@@ -1268,6 +1268,8 @@
+ static int aes_gcm_cleanup(EVP_CIPHER_CTX *c)
+ {
+     EVP_AES_GCM_CTX *gctx = EVP_C_DATA(EVP_AES_GCM_CTX,c);
++    if (gctx == NULL)
++        return 0;
+     OPENSSL_cleanse(&gctx->gcm, sizeof(gctx->gcm));
+     if (gctx->iv != EVP_CIPHER_CTX_iv_noconst(c))
+         OPENSSL_free(gctx->iv);
+diff -Nru openssl-1.1.0d/crypto/evp/e_chacha20_poly1305.c openssl-1.1.0e/crypto/evp/e_chacha20_poly1305.c
+--- openssl-1.1.0d/crypto/evp/e_chacha20_poly1305.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/evp/e_chacha20_poly1305.c	2017-02-16 12:58:21.000000000 +0100
+@@ -316,7 +316,7 @@
+ {
+     EVP_CHACHA_AEAD_CTX *actx = aead_data(ctx);
+     if (actx)
+-        OPENSSL_cleanse(ctx->cipher_data, sizeof(*ctx) + Poly1305_ctx_size());
++        OPENSSL_cleanse(ctx->cipher_data, sizeof(*actx) + Poly1305_ctx_size());
+     return 1;
+ }
+ 
+diff -Nru openssl-1.1.0d/crypto/evp/evp_enc.c openssl-1.1.0e/crypto/evp/evp_enc.c
+--- openssl-1.1.0d/crypto/evp/evp_enc.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/evp/evp_enc.c	2017-02-16 12:58:21.000000000 +0100
+@@ -125,6 +125,7 @@
+         if (ctx->cipher->ctx_size) {
+             ctx->cipher_data = OPENSSL_zalloc(ctx->cipher->ctx_size);
+             if (ctx->cipher_data == NULL) {
++                ctx->cipher = NULL;
+                 EVPerr(EVP_F_EVP_CIPHERINIT_EX, ERR_R_MALLOC_FAILURE);
+                 return 0;
+             }
+@@ -136,6 +137,7 @@
+         ctx->flags &= EVP_CIPHER_CTX_FLAG_WRAP_ALLOW;
+         if (ctx->cipher->flags & EVP_CIPH_CTRL_INIT) {
+             if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_INIT, 0, NULL)) {
++                ctx->cipher = NULL;
+                 EVPerr(EVP_F_EVP_CIPHERINIT_EX, EVP_R_INITIALIZATION_ERROR);
+                 return 0;
+             }
+@@ -293,13 +295,16 @@
+ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl,
+                       const unsigned char *in, int inl)
+ {
+-    int i, j, bl;
++    int i, j, bl, cmpl = inl;
++
++    if (EVP_CIPHER_CTX_test_flags(ctx, EVP_CIPH_FLAG_LENGTH_BITS))
++        cmpl = (cmpl + 7) / 8;
+ 
+     bl = ctx->cipher->block_size;
+ 
+     if (ctx->cipher->flags & EVP_CIPH_FLAG_CUSTOM_CIPHER) {
+         /* If block size > 1 then the cipher will have to do this check */
+-        if (bl == 1 && is_partially_overlapping(out, in, inl)) {
++        if (bl == 1 && is_partially_overlapping(out, in, cmpl)) {
+             EVPerr(EVP_F_EVP_ENCRYPTUPDATE, EVP_R_PARTIALLY_OVERLAPPING);
+             return 0;
+         }
+@@ -316,7 +321,7 @@
+         *outl = 0;
+         return inl == 0;
+     }
+-    if (is_partially_overlapping(out + ctx->buf_len, in, inl)) {
++    if (is_partially_overlapping(out + ctx->buf_len, in, cmpl)) {
+         EVPerr(EVP_F_EVP_ENCRYPTUPDATE, EVP_R_PARTIALLY_OVERLAPPING);
+         return 0;
+     }
+@@ -416,13 +421,16 @@
+ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl,
+                       const unsigned char *in, int inl)
+ {
+-    int fix_len;
++    int fix_len, cmpl = inl;
+     unsigned int b;
+ 
+     b = ctx->cipher->block_size;
+ 
++    if (EVP_CIPHER_CTX_test_flags(ctx, EVP_CIPH_FLAG_LENGTH_BITS))
++        cmpl = (cmpl + 7) / 8;
++
+     if (ctx->cipher->flags & EVP_CIPH_FLAG_CUSTOM_CIPHER) {
+-        if (b == 1 && is_partially_overlapping(out, in, inl)) {
++        if (b == 1 && is_partially_overlapping(out, in, cmpl)) {
+             EVPerr(EVP_F_EVP_DECRYPTUPDATE, EVP_R_PARTIALLY_OVERLAPPING);
+             return 0;
+         }
+@@ -616,6 +624,7 @@
+     if (in->cipher_data && in->cipher->ctx_size) {
+         out->cipher_data = OPENSSL_malloc(in->cipher->ctx_size);
+         if (out->cipher_data == NULL) {
++            out->cipher = NULL;
+             EVPerr(EVP_F_EVP_CIPHER_CTX_COPY, ERR_R_MALLOC_FAILURE);
+             return 0;
+         }
+@@ -623,6 +632,10 @@
+     }
+ 
+     if (in->cipher->flags & EVP_CIPH_CUSTOM_COPY)
+-        return in->cipher->ctrl((EVP_CIPHER_CTX *)in, EVP_CTRL_COPY, 0, out);
++        if (!in->cipher->ctrl((EVP_CIPHER_CTX *)in, EVP_CTRL_COPY, 0, out)) {
++            out->cipher = NULL;
++            EVPerr(EVP_F_EVP_CIPHER_CTX_COPY, EVP_R_INITIALIZATION_ERROR);
++            return 0;
++        }
+     return 1;
+ }
+diff -Nru openssl-1.1.0d/crypto/evp/pmeth_lib.c openssl-1.1.0e/crypto/evp/pmeth_lib.c
+--- openssl-1.1.0d/crypto/evp/pmeth_lib.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/evp/pmeth_lib.c	2017-02-16 12:58:21.000000000 +0100
+@@ -133,6 +133,7 @@
+ 
+     if (pmeth->init) {
+         if (pmeth->init(ret) <= 0) {
++            ret->pmeth = NULL;
+             EVP_PKEY_CTX_free(ret);
+             return NULL;
+         }
+@@ -258,6 +259,7 @@
+     if (pctx->pmeth->copy(rctx, pctx) > 0)
+         return rctx;
+ 
++    rctx->pmeth = NULL;
+     EVP_PKEY_CTX_free(rctx);
+     return NULL;
+ 
+diff -Nru openssl-1.1.0d/crypto/ex_data.c openssl-1.1.0e/crypto/ex_data.c
+--- openssl-1.1.0d/crypto/ex_data.c	2017-01-26 14:10:22.000000000 +0100
++++ openssl-1.1.0e/crypto/ex_data.c	2017-02-16 12:58:21.000000000 +0100
+@@ -307,11 +307,12 @@
+     int mx, i;
+     EX_CALLBACKS *ip;
+     void *ptr;
++    EX_CALLBACK *f;
+     EX_CALLBACK *stack[10];
+     EX_CALLBACK **storage = NULL;
+ 
+     if ((ip = get_and_lock(class_index)) == NULL)
+-        return;
++        goto err;
+ 
+     mx = sk_EX_CALLBACK_num(ip->meth);
+     if (mx > 0) {
+@@ -325,20 +326,23 @@
+     }
+     CRYPTO_THREAD_unlock(ex_data_lock);
+ 
+-    if (mx > 0 && storage == NULL) {
+-        CRYPTOerr(CRYPTO_F_CRYPTO_FREE_EX_DATA, ERR_R_MALLOC_FAILURE);
+-        return;
+-    }
+     for (i = 0; i < mx; i++) {
+-        if (storage[i] && storage[i]->free_func) {
++        if (storage != NULL)
++            f = storage[i];
++        else {
++            CRYPTO_THREAD_write_lock(ex_data_lock);
++            f = sk_EX_CALLBACK_value(ip->meth, i);
++            CRYPTO_THREAD_unlock(ex_data_lock);
++        }
++        if (f != NULL && f->free_func != NULL) {
+             ptr = CRYPTO_get_ex_data(ad, i);
+-            storage[i]->free_func(obj, ptr, ad, i,
+-                                  storage[i]->argl, storage[i]->argp);
++            f->free_func(obj, ptr, ad, i, f->argl, f->argp);
+         }
+     }
+ 
+     if (storage != stack)
+         OPENSSL_free(storage);
++ err:
+     sk_void_free(ad->sk);
+     ad->sk = NULL;
+ }
+diff -Nru openssl-1.1.0d/crypto/mem_sec.c openssl-1.1.0e/crypto/mem_sec.c
+--- openssl-1.1.0d/crypto/mem_sec.c	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/mem_sec.c	2017-02-16 12:58:21.000000000 +0100
+@@ -356,6 +356,10 @@
+     sh.minsize = minsize;
+     sh.bittable_size = (sh.arena_size / sh.minsize) * 2;
+ 
++    /* Prevent allocations of size 0 later on */
++    if (sh.bittable_size >> 3 == 0)
++        goto err;
++
+     sh.freelist_size = -1;
+     for (i = sh.bittable_size; i; i >>= 1)
+         sh.freelist_size++;
+diff -Nru openssl-1.1.0d/crypto/modes/asm/ghashv8-armx.pl openssl-1.1.0e/crypto/modes/asm/ghashv8-armx.pl
+--- openssl-1.1.0d/crypto/modes/asm/ghashv8-armx.pl	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/modes/asm/ghashv8-armx.pl	2017-02-16 12:58:21.000000000 +0100
+@@ -67,7 +67,11 @@
+ .text
+ ___
+ $code.=".arch	armv8-a+crypto\n"	if ($flavour =~ /64/);
+-$code.=".fpu	neon\n.code	32\n"	if ($flavour !~ /64/);
++$code.=<<___				if ($flavour !~ /64/);
++.fpu	neon
++.code	32
++#undef	__thumb2__
++___
+ 
+ ################################################################################
+ # void gcm_init_v8(u128 Htable[16],const u64 H[2]);
+diff -Nru openssl-1.1.0d/crypto/o_time.c openssl-1.1.0e/crypto/o_time.c
+--- openssl-1.1.0d/crypto/o_time.c	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/o_time.c	2017-02-16 12:58:21.000000000 +0100
+@@ -52,11 +52,8 @@
+     struct tm *ts = NULL;
+ 
+ #if defined(OPENSSL_THREADS) && !defined(OPENSSL_SYS_WIN32) && (!defined(OPENSSL_SYS_VMS) || defined(gmtime_r)) && !defined(OPENSSL_SYS_MACOSX)
+-    /*
+-     * should return &data, but doesn't on some systems, so we don't even
+-     * look at the return value
+-     */
+-    gmtime_r(timer, result);
++    if (gmtime_r(timer, result) == NULL)
++        return NULL;
+     ts = result;
+ #elif !defined(OPENSSL_SYS_VMS) || defined(VMS_GMTIME_OK)
+     ts = gmtime(timer);
+diff -Nru openssl-1.1.0d/crypto/perlasm/README openssl-1.1.0e/crypto/perlasm/README
+--- openssl-1.1.0d/crypto/perlasm/README	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/perlasm/README	2017-02-16 12:58:21.000000000 +0100
+@@ -7,7 +7,7 @@
+ push(@INC,"perlasm","../../perlasm");
+ require "x86asm.pl";
+ 
+-The first thing we do is setup the file and type of assember
++The first thing we do is setup the file and type of assembler
+ 
+ &asm_init($ARGV[0],$0);
+ 
+@@ -18,7 +18,7 @@
+ The reciprocal function is
+ &asm_finish() which should be called at the end.
+ 
+-There are 2 main 'packages'. x86ms.pl, which is the microsoft assembler,
++There are 2 main 'packages'. x86ms.pl, which is the Microsoft assembler,
+ and x86unix.pl which is the unix (gas) version.
+ 
+ Functions of interest are:
+@@ -32,7 +32,7 @@
+ &function_begin(name,extra)	Start a function with pushing of
+ 				edi, esi, ebx and ebp.  extra is extra win32
+ 				external info that may be required.
+-&function_begin_B(name,extra)	Same as norma function_begin but no pushing.
++&function_begin_B(name,extra)	Same as normal function_begin but no pushing.
+ &function_end(name)		Call at end of function.
+ &function_end_A(name)		Standard pop and ret, for use inside functions
+ &function_end_B(name)		Call at end but with poping or 'ret'.
+diff -Nru openssl-1.1.0d/crypto/perlasm/x86_64-xlate.pl openssl-1.1.0e/crypto/perlasm/x86_64-xlate.pl
+--- openssl-1.1.0d/crypto/perlasm/x86_64-xlate.pl	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/perlasm/x86_64-xlate.pl	2017-02-16 12:58:21.000000000 +0100
+@@ -429,7 +429,7 @@
+ 	}
+     }
+ }
+-{ package expr;		# pick up expressioins
++{ package expr;		# pick up expressions
+     sub re {
+ 	my	($class, $line, $opcode) = @_;
+ 	my	$self = {};
+@@ -1004,7 +1004,7 @@
+ # the area above user stack pointer in true asynchronous manner...
+ #
+ # All the above means that if assembler programmer adheres to Unix
+-# register and stack layout, but disregards the "red zone" existense,
++# register and stack layout, but disregards the "red zone" existence,
+ # it's possible to use following prologue and epilogue to "gear" from
+ # Unix to Win64 ABI in leaf functions with not more than 6 arguments.
+ #
+diff -Nru openssl-1.1.0d/crypto/threads_pthread.c openssl-1.1.0e/crypto/threads_pthread.c
+--- openssl-1.1.0d/crypto/threads_pthread.c	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/threads_pthread.c	2017-02-16 12:58:22.000000000 +0100
+@@ -11,8 +11,13 @@
+ 
+ #if defined(OPENSSL_THREADS) && !defined(CRYPTO_TDEBUG) && !defined(OPENSSL_SYS_WINDOWS)
+ 
++# ifdef PTHREAD_RWLOCK_INITIALIZER
++#  define USE_RWLOCK
++# endif
++
+ CRYPTO_RWLOCK *CRYPTO_THREAD_lock_new(void)
+ {
++# ifdef USE_RWLOCK
+     CRYPTO_RWLOCK *lock = OPENSSL_zalloc(sizeof(pthread_rwlock_t));
+     if (lock == NULL)
+         return NULL;
+@@ -21,30 +26,62 @@
+         OPENSSL_free(lock);
+         return NULL;
+     }
++# else
++    pthread_mutexattr_t attr;
++    CRYPTO_RWLOCK *lock = OPENSSL_zalloc(sizeof(pthread_mutex_t));
++    if (lock == NULL)
++        return NULL;
++
++    pthread_mutexattr_init(&attr);
++    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
++
++    if (pthread_mutex_init(lock, &attr) != 0) {
++        pthread_mutexattr_destroy(&attr);
++        OPENSSL_free(lock);
++        return NULL;
++    }
++
++    pthread_mutexattr_destroy(&attr);
++# endif
+ 
+     return lock;
+ }
+ 
+ int CRYPTO_THREAD_read_lock(CRYPTO_RWLOCK *lock)
+ {
++# ifdef USE_RWLOCK
+     if (pthread_rwlock_rdlock(lock) != 0)
+         return 0;
++# else
++    if (pthread_mutex_lock(lock) != 0)
++        return 0;
++# endif
+ 
+     return 1;
+ }
+ 
+ int CRYPTO_THREAD_write_lock(CRYPTO_RWLOCK *lock)
+ {
++# ifdef USE_RWLOCK
+     if (pthread_rwlock_wrlock(lock) != 0)
+         return 0;
++# else
++    if (pthread_mutex_lock(lock) != 0)
++        return 0;
++# endif
+ 
+     return 1;
+ }
+ 
+ int CRYPTO_THREAD_unlock(CRYPTO_RWLOCK *lock)
+ {
++# ifdef USE_RWLOCK
+     if (pthread_rwlock_unlock(lock) != 0)
+         return 0;
++# else
++    if (pthread_mutex_unlock(lock) != 0)
++        return 0;
++# endif
+ 
+     return 1;
+ }
+@@ -54,7 +91,11 @@
+     if (lock == NULL)
+         return;
+ 
++# ifdef USE_RWLOCK
+     pthread_rwlock_destroy(lock);
++# else
++    pthread_mutex_destroy(lock);
++# endif
+     OPENSSL_free(lock);
+ 
+     return;
+diff -Nru openssl-1.1.0d/crypto/x509/x_all.c openssl-1.1.0e/crypto/x509/x_all.c
+--- openssl-1.1.0d/crypto/x509/x_all.c	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/x509/x_all.c	2017-02-16 12:58:22.000000000 +0100
+@@ -377,7 +377,7 @@
+ int X509_CRL_digest(const X509_CRL *data, const EVP_MD *type,
+                     unsigned char *md, unsigned int *len)
+ {
+-    if (type == EVP_sha1()) {
++    if (type == EVP_sha1() && (data->flags & EXFLAG_SET) != 0) {
+         /* Asking for SHA1; always computed in CRL d2i. */
+         if (len != NULL)
+             *len = sizeof(data->sha1_hash);
+diff -Nru openssl-1.1.0d/crypto/x509/x_crl.c openssl-1.1.0e/crypto/x509/x_crl.c
+--- openssl-1.1.0d/crypto/x509/x_crl.c	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/x509/x_crl.c	2017-02-16 12:58:22.000000000 +0100
+@@ -226,6 +226,8 @@
+             if (crl->meth->crl_init(crl) == 0)
+                 return 0;
+         }
++
++        crl->flags |= EXFLAG_SET;
+         break;
+ 
+     case ASN1_OP_FREE_POST:
+diff -Nru openssl-1.1.0d/crypto/x509/x_name.c openssl-1.1.0e/crypto/x509/x_name.c
+--- openssl-1.1.0d/crypto/x509/x_name.c	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/x509/x_name.c	2017-02-16 12:58:22.000000000 +0100
+@@ -125,9 +125,14 @@
+     *pval = NULL;
+ }
+ 
+-static void name_entry_stack_free(STACK_OF(X509_NAME_ENTRY) *ents)
++static void local_sk_X509_NAME_ENTRY_free(STACK_OF(X509_NAME_ENTRY) *ne)
+ {
+-    sk_X509_NAME_ENTRY_pop_free(ents, X509_NAME_ENTRY_free);
++    sk_X509_NAME_ENTRY_free(ne);
++}
++
++static void local_sk_X509_NAME_ENTRY_pop_free(STACK_OF(X509_NAME_ENTRY) *ne)
++{
++    sk_X509_NAME_ENTRY_pop_free(ne, X509_NAME_ENTRY_free);
+ }
+ 
+ static int x509_name_ex_d2i(ASN1_VALUE **val,
+@@ -180,33 +185,24 @@
+             entry->set = i;
+             if (!sk_X509_NAME_ENTRY_push(nm.x->entries, entry))
+                 goto err;
++            sk_X509_NAME_ENTRY_set(entries, j, NULL);
+         }
+     }
+-    /*
+-     * All entries have now been pushed to nm->x.entries
+-     * free up the stacks in intname.s but not the entries
+-     * themselves.
+-     */
+-    sk_STACK_OF_X509_NAME_ENTRY_pop_free(intname.s, sk_X509_NAME_ENTRY_free);
+-    intname.s = NULL;
+     ret = x509_name_canon(nm.x);
+     if (!ret)
+         goto err;
++    sk_STACK_OF_X509_NAME_ENTRY_pop_free(intname.s,
++                                         local_sk_X509_NAME_ENTRY_free);
+     nm.x->modified = 0;
+     *val = nm.a;
+     *in = p;
+     return ret;
+ 
+  err:
+-    /* If intname.s is not NULL only some entries exist in nm->x.entries:
+-     * zero references in nm->x.entries list. Since all entries exist
+-     * in intname.s we can free them all there
+-     */
+-    if (intname.s != NULL) {
+-        sk_X509_NAME_ENTRY_zero(nm.x->entries);
+-        sk_STACK_OF_X509_NAME_ENTRY_pop_free(intname.s, name_entry_stack_free);
+-    }
+-    X509_NAME_free(nm.x);
++    if (nm.x != NULL)
++        X509_NAME_free(nm.x);
++    sk_STACK_OF_X509_NAME_ENTRY_pop_free(intname.s,
++                                         local_sk_X509_NAME_ENTRY_pop_free);
+     ASN1err(ASN1_F_X509_NAME_EX_D2I, ERR_R_NESTED_ASN1_ERROR);
+     return 0;
+ }
+@@ -232,16 +228,6 @@
+     return ret;
+ }
+ 
+-static void local_sk_X509_NAME_ENTRY_free(STACK_OF(X509_NAME_ENTRY) *ne)
+-{
+-    sk_X509_NAME_ENTRY_free(ne);
+-}
+-
+-static void local_sk_X509_NAME_ENTRY_pop_free(STACK_OF(X509_NAME_ENTRY) *ne)
+-{
+-    sk_X509_NAME_ENTRY_pop_free(ne, X509_NAME_ENTRY_free);
+-}
+-
+ static int x509_name_encode(X509_NAME *a)
+ {
+     union {
+@@ -264,8 +250,10 @@
+             entries = sk_X509_NAME_ENTRY_new_null();
+             if (!entries)
+                 goto memerr;
+-            if (!sk_STACK_OF_X509_NAME_ENTRY_push(intname.s, entries))
++            if (!sk_STACK_OF_X509_NAME_ENTRY_push(intname.s, entries)) {
++                sk_X509_NAME_ENTRY_free(entries);
+                 goto memerr;
++            }
+             set = entry->set;
+         }
+         if (!sk_X509_NAME_ENTRY_push(entries, entry))
+@@ -333,8 +321,10 @@
+             entries = sk_X509_NAME_ENTRY_new_null();
+             if (!entries)
+                 goto err;
+-            if (!sk_STACK_OF_X509_NAME_ENTRY_push(intname, entries))
++            if (!sk_STACK_OF_X509_NAME_ENTRY_push(intname, entries)) {
++                sk_X509_NAME_ENTRY_free(entries);
+                 goto err;
++            }
+             set = entry->set;
+         }
+         tmpentry = X509_NAME_ENTRY_new();
+diff -Nru openssl-1.1.0d/crypto/x509v3/v3_cpols.c openssl-1.1.0e/crypto/x509v3/v3_cpols.c
+--- openssl-1.1.0d/crypto/x509v3/v3_cpols.c	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/crypto/x509v3/v3_cpols.c	2017-02-16 12:58:22.000000000 +0100
+@@ -345,10 +345,10 @@
+     return 1;
+ 
+  merr:
++    ASN1_INTEGER_free(aint);
+     X509V3err(X509V3_F_NREF_NOS, ERR_R_MALLOC_FAILURE);
+ 
+  err:
+-    sk_ASN1_INTEGER_pop_free(nnums, ASN1_STRING_free);
+     return 0;
+ }
+ 
+diff -Nru openssl-1.1.0d/debian/changelog openssl-1.1.0e/debian/changelog
+--- openssl-1.1.0d/debian/changelog	2017-01-30 23:20:07.000000000 +0100
++++ openssl-1.1.0e/debian/changelog	2017-02-16 18:57:58.000000000 +0100
+@@ -1,3 +1,11 @@
++openssl (1.1.0e-1) unstable; urgency=high
++
++  * New upstream version
++    - Fixes CVE-2017-3733
++    - Remove patches that are applied upstream.
++
++ -- Kurt Roeckx <kurt@roeckx.be>  Thu, 16 Feb 2017 18:57:58 +0100
++
+ openssl (1.1.0d-2) unstable; urgency=medium
+ 
+   * Fix building of arch and all packages in a minimal environment
+diff -Nru openssl-1.1.0d/debian/patches/Add-a-couple-of-test-to-check-CRL-fingerprint.patch openssl-1.1.0e/debian/patches/Add-a-couple-of-test-to-check-CRL-fingerprint.patch
+--- openssl-1.1.0d/debian/patches/Add-a-couple-of-test-to-check-CRL-fingerprint.patch	2017-01-29 20:53:16.000000000 +0100
++++ openssl-1.1.0e/debian/patches/Add-a-couple-of-test-to-check-CRL-fingerprint.patch	1970-01-01 01:00:00.000000000 +0100
+@@ -1,45 +0,0 @@
+-From: Richard Levitte <levitte@openssl.org>
+-Date: Sat, 28 Jan 2017 18:24:40 +0100
+-Subject: [PATCH 3/3] Add a couple of test to check CRL fingerprint
+-
+-BTS: #852920
+-
+-Reviewed-by: Kurt Roeckx <kurt@openssl.org>
+-(Merged from https://github.com/openssl/openssl/pull/2314)
+-(cherry picked from commit 929860d0e6112f5c7766d9ea036c3f8bd8d3d719)
+----
+- test/recipes/25-test_crl.t |   19 ++++++++++++++++++-
+- 1 file changed, 18 insertions(+), 1 deletion(-)
+-
+---- a/test/recipes/25-test_crl.t
+-+++ b/test/recipes/25-test_crl.t
+-@@ -15,7 +15,7 @@ use OpenSSL::Test qw/:DEFAULT srctop_fil
+- 
+- setup("test_crl");
+- 
+--plan tests => 3;
+-+plan tests => 5;
+- 
+- require_ok(srctop_file('test','recipes','tconversion.pl'));
+- 
+-@@ -24,3 +24,20 @@ subtest 'crl conversions' => sub {
+- };
+- 
+- ok(run(test(['crltest'])));
+-+
+-+ok(compare1stline([qw{openssl crl -noout -fingerprint -in},
+-+                   srctop_file('test', 'testcrl.pem')],
+-+                  'SHA1 Fingerprint=BA:F4:1B:AD:7A:9B:2F:09:16:BC:60:A7:0E:CE:79:2E:36:00:E7:B2'));
+-+ok(compare1stline([qw{openssl crl -noout -fingerprint -sha256 -in},
+-+                   srctop_file('test', 'testcrl.pem')],
+-+                  'SHA256 Fingerprint=B3:A9:FD:A7:2E:8C:3D:DF:D0:F1:C3:1A:96:60:B5:FD:B0:99:7C:7F:0E:E4:34:F5:DB:87:62:36:BC:F1:BC:1B'));
+-+
+-+sub compare1stline {
+-+    my ($cmdarray, $str) = @_;
+-+    my @lines = run(app($cmdarray), capture => 1);
+-+
+-+    return 1 if $lines[0] =~ m|^\Q${str}\E\R$|;
+-+    note "Got      ", $lines[0];
+-+    note "Expected ", $str;
+-+    return 0;
+-+}
+diff -Nru openssl-1.1.0d/debian/patches/Document-what-EXFLAG_SET-is-for-in-x509v3.h.patch openssl-1.1.0e/debian/patches/Document-what-EXFLAG_SET-is-for-in-x509v3.h.patch
+--- openssl-1.1.0d/debian/patches/Document-what-EXFLAG_SET-is-for-in-x509v3.h.patch	2017-01-29 20:53:14.000000000 +0100
++++ openssl-1.1.0e/debian/patches/Document-what-EXFLAG_SET-is-for-in-x509v3.h.patch	1970-01-01 01:00:00.000000000 +0100
+@@ -1,23 +0,0 @@
+-From: Richard Levitte <levitte@openssl.org>
+-Date: Sat, 28 Jan 2017 18:02:12 +0100
+-Subject: [PATCH 2/3] Document what EXFLAG_SET is for in x509v3.h
+-
+-BTS: #852920
+-
+-Reviewed-by: Kurt Roeckx <kurt@openssl.org>
+-(Merged from https://github.com/openssl/openssl/pull/2314)
+-(cherry picked from commit 2d60c923141e7853c268364f26195343a5e995bf)
+----
+- include/openssl/x509v3.h |    1 +
+- 1 file changed, 1 insertion(+)
+-
+---- a/include/openssl/x509v3.h
+-+++ b/include/openssl/x509v3.h
+-@@ -355,6 +355,7 @@ struct ISSUING_DIST_POINT_st {
+- # define EXFLAG_SI               0x20
+- # define EXFLAG_V1               0x40
+- # define EXFLAG_INVALID          0x80
+-+/* EXFLAG_SET is set to indicate that some values have been precomputed */
+- # define EXFLAG_SET              0x100
+- # define EXFLAG_CRITICAL         0x200
+- # define EXFLAG_PROXY            0x400
+diff -Nru openssl-1.1.0d/debian/patches/series openssl-1.1.0e/debian/patches/series
+--- openssl-1.1.0d/debian/patches/series	2017-01-29 20:51:07.000000000 +0100
++++ openssl-1.1.0e/debian/patches/series	2017-02-16 18:57:58.000000000 +0100
+@@ -4,6 +4,3 @@
+ pic.patch
+ c_rehash-compat.patch
+ #padlock_conf.patch
+-X509_CRL_digest-ensure-precomputed-sha1-hash-before-.patch
+-Document-what-EXFLAG_SET-is-for-in-x509v3.h.patch
+-Add-a-couple-of-test-to-check-CRL-fingerprint.patch
+diff -Nru openssl-1.1.0d/debian/patches/X509_CRL_digest-ensure-precomputed-sha1-hash-before-.patch openssl-1.1.0e/debian/patches/X509_CRL_digest-ensure-precomputed-sha1-hash-before-.patch
+--- openssl-1.1.0d/debian/patches/X509_CRL_digest-ensure-precomputed-sha1-hash-before-.patch	2017-01-29 20:53:11.000000000 +0100
++++ openssl-1.1.0e/debian/patches/X509_CRL_digest-ensure-precomputed-sha1-hash-before-.patch	1970-01-01 01:00:00.000000000 +0100
+@@ -1,40 +0,0 @@
+-From: Richard Levitte <levitte@openssl.org>
+-Date: Sat, 28 Jan 2017 17:43:17 +0100
+-Subject: [PATCH 1/3] X509_CRL_digest() - ensure precomputed sha1 hash before
+- returning it
+-
+-X509_CRL_digest() didn't check if the precomputed sha1 hash was actually
+-present.  This also makes sure there's an appropriate flag to check.
+-
+-BTS: #852920
+-
+-Reviewed-by: Kurt Roeckx <kurt@openssl.org>
+-(Merged from https://github.com/openssl/openssl/pull/2314)
+-(cherry picked from commit 6195848b2eea627c47f74b63eb2ba3dc3d5b6436)
+----
+- crypto/x509/x_all.c |    2 +-
+- crypto/x509/x_crl.c |    2 ++
+- 2 files changed, 3 insertions(+), 1 deletion(-)
+-
+---- a/crypto/x509/x_all.c
+-+++ b/crypto/x509/x_all.c
+-@@ -377,7 +377,7 @@ int X509_digest(const X509 *data, const
+- int X509_CRL_digest(const X509_CRL *data, const EVP_MD *type,
+-                     unsigned char *md, unsigned int *len)
+- {
+--    if (type == EVP_sha1()) {
+-+    if (type == EVP_sha1() && (data->flags & EXFLAG_SET) != 0) {
+-         /* Asking for SHA1; always computed in CRL d2i. */
+-         if (len != NULL)
+-             *len = sizeof(data->sha1_hash);
+---- a/crypto/x509/x_crl.c
+-+++ b/crypto/x509/x_crl.c
+-@@ -226,6 +226,8 @@ static int crl_cb(int operation, ASN1_VA
+-             if (crl->meth->crl_init(crl) == 0)
+-                 return 0;
+-         }
+-+
+-+        crl->flags |= EXFLAG_SET;
+-         break;
+- 
+-     case ASN1_OP_FREE_POST:
+diff -Nru openssl-1.1.0d/doc/apps/CA.pl.pod openssl-1.1.0e/doc/apps/CA.pl.pod
+--- openssl-1.1.0d/doc/apps/CA.pl.pod	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/doc/apps/CA.pl.pod	2017-02-16 12:58:22.000000000 +0100
+@@ -191,18 +191,12 @@
+  perl -S CA.pl
+ 
+ can be used and the B<OPENSSL_CONF> environment variable changed to point to
+-the correct path of the configuration file "openssl.cnf".
++the correct path of the configuration file.
+ 
+ The script is intended as a simple front end for the B<openssl> program for use
+ by a beginner. Its behaviour isn't always what is wanted. For more control over the
+ behaviour of the certificate commands call the B<openssl> command directly.
+ 
+-=head1 ENVIRONMENT VARIABLES
+-
+-The variable B<OPENSSL_CONF> if defined allows an alternative configuration
+-file location to be specified, it should contain the full path to the
+-configuration file, not just its directory.
+-
+ =head1 SEE ALSO
+ 
+ L<x509(1)>, L<ca(1)>, L<req(1)>, L<pkcs12(1)>,
+diff -Nru openssl-1.1.0d/doc/apps/ca.pod openssl-1.1.0e/doc/apps/ca.pod
+--- openssl-1.1.0d/doc/apps/ca.pod	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/doc/apps/ca.pod	2017-02-16 12:58:22.000000000 +0100
+@@ -77,6 +77,8 @@
+ =item B<-config filename>
+ 
+ specifies the configuration file to use.
++Optional; for a description of the default value,
++see L<openssl(1)/COMMAND SUMMARY>.
+ 
+ =item B<-name section>
+ 
+@@ -633,11 +635,6 @@
+  ./demoCA/certs                 - certificate output file
+  ./demoCA/.rnd                  - CA random seed information
+ 
+-=head1 ENVIRONMENT VARIABLES
+-
+-B<OPENSSL_CONF> reflects the location of master configuration file it can
+-be overridden by the B<-config> command line option.
+-
+ =head1 RESTRICTIONS
+ 
+ The text database index file is a critical part of the process and
+diff -Nru openssl-1.1.0d/doc/apps/openssl.pod openssl-1.1.0e/doc/apps/openssl.pod
+--- openssl-1.1.0d/doc/apps/openssl.pod	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/doc/apps/openssl.pod	2017-02-16 12:58:22.000000000 +0100
+@@ -40,6 +40,15 @@
+ SYNOPSIS above), each of which often has a wealth of options and arguments
+ (I<command_opts> and I<command_args> in the SYNOPSIS).
+ 
++Many commands use an external configuration file for some or all of their
++arguments and have a B<-config> option to specify that file.
++The environment variable B<OPENSSL_CONF> can be used to specify
++the location of the file.
++If the environment variable is not specified, then the file is named
++B<openssl.cnf> in the default certificate storage area, whose value
++depends on the configuration flags specified when the OpenSSL
++was built.
++
+ The list parameters B<standard-commands>, B<digest-commands>,
+ and B<cipher-commands> output a list (one entry per line) of the names
+ of all standard commands, message digest commands, or cipher commands,
+diff -Nru openssl-1.1.0d/doc/apps/req.pod openssl-1.1.0e/doc/apps/req.pod
+--- openssl-1.1.0d/doc/apps/req.pod	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/doc/apps/req.pod	2017-02-16 12:58:22.000000000 +0100
+@@ -204,9 +204,9 @@
+ 
+ =item B<-config filename>
+ 
+-this allows an alternative configuration file to be specified,
+-this overrides the compile time filename or any specified in
+-the B<OPENSSL_CONF> environment variable.
++this allows an alternative configuration file to be specified.
++Optional; for a description of the default value,
++see L<openssl(1)/COMMAND SUMMARY>.
+ 
+ =item B<-subj arg>
+ 
+@@ -242,7 +242,6 @@
+ 
+ serial number to use when outputting a self signed certificate. This
+ may be specified as a decimal value or a hex value if preceded by B<0x>.
+-It is possible to use negative serial numbers but this is not recommended.
+ 
+ =item B<-extensions section>
+ 
+@@ -624,12 +623,6 @@
+ it is tolerated). See the description of the command line option B<-asn1-kludge>
+ for more information.
+ 
+-=head1 ENVIRONMENT VARIABLES
+-
+-The variable B<OPENSSL_CONF> if defined allows an alternative configuration
+-file location to be specified, it will be overridden by the B<-config> command
+-line switch if it is present.
+-
+ =head1 BUGS
+ 
+ OpenSSL's handling of T61Strings (aka TeletexStrings) is broken: it effectively
+diff -Nru openssl-1.1.0d/doc/apps/ts.pod openssl-1.1.0e/doc/apps/ts.pod
+--- openssl-1.1.0d/doc/apps/ts.pod	2017-01-26 14:10:23.000000000 +0100
++++ openssl-1.1.0e/doc/apps/ts.pod	2017-02-16 12:58:22.000000000 +0100
+@@ -139,9 +139,9 @@
+ 
+ =item B<-config> configfile
+ 
+-The configuration file to use, this option overrides the
+-B<OPENSSL_CONF> environment variable. Only the OID section
+-of the config file is used with the B<-query> command. (Optional)
++The configuration file to use.
++Optional; for a description of the default value,
++see L<openssl(1)/COMMAND SUMMARY>.
+ 
+ =item B<-data> file_to_hash
+ 
+@@ -216,9 +216,10 @@
+ 
+ =item B<-config> configfile
+ 
+-The configuration file to use, this option overrides the
+-B<OPENSSL_CONF> environment variable. See B<CONFIGURATION FILE
+-OPTIONS> for configurable variables. (Optional)
++The configuration file to use.
++Optional; for a description of the default value,
++see L<openssl(1)/COMMAND SUMMARY>.
++See B<CONFIGURATION FILE OPTIONS> for configurable variables.
+ 
+ =item B<-section> tsa_section
+ 
+@@ -386,8 +387,8 @@
+ 
+ =head1 CONFIGURATION FILE OPTIONS
+ 
+-The B<-query> and B<-reply> commands make use of a configuration file
+-defined by the B<OPENSSL_CONF> environment variable. See L<config(5)>
++The B<-query> and B<-reply> commands make use of a configuration file.
++See L<config(5)>
+ for a general description of the syntax of the config file. The
+ B<-query> command uses only the symbolic OID names section
+ and it can work without it. However, the B<-reply> command needs the
+@@ -505,11 +506,6 @@
+ 
+ =back
+ 
+-=head1 ENVIRONMENT VARIABLES
+-
+-B<OPENSSL_CONF> contains the path of the configuration file and can be
+-overridden by the B<-config> command line option.
+-
+ =head1 EXAMPLES
+ 
+ All the examples below presume that B<OPENSSL_CONF> is set to a proper
+@@ -608,6 +604,8 @@
+ 
+ =head1 BUGS
+ 
++=for comment foreign manuals: procmail(1), perl(1)
++
+ If you find any bugs or you have suggestions please write to
+ Zoltan Glozik <zglozik@opentsa.org>. Known issues:
+ 
+diff -Nru openssl-1.1.0d/doc/crypto/DES_random_key.pod openssl-1.1.0e/doc/crypto/DES_random_key.pod
+--- openssl-1.1.0d/doc/crypto/DES_random_key.pod	2017-01-26 14:10:24.000000000 +0100
++++ openssl-1.1.0e/doc/crypto/DES_random_key.pod	2017-02-16 12:58:22.000000000 +0100
+@@ -114,7 +114,7 @@
+ DES_set_key_checked() or DES_set_key_unchecked() function.
+ 
+ DES_set_key_checked() will check that the key passed is of odd parity
+-and is not a week or semi-weak key.  If the parity is wrong, then -1
++and is not a weak or semi-weak key.  If the parity is wrong, then -1
+ is returned.  If the key is a weak key, then -2 is returned.  If an
+ error is returned, the key schedule is not generated.
+ 
+diff -Nru openssl-1.1.0d/doc/crypto/RSA_generate_key.pod openssl-1.1.0e/doc/crypto/RSA_generate_key.pod
+--- openssl-1.1.0d/doc/crypto/RSA_generate_key.pod	2017-01-26 14:10:24.000000000 +0100
++++ openssl-1.1.0e/doc/crypto/RSA_generate_key.pod	2017-02-16 12:58:23.000000000 +0100
+@@ -53,14 +53,15 @@
+ 
+ The process is then repeated for prime q with B<BN_GENCB_call(cb, 3, 1)>.
+ 
+-RSA_generate_key is deprecated (new applications should use
+-RSA_generate_key_ex instead). RSA_generate_key works in the same way as
+-RSA_generate_key_ex except it uses "old style" call backs. See
++RSA_generate_key() is deprecated (new applications should use
++RSA_generate_key_ex() instead). RSA_generate_key() works in the same way as
++RSA_generate_key_ex() except it uses "old style" call backs. See
+ L<BN_generate_prime(3)> for further details.
+ 
+ =head1 RETURN VALUE
+ 
+-If key generation fails, RSA_generate_key() returns B<NULL>.
++RSA_generate_key_ex() returns 1 on success or 0 on error.
++RSA_generate_key() returns the key on success or B<NULL> on error.
+ 
+ The error codes can be obtained by L<ERR_get_error(3)>.
+ 
+@@ -72,7 +73,7 @@
+ 
+ =head1 SEE ALSO
+ 
+-L<ERR_get_error(3)>, L<rand(3)>,
++L<ERR_get_error(3)>, L<RAND_bytes(3)>,
+ L<RSA_generate_key(3)>, L<BN_generate_prime(3)>
+ 
+ =head1 COPYRIGHT
+diff -Nru openssl-1.1.0d/doc/crypto/X509_get_extension_flags.pod openssl-1.1.0e/doc/crypto/X509_get_extension_flags.pod
+--- openssl-1.1.0d/doc/crypto/X509_get_extension_flags.pod	2017-01-26 14:10:24.000000000 +0100
++++ openssl-1.1.0e/doc/crypto/X509_get_extension_flags.pod	2017-02-16 12:58:23.000000000 +0100
+@@ -105,7 +105,7 @@
+ Additionally B<XKU_SGC> is set if either Netscape or Microsoft SGC OIDs are
+ present.
+ 
+-X509_get_extended_key_usage() return an internal pointer to the subject key
++X509_get0_subject_key_id() returns an internal pointer to the subject key
+ identifier of B<x> as an B<ASN1_OCTET_STRING> or B<NULL> if the extension
+ is not present or cannot be parsed.
+ 
+diff -Nru openssl-1.1.0d/include/openssl/opensslv.h openssl-1.1.0e/include/openssl/opensslv.h
+--- openssl-1.1.0d/include/openssl/opensslv.h	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/include/openssl/opensslv.h	2017-02-16 12:58:23.000000000 +0100
+@@ -39,11 +39,11 @@
+  * (Prior to 0.9.5a beta1, a different scheme was used: MMNNFFRBB for
+  *  major minor fix final patch/beta)
+  */
+-# define OPENSSL_VERSION_NUMBER  0x1010004fL
++# define OPENSSL_VERSION_NUMBER  0x1010005fL
+ # ifdef OPENSSL_FIPS
+-#  define OPENSSL_VERSION_TEXT    "OpenSSL 1.1.0d-fips  26 Jan 2017"
++#  define OPENSSL_VERSION_TEXT    "OpenSSL 1.1.0e-fips  16 Feb 2017"
+ # else
+-#  define OPENSSL_VERSION_TEXT    "OpenSSL 1.1.0d  26 Jan 2017"
++#  define OPENSSL_VERSION_TEXT    "OpenSSL 1.1.0e  16 Feb 2017"
+ # endif
+ 
+ /*-
+diff -Nru openssl-1.1.0d/include/openssl/ssl3.h openssl-1.1.0e/include/openssl/ssl3.h
+--- openssl-1.1.0d/include/openssl/ssl3.h	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/include/openssl/ssl3.h	2017-02-16 12:58:23.000000000 +0100
+@@ -264,11 +264,14 @@
+ # define TLS1_FLAGS_SKIP_CERT_VERIFY             0x0010
+ 
+ /* Set if we encrypt then mac instead of usual mac then encrypt */
+-# define TLS1_FLAGS_ENCRYPT_THEN_MAC             0x0100
++# define TLS1_FLAGS_ENCRYPT_THEN_MAC_READ        0x0100
++# define TLS1_FLAGS_ENCRYPT_THEN_MAC             TLS1_FLAGS_ENCRYPT_THEN_MAC_READ
+ 
+ /* Set if extended master secret extension received from peer */
+ # define TLS1_FLAGS_RECEIVED_EXTMS               0x0200
+ 
++# define TLS1_FLAGS_ENCRYPT_THEN_MAC_WRITE       0x0400
++
+ # define SSL3_MT_HELLO_REQUEST                   0
+ # define SSL3_MT_CLIENT_HELLO                    1
+ # define SSL3_MT_SERVER_HELLO                    2
+diff -Nru openssl-1.1.0d/include/openssl/x509v3.h openssl-1.1.0e/include/openssl/x509v3.h
+--- openssl-1.1.0d/include/openssl/x509v3.h	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/include/openssl/x509v3.h	2017-02-16 12:58:23.000000000 +0100
+@@ -355,6 +355,7 @@
+ # define EXFLAG_SI               0x20
+ # define EXFLAG_V1               0x40
+ # define EXFLAG_INVALID          0x80
++/* EXFLAG_SET is set to indicate that some values have been precomputed */
+ # define EXFLAG_SET              0x100
+ # define EXFLAG_CRITICAL         0x200
+ # define EXFLAG_PROXY            0x400
+diff -Nru openssl-1.1.0d/NEWS openssl-1.1.0e/NEWS
+--- openssl-1.1.0d/NEWS	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/NEWS	2017-02-16 12:58:20.000000000 +0100
+@@ -5,6 +5,10 @@
+   This file gives a brief overview of the major changes between each OpenSSL
+   release. For more details please read the CHANGES file.
+ 
++  Major changes between OpenSSL 1.1.0d and OpenSSL 1.1.0e [16 Feb 2017]
++
++      o Encrypt-Then-Mac renegotiation crash (CVE-2017-3733)
++
+   Major changes between OpenSSL 1.1.0c and OpenSSL 1.1.0d [26 Jan 2017]
+ 
+       o Truncated packet could crash via OOB read (CVE-2017-3731)
+diff -Nru openssl-1.1.0d/README openssl-1.1.0e/README
+--- openssl-1.1.0d/README	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/README	2017-02-16 12:58:20.000000000 +0100
+@@ -1,5 +1,5 @@
+ 
+- OpenSSL 1.1.0d 26 Jan 2017
++ OpenSSL 1.1.0e 16 Feb 2017
+ 
+  Copyright (c) 1998-2016 The OpenSSL Project
+  Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson
+diff -Nru openssl-1.1.0d/ssl/record/rec_layer_s3.c openssl-1.1.0e/ssl/record/rec_layer_s3.c
+--- openssl-1.1.0d/ssl/record/rec_layer_s3.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/record/rec_layer_s3.c	2017-02-16 12:58:23.000000000 +0100
+@@ -395,7 +395,7 @@
+     if (type == SSL3_RT_APPLICATION_DATA &&
+         u_len >= 4 * (max_send_fragment = s->max_send_fragment) &&
+         s->compress == NULL && s->msg_callback == NULL &&
+-        !SSL_USE_ETM(s) && SSL_USE_EXPLICIT_IV(s) &&
++        !SSL_WRITE_ETM(s) && SSL_USE_EXPLICIT_IV(s) &&
+         EVP_CIPHER_flags(EVP_CIPHER_CTX_cipher(s->enc_write_ctx)) &
+         EVP_CIPH_FLAG_TLS1_1_MULTIBLOCK) {
+         unsigned char aad[13];
+@@ -791,7 +791,7 @@
+          * wb->buf
+          */
+ 
+-        if (!SSL_USE_ETM(s) && mac_size != 0) {
++        if (!SSL_WRITE_ETM(s) && mac_size != 0) {
+             if (s->method->ssl3_enc->mac(s, &wr[j],
+                                          &(outbuf[j][wr[j].length + eivlen]),
+                                          1) < 0)
+@@ -814,7 +814,7 @@
+         goto err;
+ 
+     for (j = 0; j < numpipes; j++) {
+-        if (SSL_USE_ETM(s) && mac_size != 0) {
++        if (SSL_WRITE_ETM(s) && mac_size != 0) {
+             if (s->method->ssl3_enc->mac(s, &wr[j],
+                                          outbuf[j] + wr[j].length, 1) < 0)
+                 goto err;
+diff -Nru openssl-1.1.0d/ssl/record/ssl3_record.c openssl-1.1.0e/ssl/record/ssl3_record.c
+--- openssl-1.1.0d/ssl/record/ssl3_record.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/record/ssl3_record.c	2017-02-16 12:58:23.000000000 +0100
+@@ -7,6 +7,7 @@
+  * https://www.openssl.org/source/license.html
+  */
+ 
++#include <assert.h>
+ #include "../ssl_locl.h"
+ #include "internal/constant_time_locl.h"
+ #include <openssl/rand.h>
+@@ -133,6 +134,7 @@
+     unsigned char md[EVP_MAX_MD_SIZE];
+     short version;
+     unsigned mac_size;
++    int imac_size;
+     unsigned int num_recs = 0;
+     unsigned int max_recs;
+     unsigned int j;
+@@ -346,10 +348,18 @@
+      * If in encrypt-then-mac mode calculate mac from encrypted record. All
+      * the details below are public so no timing details can leak.
+      */
+-    if (SSL_USE_ETM(s) && s->read_hash) {
++    if (SSL_READ_ETM(s) && s->read_hash) {
+         unsigned char *mac;
+-        mac_size = EVP_MD_CTX_size(s->read_hash);
+-        OPENSSL_assert(mac_size <= EVP_MAX_MD_SIZE);
++
++        imac_size = EVP_MD_CTX_size(s->read_hash);
++        assert(imac_size >= 0 && imac_size <= EVP_MAX_MD_SIZE);
++        if (imac_size < 0 || imac_size > EVP_MAX_MD_SIZE) {
++                al = SSL_AD_INTERNAL_ERROR;
++                SSLerr(SSL_F_SSL3_GET_RECORD, ERR_LIB_EVP);
++                goto f_err;
++        }
++        mac_size = (unsigned)imac_size;
++
+         for (j = 0; j < num_recs; j++) {
+             if (rr[j].length < mac_size) {
+                 al = SSL_AD_DECODE_ERROR;
+@@ -393,7 +403,7 @@
+     /* r->length is now the compressed data plus mac */
+     if ((sess != NULL) &&
+         (s->enc_read_ctx != NULL) &&
+-        (EVP_MD_CTX_md(s->read_hash) != NULL) && !SSL_USE_ETM(s)) {
++        (!SSL_READ_ETM(s) && EVP_MD_CTX_md(s->read_hash) != NULL)) {
+         /* s->read_hash != NULL => mac_size != -1 */
+         unsigned char *mac = NULL;
+         unsigned char mac_tmp[EVP_MAX_MD_SIZE];
+@@ -823,7 +833,7 @@
+         }
+ 
+         ret = 1;
+-        if (!SSL_USE_ETM(s) && EVP_MD_CTX_md(s->read_hash) != NULL)
++        if (!SSL_READ_ETM(s) && EVP_MD_CTX_md(s->read_hash) != NULL)
+             mac_size = EVP_MD_CTX_size(s->read_hash);
+         if ((bs != 1) && !send) {
+             int tmpret;
+@@ -997,7 +1007,7 @@
+     header[11] = (rec->length) >> 8;
+     header[12] = (rec->length) & 0xff;
+ 
+-    if (!send && !SSL_USE_ETM(ssl) &&
++    if (!send && !SSL_READ_ETM(ssl) &&
+         EVP_CIPHER_CTX_mode(ssl->enc_read_ctx) == EVP_CIPH_CBC_MODE &&
+         ssl3_cbc_record_digest_supported(mac_ctx)) {
+         /*
+@@ -1022,7 +1032,7 @@
+             EVP_MD_CTX_free(hmac);
+             return -1;
+         }
+-        if (!send && !SSL_USE_ETM(ssl) && FIPS_mode())
++        if (!send && !SSL_READ_ETM(ssl) && FIPS_mode())
+             if (!tls_fips_digest_extra(ssl->enc_read_ctx,
+                                        mac_ctx, rec->input,
+                                        rec->length, rec->orig_len)) {
+diff -Nru openssl-1.1.0d/ssl/ssl_ciph.c openssl-1.1.0e/ssl/ssl_ciph.c
+--- openssl-1.1.0d/ssl/ssl_ciph.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/ssl_ciph.c	2017-02-16 12:58:23.000000000 +0100
+@@ -1827,7 +1827,7 @@
+     if (id < 193 || id > 255) {
+         SSLerr(SSL_F_SSL_COMP_ADD_COMPRESSION_METHOD,
+                SSL_R_COMPRESSION_ID_NOT_WITHIN_PRIVATE_RANGE);
+-        return 0;
++        return 1;
+     }
+ 
+     CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_DISABLE);
+diff -Nru openssl-1.1.0d/ssl/ssl_lib.c openssl-1.1.0e/ssl/ssl_lib.c
+--- openssl-1.1.0d/ssl/ssl_lib.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/ssl_lib.c	2017-02-16 12:58:23.000000000 +0100
+@@ -600,7 +600,7 @@
+     s->tlsext_ocsp_resp = NULL;
+     s->tlsext_ocsp_resplen = -1;
+     SSL_CTX_up_ref(ctx);
+-    s->initial_ctx = ctx;
++    s->session_ctx = ctx;
+ #ifndef OPENSSL_NO_EC
+     if (ctx->tlsext_ecpointformatlist) {
+         s->tlsext_ecpointformatlist =
+@@ -999,7 +999,7 @@
+     /* Free up if allocated */
+ 
+     OPENSSL_free(s->tlsext_hostname);
+-    SSL_CTX_free(s->initial_ctx);
++    SSL_CTX_free(s->session_ctx);
+ #ifndef OPENSSL_NO_EC
+     OPENSSL_free(s->tlsext_ecpointformatlist);
+     OPENSSL_free(s->tlsext_ellipticcurvelist);
+@@ -2305,13 +2305,21 @@
+ 
+ static unsigned long ssl_session_hash(const SSL_SESSION *a)
+ {
++    const unsigned char *session_id = a->session_id;
+     unsigned long l;
++    unsigned char tmp_storage[4];
++
++    if (a->session_id_length < sizeof(tmp_storage)) {
++        memset(tmp_storage, 0, sizeof(tmp_storage));
++        memcpy(tmp_storage, a->session_id, a->session_id_length);
++        session_id = tmp_storage;
++    }
+ 
+     l = (unsigned long)
+-        ((unsigned int)a->session_id[0]) |
+-        ((unsigned int)a->session_id[1] << 8L) |
+-        ((unsigned long)a->session_id[2] << 16L) |
+-        ((unsigned long)a->session_id[3] << 24L);
++        ((unsigned long)session_id[0]) |
++        ((unsigned long)session_id[1] << 8L) |
++        ((unsigned long)session_id[2] << 16L) |
++        ((unsigned long)session_id[3] << 24L);
+     return (l);
+ }
+ 
+@@ -3380,7 +3388,7 @@
+     if (ssl->ctx == ctx)
+         return ssl->ctx;
+     if (ctx == NULL)
+-        ctx = ssl->initial_ctx;
++        ctx = ssl->session_ctx;
+     new_cert = ssl_cert_dup(ctx->cert);
+     if (new_cert == NULL) {
+         return NULL;
+diff -Nru openssl-1.1.0d/ssl/ssl_locl.h openssl-1.1.0e/ssl/ssl_locl.h
+--- openssl-1.1.0d/ssl/ssl_locl.h	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/ssl_locl.h	2017-02-16 12:58:23.000000000 +0100
+@@ -378,7 +378,8 @@
+ # define SSL_CLIENT_USE_SIGALGS(s)        \
+     SSL_CLIENT_USE_TLS1_2_CIPHERS(s)
+ 
+-# define SSL_USE_ETM(s) (s->s3->flags & TLS1_FLAGS_ENCRYPT_THEN_MAC)
++# define SSL_READ_ETM(s) (s->s3->flags & TLS1_FLAGS_ENCRYPT_THEN_MAC_READ)
++# define SSL_WRITE_ETM(s) (s->s3->flags & TLS1_FLAGS_ENCRYPT_THEN_MAC_WRITE)
+ 
+ /* Mostly for SSLv3 */
+ # define SSL_PKEY_RSA_ENC        0
+@@ -1077,7 +1078,7 @@
+     /* TLS pre-shared secret session resumption */
+     tls_session_secret_cb_fn tls_session_secret_cb;
+     void *tls_session_secret_cb_arg;
+-    SSL_CTX *initial_ctx;       /* initial ctx, used to store sessions */
++    SSL_CTX *session_ctx;       /* initial ctx, used to store sessions */
+ # ifndef OPENSSL_NO_NEXTPROTONEG
+     /*
+      * Next protocol negotiation. For the client, this is the protocol that
+@@ -1089,7 +1090,6 @@
+     unsigned char *next_proto_negotiated;
+     unsigned char next_proto_negotiated_len;
+ # endif
+-# define session_ctx initial_ctx
+     /* What we'll do */
+     STACK_OF(SRTP_PROTECTION_PROFILE) *srtp_profiles;
+     /* What's been chosen */
+@@ -1111,6 +1111,10 @@
+      */
+     unsigned char *alpn_client_proto_list;
+     unsigned alpn_client_proto_list_len;
++
++    /* Set to one if we have negotiated ETM */
++    int tlsext_use_etm;
++
+     /*-
+      * 1 if we are renegotiating.
+      * 2 if we are a server and are inside a handshake
+@@ -2062,7 +2066,7 @@
+                                  const unsigned char *psig, size_t psiglen);
+ __owur int tls1_save_sigalgs(SSL *s, const unsigned char *data, int dsize);
+ __owur int tls1_process_sigalgs(SSL *s);
+-__owur size_t tls12_get_psigalgs(SSL *s, const unsigned char **psigs);
++__owur size_t tls12_get_psigalgs(SSL *s, int sent, const unsigned char **psigs);
+ __owur int tls12_check_peer_sigalg(const EVP_MD **pmd, SSL *s,
+                                    const unsigned char *sig, EVP_PKEY *pkey);
+ void ssl_set_client_disabled(SSL *s);
+diff -Nru openssl-1.1.0d/ssl/statem/statem_srvr.c openssl-1.1.0e/ssl/statem/statem_srvr.c
+--- openssl-1.1.0d/ssl/statem/statem_srvr.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/statem/statem_srvr.c	2017-02-16 12:58:23.000000000 +0100
+@@ -2002,7 +2002,7 @@
+     if (SSL_USE_SIGALGS(s)) {
+         const unsigned char *psigs;
+         unsigned char *etmp = p;
+-        nl = tls12_get_psigalgs(s, &psigs);
++        nl = tls12_get_psigalgs(s, 1, &psigs);
+         /* Skip over length for now */
+         p += 2;
+         nl = tls12_copy_sigalgs(s, p, psigs, nl);
+@@ -2715,6 +2715,11 @@
+ 
+     peer = s->session->peer;
+     pkey = X509_get0_pubkey(peer);
++    if (pkey == NULL) {
++        al = SSL_AD_INTERNAL_ERROR;
++        goto f_err;
++    }
++
+     type = X509_certificate_type(peer, pkey);
+ 
+     if (!(type & EVP_PKT_SIGN)) {
+@@ -2992,7 +2997,7 @@
+     int len, slen_full, slen;
+     SSL_SESSION *sess;
+     unsigned int hlen;
+-    SSL_CTX *tctx = s->initial_ctx;
++    SSL_CTX *tctx = s->session_ctx;
+     unsigned char iv[EVP_MAX_IV_LENGTH];
+     unsigned char key_name[TLSEXT_KEYNAME_LENGTH];
+     int iv_len;
+@@ -3292,7 +3297,7 @@
+                     || (leadbyte != 0
+                         && !PACKET_forward(&sslv2ciphers, TLS_CIPHER_LEN))) {
+                 *al = SSL_AD_INTERNAL_ERROR;
+-                OPENSSL_free(raw);
++                OPENSSL_free(s->s3->tmp.ciphers_raw);
+                 s->s3->tmp.ciphers_raw = NULL;
+                 s->s3->tmp.ciphers_rawlen = 0;
+                 goto err;
+diff -Nru openssl-1.1.0d/ssl/t1_enc.c openssl-1.1.0e/ssl/t1_enc.c
+--- openssl-1.1.0d/ssl/t1_enc.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/t1_enc.c	2017-02-16 12:58:23.000000000 +0100
+@@ -130,6 +130,11 @@
+ #endif
+ 
+     if (which & SSL3_CC_READ) {
++        if (s->tlsext_use_etm)
++            s->s3->flags |= TLS1_FLAGS_ENCRYPT_THEN_MAC_READ;
++        else
++            s->s3->flags &= ~TLS1_FLAGS_ENCRYPT_THEN_MAC_READ;
++
+         if (s->s3->tmp.new_cipher->algorithm2 & TLS1_STREAM_MAC)
+             s->mac_flags |= SSL_MAC_FLAG_READ_MAC_STREAM;
+         else
+@@ -168,6 +173,11 @@
+         mac_secret = &(s->s3->read_mac_secret[0]);
+         mac_secret_size = &(s->s3->read_mac_secret_size);
+     } else {
++        if (s->tlsext_use_etm)
++            s->s3->flags |= TLS1_FLAGS_ENCRYPT_THEN_MAC_WRITE;
++        else
++            s->s3->flags &= ~TLS1_FLAGS_ENCRYPT_THEN_MAC_WRITE;
++
+         if (s->s3->tmp.new_cipher->algorithm2 & TLS1_STREAM_MAC)
+             s->mac_flags |= SSL_MAC_FLAG_WRITE_MAC_STREAM;
+         else
+@@ -367,9 +377,8 @@
+     if (s->s3->tmp.key_block_length != 0)
+         return (1);
+ 
+-    if (!ssl_cipher_get_evp
+-        (s->session, &c, &hash, &mac_type, &mac_secret_size, &comp,
+-         SSL_USE_ETM(s))) {
++    if (!ssl_cipher_get_evp(s->session, &c, &hash, &mac_type, &mac_secret_size,
++                            &comp, s->tlsext_use_etm)) {
+         SSLerr(SSL_F_TLS1_SETUP_KEY_BLOCK, SSL_R_CIPHER_OR_HASH_UNAVAILABLE);
+         return (0);
+     }
+diff -Nru openssl-1.1.0d/ssl/t1_ext.c openssl-1.1.0e/ssl/t1_ext.c
+--- openssl-1.1.0d/ssl/t1_ext.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/t1_ext.c	2017-02-16 12:58:23.000000000 +0100
+@@ -181,12 +181,8 @@
+     tmp = OPENSSL_realloc(exts->meths,
+                           (exts->meths_count + 1) * sizeof(custom_ext_method));
+ 
+-    if (tmp == NULL) {
+-        OPENSSL_free(exts->meths);
+-        exts->meths = NULL;
+-        exts->meths_count = 0;
++    if (tmp == NULL)
+         return 0;
+-    }
+ 
+     exts->meths = tmp;
+     meth = exts->meths + exts->meths_count;
+diff -Nru openssl-1.1.0d/ssl/t1_lib.c openssl-1.1.0e/ssl/t1_lib.c
+--- openssl-1.1.0d/ssl/t1_lib.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/ssl/t1_lib.c	2017-02-16 12:58:23.000000000 +0100
+@@ -711,7 +711,7 @@
+         tlsext_sigalg_ecdsa(TLSEXT_hash_sha384)
+ };
+ #endif
+-size_t tls12_get_psigalgs(SSL *s, const unsigned char **psigs)
++size_t tls12_get_psigalgs(SSL *s, int sent, const unsigned char **psigs)
+ {
+     /*
+      * If Suite B mode use Suite B sigalgs only, ignore any other
+@@ -733,7 +733,7 @@
+     }
+ #endif
+     /* If server use client authentication sigalgs if not NULL */
+-    if (s->server && s->cert->client_sigalgs) {
++    if (s->server == sent && s->cert->client_sigalgs) {
+         *psigs = s->cert->client_sigalgs;
+         return s->cert->client_sigalgslen;
+     } else if (s->cert->conf_sigalgs) {
+@@ -797,7 +797,7 @@
+ #endif
+ 
+     /* Check signature matches a type we sent */
+-    sent_sigslen = tls12_get_psigalgs(s, &sent_sigs);
++    sent_sigslen = tls12_get_psigalgs(s, 1, &sent_sigs);
+     for (i = 0; i < sent_sigslen; i += 2, sent_sigs += 2) {
+         if (sig[0] == sent_sigs[0] && sig[1] == sent_sigs[1])
+             break;
+@@ -1189,7 +1189,7 @@
+         size_t salglen;
+         const unsigned char *salg;
+         unsigned char *etmp;
+-        salglen = tls12_get_psigalgs(s, &salg);
++        salglen = tls12_get_psigalgs(s, 1, &salg);
+ 
+         /*-
+          * check for enough space.
+@@ -1674,7 +1674,7 @@
+ #endif
+     if (!custom_ext_add(s, 1, &ret, limit, al))
+         return NULL;
+-    if (s->s3->flags & TLS1_FLAGS_ENCRYPT_THEN_MAC) {
++    if (s->tlsext_use_etm) {
+         /*
+          * Don't use encrypt_then_mac if AEAD or RC4 might want to disable
+          * for other cases too.
+@@ -1683,7 +1683,7 @@
+             || s->s3->tmp.new_cipher->algorithm_enc == SSL_RC4
+             || s->s3->tmp.new_cipher->algorithm_enc == SSL_eGOST2814789CNT
+             || s->s3->tmp.new_cipher->algorithm_enc == SSL_eGOST2814789CNT12)
+-            s->s3->flags &= ~TLS1_FLAGS_ENCRYPT_THEN_MAC;
++            s->tlsext_use_etm = 0;
+         else {
+             /*-
+              * check for enough space.
+@@ -1916,7 +1916,7 @@
+     /* Clear any signature algorithms extension received */
+     OPENSSL_free(s->s3->tmp.peer_sigalgs);
+     s->s3->tmp.peer_sigalgs = NULL;
+-    s->s3->flags &= ~TLS1_FLAGS_ENCRYPT_THEN_MAC;
++    s->tlsext_use_etm = 0;
+ 
+ #ifndef OPENSSL_NO_SRP
+     OPENSSL_free(s->srp_ctx.login);
+@@ -2264,7 +2264,7 @@
+         }
+ #endif
+         else if (type == TLSEXT_TYPE_encrypt_then_mac)
+-            s->s3->flags |= TLS1_FLAGS_ENCRYPT_THEN_MAC;
++            s->tlsext_use_etm = 1;
+         /*
+          * Note: extended master secret extension handled in
+          * tls_check_serverhello_tlsext_early()
+@@ -2366,7 +2366,7 @@
+                              SSL_DTLSEXT_HB_DONT_SEND_REQUESTS);
+ #endif
+ 
+-    s->s3->flags &= ~TLS1_FLAGS_ENCRYPT_THEN_MAC;
++    s->tlsext_use_etm = 0;
+ 
+     s->s3->flags &= ~TLS1_FLAGS_RECEIVED_EXTMS;
+ 
+@@ -2585,7 +2585,7 @@
+             /* Ignore if inappropriate ciphersuite */
+             if (s->s3->tmp.new_cipher->algorithm_mac != SSL_AEAD
+                 && s->s3->tmp.new_cipher->algorithm_enc != SSL_RC4)
+-                s->s3->flags |= TLS1_FLAGS_ENCRYPT_THEN_MAC;
++                s->tlsext_use_etm = 1;
+         } else if (type == TLSEXT_TYPE_extended_master_secret) {
+             s->s3->flags |= TLS1_FLAGS_RECEIVED_EXTMS;
+             if (!s->hit)
+@@ -2684,12 +2684,12 @@
+         ret =
+             s->ctx->tlsext_servername_callback(s, &al,
+                                                s->ctx->tlsext_servername_arg);
+-    else if (s->initial_ctx != NULL
+-             && s->initial_ctx->tlsext_servername_callback != 0)
++    else if (s->session_ctx != NULL
++             && s->session_ctx->tlsext_servername_callback != 0)
+         ret =
+-            s->initial_ctx->tlsext_servername_callback(s, &al,
++            s->session_ctx->tlsext_servername_callback(s, &al,
+                                                        s->
+-                                                       initial_ctx->tlsext_servername_arg);
++                                                       session_ctx->tlsext_servername_arg);
+ 
+     switch (ret) {
+     case SSL_TLSEXT_ERR_ALERT_FATAL:
+@@ -2863,12 +2863,12 @@
+         ret =
+             s->ctx->tlsext_servername_callback(s, &al,
+                                                s->ctx->tlsext_servername_arg);
+-    else if (s->initial_ctx != NULL
+-             && s->initial_ctx->tlsext_servername_callback != 0)
++    else if (s->session_ctx != NULL
++             && s->session_ctx->tlsext_servername_callback != 0)
+         ret =
+-            s->initial_ctx->tlsext_servername_callback(s, &al,
++            s->session_ctx->tlsext_servername_callback(s, &al,
+                                                        s->
+-                                                       initial_ctx->tlsext_servername_arg);
++                                                       session_ctx->tlsext_servername_arg);
+ 
+     /*
+      * Ensure we get sensible values passed to tlsext_status_cb in the event
+@@ -3084,7 +3084,7 @@
+     unsigned char tick_hmac[EVP_MAX_MD_SIZE];
+     HMAC_CTX *hctx = NULL;
+     EVP_CIPHER_CTX *ctx;
+-    SSL_CTX *tctx = s->initial_ctx;
++    SSL_CTX *tctx = s->session_ctx;
+ 
+     /* Initialize session ticket encryption and HMAC contexts */
+     hctx = HMAC_CTX_new();
+@@ -3151,8 +3151,8 @@
+     }
+     /* Attempt to decrypt session data */
+     /* Move p after IV to start of encrypted ticket, update length */
+-    p = etick + 16 + EVP_CIPHER_CTX_iv_length(ctx);
+-    eticklen -= 16 + EVP_CIPHER_CTX_iv_length(ctx);
++    p = etick + TLSEXT_KEYNAME_LENGTH + EVP_CIPHER_CTX_iv_length(ctx);
++    eticklen -= TLSEXT_KEYNAME_LENGTH + EVP_CIPHER_CTX_iv_length(ctx);
+     sdec = OPENSSL_malloc(eticklen);
+     if (sdec == NULL || EVP_DecryptUpdate(ctx, sdec, &slen, p, eticklen) <= 0) {
+         EVP_CIPHER_CTX_free(ctx);
+@@ -3396,7 +3396,7 @@
+      * RSA, DSA, ECDSA. Do this for all versions not just TLS 1.2. To keep
+      * down calls to security callback only check if we have to.
+      */
+-    sigalgslen = tls12_get_psigalgs(s, &sigalgs);
++    sigalgslen = tls12_get_psigalgs(s, 1, &sigalgs);
+     for (i = 0; i < sigalgslen; i += 2, sigalgs += 2) {
+         switch (sigalgs[1]) {
+ #ifndef OPENSSL_NO_RSA
+@@ -3491,7 +3491,7 @@
+         conf = c->conf_sigalgs;
+         conflen = c->conf_sigalgslen;
+     } else
+-        conflen = tls12_get_psigalgs(s, &conf);
++        conflen = tls12_get_psigalgs(s, 0, &conf);
+     if (s->options & SSL_OP_CIPHER_SERVER_PREFERENCE || is_suiteb) {
+         pref = conf;
+         preflen = conflen;
+diff -Nru openssl-1.1.0d/test/asynctest.c openssl-1.1.0e/test/asynctest.c
+--- openssl-1.1.0d/test/asynctest.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/test/asynctest.c	2017-02-16 12:58:23.000000000 +0100
+@@ -49,17 +49,29 @@
+ {
+     ASYNC_JOB *job;
+     ASYNC_WAIT_CTX *waitctx;
+-    ASYNC_pause_job();
+     job = ASYNC_get_current_job();
+     if (job == NULL)
+         return 0;
+     waitctx = ASYNC_get_wait_ctx(job);
+     if (waitctx == NULL)
+         return 0;
++
++    /* First case: no fd added or removed */
++    ASYNC_pause_job();
++
++    /* Second case: one fd added */
+     if (!ASYNC_WAIT_CTX_set_wait_fd(waitctx, waitctx, MAGIC_WAIT_FD, NULL, NULL))
+         return 0;
+     ASYNC_pause_job();
+ 
++    /* Third case: all fd removed */
++    if (!ASYNC_WAIT_CTX_clear_fd(waitctx, waitctx))
++        return 0;
++    ASYNC_pause_job();
++
++    /* Last case: fd added and immediately removed */
++    if (!ASYNC_WAIT_CTX_set_wait_fd(waitctx, waitctx, MAGIC_WAIT_FD, NULL, NULL))
++        return 0;
+     if (!ASYNC_WAIT_CTX_clear_fd(waitctx, waitctx))
+         return 0;
+ 
+@@ -195,15 +207,15 @@
+             || fd != MAGIC_WAIT_FD
+             || (fd = OSSL_BAD_ASYNC_FD, 0) /* Assign to something else */
+             || !ASYNC_WAIT_CTX_get_changed_fds(waitctx, NULL, &numfds, NULL,
+-                                              &numdelfds)
++                                               &numdelfds)
+             || numfds != 1
+             || numdelfds != 0
+             || !ASYNC_WAIT_CTX_get_changed_fds(waitctx, &fd, &numfds, NULL,
+                                                &numdelfds)
+             || fd != MAGIC_WAIT_FD
+-               /* On final run we expect one deleted fd */
++               /* On third run we expect one deleted fd */
+             || ASYNC_start_job(&job, waitctx, &funcret, waitfd, NULL, 0)
+-                != ASYNC_FINISH
++                != ASYNC_PAUSE
+             || !ASYNC_WAIT_CTX_get_all_fds(waitctx, NULL, &numfds)
+             || numfds != 0
+             || !ASYNC_WAIT_CTX_get_changed_fds(waitctx, NULL, &numfds, NULL,
+@@ -213,6 +225,15 @@
+             || !ASYNC_WAIT_CTX_get_changed_fds(waitctx, NULL, &numfds, &delfd,
+                                                &numdelfds)
+             || delfd != MAGIC_WAIT_FD
++            /* On last run we are not expecting any wait fd */
++            || ASYNC_start_job(&job, waitctx, &funcret, waitfd, NULL, 0)
++                != ASYNC_FINISH
++            || !ASYNC_WAIT_CTX_get_all_fds(waitctx, NULL, &numfds)
++            || numfds != 0
++            || !ASYNC_WAIT_CTX_get_changed_fds(waitctx, NULL, &numfds, NULL,
++                                               &numdelfds)
++            || numfds != 0
++            || numdelfds != 0
+             || funcret != 1) {
+         fprintf(stderr, "test_ASYNC_get_wait_fd() failed\n");
+         ASYNC_WAIT_CTX_free(waitctx);
+diff -Nru openssl-1.1.0d/test/evp_test.c openssl-1.1.0e/test/evp_test.c
+--- openssl-1.1.0d/test/evp_test.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/test/evp_test.c	2017-02-16 12:58:24.000000000 +0100
+@@ -1245,7 +1245,7 @@
+     size_t mac_len;
+ 
+ #ifdef OPENSSL_NO_DES
+-    if (strstr(mdata->alg, "DES") != NULL) {
++    if (mdata->alg != NULL && strstr(mdata->alg, "DES") != NULL) {
+         /* Skip DES */
+         err = NULL;
+         goto err;
+diff -Nru openssl-1.1.0d/test/handshake_helper.c openssl-1.1.0e/test/handshake_helper.c
+--- openssl-1.1.0d/test/handshake_helper.c	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/test/handshake_helper.c	2017-02-16 12:58:24.000000000 +0100
+@@ -607,10 +607,20 @@
+              * session. The server may or may not resume dependant on the
+              * setting of SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
+              */
+-            if (SSL_is_server(peer->ssl))
++            if (SSL_is_server(peer->ssl)) {
+                 ret = SSL_renegotiate(peer->ssl);
+-            else
+-                ret = SSL_renegotiate_abbreviated(peer->ssl);
++            } else {
++                if (test_ctx->extra.client.reneg_ciphers != NULL) {
++                    if (!SSL_set_cipher_list(peer->ssl,
++                                test_ctx->extra.client.reneg_ciphers)) {
++                        peer->status = PEER_ERROR;
++                        return;
++                    }
++                    ret = SSL_renegotiate(peer->ssl);
++                } else {
++                    ret = SSL_renegotiate_abbreviated(peer->ssl);
++                }
++            }
+             if (!ret) {
+                 peer->status = PEER_ERROR;
+                 return;
+diff -Nru openssl-1.1.0d/test/recipes/25-test_crl.t openssl-1.1.0e/test/recipes/25-test_crl.t
+--- openssl-1.1.0d/test/recipes/25-test_crl.t	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/test/recipes/25-test_crl.t	2017-02-16 12:58:24.000000000 +0100
+@@ -15,7 +15,7 @@
+ 
+ setup("test_crl");
+ 
+-plan tests => 3;
++plan tests => 5;
+ 
+ require_ok(srctop_file('test','recipes','tconversion.pl'));
+ 
+@@ -24,3 +24,20 @@
+ };
+ 
+ ok(run(test(['crltest'])));
++
++ok(compare1stline([qw{openssl crl -noout -fingerprint -in},
++                   srctop_file('test', 'testcrl.pem')],
++                  'SHA1 Fingerprint=BA:F4:1B:AD:7A:9B:2F:09:16:BC:60:A7:0E:CE:79:2E:36:00:E7:B2'));
++ok(compare1stline([qw{openssl crl -noout -fingerprint -sha256 -in},
++                   srctop_file('test', 'testcrl.pem')],
++                  'SHA256 Fingerprint=B3:A9:FD:A7:2E:8C:3D:DF:D0:F1:C3:1A:96:60:B5:FD:B0:99:7C:7F:0E:E4:34:F5:DB:87:62:36:BC:F1:BC:1B'));
++
++sub compare1stline {
++    my ($cmdarray, $str) = @_;
++    my @lines = run(app($cmdarray), capture => 1);
++
++    return 1 if $lines[0] =~ m|^\Q${str}\E\R$|;
++    note "Got      ", $lines[0];
++    note "Expected ", $str;
++    return 0;
++}
+diff -Nru openssl-1.1.0d/test/recipes/40-test_rehash.t openssl-1.1.0e/test/recipes/40-test_rehash.t
+--- openssl-1.1.0d/test/recipes/40-test_rehash.t	2017-01-26 14:10:25.000000000 +0100
++++ openssl-1.1.0e/test/recipes/40-test_rehash.t	2017-02-16 12:58:24.000000000 +0100
+@@ -14,7 +14,7 @@
+ use File::Copy;
+ use File::Basename;
+ use if $^O ne "VMS", 'File::Glob' => qw/glob/;
+-use OpenSSL::Test qw/:DEFAULT bldtop_file/;
++use OpenSSL::Test qw/:DEFAULT srctop_file/;
+ 
+ setup("test_rehash");
+ 
+@@ -58,16 +58,39 @@
+ }, create => 1, cleanup => 1;
+ 
+ sub prepare {
+-    my @sourcefiles =
+-        sort map { glob(bldtop_file('certs', 'demo', "*.$_")) } ('pem',
+-                                                                 'crt',
+-                                                                 'cer',
+-                                                                 'crl');
++    my @pemsourcefiles = sort glob(srctop_file('test', "*.pem"));
+     my @destfiles = ();
+-    foreach (@sourcefiles) {
+-        copy($_, curdir());
+-        push @destfiles, catfile(curdir(), basename($_));
++
++    die "There are no source files\n" if scalar @pemsourcefiles == 0;
++
++    my $cnt = 0;
++    foreach (@pemsourcefiles) {
++        my $basename = basename($_, ".pem");
++        my $writing = 0;
++
++        open PEM, $_ or die "Can't read $_: $!\n";
++        while (my $line = <PEM>) {
++            if ($line =~ m{^-----BEGIN (?:CERTIFICATE|X509 CRL)-----}) {
++                die "New start in a PEM blob?\n" if $writing;
++                $cnt++;
++                my $destfile =
++                    catfile(curdir(),
++                            $basename . sprintf("-%02d", $cnt) . ".pem");
++                push @destfiles, $destfile;
++                open OUT, '>', $destfile
++                    or die "Can't write $destfile\n";
++                $writing = 1;
++            }
++            print OUT $line if $writing;
++            if ($line =~ m|^-----END |) {
++                close OUT if $writing;
++                $writing = 0;
++            }
++        }
++        die "No end marker in $basename\n" if $writing;
+     }
++    die "No test PEM files produced\n" if $cnt == 0;
++
+     foreach (@_) {
+         die "Internal error, argument is not CODE"
+             unless (ref($_) eq 'CODE');
+diff -Nru openssl-1.1.0d/test/ssl_test_ctx.c openssl-1.1.0e/test/ssl_test_ctx.c
+--- openssl-1.1.0d/test/ssl_test_ctx.c	2017-01-26 14:10:26.000000000 +0100
++++ openssl-1.1.0e/test/ssl_test_ctx.c	2017-02-16 12:58:24.000000000 +0100
+@@ -88,9 +88,7 @@
+ }
+ 
+ 
+-/*******************/
+-/* ExpectedResult. */
+-/*******************/
++/* ExpectedResult */
+ 
+ static const test_enum ssl_test_results[] = {
+     {"Success", SSL_TEST_SUCCESS},
+@@ -115,9 +113,7 @@
+     return enum_name(ssl_test_results, OSSL_NELEM(ssl_test_results), result);
+ }
+ 
+-/**********************************************/
+-/* ExpectedClientAlert / ExpectedServerAlert. */
+-/**********************************************/
++/* ExpectedClientAlert / ExpectedServerAlert */
+ 
+ static const test_enum ssl_alerts[] = {
+     {"UnknownCA", SSL_AD_UNKNOWN_CA},
+@@ -147,9 +143,7 @@
+     return enum_name(ssl_alerts, OSSL_NELEM(ssl_alerts), alert);
+ }
+ 
+-/********************/
+ /* ExpectedProtocol */
+-/********************/
+ 
+ static const test_enum ssl_protocols[] = {
+      {"TLSv1.2", TLS1_2_VERSION},
+@@ -171,9 +165,7 @@
+     return enum_name(ssl_protocols, OSSL_NELEM(ssl_protocols), protocol);
+ }
+ 
+-/***********************/
+-/* VerifyCallback.     */
+-/***********************/
++/* VerifyCallback */
+ 
+ static const test_enum ssl_verify_callbacks[] = {
+     {"None", SSL_TEST_VERIFY_NONE},
+@@ -199,9 +191,7 @@
+                      callback);
+ }
+ 
+-/**************/
+ /* ServerName */
+-/**************/
+ 
+ static const test_enum ssl_servername[] = {
+     {"None", SSL_TEST_SERVERNAME_NONE},
+@@ -240,9 +230,7 @@
+                      server);
+ }
+ 
+-/**********************/
+ /* ServerNameCallback */
+-/**********************/
+ 
+ static const test_enum ssl_servername_callbacks[] = {
+     {"None", SSL_TEST_SERVERNAME_CB_NONE},
+@@ -268,9 +256,7 @@
+                      OSSL_NELEM(ssl_servername_callbacks), callback);
+ }
+ 
+-/*************************/
+ /* SessionTicketExpected */
+-/*************************/
+ 
+ static const test_enum ssl_session_ticket[] = {
+     {"Ignore", SSL_TEST_SESSION_TICKET_IGNORE},
+@@ -296,9 +282,7 @@
+                      server);
+ }
+ 
+-/***********************/
+-/* Method              */
+-/***********************/
++/* Method */
+ 
+ static const test_enum ssl_test_methods[] = {
+     {"TLS", SSL_TEST_METHOD_TLS},
+@@ -321,9 +305,7 @@
+     return enum_name(ssl_test_methods, OSSL_NELEM(ssl_test_methods), method);
+ }
+ 
+-/************************************/
+-/* NPN and ALPN options             */
+-/************************************/
++/* NPN and ALPN options */
+ 
+ IMPLEMENT_SSL_TEST_STRING_OPTION(SSL_TEST_CLIENT_CONF, client, npn_protocols)
+ IMPLEMENT_SSL_TEST_STRING_OPTION(SSL_TEST_SERVER_CONF, server, npn_protocols)
+@@ -332,9 +314,7 @@
+ IMPLEMENT_SSL_TEST_STRING_OPTION(SSL_TEST_SERVER_CONF, server, alpn_protocols)
+ IMPLEMENT_SSL_TEST_STRING_OPTION(SSL_TEST_CTX, test, expected_alpn_protocol)
+ 
+-/***********************/
+-/* Handshake mode      */
+-/***********************/
++/* Handshake mode */
+ 
+ static const test_enum ssl_handshake_modes[] = {
+     {"Simple", SSL_TEST_HANDSHAKE_SIMPLE},
+@@ -360,9 +340,11 @@
+                      mode);
+ }
+ 
+-/***********************/
+-/* CT Validation       */
+-/***********************/
++/* Renegotiation Ciphersuites */
++
++IMPLEMENT_SSL_TEST_STRING_OPTION(SSL_TEST_CLIENT_CONF, client, reneg_ciphers)
++
++/* CT Validation */
+ 
+ static const test_enum ssl_ct_validation_modes[] = {
+     {"None", SSL_TEST_CT_VALIDATION_NONE},
+@@ -391,9 +373,7 @@
+ IMPLEMENT_SSL_TEST_BOOL_OPTION(SSL_TEST_CTX, test, resumption_expected)
+ IMPLEMENT_SSL_TEST_BOOL_OPTION(SSL_TEST_SERVER_CONF, server, broken_session_ticket)
+ 
+-/**************/
+ /* CertStatus */
+-/**************/
+ 
+ static const test_enum ssl_certstatus[] = {
+     {"None", SSL_TEST_CERT_STATUS_NONE},
+@@ -419,21 +399,17 @@
+                      OSSL_NELEM(ssl_certstatus), cert_status);
+ }
+ 
+-/***********************/
+-/* ApplicationData     */
+-/***********************/
++/* ApplicationData */
+ 
+ IMPLEMENT_SSL_TEST_INT_OPTION(SSL_TEST_CTX, test, app_data_size)
+ 
+-/***********************/
+-/* MaxFragmentSize     */
+-/***********************/
++
++/* MaxFragmentSize */
+ 
+ IMPLEMENT_SSL_TEST_INT_OPTION(SSL_TEST_CTX, test, max_fragment_size)
+ 
+-/***********************/
+-/* ExpectedTmpKeyType  */
+-/***********************/
++
++/* ExpectedTmpKeyType */
+ 
+ __owur static int parse_expected_tmp_key_type(SSL_TEST_CTX *test_ctx,
+                                               const char *value)
+@@ -455,9 +431,7 @@
+     return 1;
+ }
+ 
+-/*************************************************************/
+ /* Known test options and their corresponding parse methods. */
+-/*************************************************************/
+ 
+ /* Top-level options. */
+ typedef struct {
+@@ -494,6 +468,7 @@
+     { "NPNProtocols", &parse_client_npn_protocols },
+     { "ALPNProtocols", &parse_client_alpn_protocols },
+     { "CTValidation", &parse_ct_validation },
++    { "RenegotiateCiphers", &parse_client_reneg_ciphers},
+ };
+ 
+ /* Nested server options. */
+diff -Nru openssl-1.1.0d/test/ssl_test_ctx.h openssl-1.1.0e/test/ssl_test_ctx.h
+--- openssl-1.1.0d/test/ssl_test_ctx.h	2017-01-26 14:10:26.000000000 +0100
++++ openssl-1.1.0e/test/ssl_test_ctx.h	2017-02-16 12:58:24.000000000 +0100
+@@ -84,6 +84,8 @@
+     char *npn_protocols;
+     char *alpn_protocols;
+     ssl_ct_validation_t ct_validation;
++    /* Ciphersuites to set on a renegotiation */
++    char *reneg_ciphers;
+ } SSL_TEST_CLIENT_CONF;
+ 
+ typedef struct {
+diff -Nru openssl-1.1.0d/test/ssl-tests/01-simple.conf openssl-1.1.0e/test/ssl-tests/01-simple.conf
+--- openssl-1.1.0d/test/ssl-tests/01-simple.conf	2017-01-26 14:10:26.000000000 +0100
++++ openssl-1.1.0e/test/ssl-tests/01-simple.conf	2017-02-16 12:58:24.000000000 +0100
+@@ -1,9 +1,10 @@
+ # Generated with generate_ssl_tests.pl
+ 
+-num_tests = 2
++num_tests = 3
+ 
+ test-0 = 0-default
+-test-1 = 1-verify-cert
++test-1 = 1-Server signature algorithms bug
++test-2 = 2-verify-cert
+ # ===========================================================
+ 
+ [0-default]
+@@ -29,23 +30,48 @@
+ 
+ # ===========================================================
+ 
+-[1-verify-cert]
+-ssl_conf = 1-verify-cert-ssl
++[1-Server signature algorithms bug]
++ssl_conf = 1-Server signature algorithms bug-ssl
+ 
+-[1-verify-cert-ssl]
+-server = 1-verify-cert-server
+-client = 1-verify-cert-client
++[1-Server signature algorithms bug-ssl]
++server = 1-Server signature algorithms bug-server
++client = 1-Server signature algorithms bug-client
+ 
+-[1-verify-cert-server]
++[1-Server signature algorithms bug-server]
+ Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
+ CipherString = DEFAULT
++ClientSignatureAlgorithms = ECDSA+SHA256
+ PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
+ 
+-[1-verify-cert-client]
++[1-Server signature algorithms bug-client]
+ CipherString = DEFAULT
++SignatureAlgorithms = RSA+SHA256
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
+ VerifyMode = Peer
+ 
+ [test-1]
++ExpectedResult = Success
++
++
++# ===========================================================
++
++[2-verify-cert]
++ssl_conf = 2-verify-cert-ssl
++
++[2-verify-cert-ssl]
++server = 2-verify-cert-server
++client = 2-verify-cert-client
++
++[2-verify-cert-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[2-verify-cert-client]
++CipherString = DEFAULT
++VerifyMode = Peer
++
++[test-2]
+ ExpectedClientAlert = UnknownCA
+ ExpectedResult = ClientFail
+ 
+diff -Nru openssl-1.1.0d/test/ssl-tests/01-simple.conf.in openssl-1.1.0e/test/ssl-tests/01-simple.conf.in
+--- openssl-1.1.0d/test/ssl-tests/01-simple.conf.in	2017-01-26 14:10:26.000000000 +0100
++++ openssl-1.1.0e/test/ssl-tests/01-simple.conf.in	2017-02-16 12:58:24.000000000 +0100
+@@ -20,6 +20,14 @@
+     },
+ 
+     {
++        name => "Server signature algorithms bug",
++        # Should have no effect as we aren't doing client auth
++        server => { "ClientSignatureAlgorithms" => "ECDSA+SHA256" },
++        client => { "SignatureAlgorithms" => "RSA+SHA256" },
++        test   => { "ExpectedResult" => "Success" },
++    },
++
++    {
+         name => "verify-cert",
+         server => { },
+         client => {
+diff -Nru openssl-1.1.0d/test/ssl-tests/17-renegotiate.conf openssl-1.1.0e/test/ssl-tests/17-renegotiate.conf
+--- openssl-1.1.0d/test/ssl-tests/17-renegotiate.conf	2017-01-26 14:10:26.000000000 +0100
++++ openssl-1.1.0e/test/ssl-tests/17-renegotiate.conf	2017-02-16 12:58:24.000000000 +0100
+@@ -1,6 +1,6 @@
+ # Generated with generate_ssl_tests.pl
+ 
+-num_tests = 6
++num_tests = 10
+ 
+ test-0 = 0-renegotiate-client-no-resume
+ test-1 = 1-renegotiate-client-resume
+@@ -8,6 +8,10 @@
+ test-3 = 3-renegotiate-server-resume
+ test-4 = 4-renegotiate-client-auth-require
+ test-5 = 5-renegotiate-client-auth-once
++test-6 = 6-renegotiate-aead-to-non-aead
++test-7 = 7-renegotiate-non-aead-to-aead
++test-8 = 8-renegotiate-non-aead-to-non-aead
++test-9 = 9-renegotiate-aead-to-aead
+ # ===========================================================
+ 
+ [0-renegotiate-client-no-resume]
+@@ -178,3 +182,131 @@
+ ResumptionExpected = No
+ 
+ 
++# ===========================================================
++
++[6-renegotiate-aead-to-non-aead]
++ssl_conf = 6-renegotiate-aead-to-non-aead-ssl
++
++[6-renegotiate-aead-to-non-aead-ssl]
++server = 6-renegotiate-aead-to-non-aead-server
++client = 6-renegotiate-aead-to-non-aead-client
++
++[6-renegotiate-aead-to-non-aead-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++MaxProtocol = TLSv1.2
++Options = NoResumptionOnRenegotiation
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[6-renegotiate-aead-to-non-aead-client]
++CipherString = AES128-GCM-SHA256
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
++VerifyMode = Peer
++
++[test-6]
++ExpectedResult = Success
++HandshakeMode = RenegotiateClient
++Method = TLS
++ResumptionExpected = No
++client = 6-renegotiate-aead-to-non-aead-client-extra
++
++[6-renegotiate-aead-to-non-aead-client-extra]
++RenegotiateCiphers = AES128-SHA
++
++
++# ===========================================================
++
++[7-renegotiate-non-aead-to-aead]
++ssl_conf = 7-renegotiate-non-aead-to-aead-ssl
++
++[7-renegotiate-non-aead-to-aead-ssl]
++server = 7-renegotiate-non-aead-to-aead-server
++client = 7-renegotiate-non-aead-to-aead-client
++
++[7-renegotiate-non-aead-to-aead-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++MaxProtocol = TLSv1.2
++Options = NoResumptionOnRenegotiation
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[7-renegotiate-non-aead-to-aead-client]
++CipherString = AES128-SHA
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
++VerifyMode = Peer
++
++[test-7]
++ExpectedResult = Success
++HandshakeMode = RenegotiateClient
++Method = TLS
++ResumptionExpected = No
++client = 7-renegotiate-non-aead-to-aead-client-extra
++
++[7-renegotiate-non-aead-to-aead-client-extra]
++RenegotiateCiphers = AES128-GCM-SHA256
++
++
++# ===========================================================
++
++[8-renegotiate-non-aead-to-non-aead]
++ssl_conf = 8-renegotiate-non-aead-to-non-aead-ssl
++
++[8-renegotiate-non-aead-to-non-aead-ssl]
++server = 8-renegotiate-non-aead-to-non-aead-server
++client = 8-renegotiate-non-aead-to-non-aead-client
++
++[8-renegotiate-non-aead-to-non-aead-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++MaxProtocol = TLSv1.2
++Options = NoResumptionOnRenegotiation
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[8-renegotiate-non-aead-to-non-aead-client]
++CipherString = AES128-SHA
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
++VerifyMode = Peer
++
++[test-8]
++ExpectedResult = Success
++HandshakeMode = RenegotiateClient
++Method = TLS
++ResumptionExpected = No
++client = 8-renegotiate-non-aead-to-non-aead-client-extra
++
++[8-renegotiate-non-aead-to-non-aead-client-extra]
++RenegotiateCiphers = AES256-SHA
++
++
++# ===========================================================
++
++[9-renegotiate-aead-to-aead]
++ssl_conf = 9-renegotiate-aead-to-aead-ssl
++
++[9-renegotiate-aead-to-aead-ssl]
++server = 9-renegotiate-aead-to-aead-server
++client = 9-renegotiate-aead-to-aead-client
++
++[9-renegotiate-aead-to-aead-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++MaxProtocol = TLSv1.2
++Options = NoResumptionOnRenegotiation
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[9-renegotiate-aead-to-aead-client]
++CipherString = AES128-GCM-SHA256
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
++VerifyMode = Peer
++
++[test-9]
++ExpectedResult = Success
++HandshakeMode = RenegotiateClient
++Method = TLS
++ResumptionExpected = No
++client = 9-renegotiate-aead-to-aead-client-extra
++
++[9-renegotiate-aead-to-aead-client-extra]
++RenegotiateCiphers = AES256-GCM-SHA384
++
++
+diff -Nru openssl-1.1.0d/test/ssl-tests/17-renegotiate.conf.in openssl-1.1.0e/test/ssl-tests/17-renegotiate.conf.in
+--- openssl-1.1.0d/test/ssl-tests/17-renegotiate.conf.in	2017-01-26 14:10:26.000000000 +0100
++++ openssl-1.1.0e/test/ssl-tests/17-renegotiate.conf.in	2017-02-16 12:58:24.000000000 +0100
+@@ -102,5 +102,81 @@
+             "ResumptionExpected" => "No",
+             "ExpectedResult" => "Success"
+         }
+-    }
++    },
++    {
++        name => "renegotiate-aead-to-non-aead",
++        server => {
++            "Options" => "NoResumptionOnRenegotiation",
++            "MaxProtocol" => "TLSv1.2"
++        },
++        client => {
++            "CipherString" => "AES128-GCM-SHA256",
++            extra => {
++                "RenegotiateCiphers" => "AES128-SHA"
++            }
++        },
++        test => {
++            "Method" => "TLS",
++            "HandshakeMode" => "RenegotiateClient",
++            "ResumptionExpected" => "No",
++            "ExpectedResult" => "Success"
++        }
++    },
++    {
++        name => "renegotiate-non-aead-to-aead",
++        server => {
++            "Options" => "NoResumptionOnRenegotiation",
++            "MaxProtocol" => "TLSv1.2"
++        },
++        client => {
++            "CipherString" => "AES128-SHA",
++            extra => {
++                "RenegotiateCiphers" => "AES128-GCM-SHA256"
++            }
++        },
++        test => {
++            "Method" => "TLS",
++            "HandshakeMode" => "RenegotiateClient",
++            "ResumptionExpected" => "No",
++            "ExpectedResult" => "Success"
++        }
++    },
++    {
++        name => "renegotiate-non-aead-to-non-aead",
++        server => {
++            "Options" => "NoResumptionOnRenegotiation",
++            "MaxProtocol" => "TLSv1.2"
++        },
++        client => {
++            "CipherString" => "AES128-SHA",
++            extra => {
++                "RenegotiateCiphers" => "AES256-SHA"
++            }
++        },
++        test => {
++            "Method" => "TLS",
++            "HandshakeMode" => "RenegotiateClient",
++            "ResumptionExpected" => "No",
++            "ExpectedResult" => "Success"
++        }
++    },
++    {
++        name => "renegotiate-aead-to-aead",
++        server => {
++            "Options" => "NoResumptionOnRenegotiation",
++            "MaxProtocol" => "TLSv1.2"
++        },
++        client => {
++            "CipherString" => "AES128-GCM-SHA256",
++            extra => {
++                "RenegotiateCiphers" => "AES256-GCM-SHA384"
++            }
++        },
++        test => {
++            "Method" => "TLS",
++            "HandshakeMode" => "RenegotiateClient",
++            "ResumptionExpected" => "No",
++            "ExpectedResult" => "Success"
++        }
++    },
+ );
+diff -Nru openssl-1.1.0d/test/ssl-tests/18-dtls-renegotiate.conf openssl-1.1.0e/test/ssl-tests/18-dtls-renegotiate.conf
+--- openssl-1.1.0d/test/ssl-tests/18-dtls-renegotiate.conf	2017-01-26 14:10:26.000000000 +0100
++++ openssl-1.1.0e/test/ssl-tests/18-dtls-renegotiate.conf	2017-02-16 12:58:24.000000000 +0100
+@@ -1,12 +1,16 @@
+ # Generated with generate_ssl_tests.pl
+ 
+-num_tests = 5
++num_tests = 9
+ 
+ test-0 = 0-renegotiate-client-no-resume
+ test-1 = 1-renegotiate-client-resume
+ test-2 = 2-renegotiate-server-resume
+ test-3 = 3-renegotiate-client-auth-require
+ test-4 = 4-renegotiate-client-auth-once
++test-5 = 5-renegotiate-aead-to-non-aead
++test-6 = 6-renegotiate-non-aead-to-aead
++test-7 = 7-renegotiate-non-aead-to-non-aead
++test-8 = 8-renegotiate-aead-to-aead
+ # ===========================================================
+ 
+ [0-renegotiate-client-no-resume]
+@@ -146,3 +150,127 @@
+ ResumptionExpected = No
+ 
+ 
++# ===========================================================
++
++[5-renegotiate-aead-to-non-aead]
++ssl_conf = 5-renegotiate-aead-to-non-aead-ssl
++
++[5-renegotiate-aead-to-non-aead-ssl]
++server = 5-renegotiate-aead-to-non-aead-server
++client = 5-renegotiate-aead-to-non-aead-client
++
++[5-renegotiate-aead-to-non-aead-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++Options = NoResumptionOnRenegotiation
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[5-renegotiate-aead-to-non-aead-client]
++CipherString = AES128-GCM-SHA256
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
++VerifyMode = Peer
++
++[test-5]
++ExpectedResult = Success
++HandshakeMode = RenegotiateClient
++Method = DTLS
++ResumptionExpected = No
++client = 5-renegotiate-aead-to-non-aead-client-extra
++
++[5-renegotiate-aead-to-non-aead-client-extra]
++RenegotiateCiphers = AES128-SHA
++
++
++# ===========================================================
++
++[6-renegotiate-non-aead-to-aead]
++ssl_conf = 6-renegotiate-non-aead-to-aead-ssl
++
++[6-renegotiate-non-aead-to-aead-ssl]
++server = 6-renegotiate-non-aead-to-aead-server
++client = 6-renegotiate-non-aead-to-aead-client
++
++[6-renegotiate-non-aead-to-aead-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++Options = NoResumptionOnRenegotiation
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[6-renegotiate-non-aead-to-aead-client]
++CipherString = AES128-SHA
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
++VerifyMode = Peer
++
++[test-6]
++ExpectedResult = Success
++HandshakeMode = RenegotiateClient
++Method = DTLS
++ResumptionExpected = No
++client = 6-renegotiate-non-aead-to-aead-client-extra
++
++[6-renegotiate-non-aead-to-aead-client-extra]
++RenegotiateCiphers = AES128-GCM-SHA256
++
++
++# ===========================================================
++
++[7-renegotiate-non-aead-to-non-aead]
++ssl_conf = 7-renegotiate-non-aead-to-non-aead-ssl
++
++[7-renegotiate-non-aead-to-non-aead-ssl]
++server = 7-renegotiate-non-aead-to-non-aead-server
++client = 7-renegotiate-non-aead-to-non-aead-client
++
++[7-renegotiate-non-aead-to-non-aead-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++Options = NoResumptionOnRenegotiation
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[7-renegotiate-non-aead-to-non-aead-client]
++CipherString = AES128-SHA
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
++VerifyMode = Peer
++
++[test-7]
++ExpectedResult = Success
++HandshakeMode = RenegotiateClient
++Method = DTLS
++ResumptionExpected = No
++client = 7-renegotiate-non-aead-to-non-aead-client-extra
++
++[7-renegotiate-non-aead-to-non-aead-client-extra]
++RenegotiateCiphers = AES256-SHA
++
++
++# ===========================================================
++
++[8-renegotiate-aead-to-aead]
++ssl_conf = 8-renegotiate-aead-to-aead-ssl
++
++[8-renegotiate-aead-to-aead-ssl]
++server = 8-renegotiate-aead-to-aead-server
++client = 8-renegotiate-aead-to-aead-client
++
++[8-renegotiate-aead-to-aead-server]
++Certificate = ${ENV::TEST_CERTS_DIR}/servercert.pem
++CipherString = DEFAULT
++Options = NoResumptionOnRenegotiation
++PrivateKey = ${ENV::TEST_CERTS_DIR}/serverkey.pem
++
++[8-renegotiate-aead-to-aead-client]
++CipherString = AES128-GCM-SHA256
++VerifyCAFile = ${ENV::TEST_CERTS_DIR}/rootcert.pem
++VerifyMode = Peer
++
++[test-8]
++ExpectedResult = Success
++HandshakeMode = RenegotiateClient
++Method = DTLS
++ResumptionExpected = No
++client = 8-renegotiate-aead-to-aead-client-extra
++
++[8-renegotiate-aead-to-aead-client-extra]
++RenegotiateCiphers = AES256-GCM-SHA384
++
++
+diff -Nru openssl-1.1.0d/test/ssl-tests/18-dtls-renegotiate.conf.in openssl-1.1.0e/test/ssl-tests/18-dtls-renegotiate.conf.in
+--- openssl-1.1.0d/test/ssl-tests/18-dtls-renegotiate.conf.in	2017-01-26 14:10:26.000000000 +0100
++++ openssl-1.1.0e/test/ssl-tests/18-dtls-renegotiate.conf.in	2017-02-16 12:58:24.000000000 +0100
+@@ -94,5 +94,77 @@
+             "ResumptionExpected" => "No",
+             "ExpectedResult" => "Success"
+         }
+-    }
++    },
++    {
++        name => "renegotiate-aead-to-non-aead",
++        server => {
++            "Options" => "NoResumptionOnRenegotiation"
++        },
++        client => {
++            "CipherString" => "AES128-GCM-SHA256",
++            extra => {
++                "RenegotiateCiphers" => "AES128-SHA"
++            }
++        },
++        test => {
++            "Method" => "DTLS",
++            "HandshakeMode" => "RenegotiateClient",
++            "ResumptionExpected" => "No",
++            "ExpectedResult" => "Success"
++        }
++    },
++    {
++        name => "renegotiate-non-aead-to-aead",
++        server => {
++            "Options" => "NoResumptionOnRenegotiation"
++        },
++        client => {
++            "CipherString" => "AES128-SHA",
++            extra => {
++                "RenegotiateCiphers" => "AES128-GCM-SHA256"
++            }
++        },
++        test => {
++            "Method" => "DTLS",
++            "HandshakeMode" => "RenegotiateClient",
++            "ResumptionExpected" => "No",
++            "ExpectedResult" => "Success"
++        }
++    },
++    {
++        name => "renegotiate-non-aead-to-non-aead",
++        server => {
++            "Options" => "NoResumptionOnRenegotiation"
++        },
++        client => {
++            "CipherString" => "AES128-SHA",
++            extra => {
++                "RenegotiateCiphers" => "AES256-SHA"
++            }
++        },
++        test => {
++            "Method" => "DTLS",
++            "HandshakeMode" => "RenegotiateClient",
++            "ResumptionExpected" => "No",
++            "ExpectedResult" => "Success"
++        }
++    },
++    {
++        name => "renegotiate-aead-to-aead",
++        server => {
++            "Options" => "NoResumptionOnRenegotiation"
++        },
++        client => {
++            "CipherString" => "AES128-GCM-SHA256",
++            extra => {
++                "RenegotiateCiphers" => "AES256-GCM-SHA384"
++            }
++        },
++        test => {
++            "Method" => "DTLS",
++            "HandshakeMode" => "RenegotiateClient",
++            "ResumptionExpected" => "No",
++            "ExpectedResult" => "Success"
++        }
++    },
+ );
+diff -Nru openssl-1.1.0d/.travis.yml openssl-1.1.0e/.travis.yml
+--- openssl-1.1.0d/.travis.yml	2017-01-26 14:10:21.000000000 +0100
++++ openssl-1.1.0e/.travis.yml	2017-02-16 12:58:20.000000000 +0100
+@@ -1,3 +1,6 @@
++dist: trusty
++sudo: required
++
+ language: c
+ cache: ccache
+ 
+@@ -8,13 +11,12 @@
+     apt:
+         packages:
+             - ccache
+-            - clang-3.6
++            - clang-3.9
+             - gcc-5
+             - binutils-mingw-w64
+             - gcc-mingw-w64
+-            - wine
+         sources:
+-            - llvm-toolchain-precise-3.6
++            - llvm-toolchain-trusty-3.9
+             - ubuntu-toolchain-r-test
+ 
+ os:
+@@ -31,29 +33,30 @@
+     - CONFIG_OPTS="no-pic --strict-warnings" BUILDONLY="yes"
+     - CONFIG_OPTS="no-engine no-shared --strict-warnings" BUILDONLY="yes"
+     - CONFIG_OPTS="no-stdio --strict-warnings" BUILDONLY="yes"
++    - CONFIG_OPTS="no-ec" BUILDONLY="yes"
+ 
+ matrix:
+     include:
+         - os: linux
+-          compiler: clang-3.6
++          compiler: clang-3.9
+           env: CONFIG_OPTS="--strict-warnings no-deprecated" BUILDONLY="yes"
+         - os: linux
+           compiler: gcc
+           env: CONFIG_OPTS="--debug --coverage no-asm enable-rc5 enable-md2 enable-ec_nistp_64_gcc_128 enable-ssl3 enable-ssl3-method enable-weak-ssl-ciphers" COVERALLS="yes"
+         - os: linux
+-          compiler: clang-3.6
++          compiler: clang-3.9
+           env: CONFIG_OPTS="enable-asan"
+         - os: linux
+-          compiler: clang-3.6
++          compiler: clang-3.9
+           env: CONFIG_OPTS="enable-msan"
+         - os: linux
+-          compiler: clang-3.6
++          compiler: clang-3.9
+           env: CONFIG_OPTS="no-asm enable-ubsan enable-rc5 enable-md2 enable-ssl3 enable-ssl3-method -fno-sanitize=alignment"
+         - os: linux
+-          compiler: clang-3.6
++          compiler: clang-3.9
+           env: CONFIG_OPTS="no-asm enable-asan enable-rc5 enable-md2"
+         - os: linux
+-          compiler: clang-3.6
++          compiler: clang-3.9
+           env: CONFIG_OPTS="no-stdio"
+         - os: linux
+           compiler: gcc-5
+@@ -95,11 +98,20 @@
+           export CROSS_COMPILE=${CC%%gcc}; unset CC;
+           $srcdir/Configure mingw64 $CONFIG_OPTS -Wno-pedantic-ms-format;
+       else
+-          if which ccache >/dev/null && [ "$CC" != clang-3.6 ]; then
++          if which ccache >/dev/null && [ "$CC" != clang-3.9 ]; then
+               CC="ccache $CC";
+           fi;
+           $srcdir/config -v $CONFIG_OPTS;
+       fi
++    - if [ -z "$BUILDONLY" ]; then
++          if [ -n "$CROSS_COMPILE" ]; then
++              if [ "$TRAVIS_OS_NAME" == "linux" ]; then
++                  sudo dpkg --add-architecture i386;
++                  sudo apt-get update;
++                  sudo apt-get -yq install wine;
++              fi;
++          fi;
++      fi
+     - cd $top
+ 
+ script:

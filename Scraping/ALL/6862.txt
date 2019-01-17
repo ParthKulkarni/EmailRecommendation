@@ -1,0 +1,123 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#899979: keyboard-configuration: the caron dead-key of the czech keyboard on the console does not work as expected
+From : Jan Rafaj <jr-debianbugs@cedric.unob.cz>
+Date : Thu, 24 May 2018 10:46:36 +0200
+Message-id : 152715159678.2257.9141266850380985884.reportbug@idp.unob.cz
+Reply-to : Jan Rafaj <jr-debianbugs@cedric.unob.cz>, 899979@bugs.debian.org
+
+
+Package: keyboard-configuration
+Version: 1.164
+Severity: important
+Tags: l10n
+Dear Maintainer,
+*** Reporter, please consider answering these questions, where appropriate ***
+   * What led up to the situation?
+   * What exactly did you do (or not do) that was effective (or
+     ineffective)?
+   * What was the outcome of this action?
+   * What outcome did you expect instead?
+*** End of the template - remove these template lines ***
+Severity: important
+When on the console, while switched to the czech keyboard layout,
+the keyboard button used as the dead key for the caron (the one
+marked with "+" next to the backspace on the international PC keyboard)
+does not produce characters with the caron above the letter.
+Prerequisite:
+ toggle the keyboard from us to cz by once pressing CTRL and SHIFT together
+Current behavior:
+   when pressing SHIFT and + together, followed by pressing "d", produces:
+        ^d
+   when holding SHIFT, and pressing + followed by pressing "d", produces:
+        ^D
+Expected behavior:
+   when pressing SHIFT and + together, followed by pressing "d", should produce
+   a character with the UTF-8 code 0xC48F:
+        ď
+   when holding SHIFT, and pressing + followed by pressing "d", should produce
+   a character with the UTF-8 code 0xC48E:
+        Ď
+The effect is the same for the "t", "n", "c" and any other character in the
+czech alphabet that has the variant with the caron above the letter, capitals
+including, and when one tries to write that character using the caron dead
+key on the czech keyboard. So, for example, instead of:
+     ť ň č Č
+I get:
+     ^t ^n ^c ^C
+The above has been observed with the following setup:
+$ cat /etc/debian_version
+9.4
+$ uname -a
+Linux tst 4.9.0-6-amd64 #1 SMP Debian 4.9.88-1+deb9u1 (2018-05-07) x86_64 GNU/Linux
+$ cat /proc/cmdline
+BOOT_IMAGE=/boot/vmlinuz-4.9.0-6-amd64 root=UUID=2bc1c9e8-e157-4d42-90b7-24e165cccf87 ro nomodeset
+$ COLUMNS=200 dpkg -l keyboard-configuration console-setup
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+||/ Name                   Version      Architecture Description
++++-======================-============-============-=====================================
+ii  console-setup          1.164        all          console font and keymap setup program
+ii  keyboard-configuration 1.164        all          system-wide keyboard preferences
+$ cat /etc/default/keyboard
+# KEYBOARD CONFIGURATION FILE
+# Consult the keyboard(5) manual page.
+XKBMODEL="pc105"
+XKBLAYOUT="us,cz"
+XKBVARIANT=",qwerty"
+XKBOPTIONS="grp:alt_shift_toggle"
+BACKSPACE="guess"
+$ cat /etc/default/console-setup
+# CONFIGURATION FILE FOR SETUPCON
+# Consult the console-setup(5) manual page.
+ACTIVE_CONSOLES="/dev/tty[1-6]"
+CHARMAP="UTF-8"
+CODESET="Lat2"
+FONTFACE="VGA"
+FONTSIZE="8x16"
+$ cat /etc/default/locale
+LANG=en_US.UTF-8
+LC_ALL=en_US.UTF-8
+---
+I have confirmed that the problem described exists for the "bksl", "qwerty" and
+"qwerty_bksl" keyboard variants, as well as XKBVARIANT ""
+(in the /etc/default/keyboard).
+The problem described above appeared since the switch from the kbd
+package to the keyboard-configuration/console-setup packages, and did not
+exist in Debian < 9.
+Please suggest a fix or a workaround. Thanks.
+-- System Information:
+Debian Release: 9.4
+  APT prefers stable-updates
+  APT policy: (500, 'stable-updates'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.9.0-6-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8) (ignored: LC_ALL set to en_US.UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8) (ignored: LC_ALL set to en_US.UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+Versions of packages keyboard-configuration depends on:
+ii  debconf                 1.5.61
+ii  liblocale-gettext-perl  1.07-3+b1
+keyboard-configuration recommends no packages.
+keyboard-configuration suggests no packages.
+Versions of packages console-setup depends on:
+ii  console-setup-linux  1.164
+ii  debconf              1.5.61
+ii  xkb-data             2.19-1+deb9u1
+Versions of packages console-setup suggests:
+ii  locales   2.24-11+deb9u3
+ii  lsb-base  9.20161125
+Versions of packages console-setup-linux depends on:
+ii  init-system-helpers  1.48
+ii  initscripts          2.88dsf-59.9
+ii  kbd                  2.0.3-2+b1
+Versions of packages console-setup-linux suggests:
+ii  console-setup  1.164
+Versions of packages keyboard-configuration is related to:
+ii  console-common        0.7.89
+ii  console-data          2:1.12-5
+pn  console-tools         <none>
+pn  gnome-control-center  <none>
+ii  kbd                   2.0.3-2+b1
+ii  systemd               232-25+deb9u3
+-- debconf information excluded

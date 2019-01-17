@@ -1,0 +1,52 @@
+To : systemd@packages.debian.org
+Subject : Should libpam-elogind Provide libpam-systemd ?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Fri, 2 Nov 2018 17:41:10 +0000
+Message-id : 23516.35894.408937.61451@chiark.greenend.org.uk
+
+
+Hi.
+tl/dr: would this be wrong
+   Package: libpam-elogind
+   Provides: libpam-systemd
+and should there be a Conflicts too ?
+(emailing the systemd maintainers since that's Providing their package
+ name, and also d-devel since I'm not sure what input others may have)
+There's an active effort now to fix some of the problems that are
+evident with sysvinit in buster.[1]  We are tackling the services
+provided to (primarily) desktop sessions by systemd-logind, and
+specifically pam_systemd.so which AIUI is part of the machinery for
+arranging that console users get permission to do various things.
+In stretch this was handled on many sysvinit systems by systemd-shim.
+That is not really maintained - the version in sid right now is broken
+- and its approach means that it keeps breaking and is awkward to fix.
+In buster it looks like we are going to try to do this by using
+elogind.  elogind is not in sid yet but we already have a half-working
+prototype.
+elogind provides a pam module to replace pam_systemd.so.  We are
+considering having libpam-elogind.deb Provide libpam-systemd.
+Is there some reason that would be a bad idea ?  Should it also
+Conflict libpam-systemd ?
+The alternative to this Provides would seem to be an MBF requesting
+updates of all the dependencies.  (Maybe some other virtual package is
+needed.)
+(Our draft package ships libpam_elogind.so, but there are some
+difficulties with pam configuration ending up referring to both
+libpam_elogind.so and libpam_systemd.so and generating warnings, and a
+few packages seem to explicitly refer to pam_systemd.so, for instance
+lightdm's /etc/pam.d/lightdm-greeter.  If we can't resolve that we may
+need to ship the pam module as libpam_systemd.so and that might
+involve Replaces as well as Conflicts.)
+We would be grateful to receive technical advice and opinions - and
+corrections to any wrong assumptions.  To save my colleagues on d-i-d
+having to come to debian-devel I will summarise the responses.
+Thanks,
+Ian.
+[1] If you would like to come and help with improving Debian's
+support for alternatives to systemd, please join this mailman list
+  http://www.chiark.greenend.org.uk/mailman/listinfo/debian-init-diversity
+We are particularly in need of more `desktoppy' expertise.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

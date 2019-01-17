@@ -1,0 +1,87 @@
+To : Stefan Fritsch <sf@sfritsch.de>
+Subject : Re: Handling of entropy during boot
+From : "Theodore Y. Ts'o" <tytso@mit.edu>
+Date : Sun, 23 Dec 2018 19:05:17 -0500
+Message-id : 20181224000517.GA5531@mit.edu
+In-reply-to : <[🔎] 1869958.NYsBfqgiqi@k>
+References : <[🔎] 5877331.emXNK5WogZ@k> <[🔎] 20181218191158.GA8974@mit.edu> <[🔎] 1869958.NYsBfqgiqi@k>
+
+
+On Sun, Dec 23, 2018 at 05:52:31PM +0100, Stefan Fritsch wrote:
+> I think some other questions should be considered first. Did Debian protect 
+> from these attacks in the past? The answer is clearly no. Now, should we break 
+> the systems of those people who keep their random-seed file secret and don't 
+> clone their OS image, in order to offer some protection to other people? This 
+> is really what we need to answer first, and in my opinion, we should try very 
+> hard not to break the systems of those users. And I see no other way than to 
+> credit the random seed file with entropy.
+I don't think this line of reasoning is valid.  Supposed there was a
+horrific security hole, such that 10% of publically available SSH
+hosts had insecurely shared public keys such that were vulnerable to
+being guessed[1].  Cearly, in the past (before we knew about such a
+vulnerability) we did not protect those systems against this attack.
+Does this mean we shouldn't in the future?  I don't think it so
+follows!
+[1] Mining your p's and q's: Widespread Weak Keys in Network Devices.
+https://factorable.net
+There is a balancing test that has to go on here.  And quite frankly
+Rasberry PI's are extremely problematic devices from a security
+perspective.  They use a coarse-grained clock, so it's very hard to
+get good entropy out of timing events, and very the hardware that they
+have on them is such that there aren't many events that we can use to
+generate entropy in the first place.
+I'm not sure that it's a great idea to weaken *all* Debian systems to
+the security of Rasberry PI's, including x86 servers and laptops, just
+because one platform has crappy hardware with respect to getting
+secure random numbers.
+So perhaps the right answer is we have one default value for certain
+architectures, or maybe classes of devices (e.g., a server-class ARM64
+device is very different from a IOT-style ARM platform).
+> 
+> One could also make it harder for an attacker to regenerate key material from 
+> a system where he knows the seed file. For example, if there is a RTC one could 
+> put the boot time and all serial numbers / MAC addresses that one can find into 
+> an expensive function like PBKDF2 or bcrypt and feed the result to the random 
+> seed. This way, even if the attacker has an approximate knowledge of most of 
+> that information, he would still need to spend quite a bit of computing power 
+> to get all the possible random seeds that could be used.
+We mix things like serial numbers and MAC addresses into the random
+pool already.  Unfortunately, if the attacker can snoop the
+random-seed file, it's likely he or she can simply obtain the MAC
+addresses or serial numbers of the device.
+> If the number of rounds in the function depends on timing, like do
+> as many rounds as possible in 1 second, things like the load of the
+> VM host and the temperature of the CPU will also play a role in the
+> result. A sha sum of dmesg would probably also help, because it
+> contains a lot of timings that also depend on the load of the VM
+> host.
+We are already mixing timing information into the entropy pool, and to
+the extent that there is randomness there, it is cr editedi
+appropriately.  The problem is that the Rasberry Pi doesn't have a
+fine-grained clock, and there is a lot less entropy from timing events
+than most people might suppose.
+As I said, though; it's one thing for this to be added to the entropy
+pool.  It's quite another for it to be reflected in the random seed
+file.  Today, if the system was booted a year ago, the random seed
+file will not have been updated for the past 12 months.  The last time
+it would have been updated is shortly after the system was first
+booted.  This is **terrible* if you want to assume that we should give
+full credit to the random-seed file --- because entropy means, "not
+known to the adversary".  The adversary can have access to it,
+including, say, when ethernet interrupts may have caused timing events
+because the Rasberry PI only keeps time to 100Hz granularity, and an
+outside attacker can look at the external timing of packets on the
+network, assuming that the timing of network interrupts are actually
+contributing entropy is.... not clear.
+I understand that having Rasberry Pi's take a long time to boot
+because they don't have entropy is frustrating.  But is silently
+assuming they have entropy when someone really determined to reverset
+engineer state of the pool a preferable alternative?
+If someone is using the prototype and IOT device (remember: 'S' in IOT
+standards for security), maybe it's fine, since IOT devices are
+generally wide open to security problems anyway, so what's one more?
+Just don't put them on *my* home network.  :-)
+But is that *really* the best answer for Debian?   My opinion is "no"....
+At least, let's please not make the security for x86 servers and
+desktops worse just to please Rasberry Pi IOT developers....
+       	    	     	      	     	 - Ted

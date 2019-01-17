@@ -1,0 +1,117 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#854822: installation-report: U-boot not correctly installed when partitioning with "Guided - use entire disk"
+From : Karsten Merker <merker@debian.org>
+Date : Sat, 11 Feb 2017 14:19:31 +0100
+Message-id : 20170211131930.GA8113@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 854822@bugs.debian.org
+In-reply-to : <[🔎] 20170210204334.GC4502@mraw.org>
+References : <[🔎] 148674908031.1778.11582525461448935566.reportbug@mosca.iiec.unam.mx> <[🔎] 20170210203633.GB1785@excalibur.cnev.de> <[🔎] 20170210204334.GC4502@mraw.org>
+
+
+Control: tags 854822 + patch
+On Fri, Feb 10, 2017 at 09:43:34PM +0100, Cyril Brulebois wrote:
+> Hi,
+> 
+> Karsten Merker <merker@debian.org> (2017-02-10):
+> > when using the "Guided - use entire disk" option, partman by
+> > default clobbers the boot sector and the area after it (where
+> > u-boot is located) to make sure that there are no remains of old
+> > partition tables.  We have code in partman-base that disables
+> > this clobbering on systems of which we know that u-boot would be
+> > damaged (which includes systems based on Freescale SoCs such as
+> > your Cubox-i), but this doesn't work in your case as we currently
+> > only disable the clobbering for /dev/mmcblk0 while your SD card
+> > shows up as /dev/mmcblk1. I am not 100% sure about that, but IIRC
+> > with older kernels the SD card in the cubox-i has shown up as
+> > /dev/mmcblk0. 
+> > 
+> > The relevant code in partman-base can be seen here:
+> > https://anonscm.debian.org/cgit/d-i/partman-base.git/tree/parted_server.c#n1377
+> > 
+> > The easiest solution would be to check for /dev/mmcblk instead of
+> > /dev/mmcblk0. If nobody has objections against this change, I'll
+> > modify partman-base accordingly and upload a new version (CCing the
+> > partman-base uploaders Max Vozeler, Anton Zinoviev, Colin Watson and
+> > Christian Perrier and Kibi as the d-i release manager).
+> 
+> That seems like a fair approach, feel free to go ahead; thanks.
+Attached is a patch against partman-base that should fix this
+issue.  During testing it I have stumbled over two other issues,
+though:
+a) In my local d-i builds the bootscript doesn't seem to get
+   properly installed in the netboot SD card images (although it
+   apears to work properly for other image types and the daily
+   builds on d-i.debian.org look ok), so for now I have only
+   tested an installer build that was booted by tftp.
+b) Partman sometimes exits with errors during formatting the
+   /boot partition or in other cases the installed system doesn't
+   boot due to errors in the /boot filesystem.  In bug #854857,
+   excactly the same issue has just been reported by somebody
+   else.
+I haven't yet committed my patch as I would like to have a
+completely successful test installation from SD card with my
+patch applied (although the patch appears to be orthogonal to the
+other two issues).  I would appreciate very much if one of the
+people more familiar with the internals of partman and libparted
+could take a look at bug #854857.
+I'll try to take a look at the two issues descibed above
+as well, but I currently lack the time to do so.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.
+>From abbd8552c1a28639c376766b6e9e4d36264d36f4 Mon Sep 17 00:00:00 2001
+From: Karsten Merker <merker@debian.org>
+Date: Fri, 10 Feb 2017 23:25:14 +0100
+Subject: [PATCH] Fix bug #854822 (guided partitioning can overwrite boot
+ firmware area)
+For systems that are known to have their boot firmware on an mmcblk
+device, protect the firmware area on all mmcblk devices (and not only
+on mmcblk0) from being clobbered during guided partitioning and add
+missing whitespace to the corresponding log output.
+(Closes: #854822)
+---
+ debian/changelog | 13 +++++++++++++
+ parted_server.c  |  4 ++--
+ 2 files changed, 15 insertions(+), 2 deletions(-)
+diff --git a/debian/changelog b/debian/changelog
+index 8d833d70..98d18db7 100644
+--- a/debian/changelog
++++ b/debian/changelog
+@@ -1,3 +1,16 @@
++partman-base (192) UNRELEASED; urgency=medium
++
++  * Team upload.
++
++  [ Karsten Merker ]
++  * For systems that are known to have their boot firmware on an mmcblk
++    device, protect the firmware area on all mmcblk devices (and not
++    only on mmcblk0) from being clobbered during guided partitioning
++    and add missing whitespace to the corresponding log output.
++    (Closes: #854822)
++
++ -- Karsten Merker <merker@debian.org>  Fri, 10 Feb 2017 23:07:34 +0100
++
+ partman-base (191) unstable; urgency=medium
+ 
+   [ Mathieu Trudel-Lapierre ]
+diff --git a/parted_server.c b/parted_server.c
+index 187d3a3f..9c6da2f5 100644
+--- a/parted_server.c
++++ b/parted_server.c
+@@ -1374,9 +1374,9 @@ command_commit()
+          * the firmware area, resulting in an unbootable system (see
+          * bug #751704).
+          */
+-        if (is_system_with_firmware_on_disk() && !strcmp(disk->dev->path, "/dev/mmcblk0")) {
++        if (is_system_with_firmware_on_disk() && !strncmp(disk->dev->path, "/dev/mmcblk", 11)) {
+                 disk->needs_clobber = 0;
+-                log("Sunxi/Freescale/AM33XX detected. Disabling ped_disk_clobber" \
++                log("Sunxi/Freescale/AM33XX detected. Disabling ped_disk_clobber " \
+                     "for the boot device %s to protect the firmware " \
+                     "area.", disk->dev->path);
+         }
+-- 
+2.11.0

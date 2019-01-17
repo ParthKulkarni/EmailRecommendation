@@ -1,0 +1,25 @@
+To : debian-devel@lists.debian.org
+Subject : Re: lintian: shlib-read-write-env
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 1 Feb 2017 13:52:05 +0000
+Message-id : 20170201135205.bbvxfnkjr7mo744g@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 07394e75-e48f-c416-f26f-bb8390445694@free.fr>
+References : <CA+7wUsynDa8BAKsY-5g5cDqDHKujUZ0JhKBtsZRTPVvr4T6mgw@mail.gmail.com> <b942385e-47e5-5fc5-4372-a7edf478571a@iwakd.de> <1485877780.2900.21.camel@decadent.org.uk> <40588b05-b40f-1913-8b64-eaa3a4c9155d@iwakd.de> <[🔎] 07394e75-e48f-c416-f26f-bb8390445694@free.fr>
+
+
+On Wed, 01 Feb 2017 at 11:02:08 +0100, Vincent Danjean wrote:
+> In an MT context, such a program should probably use setenv between
+> the fork and the exec (ie not in MT context)
+Calling non-async-signal safe functions after fork but before exec, in
+a process that uses threads, is undefined behaviour according to POSIX.
+Try not to do that, particularly in portable software.
+(It sort-of-mostly-works on glibc in practice.)
+The async-signal-safe functions are the same ones it is safe to call
+in a POSIX signal handler - basically, those that are syscalls or
+very thin wrappers around syscalls.
+> or, probably better,
+> use exec variants allowing to specify the new environment.
+This. Functions that copy the environment and modify the copy,
+like GLib's g_get_environ() and g_environ_setenv(), make this a lot
+easier.
+    S

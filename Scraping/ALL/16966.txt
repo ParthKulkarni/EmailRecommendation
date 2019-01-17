@@ -1,0 +1,86 @@
+To : pkg-kde-talk@alioth-lists.debian.net, debian-arm@lists.debian.org
+Subject : Re: Upcoming Qt switch to OpenGL ES on arm64
+From : Lisandro Damián Nicanor Pérez Meyer <perezmeyer@gmail.com>
+Date : Fri, 23 Nov 2018 23:05:11 -0300
+Message-id : 1978113.NGEtsr0Vo0@tonks
+Reply-to : pkg-kde-talk@alioth-lists.debian.net
+In-reply-to : <[🔎] 20181123095813.soyytbs4nxrolheu@tack.einval.com>
+References : <[🔎] 20181122183729.GA13435@mitya57.me> <[🔎] CALT56yNFWS9RdpheG4WnVtfLnOKJk_ukA-3ka-YXsJnp+M=nMQ@mail.gmail.com> <[🔎] 20181123095813.soyytbs4nxrolheu@tack.einval.com>
+
+
+Andy: explicitly CCing you because I think it answers part of a question you 
+did but in another part of the thread.
+El viernes, 23 de noviembre de 2018 06:58:13 -03 Steve McIntyre escribió:
+> On Fri, Nov 23, 2018 at 03:27:57AM +0300, Dmitry Eremin-Solenikov wrote:
+[snip]
+> >Can you build two packages and allow user to select, which one he wants to
+> >install? Or those packages will be binary incompatible?
+> 
+> That's a good question, yes. It'w ahst I was wondering too.
+And that's a perfectly valid question, one we did in 2015, Ubuntu tried out 
+(as Dmitry pointed out) and did not work.
+Why?
+Short story: really *too* complicated and error prone.
+Long story:
+Please first check this image:
+<https://qt-kde-team.pages.debian.net/images/qt5_build_deps.png>
+That's almost all of Qt for 5.10 (we have now new submodules, so I need to 
+update it).
+The Desktop/GLES decision is done at the root of the graph, qtbase. This 
+decision changes the API/ABI of libqt5gui5, one of the libraries provided by 
+qtbase.
+So, as the API/ABI changes then we would need to (probably) ship two set of 
+headers and (for sure) two different libraries, let's say libqt5gui5 for 
+Desktop and libqt5gui5gles for GLES.
+But it doesn't ends there. The whole graph you saw is actually the *entire* 
+Qt. Upstream provides it either as a big fat tarball or as submodules. We took 
+the submodules route because building the whole tarball as one would take 
+literally days in slow arches. And a single mistake could be disastrous.
+Now whatever switch is applied to qtbase it's "inherited" by the rest of the 
+submodules. So if we ship two versions of libqt5gui5 then we would probably 
+need to ship two versions of the libs provided by qtdeclarative, which is 
+affected by this switch.
+This waterfall schema means *multiple* libraries would have to start doing 
+this two-binaries thing, as Ubuntu devs discovered. But remember that Qt is 
+really a set of submodules, so in any later version any submodule could start 
+using this switch for something. So whatever change could mean yet another set 
+of binaries with a transition with multiple rebuilds of the big part of rdeps 
+of Qt... no, we don't want to enter that mess.
+So we either keep the status quo of keeping arm64 in Desktop GL or switch to 
+GLES. The question is: which use case gives more benefit for our users for the 
+next stable release?
+> >> So far I personally know 0 people with an arm64 board with PCI slots,
+> >> while I know many with arm64 boards with hardware GLES support.
+> >
+> >I'm working with big arm64 iron, so for me a server arm64 board with PCIe
+> >slots (and thus PCIe graphic cards) and on-board Aspeed "VGA card" is more
+> >common compared to GLES-enabled arm64 SoC.
+How many Qt-based applications do you use there? Which ones use OpenGL?
+> Yeah - it depends exactly on your background. There's a small (but
+> growing) set of arm64 desktop users, and it would be unfortunate to
+> cut them off.
+Let's be fair: I live almost at the end of the world, probably at very least 
+600 km away from the next DD and in a country in which buying new hardware 
+it's not exactly the easiest thing (my current machine, currently the only one 
+I have working, is now 10 years old...). So yes, as Steve says, it depends on 
+your background.
+But even here in this place I have seen *a lot* of "cheap" arm64 boards. Yes, 
+the RPI3[+] is ubiquitous. And having to render Open GL stuff by CPU is 
+precisely not the fastest thing around.
+But on the other hand most PCI video cards out there can do both GLES and 
+Desktop OpenGL. So an arm64-based motherboard which needs nice graphics could 
+surely use GLES.
+Yes, might not be the best thing out there, but: how many of you are using it 
+to render OpenGL stuff with Qt?
+And again: you *can* convince me that we better not do the switch, that's 
+exactly why we created this thread: we wanted fellow Debian users/developers 
+to share their thoughts (and it's working!).
+So, again: which of the two flavors is the one that benefits more of our user 
+base?
+-- 
+She got her good looks from her father. He's a plastic surgeon.
+ -- Groucho Marx
+Lisandro Damián Nicanor Pérez Meyer
+http://perezmeyer.com.ar/
+http://perezmeyer.blogspot.com/
+signature.asc

@@ -1,0 +1,38 @@
+To : debian-devel@lists.debian.org
+Subject : Switching to sysvinit-core fails miserably in buster/sid
+From : Daniel Reichelt <debian@nachtgeist.net>
+Date : Tue, 24 Oct 2017 18:46:06 +0200
+Message-id : e9d10eea-048d-fa93-0f1a-a5ba3d4bd95a@nachtgeist.net
+
+
+Hi *,
+for development purposes I frequently create xen-vms via
+xen-create-image (jessie, stretch, buster, sid - each in 32 and 64bit)
+on a stretch Dom0. In a custom role script for xen-tools, I install
+sysvinit-core. (For non-users of xen-tools: this happens after
+debootstrap has completed.) Until a few weeks ago, this used to be
+enough and everything worked just fine.
+Now, after sysvinit-core is installed, init scripts don't get enabled
+(i.e. S* symlinks are missing in /etc/rc?.d), which leaves a big
+mess of things as not even networking or ssh are enabled.
+It seems to me, this happens to init scripts of packages which were
+installed prior to sysvinit-core. I have yet to work out the details of
+this time-dependency, i.e.
+- whether it's sufficient that sysvinit-core gets processed prior to a
+init-script-carrying package
+- or if the entire run of dpkg installing sysvinit-core has to finish,
+and init scripts get processed correctly only if they're installed
+during a subsequent invocation of dpkg.
+As a workaround, after sysvinit-core is installed from the role script,
+I therein run
+cd /etc/init.d
+for script in *
+do
+	update-rc.d "$script" enable
+done
+as well, which I suspect is quite crude and shouldn't be necessary in
+the first place. I don't have the first clue which package I should file
+a bug report against. Any hints appreciated!
+Thanks
+Daniel
+signature.asc

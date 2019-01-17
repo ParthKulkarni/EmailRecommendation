@@ -1,0 +1,80 @@
+To : debian-boot@lists.debian.org
+Subject : Bug#901255: netcfg-static: Unable to configure fe80::1 as a gateway
+From : Bjørn Mork <bjorn@mork.no>
+Date : Tue, 12 Jun 2018 13:30:39 +0200
+Message-id : 87r2lctf6o.fsf@miraculix.mork.no
+Reply-to : Bjørn Mork <bjorn@mork.no>, 901255@bugs.debian.org
+In-reply-to : <[🔎] 20180612093043.2rvjohd2cnw3srwv@var.youpi.perso.aquilenet.fr>	(Samuel Thibault's message of "Tue, 12 Jun 2018 11:30:43 +0200")
+References : <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com> <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com> <[🔎] 20180610172539.qjfu7hvfaspn2faa@var.youpi.perso.aquilenet.fr> <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com> <[🔎] 8d516413-bbf5-6ff9-ba6f-237f9344b102@debian.org> <[🔎] 6adcea8d-78e5-0b80-574f-f17b9937349f@igorscheller.de> <[🔎] 87h8m8v12p.fsf@miraculix.mork.no> <[🔎] 20180612093043.2rvjohd2cnw3srwv@var.youpi.perso.aquilenet.fr> <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com>
+
+
+Samuel Thibault <sthibault@debian.org> writes:
+> Bjørn Mork, le mar. 12 juin 2018 10:52:30 +0200, a ecrit:
+>> Huh?  What is this?  There is no "gateway must be in subnet" requirement
+>> in IPv6.  The gateway must only be reachable, which means that you must
+>> be able to resolve the L2 address using ND.
+>
+> Before that, you need a route,
+Sure.  And that will be automatically added when the gateway sends an
+NA.  But you can also simply add the gateway address as a static on-link
+/128 since you must assume that the gateway is on-link.
+Only static routing, no RAs involved and no NA received after flushing
+the neighbour table:
+frtest3:~# ifconfig eth1
+eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet6 2001:4641:0:29a:5054:ff:feff:306  prefixlen 64  scopeid 0x0<global>
+        inet6 fe80::5054:ff:feff:306  prefixlen 64  scopeid 0x20<link>
+        ether 52:54:00:ff:03:06  txqueuelen 1000  (Ethernet)
+        RX packets 189795  bytes 87803043 (83.7 MiB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 130406  bytes 11889749 (11.3 MiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+frtest3:~# ip -6 route
+fe80::/64 dev eth0 proto kernel metric 256 pref medium
+fe80::/64 dev eth1 proto kernel metric 256 pref medium
+Then this will not immediately work, as you note:
+frtest3:~# ip route add default via 2001:db8:f00::1 dev eth1
+RTNETLINK answers: No route to host
+But this will:
+frtest3:~# ip route add 2001:db8:f00::1/128 dev eth1
+frtest3:~# ip route add default via 2001:db8:f00::1 dev eth1
+frtest3:~# ip -6 ne sho
+2001:4641:0:29a::1 dev eth1 lladdr 00:1b:21:a7:98:bc router REACHABLE
+fe80::21b:21ff:fea7:98bc dev eth1 lladdr 00:1b:21:a7:98:bc router STALE
+2001:db8:f00::1 dev eth1 lladdr 00:1b:21:a7:98:bc router REACHABLE
+fe80::21b:21ff:fea7:98bc dev eth0 lladdr 00:1b:21:a7:98:bc router STALE
+frtest3:~# ip -6 route
+2001:db8:f00::1 dev eth1 metric 1024 pref medium
+fe80::/64 dev eth0 proto kernel metric 256 pref medium
+fe80::/64 dev eth1 proto kernel metric 256 pref medium
+default via 2001:db8:f00::1 dev eth1 metric 1024 pref medium
+frtest3:~# traceroute6 vg.no
+traceroute to vg.no (2001:67c:21e0::16), 30 hops max, 80 byte packets
+ 1  canardo-br0-666.ipv6.mork.no (2001:4641:0:29a::1)  0.354 ms  0.445 ms  0.530 ms
+ 2  ti0036a400-lo0-0.ti.telenor.net (2001:4600:0:200::5d)  5.932 ms  7.537 ms  7.591 ms
+ 3  ti0001c360-lo0-0.ti.telenor.net (2001:4600:0:100::23)  7.292 ms  7.488 ms  7.791 ms
+ 4  ti0169a400-lo0-0.ti.telenor.net (2001:4600:0:200::62)  8.207 ms  8.218 ms  8.481 ms^C
+(The gateway used its real address as icmp6 source here, but that is
+beside the point)
+frtest3:~# ip -6 ne sho
+2001:4641:0:29a::1 dev eth1 lladdr 00:1b:21:a7:98:bc router REACHABLE
+fe80::21b:21ff:fea7:98bc dev eth1 lladdr 00:1b:21:a7:98:bc router REACHABLE
+2001:db8:f00::1 dev eth1 lladdr 00:1b:21:a7:98:bc router REACHABLE
+fe80::21b:21ff:fea7:98bc dev eth0 lladdr 00:1b:21:a7:98:bc router STALE
+frtest3:~# ip -6 route
+2001:db8:f00::1 dev eth1 metric 1024 pref medium
+fe80::/64 dev eth0 proto kernel metric 256 pref medium
+fe80::/64 dev eth1 proto kernel metric 256 pref medium
+default via 2001:db8:f00::1 dev eth1 metric 1024 pref medium
+> which is the point of the test AIUI.
+The test is pointless.  There is absolutely no requirement that the
+gateway should be part of any larger on-link prefix or related to any of
+the configured host addresses in any way.  This is trying to force IPv4
+logic onto IPv6, where it doesn't fit.
+> That said, the code should be looking over all networks of the
+> interface, not only the first.
+"networks" is a meaningless concept in IPv6.  You have addresses which
+can be on-link or off-link, and prefixes which are relevant for routing
+and address generation.  But none of these maps directly to the IPv4
+"network".
+Bjørn

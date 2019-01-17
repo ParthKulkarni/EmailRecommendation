@@ -1,0 +1,37 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Bug#886238: Please introduce official nosystemd build profile
+From : Simon McVittie <smcv@debian.org>
+Date : Fri, 5 Jan 2018 01:49:35 +0000
+Message-id : 20180105014935.GA11431@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 1515114236.30205.5.camel@gmail.com>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CACujMDNW4uEQNeDYnbKedHpjeEPMUroPKp+4B3g=wGMmqr-EUA@mail.gmail.com> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] CAAB-KckBwYqMsJHk9UzAL4Lo=+HZfQNuV0AM+3-Yo6o9AEtcQg@mail.gmail.com> <[🔎] 1515103267.30205.1.camel@gmail.com> <[🔎] 20180105004100.GB23195@perpetual.pseudorandom.co.uk> <[🔎] 1515114236.30205.5.camel@gmail.com>
+
+
+On Fri, 05 Jan 2018 at 02:03:56 +0100, Svante Signell wrote:
+> On Fri, 2018-01-05 at 00:41 +0000, Simon McVittie wrote:
+> > On Thu, 04 Jan 2018 at 23:01:07 +0100, Svante Signell wrote:
+> > > What about creating a linux-nosystemd architecture, e.g.
+> > > dbus-1.12.2/debian/control
+> > > Build-Depends:
+> > >  libsystemd-dev [linux-any !linux-nosystemd]
+> > > etc.
+> 
+> OK, I read you. But you omitted the words about !linux architectures, why?
+Again, libsystemd parallels libselinux and libapparmor. Software that
+is portable to non-Linux kernels has to support being built without
+those libraries because on non-Linux kernels they simply don't exist.
+That isn't a particularly compelling reason to not link them (or introduce
+new complexity to make it optional to link them) when building
+Linux binaries for a general-purpose distribution like Debian.
+In some ways it would be conceptually cleaner to
+hard-depend on an implementation of the libsystemd
+API at compile-time, substituting something like
+https://anonscm.debian.org/cgit/users/md/libsystemd-dummy.git on the
+non-Linux kernels; but I recognise that taking that approach doesn't
+scale particularly well, and I don't think it's really sensible to
+create a similar stub for every optional library that is less portable
+than the software that uses it.
+Devuan could probably benefit from reducing its maintenance effort by
+having libsystemd-dummy provide libsystemd-dev even on Linux kernels,
+so that fewer packages need sourceful changes.
+    smcv

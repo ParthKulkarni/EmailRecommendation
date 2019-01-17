@@ -1,0 +1,52 @@
+To : debian-devel@lists.debian.org
+Subject : Re: package not in testing due to autopkgtest of other package testing against third known broken package
+From : Paul Gevers <elbrus@debian.org>
+Date : Tue, 12 Jun 2018 19:57:45 +0200
+Message-id : a86ef17d-0808-f373-19f2-6dc8e058fb7f@debian.org
+In-reply-to : <[🔎] 152881562939.956.6714599738494807905@auryn.jones.dk>
+References : <[🔎] 152881562939.956.6714599738494807905@auryn.jones.dk>
+
+
+Hi Jonas,
+Just to start with, my message may sound harsh, it is meant to explain
+though.
+On 12-06-18 17:00, Jonas Smedegaard wrote:
+> Sharing here in case it is an example of a structural issue needing 
+> tweaking somewhere...
+> 
+> ruby-sass works fine.
+Great.
+> ruby-compass previously worked fine, but is now dead upstream and 
+> conflicts with recent ruby-sass. https://bugs.debian.org/876608
+> 
+> ruby-bootstrap-sass works fine - but autopkgtest-depends on ruby-compass 
+> which stopped working when ruby-sass declared breakage with ruby-compass 
+> - and I noticed only now that effectively recent ruby-sass didn't enter 
+> testing.
+Yes, but this has nothing to do with the package not migrating. That
+would only account for 10 days, just like the excuses say. In this case,
+it wasn't migrated before we turned the code on to test autopkgtest.
+> I now did an NMU simply disabling ruby-bootstrap-sass autopkgtest parts 
+> related to ruby-compass.
+That will not help ruby-sass migrate, as the problem lies elsewhere:
+https://release.debian.org/britney/update_output.txt
+trying: ruby-sass
+skipped: ruby-sass (5, 5, 102)
+    got: 46+0: a-3:i-42:a-0:a-0:a-0:m-0:m-0:m-0:p-0:s-1
+    * i386: ruby-compass, ruby-compass-core, ruby-compass-import-once
+I think you want to ask for removal of ruby-compass* from testing.
+Britney refuses to update ruby-sass in testing because the amount of
+installable packages will go down if it does.
+https://release.debian.org/doc/britney/short-intro-to-migrations.html
+> How could I have known ahead about that autopkgtest-depends?
+You can search for Testsuite-Triggers in the Sources file if you really
+want to. But for new regressions that occur, rest assure that they will
+be detected and will be acted on.
+> "build-rdeps ruby-compass" doesn't reveal ruby-bootstrap-sass as a cause 
+> for trouble.
+> 
+> Can we improve some infrastructure to better catch situations like this 
+> in the future?
+You had to search elsewhere, you found a red harring.
+Paul
+signature.asc

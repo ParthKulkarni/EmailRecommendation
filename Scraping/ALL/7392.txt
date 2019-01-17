@@ -1,0 +1,75 @@
+To : submit@bugs.debian.org
+Subject : Bug#904184: Partman(-lvm) claims all disk when it shouldn't
+From : Sven Mueller <sven.mueller72@gmail.com>
+Date : Sat, 21 Jul 2018 18:32:41 +1000
+Message-id : CACxpPiQ5ZxgSr29UafX4RbOfMe2RWZTcVQQRqLCv=yi6WekVdA@mail.gmail.com
+Reply-to : Sven Mueller <sven.mueller72@gmail.com>, 904184@bugs.debian.org
+
+
+Package: debian-installer
+Severity: normal
+Hi.
+I have the following in a preseed file:
+(stripped out various confirmation things that are unrelated to paritioning)
+d-i partman-auto/method string lvm
+# Oh well, the following doesn't exist in Debian and is left
+# over from the time the preseed was used for Ubuntu.
+d-i partman-auto-lvm/guided_size string 43G
+d-i partman-auto/expert_recipe string                         \
+       boot-root ::                                           \
+              1 1 1 free                                      \
+                $iflabel{ gpt }                               \
+                $reusemethod{ }                               \
+                method{ biosgrub }                            \
+              .                                               \
+              2048 2048 2048 fat32                            \
+                $iflabel{ gpt }                               \
+                $reusemethod{ }                               \
+                method{ efi }                                 \
+                format{ }                                     \
+              .                                               \
+              2048 2048 2048 ext2                             \
+                $defaultignore{ }                             \
+                $primary{ }                                   \
+                $bootable{ }                                  \
+                method{ format }                              \
+                format{ }                                     \
+                use_filesystem{ }                             \
+                filesystem{ ext2 }                            \
+                mountpoint{ /boot }                           \
+              .                                               \
+              26624 26625 41984 $default_filesystem           \
+                $lvmok{ }                                     \
+                method{ format }                              \
+                format{ }                                     \
+                use_filesystem{ }                             \
+                $default_filesystem{ }                        \
+                mountpoint{ / }                               \
+              .                                               \
+              2048 2048 2048 linux-swap                       \
+                $lvmok{ }                                     \
+                method{ swap }                                \
+                format{ }                                     \
+              .
+As far as the documentation goes, I would expect that on a machine
+with ~560GB of disk (array) that all of the following should be true:
+- Disk completely consumed by partitions (yep)
+- A single large physical volume for LVM (yep)
+- /boot partition outside LVM (yep)
+- small free space at start and a GPT/efi partition (yep)
+- root (/) partition to have at most 41GB (yep)
+- swap to have at most 2GB (NO)
+- root partition to be much larger than swap (NO)
+- LVs in the VG to use no more than 43G (no, but that was an
+Ubuntu-only option anyhow)
+So despite the max partition size of root and swap, all of the LVM is
+used. And to the vast majority by swap (~516G). Which is unexpected:
+a) Why is swap larger than root, despite smaller minimal and smaller priority?
+b) Why is all of the VG used up, even though the preseed values say
+that only ~43GB should be used at most (41GB for root and 2GB for
+swap)?
+So, this is essentially a bug report that maximum sizes are not
+adhered to and a weak feature request to support the guided_size
+option Ubuntu has.
+Kind regards,
+Sven

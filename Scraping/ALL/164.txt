@@ -1,0 +1,93 @@
+To : Brian Kroth <bpkroth@gmail.com>
+Subject : Bug#858373: apache2: segfaults upon recieving bad request when using worker/event mpm and cgid errordoc
+From : Antoine Beaupre <anarcat@orangeseeds.org>
+Date : Wed, 19 Jul 2017 14:16:01 -0400
+Message-id : 20170719181601.x24orqjghe7gzvn5@curie.anarc.at
+Reply-to : Antoine Beaupre <anarcat@orangeseeds.org>, 858373@bugs.debian.org
+In-reply-to : <20170411023810.GC13258@sin.redhat.com> <20170321165507.6943.66558.reportbug@mrsnorris.cae.wisc.edu>
+
+
+Hi!
+First, thank you very much for the detailed bug report, very useful!
+Responses inline.
+On Tue, Mar 21, 2017 at 11:56:40AM -0500, Brian Kroth wrote:
+> Package: apache2.2-common
+> Version: 2.2.22-13+deb7u8
+> Severity: normal
+> Tags: security
+> 
+> Dear Maintainer,
+> 
+> We have some websites running on Debian Wheezy, so still using Apache
+> 2.2.22, that are configured either in Worker or Event MPM (so are using
+> mod_cgid in what follows), and have a custom "ErrorDocument 400" directive
+> that points at a perl script for providing custom ModSecurity error.
+Interesting. It would have been useful to see actual configuration
+examples, as I had to go through a little bit of digging to reproduce
+the issue. Just using cgid or worker is not sufficient - you actually
+*do* need a ErrorDocument directive as well. So thanks to providing
+those details, but snippets would have helped as well! :)
+ 
+> I haven't dug up an older version of the package from snapshots to confirm
+> this, but I think that since the recently backported HttpProtocolOptions
+> directive to that version (BTW, where was that announced - I had to run
+> strings on the binary to find it), I've been seeing a lot of
+> segfault/coredumps registered in the Apache error logs.
+I'm sorry to hear that. The change was announced in DLA-841-1 back in
+February:
+https://lists.debian.org/debian-lts-announce/2017/02/msg00031.html
+If you haven't seen that announcement, you may not be subscribed to the
+debian-lts-announce mailing list, in which case I strongly suggest you
+subscribe:
+https://lists.debian.org/debian-lts-announce/
+There was also a lengthy discussion regarding the patchset on the
+debian-lts mailing list:
+https://lists.debian.org/87fukh7hcq.fsf@curie.anarc.at
+Participation to the debian-lts mailing list is not mandatory for LTS
+users, however...
+> After some analysis, I've found that I can reproduce the error with a fairly
+> trivial shell command:
+> 
+> # echo -ne "GET / HTTP/1.0\n" | nc $some_website 80
+This definitely looks like a heading parsing regression caused by
+DLA-841-1. I cannot reproduce with a vanilla Apache install.
+To reproduce, on wheezy:
+ 1. apt-get install apache2
+ 2. create a dummy perl script in /usr/lib/cgi-bin/hello.pl
+        #!/usr/bin/perl
+        print "Content-type: text/html\n\n";
+        print "Hello, World.";
+ 3. make it executable
+ 4. add this directive, say in /etc/apache2/conf.d/hello
+        ErrorDocument 400 /cgi-bin/hello.pl
+ 5. reload apache (apache2ctl graceful or whatever)
+ 6. issue the killer request:
+        echo -ne "GET / HTTP/1.0\n" | nc localhost 80
+> > From the coredump, I was able to find that this line (1371) in the
+> cgid_handler() code in the modules/generators/mod_cgid.c source file has a
+> null pointer issue on the r->protocol field:
+> 
+> 	is_included = !strcmp(r->protocol, "INCLUDED");
+> 
+> Seems like a bit of a security issue to me.
+Definifely.
+[...]
+On Tue, Apr 11, 2017 at 12:08:11PM +0930, Doran Moppert wrote:
+> This looks like a form of CVE-2015-0253, which affected upstream apache
+> 2.4.11, was introduced by the backport.  The fix is to ensure
+> r->protocol is always populated:
+> 
+> https://svn.apache.org/viewvc?view=revision&revision=1668879
+Good findings. The fun part is that the above patch doesn't apply
+because the protocol initialization was just missing. So this is
+possibly broader than just 400 errors.
+Note that I have tested this in jessie, and it doesn't seem affected, so
+the backport for CVE-2016-8743 was done correctly there.
+I'll prepare a package to fix this shortly.
+A.
+-- 
+Cyberspace. A consensual hallucination experienced daily by billions
+of legitimate operators, in every nation, by children being taught
+mathematical concepts...
+                       - William Gibson
+signature.asc

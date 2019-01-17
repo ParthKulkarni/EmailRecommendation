@@ -1,0 +1,91 @@
+To : Martin Michlmayr <tbm@cyrius.com>, 807709@bugs.debian.org
+Subject : Bug#807709: Use blkid / handle PARTLABEL= and PARTUUID for root device
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Fri, 19 Jan 2018 23:58:28 -0800
+Message-id : 87mv19ufkr.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 807709@bugs.debian.org
+In-reply-to : <20151211204707.GA15720@jirafa.cyrius.com>
+References : <20151211204707.GA15720@jirafa.cyrius.com> <20151211204707.GA15720@jirafa.cyrius.com>
+
+
+On 2015-12-11, Martin Michlmayr wrote:
+> Package: flash-kernel
+> Version: 3.52
+>
+> I noticed these two patches:
+>
+> https://lists.debian.org/debian-kernel/2015/12/msg00167.html
+> https://lists.debian.org/debian-kernel/2015/12/msg00168.html
+>
+> flash-kernel probably needs a similar change, or should use the code
+> from initramfs-tools if possibl.
+I didn't use blkid, but added support for PARTUUID in 3.69, and just
+added support for PARTLABEL in git.
+I don't think flash-kernel should use blkid in the way that
+initramfs-tools is using it, as initramfs-tools uses blkid at boot time,
+and the flash-kernel code is run at initramfs creation
+time... hard-coding the specific device at that point doesn't seem like
+the right approach.
+That said, it was really quite simple to add:
+# Translate LABEL, UUID, PARTLABEL and PARTUUID entries into a proper
+# device name.
+case "$rootdev" in
+		LABEL=* | UUID=* | PARTLABEL=* | PARTUUID=*)
+			rootdev="$(blkid -l -t "$rootdev" -o device)"
+		;;
+		*=*)
+			echo "/etc/fstab parse error; cannot recognize root $rootdev" >&2
+			rootdev=/dev/sda2
+			echo "guessing that the root device is $rootdev" >&2
+		;;
+esac
+But it ends up hard-coding, for example, ROOT="/dev/sda3" into the
+initramfs, which isn't really correct. The blkid resolution should be
+resolved at boot, in initramfs-tools.
+I think the current code is actually safer, as it doesn't depend on
+device ordering remaining static at boot:
+# Translate LABEL, UUID, and PARTUUID entries into a proper device name.
+if echo "$rootdev" | grep -q "="; then
+	a=$(echo "$rootdev" | cut -d "=" -f 1)
+	b=$(echo "$rootdev" | cut -d "=" -f 2- | sed -e 's/^"\(.*\)"$/\1/')
+	case "$a" in
+		LABEL)
+			c=$(echo "$b" | sed 's#/#\\x2f#g')
+			if [ -e /dev/disk/by-label/$c ]; then
+				rootdev="/dev/disk/by-label/$c"
+			else
+				echo "Label $b not found in /dev/disk/by-label" >&2
+			fi
+		;;
+		UUID)
+			rootdev=/dev/disk/by-uuid/$b
+			if [ ! -e $rootdev ]; then
+				echo "UUID $b doesn't exist in /dev/disk/by-uuid" >&2
+			fi
+		;;
+		PARTUUID)
+			rootdev=/dev/disk/by-partuuid/$b
+			if [ ! -e $rootdev ]; then
+				echo "PARTUUID $b doesn't exist in /dev/disk/by-partuuid" >&2
+			fi
+		;;
+		PARTLABEL)
+			rootdev=/dev/disk/by-partlabel/$b
+			if [ ! -e $rootdev ]; then
+				echo "PARTLABEL $b doesn't exist in /dev/disk/by-partlabel" >&2
+			fi
+		;;
+		*)
+			echo "/etc/fstab parse error; cannot recognize root $rootdev" >&2
+			rootdev=/dev/sda2
+			echo "guessing that the root device is $rootdev" >&2
+		;;
+	esac
+fi
+Although, older kernels or older versions of udev may not support the
+/dev/disk/by-* symlink...
+It might be worth exploring just passing ROOT="$rootdev" without any
+modification, and let initramfs-tools resolve it appropriately.
+live well,
+  vagrant
+signature.asc

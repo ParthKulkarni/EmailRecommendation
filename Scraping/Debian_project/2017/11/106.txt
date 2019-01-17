@@ -1,0 +1,168 @@
+To : debian-devel <debian-devel@lists.debian.org>
+Subject : Open beta of debhelper compat level 11 (debhelper/10.10.7)
+From : Niels Thykier <niels@thykier.net>
+Date : Sun, 12 Nov 2017 10:25:00 +0000
+Message-id : e14d3ac0-813e-39fd-60fa-9eea8feb75f0@thykier.net
+
+
+Hi,
+The debhelper compat level 11 is about to be finalized and we invite you
+to test it out.  There are no additional changes planned to compat 11 at
+the moment, but there might be changes in response to feedback from testers.
+ * If you start to use the compat 11 in your package in uploads to
+   unstable, please be prepared to stay on top of changes in
+   debhelper as there will not be separate announcements for any
+   corrections made to compat 11.
+ * If you have already started using compat 11, but realised that
+   you do not have time / capacity to live up to the commitment of
+   being a beta tester for a given package, please remember to opt-out
+   (by resetting the compat level to a stable version).
+ * Please ensure you test with debhelper/10.10.7 or later.  While all of
+   the compat 11 changes are available in older versions (e.g. 10.10.5),
+   there are some changes in 10.10.7 that will probably make your
+   testing easier.
+The beta will run for at least 14 days starting with today, but it will
+generally be extended if there are changes to compat 11.  Once the beta
+testing is over, debhelper compat 11 will be announced as stable with an
+upload of debhelper/11 to unstable.
+Please note that the documentation of debhelper 10.10.7 still refers to
+compat 11 as being "open for development".  This was true at the time of
+the 10.10.7 upload.  The next version will update the documentation to
+reflect the new state for compat 11.
+Why would you be interested in compat 11
+========================================
+The elevator pitch:
+ * Automatic support for Policy §12.3's recommendation for installing
+   documentation of "pkg-doc" into "/usr/share/doc/pkg".
+ * Many of the dh_install* tools that install documentation are now
+   easier to use for installing files from d/tmp.  This makes it a
+   lot easier to support "nodoc" profile (by outsourcing things to
+   dh_install{docs,man,examples})
+ * dh_strip and dh_shlibdeps now reliable finds all ELF executables
+   and shared libraries regardless of their filename extension
+   (fixing the 18 year old bug #35733).
+ * The interactions between dh_systemd_* and dh_installinit have been
+   cleaned up.  The interaction between dh_systemd_enable and
+   dh_installinit was particular error-prone.  This has been resolved by
+   merging dh_systemd_* into a new helper dh_installsystemd that is
+   100% responsible for all systemd related items (services, tmpfiles,
+    etc.).
+Full list of changes in compat 11
+=================================
+>         Changes from v10 are:
+> 
+>         -       dh_installinit no longer installs service or tmpfile files,
+>                 nor generates maintainer scripts for those files. Please use
+>                 the new dh_installsystemd helper.
+> 
+>         -       The dh_systemd_enable and dh_systemd_start helpers have been
+>                 replaced by the new dh_installsystemd helper. For the same
+>                 reason, the systemd sequence for dh has also been removed.
+>                 If you need to disable the dh_installsystemd helper tool,
+>                 please use an empty override target.
+> 
+>                 Please note that the dh_installsystemd tool have a slightly
+>                 different behaviour in some cases (e.g. when using the
+>                 --name parameter).
+> 
+>         -       dh_installdirs no longer creates debian/*package*
+>                 directories unless explicitly requested (or it has to create
+>                 a subdirectory in it).
+> 
+>                 The vast majority of all packages will be unaffected by this
+>                 change.
+> 
+>         -       The makefile buildsystem now passes INSTALL=install
+>                 --strip-program=true to make(1). Derivative buildsystems
+>                 (e.g. configure or cmake) are unaffected by this change.
+> 
+>         -       The autoconf buildsystem now passes --runstatedir=/run to
+>                 ./configure.
+> 
+>         -       The cmake buildsystem now passes
+>                 -DCMAKE_INSTALL_RUNSTATEDIR=/run to cmake(1).
+> 
+>                 Caveat: This option silently does nothing in cmake versions
+>                 prior to 3.8. Please keep this in mind if your package is
+>                 regularly backported to a suite (e.g. stretch-backports)
+>                 where cmake is older than 3.8.
+> 
+>         -       dh_installman will now prefer detecting the language from
+>                 the path name rather than the extension.
+> 
+>         -       dh_auto_install will now only create the destination
+>                 directory it needs. Previously, it would create the package
+>                 build directory for all packages. This will not affect
+>                 packages that only build with debhelper commands, but it may
+>                 expose bugs in commands not included in debhelper.
+> 
+>         -       The helpers dh_installdocs, dh_installexamples,
+>                 dh_installinfo, and dh_installman now error out if their
+>                 config has a pattern that does not match anything or
+>                 reference a path that does not exist.
+> 
+>                 Known exceptions include building with the nodoc profile,
+>                 where the above tools will silently permit failed matches
+>                 where the patterns are used to specify documentation.
+> 
+>         -       The helpers dh_installdocs, dh_installexamples,
+>                 dh_installinfo, and dh_installman now accept the parameter
+>                 --sourcedir with same meaning as dh_install. Furthermore,
+>                 they now also fall back to debian/tmp like dh_install.
+> 
+>         -       The perl-makemaker and perl-build build systems no longer
+>                 pass -I. to perl. Packages that still need this behaviour
+>                 can get emulate it by using the PERL5LIB environment
+>                 variable. E.g. by adding export PERL5LIB=. in their
+>                 debian/rules file (or similar).
+> 
+>         -       The PERL_USE_UNSAFE_INC environment variable is no longer
+>                 set by dh or any of the dh_auto_* tools. It was added as a
+>                 temporary work around to avoid a lot of packages failing to
+>                 build at the same time.
+> 
+>                 Note this item will eventually become obsolete as upstream
+>                 intends to drop support for the PERL_USE_UNSAFE_INC
+>                 environment variable. When perl drops support for it, then
+>                 this variable will be removed retroactively from existing
+>                 compat levels as well.
+> 
+>         -       The dh_makeshlibs helper will now exit with an error if
+>                 objdump returns a non-zero exit from analysing a given file.
+> 
+>         -       The dh_installdocs and dh_installexamples tools will now
+>                 attempt to guess the "main package" for a given
+>                 documentation package (e.g. *pkg-doc* will have *pkg* as
+>                 main package if the latter exists). If a main package is
+>                 found, *most* of the documentation will be installed into
+>                 /usr/share/doc/*main-pkg* by default as recommended by
+>                 Debian policy §12.3 since version 3.9.7. Notable exceptions
+>                 include the copyright file and changelog files.
+> 
+>                 The --doc-main-package option can be used when the
+>                 auto-detection is insufficient.
+> 
+>         -       The dh_strip and dh_shlibdeps tools no longer uses filename
+>                 patterns to determine which files to process. Instead, they
+>                 open the file and look for an ELF header to determine if a
+>                 given file is an shared object or an ELF executable.
+> 
+>                 This change may cause the tools to process more files than
+>                 previously.
+> 
+This listing is also available from debhelper(7).
+Backport availability
+=====================
+The version of debhelper in backports (10.10.5~bpo9+1) has all of the
+relevant changes for initial beta version of compat 11 (minus some
+bug fixes currently only in unstable).  As per backport policy, we are
+planning to provide future versions of debhelper in stretch-backports
+until stretch becomes oldstable.
+*Caveat*: Packages using the cmake build system should be careful as
+cmake in stretch does not respond to the
+-DCMAKE_INSTALL_RUNSTATEDIR=/run change in compat 11.  If this is a
+problem for your package, the package should probably stay at compat 10
+until buster is released.
+Thanks,
+~Niels
+signature.asc

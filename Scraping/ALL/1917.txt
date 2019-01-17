@@ -1,0 +1,62 @@
+To : Pierre Couderc <pierre@couderc.eu>
+Subject : Re: Problem when installing stretch with btrfs
+From : Steve McIntyre <steve@einval.com>
+Date : Wed, 20 Sep 2017 14:06:10 +0100
+Message-id : 20170920130610.wpfk7fjqbvs57etf@tack.einval.com
+In-reply-to : <[🔎] 9543dad5-6280-21bf-5432-e938617a6273@couderc.eu>
+References : <[🔎] b837e787-654a-59f6-a91b-fc8f6e7d6f79@couderc.eu> <[🔎] 20170920110148.gepleku2k5eqxkcc@tack.einval.com> <[🔎] 6370a36d-0856-e611-8855-38a6a1143be6@couderc.eu> <[🔎] 20170920115920.iuletdyubxfhyvvp@tack.einval.com> <[🔎] 9543dad5-6280-21bf-5432-e938617a6273@couderc.eu>
+
+
+On Wed, Sep 20, 2017 at 02:21:59PM +0200, Pierre Couderc wrote:
+>On 09/20/2017 01:59 PM, Steve McIntyre wrote:
+>> > 
+>> > Number  Start   End     Size    Type     File system  Flags
+>> > 1      1049kB  1000MB  999MB   primary  fat32        boot, esp
+>> > 2      1000MB  2000GB  1999GB  primary  btrfs
+>> sdb1 here *is* an EFI System Partition - that's what the esp and boot
+>> flags mean.
+>Fine, thank you. Why is it not detected as EFI like SDA1 ?
+That's just the way parted describes things.
+>> > Model: Generic Flash Disk (scsi)
+>> > Disk /dev/sda: 124GB
+>> > Sector size (logical/physical): 2048B/512B
+>> > Partition Table: mac
+>> > Disk Flags:
+>> > 
+>> > Number  Start   End     Size   File system  Name   Flags
+>> > 1      2048B   6143B   4096B               Apple
+>> > 2      1925kB  2351kB  426kB               EFI
+>> I'm slightly worried by that "Apple" partition on sda - is this a Mac?
+>No !! I think it is mistake of parted. It is a flash usb key, filled by dd
+>if=debian-9.1.0-amd64-netinst.iso
+Really? (checks) Wow, OK - parted is on serious crack there. fdisk is
+more sane, and on the same image will show:
+# fdisk -l /dev/sdc
+Disk /dev/sdc: 30.3 GiB, 32497729536 bytes, 63472128 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0x2c869ef3
+Device     Boot Start    End Sectors  Size Id Type
+/dev/sdc1  *        0 593919  593920  290M  0 Empty
+/dev/sdc2        3760   4591     832  416K ef EFI (FAT-12/16/32)
+What does fdisk show on sdb for you?
+>> What do you think an "EFP" is?? ESP is the normal name.
+>yes sorry (I am a bit lost).
+OK.
+>Now, I think I need to install grub on sdb1, but it refuses :
+>
+>root@nous:/# grub-install /dev/sdb1
+>Installing for i386-pc platform.
+>grub-install: warning: File system `fat' doesn't support embedding.
+>grub-install: error: filesystem `btrfs' doesn't support blocklists.
+Right. Either you're not booted in EFI mode, or /sys is not
+mounted. Grub is assuming you're on a normal BIOS-boot machine. Make
+sure that you have /sys mounted, and /dev/sdb1 mounted on /boot/efi,
+then run
+# grub-install --target x86_64-efi
+and see what it does.
+-- 
+Steve McIntyre, Cambridge, UK.                                steve@einval.com
+You raise the blade, you make the change... You re-arrange me 'til I'm sane...

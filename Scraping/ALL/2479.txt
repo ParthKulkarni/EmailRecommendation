@@ -1,0 +1,34 @@
+To : Philip Hands <phil@hands.com>
+Subject : Re: Busybox 1.27 breaks kernel cmdline preseeding
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Tue, 28 Nov 2017 09:04:36 +0100
+Message-id : 20171128080436.GA8456@x260-buxy
+Mail-followup-to : Raphael Hertzog <hertzog@debian.org>,	Philip Hands <phil@hands.com>,	Mathieu Trudel-Lapierre <mathieu.trudel-lapierre@canonical.com>,	Cyril Brulebois <kibi@debian.org>, debian-boot@lists.debian.org
+In-reply-to : <[🔎] 878terz8zf.fsf@whist.hands.com>
+References : <[🔎] CACfMzvqcj_Hfwoe0YizaV4NzsA153R0r24MDFNriocSDiw+Jfw@mail.gmail.com> <[🔎] 20171124114027.x4bx4nfgrpaau6gp@mraw.org> <[🔎] 20171124143309.bkjumhm75j3bjcru@home.ouaza.com> <[🔎] 20171127200846.GA29062@x260-buxy> <[🔎] CAF_rnBTH1Vk97Mibnsn-Vbng1o9MMKEyhM5YDUv+VzkwpY5hYA@mail.gmail.com> <[🔎] 878terz8zf.fsf@whist.hands.com>
+
+
+On Mon, 27 Nov 2017, Philip Hands wrote:
+> I'm not sure its important, but when testing a similar script I came up
+> with something that seems to give better results on the (perhaps
+> demented) test case I was playing with.  Here's mine:
+> 
+>   's/\([^= ]\+\|\([^= ]*=\("[^"]*"\|'"'[^']*'"'\|[^"'"'"' ][^ ]*\)\)\)\( \|$\)/\1\n/g'
+> 
+> The sed is not as nice to look at though.  I attach my test script.
+Yeah, it works. I updated my pu/kernel-cmdline-preseed to use this except
+that I dropped one set of useless parenthesis (the one in the middle of
+the stack).
+And I added a comment explaining the regular expression as this:
+# read this as (single-word|var-name=("value"|'value'|unquoted-value))(space|EOL)
+> BTW Should we actually be outputting the bits that contain no '=' for this?
+> If not, we could just pipe into:
+> 
+>   grep =
+I added this as well, although the shell code afterwards already skips
+over if the value is determined to be empty.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

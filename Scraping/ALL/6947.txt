@@ -1,0 +1,57 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#898468: debian-installer: black screen/long delay in graphical installer after switching from linux 4.15 to 4.16
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sat, 12 May 2018 05:36:05 +0200
+Message-id : 152609616539.5532.12788664828751075148.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 898468@bugs.debian.org
+
+
+Package: debian-installer
+Severity: serious
+Justification: graphical installer regression
+Hi,
+Ever since we switched from linux 4.15 to 4.16, the graphical installer
+gets a black screen. Comparing Xorg logs, everything is exactly the same
+except for the kernel version and timestamps. syslog has extra lines
+about random stuff:
+    May 12 02:25:01 init: starting pid 169, tty '': '/sbin/reopen-console /sbin/debian-installer'
+    May 12 02:25:01 init: starting pid 172, tty '/dev/tty4': '/usr/bin/tail -f /var/log/syslog'
+    May 12 02:25:02 init: process '/sbin/reopen-console /sbin/debian-installer' (pid 169) exited. Scheduling for restart.
+    May 12 02:25:02 init: starting pid 201, tty '': '/sbin/reopen-console /sbin/debian-installer'
+    May 12 02:25:02 kernel: [    3.302164] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.302291] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.302351] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.302450] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.302530] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.302682] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.302804] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.302963] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.303009] random: debconf: uninitialized urandom read (8 bytes read)
+    May 12 02:25:02 kernel: [    3.303078] random: debconf: uninitialized urandom read (8 bytes read)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    May 12 02:25:19 init: starting pid 170, tty '/dev/tty2': '-/bin/sh'
+    May 12 02:25:21 debconf: Setting debconf/language to en
+    May 12 02:25:21 main-menu[229]: DEBUG: resolver (libgcc1): package doesn't exist (ignored)
+    May 12 02:25:21 main-menu[229]: INFO: Falling back to the package description for brltty-udeb
+    May 12 02:25:21 main-menu[229]: INFO: Menu item 'localechooser' selected
+    May 12 02:25:22 debconf: Setting debconf/language to en
+    May 12 02:25:22 gtk-set-font: Switching to font 'DejaVu Sans' for 'en'
+    May 12 02:25:24 kernel: [   25.303708] random: crng init done
+After a while, this happens:               ^^^^^^^^^^^^^^^^^^^^^^
+Once that has happened (so after 20+ seconds), the screen comes up
+properly without any intervention. I think I've seen reports on
+#debian-kernel about boot stuff like plymouth/cryptsetup having issues
+gathering entropy at the early stages of the boot sequence, but I'm not
+sure that's a regression in the kernel, and/or something that should be
+dealt with from within cdebconf.
+That's why I'm filing this bug report for the time being, feel free to
+mention actual bug reports on the kernel side, and to suggest ways to go
+from here (I haven't followed that quite closely).
+I've X-D-Cc'd debian-kernel@ as their input is more than welcome.
+Interestingly, the text installer is working just fine so I guess it's
+something frontend-specific (some X11 fun?), but I won't dig into that
+right away.
+Cheers,
+-- 
+Cyril Brulebois (kibi@debian.org)            <https://debamax.com/>
+D-I release manager -- Release team member -- Freelance Consultant

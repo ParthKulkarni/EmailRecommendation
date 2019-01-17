@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: User-installable Debian packages?
+From : Benda Xu <heroxbd@gentoo.org>
+Date : Sun, 30 Jul 2017 19:34:42 +0900
+Message-id : 878tj6p60t.fsf@gentoo.org
+In-reply-to : <[🔎] 5d98ffcd-3c1e-6563-f5e5-d8a1652394b8@gmx.de> ("Steffen \=\?utf-8\?Q\?M\=C3\=B6ller\=22's\?\=	message of "Sun, 30 Jul 2017 11:36:34 +0200")
+References : <[🔎] b6683708-9b2b-289d-6686-82fcf7bbbeff@gmx.de>	<[🔎] 20170722120006.hmu2uiwnld4onk75@perpetual.pseudorandom.co.uk>	<[🔎] 874lu0u91w.fsf@mid.deneb.enyo.de>	<[🔎] 1383f3b1-5401-cc77-018a-b24dc154cac1@gmx.de>	<[🔎] b1828166-2a58-5a0a-9721-1d6b692e56aa@posteo.net>	<[🔎] 90df9784-09c2-3e29-39c9-fbd685aefd35@gmx.de>	<[🔎] 87vamape8r.fsf@gentoo.org>	<[🔎] 5d98ffcd-3c1e-6563-f5e5-d8a1652394b8@gmx.de>
+
+
+Hi Steffen,
+Steffen Möller <steffen_moeller@gmx.de> writes:
+> This is good to hear. While I like all that I read about Gentoo, I do
+> not know about how well equipped it is with packages in computational
+> biology [edit: I had a look at
+> https://packages.gentoo.org/categories/sci-biology and am impressed,
+> well done!].
+As a physicist, I am not sure if bioconductors is closely related to
+computational biology.  If so, a complete machine-generated Gentoo
+overlay for the repository of bioconductor[1] is available as part of
+R_Overlay[2].
+> This is where BioConda (bioconda.github.io) is very strong now. And
+> while the Conda community gets increasingly sophisticated with their
+> packaging, we can decide to either just let them go for it or to find
+> ways to compete. These folks start as low as libz, i.e. just above
+> libc, really. I hence tend to think that it is something that we as a
+> Linux distribution should care about.
+AFAIK, conda uses RPATH and $ORIGIN variable for ELFs, which is similar
+to Gentoo Prefix-rpath, the more traditional approach than Prefix-libc
+inside Gentoo.  On the other hand, the compatibility issues from libc
+versions is not negligible.  I see several times conda fails to install
+a python module correctly, e.g. xgboost, because libc on the host being
+too old.
+I hope the two camps of people will merge their efforts someday. But I
+am not optimistic.
+> I have followed Johanness' link to
+> https://wiki.debian.org/Teams/Dpkg/Spec/InstallBootstrap but frankly
+> do not yet know how to transform that into something computational
+> biologists would like to use and trust more than Conda. It would all
+> start with cross-distribution packages of dpkg, right? And the testing
+> infrastructure of Debian would need to care for such
+> off-root-experiences, too. I do not see that just around the corner.
+I am a long-term Debian user. It was Gentoo Prefix on HPC that
+introduced me to Gentoo.  At the time of adopting Gentoo in my work flow
+aside Debian, I have long thought of giving dpkg the same power.  I
+concluded that the most portable way to go is to reimplement the Prefix
+feature of Gentoo portage in Debian debhelper and treat Debian as a
+source-based distribution.
+As far as I can see, the easiest relocations are those modifiable in a
+plain text, like configuration file, script shebang, etc.  The medium
+ones are ELF, with which we have tools like patchelf and chrpath, etc.
+The most difficult part includes quite a few hidden path assumptions
+that can only be specified at build time, like the default GCC include
+dir.  I don't know whether distributing binary packages can alleviate
+the barrier.  Chances are many patches are needed to be carried to be
+able to override paths at run time.  (Considering Debian's existing
+patch base, that might not be a big drawback).
+For me with a lot of CPU cycles, compiling everything by Gentoo in my
+home directory is not a problem.  At the same time, I really would like
+to see dpkg can do something similar.  Sometimes binary packages are
+more robust and flexible.
+Cheers,
+Benda
+1. https://www.bioconductor.org
+2. https://wiki.gentoo.org/wiki/Project:Science/Overlay#Scientific_repositories

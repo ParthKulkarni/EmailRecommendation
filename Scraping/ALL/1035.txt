@@ -1,0 +1,75 @@
+To : debian-kernel@lists.debian.org
+Subject : Bug#864536: missing kernel modules in D-I sd-card images
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 11 Jun 2017 17:10:52 +0200
+Message-id : 20170611151052.GM8889@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 864536@bugs.debian.org
+In-reply-to : <[🔎] 20170611083058.GA32409@excalibur.cnev.de>
+References : <[🔎] 20170610085804.c113bccc9158ba4bd8596781@tiscali.it> <[🔎] 20170611001737.GK8889@mraw.org> <[🔎] 20170611083058.GA32409@excalibur.cnev.de>
+
+
+Hey debian-kernel,
+Karsten Merker <merker@debian.org> (2017-06-11):
+> as we appear to have the same underlying problem in bugs 864536,
+> 864457 and 856111, I personally think that adding the modules
+> necessary for i2c-support in d-i is worth another upload before
+> r0, provided the current diagnosis in 864457 is correct and
+> handling the additional work due to this is doable for everybody
+> involved.
+> 
+> If the current diagnosis in 864457 is correct, not providing i2c
+> modules AFAICS will not only break d-i completely on the
+> Firefly-RK3288 (bug 864536) but also the following usecases:
+> 
+> - all hd-media and thereby all offline installs
+> - all installations to USB-connected harddisks
+> - all non-serial-console installations due to non-working
+>   USB keyboard support
+> 
+> on all systems that use the AXP20x series of powermanagement
+> controllers, which is a significant part of the armhf platforms
+> that we provide installer images for:
+> 
+> - A10-OLinuXino-Lime
+> - A20-OLinuXino-Lime
+> - A20-OLinuXino-Lime2
+> - A20-OLinuXino-MICRO
+> - A20-Olimex-SOM-EVB
+> - BananaPi
+> - BananaPro
+> - Cubieboard
+> - Cubieboard2
+> - Cubietruck
+> - Lamobo_R1
+> - orangepi_plus
+> - pcDuino
+> - pcDuino3
+> 
+> AIUI, the following changes to the kernel package would be
+> needed:
+> 
+> - add an i2c-modules config for armhf which includes the generic
+>   i2c-modules config plus the i2c-mv64xxx and i2c-rk3x modules 
+> - add the axp20x_usb_power module to the armhf kernel-image config
+>   to address the specifics of bug #856111 (see Ben Hutchings' notes
+>   at https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=856111#54)
+> 
+> As that effectively only makes the same modules that we already
+> install on all armhf systems also available inside the d-i
+> environment, the chances of causing a regression by this change
+> are rather low.  Size constraints are AFAIK not a problem on
+> armhf (in contrast to armel), so the aforementioned changes
+> should be rather low-risk.
+Based on Karsten's input, I'm now rather convinced that adding a udeb
+before r0 would be the best way to deal with it. Even if some other
+modules are missing inside, we still have a chance of fixing this in a
+point release by just adding a few .ko files to an already existing
+udeb, instead of introducing it during a point release.
+I've just checked with Niels, and this looks like a sane approach from a
+release team point of view.
+Do you know if you'll be able to perform a new linux upload from the
+stretch branch in a relatively near future? The sooner we get fixes, the
+more we can run tests, and the saner release people will be. ;)
+Please let me know if I can help.
+KiBi.
+signature.asc

@@ -1,0 +1,60 @@
+To : Heinrich Schuchardt <xypron.glpk@gmx.de>, 860304@bugs.debian.org, Cyril Brulebois <kibi@debian.org>
+Subject : Bug#860304: flash-kernel: Incorrect installation path for dtbs
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Fri, 26 May 2017 15:09:45 -0700
+Message-id : 87poev8e3a.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 860304@bugs.debian.org
+In-reply-to : <[🔎] 3fb67c2c-9651-302b-859e-585a524aa047@gmx.de>
+References : <[🔎] 765d2837-9319-fc0c-a02c-4e33272ca499@gmx.de> <[🔎] 20170526163536.GF9052@mraw.org> <[🔎] 874lw7a1i8.fsf@aikidev.net> <[🔎] 3fb67c2c-9651-302b-859e-585a524aa047@gmx.de>
+
+
+On 2017-05-26, Heinrich Schuchardt wrote:
+> On 05/26/2017 08:58 PM, Vagrant Cascadian wrote:
+>> On 2017-05-26, Cyril Brulebois <kibi@debian.org> wrote:
+> I recently created file /etc/flash-kernel/ubootenv.d/fdtfile with
+>
+> setenv fdtfile meson-gxbb-odroidc2.dtb
+Oh, I didn't even know/remember that feature, that's really useful!
+>> I think the best thing to do would be to install in both
+>> /boot/dtbs/VERSION/FDTFILE and /boot/boot/dtbs/VERSION/SUBDIR/*.dtb, or
+>> create symlinks (if supported by the filesystem) if the file is found in
+>> a subdir... hopefully that won't require mangling the code too much;
+>> I'll take a look at it... or feel free to beat me to it! :)
+>> 
+>
+> /boot/boot/dtbs/VERSION/SUBDIR/*.dtb is what my patch does if a subdir
+> is provided in /usr/share/flash-kernel/db/all.db.
+It looks like your patches only copies it to the SUBDIR, but I think it
+would be safer to copy it twice in both /boot/dtbs/VERSION/FDTFILE as
+well as /boot/dtbs/VERSION/SUBDIR/FDTFILE, as different versions of
+u-boot may support inside or outside the SUBDIR.
+That said, bootscr.uboot-generic *should* fall back to the
+/boot/dtb-VERSION or /boot/dtb symlinks, after it fails to find the file
+based on $fdtfile, which *should* work around the problem entirely, even
+if a bit ugly.
+> If we want a more radical redesign:
+>
+> Why do we rely on environment variable fdtfile at all?
+>
+> The current device tree supplies file /proc/device-tree/model.
+> We read all.db to find the name of the dtb with this model name and than
+> install just this dtb from the Kernel installation.
+> So there is not much of a choice for U-Boot to pass different values of
+> fdtfile which will be of use when booting.
+>
+> Couldn't we simply write the dtb file name from all.db to /boot/boot.scr?
+Overall, I like this idea, but not all boot scripts work the same
+way... they may not even load a .dtb at all.
+Also, using what's requested from the bootloader would help if you've
+transferred the image to a compatible system that loads a different .dtb
+(e.g. wandboard-revc vs. wandboard-revb).
+> Should the dtb file name or the model string change between two Kernel
+> releases we are anyway in deep trouble when upgrading (unfortunately
+> this may happen, cf.
+> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d59561479e6f9cccc1d5905db37f668e1cbfdac2).
+Which is why I'd like to implement a feature to copy all .dtb files for
+boards with a sufficiently large /boot ... but it's a bit late in the
+freeze to implement such a thing...
+live well,
+  vagrant
+signature.asc

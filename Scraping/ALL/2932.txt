@@ -1,0 +1,125 @@
+To : Ben Hutchings <ben@decadent.org.uk>, 817236@bugs.debian.org
+Subject : Bug#817236: schroot: no access to pseudo-terminals in new chroots
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 6 Mar 2017 11:36:24 +0000
+Message-id : 20170306113624.ecrklqw5mqrq76tx@perpetual.pseudorandom.co.uk
+Reply-to : Simon McVittie <smcv@debian.org>, 817236@bugs.debian.org
+In-reply-to : <[🔎] 20170305194114.ijsjyo4etvgdimay@perpetual.pseudorandom.co.uk>
+References : <145751413473.6331.1324267589463806688.reportbug@deep-thought.43-1.org> <1478529616.1727.13.camel@decadent.org.uk> <20161120070325.GL21968@mraw.org> <20161125175431.df7uxctimmdfuw6p@bongo.bofh.it> <1480156058.16599.52.camel@decadent.org.uk> <20170215105556.e6bewv3afshgn3es@perpetual.pseudorandom.co.uk> <20170226143131.w7rfkfazjzyuzk2t@perpetual.pseudorandom.co.uk> <[🔎] 20170305135614.2boothzezjjh3lev@perpetual.pseudorandom.co.uk> <[🔎] 20170305194114.ijsjyo4etvgdimay@perpetual.pseudorandom.co.uk>
+
+
+On Sun, 05 Mar 2017 at 19:41:14 +0000, Simon McVittie wrote:
+> I have filed #856877 against schroot suggesting mounting a new instance
+> of /dev/pts, effectively making schroot behave less like chroot and more
+> like a container manager in this particular respect.
+> 
+> However, that causes a nasty regression for interactive use
+An updated patch on that bug solves the regression by bind-mounting the
+terminal from stdin (if any) onto /dev/console, which is approximately
+the same thing that lxc and systemd-nspawn do.
+Similarly, I have unmerged #841935 from this bug and used it to propose
+a pbuilder patch with similar behaviour.
+The attached patches add autopkgtest coverage for the proposed behaviour.
+I still think that for best results this should be solved in debootstrap
+*and* pbuilder/schroot.
+    S
+>From 3126f3adbf01bed3ee9cadf1391e9d8e6bc4b9c7 Mon Sep 17 00:00:00 2001
+From: Simon McVittie <smcv@debian.org>
+Date: Sun, 5 Mar 2017 18:27:41 +0000
+Subject: [PATCH 4/4] autopkgtest: Exercise schroot behaviour proposed on
+ #856877
+---
+ debian/tests/debian-testing        |  3 ++
+ debian/tests/fake/schroot-proposed | 68 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+ create mode 100755 debian/tests/fake/schroot-proposed
+diff --git a/debian/tests/debian-testing b/debian/tests/debian-testing
+index 928e4e1..65ee196 100755
+--- a/debian/tests/debian-testing
++++ b/debian/tests/debian-testing
+@@ -113,6 +113,9 @@ sub check_chroot {
+         $reference);
+ 
+     check_fake_schroot(%params, reference => $reference);
++    check_fake_schroot(%params, reference => $reference, version => 'proposed');
++    check_fake_schroot(%params, reference => $reference, version => 'proposed',
++        extra_argv => ['--sbuild']);
+ 
+     # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=817236
+     if (Dpkg::Version->new($params{kernel}) < Dpkg::Version->new('4.7') &&
+diff --git a/debian/tests/fake/schroot-proposed b/debian/tests/fake/schroot-proposed
+new file mode 100755
+index 0000000..b15e741
+--- /dev/null
++++ b/debian/tests/fake/schroot-proposed
+@@ -0,0 +1,68 @@
++#!/bin/sh
++# fake/schroot-proposed -- emulate proposed mount behaviour for schroot
++#
++# Copyright © 2017 Simon McVittie
++# SPDX-License-Identifier: MIT
++# (see debian/copyright)
++
++set -e
++
++# /etc/schroot/default/fstab
++bind_dev=yes
++
++while true; do
++	case "$1" in
++		(--sbuild)
++			shift
++			# /etc/schroot/sbuild/fstab
++			bind_dev=no
++			;;
++		(*)
++			break
++	esac
++done
++
++CHROOT_PATH="$1"
++shift
++if test -z "$CHROOT_PATH" || test -z "$1"; then
++	echo "Usage: $0 CHROOT COMMAND...">&2
++	exit 2
++fi
++
++[ "$bind_dev" = no ] || mount --bind /dev "$CHROOT_PATH/dev"
++mount -t devpts -o rw,newinstance,ptmxmode=666,mode=620,gid=5 /dev/pts "$CHROOT_PATH/dev/pts"
++
++ls -l "$CHROOT_PATH/dev/ptmx" | sed -e 's/^/# fake-schroot: /' >&2
++ls -l "$CHROOT_PATH/dev/pts/ptmx" | sed -e 's/^/# fake-schroot: /' >&2
++
++mounted_ptmx=no
++
++if [ -e "$CHROOT_PATH/dev/pts/ptmx" ] && \
++        ! [ -L "$CHROOT_PATH/dev/ptmx" ]; then
++    mount --bind "$CHROOT_PATH/dev/pts/ptmx" "$CHROOT_PATH/dev/ptmx"
++    mounted_ptmx=yes
++fi
++
++mounted_console=no
++
++if stdin_tty="$(tty)"; then
++    if [ ! -e "$CHROOT_PATH/dev/console" ]; then
++        mknod -m700 "$CHROOT_PATH/dev/console" c 5 1
++    fi
++
++    mount --bind "$stdin_tty" "$CHROOT_PATH/dev/console"
++    mounted_console=yes
++fi
++
++ls -l "$CHROOT_PATH/dev/ptmx" | sed -e 's/^/# fake-schroot: /' >&2
++ls -l "$CHROOT_PATH/dev/pts/ptmx" | sed -e 's/^/# fake-schroot: /' >&2
++
++e=0
++chroot "$CHROOT_PATH" "$@" || e=$?
++
++[ "$mounted_console" = no ] || umount "$CHROOT_PATH/dev/console"
++[ "$mounted_ptmx" = no ] || umount "$CHROOT_PATH/dev/ptmx"
++umount "$CHROOT_PATH/dev/pts"
++[ "$bind_dev" = no ] || umount "$CHROOT_PATH/dev"
++
++exit "$e"
+-- 
+2.11.0

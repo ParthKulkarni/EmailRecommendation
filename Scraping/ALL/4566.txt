@@ -1,0 +1,39 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#860467: apt-setup https protocol support in generators/91security for security mirror
+From : Daniel Khodaparast <daniel.khodaparast@bronto.com>
+Date : Mon, 17 Apr 2017 11:39:35 +0000
+Message-id : 149242917535.22297.1541996904615914333.reportbug@khodaparast3.brontolabs.local
+Reply-to : Daniel Khodaparast <daniel.khodaparast@bronto.com>, 860467@bugs.debian.org
+
+
+Package: apt-setup
+Severity: normal
+Dear Maintainer,
+This observation resulted from working on a preseed configuration for a Ubuntu install, while attempting to use an internal security mirror we have for security.ubuntu.com.  This mirror uses https, which after much debugging/digging is not a supported protocol by apt-setup for security_host and security_path.
+Currently in generators/91security there is a bit of hardcoding that forces this to use the http protocol.  There is no way to override this like with mirror/protocol.  Unfortunately we had to create a non-https mirror of security.ubuntu.com as a stop-gap result.
+It would be nice if there was an equivalent way to set this protocol as mirror/protocol.  Preferably, this could be apt-setup/security_protocol to coincide with the existing parameters (secuirty_host and security_path).
+Example proposed preseed:
+    d-i apt-setup/services-select multiselect security
+    d-i apt-setup/security_protocol string https
+    d-i apt-setup/security_host string internal.mirror.net
+    d-i apt-setup/security_path string /current/security.ubuntu.com/ubuntu
+Example resulting security mirror:
+    https://internal.mirror.net/current/security.ubuntu.com/ubuntu
+This was also requested additionally per a conversation in #ubuntu-devel:
+    [17:15] <xnox_> DPK_, there is one more key for protocol i think
+    [17:15] <xnox_> but i can't remember if we ask that for security too, let me check quickly
+    [17:16] <xnox_> (cause we support http, ftp, https)
+    [17:17] == sergiusens [~sergiusen@181.111.178.194] has quit [Remote host closed the connection]
+    [17:17] <xnox_> DPK_, ha, we do not it is hardcoded to http
+    [17:17] <xnox_> for the security
+    [17:18] <xnox_> DPK_, i think you may need to apply sed to either generators/91security during install; or in the install hook; or post install.
+    [17:18] <xnox_> DPK_, could you please open a bug report against apt-setup requesting to support apt-setup/security_protocol key?
+-- System Information:
+Debian Release: stretch/sid
+  APT prefers xenial-updates
+  APT policy: (500, 'xenial-updates'), (500, 'xenial-security'), (500, 'xenial'), (100, 'xenial-backports')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.4.0-66-generic (SMP w/1 CPU core)
+Locale: LANG=en_US, LC_CTYPE=en_US (charmap=ISO-8859-1)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)

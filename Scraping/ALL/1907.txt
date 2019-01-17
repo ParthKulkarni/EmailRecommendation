@@ -1,0 +1,99 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#875989: console-setup: generated cached_setup_keyboard.sh references /tmp/ file
+From : GSR <gsr.bugs@infernal-iceberg.com>
+Date : Sun, 17 Sep 2017 02:15:12 +0200
+Message-id : 20170917001512.5ufczparcaqvxxsw@fortress.battleship
+Reply-to : GSR <gsr.bugs@infernal-iceberg.com>, 875989@bugs.debian.org
+
+
+Package: console-setup
+Version: 1.167
+Severity: normal
+Updated from 166 to 167 and when verifying changes in /etc/ noticed
+there was only one change, in console-setup/cached_setup_keyboard.sh:
+---8<---
+-loadkeys '/etc/console-setup/cached_UTF-8_del.kmap.gz' > '/dev/null' 
++loadkeys '/tmp/tmpkbd.31u83e' > '/dev/null'
+--->8---
+File in /tmp/, named tmpkbd and with (random) extension that looks
+like one from mktemp? And before it was a file in /etc/ with
+understable name? Suspicious.
+Running the script by hand returns the obvious "cannot open file
+/tmp/tmpkbd.31u83e" while calling the other version of loadkeys
+invocation works fine.
+Prediction is that in next boot it will complain too and require
+manually calling with the proper kmap file.
+Also while tracking the calls for boot sequence, found that usage line
+for /etc/init.d/keyboard-setup.sh and console-setup.sh forgot the .sh
+extension (two mount*.sh forgot the extension too, but that would be
+for another report). Most scripts properly report their name with .sh
+and one even just uses $0 so it reacts automatically to however it was
+called. Minor cosmetic details.
+Thanks,
+GSR
+ 
+-- System Information:
+Debian Release: buster/sid
+  APT prefers unstable
+  APT policy: (500, 'unstable'), (500, 'testing'), (1, 'experimental')
+Architecture: amd64 (x86_64)
+Kernel: Linux 4.11.0-2-amd64 (SMP w/8 CPU cores)
+Locale: LANG=en_GB.UTF-8, LC_CTYPE=en_GB.UTF-8 (charmap=UTF-8), LANGUAGE=en_GB:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: sysvinit (via /sbin/init)
+Versions of packages console-setup depends on:
+ii  console-setup-linux     1.167
+ii  debconf                 1.5.62
+ii  keyboard-configuration  1.167
+ii  xkb-data                2.5.1-3
+console-setup recommends no packages.
+Versions of packages console-setup suggests:
+ii  locales   2.24-17
+ii  lsb-base  9.20170808
+Versions of packages keyboard-configuration depends on:
+ii  debconf                 1.5.62
+ii  liblocale-gettext-perl  1.07-3+b3
+Versions of packages console-setup-linux depends on:
+ii  init-system-helpers     1.49
+ii  initscripts             2.88dsf-59.9
+ii  kbd                     1.15.5-1
+ii  keyboard-configuration  1.167
+console-setup-linux suggests no packages.
+Versions of packages console-setup is related to:
+pn  console-common        <none>
+pn  console-data          <none>
+pn  console-tools         <none>
+pn  gnome-control-center  <none>
+ii  kbd                   1.15.5-1
+-- debconf information:
+  keyboard-configuration/store_defaults_in_debconf_db: true
+* keyboard-configuration/altgr: Right Alt (AltGr)
+  console-setup/use_system_font:
+* console-setup/fontface47: Fixed
+  keyboard-configuration/layoutcode: es
+  keyboard-configuration/xkb-keymap: es
+  console-setup/codesetcode: Lat15
+  keyboard-configuration/other:
+  keyboard-configuration/layout:
+  console-setup/framebuffer_only:
+  keyboard-configuration/unsupported_layout: true
+  console-setup/fontsize-text47: 8x16
+  console-setup/codeset47: # Latin1 and Latin5 - western Europe and Turkic languages
+* console-setup/fontsize-fb47: 8x16
+  keyboard-configuration/toggle: No toggling
+  keyboard-configuration/switch: No temporary switch
+* keyboard-configuration/compose: Menu key
+  keyboard-configuration/optionscode: lv3:ralt_switch,compose:menu,terminate:ctrl_alt_bksp
+  keyboard-configuration/modelcode: pc105
+  keyboard-configuration/variantcode:
+  keyboard-configuration/unsupported_config_options: true
+  console-setup/guess_font:
+* keyboard-configuration/model: Generic 105-key (Intl) PC
+  debian-installer/console-setup-udeb/title:
+* keyboard-configuration/variant: Spanish
+  console-setup/store_defaults_in_debconf_db: true
+  keyboard-configuration/unsupported_options: true
+* keyboard-configuration/ctrl_alt_bksp: true
+  console-setup/charmap47: UTF-8
+  console-setup/fontsize: 8x16
+  keyboard-configuration/unsupported_config_layout: true

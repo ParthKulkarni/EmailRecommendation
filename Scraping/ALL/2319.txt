@@ -1,0 +1,45 @@
+To : Colin Watson <cjwatson@debian.org>
+Subject : Bug#868859: iso-scan: should also scan LVM logical volumes
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Tue, 28 Nov 2017 15:12:27 +0100
+Message-id : 20171128141227.GA1336@x260-buxy
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 868859@bugs.debian.org
+In-reply-to : <20171029155223.5gul5q5iayfopk4q@riva.ucam.org>
+References : <20170719094848.3wmmwer4vsfbu2qp@home.ouaza.com> <20171029155223.5gul5q5iayfopk4q@riva.ucam.org> <20170719094848.3wmmwer4vsfbu2qp@home.ouaza.com>
+
+
+Control: tag -1 + pending
+On Sun, 29 Oct 2017, Colin Watson wrote:
+> > Obviously this has implications on the rest of the installation process.
+> > The logical volume will be in use and the partitioning step will have
+> > to preserve the logical volume and its parent volume group.
+> >     
+> > But partman is perfectly able to cope with the logical volumes being
+> > already activated so it should be fine to do this here.
+> 
+> I agree that it ought to work, but what testing have you done of this?
+> Have you confirmed that the LV is marked as locked in partman and can't
+> be changed using manual partitioning operations?  What happens with
+> automatic partitioning?
+I just did some further tests. In manual partitioning, it was correctly
+refusing to remove the logical volume that was in use. It was also not
+letting me change anything on the partition used as physical volume.
+However in automatic partitioning, it would propose to wipe the LV, VG and
+PV. You can accept it and you get not failure. However you get a failure
+later on when you ask the kernel to reload the newly created partition
+table... but at this point it's too late already.
+I thus pushed a fix to partman-lvm:
+https://anonscm.debian.org/cgit/d-i/partman-lvm.git/commit/?id=b628ca59695e549e5672b26919ba3aa9c3c371f0
+With this fixed partman-lvm, it will still offer to wipe everything
+but you get an instant failure and the partitioner is still in a
+consistent state.
+> > +               if type vgchange >/dev/null; then
+> 
+> Nit: it's worth ">/dev/null 2>&1" here, as "type" writes to stderr if
+> the command isn't available, and that's probably just noise in the logs.
+Done. I pushed my updated patch.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

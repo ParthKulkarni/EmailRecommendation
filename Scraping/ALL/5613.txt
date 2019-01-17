@@ -1,0 +1,69 @@
+To : 902020@bugs.debian.org
+Subject : Bug#902020: debian-installer: netboot.tar.gz archives should have identical structure, include version.info file
+From : "Andreas B. Mundt" <andi@debian.org>
+Date : Fri, 22 Jun 2018 11:19:07 +0300
+Message-id : 20180622081907.GA11222@fuzi
+Reply-to : "Andreas B. Mundt" <andi@debian.org>, 902020@bugs.debian.org
+In-reply-to : <[🔎] 20180621164834.2j74pc2mibnodk7o@mraw.org>
+References : <[🔎] 152959313782.857.2127359759277198252.reportbug@fuzi.localdomain> <[🔎] 20180621164834.2j74pc2mibnodk7o@mraw.org> <[🔎] 152959313782.857.2127359759277198252.reportbug@fuzi.localdomain>
+
+
+Control: tag -1 patch
+Hi Cyril,
+On Thu, Jun 21, 2018 at 06:48:34PM +0200, Cyril Brulebois wrote:
+> > Severity: wishlist
+> > Tags: d-i
+>
+> (No need for this tag for d-i and debs/udebs maintained by debian-boot@;
+> we tend to use it for pieces not directly linked to us.)
+Ah, thanks for info and fix!
+> >
+> > Including the 'version.info' would ease handling all archives
+> > automatically in the same way (for example in 'di-netboot-assistant').
+>
+> Right, it seems armhf has its particular way of generating the netboot
+> tarball (build/config/armhf/netboot.cfg) instead of using variables as
+> that seems to be done for other architectures. See its netboot_tarball
+> target.
+Thanks for pointing me in the right direction.  I worked out a minimal
+patch that fixes the issue.  However, it would be interesting to know
+why armhf uses its own individual way, no other architecture seems to
+do that:
+/debian-installer$ ls -l build/config/*/netboot.cfg
+-rw-r--r-- 1 ansible ansible  279 Jun 21 21:34 build/config/alpha/netboot.cfg
+-rw-r--r-- 1 ansible ansible  430 Jun 21 21:34 build/config/amd64/netboot.cfg
+-rw-r--r-- 1 ansible ansible  337 Jun 21 21:34 build/config/arm64/netboot.cfg
+-rw-r--r-- 1 ansible ansible 3369 Jun 21 23:13 build/config/armhf/netboot.cfg
+                             ^^^^
+-rw-r--r-- 1 ansible ansible  238 Jun 21 21:34 build/config/hppa/netboot.cfg
+-rw-r--r-- 1 ansible ansible  367 Jun 21 21:34 build/config/hurd-i386/netboot.cfg
+-rw-r--r-- 1 ansible ansible  430 Jun 21 21:34 build/config/i386/netboot.cfg
+-rw-r--r-- 1 ansible ansible  369 Jun 21 21:34 build/config/ia64/netboot.cfg
+-rw-r--r-- 1 ansible ansible  919 Jun 21 21:34 build/config/m68k/netboot.cfg
+-rw-r--r-- 1 ansible ansible  261 Jun 21 21:34 build/config/ppc64el/netboot.cfg
+-rw-r--r-- 1 ansible ansible  545 Jun 21 21:34 build/config/sparc64/netboot.cfg
+-rw-r--r-- 1 ansible ansible  545 Jun 21 21:34 build/config/sparc/netboot.cfg
+Perhaps this can be unified, but I guess to do that, someone more
+familiar with the build system is needed.
+Best regards,
+  Andi
+diff --git a/build/config/armhf/netboot.cfg b/build/config/armhf/netboot.cfg
+index fd5f6f3a2..93ea03870 100644
+--- a/build/config/armhf/netboot.cfg
++++ b/build/config/armhf/netboot.cfg
+@@ -29,12 +29,14 @@ netboot_bootscript_tftp:
+ netboot_tarball: $(KERNEL) $(INITRD) $(TEMP_DTBS) netboot_bootscript_tftp
+ 	rm -rf $(TEMP)/netboot_tarball
+ 	mkdir -p $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)
++	echo 'Debian version:  $(DEBIAN_VERSION)' > $(TEMP)/netboot_tarball/version.info
++	echo 'Installer build: $(BUILD_DATE)' >> $(TEMP)/netboot_tarball/version.info
+ 	cp $(KERNEL) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)vmlinuz
+ 	cp $(INITRD) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)initrd.gz
+ 	cp -r $(TEMP_DTBS) $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)dtbs/
+ 	cp $(SOME_DEST)/$(EXTRANAME)tftpboot.scr $(TEMP)/netboot_tarball/$(TFTP_INSTALLER_PATH)
+ 	( cd $(TEMP)/netboot_tarball; ln -s $(TFTP_INSTALLER_PATH)tftpboot.scr boot.scr.uimg )
+-	tar -C $(TEMP)/netboot_tarball/ -zcf $(SOME_DEST)/$(EXTRANAME)netboot.tar.gz $(TFTP_INSTALLER_PATH)tftpboot.scr $(TFTP_INSTALLER_PATH)initrd.gz $(TFTP_INSTALLER_PATH)vmlinuz $(TFTP_INSTALLER_PATH)dtbs/ boot.scr.uimg
++	tar -C $(TEMP)/netboot_tarball/ -zcf $(SOME_DEST)/$(EXTRANAME)netboot.tar.gz ./$(TFTP_INSTALLER_PATH)tftpboot.scr ./$(TFTP_INSTALLER_PATH)initrd.gz ./$(TFTP_INSTALLER_PATH)vmlinuz ./$(TFTP_INSTALLER_PATH)dtbs/ ./boot.scr.uimg ./version.info
+ 
+ .PHONY: netboot_images_concatenateable
+ netboot_images_concatenateable: $(KERNEL) $(INITRD) $(TEMP_DTBS) netboot_bootscript_sd

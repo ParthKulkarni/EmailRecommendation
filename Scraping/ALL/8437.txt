@@ -1,0 +1,559 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>
+Subject : Bug#690210: debootstrap : debian-ports support
+From : jhcha54008 <jhcha54008@free.fr>
+Date : Sat, 28 Apr 2018 17:46:08 +0200
+Message-id : 20180428154608.GA2945@debirf-dominicain
+Reply-to : jhcha54008 <jhcha54008@free.fr>, 690210@bugs.debian.org
+In-reply-to : <20180418144035.0f4bfdeedcc988504eb6a5db@iijmio-mail.jp>
+References : <20121011103043.GB1306@debirf-dominicain> <20180418144035.0f4bfdeedcc988504eb6a5db@iijmio-mail.jp> <20121011103043.GB1306@debirf-dominicain>
+
+
+Le mercredi 18 avril à 14h 40mn 35s (+0900), Hideki Yamane a écrit :
+> control: tags -1 +pending
+> 
+> On Sat, 27 May 2017 11:27:06 +0200 jhcha54008 <jhcha54008@free.fr> wrote:
+> > I am testing the updated ([1],[2]) version attached of a 
+> > debootstrap script to accomodate the peculiarities of non 
+> > released port architectures from www.debian-ports.org : 
+> (snip)
+> > I would be thankful for feedback if someone has the opportunity 
+> > to test it.
+> 
+>  Adjust it to current git code, could you check it, please?
+> 
+Hi,
+Thank you for your work on debootstrap and for this
+patch adding debian-ports support.
+A slightly modified version of the patch (included below)
+worked for me (alpha qemu-user emulation in a sid chroot, 
+jessie/amd64). I have not the opportunity to test on a 
+real alpha workstation presently.
+The purpose of the patch was to install through http (or
+https) from a debian-ports mirror. This code shouldn't run
+if one installs from a CD (there is no 'unreleased' archive on
+CD/DVD, https://cdimage.debian.org/cdimage/ports/)
+Some architectures (e.g. hppa) don't use the 'unreleased'
+distribution for deb packages, even on debian-ports mirrors.
+(However, the patch doesn't hurt there as they need to switch the 
+default keyring and mirror to the debian-ports ones)
+The user should be able to deactivate the debian-ports support code
+at will : think of the somewhat special use case where you set up a 
+local http mirror serving the content of a CD and install from it.
+There are some more comments in this version of the patch. 
+However, code which lands in an udeb package has usually terse 
+comments : size matters. Please suppress or rephrase the comments
+that you don't find necessary for the intelligibility of the code
+(an external eye is definitely better than mine !)
+We may minimize the footprint in moving the perl code in a separate 
+file that we don't ship in debootstrap-udeb : it is useless in 
+debian-installer (there is no perl therein).
+Where is the right place to give due credit to libdpkg-perl 
+(Dpkg::Package and Dpkg::Version) for the functions that I reused ?
+Shipping the whole perl code make debootstrap usable with minimal
+dependencies (wget and perl-base) : was it the right choice ?
+I keep for a coming message some more questions on the 
+best way to package debian-ports support inside debian.
+Thank you very much for getting debian-ports support under way 
+after these years !
+Regards,
+JH Chatenet
+diff -Naur debootstrap-1.0.97.orig/debian/rules debootstrap-1.0.97/debian/rules
+--- debootstrap-1.0.97.orig/debian/rules	2018-04-17 04:06:32.000000000 +0200
++++ debootstrap-1.0.97/debian/rules	2018-04-27 23:55:36.279303900 +0200
+@@ -37,6 +37,7 @@
+ 		debian/debootstrap-udeb/usr/share/debootstrap/scripts/stable \
+ 		debian/debootstrap-udeb/usr/share/debootstrap/scripts/testing \
+ 		debian/debootstrap-udeb/usr/share/debootstrap/scripts/unstable
++	-rm -f debian/debootstrap-udeb/usr/share/debootstrap/sort_pkgs_perl 
+ 
+ override_dh_gencontrol:
+ 	dh_gencontrol -- -Vkeyring=$(KEYRING)
+diff -Naur debootstrap-1.0.97.orig/debootstrap debootstrap-1.0.97/debootstrap
+--- debootstrap-1.0.97.orig/debootstrap	2018-04-17 04:06:32.000000000 +0200
++++ debootstrap-1.0.97/debootstrap	2018-04-27 23:55:36.383304416 +0200
+@@ -46,6 +46,7 @@
+ CHECKCERTIF=""
+ PRIVATEKEY=""
+ CACHE_DIR=""
++PORT=""
+ 
+ DEF_MIRROR="http://deb.debian.org/debian";
+ DEF_HTTPS_MIRROR="https://deb.debian.org/debian";
+@@ -124,6 +125,7 @@
+       --private-key=file     read the private key from file
+       --certificate=file     use the client certificate stored in file (PEM)
+       --no-check-certificate do not check certificate against certificate authorities
++      --debian-ports         set up defaults for a port architecture (see www.ports.debian.org)
+ EOF
+ }
+ 
+@@ -384,6 +386,10 @@
+ 		CHECKCERTIF="--no-check-certificate"
+ 		shift
+ 		;;
++	   --debian-ports)
++		PORT=yes
++		shift
++		;;
+ 	    -*)
+ 		error 1 BADARG "unrecognized or invalid option %s" "$1"
+ 		;;
+@@ -428,6 +434,9 @@
+ 		TARGET=$CHROOTDIR
+ 	fi
+ 	SCRIPT=$DEBOOTSTRAP_DIR/suite-script
++	if [ -e "$DEBOOTSTRAP_DIR/debian_ports" ]; then
++		PORT=yes
++	fi
+ else
+ 	if [ -z "$1" ] || [ -z "$2" ]; then
+ 		usage_err 1 NEEDSUITETARGET "You must specify a suite and a target."
+@@ -716,6 +725,7 @@
+ 		echo "$base"			>"$TARGET/debootstrap/base"
+ 
+ 		chmod 755 "$TARGET/debootstrap/debootstrap"
++		[ "" = "$PORT" ] || touch "$TARGET/debootstrap/debian_ports"
+ 	fi
+ fi
+ 
+diff -Naur debootstrap-1.0.97.orig/debootstrap.8 debootstrap-1.0.97/debootstrap.8
+--- debootstrap-1.0.97.orig/debootstrap.8	2018-04-17 04:06:32.000000000 +0200
++++ debootstrap-1.0.97/debootstrap.8	2018-04-27 23:55:36.415304575 +0200
+@@ -165,6 +165,10 @@
+ .IP
+ .IP "\fB\-\-private\-key=FILE\fP"
+ Read the private key from file
++.IP
++.IP "\fB\-\-debian\-ports=FILE\fP"
++Tweaking for port architectures (see www.ports.debian.org) when downloading
++from a ftp.ports.debian.org mirror.
+ 
+ .SH EXAMPLES
+ .
+diff -Naur debootstrap-1.0.97.orig/functions debootstrap-1.0.97/functions
+--- debootstrap-1.0.97.orig/functions	2018-04-17 04:06:32.000000000 +0200
++++ debootstrap-1.0.97/functions	2018-04-27 23:55:36.591305447 +0200
+@@ -436,6 +436,13 @@
+ download_indices () {
+ 	mk_download_dirs
+ 	"$DOWNLOAD_INDICES" "$(echo "$@" | tr ' ' '\n' | sort)"
++	# debian-ports also needs "unreleased" architecture
++	if [ -n "$PORT" ]; then
++		local mem_SUITE
++		mem_SUITE="$SUITE"
++		SUITE="unreleased" "$DOWNLOAD_INDICES" $(echo "$@" | tr ' ' '\n' | sort)
++		SUITE="$mem_SUITE"
++	fi
+ }
+ 
+ debfor () {
+@@ -487,6 +494,36 @@
+ 	esac
+ }
+ 
++
++merge_packages_files () {
++	local TEMP_COMPONENTS m c c1 path pkgdest path1 pkgdest1
++
++	COMPONENTS_WITHOUT_UNRELEASED=$(echo $COMPONENTS|tr ' ' '\n'|sort|uniq|tr '\n' ' ')
++	TEMP_COMPONENTS="$COMPONENTS_WITHOUT_UNRELEASED"
++
++	for m in $MIRRORS; do
++		for c in $COMPONENTS_WITHOUT_UNRELEASED; do
++			path="dists/unreleased/$c/binary-$ARCH/Packages"
++			pkgdest="$TARGET/$($DLDEST pkg "unreleased" "$c" "$ARCH" "$m" "$path")"
++			path1="dists/$SUITE/$c/binary-$ARCH/Packages"
++			pkgdest1="$TARGET/$($DLDEST pkg "$SUITE" "$c" "$ARCH" "$m" "$path1")"
++
++			cat "$pkgdest1" "$pkgdest" > "${pkgdest1}.concatenate"
++			"$SORT_PKGS" "${pkgdest1}.concatenate" > "${pkgdest1}.merged"
++			if [ -s "${pkgdest1}.merged" ] ; then
++				if [ -n "$DEBOOTSTRAP_MERGE_KEEP_ORIGINAL" ] ; then
++					mv "$pkgdest1" "${pkgdest1}.original"
++				fi
++				mv "${pkgdest1}.merged" "$pkgdest1"; rm -f "${pkgdest1}.concatenate"
++			fi
++		done
++	done
++
++	TEMP_COMPONENTS="$(echo $TEMP_COMPONENTS|tr ' ' '\n'|sort|uniq|tr '\n' ' ')"
++	if [ "$TEMP_COMPONENTS" != "$COMPONENTS_WITHOUT_UNRELEASED" ] ; then
++		COMPONENTS="$TEMP_COMPONENTS"
++	fi
++}
+ ################################################################## download
+ 
+ get_release_checksum () {
+@@ -1062,13 +1099,28 @@
+ setup_apt_sources () {
+ 	mkdir -p "$TARGET/etc/apt"
+ 	for m in "$@"; do
+-		local cs c path pkgdest
+-		for c in ${COMPONENTS:-$USE_COMPONENTS}; do
+-			path="dists/$SUITE/$c/binary-$ARCH/Packages"
+-			pkgdest="$TARGET/$($DLDEST pkg "$SUITE" "$c" "$ARCH" "$m" "$path")"
+-			if [ -e "$pkgdest" ]; then cs="$cs $c"; fi
+-		done
+-		if [ "$cs" != "" ]; then echo "deb $m $SUITE$cs"; fi
++		if [ -z "$PORT" ]; then 
++			local cs c path pkgdest
++			for c in ${COMPONENTS:-$USE_COMPONENTS}; do
++				path="dists/$SUITE/$c/binary-$ARCH/Packages"
++				pkgdest="$TARGET/$($DLDEST pkg "$SUITE" "$c" "$ARCH" "$m" "$path")"
++				if [ -e "$pkgdest" ]; then cs="$cs $c"; fi
++			done
++			if [ "$cs" != "" ]; then echo "deb $m $SUITE$cs"; fi
++		else
++			local cs cs1 c path path1 pkgdest pkgdest1
++			for c in ${COMPONENTS_WITHOUT_UNRELEASED:-$USE_COMPONENTS}; do
++				path="dists/$SUITE/$c/binary-$ARCH/Packages"
++				pkgdest="$TARGET/$($DLDEST pkg "$SUITE" "$c" "$ARCH" "$m" "$path")"
++				if [ -e "$pkgdest" ]; then cs="$cs $c"; fi
++				# for "unreleased" archive (debian-ports)
++				path1="dists/unreleased/$c/binary-$ARCH/Packages"
++				pkgdest1="$TARGET/$($DLDEST pkg unreleased "$c" "$ARCH" "$m" "$path1")"
++				if [ -e "$pkgdest1" ]; then cs1="$cs1 $c"; fi
++			done
++			if [ "$cs" != "" ]; then echo "deb $m $SUITE$cs"; fi
++			if [ "$cs1" != "" ]; then echo "deb $m unreleased${cs1}"; fi
++		fi
+ 	done > "$TARGET/etc/apt/sources.list"
+ }
+ 
+@@ -1307,6 +1359,34 @@
+ 	done
+ }
+ 
++
++################################################################ sort_pkgs
++
++# unstable and unreleased are merged and sorted by SORT_PKGS. An alternative
++# sort program can be given in the environment variable DEBOOTSTRAP_SORT_PKGS
++# If no perl interpreter is available, a minimal C implementation of sort_pkgs
++# should be provided.
++
++if [ -n "$DEBOOTSTRAP_SORT_PKGS" ] ; then
++	if command -v  "$DEBOOTSTRAP_SORT_PKGS" >/dev/null 2>&1; then
++		SORT_PKGS="$DEBOOTSTRAP_SORT_PKGS"
++	else
++		error 1 SORTCMDUNVL "%s is not available on the system" "$DEBOOTSTRAP_SORT_PKGS"
++	fi
++elif in_path perl && [ -e "$DEBOOTSTRAP_DIR/sort_pkgs_perl" ]; then
++	. "$DEBOOTSTRAP_DIR/sort_pkgs_perl"
++elif [ -e /usr/lib/debootstrap/di_sort_pkgs ]; then
++	# There is no perl available in debian-installer.
++	# A binary implementation of sort_pkgs should be provided by
++	# another udeb package under /usr/lib/debootstrap/di_sort_pkgs
++	SORT_PKGS=/usr/lib/debootstrap/di_sort_pkgs
++elif [ -e "$DEBOOTSTRAP_DIR/sort_pkgs" ]; then
++	SORT_PKGS="$DEBOOTSTRAP_DIR/sort_pkgs"
++else
++	SORT_PKGS=""
++fi
++
++
+ ################################################################ pkgdetails
+ 
+ # NOTE
+diff -Naur debootstrap-1.0.97.orig/Makefile debootstrap-1.0.97/Makefile
+--- debootstrap-1.0.97.orig/Makefile	2018-04-17 04:06:32.000000000 +0200
++++ debootstrap-1.0.97/Makefile	2018-04-27 23:55:36.267303841 +0200
+@@ -12,6 +12,7 @@
+ 
+ 	cp -a scripts/* $(DSDIR)/scripts/
+ 	install -o root -g root -m 0644 functions $(DSDIR)/
++	install -o root -g root -m 0644 sort_pkgs_perl $(DSDIR)/
+ 
+ 	sed 's/@VERSION@/$(VERSION)/g' debootstrap >$(DESTDIR)/usr/sbin/debootstrap
+ 	chown root:root $(DESTDIR)/usr/sbin/debootstrap
+diff -Naur debootstrap-1.0.97.orig/scripts/debian-common debootstrap-1.0.97/scripts/debian-common
+--- debootstrap-1.0.97.orig/scripts/debian-common	2018-04-17 04:06:32.000000000 +0200
++++ debootstrap-1.0.97/scripts/debian-common	2018-04-27 23:56:03.747440107 +0200
+@@ -10,12 +10,23 @@
+ esac
+ 
+ work_out_debs () {
+-	required="$(get_debs Priority: required)"
++
++	if [ -n "$PORT" ]; then
++	# merge Packages files from unstable and unreleased
++		if [ -z "$SORT_PKGS" ]; then
++			error 1 NO_SORTCMD "No sort_pkgs is available; either install perl, or build sort_pkgs.c from source"
++		fi
++		merge_packages_files
++	fi
++
++	# Duplicate package names (possibly from different versions) are causing errors.
++	required="$(get_debs Priority: required|tr ' ' '\n'|sort|uniq|tr '\n' ' ')"
+ 
+ 	if doing_variant - || doing_variant fakechroot; then
+ 		#required="$required $(get_debs Priority: important)"
+ 		#  ^^ should be getting debconf here somehow maybe
+-		base="$(get_debs Priority: important)"
++		# Duplicate package names (possibly from different versions) are causing errors.
++		base="$(get_debs Priority: important|tr ' ' '\n'|sort|uniq|tr '\n' ' ')"
+ 	elif doing_variant buildd; then
+ 		base="apt build-essential"
+ 	elif doing_variant minbase; then
+@@ -32,6 +43,11 @@
+ 		base="$base apt-transport-https ca-certificates"
+ 		;;
+ 	esac
++
++	# Duplicate package names (in required and in base) are causing errors.
++	if [ "$RESOLVE_DEPS" != true ]; then
++		base=$(without "$base" "$required")
++	fi
+ }
+ 
+ first_stage_install () {
+diff -Naur debootstrap-1.0.97.orig/scripts/sid debootstrap-1.0.97/scripts/sid
+--- debootstrap-1.0.97.orig/scripts/sid	2018-04-17 04:06:32.000000000 +0200
++++ debootstrap-1.0.97/scripts/sid	2018-04-27 23:55:36.607305527 +0200
+@@ -2,7 +2,55 @@
+ download_style apt
+ finddebs_style from-indices
+ variants - buildd fakechroot minbase
+-keyring /usr/share/keyrings/debian-archive-keyring.gpg
++
++
++# Check for debian-ports and print a warning if needed
++if [ -z "$PORT" ] && [ ! "$SECOND_STAGE_ONLY" = true ]; then
++	# If PORT is set, the user took the responsability ...
++	if [ -z "$USER_MIRROR" ] || [ ! "$USER_MIRROR" = "${USER_MIRROR#http://}"; ] || \
++	  [ ! "$USER_MIRROR" = "${USER_MIRROR#https://}"; ]; then
++	# The option '--debian-ports' is useful if we download from a debian-ports mirror
++	# it shouldn't be set if we install from a CD, or from a regular debian mirror
++		if [ -n "$PORTS_ARCH" ]; then
++			PORTS_ARCH_LIST="$PORTS_ARCH"
++		else
++			# As of 2018/04/18
++			PORTS_ARCH_LIST="alpha hppa hurd-i386 m68k powerpcspe ppc64 riscv64 sh4 sparc64 x32"
++		fi
++
++		for port_name in $PORTS_ARCH_LIST
++		do
++			if [ "$port_name" = "$ARCH" ]; then
++				warning ISPORTARCH "As of 2018/04/18, the selected architecture %s is hosted at ftp.ports.debian.org. You may find the option --debian-ports useful" "$ARCH"
++				break
++			fi
++		done
++	fi
++fi
++
++if [ -z "$PORT" ]; then
++	keyring /usr/share/keyrings/debian-archive-keyring.gpg
++else
++	# debian-ports is only for unstable(sid) suite
++	if [ ! "$SUITE" = unstable ] && [ ! "$SUITE" = sid ]; then
++		error 1 ONLYUNSTABLE "debian-ports only provides unstable suite. Aborting..."
++	fi
++
++	# use the debian-ports keyring if debian-ports-archive-keyring installed
++	keyring /usr/share/keyrings/debian-ports-archive-keyring.gpg
++	# or the one installed
++	keyring /etc/apt/trusted.gpg
++
++	# Install debian-ports-archive-keyring (priority: optional) along with
++	# the important packages on the target if you try to install debian-ports
++	if [ -z "$ADDITIONAL" ]; then
++		ADDITIONAL="debian-ports-archive-keyring"
++	elif $(echo "$ADDITIONAL" | grep -qvF 'debian-ports-archive-keyring'); then
++		ADDITIONAL="${ADDITIONAL} debian-ports-archive-keyring"
++	fi
++
++	default_mirror http://deb.debian.org/debian-ports
++fi
+ 
+ # include common settings
+ if [ -d /usr/share/debootstrap/scripts ]; then
+diff -Naur debootstrap-1.0.97.orig/sort_pkgs_perl debootstrap-1.0.97/sort_pkgs_perl
+--- debootstrap-1.0.97.orig/sort_pkgs_perl	1970-01-01 01:00:00.000000000 +0100
++++ debootstrap-1.0.97/sort_pkgs_perl	2018-04-27 23:55:36.615305566 +0200
+@@ -0,0 +1,186 @@
++#
++# Here is a debootstrap helper to sort Packages files by ascending version number.
++#
++# This file re-use functions 'pkg_name_is_illegal', 'version_check', 'version_order',
++# 'version_compare_string',  'version_split_digits' and 'version_compare_part' from 
++# debian package 'libdpkg-perl' (see the copyright file therein for attribution).
++#
++
++	SORT_PKGS=sort_pkgs_perl
++
++	sort_pkgs_perl () {
++		perl -e '
++defined($ARGV[0]) or die("no file argument");
++
++open PACKAGES,$ARGV[0]
++	or die("open : $!");
++
++# adapted from Dpkg::Package and Dpkg::Version
++sub pkg_name_is_illegal($) {
++	my $name = shift || "";
++
++	$name eq "" &&
++		return "may not be empty string";
++	$name =~ m/[^-+.0-9a-z]/o &&
++		return sprintf("character %s not allowed", $&);
++	$name =~ m/^[0-9a-z]/o ||
++		return "must start with an alphanumeric character";
++	return;
++}
++
++sub version_split($) {
++	my $ver = shift;
++	my ($epoch,$version,$revision);
++
++	if ($ver =~ /^([^:]*):(.+)$/) {
++		$epoch = $1;
++		$ver = $2;
++	} else {
++		$epoch = 0;
++	}
++
++	if ($ver =~ /(.*)-(.*)$/) {
++		$version = $1;
++		$revision = $2;
++	} else {
++		$version = $ver;
++		$revision = 0;
++	}
++
++	return ($epoch, $version, $revision);
++}
++
++sub version_check($$$$) {
++	my ($str, $epoch, $version, $revision) = @_;
++
++# version number cannot be empty
++	if (not defined($str) or not length($str)) {
++		return 0;
++	}
++# version number does not start with digit
++	if ($version =~ m/^[^\d]/) {
++		return 0;
++	}
++# version number contains illegal character
++	if ($str =~ m/([^-+:.0-9a-zA-Z~])/o) {
++		return 0;
++	}
++# epoch part of the version number is not a number
++	if ($epoch !~ /^\d*$/) {
++		return 0;
++	}
++
++# version number is valid
++	return 1;
++}
++
++sub _version_order {
++	my ($x) = @_;
++
++	if ($x eq "~") {
++		return -1;
++	} elsif ($x =~ /^\d$/) {
++		return $x * 1 + 1;
++	} elsif ($x =~ /^[A-Za-z]$/) {
++		return ord($x);
++	} else {
++		return ord($x) + 256;
++	}
++}
++
++sub version_compare_string($$) {
++	my @a = map { _version_order($_) } split(//, shift);
++	my @b = map { _version_order($_) } split(//, shift);
++	while (1) {
++		my ($a, $b) = (shift @a, shift @b);
++		return 0 if not defined($a) and not defined($b);
++		$a ||= 0; # Default order for "no character"
++		$b ||= 0;
++		return 1 if $a > $b;
++		return -1 if $a < $b;
++	}
++}
++
++sub version_split_digits($) {
++	return split(/(?<=\d)(?=\D)|(?<=\D)(?=\d)/, $_[0]);
++}
++
++sub version_compare_part($$) {
++	my @a = version_split_digits(shift);
++	my @b = version_split_digits(shift);
++	while (1) {
++		my ($a, $b) = (shift @a, shift @b);
++		return 0 if not defined($a) and not defined($b);
++		$a ||= 0; # Default value for lack of version
++		$b ||= 0;
++		if ($a =~ /^\d+$/ and $b =~ /^\d+$/) {
++			# Numerical comparison
++			my $cmp = $a <=> $b;
++			return $cmp if $cmp;
++		} else {
++			# String comparison
++			my $cmp = version_compare_string($a, $b );
++			return $cmp if $cmp;
++		}
++	}
++}
++
++# order package names as apt-sortpkgs would
++
++sub compare_pkgname($$) {
++	my ( $a,$b ) = @_;
++
++	if ((length($a) < length($b)) &&
++		substr($b,0,length($a)) eq $a) {
++			return +1;
++	} elsif ((length($a) > length($b)) &&
++                substr($a,0,length($b)) eq $b) {
++			return -1;
++	} else {
++		return $a cmp $b;
++	}
++}
++
++my $stanza_begin = 0;
++my @pkg_list = ();
++my ($f, $v, $pkg, $ver, $stanza_end);
++my ($version_is_valid, $ver_epoch, $ver_ver, $ver_rev);
++while(<PACKAGES>) {
++	chomp;
++	next if (/^ /);
++	if (/^([^:]*:)\s*(.*)$/) {
++		$f = lc($1); $v = $2;
++		$pkg = $v if ($f eq "package:");
++		$ver = $v if ($f eq "version:");
++	} elsif (/^$/) {
++		$stanza_end = tell();
++		($ver_epoch, $ver_ver, $ver_rev) = version_split($ver);
++		$version_is_valid
++			= version_check($ver,$ver_epoch,$ver_ver,$ver_rev);
++		if ($version_is_valid && (! pkg_name_is_illegal($pkg))) {
++			push @pkg_list,[$pkg,$stanza_begin,$stanza_end,
++				$ver_epoch,$ver_ver,$ver_rev];
++		}
++		$stanza_begin = $stanza_end;
++	}
++}
++
++@pkg_list = sort({compare_pkgname($a->[0],$b->[0]) or
++			$a->[3] <=> $b->[3] or
++			version_compare_part($a->[4],$b->[4]) or
++			version_compare_part($a->[5],$b->[5]) or
++			$a->[1] <=> $b->[1]} @pkg_list);
++
++my $pkg_elt;
++foreach  $pkg_elt (@pkg_list) {
++	seek(PACKAGES,$pkg_elt->[1],0);
++	while(<PACKAGES>) {
++		print $_;
++		last if tell() >= $pkg_elt->[2];
++	}
++}
++close(PACKAGES);
++' "$@"
++}
++
++

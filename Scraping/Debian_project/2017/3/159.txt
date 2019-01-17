@@ -1,0 +1,68 @@
+To : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Subject : Re: Depends/Recommends from libraries
+From : Guillem Jover <guillem@debian.org>
+Date : Mon, 27 Mar 2017 05:29:51 +0200
+Message-id : 20170327032951.ea2ltat3rjzbs6nw@gaara.hadrons.org
+Mail-followup-to : Ian Jackson <ijackson@chiark.greenend.org.uk>,	Russ Allbery <rra@debian.org>, debian-devel@lists.debian.org
+In-reply-to : <[🔎] 22740.1858.519128.242013@chiark.greenend.org.uk>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl> <[🔎] 87o9xbxhd2.fsf@hope.eyrie.org> <[🔎] 22721.37093.430317.401024@chiark.greenend.org.uk> <[🔎] 87d1dqfh41.fsf@hope.eyrie.org> <[🔎] 22740.1858.519128.242013@chiark.greenend.org.uk>
+
+
+Hi!
+On Thu, 2017-03-23 at 17:34:58 +0000, Ian Jackson wrote:
+> Russ Allbery writes ("Re: Depends/Recommends from libraries"):
+> >   It still feels like needless complexity to me,
+> 
+> Here is an example I just found.
+It does not turn out to be a very good example, I'm afraid. :)
+> Try, in a fresh stretch chroot
+>   apt-get --no-install-recommends install libgtkspell-dev
+> Which you might reasonably do because you were building something
+> which linked against libgtk-spell.  Or because you installed some
+> portmanteau package like ocaml-libs.
+> 
+> -dev libraries are typically installed because you want to build
+> something, not necessarily because you wanted to _use_ the features of
+> the runtime library.
+> 
+> The list that comes out is humungous and contains many things that you
+> probably didn't want.
+But after checking that list, most of it comes from other -dev
+packages and their shared library counterparts. The packages that you
+list below are relatively tiny in comparison! Around ~15-20 MiB vs the
+total ~280 MiB installed size.
+> aspell ?  Well, at least the connection is clear, although it's
+> clearly wrong to get it.
+Yes, the problem is that dictionaries such as aspell-en, depend on
+aspell, when they should just Recommend/Suggest it, primarily because
+this adds an unnecessary dependency cycle, and because the data does
+not require the program. Needs a bug filed.
+> fontconfig ?  Probably pulled in pointlessly by one of the other
+> librararies.
+Pulled by libpango-1.0-0. I've checked and it seems currently
+unnecessary, nothing in the source calls any «fc-*» command. It seems
+to originate from the very beginning of the pango1.0 packaging source
+history in svn, so probably just uncollected cruft. Needs a bug filed.
+> dictionaries-common ?  That's a waste of a download.
+Pulled by aspell-en → pulled by libenchant. AFAIK used to register
+the dictionaries, which seems legitimate to me. (750 KiB)
+> emacsen-common ?  Wow.
+Pulled by dictionaries-common. Yeah I've always wondered about this
+one, perhaps the packaging could be reworked to avoid it, but the
+complexity implied might be too great for the few KiB that this
+dependency introduces. (135 KiB)
+> libgtk2.0-dev, which lots of things obviously build-depend on, pulls
+> in fontconfig and gnome-icon-theme (a 10Mby download).  I can't
+> believe you need gnome-icon-theme installed to compile gtk2 programs.
+I could probably imagine a tool built during the build making use of it,
+or while running test suites or similar. And while this is the biggest
+of the non lib/-dev packages, trying to remove this dependeny would seem
+wrong to me, as this is an implementation detail.
+Perhaps one solution here could be to find a smaller compatible or mock
+icon-theme, and depend on it as first option from the gtk -dev package.
+But I'm not sure how that would play with apt when having to choose
+between the first options in the libgtk-dev and libgtk. :)
+In any case this is still inert data, and not huge in comparison to
+the total size to be installed.
+Thanks,
+Guillem

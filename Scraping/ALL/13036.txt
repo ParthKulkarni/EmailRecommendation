@@ -1,0 +1,68 @@
+To : debian-dpkg@lists.debian.org, deity@lists.debian.org,	debian-devel@lists.debian.org
+Subject : Evaluation (Re: Proposal: A new approach to differential debs)
+From : Julian Andres Klode <jak@debian.org>
+Date : Wed, 16 Aug 2017 00:21:09 +0200
+Message-id : 20170816000748.GA15914@debian.org
+Mail-followup-to : debian-dpkg@lists.debian.org, deity@lists.debian.org,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170812135640.GA6037@debian.org>
+References : <[🔎] 20170812135640.GA6037@debian.org>
+
+
+On Sat, Aug 12, 2017 at 02:16:21PM -0400, Julian Andres Klode wrote:
+> Hi everyone,
+> 
+> (I CCed -devel and deity, but we probably should just discuss
+>  that on -dpkg)
+> 
+> while breakfast here at DebConf, the topic of delta upgrades
+> came up. I think delta debs are generally a thing we should
+> aim to have, but debdelta is not the implementation we want:
+> 
+> * It is not integrated into APT or dpkg
+> * It relies on a script shipped in the debdelta to generate
+>   a new deb from and old deb
+> We guessed that generating the new deb from the old deb is
+> actually the slowest part of the whole debdelta process. I
+> propose a new solution, which does not really have a name
+> yet.
+# Evaluation
+I build a few sample delta debs, using bsdiff (.pdeb) and
+xdelta3 (.xdeb). I attached the scripts to generate them
+and apply them to an unpacked directory tree.
+Feel free to check with other packages, here are the current
+evaluations, including a comparison against debdelta.
+libreoffice-core (size only):
+  -rw-r--r-- 1 jak jak 29M Jul 22 20:02 libreoffice-core_5.3.5~rc1-3_amd64.deb
+  -rw-r--r-- 1 jak jak 31M Jul 16 00:10 libreoffice-core_5.4.0~rc2-1_amd64.deb
+  -rw-r--r-- 1 jak jak 31M Jul 28 18:29 libreoffice-core_5.4.0-1_amd64.deb
+  -rw-r--r-- 1 jak jak  18M Aug 15 23:44 libreoffice-core_5.3.5~rc1-3_5.4.0-1_amd64.pdeb
+  -rw-r--r-- 1 jak jak 4.5M Aug 15 23:42 libreoffice-core_5.4.0~rc2-1_5.4.0-1_amd64.pdeb
+For 5.4~rc2 to 5.4 it made a huge difference, for 5.3.5~rc1 to 5.4 not so much,
+so it probably is a good fit for stable updates, but not for unstable and testing.
+firefox (size & performance):
+ -rw-r--r-- 1 jak jak 2.3M Aug 15 20:59 firefox_55.0-1_55.0-2_amd64.debdelta
+ -rw-r--r-- 1 jak jak 2.4M Aug 15 22:13 firefox_55.0-1_55.0-2_amd64.pdeb
+ -rw-r--r-- 1 jak jak 7.4M Aug 15 22:36 firefox_55.0-1_55.0-2_amd64.xdeb
+ -rw-r--r-- 1 jak jak  38M Aug 10 06:49 firefox_55.0-1_amd64.deb
+ -rw-r--r-- 1 jak jak  38M Aug 10 12:44 firefox_55.0-2_amd64.deb
+Generating the -2 deb from the -1 deb using debdelta took about 47 seconds. In
+contrast, applying the .pdeb and .xdeb files to an installed directory tree
+took about 1.5 seconds.
+The .pdeb uses bsdiff compression, the .xdeb uses xdelta 3. It took
+96 seconds to generate the pdeb, and 13 seconds to generate the xdeb
+on my ThinkPad X230 with 16 GB of RAM and a Core i5-3320M.
+# Conclusions
+1. xdelta3 is substantially faster than bsdiff, but bsdiff produces substantially
+   smaller update sizes.
+2. deltas for major updates are too big to be massively useful, so focusing on
+   stable and security updates seems like a good idea (though we do need to have
+   a set of pdebs for testing in unstable and/or testing)
+# Further extensions
+If you put a pristine-tar delta into the delta file, you can fully
+reconstruct debs.
+-- 
+Debian Developer - deb.li/jak | jak-linux.org - free software dev
+                  |  Ubuntu Core Developer |
+When replying, only quote what is necessary, and write each reply
+directly below the part(s) it pertains to ('inline').  Thank you.
+build-patch.shapply-patch.sh

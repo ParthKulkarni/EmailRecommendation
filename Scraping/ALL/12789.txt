@@ -1,0 +1,45 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Let's enable AppArmor by default (why not?)
+From : intrigeri <intrigeri@debian.org>
+Date : Wed, 09 Aug 2017 15:54:10 -0400
+Message-id : 85o9roqzz1.fsf@boum.org
+In-reply-to : <[🔎] 1502284223.3595759.1068013368.2A4DA774@webmail.messagingengine.com>	(Chris Lamb's message of "Wed, 09 Aug 2017 09:10:23 -0400")
+References : <[🔎] 857eyij4fb.fsf@boum.org>	<[🔎] 1502284223.3595759.1068013368.2A4DA774@webmail.messagingengine.com>
+
+
+Hi,
+Chris Lamb:
+> Related to this, most of my packages are 'server'-ish and it feels
+> like some of the hardening features are also/already covered by my
+> systemd .service files.
+Quite possibly :)
+> Should/could I be also reimplementing these in AppArmor for defense
+> in depth or any comments in this general area?
+You surely could, but reimplementing exactly the same protections is
+probably not the best use of your time.
+Now, each of systemd and AppArmor can do hardening stuff that the
+other doesn't support (at all or nicely), so sometimes it's good to do
+a little bit of both.
+What I would do these days:
+1. Use the simplest of systemd's hardening features (e.g.
+   Protect{Home,System}=, Private{Devices,Tmp,Network}=,
+   CapabilityBoundingSet=) to their full extend.
+   Not many unit files we ship do that yet. Generally these
+   improvements can be implemented upstream and benefit users of
+   systemd on other distros :)
+2. For finer-grained mediation of filesystem access, I will use
+   AppArmor that I find much nicer to implement, use and debug:
+    * To limit write access, with systemd one must set
+      ReadOnlyDirectories=/ and then a bunch of ReadWriteDirectories=
+      directives. It works fine once you're done, but I found it hard
+      to implement and debug this setup: with AppArmor I have clear
+      logs about what access the service was denied, and with systemd
+      I have no such thing. This probably explains why only one
+      systemd unit installed on my system bothers doing so.
+    * To limit read access, AFAIK with systemd one can only list
+      forbidden places and everything else is allowed by default.
+      No wonder InaccessiblePaths= is not used by any unit installed
+      on my system.
+Cheers,
+-- 
+intrigeri

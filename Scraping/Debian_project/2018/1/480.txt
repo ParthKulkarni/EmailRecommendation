@@ -1,0 +1,72 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Maintaining a custom out-of-tree patched Debian kernel for specific hardware
+From : Ian Campbell <ijc@debian.org>
+Date : Tue, 23 Jan 2018 14:08:48 +0000
+Message-id : 1516716528.5922.47.camel@debian.org
+In-reply-to : <[🔎] 20180123125032.GA23260@odessa>
+References : <[🔎] 20180122140840.GA4580@odessa>	 <[🔎] 20180123122706.GA18071@debian.org> <[🔎] 20180123125032.GA23260@odessa>
+
+
+On Tue, 2018-01-23 at 18:20 +0530, Kumar Appaiah wrote:
+> On Tue, Jan 23, 2018 at 10:27:06AM -0200, Antonio Terceiro wrote:
+> > On Mon, Jan 22, 2018 at 07:38:41PM +0530, Kumar Appaiah wrote:
+> > > Dear Debian Developers,
+> > > 
+> > > I am part of a team working on getting Debian on low cost laptops
+> > > (see
+> > > http://www.rdp.in for details) so that they can be sold with
+> > > Debian
+> > > preinstalled. While vanilla Debian largely works, unfortunately,
+> > > making Bluetooth and sound work require kernel rebuilding. The
+> > > patches
+> > > and config changes are not likely to be upstreamed any time soon,
+> > > so
+> > > we would have to ship the laptop with a patched (non-Debian
+> > > kernel). Our team is, thus, taking up the responsibility of
+> > > ensuring
+> > > that up-to-date kernel (with security fixes) are made available
+> > > to the
+> > > users of our laptop. The patches and configs are adapted from
+> > > here:
+> > > https://github.com/sundarnagarajan/kernel_build
+> > 
+> > Are the the patches you need are really just those in patches/? If
+> > yes,
+> > they are small enough that if I were in your place I would talk to
+> > the
+> > Debian kernel team to see if they can be included in the official
+> > Debian
+> > kernel.
+> > 
+> > Also, the patches being that small, what's stopping them from
+> > being upstreamed?
+> 
+> This is something beyond my understanding. Other distributions, such
+> as Linux Mint, Ubuntu etc. also do not possess those patches and
+> config changes. My hunch is that the Cherry Trail processors may not
+> be considered popular enough for inclusion in mainline at least
+> yet. So, we are going with this approach for now. Naturally, when
+> that's done, we'll offer a migration path to the stock Debian kernel
+> and the need for this hack will be gone.
+The patches appear to be one new ACPI match[0] and some changes to some
+debug messages[1] (marked with a ".optional" suffix, so probably not
+really needed). Forking the kernel packages for those trivial changes
+is _way_ overkill for a first response. If those patches had been
+submitted them upstream then I would expect them to be quickly and
+easily merged into the relevant maintainer tree and thus be elligible
+for application to the Debian kernels.
+I don't know if the kernel config changes/requirements in [2] are
+complete but if they are then they seem equally trivial and certainly
+worth of a discussion with the Debian kernel maintainers before
+deciding to fork.
+Even simple forks are deceptively hard to back away from so avoiding
+forking for trival reasons is usually a good default, or else you could
+easily find yourself stuck with it for an extended period of time.
+Googling around suggests that Cherry Trail is supported in mainline
+Linux today, with some last issues having been resolved in 4.11 (see
+e.g. [3]).
+Ian.
+[0] https://github.com/sundarnagarajan/kernel_build/blob/master/patches/001_rfkill_bluetooth_rtl8723bs_bt.patch
+[1] https://github.com/sundarnagarajan/kernel_build/blob/master/patches/002_rtl8723bs_nolinked_power_save_enter.patch.optional
+[2] https://github.com/sundarnagarajan/kernel_build/blob/master/config.prefs
+[3] https://liliputing.com/2017/03/linux-4-11-brings-improvements-intel-atom-pcs-bay-trail-cherry-trail.html

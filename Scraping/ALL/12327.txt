@@ -1,0 +1,50 @@
+To : debian-devel@lists.debian.org
+Subject : Re: New network interface naming scheme [was Re: P.S. Re: Debian 9 in a VM with Proxmox 5 system]
+From : Vincent Bernat <bernat@debian.org>
+Date : Mon, 10 Jul 2017 19:18:31 +0200
+Message-id : m3shi4gqhk.fsf@luffy.cx
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20170710163737.7npqthxsddsvqcne@angband.pl> (Adam Borowski's	message of "Mon, 10 Jul 2017 18:37:38 +0200")
+References : <[🔎] 5962B743.8030702@landfreak.com>	<[🔎] 20170709234920.GA15631@DigitalMercury.dynalias.net>	<[🔎] 59636880.9020609@landfreak.com>	<[🔎] 20170710115708.GC13590@rene-engelhard.de>	<[🔎] 20170710133836.4vw67vqkckd2yvow@basil.wdw> <[🔎] 87mv8c8eh9.fsf@luffy.cx>	<[🔎] 20170710163737.7npqthxsddsvqcne@angband.pl>
+
+
+❦ 10 juillet 2017 18:37 +0200, Adam Borowski <kilobyte@angband.pl> :
+>> > The cost of a state file (/etc/udev/rules.d/70-persistent-net.rules) is
+>> > extremely small, even in the very worst case where a user continually
+>> > plugs in many, many different usb network dongles, which is a very
+>> > unrealistic case to begin with.
+>> 
+>> The state file solution was not perfect either. If you have two brands
+>> of NIC (Intel 10G additional NIC and Broadcom 1G integrated NIC for
+>> example), it was not uncommon to be left with an interface eth0_rename
+>> after boot because the target name was used by the other driver.
+>
+> Because of a race with the kernel creating eth1 while you're trying to
+> rename eth0->eth0_rename->eth1, right?  That's trivially solvable by
+> inventing a new scheme, such as e0 e1 (I'm sure someone can sound a scheme
+> that sounds better than this).
+Yes, that would work. There are still some issues, like random numbering
+during the first boot. Note that udev is mostly following this scheme
+with "eno1", "eno2", ...
+> On the other hand, I use kernel-assigned names on all my machines that don't
+> have multiple interfaces, thus I don't know how stable
+> 70-persistent-net.rules is on the MAC-less machines.  I guess you guys know
+> more.  But even if you take those new "persistent" names as a base for the
+> state file, we wouldn't gain stability over kernel upgrades but the names
+> would be actually predictable for the user (ie, the admin would know the
+> only interface will be "e0").
+For a physical machine, the only interface is usually eno1. For a
+virtual machine, the numbering may be absent and this case, the
+interface name is ensX with X which depends on your provider. Maybe an
+exception could have been done for virtio, but there are edge cases they
+may be difficult to catch (someone changing virtio to e1000 for example).
+This can be checked with:
+  udevadm info -p /sys/class/net/eno1 | grep ID_NET_NAME
+The default order is onboard, slot, path. Debian has a local
+modification to use the MAC address for USB devices.
+See also:
+ https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/#comeagainwhatgooddoesthisdo
+-- 
+Don't patch bad code - rewrite it.
+            - The Elements of Programming Style (Kernighan & Plauger)
+signature.asc

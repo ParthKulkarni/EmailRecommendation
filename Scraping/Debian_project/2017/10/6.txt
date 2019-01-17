@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: [Pkg-javascript-devel] Bug#877212: node-d3-color: B-D npm not available in testing
+From : Simon McVittie <smcv@debian.org>
+Date : Tue, 3 Oct 2017 10:32:45 +0100
+Message-id : 20171003093245.kjw2dku7cx732xhh@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 85d3c42b-858f-2221-3fa3-326fb51e822a@onenetbeyond.org>
+References : <150670584355.10563.10238760966760741232.reportbug@zam581.zam.kfa-juelich.de> <CAJxTCxx7fTLfK-sqqpwg7BHh25TBowUPFv7dxSdz7mHweL0=6Q@mail.gmail.com> <24c53e2b-93c7-6b01-7888-35ce96cb79ef@onenetbeyond.org> <8760c0b2ow.fsf@iris.silentflame.com> <62347b6e-ad62-e8f1-ed1b-a9e53fef62e1@onenetbeyond.org> <87shf49f41.fsf@iris.silentflame.com> <[🔎] 20171003044027.juwpqoj75l4tlafk@gwolf.org> <[🔎] 85d3c42b-858f-2221-3fa3-326fb51e822a@onenetbeyond.org>
+
+
+On Tue, 03 Oct 2017 at 12:12:54 +0530, Pirate Praveen wrote:
+> I cannot accept arbitrary interpretations of policy. When build tools
+> are not available in main, they cannot go to main, and if the software
+> itself is Free Software, it can go to contrib. If you disagree, please
+> get the policy clarified. As per the current policy, these packages
+> clearly qualified for contrib and these were already accepted by ftp
+> masters into the archive.
+>From a Freeness perspective, sure, that's contrib.
+>From the point of view of security and predictability (which requires
+knowing what we're running), it seems undesirable to have a build
+process that pulls in arbitrary code from the internet. contrib has
+permission to ignore the "all dependencies must be DFSG" clause of Policy
+- that's the point of it. However, it does not have permission to ignore
+technical/quality-based Policy considerations.
+> I thought building these things (making sure the source corresponds to
+> the distributed binaries), though using tools outside archive, was
+> preferred over shipping pre-built binaries.
+If we can't be sure that those out-of-archive tools haven't been
+replaced with malware between one build and the next, then I'm not
+sure how we can prefer that approach. How can we know that they aren't
+writing malicious content into the produced .deb?
+Presumably you verified that at the time *you* built the package, the
+out-of-archive tools were of a non-malicious version, and were producing
+compiled binaries (minified JavaScript, rather than actually binaries?)
+that correspond to the source. It would probably be useful to write down
+how you do this in debian/README.source if you haven't already.
+However, that verification isn't really sufficient if a rebuild
+on the buildds could download an entirely different version of the
+out-of-archive tools: a sufficiently inventive attacker who had gained
+control over upstream's distribution channel could even arrange to serve
+a non-malicious toolchain to your IP address, but then serve a malicious
+version to Debian buildds' IP addresses.
+(I think downloading versions of the out-of-archive tools that exactly
+match cryptographically strong hashes of the same version you used would
+be OK from this point of view, although that would be subject to random
+build failures if the buildd or upstream has connectivity issues, and
+wouldn't work on buildds that block internet access altogether; and if
+the toolchain is as modular as many JavaScript projects, then it might not
+be feasible to check hashes of everything you execute before executing it.)
+> But it seems shipping
+> pre-built binaries are preferred. It looks to me like a misplaced
+> compromise, but I will follow this advice and ship pre-built binaries
+> next time without building them using npm.
+At least that way, you have the opportunity to inspect the pre-built
+binary (I hope "binary" here means a bundled/minified version that is
+not the preferred form for modification but is somewhat human-readable,
+rather than something as opaque as a compiled C binary) and have some
+level of confidence that it corresponds to the source.
+This is the same line of reasoning that says packages like
+game-data-packager and flashplugin-nonfree should record known-good
+cryptographic hashes of the opaque binary blobs they distribute, even
+though there's presumably a lot less ability to audit those than your
+ability to audit JavaScript.
+Regards,
+    smcv

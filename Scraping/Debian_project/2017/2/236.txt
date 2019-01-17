@@ -1,0 +1,90 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: changelog practice, unfinalised vs UNRELEASED vs ~version
+From : Gunnar Wolf <gwolf@debian.org>
+Date : Mon, 13 Feb 2017 10:53:18 -0600
+Message-id : 20170213165318.GA33300@gwolf.org
+In-reply-to : <[🔎] 20170212141112.ra6nwi3npojhkugc@perpetual.pseudorandom.co.uk>
+References : <[🔎] 22688.22947.749751.138991@chiark.greenend.org.uk> <[🔎] 20170212141112.ra6nwi3npojhkugc@perpetual.pseudorandom.co.uk>
+
+
+Simon McVittie dijo [Sun, Feb 12, 2017 at 02:11:12PM +0000]:
+> On Sun, 12 Feb 2017 at 12:48:35 +0000, Ian Jackson wrote:
+> > What do people think ?
+> 
+> I think you're the only person I've ever seen using unfinalized
+> changelog entries for Debian packages.
+> 
+> If I'm understanding correctly, your motivation to do so is that you
+> have a strong belief that building a Debian source package with `debuild`
+> or similar, directly from a VCS checkout, should always work and should
+> always produce results that could be considered correct (in terms of not
+> having the version number of a prior version, not having the version
+> number of a future version either, not claiming to have been released
+> by a person who did not in fact release it, and so on).
+> 
+> These might be valid axioms for your particular workflow, but they do
+> not fit all workflows, and I don't think they are necessarily the
+> axioms that lead to the best practical results.
+Interesting discussion. This (and not particularly your message, but
+this whole thread even leads me to questioning: Does our "finalized"
+changelog lines make *any* sense nowadays?
+Let me explain. I think this line has clear signs of days long past:
+ -- Gunnar Wolf <gwolf@debian.org>  Mon, 13 Feb 2017 10:37:57 +0600
+Yes, in some way it summarizes who did the last (or first? or n-th?)
+modification to the changelog entry in case. But, given we see
+team-maintained workflows as preferable, it is very common to also see
+the following in the lines behind it:
+  [ Gunnar Wolf ]
+  * Frobbed the foobarnicators
+  * Oiled up the grease
+  [ Other Maintainer ]
+  * Replaced quux with blah (Closes: #876543)
+A text line documenting who (something)ed (first|last) with the
+changelog is not really relevant. The date is even treacherous; it
+could have been introduced by me when frobbing up the
+foorbarnicators. There is no indication as to whether Other did his
+work before I oiled up the grease — at least in debian-keyring we have
+the habit of grouping maintainer messages (by using dch
+--multimaint-merge) instead of keeping time-order. Maybe this would be
+the real sequence of events in my example changelog:
+  [ Gunnar Wolf ]
+  * Frobbed the foobarnicators
+  [ Other Maintainer ]
+  * Replaced quux with blah (Closes: #876543)
+  [ Gunnar Wolf ]
+  * Oiled up the grease
+But it creates too much unnecessary and (at least in some aspects)
+redundant noise.
+But... Yes, even though in our case (debian-keyring) the changelog
+closely follows the Git commit messages (the first line matches for
+all "routine" changelog entries), debian/changelog and git log have
+somewhat different and general meanings.
+> * Write the changelog later: each commit just has a commit message
+>   in a normal git way, and its debian/changelog is out of date.
+>   At release time, write a cumulative debian/changelog entry for
+>   everything that happened since the last release, finalize it and
+>   commit it. The `gbp dch` command assumes this model (and is very
+>   useful when following it).
+In the specific case of this team, we could most probably compose
+debian/changelog by reading git log since the last tag. But... I am
+not convinced I want to be constrained by this!
+Anyway, I'm steering quite a bit off the track
+> > Q2. Should the changelog entry be finalised ?  That is, should it
+> >     have an uploader name and date ?
+> 
+> While as an abstract model I agree that the uploader name and date
+> are not meaningful in an unreleased version, I can't help thinking
+> that this is a "boil the ocean" sort of change - a lot of tools follow
+> and require Policy syntax, in which the uploader name and date are
+> non-optional. Obviously, Policy only really applies to finished packages,
+> and unfinished packages often violate the semantics of Policy (for
+> instance by using UNRELEASED as a suite name); but it seems reasonable
+> for a tool author to oppose changes that, as well as violating Policy
+> semantics, also violate Poliy syntax.
+So, my idea was, in short: Thinking in a post-Buster world, do we even
+need the finalized line? I mean, take a look at debian/changes. The
+archive handling tools do get both «Date» and «Changed-By» fields,
+which reflect when the package was last *built* (which has a much
+clearer meaning than a nondescript finalization line). Debian tools
+can act from there. We could then just remove this dissonant bit :-)
+signature.asc

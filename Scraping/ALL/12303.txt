@@ -1,0 +1,112 @@
+To : Karsten Merker <merker@debian.org>, Ben Hutchings <ben@decadent.org.uk>, 	Jonathan Dowland <jmtd@debian.org>
+Subject : Re: building a debian kernel package(s) for a foreign architecture
+From : Roger Shimizu <rogershimizu@gmail.com>
+Date : Wed, 26 Jul 2017 01:26:17 +0900
+Message-id : CAEQ9gEnHkyyq3AV7JuC_pFk7f8C1D255mjsJ0NN5nVW+ptV5-Q@mail.gmail.com
+In-reply-to : <[🔎] 20170705175339.hwncq2te74pfvzfo@excalibur.cnev.de>
+References : <[🔎] 20170705143525.hmo2efeayr5otppb@chew.redmars.org> <[🔎] 20170705175339.hwncq2te74pfvzfo@excalibur.cnev.de>
+
+
+Dear Jonathan,
+How is your build? Does it go well?
+On Thu, Jul 6, 2017 at 2:38 AM, Ben Hutchings <ben@decadent.org.uk> wrote:
+> On Wed, 2017-07-05 at 23:43 +0900, Roger Shimizu wrote:
+>>
+>> I ever created one:
+>> - https://wiki.debian.org/HowToCrossBuildAnOfficialDebianKernelPackage
+>>
+>> Hope it helps you.
+>> And if you find something not current and need modify, please just edit it.
+>> Thank you!
+>
+> Why does that talk about building from the git repository, rather than
+> a source package (which duplicates the instructions at
+> https://kernel-handbook.alioth.debian.org/ch-common-tasks.html)?
+>
+> For cross-building generally you should use the 'cross' build profile.
+> And for linux specifically you can also use the 'pkg.linux.notools'
+> build profile to disable the userland packages, which greatly reduces,
+> the build depdendencies.
+Dear Ben,
+I created the wiki entry because I want to explorer some other ways
+than what's telling in the kernel handbook. Of course I take the
+handbook as reference, and thanks for your work!
+It's easy to reproduce a kernel build by the steps in kernel handbook,
+but what I want, sometimes, is to try the latest stable kernel
+released upstream. Debian usually lags a few days behind upstream's
+new release, especially in the freeze stage before a debian release.
+So I think my wiki entry is informative in such case.
+And I happened to find another topic in kernel lists:
+ - http://debian.2.n7.nabble.com/cross-building-linux-image-packages-td3974626.html
+I tried your suggested command:
+  dpkg-buildpackage -Pcross,nopython -aarmel -B -uc -us
+but got the following error:
+====
+dpkg-source: error: cannot read debian-kernel/debian/control: No such
+file or directory
+dpkg-buildpackage: error: dpkg-source --before-build debian-kernel
+gave error exit status 2
+====
+On Thu, Jul 6, 2017 at 2:53 AM, Karsten Merker <merker@debian.org> wrote:
+> On Wed, Jul 05, 2017 at 03:35:25PM +0100, Jonathan Dowland wrote:
+>> Hi folks,
+>>
+>> I've never done much in the way of cross-compiling before.  I
+>> understand it was once very hard, is now much easier, and is
+>> considerably easier for "simple" packages (including the kernel)
+>> than others.
+>>
+>> That said, I'm lost/stuck trying to cross-compile the Debian
+>> Linux kernel package for ARM64 (target is a Raspberry Pi 3) from
+>> an amd64 builder.  I believe I do not need to use multiarch for
+>> my builder, yet dpkg-buildpackage (if I supply -a aarch64,
+>> interestingly ARM64 doesn't work) complains of unmet build
+>> dependencies, which I have resolved for amd64.  But perhaps -a to
+>> dpkg-buildpackage is the wrong approach.
+>
+> Hello,
+>
+> from a technical point of view you effectively need multiarch to
+> crosscompile Debian packages, but you don't have to set it up
+> yourself ;-).
+>
+> The easiest way to crossbuild a Debian package is probably to use
+> sbuild or pbuilder, which both have crossbuild-support since a
+> while.  When called with the appropriate options, they
+> automatically setup multiarch in their chroot and install the
+> necessary crosscompilers as well as the package cross-dependencies.
+> I can only talk about sbuild from personal experience, but
+> according to the docs, pbuilder should work similarly.
+>
+> Not all packages can be crossbuilt, and for those that can be
+> crossbuilt in principle, it is sometimes necessary to set
+> appropriate build-profiles which e.g. cause the testsuite not to
+> be run during the package build, as often the testsuite tries to
+> run host-architecture binaries created during the build which
+> cannot be executed on the build-architecture system (with "build"
+> and "host" used in GNU terminology, i.e. "build-architecture" =
+> "architecture on which the compiler runs" and "host-architecture" =
+> "architeture on which the created binaries run").
+>
+> IIRC both pbuilder and sbuild automatically set the "nocheck"
+> profile when crossbuilding. For crossbuilding the kernel IIRC
+> one needs to set a number of additional build-profiles:
+>
+> - cross
+> - pkg.linux.notools
+> - nopython
+>
+> So the following sbuild command should in theory (sorry, cannot
+> actually test that right now) crossbuild the kernel package for
+> arm64:
+>
+>   sbuild -d unstable --host=arm64 --profiles=cross,pkg.linux.notools,nopython <kernelpackage>.dsc
+Thanks for your sample on sbuild, and detailed profile options.
+I usually use git-pbuild for other packages. I hasn't figure out how
+to do cross build kernel under pbuilder or its related tool (e.g.
+git-build)
+So if anybody know it, please let me know. Thanks!
+Cheers,
+-- 
+Roger Shimizu, GMT +9 Tokyo
+PGP/GPG: 4096R/6C6ACD6417B3ACB1

@@ -1,0 +1,62 @@
+To : 857132@bugs.debian.org
+Subject : Bug#857132: console-setup: additional info needed ?
+From : Karsten Hilbert <Karsten.Hilbert@gmx.net>
+Date : Thu, 23 Mar 2017 11:36:20 +0100
+Message-id : 20170323103620.rqh5bpv7eyojj3h2@hermes.hilbert.loc
+Reply-to : Karsten Hilbert <Karsten.Hilbert@gmx.net>, 857132@bugs.debian.org
+In-reply-to : <[🔎] 87d1d8gvcd.fsf@turtle.gmx.de>
+References : <[🔎] 149017858840.23048.7220154904975481356.reportbug@hermes.hilbert.loc> <[🔎] 20170322111851.GA1617@debian.lan> <[🔎] 20170322120016.xigufsgrjq36z4zb@hermes.hilbert.loc> <[🔎] 20170322130228.GA27537@logic> <[🔎] 87d1d8gvcd.fsf@turtle.gmx.de>
+
+
+On Thu, Mar 23, 2017 at 11:07:14AM +0100, Sven Joachim wrote:
+> >> > ls -l /etc/console-setup/
+> >> 
+> >> 	-rwxr-xr-x   1 root root   465 Mar 22 11:20 cached_setup_font.sh
+> >> 	-rwxr-xr-x   1 root root   358 Mar 22 11:20 cached_setup_keyboard.sh
+> >> 	-rwxr-xr-x   1 root root    73 Mar 22 11:20 cached_setup_terminal.sh
+> >
+> > Hm, the times of these three are too recent. I can see two possibilities:
+> >
+> >   1. either the bug no longer exists in this system, in which case we 
+> > have to find out what caused these files to be created, or
+> >
+> >   2. the bug still exists and each time the system boots, it recreates 
+> > these three files.  In this case we have to find out the cause of this.
+> 
+> There might be a third possibility which seems to happen on one of my
+> systems: the cached_setup_font.sh script does not work correctly when
+> run during boot by udev.  Because this is what I am observing here, I
+> even added some debug messages to it to see if it is run at all (as
+> intended by /lib/udev/rules.d/90-console-setup.rules), and indeed it
+> does run but the font still remains unchanged.
+This very much hints at a dependency problems, does it not ? 
+Does your system exhibiting this behaviour run systemd ?
+> Manually running /etc/console-setup/cached_setup_font.sh (or
+> setupcon -f, for that matter) works fine, so I'm a bit at a loss here.
+I'll constrain my "fixup" script to "-f" now to see whether
+that will consistently fix what I am seeing (IOW whether we
+can constrain the problem to font setting, which is likely).
+I have sometimes noted the following which seems to suggest
+that some dependency may come up late:
+Directly after boot, during which no VT switch occurred, I
+will see the login manager for KDE. When I now switch to the
+first console and then ALT-RIGHT through my other consoles up
+until vt6 they don't have a getty running just yet (they show
+up as empty black screens). The second round through all of
+them exhibit the getty login prompt. This happens only very
+rarely but it _does_ come up every so often. This fact does
+seem to hint a gettys being spawned in a delayed fashion.
+I have observed something else, but only ONCE so far:
+After running setupcon to fix the font problem one console
+(sitting at the login prompt) did not get the message - it
+stayed in the old, wrong font. Re-running setupcon fixed that
+console, too. Other consoles - which reset to the correct
+font upon the first setupcon invocation - where either logged
+in or sitting at the login prompt as well, so it's not
+whether they were logged in or not.
+Might there be a race between getty spawning and setupcon
+running ?
+Karsten
+-- 
+GPG key ID E4071346 @ eu.pool.sks-keyservers.net
+E167 67FD A291 2BEA 73BD  4537 78B9 A9F9 E407 1346

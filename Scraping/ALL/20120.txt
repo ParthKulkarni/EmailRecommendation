@@ -1,0 +1,43 @@
+To : debian-devel@lists.debian.org, debian-science@lists.debian.org
+Subject : Re: RFC: Naming convention for ILP64 variant of BLAS/LAPACK
+From : Simon McVittie <smcv@debian.org>
+Date : Mon, 22 Oct 2018 18:38:23 +0100
+Message-id : 20181022173823.GA13554@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] d950b9a242315288cba488847b279a8191132eb7.camel@decadent.org.uk>
+References : <[🔎] 20181021095114.GA24382@Asuna> <[🔎] 20181021151615.6ipnkpz3bmlncoh7@shell.thinkmo.de> <[🔎] 20181021175116.frpge6rogmut4fm4@mail.wookware.org> <[🔎] 20181022150709.GB18121@Asuna> <[🔎] d950b9a242315288cba488847b279a8191132eb7.camel@decadent.org.uk>
+
+
+On Mon, 22 Oct 2018 at 18:17:32 +0100, Ben Hutchings wrote:
+> On Mon, 2018-10-22 at 15:07 +0000, Mo Zhou wrote:
+> > Here are some references:
+> > 
+> > 1. https://software.intel.com/en-us/mkl-linux-developer-guide-using-the-ilp64-interface-vs-lp64-interface
+> > 
+> >    The Intel MKL ILP64 libraries use the 64-bit integer type (necessary
+> >    for indexing large arrays, with more than 231-1 elements), whereas
+> >    the LP64 libraries index arrays with the 32-bit integer type.
+> [...]
+> 
+> The correct C types for indexing arrays are ptrdiff_t and size_t. 
+> These are already 64-bit in LP64 ABIs.  So this seems like a workaround
+> for code using the wrong types.
+Do BLAS/LAPACK really mean ILP64, or do they really mean "ABI with large
+array indexes"?
+A true ILP64 ABI would be one where open() takes a 64-bit flags parameter
+and returns a 64-bit result. As Ben says, that's a question of operating
+system ABI, not an individual library's ABI.
+If BLAS/LAPACK want a version that uses 64-bit quantities in places where
+they previously used ints, they should change the type used, not the
+meaning of "int".
+Prior art 1: in the CPython 2.5 ABI, PyList_GetItem took an int argument,
+but in CPython 2.6+ it takes a Py_ssize_t argument, where Py_ssize_t
+is a signed integer the same size as a size_t - that's a ssize_t on
+platforms that support that type, like Debian. This required an ABI
+break for Python extensions, but not for the whole operating system.
+Prior art 2: libpcre has multiple ABI versions that use different sizes
+for an abstract character in a Unicode string (libpcre3 for 8-bit units
+encoding Unicode in UTF-8, libpcre16-3 for 16-bit units encoding Unicode
+in UTF-16, and libpcre32-3 for 32-bit units encoding Unicode in UCS-4)
+but nobody claims that the different libpcre ABIs have different sizes
+for 'char'.
+    smcv

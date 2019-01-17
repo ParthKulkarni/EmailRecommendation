@@ -1,0 +1,49 @@
+To : debian-devel@lists.debian.org
+Subject : Which checks should we mandate for source operations in shell scripts
+From : Marc Haber <mh+debian-devel@zugschlus.de>
+Date : Wed, 20 Jun 2018 21:49:29 +0200
+Message-id : E1fVj6f-00053J-RL@drop.zugschlus.de
+
+
+Hi,
+back in the sysvinit days, we used to have the following construct as
+a common idiom in init scripts:
+|if [ -f /etc/default/foo ]; then
+|  . /etc/default/foo
+|fi
+This is an immediate privilege escalation vulnerability in the case
+that /etc/default/foo or /etc/default itself is/are writeable for
+non-root users.
+It has (finally, and to late) occurred to me that
+|# back up /etc/default/foo
+|cp /etc/default/foo ~/foo
+|(try something in /etc/default)
+|sudo mv ~/foo /etc/default/foo
+will place a file owned by my "normal" user into /etc/default where it
+might be used from an (unchanged) init script[1].
+This being a clear mistake of the local admin, I am wondering how
+common this actually is and whether Debian should protect its users
+from this common error by placing appropriate checks in the scripts
+where this construct is used[2]. While shells offer the -O and -G file
+test operators, the test for actual writability is more non-trivial
+and would introduce added complexity (and therefore possible bugs) to
+hundreds if not thousands of scripts in Debian.
+I am wondering what the opinion of my fellow developers is in this
+matter. Should Debian establish some protection against this, and
+would it make sense to establish that procection in some kind of a
+global "library" that could be used for this verification? What do you
+think about that?
+Greetings
+Marc
+[1] thanks to waldi for pointing out that it needs an actual sudo mv
+for this issue to get abusable while a sudo cp will do the right thing
+[2] This is a rather common idiom that is not only used in init
+scripts, but in many other places - not counting the Debconf
+confmodule being sourced in maintainer scripts that way since the
+local admin doesn't mess around too often manually in
+/usr/share/debconf.
+-- 
+-------------------------------------- !! No courtesy copies, please !! -----
+Marc Haber         |   " Questions are the         | Mailadresse im Header
+Mannheim, Germany  |     Beginning of Wisdom "     | 
+Nordisch by Nature | Lt. Worf, TNG "Rightful Heir" | Fon: *49 621 72739834

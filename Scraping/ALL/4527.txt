@@ -1,0 +1,39 @@
+To : Daniel Pocock <daniel@pocock.pro>, 860368@bugs.debian.org
+Subject : Bug#860368: installer: create network bridges by default?
+From : Wouter Verhelst <wouter@debian.org>
+Date : Sat, 15 Apr 2017 13:05:18 +0200
+Message-id : 20170415110518.o4g23ju74ldu7xtm@grep.be
+Reply-to : Wouter Verhelst <wouter@debian.org>, 860368@bugs.debian.org
+In-reply-to : <[🔎] accf61de-2c85-403b-09a0-35662db6f918@pocock.pro>
+References : <[🔎] accf61de-2c85-403b-09a0-35662db6f918@pocock.pro>
+
+
+On Sat, Apr 15, 2017 at 10:50:30AM +0200, Daniel Pocock wrote:
+> With libvirt, that is possible using macvtap but it is unreliable and
+> doesn't allow[3] communication between the guest and the host, only
+> between the guest and other hosts on the subnet.
+> 
+> The solution is for people to configure a bridge or Open vSwitch (OVS)
+> in /etc/network/interfaces.
+Actually, you can just tell virt-manager to use the "default" network,
+which is configured correctly. However, it does not come enabled out of
+the box; to fix, you can do one of two things; either run "virsh
+net-autostart default; virsh net-start default", or use the virt-manager
+UI to do the same (under Edit->Connection details->Virtual networks)
+This uses NAT, and creates a virtual NIC, which therefore requires root
+access; but it works nicely IME.
+> (Notice OVS can be configured[4] in the interfaces file).  Maybe it would be
+> useful to offer one or both of these options at install time, or even
+> configure a standard (non-OVS) bridge by default in case the user decides to
+> try KVM in future?
+> 
+> Are there other use cases apart from KVM that would benefit from this?
+Very few.
+> Are there things that would break badly if Debian offered this in future?
+if you happen to be in an enviroment where there are conflicting network
+configurations active, things will break badly.
+-- 
+< ron> I mean, the main *practical* problem with C++, is there's like a dozen
+       people in the world who think they really understand all of its rules,
+       and pretty much all of them are just lying to themselves too.
+ -- #debian-devel, OFTC, 2016-02-12

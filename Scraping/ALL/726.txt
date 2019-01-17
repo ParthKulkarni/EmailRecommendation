@@ -1,0 +1,65 @@
+To : Philip Iezzi <debian@onlime.ch>, 915103@bugs.debian.org
+Subject : Bug#915103: Apache2 HTTP/2 connection problems with Safari clients
+From : Stefan Fritsch <sf@sfritsch.de>
+Date : Mon, 17 Dec 2018 22:55:13 +0100
+Message-id : 2014331.ND6DmFoBQr@k
+Reply-to : Stefan Fritsch <sf@sfritsch.de>, 915103@bugs.debian.org
+In-reply-to : <[🔎] B009712F-E8AA-438B-AA34-FCADC9ED7F7C@onlime.ch>
+References : <[🔎] C7BD6817-DD11-40E3-9B12-F1EEEF79351B@onlime.ch> <84c682cd9e67fd2f38bf076d509e536b@conemu.de> <[🔎] B009712F-E8AA-438B-AA34-FCADC9ED7F7C@onlime.ch> <84c682cd9e67fd2f38bf076d509e536b@conemu.de>
+
+
+Hi Philip,
+On Friday, 14 December 2018 22:49:13 CET Philip Iezzi wrote:
+> But the patch from bee2facd9343beda10677b139cd9b2e49e986f01
+> (https://salsa.debian.org/apache-team/apache2/commit/bee2facd9343beda10677b
+> 139cd9b2e49e986f01) was already applied to latest apache2 package in Debian
+> 9.6 (modules/http2/h2_bucket_beam.c). How come this should fix the problem?
+> Or did you rather mean this patch is the source of these issues.
+Yes, that's the problematic patch, not the fix.
+I have some hope that the fix for the issue is this upstream commit:
+https://svn.apache.org/viewvc?view=revision&revision=1843468
+It would be nice if you could apply the attached patch to the debian source 
+package, rebuild it, and check if it fixes the issue. Thanks.
+Cheers,
+Stefan
+diff --git a/debian/patches/http-EOS-handling.diff b/debian/patches/http-EOS-handling.diff
+new file mode 100644
+index 0000000000..501ab5a7b6
+--- /dev/null
++++ b/debian/patches/http-EOS-handling.diff
+@@ -0,0 +1,26 @@
++# https://svn.apache.org/viewvc?view=revision&revision=1843468
++# https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=915103
++--- apache2.orig/modules/http2/h2_session.c
+++++ apache2/modules/http2/h2_session.c
++@@ -1094,6 +1094,10 @@ static ssize_t stream_data_cb(nghttp2_se
++         case APR_SUCCESS:
++             break;
++             
+++        case APR_EOF:
+++            eos = 1;
+++            break;
+++            
++         case APR_ECONNRESET:
++         case APR_ECONNABORTED:
++             return NGHTTP2_ERR_CALLBACK_FAILURE;
++--- apache2.orig/modules/http2/h2_stream.c
+++++ apache2/modules/http2/h2_stream.c
++@@ -915,7 +915,7 @@ apr_status_t h2_stream_out_prepare(h2_st
++                           (long)*plen, *peos);
++         }
++         else {
++-            status = APR_EAGAIN;
+++            status = (stream->output && h2_beam_is_closed(stream->output))? APR_EOF : APR_EAGAIN;
++             ap_log_cerror(APLOG_MARK, APLOG_TRACE1, 0, c,
++                           H2_STRM_MSG(stream, "prepare, no data"));
++         }
+diff --git a/debian/patches/series b/debian/patches/series
+index 014d958573..93b77b7f35 100644
+--- a/debian/patches/series
++++ b/debian/patches/series
+@@ -30,3 +30,4 @@ mod_http2_mem_usage_32bit.diff
+ fcgi_crash.diff
+ CVE-2018-1333-mod_http2_DoS.diff
+ CVE-2018-11763-mod_http2_DoS-SETTINGS.diff
++http-EOS-handling.diff

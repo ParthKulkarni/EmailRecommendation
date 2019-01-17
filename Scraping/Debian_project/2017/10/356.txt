@@ -1,0 +1,70 @@
+To : debian-devel@lists.debian.org
+Subject : Re: New: "cme run paste-license script" (was: Re: pasting license text into debian/copyright)
+From : Dominique Dumont <dod@debian.org>
+Date : Sun, 22 Oct 2017 11:14:04 +0200
+Message-id : 47149275.V9tmqDmZUZ@ylum
+Reply-to : dod@debian.org
+In-reply-to : <[🔎] 20171022065544.3ydipy6akjqeiyld@an3as.eu>
+References : <alpine.DEB.2.02.1709161746380.9827@jupiter.server.alteholz.net> <[🔎] 20171021164037.aq66padmnfbw3hkc@jadzia.comodo.priv.at> <[🔎] 20171022065544.3ydipy6akjqeiyld@an3as.eu>
+
+
+On Sunday, 22 October 2017 08:55:44 CEST Andreas Tille wrote:
+> $ cme run paste-license  --arg license=CeCILL --arg file=COPYING >
+> copyright.patch Log4perl: Seems like no initialization happened. Forgot to
+> call init()? 
+That's a bug in cme that will be fixed soon.
+> Warning: Files:"*" License short_name skipping value CeCILL
+> because of the following errors: license 'CeCILL' is not declared in main
+> License section. Expected
+Looks like you copyright file already has
+Files: *
+License: CeCiLL
+without the matching section in Licenses (the one you trying to add). cme 
+emits a warning when reading a copyright file with this error. This value is 
+ignored because of this error.
+> Warning: Files:"debian/*" License short_name skipping value CeCILL because
+> of the following errors: license 'CeCILL' is not declared in main License
+> section. Expected
+Likewise.
+> License CeCILL is not used in Files: section
+The new added license is seen as unused because the CeCILL values were ignored 
+above. (*)
+> Configuration item 'Files:"*" License short_name' has a wrong value:
+>         Undefined mandatory value.
+This is an error shown while writing the file. cme does not accept to write 
+back a copyright file containing errors. The values are missing because, err, 
+they were ignored above because, err, the main license was missing. 
+I guess that error handling in cme can be improved ...
+> I admit I do not really understand all the output to stderr. 
+I hope I gave some clue above ...
+> The output
+> to stdout 
+The fact that stdout is redirect makes the errors above harder to understand.
+> (in my example redirected to copyright.patch) is
+err. it never occurred to me that someone could feed cme output to patch ....
+> So this does not really help since its neither a valid patch for
+> d/copyright nor can I add this content there without editing.  It just
+> added a '+' to the original license text which is not really helpful.
+> May be I'm continuously missing the point but shouldn't it add rather
+> a ' ' instead of a '+' and replace empty lines by ' .'?
+cme should write debian/copyright provided no error is left.
+Following Perl's TIMTOWTDI tradition, I suggest to fix this problem by either:
+- use -force option with cme and add back the License entries after cme has 
+saved the file
+- use the GUI (cme edit dpkg-copyright) and cut'n'paste CeCILL license text in 
+the License section (see [1] for details)
+- tweak your file so that cme check returns no warning before running paste-
+license
+- fix everything at once with: cme modify dpkg-copyright -force 'License:CeCILL 
+text=.file(COPYING) ! Files:"*" License short_name=CeCILL Files:"debian/*" 
+License short_name=CeCILL'
+Hope this helps
+Dod
+[1] https://github.com/dod38fr/config-model/wiki/Managing-Debian-packages-with-cme#maintaining-debian-copyright-file
+(*) I always wondered if an erroneous value found in a file should be ignored 
+or loaded. I've chosen the first option, which leads to the cascading errors 
+you've found. I guess that I should implement the second option at least when 
+-force option is used.
+-- 
+ https://github.com/dod38fr/   -o- http://search.cpan.org/~ddumont/
+http://ddumont.wordpress.com/  -o-   irc: dod at irc.debian.org

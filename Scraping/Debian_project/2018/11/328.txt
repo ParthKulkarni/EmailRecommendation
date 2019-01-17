@@ -1,0 +1,66 @@
+To : Sean Whitton <spwhitton@spwhitton.name>
+Subject : Re: Our build system may be broken: /bin vs /usr/bin
+From : Dirk Eddelbuettel <edd@debian.org>
+Date : Mon, 19 Nov 2018 19:39:26 -0600
+Message-id : 23539.26062.568048.188885@rob.eddelbuettel.com
+In-reply-to : <[🔎] 87h8gcvbam.fsf@iris.silentflame.com>
+References : <[🔎] 23538.52963.365294.710701@rob.eddelbuettel.com>	<[🔎] CANBHLUhCjuSKNu5CzoPcProi0BkUjtCQ9crLU1Q9-=WDm-L==A@mail.gmail.com>	<[🔎] 1542651341.742077.1582197080.67CD6B75@webmail.messagingengine.com>	<[🔎] 87h8gcvbam.fsf@iris.silentflame.com>
+
+
+On 19 November 2018 at 17:32, Sean Whitton wrote:
+| Hello,
+| 
+| On Mon 19 Nov 2018 at 01:15PM -0500, Chris Lamb wrote:
+| 
+| > Hi Dimitri,
+| >
+| >> […] e.g. using reproducible builds infra to do "build in
+| >> --no-merged-usr, rebuild in --merged-usr, result should be the same"
+| >> either as a one-off, or on the ongoing basis.
+| >
+| > So, as mentioned on:
+| >
+| >   https://reproducible-builds.org/blog/posts/185/
+| >
+| > … Simon McVittie has actually patched our testing framework to vary
+| > this and this is now live.
+| >
+| >   https://bugs.debian.org/901473#33
+| >
+| > (There is some further discussion on this bug.)
+| 
+| Nice.  Props to you all.
+Are we sure this is fixed?
+The build failures appeared in the last two days. These release and patch
+notes are from Nov 9 (in the BTS) and before Nov 13 (for Repro Build summary).
+As pointed out to me earlier today by Kurt Hornik from the (upstream) R Core
+team (whom I have CC'ed here too), if we look at eg the i386 build of r-base
+3.5.1-2 resulting from my upload this morning I see line 120 to 123 of
+/usr/bin/R having (indented two)
+  ## some systems have a more portable sed, e.g. /usr/xpg4/bin/sed on Solaris,
+  ## so make sure that is used.
+  SED=/usr/bin/sed
+  export SED
+and that is still WRONG as there is no /usr/bin/sed, only /bin/sed.
+R itself use this in configure.ac (again indented two):
+  ## we would like a POSIX sed, and need one on Solaris
+  AC_PATH_PROGS(SED, sed, /bin/sed, [/usr/xpg4/bin:$PATH])
+Similarly, I have had this for many years in debian/rules -- in part because
+at one point had mulitple zip versions (until an IP related issue became
+better IIRC), multiple print queues, multiple pages, multiple awks etc pp and
+what not:
+	R_GZIPCMD="/bin/gzip -n"			\
+	PAGER=/usr/bin/pager				\
+	PERL=/usr/bin/perl				\
+	R_UNZIPCMD=/usr/bin/unzip			\
+	R_ZIPCMD=/usr/bin/zip				\
+	R_PRINTCMD=/usr/bin/lpr				\
+	AWK=/usr/bin/awk                                \
+We can surely work around / with usrmerge and do more checks -- but it
+currently looks to me as if this is still borked for now.
+And call me crazy or old-fashioned, but "baking" a configure-time choice into
+a script seems preferable to searching the path each time.  We only move /bin
+once every fourty years afer all ...
+Dirk
+-- 
+http://dirk.eddelbuettel.com | @eddelbuettel | edd@debian.org

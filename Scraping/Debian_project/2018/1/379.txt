@@ -1,0 +1,92 @@
+To : Alexandre Detiste <alexandre.detiste@gmail.com>
+Subject : Re: Removal of upstart integration
+From : Dimitri John Ledkov <xnox@debian.org>
+Date : Fri, 12 Jan 2018 17:10:49 +0000
+Message-id : CANBHLUgrbYzf3ui71hD5wL=ziW1YUox6girsh0MVxvL+u2YaNw@mail.gmail.com
+In-reply-to : <CADsTwjJpe1RmVcR2r+GpAWMzSHFXTK3jw-DaMLqnr2AiHCLuMw@mail.gmail.com>
+References : <CANBHLUh_ZhEfbkVnOp8iM-j+4xVo5rzORvknVptyUna+b6B-EA@mail.gmail.com> <CADsTwjJpe1RmVcR2r+GpAWMzSHFXTK3jw-DaMLqnr2AiHCLuMw@mail.gmail.com>
+
+
+On 13 September 2017 at 05:50, Alexandre Detiste
+<alexandre.detiste@gmail.com> wrote:
+> Hi,
+>
+> Please also sprinkle these maintainers scripts with some
+>
+>   rmdir /etc/init  --ignore-fail-on-non-empty
+>
+> to avoid ending up with a stale, unowned, empty /etc/init.
+> (ad: the "cruft" tool found out about this)
+>
+I think this might be painful to do, because there is no "rm_confdir"
+stanza in the dpkg-maintscript-helper.
+And i'm not sure how popular such a sub-command would be in
+dpkg-maintscript-helper.
+Maybe I am allowed to ship a dpkg trigger, to become sensitive on
+/etc/init and try to remove it all the time via a trigger?
+Cause then the below script will be sufficient to modify many packages
+to drop upstart jobs.
+I will propose rm_confdir to dpkg, maybe it will be accepted/deemed
+necessary to have.
+Regards,
+Dimitri.
+>
+> --- /var/spool/cruft/report_20170907.log        2017-09-07
+> 06:18:45.571974263 +0200
+> +++ /var/spool/cruft/report_20170913.log        2017-09-13
+> 06:19:16.245673086 +0200
+> @@ -1,13 +1,13 @@
+> -cruft report: jeu 07 sep 2017 06:15:25 CEST
+> +cruft report: mer 13 sep 2017 06:15:29 CEST
+>  ---- missing: dpkg ----
+>          /usr/lib/arm-linux-gnueabihf/gio
+>          /usr/lib/arm-linux-gnueabihf/gio/modules
+>  ---- unexplained: / ----
+> -        /etc/apt/apt.conf.d/50unattended-upgrades.ucf-dist
+>          /etc/apt/apt.conf.d/99local
+>          /etc/ca-certificates.conf.dpkg-old
+>          /etc/dpkg/dpkg.cfg.d/local
+>          /etc/group.org
+> +        /etc/init
+>          /etc/modprobe.d/ipv6.conf
+>
+>
+> 2017-08-30 15:39 GMT+02:00 Dimitri John Ledkov <xnox@debian.org>:
+>> upstart - event-based init daemon has been removed from debian and is
+>> currently only present in oldstable.
+>>
+>> Many packages however still ship upstart integration. Please consider
+>> removing /etc/init/* conffiles from your packages. Do note, that
+>> typically this will require a debian/pkg.maintscript snippet to
+>> rm_conffile these files.
+>>
+>> For straight forwarded cases where simply debian/*.upstart files
+>> exist, this can be resolved using this script:
+>>
+>> ---- 8< ----
+>> #!/bin/bash
+>> set -e
+>> set -x
+>> drop_upstart() {
+>>     ver=$1
+>>     pkg=$2
+>>     job=$2
+>>     if [ -n "$4" ]
+>>     then
+>>           job=$3
+>>     fi
+>>     echo "rm_conffile /etc/init/$job.conf $ver~ $pkg" >> $pkg.maintscript
+>> }
+>> dch -i 'Drop upstart system jobs.'
+>> ver=$(parsechangelog | sed -n 's/Version: //p')
+>> pushd debian
+>> for f in *.upstart
+>> do
+>>     drop_upstart $ver $(echo $f | sed 's/\./ /g')
+>>     rm $f
+>> done
+>> popd
+>> ---- 8< ----
+-- 
+Regards,
+Dimitri.

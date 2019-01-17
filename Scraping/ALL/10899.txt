@@ -1,0 +1,46 @@
+To : Xavier Guimard <x.guimard@free.fr>
+Subject : Re: New httpd-fastcgi virtual package
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Wed, 20 Sep 2017 13:02:43 +0100
+Message-id : 22978.22755.915812.837411@chiark.greenend.org.uk
+In-reply-to : <[🔎] c1867cf0-f4a5-dc4f-84e1-ddd200a3871b@free.fr>
+References : <[🔎] c003c3c4-d5ff-29cc-7da9-db97dec558ad@free.fr>	<[🔎] 20170919190437.qybeoya5qjey6a77@bongo.bofh.it>	<[🔎] c1867cf0-f4a5-dc4f-84e1-ddd200a3871b@free.fr>
+
+
+Xavier Guimard writes ("Re: New httpd-fastcgi virtual package"):
+> Le 19/09/2017 à 21:04, Marco d'Itri a écrit :
+> > On Sep 19, Xavier <x.guimard@free.fr> wrote:
+> >> So FastCGI application could have dependency on it.
+> > How would this work?
+> > The packages that could use it would still need to ship a configuration
+> > file for every web server since there is no common API like
+> > /usr/lib/cgi-bin/ .
+> 
+> You're right, but a FastCGI server needs a webserver as frontend which 
+> can expose it. My idea was to use this virtual package for webserver 
+> able to establish the link between a browser and a FastCGI server 
+> (Nginx, libapache2-mod-fcgid,...)
+If the user needs to configure the webserver specially, by writing
+config files, or whatever, in any case, then they will not find it
+much help to have some random webserver pulled in by the dependency
+system.  Even if they have the webserver already, so apt pulls in the
+right module, the user will probably have little difficulty figuring
+out which webserver module package to install (if one is needed).
+In general, it is best if a virtual package name relates to a
+_specific_ interface, provided by a specific name or port number or
+whatever.  So for example mail-transport-agent means
+/usr/sbin/sendmail, not "anything that can be an MTA".
+(And indeed httpd-cgi means "executes scripts in /usr/lib/cgi-bin" and
+I assume the httpd-wsgi and httpd-wsgi3 virtual packages are similar.)
+Is there some way to provide a uniform interface to fcgi programs ?
+If so please try to define one, even if it's just "runs fcgi programs
+provided in /usr/lib/fcgi-bin" or something.  (I know fcgi is a
+terrible prototocol and may make this hard.)
+It would also be worth saying something like "Debian webservers should
+violate the FCGI specification by executing fcgi programs with stdout
+and stderr connected to somewhere where log messages can be written".
+(All the fcgi application glue stuff I tested, including the official
+reference implementation in C, was completely happy to be run that way.
+Executing an executable with no stdout or stderr is a foolish thing to
+do and has malbehaviour in some error cases.)
+Ian.

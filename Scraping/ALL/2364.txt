@@ -1,0 +1,55 @@
+To : 514015@bugs.debian.org,	514016@bugs.debian.org
+Subject : Bug#514016: Example of ruined host
+From : Askar Safin <safinaskar@mail.ru>
+Date : Thu, 16 Nov 2017 21:41:47 +0300
+Message-id : 1510857707.895792083@f509.i.mail.ru
+Reply-to : Askar Safin <safinaskar@mail.ru>, 514016@bugs.debian.org
+References : <20090203125708.GA10561@wavehammer.waldi.eu.org>
+
+
+This bug can ruin the host! Steps to reproduce.
+* Host should be squeeze amd64. I used absolutely fresh squeeze with few packages. It have normal squeeze's debootstrap 1.0.26+squeeze1
+* Run in it:
+# debootstrap --variant=minbase squeeze /tmp/target http://archive.debian.org/debian
+# debootstrap --variant=minbase wheezy /tmp/target http://deb.debian.org/debian
+* The first debootstrap was OK, the second debootstrap stopped after this:
+===
+I: Extracting debianutils...
+I: Extracting diffutils...
+I: Extracting dpkg...
+I: Extracting e2fslibs...
+I: Extracting e2fsprogs...
+I: Extracting libcomerr2...
+I: Extracting libss2...
+I: Extracting libc-bin...
+I: Extracting libc6...
+===
+* After this point nearly any command doesn't work AT HOST!!! After this point the dynamic linker is not available. For example, /bin/true gives this: "bash: /bin/true: No such file or directory". "ldconfig" as root fixes the situation.
+But this quiet possible the user simply would not guess he should type "ldconfig". Moreover, I think if he has no already opened root shell, he cannot open it (I think "sudo" will not work and I think attempting to log in in /dev/tty1 will not work, too). So, this is quiet possible the user will simply power off the computer. And then (I think) he will unable to boot the computer anymore. Yes, this is still possible to restore the computer (I think something like "linux /vmlinuz rw init=/sbin/ldconfig" from GRUB), but this is possible the user will not guess the right command. So he will simply reinstall OS.
+So, this is absolutely critical bug, which can force average user to reinstalling OS. Moreover, in the time while the dynamic linker is missing, other running programs may experience data loss. So, this is critical data-loss bug!
+You may say that this has little probability that someone will run debootstrap two times in same dir with different debian releases. Yes, this has little probability. But I run into this problem once. And this is not important to speak about probabilities when the consequences are such bad (I mean OS reinstalling).
+The same bug is reproducible with squeeze's cdebootstrap (i. e. 0.5.7).
+The same bug is reproducible with squeeze's dpkg-deb (dpkg 1.15.11).
+Okey, how I run into this problem? Well, in fact I was developing my own debootstrap replacement. And I occasionally did run it in one directory two times. Then all commands stopped to work. Fortunately I had root shell opened and fortunately I was smart enough to type "ldconfig" into it. Then I checked that same problem applies not only my program, but also to original debootstrap.
+Okey, how to reproduce with without risk of crashing your host? Well, let's assume you has host A with any OS. Create chroot environment B with squeeze using debootstrap. Then chroot into it, create dir C and run debootstrap two times on it as I described above. This will crash B, but not A.
+It seems the bug is not reproducible when host is something newer than squeeze. So, I did not open separate bug report and posted my problem here. But the root cause of the issue is bugs #514015 / #514016, so these bugs (#514015 / #514016) should be fixed. It is possible that #514015 / #514016 for some reason will cause some another critical "reinstall this OS" bug.
+One possible fix for my problem: check (in both debootstrap and cdebootstrap) that target is empty or non-existent.
+Now some more info about my bug. This is part of file hierarchy after first debootstrap:
+/lib
+/lib/ld-2.11.3.so
+/lib/ld-linux-x86-64.so.2 -> ld-2.11.3.so
+/lib64 -> /lib
+/tmp/target/lib
+/tmp/target/lib/ld-2.11.3.so
+/tmp/target/lib/ld-linux-x86-64.so.2 -> ld-2.11.3.so
+/tmp/target/lib64 -> /lib
+This is contents of libc6_2.13-38+deb7u10_amd64.deb from wheezy (it will be extracted during second debootstrap):
+/lib
+/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 -> ld-2.11.3.so
+/lib/x86_64-linux-gnu/ld-2.13.so
+/lib64
+/lib64/ld-linux-x86-64.so.2 -> /lib/x86_64-linux-gnu/ld-2.13.so
+Now second debootstrap extracts libc6_2.13-38+deb7u10_amd64.deb into /tmp/target. Debootstrap tries to put package's "/lib64/ld-linux-x86-64.so.2" into system's "/tmp/target/lib64/ld-linux-x86-64.so.2", but "/tmp/target/lib64" is symlink to /lib, so debootstrap writes to host's /lib64/ld-linux-x86-64.so.2 . So, now host's /lib64/ld-linux-x86-64.so.2 is symlink and it points to file /lib/x86_64-linux-gnu/ld-2.13.so , which is non-existent on host. So, now host's dynamic linker name ( /lib64/ld-linux-x86-64.so.2 , hardcoded into nearly all dynamic binaries) is symlink to non-exist file.
+==
+Askar Safin
+http://vk.com/safinaskar

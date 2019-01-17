@@ -1,0 +1,42 @@
+To : 873465@bugs.debian.org
+Subject : Re: Bug#873465: apt: wrongly reports failure on 'update' on mips64el, triggers d-i FTBFS
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 28 Aug 2017 07:50:34 +0200
+Message-id : 20170828055034.GB16128@mraw.org
+In-reply-to : <[🔎] 20170828042450.2910.72095.reportbug@armor.home>
+References : <[🔎] 20170828042450.2910.72095.reportbug@armor.home>
+
+
+Control: tag -1 patch
+Cyril Brulebois <kibi@debian.org> (2017-08-28):
+> Given apt 1.5~beta2 was uploaded on the evening of the 17th, it probably
+> reached the archive on the 18th, and was first used in the build chroot
+> for the 0030Z build on the 19th. I'm filing this against apt since it
+> seems clear to me there were no actual download errors, but it also
+> seems likely that apt might be encountering gcc-7 related
+> miscompilations, see #871514.
+> 
+> In any case, a speedy fix would be much appreciated, as this is a
+> blocker for the D-I Buster Alpha 1 release (which has already been
+> delayed way too much for other reasons).
+I've built apt with -O0 (it seems a more acceptable workaround than
+going back to gcc-6), and setting PATH/LD_LIBRARY_PATH to point to its
+debian/tmp directory, I've managed to get rid of the issue I was getting
+when trying to build debian-installer, and even managed to get a full
+build.
+Of course this generates a lot of noise in dpkg-gensymbols (end of the
+build log attached), but since it didn't bail on me, I guess that's OK?
+Trivial patch for debian/rules attached; of course this can be limited
+to mips64el, but I'd like to get a maintainer's opinion as to whether
+that's an acceptable workaround for the time being. If it is, I can NMU.
+KiBi.
+signature.asc--- tmp/apt-1.5~rc1/debian/rules	2017-08-24 21:13:52.000000000 +0000
++++ apt-1.5~rc1/debian/rules	2017-08-28 04:57:08.922750477 +0000
+@@ -2,6 +2,8 @@
+ # Copyright (C) 2009, 2016 Julian Andres Klode <jak@debian.org>
+ #
+ # Free Software, licensed under the GPL-2 or (at your option) any later version.
++export DEB_CFLAGS_MAINT_APPEND := -O0
++export DEB_CXXFLAGS_MAINT_APPEND := -O0
+ export DEB_LDFLAGS_MAINT_APPEND := -Wl,--as-needed
+ export DEB_BUILD_MAINT_OPTIONS := hardening=+all

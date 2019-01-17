@@ -1,0 +1,56 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Feedback on 3.0 source format problems
+From : Russ Allbery <rra@debian.org>
+Date : Tue, 03 Jan 2017 18:37:25 -0800
+Message-id : 87lgurh7oa.fsf@hope.eyrie.org
+In-reply-to : <[🔎] 20170104021016.5xiymbf26uyymccl@jadzia.comodo.priv.at> (gregor	herrmann's message of "Wed, 4 Jan 2017 03:10:16 +0100")
+References : <[🔎] 87h95ght4g.fsf@hope.eyrie.org> <[🔎] 87ful0q97e.fsf@thinkpad.rath.org>	<[🔎] 20170103201509.s3swo4w666qeieow@iris.silentflame.com>	<[🔎] 20170104021016.5xiymbf26uyymccl@jadzia.comodo.priv.at>
+
+
+gregor herrmann <gregoa@debian.org> writes:
+> Personally I have the feeling that lots of these discussions and also
+> the creation of new tools (git-dpm, git-pq, git-debcherry, dgit) are
+> just workarounds for the actual problem: Many of us would like to work
+> in and with git but the whole infrastructure still revolves around
+> tarballs and additions/patches to them; and therefore we're creating
+> even more sophisticated tools to translate between those two worlds
+> which try hard to first get the "old" world into a git-centric workflow
+> and then try hard to get the work out again, in a way that can later be
+> used again from "within". -- I know we won't get this in 2017, but
+> still: I'd like to be a source package a git repo on
+> $whatever.debian.org, and an upload to be a git push of a signed tag to
+> the ftp-master remote. </vision>
+I think this is partly true, but I think there's still a part of this that
+is still an issue even if we had a pure Git world, namely how to represent
+the changes Debian is making to the upstream package in a clean way.
+Even if we never used tarballs, and instead our unit of operation was the
+upstream Git repository plus Debian branches, I would maintain a rebased
+branch of Debian changes to upstream because I think this is dramatically
+more useful than a merged branch with interleaved changes (including later
+revisions to earlier diffs and resolutions of merge conflicts).  This
+isn't a theoretical position -- I've tried about five or six different
+ways of handling this, with very complex packages and lots of local
+changes and with simple packages with just a few changes and have had bad
+experiences with many of the solutions people propose.
+This is actually, in a way, *harder* if we were using pure Git, since if I
+have a rebased branch of Debian changes on top of upstream, and I need a
+place to integrate that with Debian packaging, what does that
+debian/master branch look like?  I don't really want it to be a constantly
+rebased branch; I want it to be a conventional branch.  But I want to keep
+merging the changes against upstream into it (but not maintain them on
+that branch, only maintain the Debian packaging files on that branch).
+It's surprisingly awkward, and, at least for me, it turns out that
+externalizing my rebased branch as a patch series solves many of these
+problems surprisingly well.  All the other solutions I can think of
+require one or more things I don't really want to do: rebase the
+debian/master branch, not be able to run dpkg-buildpackage from the
+debian/master branch easily, or require that dpkg-buildpackage do much
+more mucking about with source control than I want it to.  The cost of
+this is storing diffs of patches in the debian branch as (rather useless)
+commits, which I don't like and would rather not do, but all the
+alternatives feel even less satisfactory.
+(This is entirely apart from the problems with shipping a Git repository
+with all of its history to our archive network, which have already been
+discussed at length.)
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

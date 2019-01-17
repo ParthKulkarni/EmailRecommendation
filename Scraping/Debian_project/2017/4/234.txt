@@ -1,0 +1,75 @@
+To : debian-devel@lists.debian.org
+Subject : Re: policy for shipping sysctl.d snippets in packages?
+From : Adam Borowski <kilobyte@angband.pl>
+Date : Mon, 24 Apr 2017 15:10:15 +0200
+Message-id : 20170424131015.geopkjepwhazd4ze@angband.pl
+In-reply-to : <[🔎] 20170424091748.umfoto7lrjiumvqb@bongo.bofh.it>
+References : <[🔎] 20170423101658.diqp4ubgzyhq7wbx@nana.phantasia.die-welt.net> <[🔎] 20170423190041.x6slcy7vpaqw245z@grep.be> <[🔎] 20170424091748.umfoto7lrjiumvqb@bongo.bofh.it>
+
+
+On Mon, Apr 24, 2017 at 11:17:48AM +0200, Marco d'Itri wrote:
+> On Apr 23, Wouter Verhelst <wouter@debian.org> wrote:
+> 
+> > The "packages drop files in /usr/*, sysadmins override in /etc" way of
+> > doing things is prevalent in the RPM world; in Debian, however, we
+> > traditionally have packages drop files in /etc, and let the maintainer
+> While this scheme was probably instigated by limitations in RPM, at this 
+> point we have had multiple packages (kmod, systemd, udev for a start) 
+> using it for years.
+> 
+> Moving the sysctl.d default settings to /etc would be:
+> - a waste of developers time
+> - a gratuitous incompatibility with other distributions
+> - inconsistent with the documentation both inside and outside Debian
+> - inconsistent with other configuration files implementing this scheme
+And:
+- inconsistent with every package in Debian not in that particular stack
+- hard for admins to make edits (one needs to guess this particular scheme
+  is in place and find the file to modify)
+- failure to do configuration upgrades; in some cases this can result in
+  serious security issues
+- fails whenever the files in /usr are rearranged
+- can't be managed sanely with usual configuration management systems
+  (including raw git)
+- makes the history of changes done by you vs the package (on a
+  non-overridden file) hard to audit
+All of this is caused by Red Hat having no support for upgrades:
+https://access.redhat.com/solutions/21964
+# Red Hat does not support in-place upgrades between major versions 4, 5 and
+# 6 of Red Hat Enterprise Linux.  (A major version is denoted by a whole
+# number version change.  For example, Red Hat Enterprise Linux 5 and Red
+# Hat Enterprise Linux 6 are both major versions of Red Hat Enterprise
+# Linux).
+#
+# In-place upgrades across major releases do not preserve all system
+# settings, services or custom configurations.  Consequently, Red Hat
+# strongly recommends fresh installations when upgrading from one major
+# version to another.
+# Red Hat currently supports only upgrades from Red Hat Enterprise Linux 6
+# to Red Hat Enterprise Linux 7 for specific/targeted use cases only.
+On the other hand, being able to effortlessly dist-upgrade is one of biggest
+reasons many of us have chosen Debian.
+Thus, what about we stop digging the hole and at least forbid this scheme
+for new packages?
+ 
+> There are also good arguments for having the whole default configuration 
+> live in /usr and only local changes in /etc: e.g. this allows supporting 
+> systems with an empty /etc, which greatly reduces the administrative 
+> time needed to manage a large number of servers/containers.
+If all your boxes are identical and get their snowflake number from the net,
+/etc can come from the same place /var and /usr does.  You do need to
+ensure the rest is unmodified anyway.  Shoving things under the carpet
+doesn't help.
+> > configuration file that had been edited by a user is now also edited by
+> > the package maintainer, on Debian the system will ask how to handle it,
+> > rather than changing the defaults and not telling people (which can
+> > break in some circumstances).
+> In my experience as the maintainer of the packages which introduced this 
+> scheme this has not been a noticeable problem.
+But beside the maintainer hat, do you wear a sysadmin hat sometimes?
+ᛗᛖᛟᚹ.
+-- 
+⢀⣴⠾⠻⢶⣦⠀ Meow!
+⣾⠁⢠⠒⠀⣿⡁
+⢿⡄⠘⠷⠚⠋⠀ Collisions shmolisions, let's see them find a collision or second
+⠈⠳⣄⠀⠀⠀⠀ preimage for double rot13!

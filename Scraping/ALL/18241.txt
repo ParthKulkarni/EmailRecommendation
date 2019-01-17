@@ -1,0 +1,42 @@
+To : debian-devel@lists.debian.org, Steffen Nurpmeso <steffen@sdaoden.eu>
+Subject : Re: Rant about Debian reproducibility environment
+From : Simon McVittie <smcv@debian.org>
+Date : Thu, 1 Mar 2018 18:04:13 +0000
+Message-id : 20180301180413.GA800@espresso.pseudorandom.co.uk
+In-reply-to : <[🔎] 20180301171720.-UWOz%steffen@sdaoden.eu>
+References : <[🔎] 20180301171720.-UWOz%steffen@sdaoden.eu>
+
+
+On Thu, 01 Mar 2018 at 18:17:20 +0100, Steffen Nurpmeso wrote:
+>   And, of course, if there is a different kernel version, or
+>   a different uname(1) output as such, then how could a dumb end
+>   producer[consumer, the author] like S-nail deal with that?  We
+>   hardwire those attributes into the binary, like many other
+>   programs do, e.g., "mutt(1) -v" output.
+Why is the kernel version on the machine where s-nail was compiled useful
+to you? If you're looking for more information about a bug report from
+your users, for example if you are concerned that a syscall might have
+changed behaviour, the kernel version on the machine where s-nail was
+*used* seems far more useful - but you can't know that at compile time,
+only at runtime (via uname(2) which is the same system call that uname(1)
+uses).
+Similarly, on 32-bit x86 and ARM systems, the architecture reported by
+uname is (unfortunately) variable, because it's more specific than just
+the machine architecture (i686 or i586 or armv5te or armv7hl, not just
+i386 or arm). Again, if you pick this up at build-time and bake it into
+your binary, it's misleading: a Debian binary built on an i686 autobuilder
+could be used on an i586 machine, or vice versa[1]. If you want this
+information for debugging, the architecture of the machine where s-nail
+is running seems a lot more interesting than the architecture where it
+happens to have been compiled.
+If you want "s-nail --version" or similar to give information about the
+machine for debugging purposes, consider using uname(2) instead.
+That's what mutt -v does, at least on Debian: you can see this by running
+    mutt -v
+    setarch x86_64 --uname-2.6 mutt -v
+and noting that the kernel version that was reported changes.
+Regards,
+    smcv
+[1] Actually it can't any more in current Debian, because the oldest
+    supported x86 instruction set is now i686, but in older releases
+    this was true.

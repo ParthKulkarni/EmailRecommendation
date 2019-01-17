@@ -1,0 +1,34 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#901808: debootstrap: --merged-usr is silently ignored on "blacklisted" suites like stretch
+From : Tianon Gravi <tianon@debian.org>
+Date : Mon, 18 Jun 2018 08:36:07 -0700
+Message-id : CAHnKnK0xhfhHo=ognNhHmJX+DCo008hdLU64GiDF5PD1mbbAcg@mail.gmail.com
+Reply-to : Tianon Gravi <tianon@debian.org>, 901808@bugs.debian.org
+
+
+Package: debootstrap
+Version: 1.0.102
+Severity: serious
+Justification: https://lists.debian.org/debian-boot/2018/06/msg00238.html
+See the conversation around/following [1] for more context.
+[1]: https://lists.debian.org/debian-boot/2018/06/msg00175.html
+The TLDR is that the previous version of debootstrap allowed stretch to
+be used with --merged-usr but the new implementation which turns on
+merged-usr by default and blacklists anything stretch or older makes it
+silently discard the explicit request from the user (without either an
+error or warning that the flag is being ignored).
+As noted by Ansgar in [2], debootstrap should instead default to
+non-merged-usr for stretch and older, but it should be possible to
+enable merged-usr via the command-line parameter (as debuerreotype now
+always includes explicitly as of the 0.7 upload).
+[2]: https://lists.debian.org/debian-boot/2018/06/msg00176.html
+There is a pending merge request implementing this behavior at [3], and
+I think the only points in question are whether defaulting the variable
+to the empty string (and adjusting that empty default based on suite
+later where we actually know it) is the desired approach and what to do
+with EXTRACT_DEB_TAR_OPTIONS / adding "-k" (from bug 838388).
+[3]: https://salsa.debian.org/installer-team/debootstrap/merge_requests/12
+Cheers!
+♥,
+- Tianon
+  4096R / B42F 6819 007F 00F8 8E36  4FD4 036A 9C25 BF35 7DD4

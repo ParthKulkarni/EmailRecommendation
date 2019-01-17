@@ -1,0 +1,105 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#910560: [choose-mirror] fails to build when parallel build is activated
+From : Holger Wansing <hwansing@mailbox.org>
+Date : Mon, 8 Oct 2018 07:51:54 +0200
+Message-id : 20181008075154.7815a5e5f26ffc0c829815da@mailbox.org
+Reply-to : Holger Wansing <hwansing@mailbox.org>, 910560@bugs.debian.org
+
+
+Package: choose-mirror
+Severity: serious
+Version: 2.92
+Since version 2.92, choose-mirror fails to build with
+"dpkg-buildpackage -j", the debian/iso_3166.tab file seems to be removed by 
+error:
+(can also be seen at jenkins:
+https://jenkins.debian.net/view/d-i_packages/job/d-i_build_choose-mirror/ 
+where I found it initially)
+holgerw@t520:~/uploading-d-i/d-i/packages/choose-mirror$ dpkg-buildpackage -j
+dpkg-buildpackage: info: source package choose-mirror
+dpkg-buildpackage: info: source version 2.94
+dpkg-buildpackage: info: source distribution unstable
+dpkg-buildpackage: info: source changed by Holger Wansing <hwansing@mailbox.org>
+dpkg-buildpackage: info: host architecture amd64
+ dpkg-source --before-build choose-mirror
+ fakeroot debian/rules clean
+dh clean
+   dh_testdir
+   debian/rules override_dh_auto_clean
+make[1]: Entering directory '/home/holgerw/uploading-d-i/d-i/packages/choose-mirror'
+rm -rf debian/locales debian/sort-tmp
+/usr/bin/make clean check-masterlist
+make[2]: Entering directory '/home/holgerw/uploading-d-i/d-i/packages/choose-mirror'
+rm -f choose-mirror choose-mirror.o *~ mirrors_*.h
+rm -f debian/templates-countries debian/httplist-countries debian/httpslist-countries debian/ftplist-countries
+rm -f demo demo.templates
+rm -rf debian/iso-codes/ debian/pobuild*/
+rm -f debian/iso_3166.tab
+*** WARNING: Mirrors.masterlist was last committed more
+*** than 2 weeks ago, maybe it needs an update?
+You can try the following command to run a sync, and use git diff/git commit:
+   make Mirrors.masterlist
+make[2]: Leaving directory '/home/holgerw/uploading-d-i/d-i/packages/choose-mirror'
+make[1]: Leaving directory '/home/holgerw/uploading-d-i/d-i/packages/choose-mirror'
+   dh_clean
+ dpkg-source -b choose-mirror
+dpkg-source: info: using source format '3.0 (native)'
+dpkg-source: info: building choose-mirror in choose-mirror_2.94.tar.xz
+dpkg-source: info: building choose-mirror in choose-mirror_2.94.dsc
+dpkg-source: warning: missing information for output field Standards-Version
+ debian/rules build
+dh build
+   dh_testdir
+   dh_update_autotools_config
+   dh_auto_configure
+   debian/rules override_dh_auto_build
+make[1]: Entering directory '/home/holgerw/uploading-d-i/d-i/packages/choose-mirror'
+# Don't try to sync the mirror masterlist during the build:
+/usr/bin/make small  ONLINE=n
+make[2]: Entering directory '/home/holgerw/uploading-d-i/d-i/packages/choose-mirror'
+rm -f choose-mirror choose-mirror.o *~ mirrors_*.h
+if [ "$ONLINE" != n ]; then \
+	if wget -nv 'https://salsa.debian.org/mirror-team/masterlist/raw/master/Mirrors.masterlist' -O - > Mirrors.masterlist.new && \
+	   test -s Mirrors.masterlist.new; then \
+        		mv Mirrors.masterlist.new Mirrors.masterlist; \
+	else \
+		rm -f Mirrors.masterlist.new; \
+	fi; \
+fi
+isoquery -c | cut -f 1,4 | sort >debian/iso_3166.tab
+rm -f debian/templates-countries debian/httplist-countries debian/httpslist-countries debian/ftplist-countries
+rm -f demo demo.templates
+rm -rf debian/iso-codes/ debian/pobuild*/
+rm -f debian/iso_3166.tab
+if [ "$USE_HTTP" ]; then ./mirrorlist http Mirrors.masterlist debian/iso_3166.tab; fi
+if [ "$USE_HTTPS" ]; then ./mirrorlist https Mirrors.masterlist debian/iso_3166.tab; fi
+if [ "$USE_FTP" ]; then ./mirrorlist ftp Mirrors.masterlist debian/iso_3166.tab; fi
+./mirrorlist httplist Mirrors.masterlist debian/iso_3166.tab
+./mirrorlist httpslist Mirrors.masterlist debian/iso_3166.tab
+./mirrorlist ftplist Mirrors.masterlist debian/iso_3166.tab
+Unable to read debian/iso_3166.tab at ./mirrorlist line 23.
+Unable to read debian/iso_3166.tab at ./mirrorlist line 23.
+Unable to read debian/iso_3166.tab at ./mirrorlist line 23.
+Makefile:81: recipe for target 'debian/httplist-countries' failed
+make[2]: *** [debian/httplist-countries] Error 2
+make[2]: *** Waiting for unfinished jobs....
+Makefile:99: recipe for target 'mirrors_https.h' failed
+make[2]: *** [mirrors_https.h] Error 2
+Makefile:84: recipe for target 'debian/httpslist-countries' failed
+make[2]: *** [debian/httpslist-countries] Error 2
+Unable to read debian/iso_3166.tab at ./mirrorlist line 23.
+Makefile:87: recipe for target 'debian/ftplist-countries' failed
+make[2]: *** [debian/ftplist-countries] Error 2
+Unable to read debian/iso_3166.tab at ./mirrorlist line 23.
+Makefile:96: recipe for target 'mirrors_http.h' failed
+make[2]: *** [mirrors_http.h] Error 2
+make[2]: Leaving directory '/home/holgerw/uploading-d-i/d-i/packages/choose-mirror'
+debian/rules:15: recipe for target 'override_dh_auto_build' failed
+make[1]: *** [override_dh_auto_build] Error 2
+make[1]: Leaving directory '/home/holgerw/uploading-d-i/d-i/packages/choose-mirror'
+debian/rules:3: recipe for target 'build' failed
+make: *** [build] Error 2
+dpkg-buildpackage: error: debian/rules build gave error exit status 2
+-- 
+Holger Wansing <hwansing@mailbox.org>
+PGP-Finterprint: 496A C6E8 1442 4B34 8508  3529 59F1 87CA 156E B076

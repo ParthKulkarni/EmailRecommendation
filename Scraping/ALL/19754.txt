@@ -1,0 +1,106 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Debian Buster release to partially drop non-systemd support
+From : Russ Allbery <rra@debian.org>
+Date : Wed, 17 Oct 2018 14:06:24 -0700
+Message-id : 87pnw8e10v.fsf@hope.eyrie.org
+In-reply-to : <[🔎] fa4b45ae-eb2d-f566-02ad-74e605f61dda@debian.org> (Philipp Kern's	message of "Wed, 17 Oct 2018 10:09:39 +0200")
+References : <[🔎] alpine.DEB.2.21.1810141807300.8797@tglase-nb.lan.tarent.de>	<[🔎] 20181016043141.noeso3zzr7cdqoek@katolaz.homeunix.net>	<[🔎] CAMHuwozB-xHMEuCauJmYz3v1Mo-ZunAnBpY6AaeY1N+JtcwErg@mail.gmail.com>	<[🔎] 2121328.4g3pHNYEz9@merkaba>	<[🔎] 23493.46990.39272.903723@chiark.greenend.org.uk>	<[🔎] 5bd0saf7xh.fsf@chiark.greenend.org.uk>	<[🔎] d326e3b6989e4983d3f008b526410832@debian.org>	<[🔎] 23493.56138.975964.150850@chiark.greenend.org.uk>	<[🔎] dfa56350e10abd5de5b23628a841b7d6@debian.org>	<[🔎] 874ldlcgyp.fsf@hope.eyrie.org>	<[🔎] fa4b45ae-eb2d-f566-02ad-74e605f61dda@debian.org>
+
+
+Philipp Kern <pkern@debian.org> writes:
+> On 17.10.2018 06:52, Russ Allbery wrote:
+>> I think a package of a daemon that does not inherently require any
+>> systemd-specific features and would work straightforwardly with
+>> sysvinit, but has only a systemd unit file and no init script, is not
+>> only buggy but RC-buggy.  That's what Policy currently says.
+> And it would not be buggy if it does not ship any init integration or
+> relies on a non-init service supervision system like runit. (The crux
+> being that systemd is not modular to be run that way and not portable.)
+No, I think that's also buggy.  If it's a daemon that should be started at
+boot and it doesn't include init integration, I think that's an obvious
+bug.  It's very hard to write a Policy rule that says this, since it's
+more of a common sense sort of bug.
+> You say "more than adequate". I don't particularly see it as providing a
+> solid system as you don't get restart on failure. Now I can see how
+> people say that this is not a problem as daemons should not crash in the
+> first place. Maybe I just value reliability of service more highly than
+> being woken up at night being told that my service is unreliable.
+My point is that sysvinit is a non-default configuration and it's
+reasonable to expect that it may be missing some features or robustness.
+If you have the time and resources to put into equaling the robustness
+that you would get under systemd, that's great, but sysvinit is much more
+of a fire-and-forget system and is known to in general not have that
+robustness property.  sysvinit users who care will run something like
+monit that watches health externally and takes appropriate action.
+I think every packager owes it to the social fabric of the project to make
+the effort to provide a basic init script, in the same way that we do
+basic porting to other architectures and investigate build failures.
+There is some point, which is subjective, beyond which I think it's
+reasonable to ask someone who cares about sysvinit to do more complicated
+work, but I think a basic init script tested under systemd's init support
+is a reasonable request.
+My personal concern is more about the social community of the project than
+about the technical details.  I consider providing an init script even if
+I don't personally use sysvinit to be extending the hand of community and
+solidarity to other Debian community members who use it.  To say to them
+that their concerns have been heard and supported, even if I don't agree
+with their concerns.  Personally, I find that extremely important, a
+principle that's as important as the technical quality bar we try to reach
+in our packages.
+> Is a possible answer here to ship an init script and then provide
+> additional supervision options using override files - to enhance
+> whatever is provided by the sysv generator?
+I personally would tend to maintain separate init and systemd unit files
+and only lightly test the init script unless I knew there was something
+tricky going on, but this answer varies based on the complexity of the
+daemon.
+> This statement also does not address a daemon that only runs through
+> socket activation - passing an fd to the daemon. But I don't have any
+> example handy and this might be a strawman argument. Except that I could
+> see that for simplicity newer daemons might be written in this way as it
+> does cut a significant amount of socket handling code.
+Yes, at the point where we have an upstream daemon that was written
+explicitly for use with systemd in that fashion, I think that turns into a
+different sort of question.  This is now more akin to porting, and that's
+a different bar.  I don't think we can place hard requirements on what a
+maintainer chooses to do here, other than asking for them to take patches
+from porters if those are offered.
+> To some degree I regret that we cannot provide a fully integrated
+> distribution by mandating that the core layers (be it kernels or init
+> systems) can be switched out. systemd still supports init scripts but on
+> the other side there's pretty much complete stagnation with the onus on
+> the systemd maintainers to keep things working. There could as well have
+> been an effort to support a subset of the unit language for sysvinit.
+I do completely agree with the general thrust of this thread: sysvinit
+needs an active maintenance team, and without that work, it will
+eventually die.  There's a limit to how much people who don't use it
+should feel obligated to keep it working.  Hopefully those who do use it
+will be able to find the resources to support and improve it (and indeed
+being able to support the unit *syntax* would be a huge step towards
+making sysvinit support in Debian more robust).
+> I suppose one answer would be a cron generator. Given that policy
+> specifies naming schemes for /etc/cron.{hourly,daily,weekly,monthly,d},
+> there could probably be a mapping from filename to timer. But the cron
+> language itself does not contain identifiers, so there's still the
+> question what to do if you encounter multiple lines and how you'd map
+> them. Init scripts with their 1:1 mapping and metadata headers were much
+> easier to handle. Plus we'd need a way to tell cron not to execute those
+> cronjobs in case systemd is running, which I guess means adding systemd
+> guards to /etc/crontab (a conffile). And you'd of course still have cron
+> wake up to execute the shell statement.
+> But it's not like timer units are forbidden. Just like my
+> introductionary statement of "but if you use a different system not
+> considered an init system, you are fine", there's nothing in policy
+> mandating periodic jobs to work in a particular way. It just talks about
+> what to do if you do ship a cronjob.
+Yes, Policy is behind the curve here.
+Timer units are also a more complicated problem since they're not a
+superset of cron behavior.  They do some things better than cron jobs;
+they do other things much *worse* than cron jobs.  I have cron jobs that I
+wanted to convert to timer units and discovered I couldn't because timers
+simply wouldn't work for what I was trying to do.
+But it does feel like there's a common subset of functionality that we
+could embrace, and unblock people using timer units for the things they're
+good at without degrading functionality for people not using systemd.
+-- 
+Russ Allbery (rra@debian.org)               <http://www.eyrie.org/~eagle/>

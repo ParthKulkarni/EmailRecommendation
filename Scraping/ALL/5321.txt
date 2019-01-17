@@ -1,0 +1,57 @@
+To : 862992@bugs.debian.org, Cyril Brulebois <kibi@debian.org>, debian-boot <debian-boot@lists.debian.org>
+Subject : Re: Bug#862992: systemd: avoid attempt to re-create /etc/mtab by systemd-tmpfiles-setup.service
+From : Michael Biebl <biebl@debian.org>
+Date : Mon, 18 Dec 2017 01:37:46 +0100
+Message-id : 120fa70e-7f60-29d6-56f0-2b84f34014d4@debian.org
+In-reply-to : <20170529192328.GD21821@mraw.org>
+References : <1010dceb-3079-06f9-3fd0-55f57fa85c6f@steiny.biz> <8d41143e-1f6a-84d2-2e86-cdbf6db05b2b@debian.org> <20170526162921.GD9052@mraw.org> <46960dbe-7343-7f2e-eef4-4236bfb02ff5@steiny.biz> <20170529063721.GB1224@donald.Speedport_W_921V_1_43_000> <fc06a8f9-c7f2-e83b-2fc3-935b6d0b61f3@debian.org> <20170529192328.GD21821@mraw.org> <20170529192328.GD21821@mraw.org>
+
+
+Control: clone -1 -2
+Control: reassign -2 finish-install 2.90
+Control: retitle -2 Stop using/creating /etc/mtab
+Control: block -1 by -2
+On Mon, 29 May 2017 21:23:28 +0200 Cyril Brulebois <kibi@debian.org> wrote:
+> Michael Biebl <biebl@debian.org> (2017-05-29):
+> > I think if you use debian-installer to install the system, it will
+> > also create /etc/mtab (as an absolute symlink to /proc/mounts). The
+> > debian.conf tmpfiles config will "correct" that on first boot to make
+> > it a relative symlink.
+> 
+> As I said, finish-install (which runs at the very last stage of d-i) has
+> this script:
+> | #! /bin/sh
+> | 
+> | # some things inside d-i will make an /etc/mtab file, but it shouldn't
+> | # be there in the installed system. Systemd will be desperately unhappy.
+> | if [ -f /target/etc/mtab ]; then
+> |     ln -sf /proc/self/mounts /target/etc/mtab
+> | fi
+> 
+> so until all d-i components are checked/modified not to rely on or toy
+> with /target's /etc/mtab, this code could be made to remove the
+> file/link entirely when the installation is finalized.
+> 
+> > I guess you mean stretch, but yeah, we had this fixup rule for two
+> > release cycles (via debian-fixup.service in jessie and via the
+> > tmpfiles snippet in stretch). Maybe it's time to drop that in buster.
+> > Should we get d-i (and FAI) updated to drop the creation of /etc/mtab
+> > as well then?
+> 
+> d-i only gets that file into place because some of its components need
+> it (or used to need it). It's technically easy to modify the code above
+> to drop /target/etc/mtab instead of converting from a static file to a
+> symlink.
+> 
+> That being said, changing this so late in the release cycle makes me a
+> bit uneasy. :/
+Buster development is still young, so let's get this started by creating
+a bug report for finish-install.
+KiBi, if you know more places where /etc/mtab is used inside the
+installer, please let me know and I'll clone/reassign this bug accordingly.
+Regards,
+Michael
+-- 
+Why is it that all of the instruments seeking intelligent life in the
+universe are pointed away from Earth?
+signature.asc

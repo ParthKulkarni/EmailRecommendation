@@ -1,0 +1,56 @@
+To : Debian devel <debian-devel@lists.debian.org>
+Subject : Dealing with ci.d.n for package regressions
+From : Paul Gevers <elbrus@debian.org>
+Date : Wed, 2 May 2018 23:31:32 +0200
+Message-id : e83b1d1c-477b-2ee4-3bc2-86a30748fd7d@debian.org
+
+
+Hi all,
+As I just announced on d-d-a¹, we have enabled autopkgtest usage for
+unstable-to-testing migration.
+There are a few tricks that I like to share here and now about how to
+manipulate ci.d.n in case things needs some attention.
+1) the excuses presented at the excuses.html² and e.g. on tracker.d.o³
+contain a retrigger link (♻) for regressions. Anybody with a Debian SSO
+certificate can follow that link and press the "retry" button on the
+presented page. There are more ways to retrigger tests, please read the
+API documentation of debci⁴
+2) The migration software only adds time if there is regression with
+respect to the state in testing. To avoid triggering a huge amount of
+unnecessary duplicate tests, it tries to keep track of the state in
+testing (updating any failing state to passing state) but it doesn't
+handle regressions that land in testing automatically. Therefore, every
+package with an autopkgtest should have a test triggered by
+"migration-reference/0". One can retrigger this test (look up the
+run_id, e.g. in the url of the log) and the migration software will
+reset the testing state with the results of this test.
+3) Packages that had their autopkgtest triggered before the trick in
+point 2 was implemented may be missing the "migration-reference/0"
+trigger. Please contact me if you need it. I'll try to check all
+packages soon and create these triggers if they are missing. Please
+don't use the API to create these tests yourself as that doesn't work.
+Only tests originally triggered by the migration software are returned
+to it.
+4) In the last few weeks and definitely in the upcoming time, I'll be
+watching regression closely, and I'll probably retrigger regressions on
+a daily basis, so you probably don't really need to do the above.
+Some other points:
+5) Please report bugs using the bts.
+6) I started collecting bugs related to autopkgtest usage for migration
+with the debian-ci@lists.debian.org user⁵. If you want to contribute,
+please check the wiki⁶.
+7) If you want to contact us: debian-ci@lists.debian.org. Obviously we
+are always looking for more people to help, so feel free to join the team.
+And finally, thanks to all the people that helped and contributed to
+make this possible, 5 years after the initial announcement⁷.
+Paul
+¹ https://lists.debian.org/debian-devel-announce/2018/05/msg00001.html
+² https://release.debian.org/britney/update_excuses.html
+³ https://tracker.debian.org/pkg/python3.6 (python just being an example
+with currently all three flavors of results)
+⁴ https://ci.debian.net/doc/file.API.html
+⁵
+https://bugs.debian.org/cgi-bin/pkgreport.cgi?users=debian-ci@lists.debian.org
+⁶ https://wiki.debian.org/ContinuousIntegration/bugs
+⁷ https://lists.debian.org/debian-devel-announce/2013/08/msg00006.html
+signature.asc

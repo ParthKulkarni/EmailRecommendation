@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: HELP WANTED: security review / pam experts for su transition
+From : Andreas Henriksson <andreas@fatal.se>
+Date : Sun, 12 Aug 2018 16:58:55 +0200
+Message-id : 20180812145855.eane55osqtabpvvb@fatal.se
+In-reply-to : <20180603221750.57aa2ymwj4q2vnx7@fatal.se>
+References : <20180603221750.57aa2ymwj4q2vnx7@fatal.se>
+
+
+Hello again,
+My previous mail didn't result in any feedback, so let me try again
+with some more detailed questions that might be easier to discuss
+related to the PAM configuration of su (and su-l).
+As people are likely aware, the su takeover has now happened and
+login (src:shadow) no longer ships su in favour of it being shipped
+in util-linux (src:util-linux) instead.
+The /etc/pam.d/su configuration was carried over directly from
+the old src:shadow (login) su, and might be less then ideal for
+the util-linux su implementation. The new /etc/pam.d/su-l configuration
+didn't exist before, but mostly just includes the su pam config for now.
+Mainly mentioning su-l because we have the option to differentiate
+between what pam config we want for 'su -' vs 'su'.
+1/
+One new issue that has bitten some people is that shadow su used to,
+even when you ask for a new clean environment, still copy over
+DISPLAY and XAUTHORITY. Apparently some people relied on that even
+though X doesn't really give you any real privileges separation.
+On fedora the su pam configuration includes pam_xauth which I assume
+should solve the same problem. Should we add pam_xauth to /etc/pam.d/su
+as well? (For now it's just mentioned in util-linux.NEWS and left to the
+user to edit the pam configuration as they find suitable, but if we
+can't even figure out the right choice I doubt users will.)
+2/
+There are some longstanding issues with the pam configuration which
+existed before the switch, but seems reasonable to adress still.
+For example #711104 asks for 'su -' to reset umask. Should we
+include pam_umask? Maybe even in /etc/pam.d/su so both 'su' and 'su -'
+gets umask reset?
+cf. how the carried over /etc/pam.d/su already contains pam_limits.
+3/
+The fedora pam configuration seems to contain several more differences.
+Anyone interested in investigating and comparing them? Possibly our
+ancient su pam config should get a complete overhaul, rather than just
+poking at details one by one.
+Regards,
+Andreas Henriksson

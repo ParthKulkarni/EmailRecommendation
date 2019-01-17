@@ -1,0 +1,131 @@
+To : debian-boot@lists.debian.org
+Subject : Re: Bug#901255: netcfg-static: Unable to configure fe80::1 as a gateway
+From : Igor Scheller <debian@igorscheller.de>
+Date : Tue, 12 Jun 2018 01:24:15 +0200
+Message-id : 6adcea8d-78e5-0b80-574f-f17b9937349f@igorscheller.de
+In-reply-to : <[🔎] 8d516413-bbf5-6ff9-ba6f-237f9344b102@debian.org>
+References : <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com> <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com> <[🔎] 20180610172539.qjfu7hvfaspn2faa@var.youpi.perso.aquilenet.fr> <[🔎] 152864987000.17042.16864572975539374330.reportbug@LapZ.caleano.com> <[🔎] 8d516413-bbf5-6ff9-ba6f-237f9344b102@debian.org>
+
+
+Hi,
+I created a merge request [1] for that, Improvements welcome ;)
+Greets,
+Igor Scheller
+[1] https://salsa.debian.org/installer-team/netcfg/merge_requests/3/diffs
+On 10.06.2018 22:33, Philipp Kern wrote:
+> On 6/10/18 7:25 PM, Samuel Thibault wrote:
+>> Igor Scheller, le dim. 10 juin 2018 18:57:50 +0200, a ecrit:
+>>> When I try to configure fe80::1 (next router) as a gateway in an IPv6 only
+>>> network the installer stops with an "Unreachable gateway" error.
+>>>
+>>> Looking at netcfg-common.c:netcfg_gateway_reachable its checked by comparing
+>>> bytes. Imho a better way would be to configure the interface and ping the
+>>> gateway?
+>> Well, the gateway has no obligation to respond to pings, so it's not a
+>> proper way.
+>>
+>> Checking that the prefix matches however makes complete sense, and
+>> should just work.  Provided that the network prefix length is correct,
+>> of course, but it has to be otherwise it's a configuration error. I
+>> guess the problem is rather there.
+> Well, the gateway may as well be link-local and not be in the assigned
+> prefix. That's unfortunately a valid configuration. I wouldn't call
+> fe80::1 "next router", though. It's not a well-known address. ff02::2
+> (all routers) would be, in a way. But alas.
+>
+> I guess the answer here is that if the gateway is in fe80::/10 the route
+> needs to be added with the interface's name, just like pointopoint does it.
+>
+> The better setup is to use autoconfiguration and let the router announce
+> itself. That's how most production IPv6 setups work because the standard
+> calls for that. But I know that especially providers like Hetzner are
+> notorious for requiring their users to use a hard-coded fe80::1 default
+> gateway. (And ifupdown supports this correctly.)
+>
+> Kind regards
+> Philipp Kern
+>
+signature.ascFrom 6bff2dee11a8d5493f87ec541f854e3897ef6a9a Mon Sep 17 00:00:00 2001
+From: Igor Scheller <igor.scheller@igorshp.de>
+Date: Mon, 11 Jun 2018 23:52:37 +0200
+Subject: [PATCH] Added support for fe80 addresses as gateway
+---
+ netcfg-common.c                      |  5 ++++-
+ static.c                             |  3 ++-
+ test/test_netcfg_gateway_reachable.c | 24 ++++++++++++++++++++++++
+ 3 files changed, 30 insertions(+), 2 deletions(-)
+diff --git a/netcfg-common.c b/netcfg-common.c
+index c6d1d8d5..007c1875 100644
+--- a/netcfg-common.c
++++ b/netcfg-common.c
+@@ -1677,8 +1677,11 @@ int netcfg_gateway_reachable(const struct netcfg_interface *interface)
+     if (interface->address_family == AF_INET) {
+         return (gw_addr.in4.s_addr && ((gw_addr.in4.s_addr & mask.in4.s_addr) == net.in4.s_addr));
+     } else if (interface->address_family == AF_INET6) {
++        if ((ntohs(gw_addr.in6.s6_addr32[0]) & 0xffc0) == (0xfe80 & 0xffc0)) {
++            return 1;
++        }
++
+         int i;
+-        
+         for (i = 0; i < 4; i++) {
+             if ((gw_addr.in6.s6_addr32[i] & mask.in6.s6_addr32[i]) != net.in6.s6_addr32[i]) {
+                 return 0;
+diff --git a/static.c b/static.c
+index ea12fba4..7ad0193b 100644
+--- a/static.c
++++ b/static.c
+@@ -474,7 +474,8 @@ static int netcfg_activate_static_ipv6(struct debconfclient *client,
+     rv |= di_exec_shell_log(buf);
+ 
+     if (!empty_str(interface->gateway)) {
+-        snprintf(buf, sizeof(buf), "ip route add default via %s", interface->gateway);
++        snprintf(buf, sizeof(buf), "ip route add default via %s dev %s", interface->gateway, interface->name);
++        di_info("executing: %s", buf);
+         rv |= di_exec_shell_log(buf);
+     }
+ #endif
+diff --git a/test/test_netcfg_gateway_reachable.c b/test/test_netcfg_gateway_reachable.c
+index 840d1452..4ceec15a 100644
+--- a/test/test_netcfg_gateway_reachable.c
++++ b/test/test_netcfg_gateway_reachable.c
+@@ -81,6 +81,29 @@ START_TEST(test_netcfg_gateway_reachable_v6_48)
+ }
+ END_TEST
+ 
++START_TEST(test_netcfg_gateway_reachable_v6_fe80)
++{
++    struct netcfg_interface iface;
++    netcfg_interface_init(&iface);
++
++    strcpy(iface.ipaddress, "2001:3:5:7::42");
++    strcpy(iface.gateway, "fe80::1");
++    iface.masklen = 64;
++    iface.address_family = AF_INET6;
++
++    fail_unless (netcfg_gateway_reachable(&iface), "Gateway erroneously unreachable");
++
++    strcpy (iface.gateway, "febf::1");
++    fail_unless (netcfg_gateway_reachable(&iface), "Gateway erroneously unreachable");
++
++    strcpy (iface.gateway, "fe7f::1");
++    fail_if (netcfg_gateway_reachable(&iface), "Gateway erroneously reachable");
++
++    strcpy (iface.gateway, "fec0::1");
++    fail_if (netcfg_gateway_reachable(&iface), "Gateway erroneously reachable");
++}
++END_TEST
++
+ Suite *test_netcfg_gateway_reachable_suite (void)
+ {
+ 	Suite *s = suite_create ("netcfg_gateway_reachable");
+@@ -90,6 +113,7 @@ Suite *test_netcfg_gateway_reachable_suite (void)
+ 	tcase_add_test (tc, test_netcfg_gateway_reachable_v4_22);
+ 	tcase_add_test (tc, test_netcfg_gateway_reachable_v6_64);
+ 	tcase_add_test (tc, test_netcfg_gateway_reachable_v6_48);
++	tcase_add_test (tc, test_netcfg_gateway_reachable_v6_fe80);
+ 	
+ 	suite_add_tcase (s, tc);
+ 	
+-- 
+2.17.1

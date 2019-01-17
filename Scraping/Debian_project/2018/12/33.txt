@@ -1,0 +1,30 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Guillem Jover <guillem@debian.org>
+Date : Sun, 23 Dec 2018 17:17:45 +0100
+Message-id : 20181223161745.GA16961@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20181223154528.GA16277@gaara.hadrons.org>
+References : <20181120211617.gxnuwxpx2hy445ps@angband.pl> <6FEC5C58-827A-42EF-B7F4-F9603AFBB60D@gmail.com> <20181121092346.umhv45iy2vhvpljv@angband.pl> <20181123153217.GA14862@thunder.hadrons.org> <[🔎] 20181202114005.GA12327@estella.local.invalid> <[🔎] 20181204003247.GB13132@gaara.hadrons.org> <[🔎] 87a7lmdoac.fsf@hope.eyrie.org> <[🔎] 20181223030614.GA8788@gaara.hadrons.org> <[🔎] 20181223154528.GA16277@gaara.hadrons.org>
+
+
+On Sun, 2018-12-23 at 16:45:28 +0100, Guillem Jover wrote:
+> On Sun, 2018-12-23 at 04:06:14 +0100, Guillem Jover wrote:
+> > […] They also imply to permanently suffer the aliasing problems.
+> 
+> To expand and clarify a bit on this. We have aliasing in general with
+> symlinks and hardlinks, but those tend to not be as problematic when
+> aliasing the last component, as they end up referencing the same
+> object/inode. The problem really comes when the aliasing is performed
+> as part of the pathname (in a "directory" component), because then
+> the aliasing references the dentry, which can very easily cause
+> "action at a distance" issues.
+Hrrmf, clearly not very clear. Let's try again:
+  - Aliasing directory components can create multiple source pathnames
+    (before any readlink) that refer to the exact same dentry.
+  - Aliasing final components means that the source pathnames are
+    always different, and as such they always point to different
+    dentries, even if they might end up pointing to the same
+    destination pathname once canonicalized.
+Thanks,
+Guillem

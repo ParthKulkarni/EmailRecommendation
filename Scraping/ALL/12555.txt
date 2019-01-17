@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org
+Subject : Re: User-installable Debian packages?
+From : Johannes Schauer <josch@debian.org>
+Date : Sun, 23 Jul 2017 10:44:32 +0200
+Message-id : 150079947285.4014.697618696188781992@localhost
+Mail-followup-to : Paul Wise <pabs@debian.org>, debian-devel@lists.debian.org
+In-reply-to : <[🔎] CAKTje6Gqo93HFGP=eMUH15kPh3+EpMK=TC10zCFWXTYsnDBcbQ@mail.gmail.com>
+References : <[🔎] b6683708-9b2b-289d-6686-82fcf7bbbeff@gmx.de> <[🔎] CAKTje6Gqo93HFGP=eMUH15kPh3+EpMK=TC10zCFWXTYsnDBcbQ@mail.gmail.com>
+
+
+Quoting Paul Wise (2017-07-22 13:34:46)
+> I would wager most Debian packages are not bit-for-bit identical when you
+> vary the installation prefix (and Debian build tools don't support doing that
+> AFAICT), but you can almost fake user-installable packages using existing
+> binary packages using something like this (sorry about the wrapping). If we
+> were all using Hurd then a few extra overlay mount points would be enough of
+> course.
+> 
+> ==> .bash.d/software <==
+> export PATH=$PATH:~/software/usr/bin:~/software/bin
+> export LD_LIBRARY_PATH=~/software/usr/lib:~/software/usr/lib/x86_64-linux-gnu:~/software/lib:~/software/lib/x86_64-linux-gnu
+> export PERL5LIB=~/software/usr/share/perl5
+> export PYTHONPATH=~/software/usr/lib/python2.7/dist-packages
+> 
+> ==> software/update <==
+> #!/bin/sh
+> rm -rf usr apt/archives/*.deb
+> rsync --delete --archive --exclude archives /var/cache/apt/ apt/
+> rsync --delete --archive --exclude lock --exclude Lock /var/lib/dpkg/ dpkg/
+> apt-get -o 'Dir::Cache=/home/pabs/software/apt' -o
+> 'Dir::State::status=/home/pabs/software/dpkg/status' --download-only
+> install foo
+> for f in apt/archives/*.deb ; do
+>     dpkg -x $f .
+> done
+as far as *installing* (not running) Debian packages under a user-writable path
+without superuser privileges goes, there is $DPKG_ROOT which is an attempt at
+making this process less hacky than using dpkg -x. Instead of just extracting
+the packages somewhere, you *install* them into a non-root path by using the
+dpkg options:
+--admindir=$(DPKG_ADMINDIR) --instdir="$(DPKG_INSTDIR)" --force-script-chrootless --force-not-root
+There are still a couple of remaining problems. For example maintainer scripts
+still mostly assume that the package is installed in root. For that, dpkg
+exports the environment variable $DPKG_ROOT which the maintainer script can use
+to find out where the package is being installed to. Another non-simple blocker
+is dpkg-maintscript-helper, also known as #832176. Another are maintainer
+script dependencies which have to be met by the host system.
+You can find out more about this topic here:
+https://wiki.debian.org/Teams/Dpkg/Spec/InstallBootstrap
+But this is only about the *installation* without root part. This is not about
+also being able to run anything that was installed into a non-root path.
+Thanks!
+cheers, josch
+signature.asc

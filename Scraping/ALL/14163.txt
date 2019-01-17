@@ -1,0 +1,54 @@
+To : debian-devel@lists.debian.org
+Subject : Re: "not authorised" doing various desktoppy things [and 1 more messages]
+From : Simon McVittie <smcv@debian.org>
+Date : Wed, 4 Jan 2017 13:12:57 +0000
+Message-id : 20170104131257.6eegflrebifaxhei@perpetual.pseudorandom.co.uk
+In-reply-to : <[🔎] 22636.22960.591912.552238@chiark.greenend.org.uk>
+References : <[🔎] 22636.1061.523880.253029@chiark.greenend.org.uk> <[🔎] o4h6r9$9r$1@blaine.gmane.org> <[🔎] 20170104005720.zbxi7v4fgl4uma5k@perpetual.pseudorandom.co.uk> <[🔎] 1ca71a87-772b-f166-4b0d-38f0681f011e@debian.org> <[🔎] 22636.22960.591912.552238@chiark.greenend.org.uk>
+
+
+On Wed, 04 Jan 2017 at 02:10:56 +0000, Ian Jackson wrote:
+> Michael Biebl writes ("Re: "not authorised" doing various desktoppy things"):
+> > Check if your session is marked as active and local
+> > $ loginctl show-session $XDG_SESSION_ID
+> 
+> I see (amongst other things):
+> 
+>   Remote=no
+>   Active=yes
+>   State=active
+Looks like the situation where polkit should allow most things.
+If you were using the systemd service (and cgroup) manager, I'd ask you
+to run `systemd-cgls` and/or `loginctl user-status` to visualize the
+hierarchy of processes and cgroups that logind would use to match
+processes to sessions, specifically looking for the process that you
+think should be allowed to communicate with NetworkManager or udisks2
+or other privileged services; but I don't know whether that works under
+systemd-shim.
+> I have frankly no idea what to expect from the
+> communication between systemd-shim and systemd-logind
+Mostly D-Bus, I think? Arranging for `dbus-monitor --system` to be run
+as root and directed to a log before you log in might be useful. (To
+work properly this requires at least stretch's version of dbus.)
+> or even where to look for logs
+If you were using systemd, the answer would be the Journal, or the
+human-readable subset of the Journal that ends up in syslog. But you're
+not, so I don't know. syslog? /proc/kmsg?
+> I found this in my .xsession-errors:
+> 
+>  dbus-update-activation-environment: systemd --user not found, ignoring --systemd argument
+That should be harmless: I don't think systemd-shim is meant to start
+systemd --user.
+If you were using the full systemd suite, logind would have asked the
+system service manager (/lib/systemd/systemd, pid 1, uid 0) to start a
+user service manager (/lib/systemd/systemd --user, pid > 1, your own
+uid) on your behalf, and dbus-update-activation-environment would have
+communicated with the user service manager to update its idea of what
+the environment should be to include whatever came from your Xsession.d.
+That's a secondary function: d-u-a-e's main job is to communicate with
+dbus-daemon --session to do the same thing.
+polkit interactions are about system-level functionality (pid 1,
+dbus-daemon --system, *dm, PAM), and not about what happens among
+an individual user's processes (systemd --user, dbus-daemon --session,
+.xinitrc or equivalent).
+    S

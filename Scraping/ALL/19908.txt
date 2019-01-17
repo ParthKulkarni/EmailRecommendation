@@ -1,0 +1,44 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#912041: grub-cloud-amd64: don't work around being tested by piuparts
+From : Holger Levsen <holger@debian.org>
+Date : Sat, 27 Oct 2018 17:18:29 +0200
+Message-id : 20181027151829.b4kwzhbvqcbcflci@layer-acht.org
+Reply-to : Holger Levsen <holger@debian.org>, 912041@bugs.debian.org
+
+
+Package: grub-cloud-amd64
+Version: 0.0.2
+Severity: important
+Dear Maintainer,
+in your postinst you are trying to detect whether it's being run in a
+piuparts test, to workaround #912038 ("grub-cloud-amd64: fails to
+install"), which is detected by piuparts but can also be triggered by
+anyone installing it manually, with this code:
+if [ ${PIUPARTS_TEST:-} ]; then
+    echo "Running Piuparts detected, exiting." >&2
+    exit 0
+fi
+This is bad, don't do that. piuparts tests stuff for a reason and as
+#912038 shows, your package is still buggy.
+In discussion on #-release before uploading grub-cloud 0.0.2 you claimed
+that grub-cloud is only useful to install in cloud environments (which
+are chroots) and thus detecting a chroot would not work. Still all packages
+(aimed for a stable Debian release) must be installable in chroots, also
+yours.
+So instead of detecting whether the package is being tested by piuparts
+you should detect whether grub-cloud-amd64 is being installed in a
+cloud-chroot and only then do whatever it takes to active grub. For that
+you can create some file while preparing the cloud chroot (say
+/etc/.cloud_env) and only if that file is present you do those things
+you now dont do if the variable $PIUPARTS_TEST is defined.
+I've also filed a bug against lintian to detect maintainer scripts using this
+variable as no maintainer script needs to do this. This is similar to
+the lintian test detecting autokpkgtests just running "exit 0" or
+"true". The bug against lintian is #912040.
+-- 
+cheers,
+	Holger
+-------------------------------------------------------------------------------
+               holger@(debian|reproducible-builds|layer-acht).org
+       PGP fingerprint: B8BF 5413 7B09 D35C F026 FE9D 091A B856 069A AA1C
+signature.asc

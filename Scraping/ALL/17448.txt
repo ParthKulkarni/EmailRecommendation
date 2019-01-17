@@ -1,0 +1,62 @@
+To : Simon McVittie <smcv@debian.org>
+Subject : Re: Should libpam-elogind Provide libpam-systemd ?
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Tue, 6 Nov 2018 12:29:10 +0000
+Message-id : 23521.35094.257268.806512@chiark.greenend.org.uk
+In-reply-to : <[🔎] 20181105235809.GA4237@espresso.pseudorandom.co.uk>
+References : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk>	<[🔎] 23520.18040.158396.933449@chiark.greenend.org.uk>	<[🔎] 20181105235809.GA4237@espresso.pseudorandom.co.uk>
+
+
+Simon McVittie writes ("Re: Should libpam-elogind Provide libpam-systemd ?"):
+> On Mon, 05 Nov 2018 at 13:32:40 +0000, Ian Jackson wrote:
+> > pinentry-gnome3 and pulseaudio seem wrong to me.  PINs should not be
+> > shared between login sessions and sound control should be per-session,
+> > not per-uid.
+> 
+> First of all, these are Recommends, not Depends.
+I don't think violating Recommends is a practical alternative for our
+non-systemd users.  The packaging system makes that too hard.
+> If we had a way to spell "Recommends: dbus-user-session if init is
+> systemd" or "Depends: dbus-user-session if init is systemd" then these
+> packages could use it, but as far as I'm aware we don't, so they can't.
+Recommends: dbus-user-session | sysvinit-core ?
+We can probably find another way of spelling this.  But I remain to be
+convinced that the three uses I found are correct even on those terms.
+> The pinentry-gnome3 Recommends is because gpg-agent is shared between
+> login sessions, so anything that is invoked by gpg-agent had better
+> have all its dependencies similarly shared.
+I don't understand how anyone could expect this to work, when there
+are multiple login sessions.  Popping up a pin entry prompt on a
+different display to the one the user is currently typing at is not
+useful.  Obviously there are fundamental architectural problems with
+the gnupg2 agent and there is little point rehearsing them again, but
+starting the agent on demand does work better because pinentry
+requests go to the right place.
+But since pinentry-gnome3 comes from src:gnupg2, this is all part of
+the same source package: the bug is in gnupg2 and should be fixed
+there.
+> Similarly, I think pulseaudio's Recommends is because pulseaudio is
+> frequently a systemd user service (one per uid). One of pulseaudio's
+> control protocols is that it can be sent commands via D-Bus IPC, but
+> again, that isn't going to work if the D-Bus session bus is shorter-lived
+> than the pulseaudio daemon.
+If you have multiple concurrent login sessions they each need their
+own pulseaudio setup, because sounds from one session should not
+appear in another.
+> > I'm not sure about rygel but it doesn't seem likely to me that this
+> > dependency on dbus-user-session is necessary.  Perhaps there is
+> > another way to implement this on non-systemd systems.
+> 
+> It's another Recommends. Rygel is a long-running per-user D-Bus service
+> that requires a D-Bus session bus with a scope at least as long as rygel
+> itself; on systemd systems, making it a `systemd --user` service is
+> desirable; but that user-service can't start without dbus-user-session.
+> This would be "Depends: dbus-user-session if init is systemd" if we had
+> a way to spell that in dependencies.
+This still doesn't explain to me why Rygel is per-user rather than
+per-login-session.
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

@@ -1,0 +1,30 @@
+To : Anton Zinoviev <anton@lml.bas.bg>, "818065@bugs.debian.org"	<818065@bugs.debian.org>
+Subject : Bug#818065: console-setup is not read correctly at boottime and must be started manually
+From : Rupert Perry <rp@haloim.com>
+Date : Mon, 23 Oct 2017 16:33:01 +0000
+Message-id : AM4PR0201MB15391E31DC77AF678B9D7B9DB9460@AM4PR0201MB1539.eurprd02.prod.outlook.com
+Reply-to : Rupert Perry <rp@haloim.com>, 818065@bugs.debian.org
+In-reply-to : <[🔎] 20171023153255.GA30971@logic>
+References : <145786010341.11318.14178143996336619222.reportbug@9398> <[🔎] AM4PR0201MB1539543BBF2C3D4E605BDD13B9460@AM4PR0201MB1539.eurprd02.prod.outlook.com> <[🔎] 20171023153255.GA30971@logic> <145786010341.11318.14178143996336619222.reportbug@9398>
+
+
+Hi Anton,
+> > > This happened to me as well, check if a slight change to the systemd
+> > > unit file helps:
+> > > /lib/systemd/system/console-setup.service
+> > > RequiresMountsFor=/usr /tmp
+> > 
+> > I have this same problem and I tried this solution and it didn't fix 
+> > the problem for me.
+> 
+> I suppose this fixes the problem with the upgrades of console-setup. But I
+> don't like this solution because even if it fixes the problem (does it?),
+> it is not the right solution.  I don't think console-setup 
+> needs /tmp for its work.  This solution works only because requiring 
+> /tmp to be mounted means some other dependency will be satisfied as 
+> well.  But who knows what this other dependency is...
+Just to be clear - I tried adding /tmp to the unit file and it did NOT fix the problem.  I had to re-generate the cache files to resolve the issue and I restored the system unit file to not require a mount for /tmp as before.  
+The bug is that there was a reference to a non-existent file in /tmp in the previous version of /etc/console-setup/cached_setup_keyboard.sh which disappeared when it was re-generated.  I imagine the /tmp file was there when it was originally generated, but it was of course not there on a subsequent reboot.  When I regenerated the cache files /etc/console-setup/cached_setup_keyboard.sh changed as follows:
+-loadkeys '/tmp/tmpkbd.iDWdSi' > '/dev/null'
++loadkeys '/etc/console-setup/cached_UTF-8_del.kmap.gz' > '/dev/null'
+Rupert.

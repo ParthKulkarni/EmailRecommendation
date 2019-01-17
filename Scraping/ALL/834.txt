@@ -1,0 +1,51 @@
+To : Luca Boccassi <luca.boccassi@gmail.com>, 866328@bugs.debian.org
+Subject : Bug#866328: user-setup: allow to preseed the user shell
+From : Cyril Brulebois <kibi@debian.org>
+Date : Wed, 28 Jun 2017 23:20:44 +0200
+Message-id : 20170628212044.GC19464@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 866328@bugs.debian.org
+In-reply-to : <[🔎] 1498682786.5956.4.camel@gmail.com>
+References : <[🔎] 1498682786.5956.4.camel@gmail.com>
+
+
+Hi Luca,
+Luca Boccassi <luca.boccassi@gmail.com> (2017-06-28):
+> It would be useful to allow preseeding the user shell.
+> 
+> The use case we have at work is building live Debian images and
+> shipping them to users, where we need to have something other than
+> bash as the live user shell.
+> 
+> This could be achieved with hacky posthook scripts that sed
+> /etc/passwd, but it just feels wrong :-)
+> 
+> Attached is a very small and simple patch to add a passwd/user-shell
+> configurable option, modeled after passwd/user-uid.
+I'm still undecided as to whether this patch is needed/useful in d-i,
+but anyway:
+>  # Allow preseeding the groups to which the first created user is added
+>  Template: passwd/user-default-groups
+>  Type: string
+> diff --git a/user-setup-apply b/user-setup-apply
+> index f24ece2..9dfcf55 100755
+> --- a/user-setup-apply
+> +++ b/user-setup-apply
+> @@ -109,6 +109,16 @@ if [ "$RET" = true ] && ! is_system_user; then
+>  		UIDOPT=
+>  	fi
+>  
+> +	if db_get passwd/user-shell && [ "$RET" ]; then
+> +		if [ -x $ROOT/usr/sbin/adduser ]; then
+> +			SHELLOPT="--shell $RET"
+> +		else
+> +			SHELLOPT="-s $RET"
+> +		fi
+> +	else
+> +		SHELLOPT=
+> +	fi
+> +
+This distinction doesn't seem needed? I see this in useradd's manpage
+from jessie to sid:
+       -s, --shell SHELL
+KiBi.
+signature.asc

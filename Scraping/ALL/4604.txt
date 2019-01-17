@@ -1,0 +1,67 @@
+To : 859438@bugs.debian.org
+Subject : Bug#859438: preseed header magic
+From : Holger Wansing <linux@wansing-online.de>
+Date : Sat, 22 Apr 2017 22:30:31 +0200
+Message-id : 20170422223031.0957cf3241307399f18ab09f@wansing-online.de
+Reply-to : Holger Wansing <linux@wansing-online.de>, 859438@bugs.debian.org
+In-reply-to : <[🔎] 20170422195116.GZ1384@gpm.stappers.nl>
+References : <[🔎] 20170403140541.GC1384@gpm.stappers.nl>	<[🔎] 20170415231757.bf2d408ae16ab08d8d35582f@wansing-online.de>	<[🔎] 20170422213518.b159378ddfe2b1da424f4dc6@wansing-online.de>	<[🔎] 20170422195116.GZ1384@gpm.stappers.nl>
+
+
+Hi,
+Geert Stappers <stappers@debian.org> wrote:
+> On Sat, Apr 22, 2017 at 09:35:18PM +0200, Holger Wansing wrote:
+> > Holger Wansing <linux@wansing-online.de> wrote:
+> > > The patch for the manual was committed in the meantime, but now the new
+> > > header is not included in the example-preseed.txt file, see
+> > > http://d-i.alioth.debian.org/manual/example-preseed.txt
+> > >
+> > > This is, because the script, which generates the example-preseed.txt file,
+> > > only parses parts of the preseed.xml which are between <informalexample>
+> > > tags that have the attribute 'role="example"' set.
+> > > (This documented at the beginning of the ../en/appendix/preseed.xml.)
+> > > And there is nothing like that ATM in the manual.
+> 
+> True.
+> I tried with
+> --- build/build.sh      (revision 70653)
+> +++ build/build.sh      (working copy)
+> @@ -59,7 +59,8 @@
+>  if [ -f $PRESEED ] && [ -f preseed.pl ] ; then
+>      for arch in $architectures; do
+>         eval arch_destination=$destination
+> -       ./preseed.pl -r $manual_release $PRESEED >$arch_destination/example-preseed.txt
+> +       echo '#_preseed_V1' >$arch_destination/example-preseed.txt
+> +       ./preseed.pl -r $manual_release $PRESEED >>$arch_destination/example-preseed.txt
+>      done
+>  fi
+> 
+> 
+> > >
+> > > The attached patch adds the needed paragraph in B.4 chapter at the very
+> > > beginning (the already existing content regarding the new header is in B.3).
+> >
+> > Any objections against me committing the attached patch, to fix the
+> > example-preseed.txt file?
+> 
+> No objection. It is better then I patch against the create script.
+Ahh, I see.
+Geert: to be honest, I overlooked your changing in build.sh.
+And now, double-checking that, it works. The header is there in
+https://d-i.debian.org/manual/example-preseed.txt
+So I have to correct myself a bit: 
+The example-pressed.txt file would be ok so far, strictly spoken.
+So, the only argument to still change something now, would be:
+The whole content of example-preseed.txt is generated from text examples
+within the chapter B.4 of the installation-guide.
+To be consistent with this, it would require to apply my proposed patch.
+It would also give possibility to explain, what this header line is for.
+But: Applying my patch would make above's changing in build.sh useless, so
+this would have to be reverted, right?
+Holger
+-- 
+============================================================
+Created with Sylpheed 3.5.0 under
+	D E B I A N   L I N U X   8 . 0   " J E S S I E " .
+Registered Linux User #311290 - https://linuxcounter.net/
+============================================================

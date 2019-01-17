@@ -1,0 +1,130 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Ivan Shmakov <ivan@siamics.net>
+Date : Sun, 11 Jun 2017 06:12:23 +0000
+Message-id : 87wp8jaw8o.fsf@violet.siamics.net
+Mail-followup-to : never@bendel.debian.org
+In-reply-to : <[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl> (Adam Borowski's	message of "Tue, 6 Jun 2017 15:55:48 +0200")
+References : <[🔎] 22837.20962.266704.742188@chiark.greenend.org.uk>	<[🔎] 20170606000242.333F97C6433@relay.mailchannels.net>	<[🔎] 871sqyueya.fsf@hope.eyrie.org>	<[🔎] 20170606135548.nmjiv5khqsdc7gfn@angband.pl>
+
+
+>>>>> Adam Borowski <kilobyte@angband.pl> writes:
+>>>>> On Mon, Jun 05, 2017 at 05:39:41PM -0700, Russ Allbery wrote:
+ >> Maybe someone has a list of things they view as Recommends inflation
+ >> that have (a) been reported as bugs to the appropriate package
+ >> maintainers, and (b) have been rejected by those package
+ >> maintainers?  Those are the controversial ones that we'd need to
+ >> talk about.
+[…]
+ > bash-completion: bash dput-ng licensecheck
+ > * DEBATABLE: I like the Tab key to do something reasonable,
+ > "bash-completion" means you never know what you'll get.
+	FWIW, I agree wholeheartedly with this one.  (The only reason I
+	don’t have ‘complete -r’ in my ~/.bashrc is that bash-completion
+	is rarely if ever installed on the systems I frequently use.)
+[…]
+ > freedoom | game-data-packager: prboom-plus
+ > * DEBATABLE: freedoom is too ugly to live, shareware Doom has assets
+ > missing for running pretty much anything Doom-related (and AFAIK its
+ > license forbids add-ons).  On the other hand, this is an excuse for
+ > Doom engines in main.
+	The latter seems like a good enough reason for this dependency.
+ > freepats: libwildmidi-config timidity
+ > * BAD: freepats is too ugly to live: abysmal quality, lacks
+ > instruments for pretty much any .mid file in the wild.  We do have a
+ > bunch of good alternatives.  timgm6mb-soundfont for one is 5.6 times
+ > smaller yet is complete.
+	Probably a relic of the days long gone; I guess it should be
+	updated to include some more alternatives (in preference to
+	freepats) – so long as timidity can (be made to) actually use
+	any of them “out-of-box.”
+Package: freepats
+Version: 20060219-1
+…
+Description-en: Free patch set for MIDI audio synthesis
+…
+ It is, however, the sole DFSG-compliant patch set in existence so far.
+ New patches (including those in better formats, such as SF2 SoundFont banks)
+ are welcome.
+[…]
+ > gfortran-mingw-w64: gcc-mingw-w64
+ > * BAD: seriously, Fortran?
+	Fortran is still widely used (in niche applications; WRF comes
+	to mind), but I see no good reason for this dependency.
+ > ghostscript: gimp imagemagick-6.q16 libmagickcore-6.q16-3 netpbm
+ > * BAD: why would editing images care about a grossly obsolete
+ > _document_ format?
+	So that one can $ convert  pic.ps pic.png?  Or (I suspect)
+	$ convert  file.pdf file.png, for that matter.
+	(Or perhaps more sensibly: $ display  pic.ps pic.pdf.)
+	Moreover, PostScript is a programming (code) language – not a
+	(data) format.
+	I’m neutral on this dependency, though.  I do like PostScript
+	for a document format as much as I do like JavaScript for the
+	same, but I see how it may be nice to support .ps (and .pdf?)
+	rasterization in ImageMagick and Gimp “out-of-box.”
+[…]
+ > gnat-mingw-w64: gcc-mingw-w64
+ > * BAD: see Fortran.
+	Agreed.
+ > gnupg-l10n: gnupg
+ > * DEBATABLE: I don't think anyone tech skilled enough to use GPG
+ > would have problems with English, but localization is important.
+ > On the other hand, this is 4.5MB in the default install.
+	Well, ‘locales’ is about 9 MiB in the same, so…
+[…]
+ > libhtml-format-perl: libhtml-tree-perl libwww-perl
+ > * ????: wut?
+	… Me neither.
+ > libhttp-daemon-perl: libwww-perl
+ > * TRANSITIVELY BAD: dependency comes from a client package; if I want
+ > to run a http server I know where to find it
+	That’s only Installed-Size: 71, so I don’t see much of a
+	problem.  AIUI, libwww-perl (as per upstream) had the
+	HTTP::Daemon library for decades, thus not installing one by
+	default in Debian may easily surprise an unsuspecting user.
+[…]
+ > libpackage-stash-xs-perl: libpackage-stash-perl
+ > * TRANSITIVELY BAD: dependencies pulling more dependencies, why?
+	I suppose that’s so one’s Perl script can be Architecture: all,
+	instead of depending on either pure-Perl or an XS (binary)
+	implementation of the package – depending on the architecture.
+[…]
+ > libpurple-bin: libpurple0
+ > * BAD: a library has no reason to install programs
+	My exact reaction on seeing that Mutt transitively Depends: on
+	GnuPG – all thanks to libgpgme11 depending on the latter.
+	I do not know about this specific case, but I very much agree
+	with the principle.
+[…]
+ > libtasn1-doc: libtasn1-6-dev
+ > * TRANSITIVELY BAD: probably useful if you do TASN (whatever it is),
+ > pulled in by a very-widespread library (gnutls)
+	That’s Abstract Syntax Notation One (or ASN.1), and while I use
+	it all the time (notation, that is; not this specific library at
+	the moment), I see no reason for a -dev package to depend on a
+	-doc one any stronger than with a mere Suggests:.
+[…]
+ > transfig: inkscape
+ > * BLOAT: a badly obsolete image format, pulls in ghostscript and
+ > other crap
+	Curiously enough, I still find XFig – with all its numerous
+	shortcomings – more usable than Inkscape.
+[…]
+ > uuid-runtime: libuuid1 libuuid1:i386
+ > * BAD: useful only if you generate many many UUIDs per second,
+ > certainly unfit when coming from a transitively essential library
+	… Me neither.
+	Makes even less sense when installing libuuid1-depending
+	software in a chroot – the one you do not intend to start
+	daemons from, like, ever.
+[…]
+ > xml-core: libxml2 libxml2:i386
+ > * BAD: what the heck I'd want a "XML catalog" for?
+	To adequately process XML files with non-trivial <!DOCTYPE>s?
+	AFAICT, the trend was to never ever rely on DTDs in newer XML
+	formats and files, so this one’s only value is probably in
+	enabling support for legacy XML.
+[…]
+-- 
+FSF associate member #7257  58F8 0F47 53F5 2EB2 F6A5  8916 3013 B6A0 230E 334A

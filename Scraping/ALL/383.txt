@@ -1,0 +1,54 @@
+To : "758513-done@bugs.debian.org" <758513-done@bugs.debian.org>
+Subject : Direktoriaus kontaktai - tai Jūsų klientas
+From : "Gautas pranešimas" <tadas@klientai.eu> 
+Date : Thu, 15 Feb 2018 11:22:54 +0200
+Message-id : EN03d9eed09be64ef7a5914ae06a657ea1@SWEDEN
+Reply-to : vadyba@klientai.eu
+References : <SWEDEN03d9eed09be64ef7a5914ae06a657ea1@SWEDEN> <53F1E4CD.4070609@pocock.pro>
+
+
+Your message dated Thu, 15 Feb 2018 11:22:54 +0200
+with message-id <SWEDEN03d9eed09be64ef7a5914ae06a657ea1@SWEDEN>
+and subject line Direktoriaus kontaktai - tai Jūsų klientas
+has caused the Debian Bug report #758513,
+regarding fails to authenticate if multiple LDAP results match, misleading error message
+to be marked as done.
+This means that you claim that the problem has been dealt with.
+If this is not the case it is now your responsibility to reopen the
+Bug report if necessary, and/or fix the problem forthwith.
+(NB: If you are a system administrator and have no idea what this
+message is talking about, this may indicate a serious mail system
+misconfiguration somewhere. Please contact owner@bugs.debian.org
+immediately.)
+-- 
+758513: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=758513
+Debian Bug Tracking System
+Contact owner@bugs.debian.org with problems
+Veiklos.xlsxPackage: nagios3
+Not sure if this log message comes from Apache or from Nagios, if it is
+an Apache error then please re-assign to the Apache package.
+Basically, my Nagios was working fine with Apache LDAP
+In httpd.conf:
+    AuthType bsic
+    AuthBasicProvider ldap
+    AuthName "test server"
+    AuthLDAPURL "ldap://some-server/dc=example,dc=org";
+One day, I found I could not log in to the web interface, the password
+popup would keep appearing
+Looking at the Apache error log file, I could see lines like this:
+     user daniel not found: /nagios3/cgi-bin/status.cgi
+Looking in Google, "not found" brings up all kinds of unrelated pages,
+but I found a few other people with similar messages such as:
+     user nagiosadmin not found: /nagios3/cgi-bin/status.cgi
+     user root not found: /nagios/cgi-bin/status.cgi
+In my case it turns out that somebody had changed the LDAP configuration
+and created two users called "daniel", each in different sub-trees, e.g.
+    uid=daniel,dc=test,dc=example,dc=org
+    uid=daniel,dc=production,dc=example,dc=org
+So the "not found" message is actually quite confusing, in my case, it
+seems to indicate that two users were found and it didn't know which is
+correct.  By refining my AuthLDAPURL to use
+dc=production,dc=example,dc=org I got it working again.
+Other people commented that disabling SELinux or fixing permissions on
+the htpasswd file made this error go away in other situations.  In my
+case, none of that feedback was relevant.

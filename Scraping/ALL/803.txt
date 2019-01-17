@@ -1,0 +1,84 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#865057: stretch-pu: package open-iscsi/2.0.874-2
+From : Christian Seiler <christian@iwakd.de>
+Date : Mon, 19 Jun 2017 00:52:10 +0200
+Message-id : 678076cc-e68d-adbb-018a-2d75c53fa1cd@iwakd.de
+Reply-to : Christian Seiler <christian@iwakd.de>, 865057@bugs.debian.org
+
+
+Package: release.debian.org
+User: release.debian.org@packages.debian.org
+Usertags: pu
+Tags: stretch
+Severity: normal
+X-Debbugs-Cc: debian-boot@lists.debian.org, kibi@debian.org
+Dear release team,
+(Cc'd KiBi & debian-boot as this is about the installer.)
+as discussed before the release, I'd like to fix the spurious call
+to update-initramfs in open-iscsi's udeb. I've tested the updated
+udeb with the Stretch installer (wget && udpkg -i before the end
+of the installation) and it works in the following two
+constellations:
+ - installing in a VM without iSCSI will now _not_ call
+   update-initramfs spuriously at the end of the installation
+ - installing in a VM with iSCSI will still call update-initramfs
+   at the end of the installation to ensure that things will
+   still boot if iSCSI is used
+I've just uploaded the same fix (and just the fix) to unstable,
+so if you want to do some additional tests with the installer in
+sid before accepting this, that'll be possible. (I don't plan on
+uploading a new open-iscsi package to sid until this pu gets
+accepted unless a critical bug is found.)
+Source debdiff against Stretch is attached.
+Regards,
+Christian
+-- System Information:
+Debian Release: 9.0
+  APT prefers stable-debug
+  APT policy: (500, 'stable-debug'), (500, 'stable')
+Architecture: amd64 (x86_64)
+Foreign Architectures: i386
+Kernel: Linux 4.9.0-3-amd64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US:en (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+diff -Nru open-iscsi-2.0.874/debian/changelog open-iscsi-2.0.874/debian/changelog
+--- open-iscsi-2.0.874/debian/changelog	2017-01-25 13:12:44.000000000 +0100
++++ open-iscsi-2.0.874/debian/changelog	2017-06-18 23:06:16.000000000 +0200
+@@ -1,3 +1,10 @@
++open-iscsi (2.0.874-3~deb9u1) stretch; urgency=medium
++
++  * [8de3092] udeb: don't update initramfs when iSCSI is not used.
++    (Closes: #863435)
++
++ -- Christian Seiler <christian@iwakd.de>  Sun, 18 Jun 2017 23:06:16 +0200
++
+ open-iscsi (2.0.874-2) unstable; urgency=medium
+ 
+   [ Christian Seiler ]
+diff -Nru open-iscsi-2.0.874/debian/gbp.conf open-iscsi-2.0.874/debian/gbp.conf
+--- open-iscsi-2.0.874/debian/gbp.conf	2017-01-25 13:12:44.000000000 +0100
++++ open-iscsi-2.0.874/debian/gbp.conf	2017-06-18 23:06:16.000000000 +0200
+@@ -1,6 +1,7 @@
+ [DEFAULT]
+ pristine-tar = True
+ color = auto
++debian-branch = stretch
+ 
+ [import-orig]
+ dch = True
+diff -Nru open-iscsi-2.0.874/debian/open-iscsi-udeb.finish-install open-iscsi-2.0.874/debian/open-iscsi-udeb.finish-install
+--- open-iscsi-2.0.874/debian/open-iscsi-udeb.finish-install	2017-01-25 13:12:44.000000000 +0100
++++ open-iscsi-2.0.874/debian/open-iscsi-udeb.finish-install	2017-06-18 23:06:16.000000000 +0200
+@@ -4,6 +4,11 @@
+ 
+ got_iscsi=
+ for f in /etc/iscsi/*; do
++	# Ignore iscsid.conf, as that will always be present, even if
++	# iSCSI is not used. (See Debian bug #863435.)
++	if [ x"$f" = x"/etc/iscsi/iscsid.conf" ] ; then
++		continue
++	fi
+ 	[ -e "$f" ] || continue
+ 	got_iscsi=1
+ 	break

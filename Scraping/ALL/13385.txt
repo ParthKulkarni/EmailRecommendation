@@ -1,0 +1,74 @@
+To : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Subject : Re: Bug#754513: RFP: libressl -- SSL library, forked from OpenSSL
+From : Colin Watson <cjwatson@debian.org>
+Date : Tue, 17 Oct 2017 11:51:19 +0100
+Message-id : 20171017105118.7mu3eysr5lwzkria@riva.ucam.org
+Mail-followup-to : Sebastian Andrzej Siewior <sebastian@breakpoint.cc>,	Toni Mueller <support@oeko.net>, 754513@bugs.debian.org,	debian-devel@lists.debian.org, openssl@packages.debian.org
+In-reply-to : <[🔎] 20171016200049.uikzmo2c53axmpho@breakpoint.cc>
+References : <20140711220627.24261.14073.reportbug@spruce.wiehl.oeko.net> <[🔎] 20171016162908.blj5mhl5ibaa7dza@riva.ucam.org> <[🔎] 20171016200049.uikzmo2c53axmpho@breakpoint.cc>
+
+
+On Mon, Oct 16, 2017 at 10:00:50PM +0200, Sebastian Andrzej Siewior wrote:
+> On 2017-10-16 17:29:09 [+0100], Colin Watson wrote:
+> > While there does exist a skeletal compatibility layer linked from the
+> > upstream wiki [1], the OpenSSL developers explicitly don't want to
+> > maintain this properly [2], and the OpenSSH developers say that it is
+> > "unversioned, incomplete, barely documented, and seems to be
+> > unmaintained" [3].  Kurt Roeckx proposed a patch to add a compatibility
+> > shim [4], and a number of other projects have done something similar,
+> > but the OpenSSH developers have explicitly said that they do not want to
+> > take that approach [5].
+> It has never been explained what it is that upstream wants. I get the
+> impression, that they want a compat/shim layer and things have to work
+>   https://lists.mindrot.org/pipermail/openssh-unix-dev/2016-November/035456.html
+>   https://lists.mindrot.org/pipermail/openssh-unix-dev/2016-November/035497.html
+Ingo replied to me privately (but giving me permission to use the
+information any way I saw fit) with this:
+  Here is one example of a posting where it is explained
+  in a comment:
+  
+    https://plus.google.com/u/0/+IngoSchwarze/posts/WQ9ouupTVgx
+  
+  In other words, an officially maintained library that *uses* the
+  OpenSSL-1.0 API (i.e. links against existing existing libcrypto
+  lbraries) and that *exports* the OpenSSL-1.1 API for application
+  programs to link against, such that application programs using the
+  OpenSSL-1.1 API can run on systems providing an OpenSSL-1.0 library.
+> I didn't even figure out if they want to alter their code or not.
+  https://lists.mindrot.org/pipermail/openssh-unix-dev/2017-October/036370.html
+> > It's not currently clear to me whether anyone has explicitly talked with
+> > the OpenSSL developers about this problem from the point of view of the
+> > OpenSSH developers, rather than just as users trying to get OpenSSH to
+> > compile against the new version.
+> 
+> Kurt is aware of the situation, he is part of upstream. It might be that
+> OpenSSH is playing hard to get.
+I don't see any benefit in conducting a discussion in which we assume
+bad faith.  There are different opinions on what makes for a good API
+transition, and pressures coming from different choices upstream
+(remembering that Debian's immediate upstream for OpenSSH is OpenSSH
+Portable, which itself has OpenBSD as an upstream) and from available
+development and review time, but simplifying that as "playing hard to
+get" isn't particularly helpful.
+> > At the moment I can see the following somewhat realistic paths forward:
+> > 
+> >  * Accept an upstream bundling of LibreSSL (still hypothetical, but
+> >    plausible).  I'm sure this would also not be the security team's
+> >    favourite outcome, although presumably only a subset of LibreSSL CVEs
+> >    would apply to OpenSSH, and it wouldn't be making it available as a
+> >    general-purpose library.
+> 
+> 4.13. Convenience copies of code
+I helped to draft that section, so I'm aware of what it says.  Note that
+it's a "should", and that it's not currently in the list of release
+standards for packages in buster
+(https://release.debian.org/buster/rc_policy.txt).  According to our
+current policy standards, it would certainly be a bug to have an
+embedded copy, it might well make various people cross with me, but it's
+something we're allowed to trade off against other considerations if
+they're sufficiently compelling.
+We could, for example, reasonably embed LibreSSL for a while and then
+switch to an externally-packaged library if it looks like API stability
+will be good enough for our needs.
+-- 
+Colin Watson                                       [cjwatson@debian.org]

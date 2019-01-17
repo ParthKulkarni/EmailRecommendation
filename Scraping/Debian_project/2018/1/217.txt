@@ -1,0 +1,58 @@
+To : Emilio Pozuelo Monfort <pochu@debian.org>, 886238@bugs.debian.org
+Subject : Bug#886238: Build-Profiles purpose, mechanism vs policy (was Re: Bug#886238: Please introduce official nosystemd build profile)
+From : Guillem Jover <guillem@debian.org>
+Date : Mon, 22 Jan 2018 02:23:33 +0100
+Message-id : 20180122012333.GA2515@thunder.hadrons.org
+Reply-to : Guillem Jover <guillem@debian.org>, 886238@bugs.debian.org
+In-reply-to : <[🔎] 7324965d-9a1e-c39e-5e13-6dd6174a2367@debian.org>
+References : <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180108183711.2vrs643yrokpapuq@mail.wookware.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180109122332.GA7872@thunder.hadrons.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 20180109201624.GD5070@localhost> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] tslwp0qv9mo.fsf@suchdamage.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com> <[🔎] 7324965d-9a1e-c39e-5e13-6dd6174a2367@debian.org> <[🔎] CAAB-KckdnL09x+DXjEq6jhsBhWaHK4BU3SXC7aCL4GOn3Q4Y-w@mail.gmail.com>
+
+
+On Thu, 2018-01-18 at 18:52:57 +0100, Emilio Pozuelo Monfort wrote:
+> On 10/01/18 01:29, Sam Hartman wrote:
+> > A build profile seems like a great way to express the flag, and like
+> > many things in Debian, the work would fall on those who would benefit
+> > from it.
+> 
+> I think it'd be better to be able to mark a build-dependency as optional, and
+> then implement a mechanism in dpkg to disable the undesired build-dependencies.
+> E.g. if packages start marking libselinux-dev as <optional>, with autoconf or
+> similar automatically disabling selinux support when not present, then a user
+> could build the package with something like dpkg-buildpackage
+> --disable-optional=libselinux-dev.
+That assumes that the package can and should be removed for this to
+work at all, which does not hold when some transitive package has a
+hard requirement on it, functionality which might or might not be
+exposed at run-time, say when needed also for a tool built and used
+only during the build. This also ties specific functionality to
+specific package names, I think defining a build-profile is superior
+because it can include groups of related packages exposing the same
+functionality. This also covers only part of what build-profiles
+provides, only full disablement, which requires thus full marking
+of all the build-depency chain.
+I think this alone makes this unreliable and less useful.
+> This way we don't need a different build profile for each build-dep and
+> package, which would end up in a mess. Of course we need to change the
+> above syntax to not clash with build profiles, and add DEB_BUILD_OPTIONS
+> support, but you get the point I hope. Seems a lot more standard to me
+> than having each package define its own profiles for each optional
+> dependency.
+We'd still need to mark those packages anyway. We also have a registry
+and namespaces for a reason, so that we do not get into a mess. :)
+Iff we wanted to implement this package-specific disablement marking,
+that part can already be implemented using build-profiles w/o needing
+to invent some new syntax, fixing all parsers and deploying the change,
+etc., which seems rather suboptimal. Something like this could do, f.ex.:
+  libselinux-dev <!optional.libselinux-dev>
+Obviously it has the drawbacks that it duplicates the package name, and
+the way the name is used here can be confusing, but at least the last
+point is _just_ a matter of finding a better name for the namespace. OTOH
+it can be used right now (after agreeing on the namespaces, iff this
+seems worthwhile at all, etc.).
+But, I don't see this as a very convincing solution TBH.
+Or, we could just keep adding the current nofoo-style profiles we have
+been registering, whenever the need arises.
+Also I'm not sure what you mean by "more standard" though, because what
+we come up with can be as standard as we make of it? :)
+Thanks,
+Guillem

@@ -1,0 +1,56 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Re: bts reassign 878722 partman-auto
+From : Nicholas Steeves <nsteeves@gmail.com>
+Date : Mon, 13 Nov 2017 15:05:08 -0500
+Message-id : CAD=QJKiitgiNAtF4NL+7kMGD2Hs7keyxQiUxLyxNm6c41e9+Pw@mail.gmail.com
+In-reply-to : <[🔎] 20171110195046.ongdqlnhihdpvv62@mraw.org>
+References : <[🔎] f3723b25-8d42-4d10-2e49-d92f9a623cb9@schokokeks.org> <[🔎] 20171107071208.zxlb2ayttxzwfnnt@mraw.org> <[🔎] 69f2aa05-61f5-c6ab-336c-5abdd9a2f988@schokokeks.org> <[🔎] 20171110151034.via5ugkcj3cfz4hj@csclub.uwaterloo.ca> <[🔎] 1510330754.2748.203.camel@decadent.org.uk> <[🔎] 20171110173259.n4qrpzj3fm3ezpzg@csclub.uwaterloo.ca> <[🔎] 20171110184414.5tel73chw6berd5n@DigitalMercury.dynalias.net> <[🔎] 20171110195046.ongdqlnhihdpvv62@mraw.org>
+
+
+Hi Kibi,
+I see Ben Hildred send a reply before I finished this draft :-)  I'll
+reply to it separately.
+On 10 November 2017 at 14:50, Cyril Brulebois <kibi@debian.org> wrote:
+> Nicholas D Steeves <nsteeves@gmail.com> (2017-11-10):
+>> 1) get a list of disks
+>> 2) identify the disk used by the installer
+>> 3) exclude the disk found at #2
+>
+> How do you do 2?
+>
+> Last I touched this, nothing obvious appeared in d-i to know what the
+> installer was booted from. ISTR having suggested at the time that
+> bootloaders could set something to help d-i figure out where it booted
+> from, but I don't think anything happened in this area since then.
+My first thought was to implement something like the /\ this /\ , so
+that /proc/cmdline could be used.  The next idea was to tie it to the
+installer build somehow.  eg:
+/dev/disk/by-uuid/2017-10-10-10-09-57-00 for Debian 9.2.1.  Is that only for amd64?
+ * is a link that points to a device name...remove that disk from the list
+ * not necessary for optical media IIRC
+ * how hard would it be to make the installer aware of this?
+ * Is PTUUID better? (eg: 5c91ec76) Or does this depend on blkid?
+Alternatively, and expensive fall-back like this:
+use existing code to get list of disks and partition
+for i in partitions_or_unpartitioned_disks; do
+  mount $i \
+    && check for something that indicates it's Debian installation media \
+    && check for specific version of something (would need a hook when building media to embed this)
+    or maybe check for existence of initrd.gz in $i, unpack it \
+    and compare checksum of something on initrd_used_to_boot_installer and initrd_found_on_$i \
+    && rm disk_for_$i from list
+    or alternatively, maybe just check for a file that indicates "This is Debian installation media"
+done
+Alternatively all disks that match something that indicates "This is
+Debian installation media", unless in expert mode.  This breaks
+installation from one drive that has been prepared as installation
+media to another drive that has been prepared as installation media
+(possibly with a different version),
+Most these methods break down for custom media that uses
+grub-imageboot...that's the case I don't know how to solve, but maybe
+the following would work: use /proc/cmdline and then loop-back mount
+the image, check for match between file on running system and mounted
+image, and remove the parent disk/partition from the list?
+Cheers,
+Nicholas
+signature.asc

@@ -1,0 +1,152 @@
+To : debian-devel@lists.debian.org
+Subject : Rethinking dynamic linking a bit (was: Re: Depends/Recommends from libraries)
+From : Christian Seiler <christian@iwakd.de>
+Date : Wed, 22 Mar 2017 11:17:42 +0100
+Message-id : 8dbf0405-f646-5e23-a41d-dd8981bc7aee@iwakd.de
+In-reply-to : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl>
+References : <[🔎] 20170308223353.foxl4gg5pl5ratoo@angband.pl>
+
+
+On 03/08/2017 11:33 PM, Adam Borowski wrote:
+> I'd like to discuss (and then propose to -policy) the following rule:
+> 
+> # Libraries which don't provide a convenient means of conditionally loading
+> # at runtime (this includes most libraries for languages such as C), SHOULD
+> # NOT declare a "Depends:" or "Recommends:" relationship, directly or
+> # indirectly, on packages containing anything more than dormant files. 
+> # Those include, among others, daemons, executables in $PATH, etc.  Any such
+> # relationship should be instead declared by programs that use the library
+> # in question -- it is up to them to decide how important the relationship
+> # is.
+For $DAYJOB I had to work on Mac OS X a bit, and they have an interesting
+feature there: weakly binding to a shared library. The main reason this
+exists is the following: suppose you want to create a binary that will
+work on earlier versions of the operating system, but can also make use of
+newer features if they're available on the target system. There are two
+cases how new features can be added:
+ - new symbols added to libraries
+ - new libraries added
+To handle the first case, the compiler defines a minimum version that the
+program wants to support, and the standard include headers contain some
+preprocessor magic that will mark all symbols as weak symbols if they're
+from a newer operating system version.
+To handle the second case there's a linker flag that allows you to weakly
+bind to an entire library. The dynamic linker will not error out if the
+library doesn't exist.
+To make that work in the program, the code needs to check for symbol
+availability, e.g.:
+    if (some_fancy_function)
+        some_fancy_function();
+The first case is already supported with the current linker infrastructure
+on Debian: you can compile a library with a symbol (without the weak
+marker), and then link a program where you import that symbol, but the
+header (when included in the program) marks the symbol as weak, so the
+absence of that symbol is not an error for the dynamic linker. See the
+postscript of this email for an example.
+However, the second case might be even more interesting here: if the
+library is imported "weakly", and it doesn't exist when running the
+program, the program will start regardless, and all the symbols from the
+library will be NULL pointers for the underlying code, and that condition
+can be detected.
+Now on Mac OS X this is used to support targeting older version of the
+operating system for proprietary software. And the first part about
+using weak symbols (but linking fully against the library) is not very
+interesting to Debian (even though that's the part that already works),
+since we don't care that binaries support older versions of the same
+library. (In contrast to people writing proprietary software.)
+But for Debian we could use the second idea for optional runtime library
+dependencies. For example, a lot of software in the core system
+currently links against libselinux.so - while most people don't use
+that at all. On the other hand, there have been several cases in the
+past where maintainers of core software declined to build against another
+shared library to not increase the size of the most minimal installation
+any further. With weakly linking against optional shared libraries, we
+can decrease the size of the base system further without sacrificing
+functionality.
+The plan related to infrastructure would actually be quite reasonable:
+ - Add a new ELF dynamic header tag that has the same semantics that
+   DT_NEEDED has, except for the fact that if the library is not found,
+   it is not considered an error.
+ - Add a new linker flag to weakly link against a library and generate
+   this tag instead of DT_NEEDED. All symbols imported from that
+   library will automatically be considered weak imports in the final
+   executable.
+ - Update the dynamic linker in glibc to support this.
+ - Make sure gcc doesn't optimize away if (symbol) checks. I believe it
+   already doesn't do that for symbols explicitly marked as weak, but it
+   may still do that for symbols that are not marked as weak during
+   compilation. (One would have to check.) And when linking an entire
+   library weakly, one doesn't know at compile time that all of these
+   symbols will be weak imports.
+ - Update shlibdeps to produce Recommends: instead of Depends: for
+   libraries that are linked weakly, with the option for the package
+   Maintainer to change that to Suggests.
+ - Update shlibdeps to Pre-Depend: on glibc with the dynamic linker
+   that supports this if the new header type is found.
+With that in place, one could then start to modify software to make
+use of this feature where this is applicable.
+Benefits (in the long term):
+ - Smaller base system
+ - Easier to add new features to core components without stepping on
+   people's toes. (And since we now have build profiles, bootstrapping
+   shouldn't be a problem.)
+ - Executables that need to be copied into the initramfs could benefit
+   from that, making the initramfs smaller and hence faster.
+Disadvantages:
+ - Another (IMHO minor) potential source of bugs: if a program is
+   linked weakly against a library but doesn't check for symbol
+   availability before using them, then the program will crash
+   (0-pointer deref).
+I'm not saying this will solve all problems described in this thread,
+because the general underlying issue (described by others in this
+thread in a much better way) of having stuff work out of the box (and
+hence be installed by default) vs. unused stuff not being installed
+is not a technical problem that can be solved, but rather a problem
+of preferences, where we'll always have to weigh the options.
+But my proposal would fix the issue that dependencies towards libraries
+are forced to be hard 'Depends:' at the moment, even if a Recommends:
+or Suggests: is semantically more correct for that - which could help
+mitigate these issues.
+Thoughts?
+Regards,
+Christian
+PS: Weak symbol import on Debian example (library must still exist
+though, so this is just to illustrate the principle, even though we
+probably aren't interested in the symbol-resolved version here):
+cat > lib.h <<EOF
+#pragma once
+#ifndef LIB_COMPILE
+void do_print() __attribute__((weak));
+#else
+void do_print();
+#endif
+EOF
+cat > lib.c <<EOF
+#include "lib.h"
+#include <stdio.h>
+void do_print()
+{
+  puts("Hello World!");
+}
+EOF
+touch lib_dummy.c
+cat > prog.c <<EOF
+#include <stdio.h>
+#include "lib.h"
+int main()
+{
+    if (do_print)
+        do_print();
+    else
+        puts("Library doesn't contain symbol.");
+    return 0;
+}
+EOF
+mkdir with_sym
+mkdir without_sym
+gcc -Wall -fPIC -DLIB_COMPILE -shared -Wl,-soname,libweaktest.so.0 -o with_sym/libweaktest.so.0 lib.c
+ln -s libweaktest.so.0 with_sym/libweaktest.so
+gcc -Wall -fPIC -DLIB_COMPILE -shared -Wl,-soname,libweaktest.so.0 -o without_sym/libweaktest.so.0 lib_dummy.c
+gcc -Wall -o prog prog.c -L./with_sym -lweaktest
+LD_LIBRARY_PATH=./with_sym ./prog
+LD_LIBRARY_PATH=./without_sym ./prog

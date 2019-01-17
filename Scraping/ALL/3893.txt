@@ -1,0 +1,45 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#873462: debian-installer: need to figure out what rendering to use in graphical installer
+From : Cyril Brulebois <kibi@debian.org>
+Date : Mon, 28 Aug 2017 04:23:31 +0200
+Message-id : 20170828022331.29579.33002.reportbug@armor.home
+Reply-to : Cyril Brulebois <kibi@debian.org>, 873462@bugs.debian.org
+
+
+Source: debian-installer
+Severity: important
+During the beginning of the buster release cycle, a number of changes
+have affected the installer (hello expat, hello udev), and the most
+visible ones right now are:
+ - fontconfig-udeb: between 2.11.0-6.7 and 2.12.x (I didn't check the
+   x=1 version that only reached experimental), hinting now defaults
+   to slight instead of full (symlink under /etc/fonts/conf.d)
+ - libfreetype6-udeb: with the bump from 2.6 to 2.8, freetype uses a
+   new subpixel hinting mode.
+This results in rather different rendering for the graphical installer,
+and I'm not too happy with letting those go through without making sure
+people have a chance to comment on the new output for various languages
+(we have many of them, and way too many unknown to me).
+Thanks to the hints (no pun intended) provided by Laurent Bigonville,
+I've verified it is possible to (almost) get back to the original
+rendering:
+ (1) by adjusting the conf symlink so that it points to
+     /usr/share/fontconfig/conf.avail/10-hinting-full.conf
+ (2) by creating a new start-up script for debian-installer, called
+     /lib/debian-installer.d/S63freetype-workaround, which exports the
+     following variable:
+         FREETYPE_PROPERTIES="truetype:interpreter-version=35"
+The slight sad part is that I'm doing so from build/Makefile in the
+debian-installer source package instead of properly patching the
+relevant udebs. It's been a while already since stretch has been
+published, and I don't want to keep the udeb freeze in place for too
+long, so I guess releasing debian-installer ASAP makes it an acceptable
+trade-off.
+The resulting rendering is very close to what we've had for many years,
+(except for a little more vertical space being used), so I'll be pushing
+this in a few minutes (filing this bug report first, so that I can point
+to it from the source and changelog entry).
+I have no ETA for a comprehensive study at the moment, but it would be
+great to have data from native speakers for as many languages as
+possible. Translators might be a nice entry point.
+KiBi.

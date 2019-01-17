@@ -1,0 +1,29 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Should libpam-elogind Provide libpam-systemd ?
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Fri, 2 Nov 2018 12:20:55 -0700
+Message-id : 20181102190210.GA3346@localhost
+In-reply-to : <[🔎] 23516.35894.408937.61451@chiark.greenend.org.uk>
+
+
+Ian Jackson wrote:
+> tl/dr: would this be wrong
+>    Package: libpam-elogind
+>    Provides: libpam-systemd
+> and should there be a Conflicts too ?
+Please don't, no, for multiple reasons.
+First, various packages followed the widely offered advice of using
+libpam-systemd as the correct package to depend on if you need systemd
+services, as it incorporated the appropriate alternatives on
+systemd-sysv and systemd-shim. So packages depending on libpam-systemd
+may depend on more aspects of systemd than just the pam module.
+Second, based on experiences with systemd-shim, I would expect that
+elogind will likely be *mostly* compatible with systemd's services, but
+not necessarily perfectly compatible, especially when it comes to
+current features. Using a Provides would make it more difficult for
+packages to handle such compatibility issues.
+Please instead just continue providing a separate pam module, please
+*conflict* with libpam-systemd to avoid having debugging adventures
+involving one interfering with the other, and please work with packages
+that depend on libpam-systemd to add appropriate alternatives like
+libpam-systemd | libpam-elogind if and *only* if they work with both.

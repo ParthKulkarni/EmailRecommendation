@@ -1,0 +1,95 @@
+To : noone never <mr.somebody@gmx.ch>, 870430@bugs.debian.org
+Subject : Bug#870430: linux-image-4.9.0-3-marvell: Couldn't find DTB in /usr/lib/linux-image-4.9.0-3-marvell or /etc/flash-kernel/dtbs
+From : Ian Campbell <ijc@debian.org>
+Date : Thu, 03 Aug 2017 20:15:27 +0100
+Message-id : 1501787727.29118.30.camel@debian.org
+Reply-to : Ian Campbell <ijc@debian.org>, 870430@bugs.debian.org
+In-reply-to : <CAEa_LNCoF66b2r6TrQzci12xjMhjKJn6dyY0N7ZAt08=q5ZUhQ@mail.gmail.com>
+References : 	<trinity-9e6a25e4-2e0c-4c19-af3b-40b2fadb736c-1501623562455@3capp-gmx-bs64>	 <[🔎] 1501660981.29118.24.camel@debian.org>	 <CAEa_LNCoF66b2r6TrQzci12xjMhjKJn6dyY0N7ZAt08=q5ZUhQ@mail.gmail.com>
+
+
+On Wed, 2017-08-02 at 21:29 +0200, noone never wrote:
+> Please find my answers inline.
+Thanks! In particular for...
+> [...]
+> > The message:
+> >     Couldn't find DTB  in /usr/lib/linux-image-4.9.0-3-marvell or
+> > /etc/flash-kernel/dtbs
+> > is interesting since the double space in "DTB  in" is supposed to
+> > contain $dtb_name, i.e. the path to look for, but it doesn't not.
+> > Please could you attach the full output of running `sh -x
+> > /usr/sbin/flash-kernel`, maybe that will include a clue as to where
+> > things have gone astray.
+> 
+> Log is attached 
+... this.
+Looking at uses of dtb in you trace:
+    $ grep dtb ~/tmp/flash-kernel-log.txt
+    [...]
+    + dtb_name=kirkwood-sheevaplug.dtb
+    + '[' -n kirkwood-sheevaplug.dtb ']'
+    + echo 'Using DTB: kirkwood-sheevaplug.dtb'
+    Using DTB: kirkwood-sheevaplug.dtb
+So dtb_name is successfully assigned and reported here.
+    + handle_dtb
+    + '[' xkirkwood-sheevaplug.dtb = x ']'
+    + local dtb
+    + local dtb_name
+But here it is redeclared as a local shadowing the original, but
+unassigned.
+    ++ find_dtb_file
+    ++ local dtb
+    ++ case "$dtb_name" in
+    +++ find /etc/flash-kernel/dtbs -name
+    ++ dtb=
+    ++ dtb=
+    ++ error 'Couldn'\''t find DTB  in /usr/lib/linux-image-4.9.0-3-marvell or /etc/flash-kernel/dtbs'
+    ++ echo 'Couldn'\''t find DTB  in /usr/lib/linux-image-4.9.0-3-marvell or /etc/flash-kernel/dtbs'
+    Couldn't find DTB  in /usr/lib/linux-image-4.9.0-3-marvell or /etc/flash-kernel/dtbs
+    and we end up using the blank version here.
+    I have a suspicious this was introduced by the fix to #836697 in [0]
+    which seems to have added the shadowing "local dtb_name".
+    It's a bit naughty but if you edit /usr/share/flash-kernel/functions
+    and  near the top of handle_dtb() change the:
+    	    local dtb
+    	    local dtb_name
+    into
+    	    local dtb
+    	    local dtb_name=$(basename $dtb_name)
+    and then remove the "dtb_name=$(basename $dtb_name)" from both halves
+    of the following if statement, does that fix it?
+    Martin, does that fix seem correct to you?
+    I think the "local dtb" bit could also move into the else have with the
+    "dtb=$(find_dtb_file)" as well, but that would be an unrelated change.
+    This ultimately seems to be down to a difference in the behaviour of
+    /bin/dash vs /bin/bash, which I suppose is why it has not been widely
+    seen:
+    $ cat > t.sh <<EOF
+    c() {
+        echo "c.a = \"$a\""
+    }
+    b() {
+        local a
+        echo "b.a = \"$a\""
+    }
+    a() {
+        local a=foo
+        echo "a.a = \"$a\""
+        b
+        c
+    }
+    a
+    EOF
+    $ dash t.sh 
+    a.a = "foo"
+    b.a = "foo"
+    c.a = "foo"
+    $ bash t.sh
+    a.a = "foo"
+    b.a = ""
+    c.a = "foo"
+    I s    uppose you have /bin/sh as a link to /bin/bash on your system still.
+    So an alternative workaround would probably be "sudo dpkg-reconfigure
+    dash" and make dash the system shell.
+        Ian.
+        [0]         https://anonscm.debian.org/cgit/d-i/flash-kernel.git/commit/?id=0eb2ec06735e4a5712796836f7061190dfcf3a37

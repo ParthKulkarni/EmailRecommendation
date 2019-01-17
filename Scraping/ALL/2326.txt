@@ -1,0 +1,104 @@
+To : Joey Hess <id@joeyh.name>, 881969@bugs.debian.org,	Vagrant Cascadian <vagrant@debian.org>
+Subject : Bug#881969: making bootable SD cards
+From : Karsten Merker <merker@debian.org>
+Date : Fri, 17 Nov 2017 20:00:42 +0100
+Message-id : 20171117190042.ofefqqh5xl7rlob3@excalibur.cnev.de
+Reply-to : Karsten Merker <merker@debian.org>, 881969@bugs.debian.org
+In-reply-to : <[🔎] 20171116235442.h4xrhqax7blbf57t@kitenet.net>
+References : <[🔎] 20171116235442.h4xrhqax7blbf57t@kitenet.net> <[🔎] 20171116235442.h4xrhqax7blbf57t@kitenet.net>
+
+
+Control: severity 881969 wishlist
+[CCing Vagrant Cascadian, the Debian u-boot maintainer]
+On Thu, Nov 16, 2017 at 07:54:42PM -0400, Joey Hess wrote:
+> Package: flash-kernel
+> Version: 3.87
+> Severity: normal
+> 
+>   Therefore you usually have to setup an SD card with the appropriate u-boot
+>   version for your particular device (see below) as a prerequisite for
+>   installing Debian. If you use the pre-made SD card images with the
+>   installer, this step is not necessary, as these images already contain
+>   u-boot.
+>   -- https://wiki.debian.org/InstallingDebianOn/Allwinner
+> 
+> This seems to fall squarely in flash-kernel's wheelhouse, since it
+> already handles the other parts of u-boot installation, and it knows
+> the name of the board being installed.
+> 
+> The d-i SD card images avoid the problem, but they are only one way to
+> install; there are even other ways to use d-i to install that need this
+> manual step first.
+> 
+> The main difficulty in putting it in flash-kernel is that it might be
+> installed in a chroot in a situation where it should not be altering
+> the boot sector of the host's disk. So, something like grub-installer
+> seems to be called for, so the user specifies the device to install to.
+> 
+> A utility in flash-kernel would be much nicer than needing to puzzle out dd
+> commands from README.Debian files and hope you got it right. I'm currently
+> having to embed those dd commands inside propellor; they're also embedded
+> inside debian-installer (build/boot/arm/u-boot-image-config).
+Hello,
+to use d-i/flash-kernel on the target device, one obviously needs
+to already have put a u-boot onto the device in some form (such
+as preinstalled in the d-i SD card images), otherwise one
+couldn't have booted it, i.e. flash-kernel could only cover the
+topic of updating u-boot from within a running system.  There has
+been a discussion about the latter in the past and the consensus
+reached at that time was that it is practically impossible to
+safely determine the version of an already installed u-boot image
+in a platform-independant way, and installing u-boot
+unconditionally on every invocation of flash-kernel is considered
+too riscy as there are a number of unsolved problems with such an
+approach.
+Among the points of this discussion were:
+- On some devices u-boot isn't stored on an SD card but on an
+  onboard SPI flash chip with a rather limited number of write
+  cycles (in the area of ~1000) and no defects management. 
+  Unconditionally writing u-boot on every invocation of
+  flash-kernel (which includes everything that modifies the
+  initrd) would have the potential to kill these devices in
+  comparatively short time.
+- Knowing the device type one is running on isn't necessarily
+  enough.  Several supported devices are available in different
+  hardware configuration variants that influence where the u-boot
+  image can get written to (SD card, onboard eMMC, onboard raw
+  NAND, SPI flash, and combinations thereof).  Once Linux is
+  running, there is no way to determine where the u-boot that
+  brought the system up was loaded from.  Flash-kernel pulls the
+  system type from a /proc entry, but that doesn't provide the
+  information whether the current device e.g. has the SPI flash
+  for u-boot populated or not, and if yes, whether it has
+  actually been used for booting the system, so flash-kernel
+  cannot decide without user-interaction where to write the
+  u-boot image.
+- As u-boot is more than just a bootloader - it also provides
+  BIOS-like functionality - there can be a major difference
+  between messing up automatically installing GRUB and messing up
+  automatically installing u-boot.  In the GRUB case, the user
+  can simply boot a rescue system and fix the bootloader.  In
+  case of a broken u-boot installation to an SPI flash or to an
+  eMMC on systems where these have a higher boot priority than
+  the SD slot, the system can be completely dead and require
+  specific hardware tooling (such as an external SPI flasher) to
+  revive the system again.
+As a result of these issues, it was deemed unsuitable for
+flash-kernel to attempt installing u-boot.
+What we might do sometime in the future is adding a
+u-boot-installer udeb to d-i which on a very limited subset of
+systems allows the user to explicitly decide to install u-boot to
+a user-selected device (such as eMMC or SPI flash) after being
+informed about the riscs of doing so.  I had started designing a
+proof-of-concept for such a udeb, but have had to put that on
+hold due to having to take care of a number of higher-priority
+issues.
+I'm setting the severity of this bug down from "normal"
+to "wishlist" as it is about requesting the addition of
+a new feature and not about a bug in existing functionality.
+Regards,
+Karsten
+-- 
+Gem. Par. 28 Abs. 4 Bundesdatenschutzgesetz widerspreche ich der Nutzung
+sowie der Weitergabe meiner personenbezogenen Daten für Zwecke der
+Werbung sowie der Markt- oder Meinungsforschung.

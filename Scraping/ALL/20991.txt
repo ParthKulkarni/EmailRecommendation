@@ -1,0 +1,110 @@
+To : Mattia Rizzolo <mattia@debian.org>, Holger Levsen <holger@layer-acht.org>, 886219@bugs.debian.org
+Subject : Re: Bug#886219: lintian should be less pedantic about latest policy version
+From : Sean Whitton <spwhitton@spwhitton.name>
+Date : Wed, 03 Jan 2018 14:24:46 +0000
+Message-id : 87vagjt3yp.fsf@zephyr.silentflame.com
+In-reply-to : <[🔎] 20180103093010.GK24237@mapreri.org>
+References : <[🔎] 87po6tv6b8.fsf@zephyr.silentflame.com> <[🔎] 20180103085448.4vh5eowvdz2mislv@layer-acht.org> <[🔎] 20180103093010.GK24237@mapreri.org>
+
+
+control: severity -1 normal
+Hello,
+Thank you for filing this bug, Holger.
+Mattia and I are in significant disagreement over this and both feel
+quite strongly about the topic (hence the severity bump -- I think this
+moderately important for Debian).  In this e-mail I want to lay out in
+full detail why I would like to see this change in Lintian.
+On Wed, Jan 03 2018, Mattia Rizzolo wrote:
+> Currently there are two related tags:
+> * https://lintian.debian.org/tags/out-of-date-standards-version.html
+>   which is reported when an upload is done and the date of the
+>   changelog is older than the date of a policy release newer than what
+>   is in Std-Ver. (I.e. a package doesn't get this if no uploads are
+>   done, but it assumes that when somebody updates a package the
+>   maintainer checks whether it is compliant to the very last Policy
+>   update, which IMHO it is totally reasonable…?)
+> * https://lintian.debian.org/tags/ancient-standards-version.html
+>   which is reported if the mentioned Std-Ver has been superseded for
+>   more than two years (i.e. this is the tag a package gains for not
+>   being updated in that much time and a new Policy release happened in
+>   the meantime).
+Thanks for summarising exactly when these tags are triggered, Mattia.
+Let me first say exactly what change I'd recommend:
+- out-of-date-standards-version should be I: or P: instead of W:
+- ancient-standards-version should remain W:
+- ancient-standards-version should be triggered when S-V contains a
+  release of Policy from the previous stable release cycle
+The third point is mostly covered already because our stable release
+cycles are roughly two years, but possibly there is a better mechanism.
+> They are both warnings, and IMHO they are both totally valid as
+> warnings.  If you update your package you should spend your time
+> checking it is still Policy compliant (how would you know it is
+> otherwise without checking?!), and bumping this tiny field is just a
+> marker you did so.
+>
+> What do you propose to change?  Consider that before this August
+> (i.e., when the Policy editor teams got revamped) Policy releases were
+> fairly rare, and for sure you wouldn't want to wait 2 releases
+> (average of ~3 years, by looking at it) before warning… And honestly I
+> hope it gets back to fewer and smaller releases soon again, as it is
+> honestly hard for me as well to keep up with the changes (I could
+> remember 3.9.{6,7,8} changes by heart, I can't with the latest…).  But
+> it doesn't mean that I as a maintainer should make an effort to keep
+> up and check for Policy compliance at each package update.
+You argue that
+- whenever a maintainer uploads a package and S-V is out-of-date, they
+  should work through the relevant entries in the Policy Manual's
+  Upgrading Checklist
+- Policy Manual releases should be infrequent to avoid maintainers
+  having to do this too often
+On the contrary, I argue that
+- the only thing that should be /required/ when uploading a package is
+  making the package non-trivially better than the current version in
+  unstable
+- updating S-V should never block uploading other improvements
+- there are good reasons to release the Policy Manual frequently, and
+  this should not be blocked by the expectation that everyone respond to
+  those new versions in their very next uploads.
+From the project's point of view, every maintainer is a volunteer.  We
+take pains to never /require/ anyone to work on anything; it's even in
+our constitution.  However, if certain work that someone wants to do has
+prerequisite work, we require volunteers to do that prerequisite work
+before doing the work they want to do.
+For example, if someone wants to prepare a patch to fix a bug in the
+current stable release, we require them to write up a justification as
+to why the fix should go into stable, in a bug report against
+release.d.o.  Writing that justification is the prerequisite to the work
+they really want to do, which is upload the patched package to
+stable-p-u.  (I don't mean to suggest that everyone hates writing up
+those justifications; I'm just using this as an example of prerequisite
+work we require of volunteers.)
+There is a tension here.  As prerequisite work becomes more onerous, it
+becomes less clear that we are not requiring people to work on
+something.  "You don't have to do this work, but then you can't do that
+thing you really want/need to do." -- depending on the circumstances,
+this might be basically to force someone to do work.
+A general principle emerges: we don't require prerequisite work except
+where that prerequisite work is needed to co-ordinate with other
+volunteers.  For example, if you have a patch for stable but you don't
+write up a justification, an SRM must expend a great deal more effort to
+determine whether that fix should go into stable -- a great deal more
+effort than it would have taken you to write the justification.  It's
+not fair to externalise work on other volunteers, so we require the
+prerequisite work be done before the upload.
+ISTM that requiring maintainers to check packages against the upgrading
+checklist before they can upload other improvements is an example of
+requiring prerequisite work of volunteers that is not needed for
+co-ordinating with other volunteers.  So we should not require it.
+Lintian errors and warnings tell you, roughly, "watch out, your upload
+might/will make the state of this package in unstable worse than it is
+as present."  By contrast, info and pedantic tags say, roughly, "here is
+another improvement you could make to this package."  Working through
+the ugprading checklist almost always falls into the latter category.
+Also relevant here is Enrico's talk at DebConf17,[1] where he cautioned
+against manipulating volunteers into doing work.  Requiring prerequisite
+work that is not necessary for co-ordinating with other volunteers might
+well fall into that category.
+[1] https://debconf17.debconf.org/talks/92/
+-- 
+Sean Whitton
+signature.asc

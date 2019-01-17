@@ -1,0 +1,308 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#894059: installation-reports: rock64, difficult install
+From : Vagrant Cascadian <vagrant@debian.org>
+Date : Sun, 25 Mar 2018 16:48:05 -0700
+Message-id : 87efk7wwcq.fsf@aikidev.net
+Reply-to : Vagrant Cascadian <vagrant@debian.org>, 894059@bugs.debian.org
+
+
+Package: installation-reports
+Severity: normal
+A bit of a rough install, despite eventual success...
+It required manually creating the boot media, appending all kernel
+modules to the initrd, using a device-tree from a newer kernel version,
+and installing u-boot-menu to have a working boot menu, and manually
+marking the partition as bootable, so u-boot would try to boot from it.
+More details in the Comments/Problems section.
+live well,
+  vagrant
+-- Package-specific info:
+Boot method: copied netboot files onto microSD
+Image version: https://d-i.debian.org/daily-images/arm64/20180324-02:06/netboot/netboot.tar.gz
+Date: 2018-03-25
+Machine: rock64
+Partitions: 
+Filesystem     Type     1K-blocks    Used Available Use% Mounted on
+udev           devtmpfs   1992960       0   1992960   0% /dev
+tmpfs          tmpfs       409596    5308    404288   2% /run
+/dev/mmcblk0p6 ext4       5700724 1298352   4093076  25% /
+tmpfs          tmpfs      2047980       0   2047980   0% /dev/shm
+tmpfs          tmpfs         5120       0      5120   0% /run/lock
+tmpfs          tmpfs      2047980       0   2047980   0% /sys/fs/cgroup
+tmpfs          tmpfs       409596       0    409596   0% /run/user/1000
+Base System Installation Checklist:
+[O] = OK, [E] = Error (please elaborate below), [ ] = didn't try it
+Initial boot:           [E]
+Detect network card:    [O]
+Configure network:      [E]
+Detect CD:              [ ]
+Load installer modules: [O]
+Clock/timezone setup:   [O]
+User/password setup:    [O]
+Detect hard drives:     [O]
+Partition hard drives:  [E]
+Install base system:    [O]
+Install tasks:          [O]
+Install boot loader:    [E]
+Overall install:        [ ]
+Comments/Problems:
+Had to manually create the boot media, as PXE boot didn't work with the 
+vendor-provided u-boot. Had to create boot media by hand, by copying
+files onto the boot media and creating a boot menu that the vendor
+u-boot can read (e.g. extlinux.conf, or boot.scr).
+Insufficient modules being available during the install, worked around
+by appending all modules to the initrd.gz. This will hopefully be fixed
+when d-i starts using 4.15.0-2 for the kernel version.
+The ethernet detected fine, but a bug that prevented it from actually 
+downloading data reliably. It is fixed in the device-tree in linux 
+4.16-rc6, but worked fine using linux 4.15 in the installer with the 
+device-tree from 4.16-rc6. That could probably be backported to 4.15.x.
+Also ran the installer with 4.16-rc6, which seemed to work ok.
+There was no bootloader configuration, but I worked around this by using
+u-boot-menu to generate an extlinux.conf menu. I manually installed
+linux 4.16-rc6 from experimental before rebooting, as it seems to be
+better supported for this board.
+The partitioner did not successfully mark the partition as bootable. I'm
+guessing it partman doesn't support setting the legacy_boot flag on GPT
+partitions?  This was needed for u-boot to choose which partition to
+scan for the boot configuration.
+-- 
+==============================================
+Installer lsb-release:
+==============================================
+DISTRIB_ID=Debian
+DISTRIB_DESCRIPTION="Debian GNU/Linux installer"
+DISTRIB_RELEASE="10 (buster) - installer build 20180324-02:04"
+X_INSTALLATION_MEDIUM=netboot
+==============================================
+Installer hardware-summary:
+==============================================
+uname -a: Linux rk64 4.15.0-1-arm64 #1 SMP Debian 4.15.4-1 (2018-02-18) aarch64 GNU/Linux
+usb-list: 
+usb-list: Bus 01 Device 01: EHCI Host Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.15.0-1-arm64 ehci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 02 Device 01: Generic Platform OHCI controller [1d6b:0001]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 00
+usb-list:    Manufacturer: Linux 4.15.0-1-arm64 ohci_hcd
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+usb-list: 
+usb-list: Bus 03 Device 01: DWC OTG Controller [1d6b:0002]
+usb-list:    Level 00 Parent 00 Port 00  Class 09(hub  ) Subclass 00 Protocol 01
+usb-list:    Manufacturer: Linux 4.15.0-1-arm64 dwc2_hsotg
+usb-list:    Interface 00: Class 09(hub  ) Subclass 00 Protocol 00 Driver hub
+lsmod: Module                  Size  Used by
+lsmod: dm_mod                143360  0
+lsmod: md_mod                159744  0
+lsmod: xfs                  1241088  0
+lsmod: libcrc32c              16384  1 xfs
+lsmod: jfs                   196608  0
+lsmod: btrfs                1257472  0
+lsmod: zstd_decompress        77824  1 btrfs
+lsmod: zstd_compress         163840  1 btrfs
+lsmod: xxhash                 16384  2 zstd_compress,zstd_decompress
+lsmod: xor                    20480  1 btrfs
+lsmod: raid6_pq              102400  1 btrfs
+lsmod: ntfs                  122880  0
+lsmod: fuse                  114688  0
+lsmod: vfat                   24576  0
+lsmod: fat                    81920  1 vfat
+lsmod: ext4                  667648  1
+lsmod: crc16                  16384  1 ext4
+lsmod: mbcache                16384  1 ext4
+lsmod: jbd2                  114688  1 ext4
+lsmod: crc32c_generic         16384  0
+lsmod: fscrypto               32768  1 ext4
+lsmod: ecb                    16384  0
+lsmod: usb_storage            73728  0
+lsmod: scsi_mod              241664  1 usb_storage
+lsmod: realtek                16384  1
+lsmod: clk_rk808              16384  0
+lsmod: rtc_rk808              16384  1
+lsmod: rk808_regulator        24576  7
+lsmod: rk808                  20480  0
+lsmod: aes_ce_blk             24576  0
+lsmod: crypto_simd            16384  1 aes_ce_blk
+lsmod: cryptd                 28672  1 crypto_simd
+lsmod: aes_ce_cipher          16384  1 aes_ce_blk
+lsmod: ghash_ce               20480  0
+lsmod: gf128mul               16384  1 ghash_ce
+lsmod: aes_arm64              16384  3 ghash_ce,aes_ce_cipher,aes_ce_blk
+lsmod: sha2_ce                16384  0
+lsmod: sha256_arm64           24576  1 sha2_ce
+lsmod: sha1_ce                16384  0
+lsmod: phy_rockchip_inno_usb2    32768  5
+lsmod: dw_wdt                 16384  0
+lsmod: i2c_rk3x               20480  0
+lsmod: pl330                  32768  0
+lsmod: cpufreq_dt             16384  0
+lsmod: dwc2                  217088  0
+lsmod: dwmac_rk               32768  0
+lsmod: ohci_platform          16384  0
+lsmod: stmmac_platform        20480  1 dwmac_rk
+lsmod: ohci_hcd               61440  1 ohci_platform
+lsmod: ehci_platform          16384  0
+lsmod: stmmac                131072  3 stmmac_platform,dwmac_rk
+lsmod: ehci_hcd               90112  1 ehci_platform
+lsmod: udc_core               49152  1 dwc2
+lsmod: ptp                    24576  1 stmmac
+lsmod: pps_core               20480  1 ptp
+lsmod: of_mdio                16384  2 stmmac,stmmac_platform
+lsmod: fixed_phy              16384  1 of_mdio
+lsmod: usbcore               274432  6 usb_storage,ehci_hcd,dwc2,ohci_hcd,ehci_platform,ohci_platform
+lsmod: libphy                 65536  4 of_mdio,stmmac,realtek,fixed_phy
+lsmod: fixed                  16384  8
+lsmod: dw_mmc_rockchip        16384  0
+lsmod: dw_mmc_pltfm           16384  1 dw_mmc_rockchip
+lsmod: dw_mmc                 45056  2 dw_mmc_pltfm,dw_mmc_rockchip
+df: Filesystem           1K-blocks      Used Available Use% Mounted on
+df: none                    409616        64    409552   0% /run
+df: devtmpfs               1979776         0   1979776   0% /dev
+df: /dev/mmcblk0p6         5700724   1371048   4020380  25% /target
+df: /dev/mmcblk0p6         5700724   1371048   4020380  25% /dev/.static/dev
+df: devtmpfs               1979776         0   1979776   0% /target/dev
+free:              total       used       free     shared    buffers     cached
+free: Mem:       4096128    1848908    2247220     228936      82568    1558308
+free: -/+ buffers/cache:     208032    3888096
+free: Swap:            0          0          0
+/proc/cmdline: 
+/proc/cpuinfo: processor	: 0
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 1
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 2
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/cpuinfo: processor	: 3
+/proc/cpuinfo: BogoMIPS	: 48.00
+/proc/cpuinfo: Features	: fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+/proc/cpuinfo: CPU implementer	: 0x41
+/proc/cpuinfo: CPU architecture: 8
+/proc/cpuinfo: CPU variant	: 0x0
+/proc/cpuinfo: CPU part	: 0xd03
+/proc/cpuinfo: CPU revision	: 4
+/proc/cpuinfo: 
+/proc/device-tree/model: Pine64 Rock64./proc/iomem: 00200000-feffffff : System RAM
+/proc/iomem:   02080000-02baffff : Kernel code
+/proc/iomem:   03020000-03227fff : Kernel data
+/proc/iomem: ff130000-ff13001f : serial
+/proc/iomem: ff160000-ff160fff : i2c@ff160000
+/proc/iomem: ff1f0000-ff1f3fff : dmac@ff1f0000
+/proc/iomem:   ff1f0000-ff1f3fff : dmac@ff1f0000
+/proc/iomem: ff210000-ff2100ff : gpio0@ff210000
+/proc/iomem: ff220000-ff2200ff : gpio1@ff220000
+/proc/iomem: ff230000-ff2300ff : gpio2@ff230000
+/proc/iomem: ff240000-ff2400ff : gpio3@ff240000
+/proc/iomem: ff500000-ff503fff : dwmmc@ff500000
+/proc/iomem: ff520000-ff523fff : dwmmc@ff520000
+/proc/iomem: ff540000-ff54ffff : ethernet@ff540000
+/proc/iomem: ff580000-ff5bffff : usb@ff580000
+/proc/iomem: ff5c0000-ff5cffff : usb@ff5c0000
+/proc/iomem: ff5d0000-ff5dffff : usb@ff5d0000
+/proc/interrupts:            CPU0       CPU1       CPU2       CPU3       
+/proc/interrupts:   1:          0          0          0          0     GICv2  25 Level     vgic
+/proc/interrupts:   3:     124154     137011     129944     122005     GICv2  30 Level     arch_timer
+/proc/interrupts:   4:          0          0          0          0     GICv2  27 Level     kvm guest timer
+/proc/interrupts:   6:          0          0          0          0     GICv2  32 Level     ff1f0000.dmac
+/proc/interrupts:   7:          0          0          0          0     GICv2  33 Level     ff1f0000.dmac
+/proc/interrupts:   8:          0          0          0          0     GICv2 132 Level     arm-pmu
+/proc/interrupts:   9:          0          0          0          0     GICv2 133 Level     arm-pmu
+/proc/interrupts:  10:          0          0          0          0     GICv2 134 Level     arm-pmu
+/proc/interrupts:  11:          0          0          0          0     GICv2 135 Level     arm-pmu
+/proc/interrupts:  12:      17090          0          0          0     GICv2  89 Level     ttyS2
+/proc/interrupts:  13:        225          0          0          0     GICv2  69 Level     ff160000.i2c
+/proc/interrupts:  23:    8481946          0          0          0     GICv2  44 Level     dw-mci
+/proc/interrupts:  24:        103          0          0          0     GICv2  46 Level     dw-mci
+/proc/interrupts:  25:      21013          0          0          0     GICv2  56 Level     eth0
+/proc/interrupts:  26:          0          0          0          0     GICv2  55 Level     ff580000.usb, dwc2_hsotg:usb3
+/proc/interrupts:  27:          0          0          0          0     GICv2  48 Level     ehci_hcd:usb1
+/proc/interrupts:  28:          0          0          0          0     GICv2  49 Level     ohci_hcd:usb2
+/proc/interrupts: 103:          0          0          0          0  rockchip_gpio_irq   6 Level     rk805
+/proc/interrupts: 161:          0          0          0          0     GICv2  94 Level     rockchip_usb2phy
+/proc/interrupts: 167:          0          0          0          0     rk805   5 Edge      RTC alarm
+/proc/interrupts: IPI0:    125127     654868     604702     403530       Rescheduling interrupts
+/proc/interrupts: IPI1:        59        449        421        436       Function call interrupts
+/proc/interrupts: IPI2:         0          0          0          0       CPU stop interrupts
+/proc/interrupts: IPI3:         0          0          0          0       CPU stop (for crash dump) interrupts
+/proc/interrupts: IPI4:         0          0          0          0       Timer broadcast interrupts
+/proc/interrupts: IPI5:         1          0          0          0       IRQ work interrupts
+/proc/interrupts: IPI6:         0          0          0          0       CPU wake-up interrupts
+/proc/interrupts: Err:          0
+/proc/meminfo: MemTotal:        4096128 kB
+/proc/meminfo: MemFree:         2247316 kB
+/proc/meminfo: MemAvailable:    3702336 kB
+/proc/meminfo: Buffers:           82568 kB
+/proc/meminfo: Cached:          1558308 kB
+/proc/meminfo: SwapCached:            0 kB
+/proc/meminfo: Active:           587700 kB
+/proc/meminfo: Inactive:        1077120 kB
+/proc/meminfo: Active(anon):     190752 kB
+/proc/meminfo: Inactive(anon):    62264 kB
+/proc/meminfo: Active(file):     396948 kB
+/proc/meminfo: Inactive(file):  1014856 kB
+/proc/meminfo: Unevictable:           0 kB
+/proc/meminfo: Mlocked:               0 kB
+/proc/meminfo: SwapTotal:             0 kB
+/proc/meminfo: SwapFree:              0 kB
+/proc/meminfo: Dirty:               828 kB
+/proc/meminfo: Writeback:             0 kB
+/proc/meminfo: AnonPages:         24180 kB
+/proc/meminfo: Mapped:             4360 kB
+/proc/meminfo: Shmem:            228936 kB
+/proc/meminfo: Slab:             151320 kB
+/proc/meminfo: SReclaimable:     133328 kB
+/proc/meminfo: SUnreclaim:        17992 kB
+/proc/meminfo: KernelStack:        1536 kB
+/proc/meminfo: PageTables:          692 kB
+/proc/meminfo: NFS_Unstable:          0 kB
+/proc/meminfo: Bounce:                0 kB
+/proc/meminfo: WritebackTmp:          0 kB
+/proc/meminfo: CommitLimit:     2048064 kB
+/proc/meminfo: Committed_AS:     260624 kB
+/proc/meminfo: VmallocTotal:   135290290112 kB
+/proc/meminfo: VmallocUsed:           0 kB
+/proc/meminfo: VmallocChunk:          0 kB
+/proc/meminfo: HardwareCorrupted:     0 kB
+/proc/meminfo: AnonHugePages:     16384 kB
+/proc/meminfo: ShmemHugePages:        0 kB
+/proc/meminfo: ShmemPmdMapped:        0 kB
+/proc/meminfo: CmaTotal:          65536 kB
+/proc/meminfo: CmaFree:           65192 kB
+/proc/meminfo: HugePages_Total:       0
+/proc/meminfo: HugePages_Free:        0
+/proc/meminfo: HugePages_Rsvd:        0
+/proc/meminfo: HugePages_Surp:        0
+/proc/meminfo: Hugepagesize:       2048 kB
+-- System Information:
+Debian Release: buster/sid
+  APT prefers testing
+  APT policy: (500, 'testing'), (1, 'experimental')
+Architecture: arm64 (aarch64)
+Kernel: Linux 4.16.0-rc6-arm64 (SMP w/4 CPU cores)
+Locale: LANG=en_US.UTF-8, LC_CTYPE=en_US.UTF-8 (charmap=UTF-8), LANGUAGE=en_US.UTF-8 (charmap=UTF-8)
+Shell: /bin/sh linked to /bin/dash
+Init: systemd (via /run/systemd/system)
+LSM: AppArmor: enabled
+signature.asc

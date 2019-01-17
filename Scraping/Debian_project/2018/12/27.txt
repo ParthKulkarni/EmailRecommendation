@@ -1,0 +1,56 @@
+To : debian-devel@lists.debian.org
+Subject : Re: usrmerge -- plan B?
+From : Guillem Jover <guillem@debian.org>
+Date : Tue, 4 Dec 2018 01:32:47 +0100
+Message-id : 20181204003247.GB13132@gaara.hadrons.org
+Mail-followup-to : debian-devel@lists.debian.org
+In-reply-to : <[🔎] 20181202114005.GA12327@estella.local.invalid>
+References : <20181120211617.gxnuwxpx2hy445ps@angband.pl> <6FEC5C58-827A-42EF-B7F4-F9603AFBB60D@gmail.com> <20181121092346.umhv45iy2vhvpljv@angband.pl> <20181123153217.GA14862@thunder.hadrons.org> <[🔎] 20181202114005.GA12327@estella.local.invalid>
+
+
+On Sun, 2018-12-02 at 13:40:05 +0200, Niko Tyni wrote:
+> On Fri, Nov 23, 2018 at 04:32:17PM +0100, Guillem Jover wrote:
+> > Please, if we decide we want to do merged /usr, let's do it properly.
+> 
+> I'm toying with the idea of creating a merged-usr package indicating
+> 'this system has merged /usr'. It could either fail to install with an
+> informational message on unmerged-usr systems, or if we're brave enough,
+> interactively or automatically convert the system (possibly utilizing
+> the usrmerge package.)
+> 
+> Then debhelper (or even dpkg-dev) could probe whether the build system
+> has merged /usr, and automatically add dependencies on merged-usr to
+> resulting binary packages, The dependency injection could be on either
+> an opt-out or an opt-in basis.
+> 
+> The opt-out way would be the more safe and conservative approach,
+> assuming everything built on merged /usr is broken on non-merged /usr
+> unless the maintainer indicates otherwise.
+> 
+> On the contrary, the opt-in approach would require that all problematic
+> packages (those that will not function fine when built on merged /usr
+> systems but installed on non-merged /usr ones) be identified and tagged
+> as needing this dependency. This obviously has a chance of missing
+> some of the issues.
+> 
+> Whether opt-out or opt-in, the transition in Debian could then be
+> controlled by monitoring dependencies on merged-usr, possibly playing
+> whack-a-mole rebuilding things that have gained this dependency in
+> maintainer uploads, or letting the gates open at some point and allowing
+> even core packages to gain this dependency (effectively forcing /usr
+> merge on all systems.)
+> 
+> All this would make the issues explicit and reflected in the package
+> dependency metadata, which seems to me like at least a step forward.
+IMO this would make it even worse than what it is right now. And I
+think it still keeps missing the point. :/
+The current merged-/usr deployment (via usrmerge or the bootstrapping
+symlink generation before unpack) is a major hack, and bypasses the
+dpkg understanding of the filesystem, it breaks dpkg-query, and while
+we could workaround the breakage there, it's still the wrong way to go
+around this.
+The main reasons I'm reading to justify it are, "because it's faster,
+and requires less effort", I mean, seriously… and as a "bonus" we now
+have the ctte involved again. Great setup really.
+Regards,
+Guillem

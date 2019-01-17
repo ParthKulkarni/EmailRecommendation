@@ -1,0 +1,40 @@
+To : Petter Reinholdtsen <pere@hungry.com>, 157888@bugs.debian.org
+Subject : Bug#157888: (c)debconf-copydb: do not handle --config=Foo:bar
+From : Cyril Brulebois <kibi@debian.org>
+Date : Sun, 25 Jun 2017 15:31:34 +0200
+Message-id : 20170625133134.GB945@mraw.org
+Reply-to : Cyril Brulebois <kibi@debian.org>, 157888@bugs.debian.org
+In-reply-to : <[🔎] 20170625091033.GA1400@diskless.uio.no>
+References : <E17i01a-0006Vx-00@saruman.uio.no> <20020822234625.GA18014@tausq.org> <[🔎] 20170625091033.GA1400@diskless.uio.no>
+
+
+Petter Reinholdtsen <pere@hungry.com> (2017-06-25):
+> [Randolph Chung 2002-08-22]
+> > I'll look into this in more detail, but keep in mind that while it *is*
+> > a goal for cdebconf and debconf to have compatible database formats,
+> > there's no current plans to make their configuration files (debconf.conf
+> > vs cdebconf.conf) compatible -- the cdebconf version uses different
+> > naming convetions than the debconf version, so while you *will* be able
+> > to copy a cdebconf db into debconf (and vice versa), you may not be able
+> > to do it with the same command. Maybe i'll name the cdebconf version
+> > cdebconf-copydb to highlight this fact.
+Wow, the blast from the past. :)
+> Thank you.  Perhaps we should document how to do it and close this bug?
+> 
+> What is the current recommended way to copy debconf values from d-i to
+> /target/?
+A global grep on debconf-copydb in d-i packages returned two results:
+,---[ pkgsel/debian/postinst ]---
+| # d-i debconf variables used by packages
+| debconf-copydb -p \
+|         "^(debian-installer/language|debian-installer/country|debian-installer/keymap|passwd/username)$" \
+|         configdb target_configdb
+`---
+,---[ console-setup/debian/console-setup-udeb.base-installer ]---
+|     # create the required templates
+|     debconf-copydb -p "^keyboard-configuration/.*$" configdb target_configdb
+`---
+I'm not aware of other mechanisms, but then I hadn't been confronted
+with this problem until just now.
+KiBi.
+signature.asc

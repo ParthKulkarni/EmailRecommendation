@@ -1,0 +1,52 @@
+To : submit@bugs.debian.org
+Subject : Bug#884003: FDT overlay support
+From : Andre Heider <a.heider@gmail.com>
+Date : Sun, 10 Dec 2017 11:56:33 +0100
+Message-id : d117fc6a-9da2-f6bd-43f8-85f7de5b4f03@gmail.com
+Reply-to : Andre Heider <a.heider@gmail.com>, 884003@bugs.debian.org
+
+
+Source: flash-kernel
+Severity: wishlist
+Recent u-boot versions support fdt overlays. It can load a base dtb, 
+apply various overlays to it, and pass the final device tree to the kernel.
+1: already given for debian's u-boot for ti's beagle bone black, which 
+is what I tested this on
+3: this should just be the user's responsibility for now (until there's 
+a centralized repository or something debian could just package)
+With the quick&dirty boot script [2] I can then successfully boot 
+debian's kernel with applied overlays of my choosing.
+That's great, especially since it's way to painful to just enable basic 
+stuff like spi. Now we "just" need a way for flash-kernel to support it ;)
+  like "OVERLAYS=am335x-bone-black-disable-video 
+am335x-bone-black-disable-audio am335x-bone-black-spidev0 
+am335x-bone-black-spidev1"
+- flash-kernel passes the list of overlays to it's u-boot boot script
+- the boot script loads and applies all requested overlays
+[1]
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 04b5633df1cf..e339d40c02d1 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -308,7 +308,7 @@ $(obj)/%.dtb.S: $(obj)/%.dtb
+ quiet_cmd_dtc = DTC     $@
+ cmd_dtc = mkdir -p $(dir ${dtc-tmp}) ; \
+    $(CPP) $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) $< ; \
+-   $(DTC) -O dtb -o $@ -b 0 \
++   $(DTC) -@ -O dtb -o $@ -b 0 \
+        $(addprefix -i,$(dir $<) $(DTC_INCLUDE)) $(DTC_FLAGS) \
+        -d $(depfile).dtc.tmp $(dtc-tmp) ; \
+    cat $(depfile).pre.tmp $(depfile).dtc.tmp > $(depfile)
+[2]
+load mmc 1 $fdt_addr_r am335x-boneblack.dtb
+fdt addr $fdt_addr_r
+fdt resize 8192
+load mmc 1 $ramdisk_addr_r am335x-bone-black-disable-video.dtb
+fdt apply $ramdisk_addr_r
+load mmc 1 $ramdisk_addr_r am335x-bone-black-disable-audio.dtb
+fdt apply $ramdisk_addr_r
+load mmc 1 $ramdisk_addr_r am335x-bone-black-spidev0.dtb
+fdt apply $ramdisk_addr_r
+load mmc 1 $ramdisk_addr_r am335x-bone-black-spidev1.dtb
+fdt apply $ramdisk_addr_r
+...

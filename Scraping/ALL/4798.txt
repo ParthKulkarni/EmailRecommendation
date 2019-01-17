@@ -1,0 +1,111 @@
+To : Debian Bug Tracking System <submit@bugs.debian.org>
+Subject : Bug#850802: Add s= as a command-line alias for url=https://
+From : Josh Triplett <josh@joshtriplett.org>
+Date : Tue, 10 Jan 2017 01:52:39 -0800
+Message-id : 148404195993.12718.16328705099198623892.reportbug@x
+Reply-to : Josh Triplett <josh@joshtriplett.org>, 850802@bugs.debian.org
+
+
+Package: preseed
+Severity: wishlist
+Tags: patch
+The attached patch adds s= as a command-line alias for url=https://
+url=example.org will assume "http://example.org";, but specifying an https:// URL
+requires typing out url=https://example.org .  Add an alias s= , mapping
+to the template preseed/https_url, which assumes https:// instead; this
+shortens the kernel command-line parameter to s=example.org .
+- Josh Triplett
+>From b5b7f25edb3a4d127cf2d0a86bd8cc5ca1c5198e Mon Sep 17 00:00:00 2001
+From: Josh Triplett <josh@joshtriplett.org>
+Date: Tue, 10 Jan 2017 01:46:28 -0800
+Subject: [PATCH] Add s= as a command-line alias for url=https://
+url=example.org will assume "http://example.org";, but specifying an https:// URL
+requires typing out url=https://example.org .  Add an alias s= , mapping
+to the template preseed/https_url, which assumes https:// instead; this
+shortens the kernel command-line parameter to s=example.org .
+---
+ auto-install.sh                            | 7 ++++++-
+ debian-installer-startup.d/S60auto-install | 1 +
+ debian/network-preseed.isinstallable       | 5 ++++-
+ debian/network-preseed.templates           | 7 +++++++
+ preseed_aliases                            | 1 +
+ 5 files changed, 19 insertions(+), 2 deletions(-)
+diff --git a/auto-install.sh b/auto-install.sh
+index 6dfa4d8..556f737 100755
+--- a/auto-install.sh
++++ b/auto-install.sh
+@@ -15,7 +15,12 @@ if [ -e /var/run/preseed_unspecified_at_boot ]; then
+ fi
+ 
+ # BEGIN: testable
+-db_get preseed/url && url="$RET"
++db_get preseed/https_url && url="$RET"
++if [ "$url" ]; then
++    url="https://$url";
++else
++    db_get preseed/url && url="$RET"
++fi
+ [ "$url" ] || exit 0
+ 
+ if [ "${url%%://*}" != "$url" ]; then
+diff --git a/debian-installer-startup.d/S60auto-install b/debian-installer-startup.d/S60auto-install
+index 7339ece..d95c896 100755
+--- a/debian-installer-startup.d/S60auto-install
++++ b/debian-installer-startup.d/S60auto-install
+@@ -7,6 +7,7 @@ if db_get auto-install/enable && [ "$RET" = true ]; then
+ 	echo 1 >/var/run/auto-install.active
+ 	# check that no preseed has been specified
+ 	if ! [ -e /preseed.cfg ] &&
++	   ! { db_get preseed/https_url && [ "$RET" ]; } &&
+ 	   ! { db_get preseed/url  && [ "$RET" ]; } &&
+ 	   ! { db_get preseed/file && [ "$RET" ]; }; then
+ 		# register that no preseed was specified.
+diff --git a/debian/network-preseed.isinstallable b/debian/network-preseed.isinstallable
+index 55d4af1..5a36260 100755
+--- a/debian/network-preseed.isinstallable
++++ b/debian/network-preseed.isinstallable
+@@ -2,8 +2,11 @@
+ . /usr/share/debconf/confmodule
+ . /lib/preseed/preseed.sh
+ 
++db_get preseed/https_url || exit 1
++https_url="$RET"
+ db_get preseed/url || exit 1
+-if [ -n "$RET" ] || [ -n "$(dhcp_preseed_url)" ]; then
++url="$RET"
++if [ -n "$https_url" ] || [ -n "$url" ] || [ -n "$(dhcp_preseed_url)" ]; then
+ 	exit 0
+ elif [ -e /var/run/preseed_unspecified_at_boot ]; then
+ 	# auto-install active: prompt for URL
+diff --git a/debian/network-preseed.templates b/debian/network-preseed.templates
+index d0b7c7c..91f0800 100644
+--- a/debian/network-preseed.templates
++++ b/debian/network-preseed.templates
+@@ -30,6 +30,13 @@ Type: string
+ Description: for internal use; can be preseeded
+  Optional md5sum (or sums) for the preconfiguration files
+ 
++Template: preseed/https_url
++Type: string
++Description: for internal use; can be preseeded or set on command line via s=
++ URL for preseed configuration; will have https:// prefix added to it.
++ .
++ See preseed/url for more details.
++
+ Template: auto-install/enable
+ Type: boolean
+ Default: false
+diff --git a/preseed_aliases b/preseed_aliases
+index 6a514ca..a42acbe 100644
+--- a/preseed_aliases
++++ b/preseed_aliases
+@@ -8,6 +8,7 @@ auto	auto-install/enable
+ classes	auto-install/classes
+ file	preseed/file
+ url	preseed/url
++s	preseed/https_url
+ domain	netcfg/get_domain
+ hostname	netcfg/get_hostname
+ interface	netcfg/choose_interface
+-- 
+2.11.0

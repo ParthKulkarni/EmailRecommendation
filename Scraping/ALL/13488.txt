@@ -1,0 +1,31 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Unsustainable debian/rules as official build entry point?
+From : Felipe Sateler <fsateler@debian.org>
+Date : Wed, 18 Oct 2017 12:08:53 +0000 (UTC)
+Message-id : os7g8l$heb$1@blaine.gmane.org
+References : <[🔎] 20171018093641.tzyv5aku4lmdw2dr@gaara.hadrons.org>
+
+
+On Wed, 18 Oct 2017 11:36:41 +0200, Guillem Jover wrote:
+> And I've got to question whether we should keep supporting it or just
+> declare dpkg-buildpackage to be that entry point.
+I think it makes sense to declare dpkg-buildpackage the official entry 
+point. Reasons for:
+1. It is already the de-facto entry point, since buildds use dpkg-
+buildpackage, and so do pbuilder and sbuild.
+2. Most (all?) of the archive already depends on dpkg-dev, by using the /
+usr/share/dpkg/*.mk helpers (either directly or indirectly via CDBS) and 
+using dpkg-* tools (either directly or indirectly via debhelper).
+3. Providing a clean environment helps the reproducibility efforts, by 
+providing a single place where many weird environment variables can be 
+neutered. It probably will also help other archive-wide efforts
+4. dpkg-buildpackage has the --target and --as-root flags to invoke any 
+debian/rules target since 1.15 (oldoldstable has 1.16).
+Reasons against:
+1. Finger memory. This can be alleviated via a suitable alias 
+drules='dpkg-buildpackage --target'.
+I can't come up with other reasons.
+Let's make dpkg-buildpackage the official entry point.
+-- 
+Saludos,
+Felipe Sateler

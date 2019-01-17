@@ -1,0 +1,41 @@
+To : <debian-boot@lists.debian.org>, <submit@bugs.debian.org>
+Subject : install to harddrive, ignore connected usb, reboot with preseeded grub
+From : "Raymond Burkholder" <ray@oneunified.net>
+Date : Sun, 10 Dec 2017 02:22:33 -0400
+Message-id : 5dd501d3717f$44b11e80$ce135b80$@oneunified.net
+
+
+Package: grub-installer
+Version: 1.140+deb9u1
+Is there a magic incantation for preseed files to install to a harddrive
+when usb is present?
+There are two stages:  usb appears as /dev/sda during install process, but
+appears as something else, maybe /dev/sdd during normal boot
+Therefore, the target drive might be /dev/sdb during install, but shows as
+/dev/sda during normal boot.
+My almost working preseed file has:
+============
+# install to /dev/sdb (main harddrive), when usb shows as /dev/sda
+# these two lines are correct and working for the install process
+d-i    partman-auto/select_disk        select  /dev/sdb
+d-i     partman-auto/disk       string  /deb/sdb
+# grub 
+# the first value is correct to install grub
+d-i  grub-installer/bootdev  string /dev/sdb
+# a couple of items I've seen both true and false, but do not seem to affect
+the outcome:
+d-i grub-installer/only_debian boolean false
+d-i grub-installer/with_other_os boolean false
+# I am not sure how to get these values to work properly, or maybe I am
+missing something
+d-i     grub-installer/choose_bootdev   select  /dev/sda2
+d-i     grub-pc/install_devices multiselect     /dev/sda2
+=============
+The final boot should be /dev/sda2, but /boot/grub/grub.cfg seems to take on
+/dev/sdb2.
+The important piece here:  HOW does one get /dev/sda2 (instead of /dev/sdb2)
+into /boot/grub/grub.cfg?
+-- 
+This message has been scanned for viruses and
+dangerous content by MailScanner, and is
+believed to be clean.

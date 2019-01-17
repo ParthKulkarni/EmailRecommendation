@@ -1,0 +1,45 @@
+To : Colin Watson <cjwatson@debian.org>
+Subject : Bug#868900: iso-scan: should be able to copy the ISO into RAM before mount
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Tue, 28 Nov 2017 15:24:41 +0100
+Message-id : 20171128142441.GB1336@x260-buxy
+Reply-to : Raphael Hertzog <hertzog@debian.org>, 868900@bugs.debian.org
+In-reply-to : <20171029160734.f546blvknulcihka@riva.ucam.org>
+References : <20170719151921.rggjusncu3fkny4i@home.ouaza.com> <20171029160734.f546blvknulcihka@riva.ucam.org> <20170719151921.rggjusncu3fkny4i@home.ouaza.com>
+
+
+Control: tag -1 + pending
+On Sun, 29 Oct 2017, Colin Watson wrote:
+> diff --git a/debian/iso-scan.postinst b/debian/iso-scan.postinst
+> index e34f329..1109ba5 100755
+> --- a/debian/iso-scan.postinst
+> +++ b/debian/iso-scan.postinst
+[...]
+> The directory-changing here is messy, and left me wondering whether
+> analyze_cd might depend on the current directory, which is now different
+> depending on which option you select.  I don't think it does, but I had
+> to read that function to make sure.  I'd suggest simplifying this
+> section of code by mounting or copying by absolute path, i.e.
+> "/hd-media/$iso_to_try", rather than relying on it being in the current
+> directory; you then won't need either "cd /hd-media" or "cd /" in this
+> function.
+Done:
+https://anonscm.debian.org/cgit/d-i/iso-scan.git/commit/?id=6a22df6676bfbba6b2a49c512499a189768c3475
+>  * Would it be worth doing an explicit check of how much free memory is
+>    available and either warning the user or just refusing outright to do
+>    the copy-to-RAM operation if they don't have enough (size of image
+>    plus fudge factor)?
+Done. If the user doesn't have enough RAM, we don't offer the possibility
+to copy the ISO to RAM. The template is thus rewritten accordingly.
+>  * We should warn the user that, if they opt to copy the image into RAM,
+>    then they mustn't reboot between partitioning and the end of the
+>    installation as their installation media may be made unusable.
+>    (Wordsmithing this into something comprehensible is left as an
+>    exercise for the reader.)
+You can find the updated templates in the commit I pushed:
+https://anonscm.debian.org/cgit/d-i/iso-scan.git/commit/?id=1728471d573c8f5ddc7909a2472a4ae82ad8b8cf
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/

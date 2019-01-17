@@ -1,0 +1,74 @@
+To : Cyril Brulebois <kibi@debian.org>
+Subject : Bug#865425: debian-installer-9-netboot-mips64el: mips64el Malta netboot installer finds no installable kernel
+From : Aurelien Jarno <aurelien@aurel32.net>
+Date : Sat, 24 Jun 2017 19:07:40 +0200
+Message-id : 20170624170740.kusvuil7qm3w76by@aurel32.net
+Mail-followup-to : Cyril Brulebois <kibi@debian.org>,	Bruno Bierbaumer <list@bierbaumer.net>, 865425@bugs.debian.org,	debian-mips@lists.debian.org, qemu@packages.debian.org
+Reply-to : Aurelien Jarno <aurelien@aurel32.net>, 865425@bugs.debian.org
+In-reply-to : <[🔎] 20170624001203.GT17297@mraw.org>
+References : <[🔎] 20170621112210.19201.97375.reportbug@j191014.servers.jiffybox.net> <[🔎] 20170624001203.GT17297@mraw.org>
+
+
+On 2017-06-24 02:12, Cyril Brulebois wrote:
+> Control: reassign -1 libdebian-installer 0.110
+> Control: affects -1 debian-installer-9-netboot-mips64el
+> 
+> Bruno Bierbaumer <list@bierbaumer.net> (2017-06-21):²
+> > Package: debian-installer-9-netboot-mips64el
+> > Severity: normal
+> > Tags: d-i
+> > 
+> > Dear Maintainer,
+> > 
+> > I wanted to install Debian Stretch mips64el in QEMU.
+> > It seems that the netboot installer can't find any installable kernel for this architecture.
+> > There is definitely linux-images for 5kc-malta in the repo and the same install procedure worked for both mips and mipsel.
+> > 
+> > Steps to reproduce:
+> > 
+> > qemu-system-mips64el -M malta -m 256 -cpu MIPS64R2-generic  \
+> > -drive file=hda.qcow2,if=virtio,format=qcow2,index=0 \
+> > -kernel vmlinux-4.9.0-3-5kc-malta \
+> > -initrd initrd.gz \
+> > -net user,hostfwd=tcp::22222-:22 \
+> > -net nic \
+> > -nographic \
+> > -append "nokaslr"
+> > 
+> > The installer will show the error: No installable kernel was found in the defined APT sources
+> 
+> Some info about this:
+> ~ # archdetect 
+> mips64el/unknown
+> 
+> and “unknown” is why base-installer isn't able to pick the right kernel.
+> 
+> Looking at the hwmap structure in src/system/subarch-mips-linux.c (from
+> the libdebian-installer package), where architecture detection happens,
+> I initially thought we were missing some MIPS64 pattern there, but that
+> doesn't seem the case, as /proc/cpuinfo reports this:
+> | system type             : MIPS Malta
+> …
+> | cpu model               : MIPS GENERIC QEMU V0.0  FPU V0.0
+> 
+> (Full contents below for reference.)
+> 
+> and those are the ones which are searched through the hwmap…
+> 
+> I'm not sure how to fix libdebian-installer here, adding debian-mips@
+> and qemu maintainers in copy.
+> 
+> It might make sense to update the bug report title as well at some
+> point, since this is likely an issue on QEMU only?
+The current version of subarch-mips-linux.c tries to detect if the CPU
+is 32 or 64-bit using the CPU type. It's therefore not prepared for the
+"GENERIC QEMU" type returned in /proc/cpuinfo. The code should probably
+be modified to use the "isa" field as a fallback if the "cpu model"
+field can't be used to determine the flavour.
+That said, the quick workaround is to emulate a real CPU in QEMU. For
+example you can select the 5KEf CPU which is a MIPS64R2 CPU with FPU.
+Aurelien
+-- 
+Aurelien Jarno                          GPG: 4096R/1DDD8C9B
+aurelien@aurel32.net                 http://www.aurel32.net
+signature.asc

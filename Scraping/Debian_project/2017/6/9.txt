@@ -1,0 +1,69 @@
+To : Debian Development <debian-devel@lists.debian.org>
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Ghislain Vaillant <ghisvail@gmail.com>
+Date : Thu, 01 Jun 2017 12:32:21 +0100
+Message-id : 1496316741.17439.3.camel@gmail.com
+In-reply-to : <CAD=QJKii4TMGwxqk-gfw4q5X-Z9p9R1zK7AZdgoGz+nGtwjNNA@mail.gmail.com>
+References : 	<CAD=QJKii4TMGwxqk-gfw4q5X-Z9p9R1zK7AZdgoGz+nGtwjNNA@mail.gmail.com>
+
+
+On Wed, 2017-05-31 at 14:41 -0400, Nicholas D Steeves wrote:
+> On 31 May 2017 at 13:53, Adam Borowski <kilobyte@angband.pl> wrote:
+> > On Wed, May 31, 2017 at 11:31:43AM +0100, Simon McVittie wrote:
+> > > On Wed, 31 May 2017 at 11:32:29 +1200, Ben Caradoc-Davies wrote:
+> > > > Trust is not transitive. Perhaps Recommends should not be either?
+> > > 
+> > > Recommends are for the relationship "wanting foo but not bar is unusual".
+> > > If A Recommends B and B Recommends C, and if we assume for example
+> > > that "unusual" means 10% of users of A do not need B and 10% of users
+> > > of B do not need C, then installing Recommends means somewhere
+> > > between 0% and 20% of users of A get C unnecessarily. (The real figure
+> > > depends on whether not wanting B and not wanting C are positively or
+> > > negatively correlated, or independent.)
+> > 
+> > That's true.
+> > 
+> > I'd say the biggest problem is maintainers having an emotional attachment to
+> > their packages and thus overestimating their importance.
+> > 
+> > A random example (not meant to single out its maintainer):
+> > libuuid1 (transitively essential) Recommends: uuid-runtime.
+> > The latter is, as far as I understand, needed only if you generate a massive
+> > number of uuids per seconds.  Packages that actually need so (like ceph)
+> > actually Depend: uuid-runtime already.  The rest -- those which need a
+> > single uuid per mkfs or so, are perfectly fine without that daemon.
+> > 
+> > Thus, axing this dependency or degrading it to Suggests would be probably a
+> > good idea.  And there's hundreds if not thousands of Recommends of this kind
+> > that need to be looked at -- this example is just more prominent as it
+> > affects every Debian system.
+> > 
+> > (I'm not filing bugs yet as it's better to have a consensus first before
+> > mass-filing.)
+> > 
+> 
+> With the exception of maintaining Recommends for mail-transport-agent
+> for packages where emailed warnings are highly desirable (there might
+> be others besides smartd and mdadm), I agree that there are many cases
+> were Recommends can be downgraded to Suggests.  My pet peeve is
+> unnecessary Recommends on texlive packages, but it's easy enough to
+> type "NO" and then install with --no-install-recommends...but if you
+> mass-file "please degrade Recommends to Suggests" I hope it will be
+> for a few of those :-)
++1 on the texlive packages.
+Considering their definitions in d-policy:
+```
+Recommends:
+This declares a strong, but not absolute, dependency. The Recommends
+field should list packages that would be found together with this one
+in all but unusual installations.
+Suggests:
+This is used to declare that one package may be more useful with one or
+more others. Using this field tells the packaging system and the user
+that the listed packages are related to this one and can perhaps
+enhance its usefulness, but that installing this one without them is
+perfectly reasonable.
+```
+I fail to understand how -doc packages can qualify for anything else
+but Suggests.
+Ghis

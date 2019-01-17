@@ -1,0 +1,53 @@
+To : Tommi Höynälänmaa <tommi.hoynalanmaa@gmail.com>
+Subject : Re: A problem with a watch file
+From : Sergio Durigan Junior <sergiodj@debian.org>
+Date : Thu, 11 Oct 2018 21:40:12 -0400
+Message-id : 87zhvk0woz.fsf@debian.org
+In-reply-to : <[🔎] 71cff004-7b27-8486-74eb-597da3c699ce@gmail.com> ("Tommi	Höynälänmaa"'s message of "Thu, 11 Oct 2018 15:13:19 +0300")
+References : <[🔎] 71cff004-7b27-8486-74eb-597da3c699ce@gmail.com>
+
+
+On Thursday, October 11 2018, Tommi Höynälänmaa wrote:
+> Hi
+>
+> What is wrong with the following watch file:
+>
+> ---cut-here---
+>
+> version=4
+> pgpsigurlmangle=s/$/.sig/ http://www.iki.fi/tohoyn/theme-d/
+> theme-d-gnome-(\d[\d.]*)\.tar\.(?:gz|bz2|xz)
+>
+> ---cut-here---
+>
+> It gives the following error message with uscan:
+>
+> ---cut-here---
+>
+> uscan warn: Filename pattern missing version delimiters () without
+> filenamemangle
+>   in debian/watch, skipping:
+>   pgpsigurlmangle=s/$/.sig/ http://www.iki.fi/tohoyn/theme-d/
+> theme-d-gnome-(\d[\d.]*)\.tar\.(?:gz|bz2|xz)
+>
+> ---cut-here---
+Complementing what Jonas said, you have a few more errors:
+1) The "theme-d-gnome*" packages are not listed in
+<http://www.iki.fi/tohoyn/theme-d/>.  Instead, they're at
+<http://www.tohoyn.fi/theme-d/theme-d-gnome.html>.
+2) Upstream uses "_" as the "NAME_VERSION" separator (instead of
+"NAME-VERSION").  Your regex doesn't match that.  Also, you have to be
+careful because upstream provides both "NAME_VERSION.tar.gz" and
+"NAME_VERSION.orig.tar.gz".
+3) Upstream doesn't seem to offer GPG signatures for the tarballs, so
+you don't need "pgpsigurlmangle".
+Having said all that, and using uscan v4's substitution strings:
+  version=4
+  http://www.tohoyn.fi/theme-d/theme-d-gnome.html theme-d-gnome_(\d[\d.]*)@ARCHIVE_EXT@
+Thanks,
+-- 
+Sergio
+GPG key ID: 237A 54B1 0287 28BF 00EF  31F4 D0EB 7628 65FC 5E36
+Please send encrypted e-mail if possible
+http://sergiodj.net/
+signature.asc

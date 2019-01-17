@@ -1,0 +1,51 @@
+To : Dirk Eddelbuettel <edd@debian.org>
+Subject : Re: Our build system may be broken: /bin vs /usr/bin
+From : Ian Jackson <ijackson@chiark.greenend.org.uk>
+Date : Mon, 19 Nov 2018 16:00:29 +0000
+Message-id : 23538.56861.624679.222210@chiark.greenend.org.uk
+In-reply-to : <[🔎] 23538.56335.820916.812620@rob.eddelbuettel.com>
+References : <[🔎] 23538.52963.365294.710701@rob.eddelbuettel.com>	<[🔎] 23538.55963.904698.258479@chiark.greenend.org.uk>	<[🔎] 23538.56335.820916.812620@rob.eddelbuettel.com>
+
+
+Dirk Eddelbuettel writes ("Re: Our build system may be broken: /bin vs /usr/bin"):
+> That was very much my gut feel but I am a little removed from the more core
+> moving and shaking and I didn't know what changed recently.
+This usrmerge change has been discussed here on -devel recently and
+IIRC has been associated with other lossage too.
+> FWIW GNU R is an rather obsessively clean user of to the autotools stack, so
+> I would agree that it failing here is a good-enough proof for having to
+> possibly revisiting things in our stack. I would expect much more breakage to
+> follow.
+I think the mechanism is probably as follows:
+1. R's autoconfery is autodetecting the location of (say) `sed' at
+   build time by searching the PATH.   R then bakes the discovered
+   path into the built binaries.
+2. With usrmerge, /bin is a symlink to /usr/bin or vice versa
+   (I'm afraid I forget which.)
+3. Consequently the R autoconfery always detects (say) `sed' in
+   the first place out of /usr/bin and /bin it looks, and bakes
+   /usr/bin/sed into its binaries.
+4. On a system without usrmerge, /usr/bin/sed does not exist,
+   because sed is in /bin.
+I think this demonstrates that build environments must not have
+usrmerge.  If they do, the information about where the file is on
+non-usrmerge systems is not present.
+I also think that the behaviour 1 above is poor practice; I think that
+things in Debian should always search $PATH at runtime.  But I know
+that this is not universally agreed and some important programs
+disagree and require absolute paths.  Debian policy requires that
+Debian-written scripts such as maintainer scripts honour $PATH, but I
+think it does not make such a requirement for programs in general.
+(Interestingly I think there is a cultural correlation between
+communities in favour of usrmerge and communities in favour of baking
+absolute paths into everything; this seems superficially a sensible
+correlation but the analysis above reveals it to be troublesome.)
+Hopefully someone will appear and remind us which package the usrmerge
+change is in, so that you can file a bug report.  I think that bug
+report should be RC.
+Regards,
+Ian.
+-- 
+Ian Jackson <ijackson@chiark.greenend.org.uk>   These opinions are my own.
+If I emailed you from an address @fyvzl.net or @evade.org.uk, that is
+a private address which bypasses my fierce spamfilter.

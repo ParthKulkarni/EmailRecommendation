@@ -1,0 +1,211 @@
+To : debian-boot <debian-boot@lists.debian.org>
+Subject : [l10n-sync] Updating sync script on git migration
+From : Holger Wansing <linux@wansing-online.de>
+Date : Sun, 3 Jun 2018 15:36:58 +0200
+Message-id : 20180603153658.142ceab3e1cd888576e4433a@wansing-online.de
+
+
+Hi,
+I have prepared the modification for the l10n-sync script, 
+please review.
+Holger
+-- 
+============================================================
+Created with Sylpheed 3.5.1 under 
+	D E B I A N   L I N U X   9   " S T R E T C H " .
+Registered Linux User #311290 - https://linuxcounter.net/
+============================================================
+--- l10n-sync	2018-06-03 14:07:10.583896235 +0200
++++ l10n-sync_workingcopy	2018-06-03 15:35:38.039508152 +0200
+@@ -7,6 +7,14 @@
+ # Translators, DO NOT RUN THIS SCRIPT YOURSELVES!!!!
+ #
+ 
++# Declaration:
++# This process has two parts:
++#   1. the packages/po directory, where translators are working in;
++#   2. the around 97 directories for the different packages in d-i.
++# In the past, part 1 was in svn, while part 2 was git.
++# Now, both are git repos, therefore I changed "svn" into "gitpo".
++#
++
+ export LC_ALL=en_US.UTF-8
+ 
+ COMMIT_MARKER="[l10n] "
+@@ -20,7 +28,6 @@
+ UPDATEPO=Y
+ SYNCPKGS=Y
+ QUIET=N
+-svn=svn
+ git=git
+ debconfupdatepo=debconf-updatepo
+ 
+@@ -32,7 +39,7 @@
+ 
+ usage() {
+ echo  "Usage:"
+-echo  "$0 [--online] [--keep-revision lang] [--atomic] [--atomic-updates] [--commit] [--levels="number_of_levels"] [--svn="path_to_svn"] [--git="path_to_git"] [--debconf-updatepo="debconf-updatepo command"] [--quiet|--nolog] <D-I repository path>"
++echo  "$0 [--online] [--keep-revision lang] [--atomic] [--atomic-updates] [--commit] [--levels="number_of_levels"] [--git="path_to_git"] [--debconf-updatepo="debconf-updatepo command"] [--quiet|--nolog] <D-I repository path>"
+ echo  "    --online            : Work online (will update the local copy on"
+ echo  "                          the fly)"
+ echo  "    --commit            : Commit changed files (implies --online)"
+@@ -46,7 +53,6 @@
+ echo  "                          meant for use when switching a language"
+ echo  "                          NOT RECOMMENDED in other situations"
+ echo  "    --levels            : number of levels"
+-echo  "    --svn               : path to the svn binary"
+ echo  "    --git               : path to the git binary"
+ echo  "    --debconf-updatepo  : debconf-updatepo command line"
+ echo  "                          (for using hacked debconf-updatepo)"
+@@ -58,18 +64,18 @@
+ echo  " <D-I repository path>: path to the local copy of the D-I repository"
+ }
+ 
+-svnerr() {
+-	echo "Error in a SVN operation, please investigate"
+-	echo "Trying to cleanup locks..."
+-	if "$DI_COPY" ;  then
+-		cd $DI_COPY
+-		$svn cleanup
+-	fi
++gitpoerr() {
++	echo "Error in a GIT operation at packages/po dir, please investigate"
++#	echo "Trying to cleanup locks..."
++#	if "$DI_COPY" ;  then
++#		cd $DI_COPY
++#		$svn cleanup
++#	fi
+ 	exit 1
+ }
+ 
+ giterr() {
+-	echo "Error in a GIT operation, please investigate"
++	echo "Error in a GIT operation in one of the package dirs, please investigate"
+ 	exit 2
+ }
+ 
+@@ -254,9 +260,6 @@
+ 	"--levels="*)
+ 		NUMLEVELS=`echo $1|cut -f2 -d=`
+ 		;;
+-	"--svn="*)
+-		svn=`echo $1|cut -f2 -d=`
+-		;;
+ 	"--git="*)
+ 		git=`echo $1|cut -f2 -d=`
+ 		;;
+@@ -320,11 +323,12 @@
+ 	exit 1
+ fi
+ 
+-if [ ! -d $DI_COPY/.svn ] ; then
+-	error "No $DI_COPY/.svn directory found"
+-	error "$DI_COPY may not be a copy of Debian Installer SVN repository"
+-	exit 1
+-fi
++# The packages/po dir is no longer a repository for it's own now.
++#if [ ! -d $DI_COPY/.svn ] ; then
++#	error "No $DI_COPY/.svn directory found"
++#	error "$DI_COPY may not be a copy of Debian Installer SVN repository"
++#	exit 1
++#fi
+ 
+ if [ -n "$MERGEDIR" ] ; then
+ 	if [ ! -d "$MERGEDIR" ] ; then
+@@ -346,8 +350,9 @@
+ done
+ 
+ # Do not accept working on an unclean copy
+-if $(svn st $DI_COPY/packages/po | grep -q "^C") ; then
+-	error "$DI_COPY seems to contain some SVN conflict files"
++if $($git status -s -uno $DI_COPY/packages/po) ; then
++	error "$DI_COPY seems to contain some GIT conflict files"
++	error "in packages/po."
+ 	error "Please fix this before launching the script again"
+ 	exit 1
+ fi
+@@ -360,7 +365,7 @@
+ cd $DI_COPY/packages/po
+ if [ "$ONLINE" = "Y" ] ; then
+ 	log_cmd -p "Synchronize $DI_COPY/packages..." \
+-		$svn update || svnerr
++		$git pull || gitpoerr
+ fi
+ 
+ # Check the packages/po/run-l10n-sync file
+@@ -401,22 +406,26 @@
+ #cd $DI_COPY
+ #if [ "$ONLINE" = "Y" ] ; then
+ #	log_cmd -p "Synchronize $DI_COPY/packages..." \
+-#		$svn update || svnerr
++#		$svn update || gitpoerr
+ #fi
+ 
+ # In case a merge has to be done with another directory
+ # we update this directory as well
+-if [ -n "$MERGEDIR" ] ; then
+-	cd $MERGEDIR/packages/po
+-	if [ "$ONLINE" = "Y" ] ; then
+-		log_cmd -p "Synchronize the merge directory $MERGEDIR/packages/po..." \
+-			$svn update || svnerr
+-	fi
+-fi
++#
++# !!! There is no need to do this anymore, since now we have everything in one repo.
++#
++#if [ -n "$MERGEDIR" ] ; then
++#	cd $MERGEDIR/packages/po
++#	if [ "$ONLINE" = "Y" ] ; then
++#		log_cmd -p "Synchronize the merge directory $MERGEDIR/packages/po..." \
++#			$svn update || gitpoerr
++#	fi
++#fi
+ 
+ # Let's check the thing again....ceinture et bretelles as we say in French
+-if $(svn st $DI_COPY/packages/po | grep -q "^C") ; then
+-	error "$DI_COPY seems to contain some SVN conflict files"
++if $($git status -s -uno $DI_COPY/packages/po) ; then
++	error "$DI_COPY seems to contain some GIT conflict files"
++	error "in packages/po."
+ 	error "Please fix this before lauching the script again"
+ 	exit 1
+ fi
+@@ -441,7 +450,8 @@
+ 	for i in  $packages; do 
+ 		log "- $i"
+ 		cd $DI_COPY/packages/$i/debian
+-		cd $DI_COPY/packages/$i/debian
++# ??????? Why two identical lines ??????
++#		cd $DI_COPY/packages/$i/debian
+ 		log_cmd -p "  - Run debconf-updatepo..." \
+ 			$debconfupdatepo
+ 		if [ "$COMMIT" = "Y" ] ; then
+@@ -465,7 +475,7 @@
+ log "- Merge all package templates.pot files..."
+ # Check that the next msgcat will not fail (otherwise the template.pot would be empty!)
+ if ! msgcat ${pots} >/dev/null 2>&1 ; then
+-	svnerr
++	gitpoerr
+ fi
+ log_cmd --pass msgcat $pots | \
+ 	sed 's/charset=CHARSET/charset=UTF-8/g' >$DI_COPY/packages/po/template.pot.new
+@@ -663,7 +673,9 @@
+ 
+ if [ "$COMMIT" = "Y" ] ; then
+ 	log_cmd -p "Commit all general PO/POT files to SVN..." \
+-		$svn commit -m \"$COMMIT_MARKER Updated packages/po/* against package templates\" || svnerr
++		$git add *.po
++		$git commit -m \"$COMMIT_MARKER Updated packages/po/* against package templates\" || gitpoerr
++		$git push
+ fi
+ log ""
+ 
+@@ -679,7 +691,7 @@
+ 		cd $DI_COPY/packages/$package/debian/po
+ 		if [ "$ONLINE" = "Y" ] ; then
+ 			log_cmd -p "  - synchronize with D-I repository..." \
+-				$git pull || svnerr
++				$git pull || gitpoerr
+ 		fi
+ 		log "  - rebuild language files"
+ 		# For each language listed in packages/po, update PO files

@@ -1,0 +1,56 @@
+To : debian-devel@lists.debian.org, 860368@bugs.debian.org
+Subject : Bug#860368: installer: create network bridges by default?
+From : Evgeni Golov <evgeni@debian.org>
+Date : Sun, 16 Apr 2017 08:51:23 +0200
+Message-id : 20170416065123.7bzmowy6g5oabk3m@nana.phantasia.die-welt.net
+Reply-to : Evgeni Golov <evgeni@debian.org>, 860368@bugs.debian.org
+In-reply-to : <[🔎] accf61de-2c85-403b-09a0-35662db6f918@pocock.pro>
+References : <[🔎] accf61de-2c85-403b-09a0-35662db6f918@pocock.pro>
+
+
+Hi Daniel,
+On Sat, Apr 15, 2017 at 10:50:30AM +0200, Daniel Pocock wrote:
+> With VirtualBox dropping out of testing[1], more people will be using
+> KVM and libvirt/virt-manager[2] for desktop virtualization.
+IMHO it was not in testing for quite some time, as it was gone from main to contrib.
+But YMMV :)
+> With VirtualBox, it was possible for people to bridge their physical
+> network interfaces with their VM guest systems using the GUI / setup wizard.
+> 
+> With libvirt, that is possible using macvtap but it is unreliable and
+> doesn't allow[3] communication between the guest and the host, only
+> between the guest and other hosts on the subnet.
+Doesn't libvirt create a virbr0 bridge upon installation?
+At least all my setups have that, and it is perfect for my needs:
+* host can talk to the guests
+* guests can talk to the host
+* guests can get to "the internet" due to NAT setup by libvirt
+The setup should look someting like this:
+# virsh net-dumpxml default
+<network>
+  <name>default</name>
+  <uuid>ffa97f93-f2bf-449e-9a3b-84a628367afb</uuid>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <mac address='52:54:00:66:1e:09'/>
+  <ip address='192.168.122.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.122.2' end='192.168.122.254'/>
+    </dhcp>
+  </ip>
+</network>
+> The solution is for people to configure a bridge or Open vSwitch (OVS)
+> in /etc/network/interfaces.  (Notice OVS can be configured[4] in the
+> interfaces file).  Maybe it would be useful to offer one or both of
+> these options at install time, or even configure a standard (non-OVS)
+> bridge by default in case the user decides to try KVM in future?
+IMHO the above implements option 1?
+> Are there other use cases apart from KVM that would benefit from this?
+I also use LXC on the same bridge, just for the fact that it is already set
+up and provides DHCP, DNS and NAT.
+Cheers
+Evgeni

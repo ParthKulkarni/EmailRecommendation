@@ -1,0 +1,46 @@
+To : debian-devel@lists.debian.org
+Subject : Re: What can Debian do to provide complex applications to its users?
+From : Robert Collins <robertc@robertcollins.net>
+Date : Mon, 19 Feb 2018 13:16:32 +1300
+Message-id : CAJ3HoZ19usMTg+N1EdV5kDPffOjKkLrqsGTwaxbnmeBPKWuvKw@mail.gmail.com
+In-reply-to : <[🔎] 20180217231451.3pqcso2sy53hfl2o@riva.ucam.org>
+References : <[🔎] 20180216151129.GB18296@home.ouaza.com> <[🔎] 1518796684.2867.116.camel@debian.org> <[🔎] e7bb0d56-1333-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 20180216171204.GB4131@feivel> <[🔎] 87vaew939z.fsf@iris.silentflame.com> <[🔎] 20180216193816.GA3202@feivel> <[🔎] 87eflk8u7q.fsf@iris.silentflame.com> <[🔎] CAKTje6EpCJ+KBoh9nGW-7nzcs8EeFoAJXUxfb6tC0AJMVKoDiw@mail.gmail.com> <[🔎] 87sh9za5ai.fsf@hope.eyrie.org> <[🔎] 87sh9zh3xu.fsf@err.no> <[🔎] 20180217231451.3pqcso2sy53hfl2o@riva.ucam.org>
+
+
+On 18 February 2018 at 12:14, Colin Watson <cjwatson@debian.org> wrote:
+...
+>  * Maybe truncate the frozen dependency tree at C extensions, in order
+>    that we can make sure those are built for all architectures, so you'd
+>    still have to care about compatibility with those.  It'd be a much
+>    smaller problem, though.
+One case where this truncation would be a challenge is the Numpy and
+scipy ecosystem, where the extensions are tightly coupled to blas
+library used and the numpy ABI - because extensions built on top of
+numpy depend on that ABI. pip has had difficulty shipping binaries of
+these stacks because it doesn't represent the ABI - it assumed that
+anything with a matching version number was compatible, which isn't
+the case. Arguably numpy should do something different there, but it
+doesn't :)
+>  * Every frozen dependency must be installed in a particular defined
+>    path based on (application name, dependency name, dependency
+>    version), and must be installed using blessed tools that generate
+>    appropriate packaging metadata that can be scanned centrally without
+>    having to download lots of source packages.
+>
+>  * Updating a single frozen dependency (assuming no API changes to the
+>    application's source code) must be no harder than updating a single
+>    line in a single file and bumping the Debian package version.
+>
+>  * Where applicable, deprecation warnings must be configured as
+>    warnings, not errors, to maximise compatibility.
+Perahps its worth adding 'deprecations should be enabled if off by
+default - at least during build-time' - I'm thinking of Python where
+we (upstream) disabled deprecation warnings and many folk get
+surprised as a result.
+>  * Dependencies with a non-trivial CVE history would have an acceptable
+>    range of versions, so we could drop applications that persistently
+>    cause trouble while still allowing a bit of slack.  For some
+>    dependencies it might not be a problem at all; e.g. we probably don't
+>    care what version of python-testtools something uses.
+:P
+-Rob

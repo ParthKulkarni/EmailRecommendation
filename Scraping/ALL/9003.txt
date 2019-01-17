@@ -1,0 +1,74 @@
+To : Raphael Hertzog <hertzog@debian.org>, 886506@bugs.debian.org,	debian-boot@lists.debian.org, Chris Boot <bootc@debian.org>,	debian-glibc@lists.debian.org
+Subject : Re: busybox sh broken on i386 with glibc 2.26, leads to kernel panic
+From : Aurelien Jarno <aurel32@debian.org>
+Date : Wed, 17 Jan 2018 12:31:06 +0100
+Message-id : 20180117113106.GC7966@aurel32.net
+Mail-followup-to : Raphael Hertzog <hertzog@debian.org>,	886506@bugs.debian.org, debian-boot@lists.debian.org,	Chris Boot <bootc@debian.org>, debian-glibc@lists.debian.org
+In-reply-to : <[🔎] 20180117110832.GA3203@home.ouaza.com>
+References : <[🔎] 20180117110832.GA3203@home.ouaza.com>
+
+
+control: reassign -1 busybox
+control: retitle -1 busybox: wrongly compiled with -mpreferred-stack-boundary=2 on i386
+On 2018-01-17 12:08, Raphael Hertzog wrote:
+> Control: reassign -1 src:glibc 2.26-1
+> Control: retitle -1 busybox sh broken on i386 with glibc 2.26, leads to kernel panic
+> Control: severity -1 serious
+> Control: affects -1 + busybox src:linux
+> 
+> Hello,
+> 
+> on i386 with glibc 2.26-4, busybox sh is broken:
+> 
+>     $ busybox sh
+>     [...]
+>     BusyBox v1.27.2 (Debian 1:1.27.2-2) built-in shell (ash)
+>     Enter 'help' for a list of built-in commands.
+> 
+>     Segmentation fault
+> 
+> In the kernel messages, you see this:
+> [1097712.640730] traps: busybox[3288] general protection ip:f7e9a51d sp:ff8da68c error:0 in libc-2.26.so[f7d48000+1cd000]
+> 
+> There's a work-around (the same as the one described in
+> #887169):
+> 
+>     $ GLIBC_TUNABLES=glibc.tune.hwcaps=-SSE4_2 busybox sh
+>     [...]
+>     BusyBox v1.27.2 (Debian 1:1.27.2-2) built-in shell (ash)
+>     Enter 'help' for a list of built-in commands.
+> 
+>     ~ $
+> 
+> Given that busybox's sh is used in the initrd and that the init
+> command is a shell script, this will lead to the kernel panic
+> shown earlier in this bug report.
+> 
+> Possible work-arounds in the mean time:
+> - disable busybox in the initrd by setting BUSYBOX=n in
+>   /etc/initramfs-tools/initramfs.conf (but this is not
+>   possible if you use cryptsetup)
+> - you can add the "GLIBC_TUNABLES=glibc.tune.hwcaps=-SSE4_2" to the kernel
+>   command line so that it's set in the environment of the init script
+>   (this will at least let you boot once to fix it permanently)
+> - install busybox-static instead of busybox (since it was built with
+>   an earlier version of glibc) and rebuild your initrd.
+> 
+> Aurélien Jaron commented on IRC that this was strange that busybox
+> was affected by this bug since the analysis made in #887169 lead to
+> believe that only binaries compiled with -mstack-align=4 would be
+> affected.
+busybox is compiled with -mpreferred-stack-boundary=2 on i386 which has
+the same effect of reducing the default stack alignment from 16 bytes to
+2 bytes. This comes from arch/i386/Makefile:
+|  # -mpreferred-stack-boundary=2 is essential in preventing gcc 4.2.x
+|  # from aligning stack to 16 bytes. (Which is gcc's way of supporting SSE).
+|  CFLAGS += $(call cc-option,-march=i386 -mpreferred-stack-boundary=2,)
+I don't really get why it is essential to prevent gcc from aligning
+stack to 16 bytes, anyway this is a bad idea. Removing this option just
+fixes the issue.
+I am therefore reassigning the bug to busybox.
+Aurelien
+-- 
+Aurelien Jarno                          GPG: 4096R/1DDD8C9B
+aurelien@aurel32.net                 http://www.aurel32.net

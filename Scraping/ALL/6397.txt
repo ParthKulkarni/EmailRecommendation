@@ -1,0 +1,38 @@
+To : submit@bugs.debian.org
+Subject : Bug#891009: debootstrap: wrongly falls back to https://deb.debian.org when try to create Ubuntu chroot
+From : Hideki Yamane <henrich@iijmio-mail.jp>
+Date : Wed, 21 Feb 2018 22:31:02 +0900
+Message-id : 20180221223102.d1bda7c4b2432792bc70db14@iijmio-mail.jp
+Reply-to : Hideki Yamane <henrich@iijmio-mail.jp>, 891009@bugs.debian.org
+
+
+Package: debootstrap
+Severity: normal
+Vesrion: 1.0.56
+Hi,
+ If you try "debootstrap <ubuntu codename> <dir>", it automatically falls
+ back to pre-defined HTTPS mirror. 
+> keyring () {
+>         if [ -z "$KEYRING" ]; then
+>                 if [ -e "$1" ]; then
+>                         KEYRING="$1"
+>                 elif [ -z "$DISABLE_KEYRING" ]; then
+>                         if [ -n "$DEF_HTTPS_MIRROR" ] && [ -z "$USER_MIRROR" ] && [ -z "$FORCE_KEYRING" ]; then
+>                                 info KEYRING "Keyring file not available at %s; switching to https mirror %s" "$1" "$DEF_HTTPS_MIRROR"
+>                                 USER_MIRROR="$DEF_HTTPS_MIRROR"
+>                         else
+ But defined DEF_HTTPS_MIRROR is https://deb.debian.org, it fails with
+ a bit wrong error message.	
+> $ sudo debootstrap artful artful
+> I: Keyring file not available at /usr/share/keyrings/ubuntu-archive-keyring.gpg; switching to https mirror https://deb.debian.org/debian
+> I: Retrieving InRelease 
+> I: Retrieving Release 
+> E: Failed getting release file https://deb.debian.org/debian/dists/artful/Release
+ Expected behavior is
+  - fails with just "Keyring file not available" error message
+  - or falls back to Ubuntu https mirror.
+ And, https assures only secure *connection*, not integrity of *contents*
+ as GPG does, so this behavior is not good, IMO. 
+-- 
+Regards,
+ Hideki Yamane     henrich @ debian.org/iijmio-mail.jp

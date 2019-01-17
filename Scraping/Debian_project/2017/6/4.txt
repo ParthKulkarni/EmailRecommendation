@@ -1,0 +1,64 @@
+To : debian-devel@lists.debian.org
+Subject : Re: Too many Recommends (in particular on mail-transport-agent)
+From : Henrique de Moraes Holschuh <hmh@debian.org>
+Date : Thu, 1 Jun 2017 14:00:37 -0300
+Message-id : 20170601170037.GA4766@khazad-dum.debian.net
+In-reply-to : <[🔎] 819832B7-6531-4786-A152-DF635A44C085@derobert.net>
+References : <87tw424kxc.fsf@deep-thought.43-1.org> <5A3F252E-1B3C-4968-BEE9-ED9D5CE32883@derobert.net> <20170531075133.fmgxgiigrevfe4yi@perpetual.pseudorandom.co.uk> <[🔎] 819832B7-6531-4786-A152-DF635A44C085@derobert.net>
+
+
+On Thu, 01 Jun 2017, Anthony DeRobertis wrote:
+> On May 31, 2017 3:51:33 AM EDT, Simon McVittie <smcv@debian.org>
+>  wrote:
+> >Can't it report this via the system log? (syslog, systemd-journald)
+> 
+> The kernel already does, but of course the system log has a lot of
+> messages, every several seconds on some systems. And the systemd
+> journal can be even worse, volume-wise. 
+The kernel log, syslog, and the journal... all of them have the idea of
+message priorities.
+Anything on the top three priorities (critical, alert and emergency) is
+supposed to be displayed immediately to all logged-in users (including
+remote ones), no matter what.
+> It would be great it we had an alert program to use instead of email
+KDE displays high-priority system alerts as high priority notifications
+by default (maybe some of it because of the default configuration of
+rsyslog).
+rsyslog will forcefully write high-priority messages to all ttys, local
+and remote, by default.
+If your DE doesn't display system alerts by default, it is a fight you
+might want to take... file bugs!
+> discussed before... If we had one, it'd be relatively easy to have
+> mdadm, smartmontools, etc. use it. 
+We have had this working for the better part of two decades, through
+syslog.  We also have had an extremely good daemon to take care of it
+for nearly half that time: rsyslog.  And rsyslog is configured to do the
+right thing by default.
+Since journald can plug to syslog just fine, and does so by default in
+Debian, it also does the right thing by default at least in Debian.
+What we *might* not do by default is to force all the DEs to display
+these alerts out-of-the-box.  I haven't tested all main DEs for this, so
+I wouldn't know.
+> >> OTOH, seems weird for Dracut to recommend mdadm. Surely a system
+> >> booting from RAID would already have it installed?
+> >
+> >dracut defaults to creating a general-purpose initramfs that is not
+> >meant to hard-code anything and can be used to boot "most" hardware 
+> 
+> I'm not really familiar with Dracut, but I'll note that needing mdadm
+> is almost always a property of the OS install being booted, not of the
+> hardware it's running on. So not including mdadm doesn't make the
+> particular install any less portable, though it does make the
+> initramfs less general to booting arbitrary installs.
+Correct.
+The initramfs-tools does not depend or recommend mdadm.  However,
+initramfs-tools is modular and its mdadm support is supplied by the
+mdadm package.
+Dracut isn't modular, and its mdadm support is built-in.  This is a key
+difference.
+One needs to actually read dracut's source code to know how it would
+behave in all boundary conditions related to mdadm support, in which
+case it might only suggest or not even mention mdadm.  It probably is
+safe, but the point is that someone has to check it first.
+-- 
+  Henrique Holschuh

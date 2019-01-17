@@ -1,0 +1,89 @@
+To : Russ Allbery <rra@debian.org>
+Subject : Re: Debian part of a version number when epoch is bumped
+From : Guillem Jover <guillem@debian.org>
+Date : Fri, 16 Feb 2018 03:00:15 +0100
+Message-id : 20180216020015.GA21858@gaara.hadrons.org
+Mail-followup-to : Russ Allbery <rra@debian.org>,	debian-devel@lists.debian.org
+In-reply-to : <[🔎] 87k1vfthqq.fsf@hope.eyrie.org>
+References : <[🔎] 87eflnybir.fsf@luffy.cx> <[🔎] 20180214135407.on325smdsbofe4qm@khazad-dum.debian.net> <[🔎] 1518617345.25962.6.camel@liw.fi> <[🔎] m3a7wbo3vy.fsf@luffy.cx> <[🔎] 1518635464.22059.1.camel@liw.fi> <[🔎] m3vaezl4lq.fsf@luffy.cx> <[🔎] 8aea61ec-11c3-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] m3r2pnl3q3.fsf@luffy.cx> <[🔎] 6d2296dc-11c5-11e8-9b6a-00163eeb5320@msgid.mathom.us> <[🔎] 87k1vfthqq.fsf@hope.eyrie.org>
+
+
+Hi!
+Given that other parts of the original thread have started to repeat
+the same that has been discussed in previous referenced discussions,
+or even within this thread iteration, I've sat down and written a
+dpkg FAQ entry:
+  <https://wiki.debian.org/Teams/Dpkg/FAQ#Q:_What_are_version_epochs_and_why_and_when_are_they_needed.3F>
+This subthread though, prompted me to come up with something new
+though. :)
+On Wed, 2018-02-14 at 12:54:05 -0800, Russ Allbery wrote:
+> Michael Stone <mstone@debian.org> writes:
+> > That doesn't matter. The fundamental problem was that it's impossible to
+> > predict that a future package would have an older version of the
+> > software with a newer name. Whether that's done with an epoch that
+> > (horrors!) won't go away or because someone creates a crazy version
+> > string that obfuscates what's being done (yay?), the unpredictable
+> > breakage is the same. The solution isn't to get rid of epochs, the
+> > solution is to not create packages which contain older versions of
+> > software with newer names.
+> Not that this is probably easily fixable at this point, but mulling on
+> this a bit, I think it's because we actually have two version orderings
+> that we're compressing into one ordering.
+This only covers the revert case, for which epochs are really the
+wrong tool. To me this looks like the equivalent of using nukes as
+a town planning strategy. :)
+An epoch states that the previous version-line is no longer valid
+and cannot be used or relied on anymore going forward.
+> We want to do two things here:
+> 
+> * Give a package a larger version number so that the archive knows that it
+>   replaces the previous version of the package and so that clients know
+>   that this package should be installed in preference to the previous
+>   version.
+> 
+> * Express versioned dependencies in other packages, allowing you to say
+>   that you need at least version 1.8 of a package and 1.6 will not
+>   suffice.
+For a revert the only things we really need is to make the archive
+accept lower versions, and for the package managers to accept a version
+downgrade as the correct "upgrade" path. In this case preserving all
+the versioned dependencies/checks intact is what we'd want anyway.
+> Since there are two goals, a more correct implementation would be to split
+> these into two versions.  The simplest would be to have an integer
+> "version epoch" field in the package metadata separate from the version
+> number.  So instead of:
+> 
+> Version: 1.8-1
+> 
+> Version: 1:1.6-1
+> 
+> you'd have:
+> 
+> Version: 1.8-1
+> 
+> Version: 1.6-1
+> Epoch: 1
+I don't think splitting this into a new field would fix much, it would
+just complicate things. We already had the packaging revision in
+separate fields (Package_Revision, Package-Revision, Revision) long time
+ago, and it got eventually folded in. :)
+I think there are two ways to fix the revert problem properly:
+  * Create a new archive suite with some suite-specific metadata denoting
+    that whatever appears in this suite has a higher pin than anything
+    installed, and can thus downgrade packages (following the example
+    of the existing NotAutomatic repo fields). You could then have:
+      pkg-a_1.0-1 (sid) → pkg-a_2.0-1 (sid) → pkg-a_1.0-2 (sid-revert)
+    Of course one problem is that this might perhaps require for
+    example new apt sources entries.
+  * Add a new field, which specifies this is a revert and as such a
+    downgrade is expected. Then the package managers would know this
+    is the correct "upgrade" path. For example, say:
+       Version: 1.0-1
+       Version: 2.0-1
+       Version: 2.0-2
+       Version: 1.0-2
+       Reverts: 2.0-2
+    Perhaps, even allowing relationships in the field, dunno:
+       Reverts: >= 2.0-1, <= 2.0-2
+Thanks,
+Guillem

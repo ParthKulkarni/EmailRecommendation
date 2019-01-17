@@ -1,0 +1,46 @@
+To : Hideki Yamane <henrich@iijmio-mail.jp>
+Subject : debootstrap and using /var/cache/apt/archives as --cache-dir
+From : Raphael Hertzog <hertzog@debian.org>
+Date : Thu, 12 Apr 2018 10:41:57 +0200
+Message-id : 20180412084157.GC30420@home.ouaza.com
+Mail-followup-to : Raphael Hertzog <hertzog@debian.org>,	Hideki Yamane <henrich@iijmio-mail.jp>,	debian-boot@lists.debian.org
+In-reply-to : <[🔎] 20180412171447.d6b6358fb785f232d27b50e5@iijmio-mail.jp>
+References : <[🔎] e500cb43-3cd2-ef1f-dd6f-23cf3c563cfa@schinagl.nl> <[🔎] e500cb43-3cd2-ef1f-dd6f-23cf3c563cfa@schinagl.nl> <[🔎] 20180412075804.GA30420@home.ouaza.com> <[🔎] 20180412171447.d6b6358fb785f232d27b50e5@iijmio-mail.jp>
+
+
+Hi,
+moving to debian-boot as this is unrelated to this bug.
+On Thu, 12 Apr 2018, Hideki Yamane wrote:
+> >     Drop default value for --cache-dir parameter
+> >     
+> >     It is not at all appropriate for debootstrap to start putting files
+> >     in APT's cache of .deb files (it could possibly use it in a read-only
+> >     way, but writing to it is not desirable). Furthermore the code was not
+> >     working as expected, the default value was only put in place if the
+> >     --cache-dir option was passed and it would require an explicit value
+> >     anyway.
+> 
+>  It's not so wrong to put files under /var/cache/apt/archives, IMO.
+>  Users can get benefit without any notices with --cache-dir option.
+>  And I want to know the situation this doesn't work, so could you
+>  give me more explanation, please?
+Yes, this is a private directory used by APT. This has many implications:
+1/ You will put files there but what happens if "apt-get clean" is run in
+a cron job while you are running debootstrap ?
+2/ APT stores files there with a naming policy of its own (for instance
+it adds the epoch to the version) and you are not respecting that policy
+and you can run into trouble due to this. APT is able to clean up files
+it puts there, but it might not be able to clean up files put there by
+others in particular when their name is not consistent with what it uses.
+3/ debootstrap ought to be usable on any machine to bootstrap any
+distribution, what happens if /var/cache/apt/archives contains ubuntu
+packages (same name, same version, recompiled for ubuntu) and you want to
+bootstrap debian and not ubuntu ? You will remove the pre-existing file
+and put there a Debian package, breaking APT's cache.
+For all those reasons, I'm really sure that it is not a good idea
+to enable that directory as default --cache-dir.
+Cheers,
+-- 
+Raphaël Hertzog ◈ Debian Developer
+Support Debian LTS: https://www.freexian.com/services/debian-lts.html
+Learn to master Debian: https://debian-handbook.info/get/
